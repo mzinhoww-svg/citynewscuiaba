@@ -1,6 +1,6 @@
 # Painel de Fontes Implementation Plan
 
-> **Status: RASCUNHO v2 · decisões do dono de 27/09 incorporadas (via rápida, duas pessoas). Aguardando revisão final da spec.**
+> **Status: plano final (writing-plans), spec aprovada pelo dono em 27/09/2026.**
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Tarefas `[paralelo]` vão para superpowers:dispatching-parallel-agents, cada uma no seu worktree, só com os arquivos listados nela.
 
@@ -26,7 +26,7 @@
 - Escrita com versão otimista (`sources.version`); conflito nunca sobrescreve.
 - Limites: análise 10/h por pessoa e 20 requisições/h por host; coletar agora 1/5 min por fonte e 20/h por pessoa; testar conexão 30/h por pessoa; lote até 50 fontes.
 - Testes só com fontes fictícias (`*.example`, Folha do Cerrado, MT Agora, Portal Várzea…); `AI_PROVIDER=fake`; nenhum acesso à rede em teste.
-- `src/lib/ranking/*` não é alterado (P2 em andamento). `docs/sources-registry.md`, `.planning/*` e `src/lib/pipeline/{http,crawl}.ts` não são alterados por este plano (o reforço de SSRF em `http.ts`/`crawl.ts` é pré-requisito, feito fora daqui).
+- `src/lib/ranking/*` não é alterado (P2 em andamento). `docs/sources-registry.md`, `.planning/*` e `src/lib/pipeline/{http,crawl,net}.ts` não são alterados por este plano. O reforço de SSRF já existe (`net.ts`: `safeGet`, `urlProblem`, `isForbiddenHost`, `ResolveHost`, A-051); a descoberta usa `crawlGet`/`checkRobots`, que passam por ele.
 - Telas: estados carregando, vazio, erro e sucesso; 360, 768 e 1280 px; tokens do DESIGN.md; `<th scope="col">`; 0 violações `serious`/`critical` no axe.
 
 ## Review Focus
@@ -68,11 +68,13 @@ Posse de arquivos (garante que as tarefas paralelas não se tocam):
 | FS-T8 | `src/app/estudio/control/fontes/nova/*`, `src/app/estudio/control/fontes/[id]/**`, `src/components/studio/sources/{AddSourceWizard,AnalysisProgress,SourcePreviewList,SuggestionField,SourceConfigForm,SourceSectionNav,SourceHealthPanel,SourceRecForm,SourceAuditTable,SourceRunsTable,ConfirmByTypingDialog,BlockSourceDialog,ApproveChangeDialog}.tsx`, `src/content/pt-BR/sources-admin-detail.ts`, `tests/fixtures/sites/voz-do-coxipo-{home.html,feed.xml,robots.txt}`, `tests/e2e/control-sources-detail.spec.ts` |
 | FS-T9 | `tests/e2e/control-sources-flow.spec.ts`, `tests/fixtures/sites/jornal-da-chapada-{secao.html,robots.txt}`, `tests/a11y/control-sources.spec.ts`, `docs/reports/painel-fontes.md`, `docs/reports/painel-fontes/*.png`, `docs/superpowers/plans/2026-09-27-p5-control-center-admin.md` (nota em T4) |
 
-Pré-requisito externo: reforço de SSRF em `src/lib/pipeline/http.ts`/`crawl.ts` (redirecionamento manual com revalidação por salto, DNS resolvido, IP privado recusado). FS-T1, T2, T4 e T5 não dependem dele. Se FS-T3 começar antes, os testes do Review Focus 1 falham; nesse caso FS-T3 segue com o resto e a flag `source_link_analysis` fica `false` até o reforço entrar (registrar em `.planning/BLOCKERS.md`).
+Pré-requisito externo: satisfeito. O reforço de SSRF (redirecionamento manual com revalidação por salto, DNS resolvido por `ResolveHost` injetável, IP privado recusado) está em `src/lib/pipeline/net.ts` desde o gate P1/P3 (A-051). Nos testes, use o resolvedor falso (`fakeResolve`) já existente.
+
+Convivência com trabalho paralelo: o P2 (T7 em diante) pode estar alterando `supabase/seed.sql`, `src/lib/db/types.ts` e `src/lib/db/queries/sources.ts` no branch principal. FS-T1 começa depois que o P2 commitar o que estiver em andamento, ou roda num worktree próprio e rebaseia o seed no fim.
 
 ---
 
-### Task FS-T1: Migration 0010 e regras no banco
+### Task FS-T1: Migration 0011 e regras no banco
 
 **Files:**
 - Create: `supabase/migrations/0011_source_admin.sql`, `tests/integration/source-admin-db.test.ts`
@@ -181,7 +183,7 @@ it("fonte arquivada some de public_sources", async () => { /* pausar, arquivar, 
 - [ ] **Step 2: Run** `pnpm db:reset && pnpm vitest run tests/integration/source-admin-db.test.ts` → FAIL (colunas e funções não existem).
 - [ ] **Step 3: Implement** a migration na ordem: colunas e `check` → dados → tabelas → `ingest_runs` → funções (inclui `claim_source_fetch`, `peek_rate_limit`, `start_fast_run`) → triggers → RPCs → views → grants → IA → storage → flag → `schedule_pipeline_cron()`. `pnpm db:types`. Conferir que `tests/integration/{tick,rls-two-person,rls-hardening,db}.test.ts` continuam verdes.
 - [ ] **Step 4: Run** `pnpm verify` → PASS.
-- [ ] **Step 5: Commit** `feat(sources): migration 0010 do painel de fontes com duas pessoas e auditoria no banco [FS-T1]`
+- [ ] **Step 5: Commit** `feat(sources): migration 0011 do painel de fontes com duas pessoas e auditoria no banco [FS-T1]`
 
 ### Task FS-T2: Domínio puro das fontes [paralelo com FS-T1]
 
@@ -192,8 +194,8 @@ it("fonte arquivada some de public_sources", async () => { /* pausar, arquivar, 
 **Interfaces:**
 - Produces:
   - `types.ts`: `SourceLayer = 1|2|3|4`; `StatusReason`; `ImagePolicy`, `RepublishPolicy`, `Reliability`; `SourceConfig` (campos editáveis da spec §7.2); `SourceState = { status; statusReason; consecutiveFailures; archivedAt }`; `ConsumptionStrategy = "rss"|"atom"|"jsonfeed"|"sitemap_news"|"page_list"|"page_article"`; `PageSelectors = { item; link; title; date? }`; `SourcePreviewItem = { title; url; publishedAt: string | null }`; `SourcePreview = { finalUrl; siteName; description; strategy; feedUrl; items; droppedForInjection: number; termsLinks: string[] }`.
-  - `schema.ts`: `FAST_FREQUENCIES = [10, 15, 20]`; `frequencySchema` (`null`, 10, 15, 20 ou múltiplo de 30 em [30, 1440]; espelha o `check` de 0010); `defaultFrequencySchema` (só múltiplo de 30 em [30, 1440]); `fastLaneMaxSchema` (inteiro 0–20); `sourceConfigSchema` (zod, mensagens pt-BR; `editorialScore` 1–5, `priority` 1–3, `rateLimitPerHour` 1–120, `displayName` ≤ 60, `locality` ∈ `cuiaba|varzea-grande|mt|nacional`, `categories` ≤ 6); `consumptionSchema`; `pageSelectorsSchema`.
-  - `url.ts`: `normalizePastedUrl(input: string): Result<URL, "invalid"|"scheme"|"credentials"|"port"|"too_long"|"forbidden_host">` (usa `isForbiddenHost` de `http.ts`, sem editar o arquivo); `hostKey(u: URL): string`; `slugFromName(name: string): string`.
+  - `schema.ts`: `FAST_FREQUENCIES = [10, 15, 20]`; `frequencySchema` (`null`, 10, 15, 20 ou múltiplo de 30 em [30, 1440]; espelha o `check` de 0011); `defaultFrequencySchema` (só múltiplo de 30 em [30, 1440]); `fastLaneMaxSchema` (inteiro 0–20); `sourceConfigSchema` (zod, mensagens pt-BR; `editorialScore` 1–5, `priority` 1–3, `rateLimitPerHour` 1–120, `displayName` ≤ 60, `locality` ∈ `cuiaba|varzea-grande|mt|nacional`, `categories` ≤ 6); `consumptionSchema`; `pageSelectorsSchema`.
+  - `url.ts`: `normalizePastedUrl(input: string): Result<URL, "invalid"|"scheme"|"credentials"|"port"|"too_long"|"forbidden_host">` (usa `isForbiddenHost` de `src/lib/pipeline/net.ts`, sem editar o arquivo); `hostKey(u: URL): string`; `slugFromName(name: string): string`.
   - `critical.ts`: `IMAGE_POLICY_ORDER`, `RELIABILITY_ORDER`, `diffConfig(before, after): FieldChange[]`, `criticalChanges(before, after): FieldChange[]`, `targetRefFor(id, change): string` (`source:<id>:<campo_snake>=<valor>`).
   - `frequency.ts`: `effectiveFrequency(sourceMinutes: number | null, defaultMinutes: number, limits?: { crawlDelaySec: number | null; termsMinIntervalMinutes: number | null }): { minutes: number; raisedBy: null | "robots" | "terms" }` (menor valor da grade ≥ max(escolhida ou padrão, `ceil(2 × crawlDelaySec / 60)`, `termsMinIntervalMinutes`)); `laneOf(effectiveMinutes: number): "fast" | "normal"` (< 30 → `fast`); `isDue(s: { lastFetchedAt: string | null; frequencyMinutes: number }, now: Date): boolean` com `frequencyMinutes` = efetiva: via normal por janela de 30 min (`windowStart(now) − windowStart(last) ≥ freq`), via rápida pela grade de F min em janelas de 10 min (`floor(fastWindowStart(now) / F) > floor(fastWindowStart(last) / F)`, spec D-F17); `nextCollectionAt(s: { status; lastFetchedAt; frequencyMinutes }, now): Date | null` (janelas de 10 min na via rápida, de 30 min na normal); `suggestFrequency(publishedAts: string[], now: Date): { minutes: number; basis: "cadence" | "default"; itemsPerDay: number; medianGapMinutes: number | null }` (últimos 7 dias; `clamp(ceilTo30(medianGap / 2), 30, 1440)`, nunca sugere via rápida; < 3 datas → `default`).
   - `health.ts`: `operationalScore(h: { ok30; failed30; ok24h; failed24h; hoursSinceNewItem: number | null; expectedGapHours: number }): number | null` = `round(100 · (0,5 · disponibilidade30 + 0,3 · (1 − erro24h) + 0,2 · frescor))`, frescor 1 (≤ 2× gap), 0,5 (≤ 4×), 0; `healthLabel(score): "saudavel" | "atencao" | "critica" | "sem_dados"` (≥ 80, ≥ 50, < 50, `null`).
@@ -348,7 +350,7 @@ it("acha termos de uso do mesmo site", () =>
 
 - [ ] **Step 2: Run** `pnpm vitest run src/lib/sources/{discover,test-connection,preview,terms}.test.ts` → FAIL.
 - [ ] **Step 3: Implement** reaproveitando `activateSource` como referência (sem alterá-lo); nenhum `fetch` direto; `tried` com o resultado de cada candidato em pt-BR.
-- [ ] **Step 4: Run** `pnpm verify` → PASS. Se o teste de redirecionamento falhar por falta do reforço de SSRF, marcar `it.fails` não é permitido: registrar em `BLOCKERS.md`, manter o teste e deixar `source_link_analysis = false` até o reforço (Global Constraints).
+- [ ] **Step 4: Run** `pnpm verify` → PASS. O teste de redirecionamento usa o reforço de `net.ts`; se falhar, a causa é regressão aqui e se corrige na tarefa (nunca `it.fails`).
 - [ ] **Step 5: Commit** `feat(sources): descoberta por link, teste de conexão e prévia sanitizada [FS-T3]`
 
 ### Task FS-T4: Agente `source_profiler` [paralelo]
@@ -360,7 +362,7 @@ Depende de FS-T1 (seed do agente) e FS-T2 (tipos). Pode rodar junto com FS-T3 e 
 - Modify: `src/lib/ai/types.ts` (`AGENT_IDS` + `"source_profiler"`), `src/lib/ai/schemas/index.ts`, `src/lib/ai/defaults.ts` (agente novo com R$ 1; `write` R$ 11), `src/lib/ai/defaults.test.ts` (lê `0006_ai_seed.sql` + `0011_source_admin.sql`), `src/lib/ai/fake.ts` (resposta determinística)
 
 **Interfaces:**
-- Prompt v1 (idêntico na migration 0010): `Você analisa a amostra de uma fonte de notícias para o CityNews, portal de Cuiabá e Várzea Grande. Com base só nos títulos, datas, endereços e na estrutura da página fornecidos, sugira editorias da lista dada, a localidade principal (cuiaba, varzea-grande, mt ou nacional), alertas de qualidade e, quando for uma página sem feed, seletores CSS para item, link, título e data. Não opine sobre direitos de uso, confiabilidade ou frequência. Explique em até 3 frases.`
+- Prompt v1 (idêntico na migration 0011): `Você analisa a amostra de uma fonte de notícias para o CityNews, portal de Cuiabá e Várzea Grande. Com base só nos títulos, datas, endereços e na estrutura da página fornecidos, sugira editorias da lista dada, a localidade principal (cuiaba, varzea-grande, mt ou nacional), alertas de qualidade e, quando for uma página sem feed, seletores CSS para item, link, título e data. Não opine sobre direitos de uso, confiabilidade ou frequência. Explique em até 3 frases.`
 - Produces:
   - `sourceProfileSchema` (zod `.strict()`): `{ categories: string[] (≤ 5); locality: "cuiaba" | "varzea-grande" | "mt" | "nacional"; localityConfidence: number (0–1); qualityFlags: ("caca_clique" | "agregador" | "paywall" | "baixa_relevancia_local" | "patrocinado" | "sem_data")[]; pageSelectors: PageSelectors | null; rationale: string (≤ 400) }`.
   - `profileSource(callAgent: CallAgent, input: { preview: SourcePreview; domOutline: string | null; sections: string[] }): Promise<Result<ProfileSuggestion, AiError | "insufficient_data">>`; `ProfileSuggestion = { [campo]: { value; origin: "ia"; confidence: number } }`. Dados enviados: um bloco por título (`item-1`…`item-20`: título, data, caminho da URL), `meta` (nome do site, descrição ≤ 300), `estrutura` (esqueleto `tag.classe` sem texto, ≤ 4 000). Pós-validação: editorias fora de `sections` descartadas; seletores reprovados em `isSafeSelector` viram `null`.
@@ -393,7 +395,7 @@ it("descarta editoria fora da lista e marca origem ia", async () => {
 });
 it("domínio .gov.br sugere primary pedindo aprovação", () =>
   expect(ruleSuggestions(preview, new URL("https://www.agenciamt.example.gov.br/")).reliability).toMatchObject({ value: "primary", origin: "regra", needsApproval: true }));
-it("defaults espelham 0006 + 0010 e somam R$ 30", () => { /* defaults.test.ts atualizado */ });
+it("defaults espelham 0006 + 0011 e somam R$ 30", () => { /* defaults.test.ts atualizado */ });
 ```
 
 - [ ] **Step 2: Run** `pnpm vitest run src/lib/sources/profile.test.ts src/lib/ai` → FAIL.

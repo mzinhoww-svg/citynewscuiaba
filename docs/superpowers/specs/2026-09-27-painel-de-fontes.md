@@ -1,8 +1,8 @@
 # CityNews Cuiabá · Painel de Fontes (spec da funcionalidade)
 
-> **Status: RASCUNHO v2 · decisões do dono de 27/09 incorporadas (via rápida, duas pessoas). Aguardando revisão final da spec.**
+> **Status: APROVADA pelo dono em 27/09/2026 (via rápida, duas pessoas).**
 
-Status: **proposta para aprovação do dono do produto** (27/09/2026). Nada aqui revoga a spec mestre; onde houver conflito, a spec mestre vence. A única exceção é a **via rápida** (§5.1, §7.8): decisão do dono de 27/09/2026 que amplia a spec mestre §6.1/§6.2 e o plano P3 sem reescrevê-los.
+Status: **aprovada pelo dono do produto em 27/09/2026**. Nada aqui revoga a spec mestre; onde houver conflito, a spec mestre vence. A única exceção é a **via rápida** (§5.1, §7.8): decisão do dono de 27/09/2026 que amplia a spec mestre §6.1/§6.2 e o plano P3 sem reescrevê-los.
 Caminho: arquitetural (brainstorming → spec → plano `docs/superpowers/plans/2026-09-27-painel-de-fontes.md` → subagent-driven-development).
 Origem: pedido literal do dono, registrado abaixo.
 
@@ -101,7 +101,7 @@ Registrada aqui sem reescrever a spec mestre nem o plano P3. Onde eles dizem "fr
 |---|---|---|
 | Spec mestre §6.1 (fonte) | `frequency_minutes` mínimo 30 | `null` (padrão global) ou 10, 15, 20, 30…1 440 em múltiplos de 30; mínimo absoluto 10 |
 | Spec mestre §6.2 (ciclo) | Ciclo de 30 min: tick → coleta → … → notify | O ciclo normal continua igual. Além dele, um tick rápido a cada 10 min só cria o run `fast` e enfileira `fetch` das fontes rápidas vencidas; da validação em diante tudo segue pela mesma fila e pelo mesmo drain, com as mesmas regras e o mesmo orçamento |
-| Plano P3 | "Frequência mínima por fonte: 30 min"; `check (frequency_minutes >= 30)` em 0001 | O `check` passa a `frequency_minutes is null or frequency_minutes in (10,15,20) or (frequency_minutes between 30 and 1440 and frequency_minutes % 30 = 0)` em 0010; `dueSources` do tick normal ignora fontes rápidas |
+| Plano P3 | "Frequência mínima por fonte: 30 min"; `check (frequency_minutes >= 30)` em 0001 | O `check` passa a `frequency_minutes is null or frequency_minutes in (10,15,20) or (frequency_minutes between 30 and 1440 and frequency_minutes % 30 = 0)` em 0011; `dueSources` do tick normal ignora fontes rápidas |
 
 Consequências aceitas: mais requisições às fontes rápidas (até 6 por hora cada, contra 2 no ciclo normal), limitadas por `rate_limit_per_hour`, `robots.txt`/`Crawl-delay`, termos e pelas vagas `sources.fast_lane_max`; mais mensagens no drain a cada 10 min (no máximo `fast_lane_max` `fetch` por tick rápido, dimensionado para o Vercel Hobby); um run `fast` a cada 10 min enquanto houver fonte rápida ativa (histórico de `ingest_runs` cresce ~144 linhas/dia); um item de fonte rápida pode chegar às fases 3–6 até 20 min antes do que chegaria pelo ciclo normal, mas nada muda no custo de IA por item, nas regras de autonomia nem na revisão.
 
@@ -312,7 +312,7 @@ Auditoria (`audit_log`, só inserção, retenção 5 anos, spec §10): `source.c
 
 ## 10. Segurança
 
-- **SSRF.** A URL colada é de terceiros e a requisição sai do servidor. Toda requisição do painel passa por `crawlGet`/`checkRobots` de `src/lib/pipeline/http.ts`; nunca `fetch` direto. Depende do reforço em andamento em `http.ts`/`crawl.ts` (redirecionamento manual com revalidação de cada salto, resolução DNS e recusa de IP privado, loopback, link-local, CGNAT, IPv4 mapeado em IPv6, metadados de nuvem). Além disso, o painel recusa na entrada: esquema diferente de http/https, credenciais na URL, porta diferente de 80/443, host sem ponto, IP literal privado. Os seletores CSS vindos da IA são validados (`isSafeSelector`: tamanho, caracteres, sem `<`, `{`, `}`, `@`).
+- **SSRF.** A URL colada é de terceiros e a requisição sai do servidor. Toda requisição do painel passa por `crawlGet`/`checkRobots` de `src/lib/pipeline/http.ts`; nunca `fetch` direto. O reforço já está no código (`src/lib/pipeline/net.ts`, `safeGet`, A-051) (redirecionamento manual com revalidação de cada salto, resolução DNS e recusa de IP privado, loopback, link-local, CGNAT, IPv4 mapeado em IPv6, metadados de nuvem). Além disso, o painel recusa na entrada: esquema diferente de http/https, credenciais na URL, porta diferente de 80/443, host sem ponto, IP literal privado. Os seletores CSS vindos da IA são validados (`isSafeSelector`: tamanho, caracteres, sem `<`, `{`, `}`, `@`).
 - **Limites:** análise 10/h por pessoa e 20 requisições/h por host (bucket `discover`); coletar agora 1/5 min por fonte e 20/h por pessoa; lote até 50 fontes; testar conexão 30/h por pessoa. Tudo via `hit_rate_limit` (compartilhado entre instâncias, A-028).
 - **CSRF.** Só Server Actions (checagem de `Origin` do Next, cookies `SameSite=Lax`); nenhuma rota `GET` muda estado; `allowedOrigins` não é ampliado.
 - **Autorização em profundidade.** `/api/ingest/fast-tick` só aceita `POST` com `Authorization: Bearer $CRON_SECRET` (mesma checagem `isCronAuthorized` do tick normal, antes de montar dependências) e não recebe parâmetros: a lista de fontes vem do banco. `requireRole` no layout e em cada ação; RLS `sources_manage` (0002) para escrita; `delete` revogado; campos críticos no trigger; `source_health_daily` e `source_discoveries` sem escrita por `authenticated` (exceto discoveries pela RPC da análise).
@@ -362,7 +362,7 @@ Auditoria (`audit_log`, só inserção, retenção 5 anos, spec §10): `source.c
 
 | Risco | Mitigação |
 |---|---|
-| Reforço de SSRF em `http.ts` não chegar antes | FS-T3 falha nos testes de redirecionamento e DNS; a análise fica desligada (flag `source_link_analysis`) até o reforço entrar |
+| Regressão no reforço de SSRF (`net.ts`) | Testes de redirecionamento e DNS de FS-T3; flag `source_link_analysis` desliga a análise em um clique |
 | IA sugerir seletores frágeis | Só aparecem se extraírem ≥ 3 itens válidos; a extração é revalidada a cada coleta e falha conta para a pausa automática |
 | Afrouxar políticas fica lento | Intencional (D-F3); a lista de DP-2 é editável depois por decisão do dono |
 | Via rápida sobrecarregar fontes ou o drain do Vercel Hobby | Vagas `sources.fast_lane_max` (padrão 10, teto 20), no máximo `fast_lane_max` `fetch` por tick rápido, `rate_limit_per_hour`, `Crawl-delay` e termos elevando a frequência efetiva, requisição condicional, pausa automática após 3 falhas |
