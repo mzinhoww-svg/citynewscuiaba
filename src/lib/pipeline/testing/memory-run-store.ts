@@ -2,7 +2,10 @@ import type { DueSource, RunStore } from "../ports";
 
 /** `ingest_runs` em memória (só testes). */
 export function createMemoryRunStore(sources: DueSource[]) {
-  const runs = new Map<string, { runId: string; open: boolean; fetchEnqueued: boolean }>();
+  const runs = new Map<
+    string,
+    { runId: string; open: boolean; fetchEnqueued: boolean; startedAt: string }
+  >();
   let seq = 0;
   const store: RunStore = {
     async startRun(windowStart) {
@@ -10,7 +13,12 @@ export function createMemoryRunStore(sources: DueSource[]) {
       const existing = runs.get(key);
       if (existing)
         return { runId: existing.runId, created: false, fetchEnqueued: existing.fetchEnqueued };
-      const run = { runId: `run-${++seq}`, open: true, fetchEnqueued: false };
+      const run = {
+        runId: `run-${++seq}`,
+        open: true,
+        fetchEnqueued: false,
+        startedAt: new Date().toISOString(),
+      };
       runs.set(key, run);
       return { runId: run.runId, created: true, fetchEnqueued: false };
     },
@@ -25,6 +33,10 @@ export function createMemoryRunStore(sources: DueSource[]) {
     },
     async activeSources() {
       return sources;
+    },
+    async lastStartedAt() {
+      const all = [...runs.values()].map((r) => r.startedAt).sort();
+      return all.at(-1) ?? null;
     },
   };
   return Object.assign(store, { count: () => runs.size });

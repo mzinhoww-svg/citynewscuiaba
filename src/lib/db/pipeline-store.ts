@@ -83,6 +83,17 @@ export function createRunStore(db: DbClient): RunStore {
       return data?.id ?? null;
     },
 
+    async lastStartedAt() {
+      const { data, error } = await db
+        .from("ingest_runs")
+        .select("started_at")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      check("lastStartedAt", error);
+      return data?.started_at ?? null;
+    },
+
     async activeSources() {
       const { data, error } = await db
         .from("sources")

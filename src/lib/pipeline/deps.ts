@@ -28,6 +28,7 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import type { StatusDeps } from "./status";
 import type { TickDeps } from "./tick";
 
 /**
@@ -101,6 +102,15 @@ export function defaultDrainDeps(): DrainDeps & { secret: string | undefined } {
     runStep: createRunStep(productionHandlers()),
     events: createEventSink(createServiceClient()),
     now: () => Date.now(),
+    secret: process.env.CRON_SECRET,
+  };
+}
+
+export function defaultStatusDeps(): StatusDeps & { secret: string | undefined } {
+  return {
+    runs: createRunStore(createServiceClient()),
+    queue: pipelineQueue(),
+    now: () => new Date(),
     secret: process.env.CRON_SECRET,
   };
 }

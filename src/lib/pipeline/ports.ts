@@ -65,6 +65,8 @@ export interface RunStore {
   /** Run anterior ainda aberto (status `running`), se houver. */
   previousOpenRun(windowStart: Date): Promise<string | null>;
   activeSources(): Promise<DueSource[]>;
+  /** `started_at` do run mais recente (watchdog), ou `null` sem nenhum. */
+  lastStartedAt(): Promise<string | null>;
 }
 
 /** Subconjunto de `fetch` usado pelo coletor (injetável: testes nunca acessam a rede). */
