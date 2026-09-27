@@ -6,7 +6,7 @@
 
 **Goal:** Painel de fontes no Control Center (`/estudio/control/fontes`), só para `source.manage`, com cadastro a partir de um link (descoberta automática + agente `source_profiler`), score editorial 1–5 e prioridade, ajustes por fonte, ciclo de vida completo (ativar, pausar, pausa automática, bloquear, excluir por arquivamento, restaurar), frequência por fonte (10, 15 ou 20 min pela via rápida, ou de 30 min a 24 h em múltiplos de 30) com padrão global de 30 min, "Coletar agora", saúde operacional, duas pessoas nas mudanças que ampliam direitos e auditoria de tudo.
 
-**Architecture:** Domínio puro em `src/lib/sources/*` (validação, frequência, saúde, estados, seletores, descoberta, prévia, perfil por IA). Banco em `supabase/migrations/0010_source_admin.sql`: colunas novas em `sources`, `source_health_daily`, `source_discoveries`, `app_settings`, `ingest_runs.trigger`, RPCs `security invoker` para escrita e triggers de regra de duas pessoas e de auditoria (mesmo padrão de A-027). Pipeline (P3) passa a respeitar frequência por janela, `degraded`, pausa automática, `page_list`, runs manuais e ganha a via rápida: tick próprio `/api/ingest/fast-tick` a cada 10 min (runs `trigger = 'fast'`) só para o `fetch` das fontes com frequência < 30 min, com o resto do pipeline na mesma fila e no mesmo drain. Estúdio: Server Actions em `src/app/estudio/control/fontes/actions.ts`, páginas RSC com subrotas por aba. Toda requisição externa via `crawlGet`/`checkRobots` (`src/lib/pipeline/http.ts`).
+**Architecture:** Domínio puro em `src/lib/sources/*` (validação, frequência, saúde, estados, seletores, descoberta, prévia, perfil por IA). Banco em `supabase/migrations/0011_source_admin.sql`: colunas novas em `sources`, `source_health_daily`, `source_discoveries`, `app_settings`, `ingest_runs.trigger`, RPCs `security invoker` para escrita e triggers de regra de duas pessoas e de auditoria (mesmo padrão de A-027). Pipeline (P3) passa a respeitar frequência por janela, `degraded`, pausa automática, `page_list`, runs manuais e ganha a via rápida: tick próprio `/api/ingest/fast-tick` a cada 10 min (runs `trigger = 'fast'`) só para o `fetch` das fontes com frequência < 30 min, com o resto do pipeline na mesma fila e no mesmo drain. Estúdio: Server Actions em `src/app/estudio/control/fontes/actions.ts`, páginas RSC com subrotas por aba. Toda requisição externa via `crawlGet`/`checkRobots` (`src/lib/pipeline/http.ts`).
 
 **Tech Stack:** Next.js (App Router, Server Actions), Supabase (Postgres, RLS, Storage), zod, linkedom, Vercel AI SDK com `FakeProvider` em teste, Vitest + Testing Library, Playwright + `@axe-core/playwright`.
 
@@ -58,7 +58,7 @@ Posse de arquivos (garante que as tarefas paralelas não se tocam):
 
 | Tarefa | Arquivos exclusivos |
 |---|---|
-| FS-T1 | `supabase/migrations/0010_source_admin.sql`, `supabase/seed.sql`, `src/lib/db/types.ts`, `tests/integration/source-admin-db.test.ts` |
+| FS-T1 | `supabase/migrations/0011_source_admin.sql`, `supabase/seed.sql`, `src/lib/db/types.ts`, `tests/integration/source-admin-db.test.ts` |
 | FS-T2 | `src/lib/sources/{index,types,schema,url,critical,frequency,health,status,page-list}.ts` e testes ao lado, `src/lib/pipeline/window{,.test}.ts` (só acrescenta `FAST_WINDOW_MINUTES` e `fastWindowStart`), `tests/fixtures/sites/secao-mt-agora.html` |
 | FS-T3 | `src/lib/sources/{discover,test-connection,preview,terms}.ts` e testes, `tests/fixtures/sites/{folha-home.html,folha-robots.txt,portal-varzea-home.html,portal-varzea-robots.txt,proibido-robots.txt,termos.html}` |
 | FS-T4 | `src/lib/ai/{types,defaults,defaults.test,fake}.ts`, `src/lib/ai/schemas/{source-profile,index}.ts`, `src/lib/sources/profile.ts` e teste |
@@ -75,7 +75,7 @@ Pré-requisito externo: reforço de SSRF em `src/lib/pipeline/http.ts`/`crawl.ts
 ### Task FS-T1: Migration 0010 e regras no banco
 
 **Files:**
-- Create: `supabase/migrations/0010_source_admin.sql`, `tests/integration/source-admin-db.test.ts`
+- Create: `supabase/migrations/0011_source_admin.sql`, `tests/integration/source-admin-db.test.ts`
 - Modify: `supabase/seed.sql` (fontes fictícias com `layer`, `editorial_score`, `status_reason`, `terms_reviewed_at`; Folha do Cerrado, Diário da Baixada e MT Agora `active`, Rádio Pantanal `paused` motivo `manual`; nenhuma fonte na via rápida), `src/lib/db/types.ts` (`pnpm db:types`)
 
 **Interfaces:**
@@ -357,7 +357,7 @@ Depende de FS-T1 (seed do agente) e FS-T2 (tipos). Pode rodar junto com FS-T3 e 
 
 **Files:**
 - Create: `src/lib/ai/schemas/source-profile.ts`, `src/lib/sources/profile.ts`, `src/lib/sources/profile.test.ts`
-- Modify: `src/lib/ai/types.ts` (`AGENT_IDS` + `"source_profiler"`), `src/lib/ai/schemas/index.ts`, `src/lib/ai/defaults.ts` (agente novo com R$ 1; `write` R$ 11), `src/lib/ai/defaults.test.ts` (lê `0006_ai_seed.sql` + `0010_source_admin.sql`), `src/lib/ai/fake.ts` (resposta determinística)
+- Modify: `src/lib/ai/types.ts` (`AGENT_IDS` + `"source_profiler"`), `src/lib/ai/schemas/index.ts`, `src/lib/ai/defaults.ts` (agente novo com R$ 1; `write` R$ 11), `src/lib/ai/defaults.test.ts` (lê `0006_ai_seed.sql` + `0011_source_admin.sql`), `src/lib/ai/fake.ts` (resposta determinística)
 
 **Interfaces:**
 - Prompt v1 (idêntico na migration 0010): `Você analisa a amostra de uma fonte de notícias para o CityNews, portal de Cuiabá e Várzea Grande. Com base só nos títulos, datas, endereços e na estrutura da página fornecidos, sugira editorias da lista dada, a localidade principal (cuiaba, varzea-grande, mt ou nacional), alertas de qualidade e, quando for uma página sem feed, seletores CSS para item, link, título e data. Não opine sobre direitos de uso, confiabilidade ou frequência. Explique em até 3 frases.`

@@ -7,11 +7,7 @@
 -- ---------------------------------------------------------------------------
 -- Editorias
 -- ---------------------------------------------------------------------------
-insert into sections (slug, name, parent_slug, autonomy_category) values
- ('cidade','Cidade',null,'cidade'), ('politica','Política',null,'politica'), ('economia','Economia',null,'economia'),
- ('cultura','Cultura',null,'cultura'), ('esportes','Esportes',null,'esportes'), ('entretenimento','Entretenimento',null,'cultura'),
- ('gastronomia','Gastronomia',null,'cultura'), ('servicos','Serviços',null,'servicos'), ('guia-cuiaba','Guia Cuiabá',null,'servicos'),
- ('seguranca','Segurança',null,'seguranca'), ('saude','Saúde',null,'saude'), ('agenda','Agenda',null,'agenda'), ('clima','Clima','servicos','clima');
+-- Editorias: migration 0010_sections.sql (dado de referência).
 
 -- ---------------------------------------------------------------------------
 -- Fontes fictícias (spec §9): 6 com summary_2_sentences (2 oficiais), 3 com imagem with_agreement
@@ -381,7 +377,6 @@ from articles a where a.slug = 'materia-arquivada-seed';
 -- ---------------------------------------------------------------------------
 -- P1-T5 · editoria: subeditoria Mobilidade (Cidade) e bairros citados (filtro ?bairro=)
 -- ---------------------------------------------------------------------------
-insert into sections (slug, name, parent_slug, autonomy_category) values ('mobilidade','Mobilidade','cidade','cidade');
 update articles set section_slug = 'mobilidade'
  where id in ('c2000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000005','c2000000-0000-4000-8000-000000000006');
 update articles set neighborhoods = '{cpa,centro-norte}'

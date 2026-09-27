@@ -105,7 +105,7 @@ Registrada aqui sem reescrever a spec mestre nem o plano P3. Onde eles dizem "fr
 
 Consequências aceitas: mais requisições às fontes rápidas (até 6 por hora cada, contra 2 no ciclo normal), limitadas por `rate_limit_per_hour`, `robots.txt`/`Crawl-delay`, termos e pelas vagas `sources.fast_lane_max`; mais mensagens no drain a cada 10 min (no máximo `fast_lane_max` `fetch` por tick rápido, dimensionado para o Vercel Hobby); um run `fast` a cada 10 min enquanto houver fonte rápida ativa (histórico de `ingest_runs` cresce ~144 linhas/dia); um item de fonte rápida pode chegar às fases 3–6 até 20 min antes do que chegaria pelo ciclo normal, mas nada muda no custo de IA por item, nas regras de autonomia nem na revisão.
 
-## 6. Modelo de dados (migration `0010_source_admin.sql`)
+## 6. Modelo de dados (migration `0011_source_admin.sql`)
 
 Numeração: 0005 fica reservada para `source_stats` do P2 e 0006–0009 já existem (A-028). Todas as mudanças são aditivas, menos a troca do índice único de `ingest_runs` (D-F21) e a coluna `frequency_minutes`, que passa a aceitar `null` e troca o `check (frequency_minutes >= 30)` de 0001 pelo da grade com via rápida (§5.1).
 
