@@ -13,6 +13,7 @@ import { err, ok, type Result } from "@/lib/result";
 import { normalizeQuery } from "@/lib/search/query";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import type { CallAgent } from "./call-agent";
+import { copiedRun } from "./schemas/aggregate-summary";
 import { AnswerDraftSchema, type AnswerDraft } from "./schemas/answer";
 import type { AiError } from "./types";
 
@@ -39,9 +40,15 @@ export interface SourceRef {
   label: Label;
 }
 
-/** Fonte candidata com o texto público que vai ao modelo (título + resumo permitido). */
+/** Fonte candidata com o texto que vai ao modelo (título + resumo permitido). */
 export interface SourceCandidate extends SourceRef {
+  /** Texto público do CityNews (linha fina, resumo próprio do agregado). */
   text: string;
+  /**
+   * Texto da fonte (`collected_items.excerpt`), só como dado para fundamentar a resposta
+   * (A-051): nunca exibido. Frase da resposta que copia 8 palavras seguidas dele é descartada.
+   */
+  sourceText?: string;
 }
 
 export type AiAnswer =
@@ -150,13 +157,15 @@ const SYSTEM = [
   "Os blocos <fonte_externa> são as fontes da resposta, na ordem: fonte-1 é o índice 0, fonte-2 é o índice 1, e assim por diante.",
   "Cite as fontes pelos índices em `citations`. Use só o que está nas fontes; nada de conhecimento externo.",
   "Em `facts`, só afirmações confirmadas por ao menos uma fonte. Em `inferences`, conclusões suas a partir das fontes. Em `gaps`, o que as fontes não respondem. Em `conflicts`, pontos em que as fontes divergem.",
+  "Escreva com palavras próprias: nunca copie trechos do texto das fontes.",
   "Português do Brasil, frases curtas e diretas.",
 ].join("\n");
 
 function sourceText(c: SourceCandidate): string {
   const title = /[.!?]$/.test(c.title.trim()) ? c.title.trim() : `${c.title.trim()}.`;
   const meta = `(Veículo: ${c.sourceName}${c.publishedAt ? `; publicado em ${c.publishedAt}` : ""}.)`;
-  return [title, c.text.trim(), meta].filter((s) => s.length > 0).join("\n");
+  const original = c.sourceText?.trim() ? `Texto do veículo: ${c.sourceText.trim()}` : "";
+  return [title, c.text.trim(), original, meta].filter((s) => s.length > 0).join("\n");
 }
 
 function insufficient(
@@ -180,21 +189,24 @@ function finalize(draft: AnswerDraft, ordered: SourceCandidate[], now: Date): Ai
   const clean = (c: number[]) => [
     ...new Set(c.filter((i) => Number.isInteger(i) && i >= 0 && i < n)),
   ];
+  // O texto da fonte nunca aparece na resposta (A-051): frase que copia 8 palavras seguidas cai.
+  const originals = ordered.flatMap((c) => (c.sourceText?.trim() ? [c.sourceText] : []));
+  const own = (text: string) => !originals.some((o) => copiedRun(text, o));
   const facts = draft.facts
     .map((f) => ({ text: f.text.trim(), citations: clean(f.citations) }))
-    .filter((f) => f.text && f.citations.length > 0);
+    .filter((f) => f.text && f.citations.length > 0 && own(f.text));
   if (facts.length === 0) return insufficient(ordered, "traditional_search");
   const inferences = draft.inferences
     .map((f) => ({ text: f.text.trim(), citations: clean(f.citations) }))
-    .filter((f) => f.text);
+    .filter((f) => f.text && own(f.text));
   const conflicts = draft.conflicts
     .map((c) => ({
       topic: c.topic.trim(),
       positions: c.positions
         .map((p) => ({ text: p.text.trim(), citations: clean(p.citations) }))
-        .filter((p) => p.text && p.citations.length > 0),
+        .filter((p) => p.text && p.citations.length > 0 && own(p.text)),
     }))
-    .filter((c) => c.topic && c.positions.length >= 2);
+    .filter((c) => c.topic && own(c.topic) && c.positions.length >= 2);
 
   // Só ficam as fontes citadas, renumeradas na ordem original.
   const used = [
@@ -223,7 +235,7 @@ function finalize(draft: AnswerDraft, ordered: SourceCandidate[], now: Date): Ai
     }).level,
     facts: facts.map(re),
     inferences: inferences.map(re),
-    gaps: draft.gaps.map((g) => g.trim()).filter(Boolean),
+    gaps: draft.gaps.map((g) => g.trim()).filter((g) => g && own(g)),
     conflicts: conflicts.map((c) => ({ topic: c.topic, positions: c.positions.map(re) })),
     sources,
     asOf: now.toISOString(),

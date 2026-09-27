@@ -2,8 +2,12 @@
 -- FTS em português sem acento (to_tsvector('portuguese', unaccent(...))) + vetores (pgvector),
 -- fundidos por RRF com k = 60. Matérias, assuntos, eventos e itens de outros veículos.
 -- As funções de leitura são security definer e repetem os filtros públicos da RLS e das views
--- (matéria publicada, evento confirmado, agregado não duplicado de fonte não bloqueada): devolvem
--- só ids e pontuação; o conteúdo é lido depois pelo cliente anônimo, com RLS.
+-- (matéria publicada, evento confirmado, agregado não duplicado, fora de quarentena e de fonte não
+-- bloqueada, assunto `public` com matéria publicada): devolvem só ids e pontuação; o conteúdo é
+-- lido depois pelo cliente anônimo, com RLS.
+-- Revisão P3-GATE (A-051): o índice de agregados usa só o título e o `summary` próprio do CityNews,
+-- nunca o `excerpt` (texto da fonte); assunto `internal` nunca aparece em busca, sugestões ou
+-- "você quis dizer".
 
 create extension if not exists pg_trgm;
 
@@ -60,9 +64,9 @@ $$;
 revoke execute on function index_article(uuid, vector) from public, anon, authenticated;
 grant execute on function index_article(uuid, vector) to service_role;
 
--- Item de outro veículo: título original (A) e o resumo só quando a política da fonte permite
--- exibi-lo (summary_2_sentences, como a view public_aggregated). Trecho de fonte link_only
--- nunca entra no índice.
+-- Item de outro veículo: título original (A) e o resumo próprio do CityNews (`summary`) só quando
+-- a política da fonte permite exibi-lo (summary_2_sentences, como a view public_aggregated). O
+-- `excerpt` (texto da fonte) nunca entra no índice: o trecho destacado sairia dele.
 alter table collected_items add column if not exists tsv tsvector;
 create or replace function collected_items_tsv_update() returns trigger
 language plpgsql
@@ -71,14 +75,14 @@ as $$
 declare
   shown text;
 begin
-  select case when s.republish_policy = 'summary_2_sentences' then new.excerpt end
+  select case when s.republish_policy = 'summary_2_sentences' then new.summary end
     into shown from sources s where s.id = new.source_id;
   new.tsv := setweight(to_tsvector('portuguese', unaccent(coalesce(new.original_title, ''))), 'A')
           || setweight(to_tsvector('portuguese', unaccent(coalesce(shown, ''))), 'B');
   return new;
 end $$;
 drop trigger if exists collected_items_tsv on collected_items;
-create trigger collected_items_tsv before insert or update of original_title, excerpt, source_id
+create trigger collected_items_tsv before insert or update of original_title, summary, source_id
   on collected_items for each row execute function collected_items_tsv_update();
 update collected_items set original_title = original_title;
 create index if not exists collected_items_tsv_idx on collected_items using gin (tsv);
@@ -119,6 +123,23 @@ create trigger event_listings_tsv
   for each row execute function event_listings_tsv_update();
 update event_listings set title = title;
 create index if not exists event_listings_tsv_idx on event_listings using gin (tsv);
+
+-- Assunto visível ao público (mesma regra da RLS `topics_read_public`, 0004): `public` e com ao
+-- menos uma matéria publicada. Usado pelas funções de busca (security definer, sem RLS).
+create or replace function search_topic_is_public(p_id uuid)
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select p_id is not null and exists (
+    select 1 from topics t
+    where t.id = p_id and t.visibility = 'public'
+      and exists (select 1 from articles a
+                  where a.topic_id = t.id and a.status in ('published', 'updated'))
+  )
+$$;
+revoke execute on function search_topic_is_public(uuid) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- search_hybrid: FTS e kNN separados, fundidos por RRF (score = Σ 1 / (k + posição))
@@ -203,7 +224,7 @@ as $$
     from collected_items ci
     join sources s on s.id = ci.source_id
     cross join params p
-    where ci.duplicate_of is null and s.status <> 'blocked'
+    where ci.duplicate_of is null and ci.quarantined_at is null and s.status <> 'blocked'
       and p.f_type in ('all', 'aggregated')
       and p.f_origin in ('all', 'others')
       and (p.f_source is null or s.slug = p.f_source)
@@ -212,7 +233,8 @@ as $$
     union all
     select 'topic', t.id, t.id, t.tsv, t.centroid, t.updated_at
     from topics t, params p
-    where p.f_type in ('all', 'topics')
+    where search_topic_is_public(t.id)
+      and p.f_type in ('all', 'topics')
       and p.f_origin in ('all', 'citynews')
       and p.f_source is null
       and (p.f_section is null or t.section_slug in (select slug from sect))
@@ -264,7 +286,9 @@ as $$
     ) u
     group by u.kind, u.id, u.topic_id
   )
-  select f.kind, f.id, f.topic_id, f.score, f.fts_rank, f.vec_rank, f.matched
+  -- Assunto interno não agrupa nem aparece como cabeçalho: o id dele não sai daqui.
+  select f.kind, f.id, case when search_topic_is_public(f.topic_id) then f.topic_id end,
+         f.score, f.fts_rank, f.vec_rank, f.matched
   from fused f
   order by f.score desc, f.fts_rank nulls last, f.id
   limit (select lim from params)
@@ -289,7 +313,7 @@ as $$
     ) x
   ),
   titles as (
-    select t.title, 0 as prio, t.updated_at as at from topics t
+    select t.title, 0 as prio, t.updated_at as at from topics t where search_topic_is_public(t.id)
     union all
     select a.title, 1, coalesce(a.published_at, a.updated_at) from articles a
     where a.status in ('published', 'updated')
@@ -327,9 +351,11 @@ as $$
       from articles a where a.status in ('published', 'updated')
       union all
       select regexp_split_to_table(lower(unaccent(t.title)), '[^a-z0-9]+') from topics t
+      where search_topic_is_public(t.id)
       union all
       select regexp_split_to_table(lower(unaccent(ci.original_title)), '[^a-z0-9]+')
-      from collected_items ci where ci.duplicate_of is null
+      from collected_items ci join sources s on s.id = ci.source_id
+      where ci.duplicate_of is null and ci.quarantined_at is null and s.status <> 'blocked'
       union all
       select regexp_split_to_table(lower(unaccent(e.title)), '[^a-z0-9]+')
       from event_listings e where e.confirmed_at is not null

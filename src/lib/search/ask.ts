@@ -9,7 +9,7 @@ import {
 } from "@/lib/ai/answer";
 import { askBucket, ASK_LIMITS, askRetryAt, ASK_WINDOW_SECONDS } from "@/lib/ai/ask-limit";
 import { createServerClient } from "@/lib/db/client";
-import { many, one, readPublic } from "@/lib/db/queries/run";
+import { many, one, readPublic, readService } from "@/lib/db/queries/run";
 import { hitRateLimit } from "@/lib/db/writes";
 import { err, ok, type Result } from "@/lib/result";
 import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
@@ -46,6 +46,9 @@ export async function retrieveForAnswer(
     slugs.length
       ? db.from("public_sources").select("slug, reliability").in("slug", slugs).then(many)
       : [],
+  );
+  const originals = await sourceTexts(
+    hits.flatMap((h) => (h.kind === "aggregated" ? [h.item.id] : [])),
   );
   const primary = new Set(
     reliability.ok
@@ -91,12 +94,33 @@ export async function retrieveForAnswer(
             sponsored: false,
             label,
             text: g.summary ?? "",
+            ...(originals.has(g.id) ? { sourceText: originals.get(g.id) } : {}),
           },
         ];
       }
       return [];
     }),
   );
+}
+
+/**
+ * Texto da fonte dos agregados encontrados (`excerpt`, nunca público), lido com service role só
+ * para fundamentar o modelo (A-051), e só de fonte com política `summary_2_sentences` (a mesma
+ * que permite resumo). Sem service role, segue sem ele.
+ */
+async function sourceTexts(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0 || !process.env.SUPABASE_SERVICE_ROLE_KEY) return new Map();
+  const r = await readService(async (db) =>
+    db
+      .from("collected_items")
+      .select("id, excerpt, sources!inner(republish_policy)")
+      .in("id", ids)
+      .is("quarantined_at", null)
+      .eq("sources.republish_policy", "summary_2_sentences")
+      .then(many),
+  );
+  if (!r.ok) return new Map();
+  return new Map(r.value.flatMap((row) => (row.excerpt?.trim() ? [[row.id, row.excerpt]] : [])));
 }
 
 /** `feature_flags.ai_enabled` (leitura pública). `null` = banco indisponível. */

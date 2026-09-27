@@ -178,6 +178,49 @@ describe("buildAnswer", () => {
     expect(a.sources).toHaveLength(3);
   });
 
+  it("texto da fonte vai ao modelo como dado, mas frase que o copia nunca é exibida (A-051)", async () => {
+    const original =
+      "Segundo a secretaria, os desvios pela rua Barão de Melgaço valem por pelo menos trinta dias corridos.";
+    const withOriginal = [
+      cand("v1", "folha-do-cerrado", "", {
+        title: "Viaduto da Miguel Sutil",
+        sourceText: original,
+      }),
+      ...viaduto.slice(1),
+    ];
+    const c = ctx(withOriginal, [
+      {
+        output: {
+          facts: [
+            { text: "A obra está em andamento.", citations: [0, 1] },
+            {
+              text: "Os desvios pela rua Barão de Melgaço valem por pelo menos trinta dias corridos.",
+              citations: [0],
+            },
+          ],
+          inferences: [
+            {
+              text: "Os desvios pela rua Barão de Melgaço valem por pelo menos trinta dias.",
+              citations: [0],
+            },
+          ],
+          gaps: [],
+          conflicts: [],
+        },
+      },
+    ]);
+    const a = await buildAnswer("desvios do viaduto", c.context);
+    // O modelo recebeu o texto da fonte, envelopado como dado.
+    expect(c.fake.lastPrompt).toContain("Barão de Melgaço");
+    expect(a.kind).toBe("answer");
+    if (a.kind !== "answer") return;
+    expect(a.facts.map((f) => f.text)).toEqual(["A obra está em andamento."]);
+    expect(a.inferences).toEqual([]);
+    // Citação exibida: só título, fonte, data e link.
+    expect(JSON.stringify(a)).not.toContain("Melgaço");
+    for (const s of a.sources) expect(Object.keys(s)).not.toContain("sourceText");
+  });
+
   it("todas as frases sem citação: não responde", async () => {
     const c = ctx(viaduto, [
       {
