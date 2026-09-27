@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /*
  * A vitrine roda sobre o build de produção com CN_SHOW_DS=1 (playwright.config.ts).
@@ -7,6 +7,30 @@ import { expect, test } from "@playwright/test";
  */
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
+
+/**
+ * Espera a página (ou o elemento) parar: nenhuma animação ou transição finita em andamento. O
+ * axe mede a cor pintada; no meio de um fade ou de uma troca de tema ela é intermediária e o
+ * contraste sai falso (visto no WebKit do CI, mais lento).
+ */
+async function settled(page: Page, selector?: string) {
+  await expect
+    .poll(() =>
+      page.evaluate((sel) => {
+        const roots = sel ? [...document.querySelectorAll(sel)] : [];
+        if (sel && roots.length === 0) return -1;
+        const anims = sel
+          ? roots.flatMap((r) => r.getAnimations({ subtree: true }))
+          : document.getAnimations();
+        return anims.filter(
+          (a) =>
+            a.playState === "running" &&
+            Number.isFinite(Number(a.effect?.getComputedTiming().endTime)),
+        ).length;
+      }, selector),
+    )
+    .toBe(0);
+}
 
 test("vitrine do design system sem violações serious/critical @a11y", async ({ page }) => {
   await page.goto("/design-system");
@@ -24,6 +48,10 @@ test("vitrine no modo escuro sem violações serious/critical @a11y", async ({ p
   await page.goto("/design-system");
   await page.getByRole("radio", { name: "Escuro" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  // A troca de tema não anima cores (src/lib/theme/apply.ts); o axe só mede com a página parada:
+  // nenhuma transição de CSS em andamento (cores intermediárias dariam contraste falso).
+  await expect(page.locator("html")).not.toHaveAttribute("data-theme-switching", /.*/);
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const bad = results.violations.filter((v) => blocking(v.impact));
   expect(bad.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual(
@@ -36,6 +64,8 @@ test("diálogo modal abre, prende o foco e fecha com Esc @a11y", async ({ page }
   await page.getByRole("button", { name: "Abrir diálogo" }).click();
   const dialog = page.getByRole("dialog", { name: "Tem certeza de que deseja sair?" }).last();
   await expect(dialog).toBeVisible();
+  // Fade de entrada do diálogo (motion-safe:animate-fade-in): mede só com ele parado.
+  await settled(page, "dialog[open]");
   const results = await new AxeBuilder({ page }).include("dialog[open]").analyze();
   expect(results.violations.filter((v) => blocking(v.impact))).toEqual([]);
   await page.keyboard.press("Escape");

@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { ARTICLE } from "@/content/pt-BR/portal";
+import { applyTheme, type Theme } from "@/lib/theme/apply";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";
 import { SegmentedToggle } from "../ui/SegmentedToggle";
 
 type Size = "md" | "lg" | "xl";
-type Theme = "light" | "dark";
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -93,7 +93,7 @@ export function ReadingSettings({ className }: { className?: string }) {
                 const next: Theme = v === "dark" ? "dark" : "light";
                 setTheme(next);
                 save("cn_theme", next);
-                document.documentElement.setAttribute("data-theme", next);
+                applyTheme(next);
               }}
             />
           </div>

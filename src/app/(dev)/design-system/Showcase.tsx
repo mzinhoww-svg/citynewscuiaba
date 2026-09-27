@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { applyTheme } from "@/lib/theme/apply";
 import {
   AgendaList,
   ArticleActionBar,
@@ -169,7 +170,7 @@ export function Showcase() {
           value={theme}
           onChange={(v) => {
             setTheme(v);
-            document.documentElement.setAttribute("data-theme", v);
+            applyTheme(v === "dark" ? "dark" : "light");
           }}
           options={[
             { value: "light", label: "Claro", icon: "sun" },

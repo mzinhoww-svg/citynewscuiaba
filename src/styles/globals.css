@@ -16,6 +16,13 @@
   --color-*: initial;
 }
 
+/* Troca de tema instantânea (src/lib/theme/apply.ts): sem cores intermediárias animadas. */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
 /* Medidas de layout descritas em DESIGN.md §1 que ainda não tinham token. */
 :root {
   --layout-rail: 300px; /* barra lateral da web (agenda) e navegação do Estúdio */
