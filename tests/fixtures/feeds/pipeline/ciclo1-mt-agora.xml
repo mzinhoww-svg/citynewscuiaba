@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9): sitemap de notícias do MT Agora no ciclo de ponta a ponta. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://mtagora.example/cidade/ciclovia-parque-mae-bonifacia-{{SLUG}}</loc>
+    <news:news>
+      <news:publication><news:name>MT Agora</news:name><news:language>pt</news:language></news:publication>
+      <news:publication_date>{{ISO}}</news:publication_date>
+      <news:title>Ciclovia de 6 km entre o Parque Mãe Bonifácia e o CPA é entregue {{TAG}}</news:title>
+    </news:news>
+    <image:image><image:loc>https://mtagora.example/img/ciclovia-{{SLUG}}.png</image:loc></image:image>
+  </url>
+</urlset>

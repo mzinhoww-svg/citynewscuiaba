@@ -363,6 +363,7 @@ export type Database = {
       articles: {
         Row: {
           agent_id: string | null;
+          ai_fallback: boolean;
           ai_summary: string[] | null;
           ai_summary_reviewed_by: string | null;
           author_id: string | null;
@@ -375,6 +376,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["content_kind"];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
+          review_reason: string | null;
           rules_version: number | null;
           scheduled_for: string | null;
           section_slug: string;
@@ -389,6 +391,7 @@ export type Database = {
         };
         Insert: {
           agent_id?: string | null;
+          ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
           author_id?: string | null;
@@ -401,6 +404,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["content_kind"];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug: string;
@@ -415,6 +419,7 @@ export type Database = {
         };
         Update: {
           agent_id?: string | null;
+          ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
           author_id?: string | null;
@@ -427,6 +432,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["content_kind"];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug?: string;
@@ -1140,6 +1146,51 @@ export type Database = {
           list?: string;
           token_hash?: string;
           unsubscribed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          body: string;
+          channel: string;
+          created_at: string;
+          dedupe_key: string;
+          id: number;
+          kind: string;
+          object_ref: string;
+          read_at: string | null;
+          read_by: string | null;
+          severity: string;
+          status: string;
+          title: string;
+        };
+        Insert: {
+          body: string;
+          channel: string;
+          created_at?: string;
+          dedupe_key: string;
+          id?: number;
+          kind: string;
+          object_ref: string;
+          read_at?: string | null;
+          read_by?: string | null;
+          severity: string;
+          status?: string;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          channel?: string;
+          created_at?: string;
+          dedupe_key?: string;
+          id?: number;
+          kind?: string;
+          object_ref?: string;
+          read_at?: string | null;
+          read_by?: string | null;
+          severity?: string;
+          status?: string;
+          title?: string;
         };
         Relationships: [];
       };
@@ -1884,6 +1935,7 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      index_article: { Args: { p_embedding?: string; p_id: string }; Returns: undefined };
       is_staff: { Args: { uid: string }; Returns: boolean };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
       media_insert_asset: { Args: { p: Json }; Returns: string };
@@ -1893,7 +1945,10 @@ export type Database = {
           distance: number;
         }[];
       };
+      notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      pipeline_decision_context: { Args: { p_article: string }; Returns: Json };
+      pipeline_draft_context: { Args: { p_topic: string }; Returns: Json };
       pipeline_item: {
         Args: { p_id: string };
         Returns: {
@@ -1940,6 +1995,13 @@ export type Database = {
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;
+      };
+      save_pipeline_draft: {
+        Args: { p: Json };
+        Returns: {
+          article_id: string;
+          version: number;
+        }[];
       };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
       start_ingest_run: {

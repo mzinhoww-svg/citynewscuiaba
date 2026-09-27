@@ -593,3 +593,195 @@ revoke execute on function pipeline_media_context(uuid), media_phash_neighbors(t
   from public, anon, authenticated;
 grant execute on function pipeline_media_context(uuid), media_phash_neighbors(text, int, text), media_insert_asset(jsonb)
   to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Redação, decisão, publicação, índice e notificação (P3-T8, spec §6.2 etapas 11 a 20)
+-- ---------------------------------------------------------------------------
+-- Motivo da revisão (fila de exceção do Estúdio) e rascunho montado sem IA (Review Focus 4).
+alter table articles
+  add column review_reason text,
+  add column ai_fallback boolean not null default false;
+create unique index articles_pipeline_topic_uidx on articles (topic_id) where agent_id = 'write';
+create index decisions_rules_idx on decisions (object_ref, step, created_at desc) where rules_version is not null;
+
+-- Notificações do Control Center e do plantão. E-mail fica `queued` sem envio (B-005).
+create table notifications (
+  id bigserial primary key,
+  created_at timestamptz not null default now(),
+  kind text not null,
+  channel text not null check (channel in ('control_center', 'oncall_email')),
+  severity text not null check (severity in ('info', 'warn', 'critical')),
+  object_ref text not null,
+  dedupe_key text not null,
+  title text not null,
+  body text not null,
+  status text not null default 'open' check (status in ('open', 'queued', 'sent', 'read', 'dismissed')),
+  read_by uuid,
+  read_at timestamptz
+);
+create index notifications_dedupe_idx on notifications (dedupe_key, channel, created_at desc);
+create index notifications_open_idx on notifications (created_at desc) where status in ('open', 'queued');
+alter table notifications enable row level security;
+revoke all on notifications from anon;
+revoke insert, delete, truncate on notifications from authenticated;
+revoke all on sequence notifications_id_seq from anon, authenticated;
+create policy notifications_read_staff on notifications for select to authenticated
+  using (is_staff((select auth.uid())));
+
+-- Uma notificação por chave e canal a cada janela (dedupe de 10 min). true = gravou.
+create or replace function notify_once(p jsonb, p_window_sec int)
+returns boolean
+language plpgsql
+set search_path = public
+as $$
+begin
+  perform pg_advisory_xact_lock(hashtext('notify:' || (p->>'dedupeKey') || ':' || (p->>'channel')));
+  if exists (select 1 from notifications n
+             where n.dedupe_key = p->>'dedupeKey' and n.channel = p->>'channel'
+               and n.created_at > now() - make_interval(secs => p_window_sec)) then
+    return false;
+  end if;
+  insert into notifications (kind, channel, severity, object_ref, dedupe_key, title, body, status)
+  values (p->>'kind', p->>'channel', p->>'severity', p->>'objectRef', p->>'dedupeKey', left(p->>'title', 300),
+          left(p->>'body', 2000), case when p->>'channel' = 'oncall_email' then 'queued' else 'open' end);
+  return true;
+end $$;
+
+-- Assunto pronto para a redação: itens limpos com fonte, etiquetas, a última verificação e a
+-- matéria do pipeline para o assunto (se houver), com a informação de edição humana.
+create or replace function pipeline_draft_context(p_topic uuid)
+returns jsonb
+language sql
+stable
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'topic', jsonb_build_object('id', t.id, 'slug', t.slug, 'title', t.title, 'sectionSlug', t.section_slug,
+                                'confidence', t.confidence, 'confidenceScore', t.confidence_score),
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+               'id', c.id, 'sourceId', c.source_id, 'sourceSlug', s.slug,
+               'sourceName', coalesce(s.display_name, s.name), 'reliability', s.reliability,
+               'title', c.original_title, 'excerpt', c.excerpt, 'publishedAt', c.published_at,
+               'sectionSlug', c.section_slug, 'canonicalUrl', c.canonical_url, 'tags', to_jsonb(c.tags),
+               'sensitive', coalesce(c.sensitive, false))
+             order by c.created_at, c.id)
+      from collected_items c join sources s on s.id = c.source_id
+      where c.topic_id = t.id and c.duplicate_of is null and c.quarantined_at is null), '[]'::jsonb),
+    'verify', (select d.output from decisions d where d.object_ref = 'topic:' || t.id and d.step = 'verify'
+               order by d.created_at desc limit 1),
+    'article', (select jsonb_build_object(
+                  'id', a.id, 'status', a.status, 'publishMode', a.publish_mode,
+                  'humanEdited', exists (select 1 from article_versions v where v.article_id = a.id and v.origin = 'human'),
+                  'version', coalesce((select max(v.number) from article_versions v where v.article_id = a.id), 0))
+                from articles a where a.topic_id = t.id and a.agent_id = 'write' limit 1))
+  from topics t where t.id = p_topic;
+$$;
+
+-- Grava o rascunho do pipeline (cria ou atualiza a matéria do assunto), as fontes e uma versão
+-- `ai`. Nunca sobrescreve matéria editada por pessoa ou fora de rascunho/revisão.
+create or replace function save_pipeline_draft(p jsonb)
+returns table (article_id uuid, version int)
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_status article_status;
+  v_slug text := p->>'slug';
+  v_version int;
+begin
+  select a.id, a.status into v_id, v_status from articles a
+  where a.topic_id = (p->>'topicId')::uuid and a.agent_id = 'write' for update;
+  if v_id is not null then
+    if v_status not in ('draft', 'in_review')
+       or exists (select 1 from article_versions v where v.article_id = v_id and v.origin = 'human') then
+      raise exception 'matéria % já está com a redação', v_id using errcode = '55000';
+    end if;
+    update articles set title = p->>'title', dek = p->>'dek', body = p->'body',
+           ai_summary = case when jsonb_typeof(p->'aiSummary') = 'array'
+                             then array(select jsonb_array_elements_text(p->'aiSummary')) end,
+           section_slug = p->>'sectionSlug', confidence = (p->>'confidence')::confidence_level,
+           confidence_score = (p->>'confidenceScore')::numeric, status = (p->>'status')::article_status,
+           ai_fallback = (p->>'aiFallback')::boolean, review_reason = p->>'reviewReason', updated_at = now()
+     where id = v_id;
+  else
+    if exists (select 1 from articles a where a.slug = v_slug) then
+      v_slug := left(v_slug, 180) || '-' || left(md5(p->>'topicId'), 6);
+    end if;
+    insert into articles (slug, kind, topic_id, section_slug, title, dek, body, ai_summary, status, confidence,
+                          confidence_score, agent_id, ai_fallback, review_reason)
+    values (v_slug, 'normalized', (p->>'topicId')::uuid, p->>'sectionSlug', p->>'title', p->>'dek', p->'body',
+            case when jsonb_typeof(p->'aiSummary') = 'array'
+                 then array(select jsonb_array_elements_text(p->'aiSummary')) end,
+            (p->>'status')::article_status, (p->>'confidence')::confidence_level,
+            (p->>'confidenceScore')::numeric, 'write', (p->>'aiFallback')::boolean, p->>'reviewReason')
+    returning id into v_id;
+  end if;
+
+  delete from article_sources s where s.article_id = v_id;
+  insert into article_sources (article_id, item_id, role, confirmed)
+  select v_id, (x->>'itemId')::uuid, x->>'role', false from jsonb_array_elements(p->'sources') x;
+
+  select coalesce(max(v.number), 0) + 1 into v_version from article_versions v where v.article_id = v_id;
+  insert into article_versions (article_id, number, snapshot, origin, change_kind)
+  values (v_id, v_version, jsonb_build_object('title', p->>'title', 'dek', p->>'dek', 'body', p->'body',
+                                              'aiSummary', p->'aiSummary', 'aiFallback', p->'aiFallback'),
+          'ai', 'edit');
+  return query select v_id, v_version;
+end $$;
+
+-- Matéria como as etapas de regra e publicação a enxergam.
+create or replace function pipeline_decision_context(p_article uuid)
+returns jsonb
+language sql
+stable
+set search_path = public
+as $$
+  with src as (
+    select c.source_id, s.reliability, c.tags, coalesce(c.sensitive, false) as sensitive
+    from article_sources a join collected_items c on c.id = a.item_id join sources s on s.id = c.source_id
+    where a.article_id = p_article
+  )
+  select jsonb_build_object(
+    'articleId', a.id, 'slug', a.slug, 'topicId', a.topic_id, 'status', a.status, 'publishMode', a.publish_mode,
+    'sectionSlug', a.section_slug, 'category', coalesce(sec.autonomy_category, a.section_slug),
+    'title', a.title, 'urgent', a.urgent, 'aiFallback', a.ai_fallback,
+    'confidence', a.confidence, 'confidenceScore', a.confidence_score,
+    'version', coalesce((select max(v.number) from article_versions v where v.article_id = a.id), 0),
+    'humanEdited', exists (select 1 from article_versions v where v.article_id = a.id and v.origin = 'human'),
+    'independentSources', (select count(distinct source_id) from src),
+    'primarySources', (select count(distinct source_id) from src where reliability = 'primary'),
+    'tags', coalesce((select jsonb_agg(distinct t) from src, unnest(src.tags) t), '[]'::jsonb),
+    'sensitive', coalesce((select bool_or(sensitive) from src), false),
+    'centralConflict', coalesce((select (d.output->>'centralConflict')::boolean from decisions d
+                                 where d.object_ref = 'topic:' || a.topic_id and d.step = 'verify'
+                                 order by d.created_at desc limit 1), false),
+    'imageApproved', exists (select 1 from article_media am join media_assets m on m.id = am.media_id
+                             where am.article_id = a.id and m.status = 'approved'))
+  from articles a left join sections sec on sec.slug = a.section_slug
+  where a.id = p_article;
+$$;
+
+-- Índice da matéria (etapa 19): FTS em português sem acento com título (A), linha fina (B) e
+-- corpo (C), e embedding (mantém o anterior quando a IA não respondeu).
+create or replace function index_article(p_id uuid, p_embedding vector default null)
+returns void
+language sql
+set search_path = public
+as $$
+  update articles a
+     set tsv = setweight(to_tsvector('portuguese', unaccent(coalesce(a.title, ''))), 'A')
+            || setweight(to_tsvector('portuguese', unaccent(coalesce(a.dek, ''))), 'B')
+            || setweight(to_tsvector('portuguese', unaccent(coalesce(
+                 (select string_agg(x #>> '{}', ' ') from jsonb_path_query(a.body, 'strict $.**.text') x), ''))), 'C'),
+         embedding = coalesce(p_embedding, a.embedding)
+   where a.id = p_id;
+$$;
+
+revoke execute on function notify_once(jsonb, int), pipeline_draft_context(uuid), save_pipeline_draft(jsonb),
+  pipeline_decision_context(uuid), index_article(uuid, vector)
+  from public, anon, authenticated;
+grant execute on function notify_once(jsonb, int), pipeline_draft_context(uuid), save_pipeline_draft(jsonb),
+  pipeline_decision_context(uuid), index_article(uuid, vector)
+  to service_role;

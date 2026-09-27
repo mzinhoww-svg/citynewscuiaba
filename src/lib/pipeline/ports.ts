@@ -4,6 +4,7 @@
  */
 import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
+import type { RuleSet } from "@/lib/rules";
 import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
@@ -248,6 +249,13 @@ export interface DecisionRecord {
   inputHash: string;
   output: Record<string, unknown>;
   rationale: string | null;
+  /** Versão das regras usada (decisões de publicação). */
+  rulesVersion?: number | null;
+  /** Rota recomendada pela regra (`publish`, `review`…). */
+  recommended?: string | null;
+  /** Decisão humana que desfaz ou confirma a automática (ex.: `unpublish`). */
+  humanDecision?: string | null;
+  humanId?: string | null;
 }
 
 export interface ItemPatch {
@@ -398,3 +406,141 @@ export interface MediaRepo extends Pick<IngestRepo, "hitRateLimit"> {
 
 /** Invalida o cache das páginas (`revalidateTag`, architecture §8). */
 export type Revalidate = (tags: string[]) => Promise<void>;
+
+export type ArticleStatus =
+  | "draft"
+  | "in_review"
+  | "changes_requested"
+  | "approved"
+  | "scheduled"
+  | "published"
+  | "updated"
+  | "archived"
+  | "unpublished";
+export type ConfidenceLevel = "alta" | "média" | "baixa";
+
+/** Item do assunto como a redação o enxerga. */
+export interface DraftItem extends TopicItem {
+  sourceName: string;
+  canonicalUrl: string;
+  tags: string[];
+  sensitive: boolean;
+}
+
+/** Assunto pronto para as etapas 11 e 12 (resumo, título e linha fina). */
+export interface DraftContext {
+  topic: {
+    id: string;
+    slug: string;
+    title: string;
+    sectionSlug: string | null;
+    confidence: ConfidenceLevel;
+    confidenceScore: number;
+  };
+  items: DraftItem[];
+  /** Saída da última verificação (`decisions`, etapa verify). */
+  verify: { roles?: { id: string; role: string }[]; centralConflict?: boolean } | null;
+  /** Matéria do pipeline para o assunto, se já existe. */
+  article: {
+    id: string;
+    status: ArticleStatus;
+    publishMode: "human" | "auto" | null;
+    humanEdited: boolean;
+    version: number;
+  } | null;
+}
+
+export interface DraftInput {
+  topicId: string;
+  slug: string;
+  sectionSlug: string;
+  title: string;
+  dek: string;
+  /** Documento do editor: doc → paragraph (com `attrs.citations`) → text. */
+  body: Record<string, unknown>;
+  aiSummary: string[] | null;
+  confidence: ConfidenceLevel;
+  confidenceScore: number;
+  status: "draft" | "in_review";
+  aiFallback: boolean;
+  reviewReason: string | null;
+  sources: { itemId: string; role: "primary" | "secondary" | "context" }[];
+}
+
+/** Matéria como as etapas de regra, publicação e índice a enxergam. */
+export interface DecisionContext {
+  articleId: string;
+  slug: string;
+  topicId: string | null;
+  status: ArticleStatus;
+  publishMode: "human" | "auto" | null;
+  sectionSlug: string;
+  /** `sections.autonomy_category`. */
+  category: string;
+  title: string;
+  urgent: boolean;
+  aiFallback: boolean;
+  confidence: ConfidenceLevel;
+  confidenceScore: number;
+  /** Número da última versão (revisão da matéria). */
+  version: number;
+  humanEdited: boolean;
+  independentSources: number;
+  primarySources: number;
+  tags: string[];
+  sensitive: boolean;
+  centralConflict: boolean;
+  imageApproved: boolean;
+}
+
+export interface StatusPatch {
+  status: ArticleStatus;
+  publishMode?: "auto" | null;
+  publishedAt?: string;
+  rulesVersion?: number | null;
+  reviewReason?: string | null;
+}
+
+export type NotificationChannel = "control_center" | "oncall_email";
+
+export interface NotificationInput {
+  kind: string;
+  channel: NotificationChannel;
+  severity: "info" | "warn" | "critical";
+  objectRef: string;
+  dedupeKey: string;
+  title: string;
+  body: string;
+}
+
+/** Acesso a banco das etapas 11 a 20 e da despublicação. */
+export interface PublishRepo {
+  draftContext(topicId: string): Promise<DraftContext | null>;
+  /** Cria ou atualiza a matéria do assunto, as fontes e uma versão `ai`. */
+  saveDraft(d: DraftInput): Promise<{ articleId: string; version: number }>;
+  decisionContext(articleId: string): Promise<DecisionContext | null>;
+  setStatus(articleId: string, patch: StatusPatch): Promise<void>;
+  /** Texto indexável da matéria (título, linha fina e corpo). */
+  articleText(articleId: string): Promise<string | null>;
+  indexArticle(articleId: string, embedding: number[] | null): Promise<void>;
+  findDecision(
+    objectRef: string,
+    step: StepName,
+    inputHash: string,
+  ): Promise<DecisionRecord | null>;
+  latestDecision(objectRef: string, step: StepName): Promise<DecisionRecord | null>;
+  recordDecision(d: DecisionRecord): Promise<void>;
+  /** Grava a notificação se não houver outra igual (chave e canal) na janela. */
+  notifyOnce(n: NotificationInput, windowSec: number): Promise<boolean>;
+  audit(entry: {
+    actor: string;
+    action: string;
+    objectRef: string;
+    details: Record<string, unknown>;
+  }): Promise<void>;
+}
+
+/** Regras ativas no banco (`rules.active`). Erro = nenhuma, várias ou corpo inválido. */
+export interface RulesSource {
+  activeRules(): Promise<Result<RuleSet, string>>;
+}

@@ -8,6 +8,8 @@ import {
   createFlags,
   createIngestRepo,
   createMediaRepo,
+  createPublishRepo,
+  createRulesSource,
   createRunStore,
   createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
@@ -22,8 +24,10 @@ import {
   createClusterHandlers,
   createIngestHandlers,
   createMediaHandlers,
+  createPublishHandlers,
   createUnderstandHandlers,
 } from "./steps";
+import { revalidateTags } from "./revalidate";
 import type { TickDeps } from "./tick";
 
 /**
@@ -68,6 +72,16 @@ export function productionHandlers(): StepHandlers {
       userAgent: crawlerUserAgent(),
       now: () => new Date(),
       analyze: analyzeImage,
+    }),
+    ...createPublishHandlers({
+      repo: createPublishRepo(db),
+      rules: createRulesSource(db),
+      flags,
+      callAgent: ai.callAgent,
+      promptVersion: ai.promptVersion,
+      embed: ai.embedOne,
+      revalidate: revalidateTags,
+      now: () => new Date(),
     }),
   };
 }

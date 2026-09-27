@@ -9,16 +9,22 @@ import type {
   MediaAssetRecord,
   MediaContext,
   MediaRepo,
+  PublishRepo,
+  RulesSource,
   RawPayload,
   RunStore,
   SourcePatch,
   SourceRecord,
   SourceReliability,
   UnderstandRepo,
+  DecisionRecord,
 } from "@/lib/pipeline/ports";
+import type { StepName } from "@/lib/pipeline/types";
 import { toSigned64, toUnsigned64 } from "@/lib/pipeline/simhash";
 import { RawEntrySchema } from "@/lib/pipeline/types";
 import { vectorLiteral } from "@/lib/pipeline/vector";
+import { err } from "@/lib/result";
+import { parseRuleRow } from "@/lib/rules/load";
 import type { DbClient } from "./client";
 import type { Json } from "./types";
 
@@ -403,6 +409,39 @@ interface ItemWithSourceRow {
 
 const DecisionOutputSchema = z.record(z.string(), z.unknown());
 
+const DECISION_COLUMNS =
+  "object_ref, step, agent_id, prompt_version, input_hash, output, rationale, rules_version, recommended, human_decision, human_id";
+
+interface DecisionRow {
+  object_ref: string;
+  agent_id: string | null;
+  prompt_version: number | null;
+  input_hash: string | null;
+  output: Json | null;
+  rationale: string | null;
+  rules_version: number | null;
+  recommended: string | null;
+  human_decision: string | null;
+  human_id: string | null;
+}
+
+function toDecision(r: DecisionRow, step: StepName): DecisionRecord {
+  const output = DecisionOutputSchema.safeParse(r.output);
+  return {
+    objectRef: r.object_ref,
+    step,
+    agentId: r.agent_id,
+    promptVersion: r.prompt_version,
+    inputHash: r.input_hash ?? "",
+    output: output.success ? output.data : {},
+    rationale: r.rationale,
+    rulesVersion: r.rules_version,
+    recommended: r.recommended,
+    humanDecision: r.human_decision,
+    humanId: r.human_id,
+  };
+}
+
 /** Banco das etapas classify, locate e verify (service role). */
 export function createUnderstandRepo(db: DbClient): UnderstandRepo {
   return {
@@ -457,7 +496,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
     async findDecision(objectRef, step, hash) {
       const { data, error } = await db
         .from("decisions")
-        .select("object_ref, step, agent_id, prompt_version, input_hash, output, rationale")
+        .select(DECISION_COLUMNS)
         .eq("object_ref", objectRef)
         .eq("step", step)
         .eq("input_hash", hash)
@@ -466,16 +505,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         .maybeSingle();
       check("findDecision", error);
       if (!data) return null;
-      const output = DecisionOutputSchema.safeParse(data.output);
-      return {
-        objectRef: data.object_ref,
-        step,
-        agentId: data.agent_id,
-        promptVersion: data.prompt_version,
-        inputHash: data.input_hash ?? hash,
-        output: output.success ? output.data : {},
-        rationale: data.rationale,
-      };
+      return toDecision(data, step);
     },
 
     async recordDecision(d) {
@@ -487,6 +517,10 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         input_hash: d.inputHash,
         output: toJson(d.output),
         rationale: d.rationale,
+        rules_version: d.rulesVersion ?? null,
+        recommended: d.recommended ?? null,
+        human_decision: d.humanDecision ?? null,
+        human_id: d.humanId ?? null,
       });
       check("recordDecision", error);
     },
@@ -726,6 +760,217 @@ export function createMediaRepo(db: DbClient): MediaRepo {
       const links = await db.from("article_media").select("article_id").eq("media_id", id);
       check("blockAsset(links)", links.error);
       return { articleIds: (links.data ?? []).map((l) => l.article_id) };
+    },
+
+    async audit(entry) {
+      const { error } = await db.from("audit_log").insert({
+        actor: entry.actor,
+        action: entry.action,
+        object_ref: entry.objectRef,
+        details: toJsonObject(entry.details),
+      });
+      check("audit", error);
+    },
+  };
+}
+
+/** Regras ativas (`rules.active`). Nenhuma, várias ou corpo inválido = erro (falha fechada). */
+export function createRulesSource(db: DbClient): RulesSource {
+  return {
+    async activeRules() {
+      const { data, error } = await db
+        .from("rules")
+        .select("version, body, force_review")
+        .eq("active", true)
+        .order("version", { ascending: false })
+        .limit(2);
+      if (error) return err(`erro ao carregar regras: ${error.message}`);
+      if (!data || data.length === 0) return err("nenhuma regra ativa");
+      if (data.length > 1)
+        return err(`mais de uma versão ativa (${data.map((r) => r.version).join(", ")})`);
+      return parseRuleRow(data[0]!);
+    },
+  };
+}
+
+const STATUSES = [
+  "draft",
+  "in_review",
+  "changes_requested",
+  "approved",
+  "scheduled",
+  "published",
+  "updated",
+  "archived",
+  "unpublished",
+] as const;
+const LEVELS = ["alta", "média", "baixa"] as const;
+
+const DraftContextSchema = z.object({
+  topic: z.object({
+    id: z.string(),
+    slug: z.string(),
+    title: z.string(),
+    sectionSlug: z.string().nullable(),
+    confidence: z.enum(LEVELS),
+    confidenceScore: z.coerce.number(),
+  }),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      sourceId: z.string(),
+      sourceSlug: z.string(),
+      sourceName: z.string(),
+      reliability: z.enum(RELIABILITIES),
+      title: z.string(),
+      excerpt: z.string().nullable(),
+      publishedAt: z.string().nullable(),
+      sectionSlug: z.string().nullable(),
+      canonicalUrl: z.string(),
+      tags: z.array(z.string()),
+      sensitive: z.boolean(),
+    }),
+  ),
+  verify: z
+    .object({
+      roles: z.array(z.object({ id: z.string(), role: z.string() })).optional(),
+      centralConflict: z.boolean().optional(),
+    })
+    .passthrough()
+    .nullable(),
+  article: z
+    .object({
+      id: z.string(),
+      status: z.enum(STATUSES),
+      publishMode: z.enum(["human", "auto"]).nullable(),
+      humanEdited: z.boolean(),
+      version: z.number(),
+    })
+    .nullable(),
+});
+
+const DecisionContextSchema = z.object({
+  articleId: z.string(),
+  slug: z.string(),
+  topicId: z.string().nullable(),
+  status: z.enum(STATUSES),
+  publishMode: z.enum(["human", "auto"]).nullable(),
+  sectionSlug: z.string(),
+  category: z.string(),
+  title: z.string(),
+  urgent: z.boolean(),
+  aiFallback: z.boolean(),
+  confidence: z.enum(LEVELS),
+  confidenceScore: z.coerce.number(),
+  version: z.number(),
+  humanEdited: z.boolean(),
+  independentSources: z.number(),
+  primarySources: z.number(),
+  tags: z.array(z.string()),
+  sensitive: z.boolean(),
+  centralConflict: z.boolean(),
+  imageApproved: z.boolean(),
+});
+
+/** Banco das etapas 11 a 20 e da despublicação (service role). */
+export function createPublishRepo(db: DbClient): PublishRepo {
+  const understand = createUnderstandRepo(db);
+  return {
+    async draftContext(topicId) {
+      const { data, error } = await db.rpc("pipeline_draft_context", { p_topic: topicId });
+      check("draftContext", error);
+      if (data === null || data === undefined) return null;
+      const parsed = DraftContextSchema.safeParse(data);
+      if (!parsed.success) throw new Error(`pipeline-store: draftContext: ${parsed.error.message}`);
+      return parsed.data;
+    },
+
+    async saveDraft(d) {
+      const { data, error } = await db.rpc("save_pipeline_draft", { p: toJson(d) }).single();
+      check("saveDraft", error);
+      if (!data) throw new Error("pipeline-store: saveDraft sem retorno");
+      return { articleId: data.article_id, version: data.version };
+    },
+
+    async decisionContext(articleId) {
+      const { data, error } = await db.rpc("pipeline_decision_context", { p_article: articleId });
+      check("decisionContext", error);
+      if (data === null || data === undefined) return null;
+      const parsed = DecisionContextSchema.safeParse(data);
+      if (!parsed.success)
+        throw new Error(`pipeline-store: decisionContext: ${parsed.error.message}`);
+      return parsed.data;
+    },
+
+    async setStatus(articleId, p) {
+      const { error } = await db
+        .from("articles")
+        .update({
+          status: p.status,
+          updated_at: new Date().toISOString(),
+          ...(p.publishMode !== undefined ? { publish_mode: p.publishMode } : {}),
+          ...(p.publishedAt !== undefined ? { published_at: p.publishedAt } : {}),
+          ...(p.rulesVersion !== undefined ? { rules_version: p.rulesVersion } : {}),
+          ...(p.reviewReason !== undefined ? { review_reason: p.reviewReason } : {}),
+        })
+        .eq("id", articleId);
+      check("setStatus", error);
+    },
+
+    async articleText(articleId) {
+      const { data, error } = await db
+        .from("articles")
+        .select("title, dek, body")
+        .eq("id", articleId)
+        .maybeSingle();
+      check("articleText", error);
+      if (!data) return null;
+      const texts: string[] = [];
+      const walk = (n: unknown): void => {
+        if (Array.isArray(n)) n.forEach(walk);
+        else if (typeof n === "object" && n !== null) {
+          const o = n as Record<string, unknown>;
+          if (typeof o.text === "string") texts.push(o.text);
+          if (o.content !== undefined) walk(o.content);
+        }
+      };
+      walk(data.body);
+      return [data.title, data.dek, ...texts].join("\n");
+    },
+
+    async indexArticle(articleId, embedding) {
+      const { error } = await db.rpc("index_article", {
+        p_id: articleId,
+        ...(embedding ? { p_embedding: vectorLiteral(embedding) } : {}),
+      });
+      check("indexArticle", error);
+    },
+
+    findDecision: (objectRef, step, hash) => understand.findDecision(objectRef, step, hash),
+
+    async latestDecision(objectRef, step) {
+      const { data, error } = await db
+        .from("decisions")
+        .select(DECISION_COLUMNS)
+        .eq("object_ref", objectRef)
+        .eq("step", step)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      check("latestDecision", error);
+      return data ? toDecision(data, step) : null;
+    },
+
+    recordDecision: (d) => understand.recordDecision(d),
+
+    async notifyOnce(n, windowSec) {
+      const { data, error } = await db.rpc("notify_once", {
+        p: toJson(n),
+        p_window_sec: windowSec,
+      });
+      check("notifyOnce", error);
+      return data === true;
     },
 
     async audit(entry) {
