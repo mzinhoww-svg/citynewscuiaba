@@ -545,7 +545,7 @@ as $$
         'pageUrl', ci.canonical_url,
         'author', ci.author,
         'source', jsonb_build_object(
-          'id', so.id, 'slug', so.slug, 'name', coalesce(so.display_name, so.name),
+          'id', so.id, 'slug', so.slug, 'name', coalesce(so.display_name, so.name), 'baseUrl', so.base_url,
           'imagePolicy', so.image_policy, 'agreementUntil', so.agreement_until,
           'rateLimitPerHour', so.rate_limit_per_hour))
         order by (so.reliability = 'primary') desc, ci.published_at desc nulls last, ci.id)

@@ -9,7 +9,7 @@ import { drain } from "@/lib/pipeline/drain";
 import { createQueue } from "@/lib/pipeline/queue";
 import { createRunStep } from "@/lib/pipeline/run-step";
 import { createIngestHandlers, extractFromFeed } from "@/lib/pipeline/steps";
-import { createFakeHttp } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
 
 const UA = "CityNewsBot/1.0 (+https://citynewscuiaba.vercel.app/sobre#robo)";
 const rss = (name: string) => ({
@@ -35,6 +35,7 @@ describe("coleta com banco real (fixtures, sem rede)", () => {
     const handlers = createIngestHandlers({
       repo: createIngestRepo(db),
       http,
+      resolve: fakeResolve(),
       userAgent: UA,
       now: () => new Date("2026-09-27T18:45:00Z"),
     });

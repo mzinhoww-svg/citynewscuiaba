@@ -39,7 +39,7 @@ import {
   extractFromFeed,
   extractFromJsonFeed,
 } from "@/lib/pipeline/steps";
-import { createFakeHttp, type FakeRoute } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, type FakeRoute, fakeResolve } from "@/lib/pipeline/testing/fake-http";
 import { runTick } from "@/lib/pipeline/tick";
 import { unpublishAuto } from "@/lib/pipeline/unpublish";
 import { cosine } from "@/lib/pipeline/vector";
@@ -182,6 +182,7 @@ async function runCycle(opts: {
     ...createIngestHandlers({
       repo: createIngestRepo(db),
       http,
+      resolve: fakeResolve(),
       userAgent: "CityNewsBot/1.0",
       now,
     }),
@@ -192,6 +193,7 @@ async function runCycle(opts: {
       store: createMemoryMediaStore(),
       flags: opts.flags,
       http,
+      resolve: fakeResolve(),
       userAgent: "CityNewsBot/1.0",
       now,
       analyze: analyzeImage,

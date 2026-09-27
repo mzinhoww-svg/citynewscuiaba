@@ -18,6 +18,7 @@ import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
 import type { DrainDeps } from "./drain";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
+import { systemResolve } from "./net";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
 import {
@@ -51,6 +52,7 @@ export function productionHandlers(): StepHandlers {
     ...createIngestHandlers({
       repo: createIngestRepo(db),
       http,
+      resolve: systemResolve,
       userAgent: crawlerUserAgent(),
       now: () => new Date(),
     }),
@@ -70,6 +72,7 @@ export function productionHandlers(): StepHandlers {
       store: productionMediaStore(db),
       flags,
       http,
+      resolve: systemResolve,
       userAgent: crawlerUserAgent(),
       now: () => new Date(),
       analyze: analyzeImage,

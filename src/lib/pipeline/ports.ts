@@ -317,6 +317,8 @@ export interface MediaSourceItem {
     id: string;
     slug: string;
     name: string;
+    /** `sources.base_url`: a imagem só é baixada desse domínio (ou subdomínio). */
+    baseUrl: string;
     imagePolicy: ImagePolicy;
     /** `sources.agreement_until` (data ISO) ou `null`. */
     agreementUntil: string | null;

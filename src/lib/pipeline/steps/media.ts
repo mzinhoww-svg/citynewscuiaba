@@ -7,11 +7,12 @@ import {
   watermarkHint,
 } from "@/lib/media/checks";
 import { chooseImage, mayGenerate } from "@/lib/media/choose";
-import { fetchImage } from "@/lib/media/fetch-image";
+import { fetchImage, outsideSourceDomain, sourceDomain } from "@/lib/media/fetch-image";
 import { mediaPath, type MediaStore } from "@/lib/media/store";
 import type { Candidate, ImageAnalysis, ImagePolicy, MediaChoice } from "@/lib/media/types";
 import { err, ok, type Result } from "@/lib/result";
 import { checkRobots } from "../http";
+import type { ResolveHost } from "../net";
 import type {
   Flags,
   HttpFetch,
@@ -28,6 +29,7 @@ export interface MediaStepDeps {
   store: MediaStore;
   flags: Flags;
   http: HttpFetch;
+  resolve: ResolveHost;
   userAgent: string;
   now: () => Date;
   analyze: (bytes: Uint8Array) => Promise<Result<ImageAnalysis, string>>;
@@ -118,14 +120,23 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         candidate: { ...base, width: existing.width, height: existing.height, phashDistances: [] },
       });
 
+    const domain = sourceDomain(item.source.baseUrl);
+    let parsed: URL;
+    try {
+      parsed = new URL(imageUrl);
+    } catch {
+      return err(`URL de imagem inválida: ${imageUrl}`);
+    }
+    const outside = domain ? outsideSourceDomain(parsed, domain) : "fonte sem URL base válida";
+    if (outside) return err(outside);
     const robots = await checkRobots(
-      { repo: deps.repo, http: deps.http, userAgent: deps.userAgent },
+      { repo: deps.repo, http: deps.http, resolve: deps.resolve, userAgent: deps.userAgent },
       imageUrl,
       { bucket: `crawler:${item.source.slug}`, limitPerHour: item.source.rateLimitPerHour },
     );
     if (robots.kind !== "allowed")
       return err(robots.kind === "rate_limited" ? "limite de requisições da fonte" : robots.reason);
-    const file = await fetchImage(deps, imageUrl);
+    const file = await fetchImage(deps, imageUrl, { sourceBaseUrl: item.source.baseUrl });
     if (!file.ok) return err(file.error);
     const analysis = await deps.analyze(file.value.bytes);
     if (!analysis.ok) return err(analysis.error);

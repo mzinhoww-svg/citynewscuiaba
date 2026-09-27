@@ -13,7 +13,7 @@ import { analyzeImage } from "@/lib/media/analyze";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { takedownReproduction } from "@/lib/media/takedown";
 import { createMediaStep } from "@/lib/pipeline/steps/media";
-import { createFakeHttp } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
 
 const db = createServiceClient();
 const tag = randomUUID().slice(0, 8);
@@ -125,6 +125,7 @@ describe("imagem com banco real: política reproduction", () => {
       store,
       flags: createFlags(db),
       http,
+      resolve: fakeResolve(),
       userAgent: "CityNewsBot/1.0",
       now: () => new Date(),
       analyze: analyzeImage,

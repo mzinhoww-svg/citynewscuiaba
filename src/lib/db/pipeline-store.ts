@@ -622,6 +622,7 @@ const MediaContextSchema = z.object({
         id: z.string(),
         slug: z.string(),
         name: z.string(),
+        baseUrl: z.string(),
         imagePolicy: z.enum(["none", "with_agreement", "licensed_only", "reproduction"]),
         agreementUntil: z.string().nullable(),
         rateLimitPerHour: z.number(),

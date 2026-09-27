@@ -2,7 +2,7 @@ import { readFixture } from "../../../../tests/fixtures/read";
 import { drain } from "../drain";
 import type { PipelineEvent, SourceRecord } from "../ports";
 import { createRunStep, type StepHandlers } from "../run-step";
-import { createFakeHttp, type FakeRoute } from "../testing/fake-http";
+import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryIngestRepo } from "../testing/memory-ingest-repo";
 import { createMemoryQueue } from "../testing/memory-queue";
 import { createIngestHandlers } from ".";
@@ -33,7 +33,7 @@ function setup(
   const queue = createMemoryQueue();
   const dedupe: string[] = [];
   const handlers: StepHandlers = {
-    ...createIngestHandlers({ repo, http, userAgent: UA, now: () => NOW }),
+    ...createIngestHandlers({ repo, http, resolve: fakeResolve(), userAgent: UA, now: () => NOW }),
     dedupe: async (m) => {
       dedupe.push(m.itemRef);
       return { ok: true, value: [] };
@@ -258,6 +258,7 @@ describe("coleta: fetch → validate → extract → normalize", () => {
             "https://folhadocerrado.example/robots.txt": { status: 404 },
             "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
           }).http,
+          resolve: fakeResolve(),
           userAgent: UA,
           now: () => NOW,
         }),
