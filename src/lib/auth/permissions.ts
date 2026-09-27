@@ -125,6 +125,8 @@ export function canAccess(roles: RoleGrant[], action: Action): boolean {
 
 export interface Session {
   userId: string;
+  /** E-mail da conta, quando o Supabase Auth informa (exibição no Estúdio). */
+  email?: string;
   roles: RoleGrant[];
 }
 

@@ -8,6 +8,19 @@
  * Fontes: tokens.css já redefine --font-sans e --font-serif fora de camada, o que
  * sobrescreve o tema padrão do Tailwind (font-sans / font-serif usam as fontes locais).
  */
+/*
+ * Só cores de token: a paleta padrão do Tailwind sai do tema, então `bg-white`, `text-gray-500`
+ * e afins não existem (transparent, current e inherit continuam valendo).
+ */
+@theme {
+  --color-*: initial;
+}
+
+/* Medidas de layout descritas em DESIGN.md §1 que ainda não tinham token. */
+:root {
+  --layout-rail: 300px; /* barra lateral da web (agenda) e navegação do Estúdio */
+}
+
 @theme inline {
   /* Superfícies */
   --color-page: var(--bg-page);
@@ -54,6 +67,22 @@
   --color-erro-soft: var(--cn-erro-soft);
   --color-urgente: var(--cn-urgente);
 
+  /* Cores de marca fixas (não mudam no modo escuro): placas Tinta, texto sobre foto, O Ponto */
+  --color-tinta: var(--cn-tinta);
+  --color-tinta-80: var(--cn-tinta-80);
+  --color-branco: var(--cn-branco);
+  --color-urucum: var(--cn-urucum);
+  --color-cerrado: var(--cn-cerrado);
+  --color-nevoa: var(--cn-nevoa);
+  --color-nevoa-2: var(--cn-nevoa-2);
+  --color-ia: var(--cn-ia);
+  --color-avatar-1: var(--cn-avatar-1);
+  --color-avatar-2: var(--cn-avatar-2);
+  --color-avatar-3: var(--cn-avatar-3);
+  --color-avatar-4: var(--cn-avatar-4);
+  --color-avatar-5: var(--cn-avatar-5);
+  --color-avatar-6: var(--cn-avatar-6);
+
   /* Raios */
   --radius-0: var(--r-0);
   --radius-xs: var(--r-xs);
@@ -73,6 +102,7 @@
   --spacing-icon-btn: var(--h-icon-btn);
   --spacing-tabbar: var(--h-tabbar);
   --spacing-tap: var(--tap-min);
+  --spacing-rail: var(--layout-rail);
   --container-page: var(--container-max);
   --container-read: var(--measure-read);
 
@@ -84,6 +114,57 @@
   --tracking-wordmark: var(--ls-wordmark);
   --tracking-display: var(--ls-display);
   --tracking-eyebrow: var(--ls-eyebrow);
+
+  /* Escala de tamanhos (text-13, text-16…) e pesos */
+  --text-12: var(--fs-12);
+  --text-13: var(--fs-13);
+  --text-14: var(--fs-14);
+  --text-16: var(--fs-16);
+  --text-18: var(--fs-18);
+  --text-20: var(--fs-20);
+  --text-24: var(--fs-24);
+  --text-28: var(--fs-28);
+  --text-32: var(--fs-32);
+  --text-40: var(--fs-40);
+  --text-56: var(--fs-56);
+  --font-weight-regular: var(--fw-regular);
+  --font-weight-medium: var(--fw-medium);
+  --font-weight-semibold: var(--fw-semibold);
+  --font-weight-bold: var(--fw-bold);
+  --font-weight-black: var(--fw-black);
+
+  /* Overlay e motion */
+  --blur-scrim: var(--blur-overlay);
+  --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
+  --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
+  --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes cn-live-pulse {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes cn-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes cn-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Papéis tipográficos de DESIGN.md §4 */
@@ -156,6 +237,82 @@
 }
 @utility z-tooltip {
   z-index: var(--z-tooltip);
+}
+
+/*
+ * R4: controle com borda visível (3,73:1). O teste do TextField procura esta classe no
+ * contêiner do input.
+ */
+@utility border-control {
+  border: 1px solid var(--border-control);
+}
+
+/*
+ * R4 + R5 no contêiner de campo: foco troca a borda para Tinta 2 px (1 px de borda + 1 px
+ * interno) e mostra o anel Urucum no contêiner. O anel do input some porque o contêiner o
+ * substitui; botões internos (mostrar senha, filtros) mantêm o anel próprio.
+ */
+@utility control-field {
+  &:focus-within {
+    border-color: var(--border-strong);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  &:has(input:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  & input:focus-visible {
+    outline: none;
+  }
+}
+
+/* Alvo de toque mínimo (44 px) para controles visualmente menores, sem mudar o layout. */
+@utility hit-area {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--tap-min));
+    height: max(100%, var(--tap-min));
+    transform: translate(-50%, -50%);
+  }
+}
+
+/*
+ * R7: o título do card é o link; o pseudo-elemento cobre o card inteiro (que precisa de
+ * `relative`). O anel de foco aparece em volta do card, não só do texto.
+ */
+@utility card-link {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius, 0);
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::after {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+}
+
+/* Área segura inferior (barra de gestos) e espaço da barra inferior do app. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-tabbar-safe {
+  padding-bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @layer base {

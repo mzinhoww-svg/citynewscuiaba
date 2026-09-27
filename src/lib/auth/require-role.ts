@@ -26,7 +26,7 @@ export async function getSession(): Promise<Session | null> {
   const roles: RoleGrant[] = (rows ?? [])
     .filter((row) => isRole(row.role))
     .map((row) => ({ role: row.role, sections: row.sections }));
-  return { userId: data.user.id, roles };
+  return { userId: data.user.id, email: data.user.email, roles };
 }
 
 /**
