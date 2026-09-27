@@ -60,6 +60,7 @@ export {
   type SectionFiltersFormProps,
 } from "./editorial/SectionFiltersForm";
 export { ServiceTile, type ServiceTileProps } from "./editorial/ServiceTile";
+export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";
 export { SourceAvatar, type SourceAvatarProps } from "./editorial/SourceAvatar";

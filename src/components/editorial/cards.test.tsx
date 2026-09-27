@@ -12,6 +12,7 @@ import {
   CollectionCard,
   EventDateBadge,
   NowList,
+  SectionTile,
   ServiceTile,
   SourceAvatar,
   TopicSummaryCard,
@@ -205,5 +206,13 @@ describe("demais cards", () => {
     const link = screen.getByRole("link", { name: "Vagas de emprego" });
     expect(link).toHaveAttribute("href", "/servicos");
     expect(screen.getByText("Mutirão no sábado")).toBeInTheDocument();
+  });
+});
+
+describe("SectionTile", () => {
+  it("é link para a editoria com a contagem do dia em texto", () => {
+    render(<SectionTile href="/cidade" name="Cidade" meta="3 matérias hoje" icon="house" />);
+    expect(screen.getByRole("link", { name: "Cidade" })).toHaveAttribute("href", "/cidade");
+    expect(screen.getByText("3 matérias hoje")).toBeInTheDocument();
   });
 });

@@ -11,6 +11,7 @@ export {
 export { listAggregated, type AggregatedFilters } from "./aggregated";
 export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
+export { getCollectionBySlug, getExploreData } from "./explore";
 export {
   countSectionSince,
   getSectionRef,

@@ -190,6 +190,36 @@ export interface CollectionView {
   itemCount: number;
 }
 
+/** Coleção com capa e itens em ordem (P08). */
+export type CollectionEntry =
+  | { kind: "article"; item: ArticleSummary }
+  | { kind: "topic"; item: TopicView }
+  | { kind: "event"; item: EventView }
+  | { kind: "aggregated"; item: AggregatedView };
+
+export interface CollectionDetail extends CollectionView {
+  curator?: string;
+  updatedAt: string;
+  items: CollectionEntry[];
+}
+
+/** Atalho de editoria no Explorar (P07). */
+export interface SectionShortcut {
+  slug: string;
+  name: string;
+  href: string;
+  todayCount: number;
+}
+
+export interface ExploreData {
+  generatedAt: string;
+  sections: SectionShortcut[];
+  topics: TopicView[];
+  collections: CollectionView[];
+  /** Mais lidas dos últimos 7 dias. */
+  mostRead: ArticleSummary[];
+}
+
 export interface SourceView {
   slug: string;
   name: string;

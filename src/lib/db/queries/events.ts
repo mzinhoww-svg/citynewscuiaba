@@ -7,7 +7,7 @@ import type { EventView, QueryError } from "./types";
 
 type EventRow = Database["public"]["Tables"]["event_listings"]["Row"];
 
-const COLUMNS =
+export const EVENT_COLUMNS =
   "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description";
 
 export interface EventFilters {
@@ -28,7 +28,7 @@ export function eventHref(slug: string): string {
   return `/agenda/${slug}`;
 }
 
-function toView(r: EventRow): EventView {
+export function toEventView(r: EventRow): EventView {
   return {
     id: r.id,
     slug: r.slug,
@@ -60,7 +60,7 @@ export async function fetchEvents(
   // Evento em andamento continua na lista até terminar (sem fim: até o início).
   let q = db
     .from("event_listings")
-    .select(COLUMNS)
+    .select(EVENT_COLUMNS)
     .or(`ends_at.gte."${from}",and(ends_at.is.null,starts_at.gte."${from}")`)
     .order("starts_at", { ascending: true })
     .limit(Math.max(1, Math.min(f.limit ?? 50, 100)));
@@ -72,7 +72,7 @@ export async function fetchEvents(
   if (f.kidsOnly) q = q.eq("age_rating", "livre");
   if (f.origin) q = q.eq("origin", f.origin);
   if (f.excludeId) q = q.neq("id", f.excludeId);
-  return (await q.then(many)).map(toView);
+  return (await q.then(many)).map(toEventView);
 }
 
 /** Agenda: eventos confirmados (a RLS esconde os não confirmados), em ordem de início. */
@@ -85,10 +85,10 @@ export async function getEvent(slug: string): Promise<Result<EventView | null, Q
   return readPublic(async (db) => {
     const row = await db
       .from("event_listings")
-      .select(COLUMNS)
+      .select(EVENT_COLUMNS)
       .eq("slug", slug)
       .maybeSingle()
       .then(one);
-    return row ? toView(row) : null;
+    return row ? toEventView(row) : null;
   });
 }

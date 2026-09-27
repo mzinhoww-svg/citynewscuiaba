@@ -10,6 +10,8 @@ export interface ShareSheetProps {
   title: string;
   /** Caminho ou URL absoluta; caminho é completado com a origem da página. */
   url: string;
+  /** Título da folha (padrão "Compartilhar matéria"). */
+  sheetTitle?: string;
   className?: string;
 }
 
@@ -24,7 +26,7 @@ const linkClass =
  * <ShareSheet title={article.title} url={article.href} />
  * ```
  */
-export function ShareSheet({ title, url, className }: ShareSheetProps) {
+export function ShareSheet({ title, url, sheetTitle, className }: ShareSheetProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [full, setFull] = useState(url);
@@ -50,7 +52,11 @@ export function ShareSheet({ title, url, className }: ShareSheetProps) {
       <Button variant="outline" size="md" icon="share-2" onClick={onShare} className={className}>
         {ARTICLE.share}
       </Button>
-      <BottomSheet open={open} title={ARTICLE.shareTitle} onClose={() => setOpen(false)}>
+      <BottomSheet
+        open={open}
+        title={sheetTitle ?? ARTICLE.shareTitle}
+        onClose={() => setOpen(false)}
+      >
         <div className="flex flex-col gap-3">
           <a
             href={`https://wa.me/?text=${text}`}

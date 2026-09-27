@@ -327,6 +327,12 @@ insert into collection_items (collection_id, content_ref, position) values
  ('c7000000-0000-4000-8000-000000000003','article:c2000000-0000-4000-8000-000000000003',4),
  ('c7000000-0000-4000-8000-000000000004','article:c2000000-0000-4000-8000-000000000011',1);
 
+-- P1-T9 · coleção (P08): data da curadoria e um item de outro veículo (continua abrindo no original).
+update collections set updated_at = '2026-09-26 18:00-04' where slug in ('plano-de-onibus-cpa-centro','seca-e-fumaca');
+update collections set updated_at = '2026-09-25 10:00-04' where slug in ('outubro-em-cuiaba','guia-do-plano-diretor');
+insert into collection_items (collection_id, content_ref, position) values
+ ('c7000000-0000-4000-8000-000000000002','aggregated:c3000000-0000-4000-8000-000000000013',4);
+
 -- ---------------------------------------------------------------------------
 -- P1 · portal: 1 matéria arquivada (resposta 410 com motivo, P25). Não conta entre as 12 publicadas.
 -- ---------------------------------------------------------------------------

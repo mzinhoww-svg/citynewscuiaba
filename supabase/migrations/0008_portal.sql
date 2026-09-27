@@ -81,3 +81,6 @@ alter table topics add column if not exists unconfirmed text[] not null default 
 alter table topics add column if not exists faq jsonb not null default '[]'
   check (jsonb_typeof(faq) = 'array');
 alter table topics add column if not exists summary_reviewed_by uuid;
+
+-- Coleção (P08): a capa mostra a data da última curadoria. P4 atualiza ao editar a coleção.
+alter table collections add column if not exists updated_at timestamptz not null default now();

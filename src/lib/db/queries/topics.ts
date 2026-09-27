@@ -21,14 +21,14 @@ type TopicRow = Pick<
   | "updated_at"
 >;
 
-const COLUMNS =
+export const TOPIC_COLUMNS =
   "id, slug, title, summary, state, confidence, confidence_score, section_slug, updated_at";
 
 export function topicHref(slug: string): string {
   return `/assunto/${slug}`;
 }
 
-async function withCounts(db: DbClient, rows: TopicRow[]): Promise<TopicView[]> {
+export async function withCounts(db: DbClient, rows: TopicRow[]): Promise<TopicView[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
   const [articles, items] = await Promise.all([
@@ -59,7 +59,7 @@ async function withCounts(db: DbClient, rows: TopicRow[]): Promise<TopicView[]> 
 export async function fetchActiveTopics(db: DbClient, limit: number): Promise<TopicView[]> {
   const rows = await db
     .from("topics")
-    .select(COLUMNS)
+    .select(TOPIC_COLUMNS)
     .neq("state", "encerrado")
     .order("updated_at", { ascending: false })
     .limit(limit)
@@ -87,7 +87,7 @@ export async function getTopicBySlug(
   return readPublic(async (db) => {
     const row = await db
       .from("topics")
-      .select(`${COLUMNS}, agreements, disagreements, unconfirmed, faq, summary_reviewed_by`)
+      .select(`${TOPIC_COLUMNS}, agreements, disagreements, unconfirmed, faq, summary_reviewed_by`)
       .eq("slug", slug)
       .maybeSingle()
       .then(one);
@@ -164,7 +164,11 @@ export async function listTopics(
   now: Date = new Date(),
 ): Promise<Result<TopicView[], QueryError>> {
   return readPublic(async (db) => {
-    let q = db.from("topics").select(COLUMNS).order("updated_at", { ascending: false }).limit(60);
+    let q = db
+      .from("topics")
+      .select(TOPIC_COLUMNS)
+      .order("updated_at", { ascending: false })
+      .limit(60);
     if (f.state) q = q.eq("state", f.state);
     if (f.section) q = q.eq("section_slug", f.section);
     if (f.week) q = q.gte("updated_at", new Date(now.getTime() - 7 * 86_400_000).toISOString());

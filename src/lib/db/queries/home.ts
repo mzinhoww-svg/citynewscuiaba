@@ -14,7 +14,7 @@ export const HOME_SECTION_BLOCKS = ["politica", "economia", "cultura"] as const;
 const NOW_COUNT = 6;
 const MOST_READ_COUNT = 5;
 
-async function fetchCollections(db: DbClient, limit: number): Promise<CollectionView[]> {
+export async function fetchCollections(db: DbClient, limit: number): Promise<CollectionView[]> {
   const rows = await db
     .from("collections")
     .select("id, slug, title, description, collection_items(count)")
@@ -51,15 +51,16 @@ async function fetchFeaturedSources(db: DbClient, limit: number): Promise<Source
 }
 
 /**
- * Mais lidas: leituras qualificadas das últimas 24 h; sem eventos (portal novo, sem
+ * Mais lidas: leituras qualificadas das últimas `hours` (padrão 24 h); sem eventos (portal novo, sem
  * consentimento de métricas), as mais recentes que ainda não apareceram na página.
  */
-async function pickMostRead(
+export async function pickMostRead(
   db: DbClient,
   pool: ArticleSummary[],
   shown: Set<string>,
+  hours = 24,
 ): Promise<ArticleSummary[]> {
-  const ranked = await db.rpc("public_most_read", { p_hours: 24, p_limit: 10 }).then(many);
+  const ranked = await db.rpc("public_most_read", { p_hours: hours, p_limit: 10 }).then(many);
   const byId = new Map(pool.map((a) => [a.id, a]));
   const fromReads = ranked.flatMap((r) => byId.get(r.article_id) ?? []).filter((a) => !a.sponsored);
   const fallback = pool.filter((a) => !a.sponsored && !shown.has(a.id));
