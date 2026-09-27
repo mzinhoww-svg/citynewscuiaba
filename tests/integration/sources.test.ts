@@ -38,7 +38,8 @@ describe("sinais de fonte (P2-T5)", () => {
 
   it("popularidade normalizada, tendência e dados do card", async () => {
     const list = value(await getSourceSignals({ window: "7d" }));
-    expect(list).toHaveLength(12);
+    // 12 fontes fictícias no seed; Rádio Pantanal está `paused` (FS-T1) e some das visíveis.
+    expect(list).toHaveLength(11);
     const by = new Map(list.map((s) => [s.slug, s]));
     expect(by.get("folha-do-cerrado")!.popularity).toBe(1);
     expect(by.get("placar-mt")!.trendDirection).toBe("up");

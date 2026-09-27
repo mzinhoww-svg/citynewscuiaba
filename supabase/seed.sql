@@ -26,6 +26,19 @@ insert into sources (id, slug, name, base_url, kind, feed_url, categories, local
  ('c5000000-0000-4000-8000-000000000011','diario-oficial-de-cuiaba','Diário Oficial de Cuiabá','https://diariooficial.example','api','https://diariooficial.example/api/atos','{politica,cidade}','cuiaba','primary','none','summary_2_sentences',true,null),
  ('c5000000-0000-4000-8000-000000000012','brasil-hoje','Brasil Hoje','https://brasilhoje.example','rss','https://brasilhoje.example/feed','{economia,politica}','nacional','standard','none','link_only',false,null);
 
+-- FS-T1 (Painel de Fontes): camada, score editorial e termos revisados das fontes fictícias.
+-- Rádio Pantanal fica pausada manualmente (nenhuma fonte do seed entra na via rápida).
+update sources s set layer = v.layer, editorial_score = v.editorial_score, terms_reviewed_at = '2026-08-01 09:00-04'
+from (values
+ ('folha-do-cerrado', 2, 4), ('diario-da-baixada', 2, 3), ('mt-agora', 2, 4), ('portal-varzea', 2, 3),
+ ('radio-pantanal', 2, 2), ('correio-mato-grossense', 3, 3), ('agro-em-pauta-mt', 3, 3),
+ ('cena-cuiabana', 3, 2), ('placar-mt', 3, 3), ('agencia-mt', 1, 5), ('diario-oficial-de-cuiaba', 1, 5),
+ ('brasil-hoje', 4, 3)
+) as v(slug, layer, editorial_score)
+where s.slug = v.slug;
+
+update sources set status = 'paused', status_reason = 'manual' where slug = 'radio-pantanal';
+
 -- ---------------------------------------------------------------------------
 -- Usuários de seed (spec §9) · senha local citynews-local-123
 -- ---------------------------------------------------------------------------

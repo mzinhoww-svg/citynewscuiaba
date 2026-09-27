@@ -104,7 +104,10 @@ export function createRunStore(db: DbClient): RunStore {
       check("activeSources", error);
       return (data ?? []).map((s) => ({
         slug: s.slug,
-        frequencyMinutes: s.frequency_minutes,
+        // `frequency_minutes` aceita `null` desde a migration 0011 (painel de fontes, D-F14):
+        // `null` = padrão global. FS-T5 troca este `30` fixo pela leitura de
+        // `app_settings.sources.default_frequency_minutes` e por `dueSources`/via rápida (D-F17).
+        frequencyMinutes: s.frequency_minutes ?? 30,
         lastFetchedAt: s.last_fetched_at,
       }));
     },
