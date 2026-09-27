@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T18:56:27.204Z",
+  "updatedAt": "2026-09-27T19:59:00.730Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -363,18 +363,18 @@
           "id": "P3-T10",
           "title": "Busca tradicional",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "af4d161",
           "notes": ""
         },
         {
           "id": "P3-T11",
           "title": "Busca com IA",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "2bf3caf",
           "notes": ""
         }
       ]
