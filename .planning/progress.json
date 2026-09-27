@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T19:59:27.490Z",
+  "updatedAt": "2026-09-27T20:54:01.341Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -401,27 +401,27 @@
           "id": "P2-T1",
           "title": "Consentimento",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "a23351b",
           "notes": ""
         },
         {
           "id": "P2-T2",
           "title": "Perfil anônimo local",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "53f5d62",
           "notes": ""
         },
         {
           "id": "P2-T3",
           "title": "Eventos",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "df62faf",
           "notes": ""
         },
         {
