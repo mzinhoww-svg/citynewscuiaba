@@ -55,3 +55,30 @@ Executar contra a URL de preview da Vercel. Para cada passo: navegar, capturar s
 ## 4. Fixtures
 
 `tests/fixtures/feeds/*.xml` (RSS das fontes fictícias, incluindo um item com instrução injetada e um duplicado), `tests/fixtures/ai/*.json` (respostas gravadas do provedor falso), `tests/fixtures/images/*` (original sem permissão, licenciada, com marca d'água). O provedor de IA em teste é `FakeProvider` (`src/lib/ai/fake.ts`), determinístico, selecionado por `AI_PROVIDER=fake`.
+
+## 5. Banco local e usuários de seed
+
+```bash
+pnpm db:start   # pilha local sem Docker (scripts/local-stack); no CI: supabase start
+pnpm db:reset   # recria public, aplica supabase/migrations/*.sql e supabase/seed.sql
+pnpm test       # inclui tests/integration (precisam do banco com seed)
+```
+
+O Vitest carrega `.env.local` (escrito por `scripts/local-stack/start.sh`) em `vitest.setup.ts`; no CI as variáveis vêm do `supabase status`.
+
+Usuários de seed (só banco local e CI; nunca em staging ou produção). Senha de todos: **`citynews-local-123`**.
+
+| Pessoa | E-mail | Papel | Editorias |
+|---|---|---|---|
+| Helena Costa | helena.costa@citynews.local | admin | — |
+| Marina Arruda | marina.arruda@citynews.local | editor_chefe | todas |
+| Otávio Reis | otavio.reis@citynews.local | editor | cidade, servicos, clima, agenda |
+| Juliana Campos | juliana.campos@citynews.local | jornalista | — |
+| Rafael Siqueira | rafael.siqueira@citynews.local | jornalista | — |
+| Beatriz Lemos | beatriz.lemos@citynews.local | revisor | — |
+| Diego Prado | diego.prado@citynews.local | operador_ia | — |
+| Thiago Moraes | thiago.moraes@citynews.local | analista | — |
+| Carlos Nunes | carlos.nunes@citynews.local | moderador | — |
+| Paulo Rezende | paulo.rezende@citynews.local | leitura | — |
+
+IDs fixos: usuários `c1000000-…-0000000000NN`, matérias `c2…`, itens coletados `c3…`, assuntos `c4…`, fontes `c5…`, eventos `c6…`, coleções `c7…`.

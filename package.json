@@ -11,16 +11,24 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:a11y": "playwright test --grep @a11y",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "db:start": "bash scripts/local-stack/start.sh",
+    "db:reset": "node scripts/db-reset.mjs",
+    "db:types": "npx -y supabase@2.118.0 gen types typescript --db-url \"${SUPABASE_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}\" --schema public > src/lib/db/types.ts && prettier --write src/lib/db/types.ts",
+    "db:seed:sources": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed_sources_real.sql"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.2",
     "next": "16.3.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@next/env": "^16.3.6",
     "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10.4.2",
