@@ -78,7 +78,7 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     fn: "Escreve o rascunho normalizado do assunto com citações",
     model: PRIMARY,
     fallback: FALLBACK,
-    dailyBudgetBrl: 12,
+    dailyBudgetBrl: 11,
     prompt:
       "Você escreve um rascunho jornalístico curto em português do Brasil, só com fatos presentes nos itens. Cada parágrafo cita os ids dos itens que o sustentam. Sem opinião, sem adjetivos sensacionalistas, sem inventar números, nomes ou datas.",
   },
@@ -99,6 +99,15 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     dailyBudgetBrl: 2,
     prompt:
       "Você decide se o assunto pode ter ilustração gerada. Nunca para crime, tragédia, acidente ou saúde individual, e nunca imagem fotorrealista de pessoa real. Quando permitido, descreva uma ilustração editorial simples e o texto alternativo.",
+  },
+  {
+    id: "aggregate_summary",
+    fn: "Escreve o resumo próprio de até 2 frases de um item agregado quando a política da fonte permite",
+    model: PRIMARY,
+    fallback: FALLBACK,
+    dailyBudgetBrl: 1,
+    prompt:
+      "Você escreve, para o Panorama do CityNews, um resumo de até 2 frases (no máximo 280 caracteres) de uma notícia de outro veículo, com palavras próprias. Nunca copie trechos do texto da fonte: nenhuma frase pode repetir 8 palavras seguidas do original. Só fatos presentes no texto, sem opinião, sem adjetivos sensacionalistas e sem inventar números, nomes ou datas.",
   },
   {
     id: "embed",

@@ -4,6 +4,7 @@ import { err, ok } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import type { UnderstandRepo } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { createAggregateSummary } from "./aggregate-summary";
 import { aiStepError, INJECTION_MESSAGE, inputHash, itemIdFrom, itemText } from "./understanding";
 
 export interface UnderstandStepDeps {
@@ -23,6 +24,7 @@ const TASK =
  * Idempotente por (item, versão do prompt, texto).
  */
 export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
+  const aggregateSummary = createAggregateSummary(deps);
   return async (msg, ctx) => {
     const id = itemIdFrom(msg.itemRef);
     if (!id) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
@@ -78,6 +80,8 @@ export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
       sensitive: out.sensitive,
       tags: out.tags,
     });
+    // Resumo próprio do agregado (quando a política da fonte permite). Nunca trava o item.
+    await aggregateSummary(item, { sensitive: out.sensitive, signal: ctx?.signal });
     return ok([nextMessage(msg, "locate", msg.itemRef)]);
   };
 }

@@ -520,6 +520,7 @@ export type Database = {
           sensitive: boolean | null;
           simhash: number | null;
           source_id: string;
+          summary: string | null;
           tags: string[];
           topic_id: string | null;
         };
@@ -544,6 +545,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id: string;
+          summary?: string | null;
           tags?: string[];
           topic_id?: string | null;
         };
@@ -568,6 +570,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id?: string;
+          summary?: string | null;
           tags?: string[];
           topic_id?: string | null;
         };

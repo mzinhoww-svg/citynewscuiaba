@@ -150,6 +150,30 @@ insert into collected_items (id, source_id, canonical_url, original_title, excer
  ('c3000000-0000-4000-8000-000000000029','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/servicos/mutirao-emprego-vagas','Mutirão de emprego no Centro terá vagas para primeiro emprego','Parte das vagas é para quem busca o primeiro emprego. Haverá atendimento prioritário para pessoas com deficiência.','Equipe Diário da Baixada','2026-09-25 13:00-04',null,'cuiaba','servicos',null,null),
  ('c3000000-0000-4000-8000-000000000030','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/vacinacao-escolas-outubro','Campanha leva vacinação às escolas estaduais em outubro','Equipes de saúde vão visitar escolas estaduais de Cuiabá para atualizar a caderneta de vacinação. Os pais devem enviar a caderneta com os alunos.','Redação Agência Cerrado','2026-09-26 10:00-04',null,'mt','saude',null,null);
 
+-- Resumos próprios do CityNews (até 2 frases, CLAUDE.md regra 4) para itens de fontes com política
+-- summary_2_sentences. O excerpt acima é o texto (fictício) da fonte: nunca público.
+update collected_items c set summary = v.summary
+from (values
+ ('c3000000-0000-4000-8000-000000000001', 'Plano conjunto de prefeitura e governo prevê ônibus expresso ligando CPA e Centro, com mais viagens nos horários de maior movimento. A mudança vale a partir de 6 de outubro.'),
+ ('c3000000-0000-4000-8000-000000000002', 'Ato oficial detalha trajetos e paradas das linhas que ligam CPA e Centro. As regras passam a valer no início de outubro.'),
+ ('c3000000-0000-4000-8000-000000000003', 'No terminal do CPA, usuários elogiam o ônibus expresso, mas cobram reforço no período noturno.'),
+ ('c3000000-0000-4000-8000-000000000004', 'Ônibus expresso entre CPA e Centro deve passar a cada 12 minutos no pico. Sábados e domingos terão espera maior, de 25 minutos.'),
+ ('c3000000-0000-4000-8000-000000000007', 'Obras do viaduto na Miguel Sutil passam a bloquear duas faixas no sentido Centro. Os desvios devem durar ao menos um mês.'),
+ ('c3000000-0000-4000-8000-000000000008', 'Governo publica mapa com rotas alternativas pelo Duque de Caxias durante a obra. Agentes orientam o trânsito no pico.'),
+ ('c3000000-0000-4000-8000-000000000011', 'Alerta da Defesa Civil segue ativo, com umidade abaixo de 15% nas tardes desta semana. A recomendação é evitar exercício ao ar livre no meio do dia.'),
+ ('c3000000-0000-4000-8000-000000000012', 'Fumaça de queimadas tomou Cuiabá no fim da tarde de sexta. Moradores do CPA e do Coxipó relatam forte cheiro de queimado.'),
+ ('c3000000-0000-4000-8000-000000000013', 'O ar de Cuiabá segue em nível ruim pelo terceiro dia consecutivo, segundo as medições. A melhora só deve vir com as chuvas.'),
+ ('c3000000-0000-4000-8000-000000000017', 'Organizadores da feira do agro em Cuiabá esperam R$ 180 milhões em negócios e 40 mil visitantes. Pequenos produtores terão área para vender direto ao público.'),
+ ('c3000000-0000-4000-8000-000000000019', 'Centro de Eventos recebe 300 expositores na feira do agro, com palestras sobre crédito rural. A entrada é gratuita.'),
+ ('c3000000-0000-4000-8000-000000000025', 'Nova lei do plano diretor muda o zoneamento da região norte de Cuiabá. As regras entram em vigor em 90 dias.'),
+ ('c3000000-0000-4000-8000-000000000026', 'Vereadores aprovaram em segunda votação a revisão do plano diretor, depois de duas audiências. O texto altera limites de altura de prédios na região norte.'),
+ ('c3000000-0000-4000-8000-000000000027', 'Guia mostra o que muda no zoneamento do CPA, Morada da Serra e Três Barras. Construções existentes ficam de fora das novas regras.'),
+ ('c3000000-0000-4000-8000-000000000028', 'Mutirão no sábado oferece 800 vagas de emprego na Praça Alencastro, das 8h às 14h. Leve documento com foto e carteira de trabalho.'),
+ ('c3000000-0000-4000-8000-000000000029', 'Parte das vagas do mutirão no Centro é voltada a quem procura o primeiro emprego. Pessoas com deficiência terão atendimento prioritário.'),
+ ('c3000000-0000-4000-8000-000000000030', 'Equipes de saúde vão às escolas estaduais de Cuiabá em outubro para atualizar a vacinação dos alunos. Os pais devem mandar a caderneta.')
+) as v(id, summary)
+where c.id = v.id::uuid;
+
 -- ---------------------------------------------------------------------------
 -- Matérias publicadas (12): 4 originais e 8 normalizadas. force_review=true → todas revisadas por humano.
 -- Corpo no formato de documento do editor (doc → paragraph → text).

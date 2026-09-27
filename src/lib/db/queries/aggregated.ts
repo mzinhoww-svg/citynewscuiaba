@@ -56,10 +56,11 @@ export function toAggregatedView(row: AggregatedRow): AggregatedView | null {
     sectionSlug: row.section_slug,
     topicId: row.topic_id,
     // Agregado nunca recebe rótulo de publicação; imagem não entra no card (sem permissão exibida).
+    // O resumo é o próprio do CityNews (agente aggregate_summary): rótulo RESUMO POR IA.
     labels: labelsFor({
       kind: "aggregated",
       sourceName: row.source_name,
-      hasAiSummary: false,
+      hasAiSummary: Boolean(row.summary),
       publishMode: null,
       sponsored: false,
     }),

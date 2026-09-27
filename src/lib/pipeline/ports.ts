@@ -223,6 +223,7 @@ export type Embed = (
 ) => Promise<Result<number[], string>>;
 
 export type SourceReliability = "primary" | "verified" | "standard" | "low";
+export type RepublishPolicy = "link_only" | "summary_2_sentences";
 
 /** Item como as etapas classify e locate o enxergam. */
 export interface UnderstandItem {
@@ -232,8 +233,13 @@ export interface UnderstandItem {
   reliability: SourceReliability;
   /** Localidade padrão da fonte (`sources.locality`). */
   sourceLocality: string;
+  /** Política de republicação da fonte: resumo próprio só com `summary_2_sentences`. */
+  republishPolicy: RepublishPolicy;
   title: string;
+  /** Texto da fonte (nunca público): só entrada do pipeline e da IA. */
   excerpt: string | null;
+  /** Resumo próprio do CityNews (até 2 frases), o único texto público do agregado. */
+  summary: string | null;
   publishedAt: string | null;
   topicId: string | null;
   duplicateOf: string | null;
@@ -299,6 +305,8 @@ export interface UnderstandRepo {
   updateItem(id: string, patch: ItemPatch): Promise<void>;
   /** Tira o item do fluxo: assuntos e etapas seguintes o ignoram. */
   quarantineItem(id: string, reason: string): Promise<void>;
+  /** Grava o resumo próprio do agregado (`collected_items.summary`). */
+  saveItemSummary(id: string, summary: string): Promise<void>;
   /** Última decisão da etapa para o objeto com o mesmo hash de entrada (idempotência). */
   findDecision(
     objectRef: string,

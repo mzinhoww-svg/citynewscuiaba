@@ -4,7 +4,15 @@
  */
 
 /** Agentes chamados com `callAgent` (um schema zod de saída por agente). */
-export const AGENT_IDS = ["classify", "locate", "verify", "write", "answer", "image"] as const;
+export const AGENT_IDS = [
+  "classify",
+  "locate",
+  "verify",
+  "write",
+  "answer",
+  "image",
+  "aggregate_summary",
+] as const;
 export type AgentId = (typeof AGENT_IDS)[number];
 
 /** Agente de embeddings: mesmo registro, orçamento e `ai_calls`, sem prompt. */

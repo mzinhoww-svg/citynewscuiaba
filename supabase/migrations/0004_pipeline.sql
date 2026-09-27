@@ -475,6 +475,30 @@ alter table collected_items
 create index decisions_lookup_idx on decisions (object_ref, step, input_hash, created_at desc);
 
 -- ---------------------------------------------------------------------------
+-- Agregado não é republicado (spec D10; CLAUDE.md regra 4; revisão P3-GATE)
+-- `excerpt` é o texto da fonte, sanitizado: só entrada do pipeline e da IA, nunca público.
+-- `summary` é o resumo próprio do CityNews (até 2 frases, agente `aggregate_summary`, só com
+-- política `summary_2_sentences`): o único texto do item que a view pública expõe.
+-- ---------------------------------------------------------------------------
+alter table collected_items
+  add column summary text check (summary is null or char_length(summary) between 1 and 280);
+comment on column collected_items.excerpt is
+  'Texto da fonte (sanitizado). Nunca público: só entrada do pipeline e da IA.';
+comment on column collected_items.summary is
+  'Resumo próprio do CityNews, até 2 frases (agente aggregate_summary). Único texto do agregado exposto em public_aggregated.';
+
+create or replace view public_aggregated as
+  select ci.id, ci.source_id, s.slug as source_slug, coalesce(s.display_name, s.name) as source_name,
+         ci.canonical_url, ci.original_title, ci.published_at, ci.section_slug, ci.locality, ci.topic_id,
+         case when s.republish_policy = 'summary_2_sentences' then ci.summary end as summary,
+         case when s.image_policy <> 'none' then ci.image_url end as image_url,
+         s.image_policy
+  from collected_items ci
+  join sources s on s.id = ci.source_id
+  -- Item em quarentena (instrução embutida) nunca aparece no portal.
+  where ci.duplicate_of is null and ci.quarantined_at is null and s.status <> 'blocked';
+
+-- ---------------------------------------------------------------------------
 -- Mídia e direitos de imagem (P3-T7, spec §6.5, A-010, A-037)
 -- Política `reproduction`: imagem da matéria original copiada inteira para o bucket privado
 -- `media`, com proveniência, crédito e link; desligável em 1 clique pela flag

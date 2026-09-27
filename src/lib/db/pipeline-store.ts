@@ -408,19 +408,25 @@ const toReliability = (v: string | null | undefined): SourceReliability =>
   RELIABILITIES.find((r) => r === v) ?? "low";
 
 const ITEM_WITH_SOURCE =
-  "id, source_id, original_title, excerpt, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality)";
+  "id, source_id, original_title, excerpt, summary, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality, republish_policy)";
 
 interface ItemWithSourceRow {
   id: string;
   source_id: string;
   original_title: string;
   excerpt: string | null;
+  summary: string | null;
   published_at: string | null;
   topic_id: string | null;
   duplicate_of: string | null;
   quarantined_at: string | null;
   section_slug: string | null;
-  sources: { slug: string; reliability: string; locality: string } | null;
+  sources: {
+    slug: string;
+    reliability: string;
+    locality: string;
+    republish_policy: string;
+  } | null;
 }
 
 const DecisionOutputSchema = z.record(z.string(), z.unknown());
@@ -475,8 +481,13 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         sourceSlug: data.sources?.slug ?? "",
         reliability: toReliability(data.sources?.reliability),
         sourceLocality: data.sources?.locality ?? "cuiaba",
+        republishPolicy:
+          data.sources?.republish_policy === "summary_2_sentences"
+            ? "summary_2_sentences"
+            : "link_only",
         title: data.original_title,
         excerpt: data.excerpt,
+        summary: data.summary,
         publishedAt: data.published_at,
         topicId: data.topic_id,
         duplicateOf: data.duplicate_of,
@@ -507,6 +518,11 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         })
         .eq("id", id);
       check("quarantineItem", error);
+    },
+
+    async saveItemSummary(id, summary) {
+      const { error } = await db.from("collected_items").update({ summary }).eq("id", id);
+      check("saveItemSummary", error);
     },
 
     async findDecision(objectRef, step, hash) {

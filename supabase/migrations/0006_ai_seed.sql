@@ -18,9 +18,10 @@ insert into ai_agents (id, function, model_id, fallback_model_id, prompt_version
  ('classify', 'Classifica o item coletado em uma editoria, mede a relevância local e marca tema sensível', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 3),
  ('locate', 'Identifica município e bairro do fato quando o dicionário não resolve', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 2),
  ('verify', 'Resume o fato principal do assunto, atribui papel às fontes e aponta conflito central', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 4),
- ('write', 'Escreve o rascunho normalizado do assunto com citações', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 12),
+ ('write', 'Escreve o rascunho normalizado do assunto com citações', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 11),
  ('answer', 'Responde perguntas da busca com IA separando fatos, inferências e lacunas', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 6),
  ('image', 'Decide se o tema permite ilustração gerada e descreve a imagem', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 2),
+ ('aggregate_summary', 'Escreve o resumo próprio de até 2 frases de um item agregado quando a política da fonte permite', 'google/gemini-2.5-flash', 'openai/gpt-4o-mini', 1, 1),
  ('embed', 'Gera embeddings para deduplicação, agrupamento e busca', 'openai/text-embedding-3-small', null, null, 1)
 on conflict (id) do nothing;
 
@@ -36,7 +37,9 @@ insert into ai_prompts (agent_id, version, body, rationale, author_id, status) v
  ('answer', 1, 'Você responde perguntas de leitores usando apenas as fontes numeradas fornecidas. Toda frase de facts cita ao menos uma fonte pelo índice. Separe inferências e lacunas. Havendo divergência entre fontes, registre em conflicts.',
   'v1 do plano P3-T5 (migration 0006)', '00000000-0000-0000-0000-000000000000', 'production'),
  ('image', 1, 'Você decide se o assunto pode ter ilustração gerada. Nunca para crime, tragédia, acidente ou saúde individual, e nunca imagem fotorrealista de pessoa real. Quando permitido, descreva uma ilustração editorial simples e o texto alternativo.',
-  'v1 do plano P3-T5 (migration 0006)', '00000000-0000-0000-0000-000000000000', 'production')
+  'v1 do plano P3-T5 (migration 0006)', '00000000-0000-0000-0000-000000000000', 'production'),
+ ('aggregate_summary', 1, 'Você escreve, para o Panorama do CityNews, um resumo de até 2 frases (no máximo 280 caracteres) de uma notícia de outro veículo, com palavras próprias. Nunca copie trechos do texto da fonte: nenhuma frase pode repetir 8 palavras seguidas do original. Só fatos presentes no texto, sem opinião, sem adjetivos sensacionalistas e sem inventar números, nomes ou datas.',
+  'v1 da revisão P3-GATE: resumo próprio do agregado (spec D10)', '00000000-0000-0000-0000-000000000000', 'production')
 on conflict (agent_id, version) do nothing;
 
 -- Gasto por agente desde p_since (orçamento diário por agente e global).
