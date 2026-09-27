@@ -61,6 +61,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "design-system/**",
+    // Skills de terceiros (superpowers) instaladas em .claude/skills.
+    ".claude/**",
     "scripts/**",
     ".local/**",
     "playwright-report/**",
