@@ -56,10 +56,76 @@ const NAMED_ENTITIES: Record<string, string> = {
   euro: "€",
   copy: "©",
   reg: "®",
+  trade: "™",
+  shy: "\u00AD",
+  zwj: "\u200D",
+  zwnj: "\u200C",
+  lrm: "\u200E",
+  rlm: "\u200F",
+  ensp: " ",
+  emsp: " ",
+  thinsp: " ",
+  times: "×",
+  divide: "÷",
+  minus: "−",
+  plusmn: "±",
+  sect: "§",
+  para: "¶",
+  cent: "¢",
+  pound: "£",
+  yen: "¥",
+  iexcl: "¡",
+  iquest: "¿",
+  sbquo: "‚",
+  bdquo: "„",
+  prime: "′",
+  Prime: "″",
+  dagger: "†",
+  Dagger: "‡",
+  permil: "‰",
+  frac12: "½",
+  frac14: "¼",
+  frac34: "¾",
+  sup1: "¹",
+  sup2: "²",
+  sup3: "³",
+  micro: "µ",
+  szlig: "ß",
+  larr: "←",
+  rarr: "→",
+  uarr: "↑",
+  darr: "↓",
+  lowast: "∗",
+  sol: "/",
+  colon: ":",
+  semi: ";",
+  comma: ",",
+  period: ".",
+  excl: "!",
+  quest: "?",
+  lpar: "(",
+  rpar: ")",
+  lsqb: "[",
+  rsqb: "]",
+  lbrack: "[",
+  rbrack: "]",
+  lcub: "{",
+  rcub: "}",
+  num: "#",
+  commat: "@",
+  dollar: "$",
+  percnt: "%",
+  ast: "*",
+  equals: "=",
+  plus: "+",
+  bsol: "\\",
+  verbar: "|",
+  Tab: "\t",
+  NewLine: "\n",
 };
 
 function decodeEntities(s: string): string {
-  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
+  return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z][a-z0-9]*);/gi, (whole, body: string) => {
     if (body[0] === "#") {
       const hex = body[1] === "x" || body[1] === "X";
       const code = Number.parseInt(body.slice(hex ? 2 : 1), hex ? 16 : 10);
@@ -94,24 +160,116 @@ function tidyWhitespace(s: string): string {
     .join("\n");
 }
 
-/** Forma usada só para detecção: sem acento, minúscula, sem invisíveis. */
+/** Letras gregas e cirílicas iguais às latinas (homóglifos). Só para detecção, nunca no texto. */
+const CONFUSABLES: Record<string, string> = {
+  Α: "A",
+  Β: "B",
+  Ε: "E",
+  Ζ: "Z",
+  Η: "H",
+  Ι: "I",
+  Κ: "K",
+  Μ: "M",
+  Ν: "N",
+  Ο: "O",
+  Ρ: "P",
+  Τ: "T",
+  Υ: "Y",
+  Χ: "X",
+  α: "a",
+  ε: "e",
+  ι: "i",
+  κ: "k",
+  ν: "v",
+  ο: "o",
+  ρ: "p",
+  τ: "t",
+  υ: "u",
+  χ: "x",
+  А: "A",
+  В: "B",
+  Е: "E",
+  К: "K",
+  М: "M",
+  Н: "H",
+  О: "O",
+  Р: "P",
+  С: "C",
+  Т: "T",
+  Х: "X",
+  І: "I",
+  Ј: "J",
+  Ѕ: "S",
+  а: "a",
+  е: "e",
+  о: "o",
+  р: "p",
+  с: "c",
+  у: "y",
+  х: "x",
+  і: "i",
+  ј: "j",
+  ѕ: "s",
+  ԁ: "d",
+  һ: "h",
+  ӏ: "l",
+  ɡ: "g",
+};
+const CONFUSABLE_RE = new RegExp(`[${Object.keys(CONFUSABLES).join("")}]`, "g");
+
+/**
+ * Forma usada só para detecção: largura total e compatíveis normalizados (NFKC), sem acento,
+ * homóglifos trocados pela letra latina, minúscula e com espaços unificados.
+ */
 function forDetection(s: string): string {
   return s
+    .normalize("NFKC")
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+    .replace(CONFUSABLE_RE, (c) => CONFUSABLES[c] ?? c)
+    .toLowerCase()
+    .replace(/[^\S\n]+/g, " ");
 }
 
+// Blocos dos padrões. Entre palavras, aceita espaço e pontuação ("Ignore, as instruções").
+const SEP = String.raw`[\s,;.!?…"'«»“”()\[\]*_~\-–—]+`;
+/** Começo de frase ou linha. */
+const START = String.raw`(?:^|[.!?;…]\s*|\n\s*)`;
+/** Negação ou subordinada antes do verbo: "não ignore", "que ninguém ignore" não são ordens ao modelo. */
+const NOT_AFTER = String.raw`(?<!\b(?:que|nao|ninguem|nunca|jamais)\s+)`;
+const DET = String.raw`(?:(?:todas|todos)${SEP})?(?:(?:as|os|suas|seus|tuas|teus|essas|estas|minhas|nossas)${SEP})?`;
+const INSTR = String.raw`(?:instruc(?:ao|oes)|regras?|orientac(?:ao|oes)|diretrizes?|comandos?)`;
+const PREV = String.raw`(?:anteriores|acima|previas|do${SEP}sistema|originais|iniciais)`;
+const ROLE = String.raw`(?:(?:um|uma|o|a)${SEP})?(?:assistente|modelo|ia|ai|editora?|administrador(?:a)?|admin|robo|bot|chatbot|sistema|gpt|llm|desenvolvedor(?:a)?|hacker|root|superusuario|moderador(?:a)?|outr[oa]${SEP}(?:ia|modelo|assistente))\b`;
+const EN_PREV = String.raw`(?:(?:all|any)${SEP})?(?:(?:the|your|of${SEP}the)${SEP})?(?:previous|prior|above|earlier|preceding|original)`;
+
 const INJECTION_PATTERNS: RegExp[] = [
-  /\bignor(?:e|ar|em|a)\s+(?:(?:a|as|o|os|todas\s+as|todos\s+os)\s+)?(?:\S+\s+)?(?:instruc\w*|regras?|orientac\w*)/,
-  /\bdesconsider(?:e|ar|em|a)\s+(?:(?:a|as|todas\s+as)\s+)?(?:\S+\s+)?(?:regras?|instruc\w*)/,
-  /\besquec(?:a|er|am)\s+(?:(?:a|as|todas\s+as)\s+)?(?:\S+\s+)?(?:regras?|instruc\w*)/,
-  /^\s*system\s*:/m,
-  /\bvoce\s+agora\s+e\b/,
-  /\baja\s+como\b/,
-  /\bnova\s+instrucao\b/,
-  /\bignore\s+(?:all\s+)?(?:previous|prior|above)\s+instructions\b/,
-  /\byou\s+are\s+now\b/,
+  // Imperativo com objeto de instrução ao modelo. "O juiz ignora as regras" não casa.
+  new RegExp(
+    String.raw`${NOT_AFTER}\b(?:ignore|ignorem|desconsidere|desconsiderem|esqueca|esquecam|descarte|descartem|despreze|desprezem)${SEP}${DET}${INSTR}\b`,
+  ),
+  new RegExp(
+    String.raw`${NOT_AFTER}\b(?:ignorar|desconsiderar|esquecer)${SEP}${DET}${INSTR}${SEP}${PREV}`,
+  ),
+  new RegExp(
+    String.raw`${START}nao${SEP}(?:siga|sigam|obedeca|obedecam|respeite|respeitem)${SEP}${DET}${INSTR}\b`,
+    "m",
+  ),
+  // "system:" em qualquer começo de frase ou linha. "Sistema:" fica de fora (é título comum).
+  new RegExp(String.raw`${START}(?:system|assistant|developer)\s*:`, "m"),
+  new RegExp(String.raw`\bvoce${SEP}(?:agora${SEP}e|e${SEP}agora)${SEP}${ROLE}`),
+  new RegExp(
+    String.raw`\b(?:aja|atue|comporte${SEP}se|finja${SEP}ser|passe${SEP}a${SEP}agir)${SEP}como${SEP}${ROLE}`,
+  ),
+  new RegExp(String.raw`\bnovas?${SEP}instruc(?:ao|oes)\s*:`),
+  new RegExp(
+    String.raw`\b(?:ignore|disregard|forget|override)${SEP}${EN_PREV}${SEP}(?:instructions?|rules|prompts?|directions)\b`,
+  ),
+  new RegExp(
+    String.raw`\b(?:ignore|disregard|forget)${SEP}(?:all${SEP})?(?:your${SEP})?(?:instructions|rules)\b`,
+  ),
+  new RegExp(String.raw`\byou${SEP}are${SEP}now\b`),
+  new RegExp(String.raw`\bnew${SEP}instructions?\s*:`),
 ];
 
 function detect(cleaned: string): string[] {
@@ -119,26 +277,42 @@ function detect(cleaned: string): string[] {
   const matches: string[] = [];
   for (const pattern of INJECTION_PATTERNS) {
     const m = pattern.exec(normalized);
-    if (m) matches.push(m[0].trim());
+    if (m) {
+      const hit = m[0].replace(/^[\s.!?;…]+/, "").trim();
+      if (!matches.includes(hit)) matches.push(hit);
+    }
   }
   return matches;
 }
 
+/** Decodifica entidades e remove HTML em laço: pega HTML escapado uma, duas ou três vezes. */
+function decodeAndStrip(raw: string): string {
+  let current = stripHtml(raw);
+  for (let i = 0; i < 3; i++) {
+    const next = stripHtml(decodeEntities(current));
+    if (next === current) break;
+    current = next;
+  }
+  return current;
+}
+
+const DEFAULT_MAX_CHARS = 12000;
+
 /** HTML escapado (comum em RSS) é decodificado e removido de novo, para não esconder instrução. */
-export function sanitizeExternalText(raw: string, maxChars = 12000): SanitizedText {
+export function sanitizeExternalText(raw: string, maxChars = DEFAULT_MAX_CHARS): SanitizedText {
   const cleaned = tidyWhitespace(
-    stripHtml(decodeEntities(stripHtml(raw)))
-      .replace(INVISIBLE, "")
-      .replace(CONTROL, " "),
+    decodeAndStrip(raw).replace(INVISIBLE, "").replace(CONTROL, " "),
   ).normalize("NFC");
   const matches = detect(cleaned);
-  const text = Array.from(cleaned).slice(0, Math.max(0, maxChars)).join("");
+  const limit = Number.isFinite(maxChars) ? Math.max(0, Math.floor(maxChars)) : DEFAULT_MAX_CHARS;
+  const text = Array.from(cleaned).slice(0, limit).join("");
   return { text, injection: matches.length > 0, matches };
 }
 
 /** Envelope de dados para prompts. Um fechamento falso dentro do texto é escapado. */
 export function wrapAsData(id: string, text: string): string {
   const safeId = id.replace(/[^A-Za-z0-9_.:-]/g, "");
-  const safeText = text.replace(/<(\/?\s*fonte_externa)/gi, "&lt;$1");
+  // Qualquer variação de abertura ou fechamento (espaços, quebras, caixa) vira texto.
+  const safeText = text.replace(/<(\s*\/?\s*fonte_externa)/gi, "&lt;$1");
   return `<fonte_externa id="${safeId}">\n${safeText}\n</fonte_externa>`;
 }
