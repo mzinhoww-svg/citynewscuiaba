@@ -33,6 +33,8 @@ export interface SourceCardData {
   trend: TrendDirection;
   itemsToday: number;
   updatedAt: string | null;
+  /** Sem item novo há 3 h ou mais: "Sem atualização há 3 h" (P14). */
+  stale?: boolean;
   verified?: boolean;
   /** Escolhida pelo leitor. */
   preferred?: boolean;
@@ -189,7 +191,9 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           <dd className="flex items-center gap-1.5">
             <Icon name="clock" size={16} />
             {source.updatedAt ? (
-              <time dateTime={source.updatedAt}>{SOURCE_TEXT.updatedText(updated)}</time>
+              <time dateTime={source.updatedAt}>
+                {source.stale ? SOURCE_TEXT.staleText(updated) : SOURCE_TEXT.updatedText(updated)}
+              </time>
             ) : (
               <span>{SOURCE_TEXT.neverUpdated}</span>
             )}

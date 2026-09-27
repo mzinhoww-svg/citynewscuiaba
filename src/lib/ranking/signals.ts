@@ -254,8 +254,68 @@ export function computeSignals(rows: SourceRawInput[], opts: ComputeOptions): Co
   const engagement = percentiles(engagementRaw);
   const items = percentiles(rows.map((r) => r.items24h));
 
+  const reader = readerSignals(
+    rows.map((r, i) => ({ slug: r.slug, categories: r.categories, popularity: popularity[i]! })),
+    { reader: opts.reader, followed: opts.followed, now },
+  );
+
+  return rows.map((r, i) => {
+    const hoursSinceLast = r.lastItemAt
+      ? Math.max(0, (now.getTime() - Date.parse(r.lastItemAt)) / 3_600_000)
+      : Number.POSITIVE_INFINITY;
+    const freshness = Number.isFinite(hoursSinceLast)
+      ? Math.pow(0.5, hoursSinceLast / RECENCY_HALF_LIFE_HOURS)
+      : 0;
+    const mine = reader[i]!;
+    return {
+      slug: r.slug,
+      locality: r.locality,
+      popularity: popularity[i]!,
+      individual: mine.individual,
+      recency: clamp01(0.5 * items[i]! + 0.5 * freshness),
+      engagement: engagement[i]!,
+      operational: operationalScore(r.fetch, r.status),
+      diversity: mine.diversity,
+      trend: trend[i]!,
+      followed: mine.followed,
+      pinned: r.pinned,
+      excluded: r.excluded,
+      blocked: r.status === "blocked",
+      isNewForUser: mine.isNewForUser,
+      localHighlight: r.localHighlight,
+      verified: r.reliability === "verified" || r.reliability === "primary",
+      recentVisit: mine.recentVisit,
+      similar: mine.similar,
+      reach: reach[i]!,
+      trendDirection: directions[i]!,
+    };
+  });
+}
+
+/** Sinais de uma fonte que dependem do leitor. */
+export interface ReaderSignals {
+  individual: number;
+  diversity: number;
+  followed: boolean;
+  isNewForUser: boolean;
+  recentVisit: boolean;
+  similar: boolean;
+}
+
+/**
+ * Parte individual dos sinais (com Personalização): comportamento do leitor por fonte com a
+ * regra de sinal fraco, diversidade pelas editorias que ele ainda não lê e fontes seguidas.
+ * Sem eventos do leitor, individual = 0 e a diversidade favorece as fontes menos acessadas.
+ * Usada no servidor (eventos com `anonId`) e no navegador (histórico local, P2-T7).
+ */
+export function readerSignals(
+  rows: { slug: string; categories: string[]; popularity: number }[],
+  opts: { reader?: ReaderEvent[]; followed?: string[]; now: Date },
+): ReaderSignals[] {
   const known = new Set(rows.map((r) => r.slug));
-  const reader = opts.reader ? readerTotals(opts.reader, known, now) : new Map();
+  const reader = opts.reader
+    ? readerTotals(opts.reader, known, opts.now)
+    : new Map<string, ReaderTotals>();
   const readerRaw = rows.map((r) => reader.get(r.slug)?.raw ?? 0);
   const individual = percentiles(readerRaw);
   const hasReader = readerRaw.some((v) => v > 0);
@@ -274,41 +334,21 @@ export function computeSignals(rows: SourceRawInput[], opts: ComputeOptions): Co
   const followed = new Set(opts.followed ?? []);
 
   return rows.map((r, i) => {
-    const hoursSinceLast = r.lastItemAt
-      ? Math.max(0, (now.getTime() - Date.parse(r.lastItemAt)) / 3_600_000)
-      : Number.POSITIVE_INFINITY;
-    const freshness = Number.isFinite(hoursSinceLast)
-      ? Math.pow(0.5, hoursSinceLast / RECENCY_HALF_LIFE_HOURS)
-      : 0;
     const mine = reader.get(r.slug);
     const reads = readerRaw[i]! > 0;
     const maxShare =
       categoryTotal > 0
         ? Math.max(0, ...r.categories.map((c) => (categoryWeight.get(c) ?? 0) / categoryTotal))
         : 0;
-    const diversity = hasReader ? (reads ? 0 : 1 - maxShare) : 1 - popularity[i]!;
+    const diversity = hasReader ? (reads ? 0 : 1 - maxShare) : 1 - r.popularity;
     const isFollowed = followed.has(r.slug) || (mine?.followed ?? false);
     return {
-      slug: r.slug,
-      locality: r.locality,
-      popularity: popularity[i]!,
       individual: individual[i]!,
-      recency: clamp01(0.5 * items[i]! + 0.5 * freshness),
-      engagement: engagement[i]!,
-      operational: operationalScore(r.fetch, r.status),
       diversity: clamp01(diversity),
-      trend: trend[i]!,
       followed: isFollowed,
-      pinned: r.pinned,
-      excluded: r.excluded,
-      blocked: r.status === "blocked",
       isNewForUser: !reads && !isFollowed,
-      localHighlight: r.localHighlight,
-      verified: r.reliability === "verified" || r.reliability === "primary",
       recentVisit: mine?.recentVisit ?? false,
       similar: hasReader && !reads && maxShare > 0,
-      reach: reach[i]!,
-      trendDirection: directions[i]!,
     };
   });
 }

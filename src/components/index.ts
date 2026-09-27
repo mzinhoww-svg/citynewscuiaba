@@ -12,6 +12,7 @@ export { Dialog, type DialogProps } from "./ui/Dialog";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
 export { Icon, ICON_NAMES, type IconName, type IconProps } from "./ui/Icon";
 export { IconButton, type IconButtonProps } from "./ui/IconButton";
+export { InlineAlert, type InlineAlertProps } from "./ui/InlineAlert";
 export { ListRow, type ListRowProps } from "./ui/ListRow";
 export { NavHeader, type NavHeaderProps } from "./ui/NavHeader";
 export { NavLink, isCurrentPath, type NavLinkProps } from "./ui/NavLink";

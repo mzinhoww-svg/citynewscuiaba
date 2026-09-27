@@ -1,4 +1,10 @@
 import {
+  BellOff,
+  Info,
+  Pencil,
+  Trash2,
+  TriangleAlert,
+  WifiOff,
   ArrowLeft,
   Navigation,
   Accessibility,
@@ -72,6 +78,12 @@ import type { CSSProperties } from "react";
 import { cx } from "../cx";
 
 const ICONS = {
+  "bell-off": BellOff,
+  info: Info,
+  pencil: Pencil,
+  "trash-2": Trash2,
+  "triangle-alert": TriangleAlert,
+  "wifi-off": WifiOff,
   "arrow-up": ArrowUp,
   history: History,
   list: List,

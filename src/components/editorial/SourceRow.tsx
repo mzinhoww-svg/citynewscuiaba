@@ -17,6 +17,8 @@ export interface SourceRowProps {
   onFollow: FollowHandler;
   /** Sem `onHide`, a linha não oferece "Ocultar" (ex.: lista de seguidas). */
   onHide?: HideHandler;
+  /** Atributos `data-*` da linha (posição e justificativa para o evento de clique). */
+  data?: { slug: string; reason: string; position: number };
   className?: string;
 }
 
@@ -28,11 +30,14 @@ export interface SourceRowProps {
  * <ul className="flex flex-col">{list.map((s) => <SourceRow key={s.slug} source={s} onFollow={f} onHide={h} />)}</ul>
  * ```
  */
-export function SourceRow({ source, onFollow, onHide, className }: SourceRowProps) {
+export function SourceRow({ source, onFollow, onHide, data, className }: SourceRowProps) {
   return (
     <li
+      data-slug={data?.slug}
+      data-reason={data?.reason}
+      data-position={data?.position}
       className={cx(
-        "flex items-center gap-3 border-t border-line-subtle py-3 last:border-b",
+        "flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-subtle py-3 last:border-b",
         className,
       )}
     >
@@ -43,7 +48,7 @@ export function SourceRow({ source, onFollow, onHide, className }: SourceRowProp
         size={40}
         decorative
       />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 flex-1 basis-40 flex-col gap-0.5">
         <Link
           href={source.href}
           className="text-16 font-semibold leading-snug text-strong no-underline hover:underline hover:underline-offset-4"
@@ -52,7 +57,7 @@ export function SourceRow({ source, onFollow, onHide, className }: SourceRowProp
         </Link>
         <RecommendationReason text={source.reason} />
       </div>
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="ml-auto flex shrink-0 items-center gap-1">
         <FollowButton source={source} onFollow={onFollow} size="md" />
         {onHide && (
           <DismissMenu

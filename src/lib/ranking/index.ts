@@ -23,6 +23,8 @@ export {
   formatReach,
   operationalScore,
   percentiles,
+  readerSignals,
+  type ReaderSignals,
   type ComputedSignals,
   type FetchHealth,
   type ReaderEvent,

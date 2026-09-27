@@ -43,6 +43,8 @@ export const SOURCE_TEXT = {
   todayText: (n: number) => `${n} hoje`,
   updated: "Atualização",
   updatedText: (when: string) => `Atualizada ${when}`,
+  staleText: (when: string) =>
+    when.startsWith("há") ? `Sem atualização ${when}` : `Sem atualização desde ${when}`,
   neverUpdated: "Sem atualização recente",
   badges: { preferred: "PREFERIDA", verified: "VERIFICADA" },
   badgesLabel: "Selos",

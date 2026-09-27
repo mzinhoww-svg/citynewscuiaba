@@ -12,6 +12,8 @@ export interface TabsProps {
   onChange?: (v: string) => void;
   /** Prefixo de id; a aba i controla `${idPrefix}-painel-${i}` quando o painel existir. */
   idPrefix?: string;
+  /** fill = largura igual (padrão) · scroll = largura do texto, com rolagem horizontal (muitas abas). */
+  layout?: "fill" | "scroll";
   className?: string;
 }
 
@@ -31,6 +33,7 @@ export function Tabs({
   defaultValue,
   onChange,
   idPrefix,
+  layout = "fill",
   className,
 }: TabsProps) {
   const [inner, setInner] = useState(defaultValue ?? items[0]);
@@ -66,7 +69,15 @@ export function Tabs({
   };
 
   return (
-    <div role="tablist" aria-label={label} className={cx("flex gap-2", className)}>
+    <div
+      role="tablist"
+      aria-label={label}
+      className={cx(
+        "flex gap-2",
+        layout === "scroll" && "snap-x overflow-x-auto pb-1 scrollbar-none",
+        className,
+      )}
+    >
       {items.map((it, i) => {
         const active = it === current;
         return (
@@ -84,7 +95,8 @@ export function Tabs({
             onClick={() => select(i)}
             onKeyDown={(e) => onKeyDown(e, i)}
             className={cx(
-              "min-h-tap flex-1 cursor-pointer rounded-pill px-3 text-14 leading-none",
+              "min-h-tap cursor-pointer rounded-pill px-3 text-14 leading-none",
+              layout === "scroll" ? "shrink-0 snap-start whitespace-nowrap px-4" : "flex-1",
               active
                 ? "bg-action-primary font-semibold text-on-inverse"
                 : "bg-section font-medium text-meta hover:bg-nevoa-2 hover:text-strong",
