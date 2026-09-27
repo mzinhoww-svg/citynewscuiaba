@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
-import { DocPage } from "@/components";
+import { DocPage, PrivacyPreferences } from "@/components";
 import { PRIVACY as DOC } from "@/content/pt-BR/institutional";
 
-/** Página institucional (P24): texto fixo, sem banco. */
+/** Privacidade (P22/P24): texto fixo, sem banco, e as preferências de consentimento (P2). */
 export const metadata: Metadata = pageMetadata({
   title: DOC.title,
   documentTitle: DOC.metaTitle,
@@ -12,5 +12,9 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function Page() {
-  return <DocPage title={DOC.title} intro={DOC.intro} sections={DOC.sections} path={DOC.path} />;
+  return (
+    <DocPage title={DOC.title} intro={DOC.intro} sections={DOC.sections} path={DOC.path}>
+      <PrivacyPreferences />
+    </DocPage>
+  );
 }

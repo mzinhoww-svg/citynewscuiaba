@@ -325,6 +325,20 @@
 @utility pb-tabbar-safe {
   padding-bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
 }
+@utility bottom-tabbar-safe {
+  bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
+
+/*
+ * Banner de consentimento aberto (ConsentBanner): a página ganha no fim o espaço do banner e
+ * a rolagem por foco/âncora para acima dele, então ele nunca esconde conteúdo nem o foco.
+ */
+:root[data-consent-open] {
+  scroll-padding-bottom: calc(var(--cn-consent-h, 0px) + var(--tap-min));
+}
+:root[data-consent-open] body {
+  padding-bottom: var(--cn-consent-h, 0px);
+}
 
 /* Slider nativo (input range): trilho com preenchimento Urucum até --cn-range-fill. */
 @utility cn-range {

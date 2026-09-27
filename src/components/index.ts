@@ -96,6 +96,9 @@ export { AiSummaryBlock, type AiSummaryBlockProps } from "./editorial/AiSummaryB
 export { CorrectionNote, UpdateNote, type NoteProps } from "./editorial/ArticleNotes";
 export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingProgress";
 export { ReadingSettings } from "./editorial/ReadingSettings";
+export { ConsentBanner } from "./editorial/ConsentBanner";
+export { ConsentChoices } from "./editorial/ConsentChoices";
+export { PrivacyPreferences } from "./editorial/PrivacyPreferences";
 export { ReportProblemForm, type ReportProblemFormProps } from "./editorial/ReportProblemForm";
 export { ShareSheet, type ShareSheetProps } from "./editorial/ShareSheet";
 export { SourcesList, type SourcesListProps } from "./editorial/SourcesList";
