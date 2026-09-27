@@ -1071,6 +1071,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      rate_limits: {
+        Row: {
+          bucket: string;
+          hits: number;
+          key_hash: string;
+          window_start: string;
+        };
+        Insert: {
+          bucket: string;
+          hits?: number;
+          key_hash: string;
+          window_start: string;
+        };
+        Update: {
+          bucket?: string;
+          hits?: number;
+          key_hash?: string;
+          window_start?: string;
+        };
+        Relationships: [];
+      };
       raw_items: {
         Row: {
           fetched_at: string;
@@ -1637,6 +1658,10 @@ export type Database = {
       };
       has_role: {
         Args: { role: Database["public"]["Enums"]["app_role"]; section?: string; uid: string };
+        Returns: boolean;
+      };
+      hit_rate_limit: {
+        Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
