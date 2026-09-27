@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T17:43:45.344Z",
+  "updatedAt": "2026-09-27T18:09:44.519Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -191,44 +191,44 @@
           "id": "P1-T5",
           "title": "Editoria",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "604f74e",
           "notes": ""
         },
         {
           "id": "P1-T6",
           "title": "Matéria, histórico e informar problema",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "67f9f3f",
           "notes": ""
         },
         {
           "id": "P1-T7",
           "title": "Assunto e lista de assuntos",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "ca0c1b8",
           "notes": ""
         },
         {
           "id": "P1-T8",
           "title": "Agenda, evento, .ics e sugerir evento",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "5508e77",
           "notes": ""
         },
         {
           "id": "P1-T9",
           "title": "Explorar e coleções",
           "parallel": true,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
