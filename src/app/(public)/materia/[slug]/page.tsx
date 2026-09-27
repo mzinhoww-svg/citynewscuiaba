@@ -311,6 +311,7 @@ function Article({ a }: { a: ArticleView }) {
                   <li key={q}>
                     <Link
                       href={`/pergunte?q=${encodeURIComponent(q)}`}
+                      prefetch={false}
                       className="inline-flex min-h-tap items-center gap-2 rounded-lg border border-ai bg-ia-soft px-4 py-2 text-16 text-ai no-underline hover:bg-card-white"
                     >
                       {q}

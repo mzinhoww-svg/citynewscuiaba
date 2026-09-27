@@ -121,6 +121,14 @@ export {
   type EventSuggestionFormProps,
 } from "./editorial/EventSuggestionForm";
 
+/* ai: busca com IA (P13) */
+export { AiAnswer, type AiAnswerProps } from "./ai/AiAnswer";
+export { AiStatusPanel, type AiStatusPanelProps } from "./ai/AiStatusPanel";
+export { AnswerFeedback } from "./ai/AnswerFeedback";
+export { Citation, type CitationProps } from "./ai/Citation";
+export { SourceRail, type SourceRailProps } from "./ai/SourceRail";
+export { SuggestionChip, type SuggestionChipProps } from "./ai/SuggestionChip";
+
 /* studio */
 export {
   StudioShell,

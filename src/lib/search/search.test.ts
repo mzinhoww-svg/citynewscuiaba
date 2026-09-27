@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   groupHits,
+  minMatchFor,
+  questionQuery,
   highlightSegments,
   normalizeQuery,
   parseSearchParams,
@@ -109,5 +111,17 @@ describe("agrupamento por assunto", () => {
       { topicId: null, hits: [hit("t1", "t1", "topic")] },
       { topicId: null, hits: [hit("a1", "t1")] },
     ]);
+  });
+});
+
+describe("consulta da busca com IA", () => {
+  it("tira palavras de pergunta e de pedido", () => {
+    expect(questionQuery("O que aconteceu em Cuiabá hoje?")).toBe("cuiaba");
+    expect(questionQuery("Resuma saúde pública no Coxipó")).toBe("saude publica coxipo");
+    expect(questionQuery("Compare a cobertura sobre a nova obra viária")).toBe("nova obra viaria");
+    expect(questionQuery("viaduto [teste:tempo-esgotado]")).toBe("viaduto");
+  });
+  it("mínimo de termos por fonte", () => {
+    expect([1, 2, 3, 4, 5].map(minMatchFor)).toEqual([1, 2, 2, 3, 3]);
   });
 });

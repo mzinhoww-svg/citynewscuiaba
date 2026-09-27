@@ -47,7 +47,7 @@ const eslintConfig = defineConfig([
         {
           patterns: [
             {
-              regex: String.raw`(^@/components/|/components/)(ui|editorial|studio|cx)(/|$)`,
+              regex: String.raw`(^@/components/|/components/)(ui|editorial|studio|ai|cx)(/|$)`,
               message: 'Importe componentes pelo índice: `import { … } from "@/components"`.',
             },
           ],

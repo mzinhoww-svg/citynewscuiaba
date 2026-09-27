@@ -126,3 +126,33 @@ export function queryTerms(q: string): string[] {
   for (const w of words) if (w.length >= 2 && !STOPWORDS.has(w)) seen.add(w);
   return [...seen];
 }
+
+/**
+ * Palavras de pergunta e de pedido que não dizem o assunto ("o que aconteceu hoje?", "resuma",
+ * "compare a cobertura"). Saem da consulta da busca com IA; o resto precisa aparecer nas fontes.
+ */
+const QUESTION_WORDS = new Set(
+  (
+    "que qual quais quando onde quem porque por que quanto quanta quantos quantas o a " +
+    "aconteceu acontece acontecendo acontecer houve teve tem ha " +
+    "hoje ontem agora recente recentemente ultimas ultimos novidades noticia noticias " +
+    "resuma resumo resumir explique explica explicar diga conte fale mostre liste " +
+    "compare comparar comparacao cobertura sobre sabe sabemos se ja ainda " +
+    "me nos voce pode poderia gostaria quero saber favor"
+  ).split(" "),
+);
+
+/**
+ * Consulta da busca com IA: termos do assunto, sem palavras de pergunta (já sem acento). Trecho
+ * entre colchetes é anotação (ex.: marcador de teste do provedor falso), não assunto.
+ */
+export function questionQuery(question: string): string {
+  return queryTerms(question.replace(/\[[^\]]*\]/g, " "))
+    .filter((t) => !QUESTION_WORDS.has(t))
+    .join(" ");
+}
+
+/** Termos mínimos que uma fonte precisa ter: todos até 2; depois 60% (3 → 2, 4 → 3, 5 → 3). */
+export function minMatchFor(termCount: number): number {
+  return termCount <= 2 ? Math.max(1, termCount) : Math.ceil(termCount * 0.6);
+}

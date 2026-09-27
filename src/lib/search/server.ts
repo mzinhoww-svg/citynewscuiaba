@@ -17,6 +17,8 @@ import type { SearchGroup, SearchHit, SearchResult } from "./types";
 export interface SearchDeps {
   /** Embedding da consulta; `null` = só texto (IA desligada, sem chave ou lenta). */
   embed?: (q: string) => Promise<number[] | null>;
+  /** Basta um termo em comum (resultados relacionados, ex.: fallback da busca com IA). */
+  loose?: boolean;
 }
 
 /** Tempo máximo do embedding da consulta: a busca não espera a IA (P12: 300 ms p75). */
@@ -40,8 +42,9 @@ async function productionEmbed(q: string): Promise<number[] | null> {
   }
 }
 
-function rpcFilters(f: SearchFilters): RpcSearchFilters {
+function rpcFilters(f: SearchFilters, loose = false): RpcSearchFilters {
   return {
+    ...(loose ? { min_match: 1 } : {}),
     type: f.type,
     origin: f.origin,
     ...(f.section ? { section: f.section } : {}),
@@ -89,7 +92,7 @@ export async function searchHybrid(
   const embedding = await (deps.embed ?? productionEmbed)(query);
 
   return readPublic(async (db) => {
-    const ranked = await rankSearch(db, query, embedding, rpcFilters(f));
+    const ranked = await rankSearch(db, query, embedding, rpcFilters(f, deps.loose));
     const hits = await hydrateHits(db, ranked);
     if (hits.length === 0) {
       return { ...empty, didYouMean: await didYouMean(db, query), semantic: embedding !== null };

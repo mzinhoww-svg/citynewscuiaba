@@ -12,6 +12,12 @@ import {
   type ModelProvider,
 } from "./types";
 
+/**
+ * Marcador de teste: pergunta ou dado com este texto faz o provedor falso falhar por tempo
+ * esgotado (e2e do fallback da busca com IA, docs/testing.md §2 item 6). O OpenRouter o ignora.
+ */
+export const FAKE_TIMEOUT_MARKER = "[teste:tempo-esgotado]";
+
 export interface ScriptStep {
   /** Modelo esperado nesta chamada; diferente = violação registrada e erro `provider`. */
   model?: string;
@@ -126,6 +132,8 @@ export function createFakeProvider(opts: { embeddingDim?: number } = {}) {
   const violations: string[] = [];
 
   const respond = (req: CompletionRequest): string => {
+    if (req.prompt.includes(FAKE_TIMEOUT_MARKER))
+      throw new ProviderError("timeout", "tempo esgotado simulado");
     const step = queue.shift();
     if (step?.model !== undefined && step.model !== req.modelId) {
       const msg = `roteiro esperava ${step.model}, chamada usou ${req.modelId}`;

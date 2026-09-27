@@ -40,11 +40,21 @@ const ROUTES = [
   "/busca?q=onibus+cpa",
   "/busca?q=viaduto&origem=outros",
   "/busca?q=viadutu",
+  "/pergunte",
+  "/pergunte?q=O%20que%20aconteceu%20em%20Cuiab%C3%A1%20hoje%3F",
+  "/pergunte?q=Resuma%20sa%C3%BAde%20p%C3%BAblica%20no%20Coxip%C3%B3",
+  "/pergunte?q=viaduto%20%5Bteste%3Atempo-esgotado%5D",
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
+
+// IP próprio por teste: as visitas a /pergunte contam no limite de 20 perguntas por hora.
+test.beforeEach(async ({ context }) => {
+  const n = () => Math.floor(Math.random() * 250) + 1;
+  await context.setExtraHTTPHeaders({ "x-forwarded-for": `10.${n()}.${n()}.${n()}` });
+});
 
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`tema ${scheme}`, () => {
