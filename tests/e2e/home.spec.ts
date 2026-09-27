@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { forwardedFor } from "./own-ip";
 
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
@@ -73,20 +74,26 @@ test("agregados abrem o original em nova aba", async ({ page }) => {
   const region = page.getByRole("region", { name: "Veja também em outros portais" });
   // A home é transmitida em streaming: espera o bloco existir antes de contar.
   await expect(region).toBeVisible();
-  const links = region.locator("article a[target]");
-  await expect(links).toHaveCount(4);
+  // Até 4 itens, um por veículo (home.ts). Todo link do bloco vai para fora, em nova aba.
+  const links = region.locator("article a[href]");
+  await expect(links.first()).toBeVisible();
+  const n = await links.count();
+  expect(n).toBeGreaterThanOrEqual(1);
+  expect(n).toBeLessThanOrEqual(4);
+  const origin = new URL(page.url()).origin;
   for (const link of await links.all()) {
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", /noopener/);
     await expect(link).toHaveAttribute("rel", /noreferrer/);
-    await expect(link).toHaveAttribute("href", /^https:\/\/[a-z.]+\.example\//);
+    const href = (await link.getAttribute("href")) ?? "";
+    expect(href).toMatch(/^https?:\/\/[^/]+\//);
+    expect(href.startsWith(origin)).toBe(false);
   }
 });
 
 test("newsletter valida o e-mail e aceita inscrição sem login", async ({ page }) => {
   // IP próprio por execução: o limite de 5 envios por hora vale por conexão.
-  const ip = `203.0.113.${Math.floor(Math.random() * 250) + 1}`;
-  await page.setExtraHTTPHeaders({ "x-forwarded-for": `${ip}, 10.0.0.${Date.now() % 250}` });
+  await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto("/");
   const form = page.getByRole("region", { name: "Receba a newsletter" });
   await form.getByLabel("E-mail").fill("nao-e-email");

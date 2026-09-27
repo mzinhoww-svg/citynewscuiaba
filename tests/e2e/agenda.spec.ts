@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { forwardedFor } from "./own-ip";
 
 const EVENT = "/agenda/noite-de-rasqueado-no-sesc-arsenal";
 
@@ -7,8 +8,7 @@ const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
 
 async function ownIp(page: Page) {
-  const ip = `192.0.2.${Math.floor(Math.random() * 250) + 1}`;
-  await page.setExtraHTTPHeaders({ "x-forwarded-for": `${ip}, 10.1.${Date.now() % 250}.1` });
+  await page.setExtraHTTPHeaders(forwardedFor());
 }
 
 test("lista e calendário mantêm filtro de gratuitos na URL", async ({ page }) => {

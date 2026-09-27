@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import { forwardedFor } from "./own-ip";
 
 async function ownIp(page: Page) {
-  const ip = `203.0.113.${Math.floor(Math.random() * 250) + 1}`;
-  await page.setExtraHTTPHeaders({ "x-forwarded-for": `${ip}, 10.1.${Date.now() % 250}.1` });
+  await page.setExtraHTTPHeaders(forwardedFor());
 }
 
 test("matéria arquivada responde 410 com motivo", async ({ page }) => {

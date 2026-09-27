@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { forwardedFor } from "./own-ip";
 
 /*
  * Consentimento (spec §5.2, docs/testing.md §2 item 2, P2-T1): banner da primeira visita no
@@ -59,8 +60,14 @@ test("Só o necessário não envia eventos", async ({ page }) => {
   expect((await consentCookie(page))?.value).toBe("v1|m0|p0");
   await page.goto(ARTICLE);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.mouse.wheel(0, 2000);
-  await page.waitForTimeout(500);
+  // Rola pela página (mouse.wheel não existe no WebKit móvel) e espera a rolagem acontecer.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+  // Sair da matéria dispara pagehide/visibilitychange e desmonta o medidor de leitura: é o
+  // último momento em que um evento poderia sair. Espera a próxima página e a rede parar.
+  await page.goto("/");
+  await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
+  await page.waitForLoadState("networkidle");
   expect(calls).toEqual([]);
   // A escolha vale nas próximas páginas: o banner não volta.
   await expect(banner(page)).toHaveCount(0);
@@ -113,6 +120,9 @@ function sentEvents(page: Page): { events: Sent[]; statuses: number[] } {
 test("Aceitar recomendações cria o anonId e os eventos vão com personalização", async ({
   page,
 }) => {
+  // IP próprio por execução: o limite de 120 eventos a cada 10 min vale por conexão, e as outras
+  // suítes (e repetições) no mesmo IP não podem transformar o 204 esperado em 429.
+  await page.setExtraHTTPHeaders(forwardedFor());
   const sent = sentEvents(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Aceitar recomendações" }).click();
@@ -147,7 +157,7 @@ test("sem resposta vale só o necessário: banner continua e nada é enviado", a
   await page.goto(ARTICLE);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(banner(page)).toBeVisible();
-  await page.waitForTimeout(500);
+  await page.waitForLoadState("networkidle");
   expect(calls).toEqual([]);
   expect(await consentCookie(page)).toBeUndefined();
 });

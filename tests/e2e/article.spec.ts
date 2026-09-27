@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { forwardedFor } from "./own-ip";
 
 const SLUG = "prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const CORRECTED = "com-fumaca-escolas-ajustam-horario-de-educacao-fisica";
@@ -9,8 +10,7 @@ const blocking = (impact: string | null | undefined) =>
 
 /** IP próprio por teste: o limite de 5 envios por hora vale por conexão. */
 async function ownIp(page: Page) {
-  const ip = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
-  await page.setExtraHTTPHeaders({ "x-forwarded-for": `${ip}, 10.0.${Date.now() % 250}.1` });
+  await page.setExtraHTTPHeaders(forwardedFor());
 }
 
 async function report(page: Page) {

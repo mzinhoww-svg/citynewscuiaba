@@ -5,6 +5,7 @@ import { POST } from "@/app/api/events/route";
 import { createServiceClient } from "@/lib/db/client";
 import { err, ok } from "@/lib/result";
 import { handleEvents, type EventsDeps } from "@/lib/events/api";
+import { ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
 
 const IP = `192.0.2.${Math.floor(Math.random() * 250) + 1}`;
 const anonIds: string[] = [];
@@ -152,5 +153,12 @@ describe("/api/events", () => {
     const db = createServiceClient();
     await db.from("events").delete().in("anon_id", anonIds);
     await db.from("events").delete().eq("name", "privacy_settings_updated").is("anon_id", null);
+    // Limite de uso gravado pela rota real (IP da suíte, sal e dia de hoje e de ontem em UTC).
+    const salt = rateLimitSalt();
+    if (salt) {
+      const now = new Date();
+      const keys = [now, new Date(now.getTime() - 86_400_000)].map((d) => ipKey(IP, d, salt));
+      await db.from("rate_limits").delete().eq("bucket", "events").in("key_hash", keys);
+    }
   });
 });
