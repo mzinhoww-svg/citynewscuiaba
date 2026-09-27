@@ -19,5 +19,14 @@ export function createSupabaseMediaStore(db: DbClient): MediaStore {
       const { error } = await bucket().remove([path]);
       return error ? err(error.message) : ok(undefined);
     },
+    async signedUrl(path, expiresInSec) {
+      const { data, error } = await bucket().createSignedUrl(path, expiresInSec);
+      return error || !data ? err(error?.message ?? "sem URL assinada") : ok(data.signedUrl);
+    },
+    async read(path) {
+      const { data, error } = await bucket().download(path);
+      if (error || !data) return err(error?.message ?? "arquivo não encontrado");
+      return ok({ bytes: new Uint8Array(await data.arrayBuffer()), contentType: data.type });
+    },
   };
 }

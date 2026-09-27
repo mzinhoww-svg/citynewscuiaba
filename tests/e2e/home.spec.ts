@@ -99,6 +99,8 @@ test("newsletter valida o e-mail e aceita inscrição sem login", async ({ page 
 
 test("home sem violações do axe @a11y", async ({ page }) => {
   await page.goto("/");
+  // Espera o conteúdo substituir o loading.tsx (streaming) antes de auditar.
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);
 });

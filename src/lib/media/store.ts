@@ -15,6 +15,13 @@ export interface MediaStore {
   ): Promise<Result<{ path: string }, string>>;
   /** Apaga o arquivo; apagar o que não existe não é erro. */
   remove(path: string): Promise<Result<void, string>>;
+  /**
+   * URL assinada curta do bucket privado (ADR-009). Opcional: o Storage em memória não tem e a
+   * rota de mídia serve os bytes direto.
+   */
+  signedUrl?(path: string, expiresInSec: number): Promise<Result<string, string>>;
+  /** Lê o arquivo (rota de mídia sem URL assinada). */
+  read(path: string): Promise<Result<{ bytes: Uint8Array; contentType: string }, string>>;
 }
 
 /** Caminho da cópia: `<tipo>/<sha256>.<ext>` (mesmo arquivo = mesmo caminho). */
@@ -41,6 +48,12 @@ export function createMemoryMediaStore(opts: { failPut?: boolean } = {}) {
     async remove(path) {
       files.delete(path);
       return { ok: true, value: undefined };
+    },
+    async read(path) {
+      const f = files.get(path);
+      return f
+        ? { ok: true, value: { bytes: new Uint8Array(f.bytes), contentType: f.contentType } }
+        : { ok: false, error: "arquivo não encontrado" };
     },
   };
   return Object.assign(store, { files });
