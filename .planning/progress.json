@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T19:59:00.730Z",
+  "updatedAt": "2026-09-27T19:59:27.490Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -387,7 +387,7 @@
         "P0",
         "P1"
       ],
-      "status": "pending",
+      "status": "in_progress",
       "gate": {
         "verify": false,
         "preview": false,
@@ -401,8 +401,8 @@
           "id": "P2-T1",
           "title": "Consentimento",
           "parallel": false,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
