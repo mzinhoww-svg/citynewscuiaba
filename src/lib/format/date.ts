@@ -87,3 +87,35 @@ export function formatLongDate(iso: string): string {
   const d = parse(iso);
   return d ? longFormatter.format(d) : "";
 }
+
+/**
+ * Diferença (em minutos) entre o relógio de Cuiabá e o UTC no instante `d` (−240 hoje; o
+ * cálculo não assume o valor, caso volte o horário de verão).
+ */
+export function zoneOffsetMinutes(d: Date): number {
+  const p = parts(d);
+  const asUtc = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour),
+    Number(p.minute),
+  );
+  const truncated = d.getTime() - (d.getTime() % MINUTE);
+  return Math.round((asUtc - truncated) / MINUTE);
+}
+
+/** Data local de Cuiabá como "2026-10-03" (agrupar por dia, links de calendário). */
+export function localDateKey(iso: string | Date): string {
+  const d = typeof iso === "string" ? parse(iso) : iso;
+  if (!d) return "";
+  const p = parts(d);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+/** Instante da meia-noite de Cuiabá do dia de `now`. */
+export function startOfDay(now: Date = new Date()): Date {
+  const [y, m, day] = localDateKey(now).split("-").map(Number);
+  const midnightUtc = Date.UTC(y ?? 1970, (m ?? 1) - 1, day ?? 1);
+  return new Date(midnightUtc - zoneOffsetMinutes(now) * MINUTE);
+}

@@ -3,6 +3,13 @@ export { getArticleBySlug, articleHref, parseBody } from "./articles";
 export { listAggregated, type AggregatedFilters } from "./aggregated";
 export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
-export { listSection, SECTION_PAGE_SIZE, type SectionFilters, type SectionPage } from "./sections";
+export {
+  countSectionSince,
+  getSectionRef,
+  listSection,
+  SECTION_PAGE_SIZE,
+  type SectionFilters,
+  type SectionPage,
+} from "./sections";
 export { getTopicBySlug, topicHref } from "./topics";
 export type * from "./types";

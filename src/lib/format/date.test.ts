@@ -36,3 +36,16 @@ describe("data por extenso", () => {
     expect(formatLongDate("2026-09-28T02:00:00Z")).toBe("domingo, 27 de setembro");
   });
 });
+
+describe("início do dia em Cuiabá", () => {
+  it("meia-noite local em UTC (UTC−4)", async () => {
+    const { startOfDay } = await import("./date");
+    expect(startOfDay(new Date("2026-09-27T18:00:00Z")).toISOString()).toBe(
+      "2026-09-27T04:00:00.000Z",
+    );
+    // 1h da manhã em UTC ainda é o dia anterior em Cuiabá.
+    expect(startOfDay(new Date("2026-09-28T01:00:00Z")).toISOString()).toBe(
+      "2026-09-27T04:00:00.000Z",
+    );
+  });
+});

@@ -343,3 +343,16 @@ values ('c2000000-0000-4000-8000-000000000099', 'materia-arquivada-seed', 'origi
 insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, created_at)
 select a.id, 1, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', a.author_id, 'edit', a.published_at
 from articles a where a.slug = 'materia-arquivada-seed';
+
+-- ---------------------------------------------------------------------------
+-- P1-T5 · editoria: subeditoria Mobilidade (Cidade) e bairros citados (filtro ?bairro=)
+-- ---------------------------------------------------------------------------
+insert into sections (slug, name, parent_slug, autonomy_category) values ('mobilidade','Mobilidade','cidade','cidade');
+update articles set section_slug = 'mobilidade'
+ where id in ('c2000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000005','c2000000-0000-4000-8000-000000000006');
+update articles set neighborhoods = '{cpa,centro-norte}'
+ where id in ('c2000000-0000-4000-8000-000000000001','c2000000-0000-4000-8000-000000000005');
+update articles set neighborhoods = '{duque-de-caxias}' where id = 'c2000000-0000-4000-8000-000000000006';
+update articles set neighborhoods = '{porto}' where id = 'c2000000-0000-4000-8000-000000000002';
+update articles set neighborhoods = '{cpa,morada-da-serra,tres-barras}' where id = 'c2000000-0000-4000-8000-000000000011';
+update articles set neighborhoods = '{centro-norte}' where id = 'c2000000-0000-4000-8000-000000000012';

@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
 import {
+  countSectionSince,
   getArticleBySlug,
   getEvent,
   getHomeData,
@@ -75,6 +76,53 @@ describe("queries públicas (P1-T1)", () => {
     const originals = value(await listSection("cidade", { origin: "original" }, 1));
     expect(originals?.articles.every((a) => a.kind === "original")).toBe(true);
     expect(value(await listSection("nao-existe", {}, 1))).toBeNull();
+  });
+
+  it("editoria filtra por subeditoria, bairro e período, e conta as de hoje", async () => {
+    const now = new Date("2026-09-27T18:00:00Z");
+    const sub = value(await listSection("cidade", { sub: "mobilidade", period: "all" }, 1, now));
+    expect(sub?.activeSub?.name).toBe("Mobilidade");
+    expect(sub?.articles.length).toBe(3);
+    expect(sub?.articles.every((a) => a.section.slug === "mobilidade")).toBe(true);
+    const intruder = value(await listSection("cidade", { sub: "politica", period: "all" }, 1, now));
+    expect(intruder?.activeSub).toBeNull();
+
+    const cpa = value(await listSection("cidade", { neighborhood: "cpa", period: "all" }, 1, now));
+    expect(cpa?.articles.map((a) => a.slug).sort()).toEqual([
+      "o-que-muda-nas-linhas-de-onibus-entre-cpa-e-centro",
+      "prefeitura-detalha-novo-plano-de-onibus-cpa-centro",
+    ]);
+    const empty = value(
+      await listSection(
+        "cidade",
+        { sub: "mobilidade", neighborhood: "coxipo", period: "7d" },
+        1,
+        now,
+      ),
+    );
+    expect(empty?.total).toBe(0);
+
+    const day = value(await listSection("cidade", { period: "24h" }, 1, now));
+    expect(day?.articles.every((a) => a.publishedAt >= "2026-09-26T18:00:00")).toBe(true);
+    expect(day?.latestAt).toBeTruthy();
+    expect(day?.todayCount).toBe(0);
+    expect(value(await listSection("clima", {}, 1, now))?.todayCount).toBe(1);
+    expect(day?.mostRead.length).toBeGreaterThan(0);
+    expect(day?.mostRead.length).toBeLessThanOrEqual(5);
+  });
+
+  it("carregar mais acumula as páginas", async () => {
+    const one = value(await listSection("cidade", { period: "all" }, 1));
+    const two = value(await listSection("cidade", { period: "all" }, 2));
+    expect(two?.articles.slice(0, one?.articles.length).map((a) => a.id)).toEqual(
+      one?.articles.map((a) => a.id),
+    );
+  });
+
+  it("conta matérias novas desde um instante", async () => {
+    expect(value(await countSectionSince("cidade", {}, "2026-09-26T00:00:00Z"))).toBe(2);
+    expect(value(await countSectionSince("cidade", {}, "2030-01-01T00:00:00Z"))).toBe(0);
+    expect(value(await countSectionSince("nao-existe", {}, "2026-09-26T00:00:00Z"))).toBeNull();
   });
 
   it("agenda lista eventos futuros em ordem e abre um evento", async () => {

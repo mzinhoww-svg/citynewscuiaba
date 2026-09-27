@@ -52,3 +52,8 @@ as $$
 $$;
 revoke execute on function public_most_read(int, int) from public;
 grant execute on function public_most_read(int, int) to anon, authenticated, service_role;
+
+-- Bairros citados pela matéria: filtro "bairro" da editoria (P02). Slugs de
+-- src/content/pt-BR/neighborhoods.ts; a taxonomia editável chega no P5 (A05).
+alter table articles add column if not exists neighborhoods text[] not null default '{}';
+create index if not exists articles_neighborhoods_idx on articles using gin (neighborhoods);

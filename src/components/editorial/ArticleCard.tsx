@@ -174,7 +174,10 @@ export function ArticleCard({
         className,
       )}
     >
-      {variant !== "compact" && <Cover article={article} variant={variant} />}
+      {/* Na linha sem foto aprovada, a miniatura tipográfica cortaria o nome da editoria: some. */}
+      {variant !== "compact" && !(list && !article.image) && (
+        <Cover article={article} variant={variant} />
+      )}
       {text}
     </article>
   );

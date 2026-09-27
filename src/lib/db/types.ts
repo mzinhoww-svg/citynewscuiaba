@@ -374,6 +374,7 @@ export type Database = {
           gone_reason: string | null;
           id: string;
           kind: Database["public"]["Enums"]["content_kind"];
+          neighborhoods: string[];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
           rules_version: number | null;
@@ -401,6 +402,7 @@ export type Database = {
           gone_reason?: string | null;
           id?: string;
           kind: Database["public"]["Enums"]["content_kind"];
+          neighborhoods?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           rules_version?: number | null;
@@ -428,6 +430,7 @@ export type Database = {
           gone_reason?: string | null;
           id?: string;
           kind?: Database["public"]["Enums"]["content_kind"];
+          neighborhoods?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           rules_version?: number | null;
