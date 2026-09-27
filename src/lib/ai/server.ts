@@ -14,6 +14,8 @@ export interface ProductionAi {
   embed: Embedder;
   /** Embedding de um texto no formato da porta `Embed` do pipeline. */
   embedOne: (text: string) => Promise<{ ok: true; value: number[] } | { ok: false; error: string }>;
+  /** Versão do prompt em produção do agente (idempotência das etapas). */
+  promptVersion: (agentId: string) => Promise<number | null>;
 }
 
 /**
@@ -27,7 +29,8 @@ export function createProductionAi(): ProductionAi {
     providerKind === "openrouter" && config
       ? createOpenRouterProvider(config)
       : createFakeProvider();
-  const deps = { store: createAiStore(createServiceClient()), provider, now: () => new Date() };
+  const store = createAiStore(createServiceClient());
+  const deps = { store, provider, now: () => new Date() };
   const embed = createEmbedder(deps);
   return {
     providerKind: provider.kind,
@@ -39,5 +42,6 @@ export function createProductionAi(): ProductionAi {
       const v = r.value[0];
       return v ? ok(v) : err("schema");
     },
+    promptVersion: async (agentId) => (await store.agent(agentId))?.prompt?.version ?? null,
   };
 }

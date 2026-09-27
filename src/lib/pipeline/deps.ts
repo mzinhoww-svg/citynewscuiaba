@@ -6,13 +6,14 @@ import {
   createEventSink,
   createIngestRepo,
   createRunStore,
+  createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
 import type { DrainDeps } from "./drain";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
-import { createClusterHandlers, createIngestHandlers } from "./steps";
+import { createClusterHandlers, createIngestHandlers, createUnderstandHandlers } from "./steps";
 import type { TickDeps } from "./tick";
 
 /** Handlers de produção por etapa. As etapas entram aqui conforme as tarefas do P3. */
@@ -30,6 +31,12 @@ export function productionHandlers(): StepHandlers {
     ...createClusterHandlers({
       repo: createClusterRepo(db),
       embed: ai.embedOne,
+      now: () => new Date(),
+    }),
+    ...createUnderstandHandlers({
+      repo: createUnderstandRepo(db),
+      callAgent: ai.callAgent,
+      promptVersion: ai.promptVersion,
       now: () => new Date(),
     }),
   };

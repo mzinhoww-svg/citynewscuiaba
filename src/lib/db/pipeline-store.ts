@@ -8,6 +8,8 @@ import type {
   RunStore,
   SourcePatch,
   SourceRecord,
+  SourceReliability,
+  UnderstandRepo,
 } from "@/lib/pipeline/ports";
 import { toSigned64, toUnsigned64 } from "@/lib/pipeline/simhash";
 import { RawEntrySchema } from "@/lib/pipeline/types";
@@ -370,6 +372,167 @@ export function createClusterRepo(db: DbClient): ClusterRepo {
       check("createTopic", error);
       if (!data) throw new Error("pipeline-store: createTopic sem retorno");
       return data;
+    },
+  };
+}
+
+const RELIABILITIES = ["primary", "verified", "standard", "low"] as const;
+const toReliability = (v: string | null | undefined): SourceReliability =>
+  RELIABILITIES.find((r) => r === v) ?? "low";
+
+const ITEM_WITH_SOURCE =
+  "id, source_id, original_title, excerpt, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality)";
+
+interface ItemWithSourceRow {
+  id: string;
+  source_id: string;
+  original_title: string;
+  excerpt: string | null;
+  published_at: string | null;
+  topic_id: string | null;
+  duplicate_of: string | null;
+  quarantined_at: string | null;
+  section_slug: string | null;
+  sources: { slug: string; reliability: string; locality: string } | null;
+}
+
+const DecisionOutputSchema = z.record(z.string(), z.unknown());
+
+/** Banco das etapas classify, locate e verify (service role). */
+export function createUnderstandRepo(db: DbClient): UnderstandRepo {
+  return {
+    async understandItem(id) {
+      const { data, error } = await db
+        .from("collected_items")
+        .select(ITEM_WITH_SOURCE)
+        .eq("id", id)
+        .maybeSingle<ItemWithSourceRow>();
+      check("understandItem", error);
+      if (!data) return null;
+      return {
+        id: data.id,
+        sourceId: data.source_id,
+        sourceSlug: data.sources?.slug ?? "",
+        reliability: toReliability(data.sources?.reliability),
+        sourceLocality: data.sources?.locality ?? "cuiaba",
+        title: data.original_title,
+        excerpt: data.excerpt,
+        publishedAt: data.published_at,
+        topicId: data.topic_id,
+        duplicateOf: data.duplicate_of,
+        quarantined: data.quarantined_at !== null,
+      };
+    },
+
+    async updateItem(id, patch) {
+      const row = {
+        ...(patch.sectionSlug !== undefined ? { section_slug: patch.sectionSlug } : {}),
+        ...(patch.relevance !== undefined ? { relevance: patch.relevance } : {}),
+        ...(patch.sensitive !== undefined ? { sensitive: patch.sensitive } : {}),
+        ...(patch.locality !== undefined ? { locality: patch.locality } : {}),
+        ...(patch.neighborhood !== undefined ? { neighborhood: patch.neighborhood } : {}),
+      };
+      if (Object.keys(row).length === 0) return;
+      const { error } = await db.from("collected_items").update(row).eq("id", id);
+      check("updateItem", error);
+    },
+
+    async quarantineItem(id, reason) {
+      const { error } = await db
+        .from("collected_items")
+        .update({
+          quarantined_at: new Date().toISOString(),
+          quarantine_reason: reason.slice(0, 500),
+        })
+        .eq("id", id);
+      check("quarantineItem", error);
+    },
+
+    async findDecision(objectRef, step, hash) {
+      const { data, error } = await db
+        .from("decisions")
+        .select("object_ref, step, agent_id, prompt_version, input_hash, output, rationale")
+        .eq("object_ref", objectRef)
+        .eq("step", step)
+        .eq("input_hash", hash)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      check("findDecision", error);
+      if (!data) return null;
+      const output = DecisionOutputSchema.safeParse(data.output);
+      return {
+        objectRef: data.object_ref,
+        step,
+        agentId: data.agent_id,
+        promptVersion: data.prompt_version,
+        inputHash: data.input_hash ?? hash,
+        output: output.success ? output.data : {},
+        rationale: data.rationale,
+      };
+    },
+
+    async recordDecision(d) {
+      const { error } = await db.from("decisions").insert({
+        object_ref: d.objectRef,
+        step: d.step,
+        agent_id: d.agentId,
+        prompt_version: d.promptVersion,
+        input_hash: d.inputHash,
+        output: toJson(d.output),
+        rationale: d.rationale,
+      });
+      check("recordDecision", error);
+    },
+
+    async topicBundle(topicId) {
+      const topic = await db
+        .from("topics")
+        .select("id, updated_at")
+        .eq("id", topicId)
+        .maybeSingle();
+      check("topicBundle", topic.error);
+      if (!topic.data) return null;
+      const { data, error } = await db
+        .from("collected_items")
+        .select(ITEM_WITH_SOURCE)
+        .eq("topic_id", topicId)
+        .is("duplicate_of", null)
+        .is("quarantined_at", null)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .returns<ItemWithSourceRow[]>();
+      check("topicBundle(items)", error);
+      return {
+        topicId,
+        updatedAt: topic.data.updated_at,
+        items: (data ?? []).map((r) => ({
+          id: r.id,
+          sourceId: r.source_id,
+          sourceSlug: r.sources?.slug ?? "",
+          reliability: toReliability(r.sources?.reliability),
+          title: r.original_title,
+          excerpt: r.excerpt,
+          publishedAt: r.published_at,
+          sectionSlug: r.section_slug,
+        })),
+      };
+    },
+
+    async updateTopic(topicId, patch) {
+      const { error } = await db
+        .from("topics")
+        .update({ confidence: patch.confidence, confidence_score: patch.confidenceScore })
+        .eq("id", topicId);
+      check("updateTopic", error);
+      if (patch.sectionSlug) {
+        const s = await db
+          .from("topics")
+          .update({ section_slug: patch.sectionSlug })
+          .eq("id", topicId)
+          .is("section_slug", null);
+        check("updateTopic(section)", s.error);
+      }
     },
   };
 }

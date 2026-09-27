@@ -201,3 +201,82 @@ export interface ClusterRepo {
 
 /** Embedding de um texto (produção: OpenRouter `/embeddings`; teste: provedor falso). */
 export type Embed = (text: string) => Promise<Result<number[], string>>;
+
+export type SourceReliability = "primary" | "verified" | "standard" | "low";
+
+/** Item como as etapas classify e locate o enxergam. */
+export interface UnderstandItem {
+  id: string;
+  sourceId: string;
+  sourceSlug: string;
+  reliability: SourceReliability;
+  /** Localidade padrão da fonte (`sources.locality`). */
+  sourceLocality: string;
+  title: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  topicId: string | null;
+  duplicateOf: string | null;
+  quarantined: boolean;
+}
+
+/** Item de um assunto para a verificação (sem duplicados nem itens em quarentena). */
+export interface TopicItem {
+  id: string;
+  sourceId: string;
+  sourceSlug: string;
+  reliability: SourceReliability;
+  title: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  sectionSlug?: string | null;
+}
+
+export interface TopicBundle {
+  topicId: string;
+  updatedAt: string;
+  items: TopicItem[];
+}
+
+/** Registro de decisão automática (`decisions`), com a versão do prompt e o hash da entrada. */
+export interface DecisionRecord {
+  objectRef: string;
+  step: StepName;
+  agentId: string | null;
+  promptVersion: number | null;
+  inputHash: string;
+  output: Record<string, unknown>;
+  rationale: string | null;
+}
+
+export interface ItemPatch {
+  sectionSlug?: string;
+  relevance?: number;
+  sensitive?: boolean;
+  locality?: string;
+  neighborhood?: string | null;
+}
+
+export interface TopicPatch {
+  confidence: "alta" | "média" | "baixa";
+  confidenceScore: number;
+  /** Só preenche a editoria quando o assunto ainda não tem uma. */
+  sectionSlug?: string | null;
+}
+
+/** Acesso a banco das etapas classify, locate e verify. */
+export interface UnderstandRepo {
+  understandItem(id: string): Promise<UnderstandItem | null>;
+  updateItem(id: string, patch: ItemPatch): Promise<void>;
+  /** Tira o item do fluxo: assuntos e etapas seguintes o ignoram. */
+  quarantineItem(id: string, reason: string): Promise<void>;
+  /** Última decisão da etapa para o objeto com o mesmo hash de entrada (idempotência). */
+  findDecision(
+    objectRef: string,
+    step: StepName,
+    inputHash: string,
+  ): Promise<DecisionRecord | null>;
+  recordDecision(d: DecisionRecord): Promise<void>;
+  topicBundle(topicId: string): Promise<TopicBundle | null>;
+  updateTopic(topicId: string, patch: TopicPatch): Promise<void>;
+}

@@ -460,3 +460,16 @@ grant execute on function
   topic_candidates(uuid, timestamptz, int), recompute_topic_centroid(uuid, timestamptz),
   attach_item_to_topic(uuid, uuid, timestamptz), create_topic_for_item(uuid, text, text, timestamptz)
   to service_role;
+
+-- ---------------------------------------------------------------------------
+-- Entendimento (P3-T6): classificação, localidade e verificação
+-- Item com instrução embutida sai do fluxo (quarantined_at): assuntos e etapas seguintes o ignoram.
+-- Decisões automáticas ficam em `decisions` (idempotência por objeto, etapa e hash da entrada).
+-- ---------------------------------------------------------------------------
+alter table collected_items
+  add column relevance numeric(3,2) check (relevance between 0 and 1),
+  add column sensitive boolean,
+  add column neighborhood text,
+  add column quarantined_at timestamptz,
+  add column quarantine_reason text;
+create index decisions_lookup_idx on decisions (object_ref, step, input_hash, created_at desc);
