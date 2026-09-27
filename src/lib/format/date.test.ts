@@ -29,3 +29,10 @@ describe("auxiliares de agenda e ciclo", () => {
     expect(nextCycleMinutes(new Date("2026-09-27T18:30:00Z"))).toBe(30);
   });
 });
+
+describe("data por extenso", () => {
+  it("dia da semana e data em Cuiabá", async () => {
+    const { formatLongDate } = await import("./date");
+    expect(formatLongDate("2026-09-28T02:00:00Z")).toBe("domingo, 27 de setembro");
+  });
+});

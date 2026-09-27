@@ -80,7 +80,7 @@ export function OriginLabel({ label, size = "sm", className }: OriginLabelProps)
       ) : look.icon ? (
         <Icon name={look.icon} size={14} className="shrink-0" />
       ) : null}
-      <span className="truncate">
+      <span className="min-w-0 truncate">
         <span>{label.text}</span>
         {label.detail && (
           <span>

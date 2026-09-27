@@ -30,6 +30,7 @@ export { VisuallyHidden } from "./ui/VisuallyHidden";
 
 /* editorial: notícia, descoberta e marca */
 export { AggregatedCard, type AggregatedCardProps } from "./editorial/AggregatedCard";
+export { AggregatedSection, type AggregatedSectionProps } from "./editorial/AggregatedSection";
 export { AgendaList, type AgendaItem, type AgendaListProps } from "./editorial/AgendaList";
 export { ArticleCard, type ArticleCardProps } from "./editorial/ArticleCard";
 export { ArticleActionBar, type ArticleActionBarProps } from "./editorial/ArticleActionBar";
@@ -45,6 +46,7 @@ export { Logo, type LogoCity, type LogoProps } from "./editorial/Logo";
 export { MadeHow, type MadeHowProps } from "./editorial/MadeHow";
 export { MetaRow, type MetaRowProps } from "./editorial/MetaRow";
 export { NewsCard, type NewsCardProps } from "./editorial/NewsCard";
+export { NewsletterForm, type NewsletterFormProps } from "./editorial/NewsletterForm";
 export { NowList, type NowListProps } from "./editorial/NowList";
 export { OriginLabel, type OriginLabelProps } from "./editorial/OriginLabel";
 export { Photo, type PhotoProps } from "./editorial/Photo";
@@ -57,6 +59,7 @@ export { StoryCard, type StoryCardProps } from "./editorial/StoryCard";
 export { TopicCard, type TopicCardProps } from "./editorial/TopicCard";
 export { TopicSummaryCard, type TopicSummaryCardProps } from "./editorial/TopicSummaryCard";
 export { TopicStatus, type TopicStatusProps } from "./editorial/TopicStatus";
+export { UrgentBar, type UrgentBarProps } from "./editorial/UrgentBar";
 export { VideoLowerThird, type VideoLowerThirdProps } from "./editorial/VideoLowerThird";
 
 /* studio */

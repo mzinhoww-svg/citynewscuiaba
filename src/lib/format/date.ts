@@ -74,3 +74,16 @@ export function nextCycleMinutes(now: Date = new Date()): number {
   const remaining = cycle - (now.getTime() % cycle);
   return Math.ceil(remaining / MINUTE);
 }
+
+const longFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: TIME_ZONE,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+/** "domingo, 27 de setembro" no fuso de Cuiabá. */
+export function formatLongDate(iso: string): string {
+  const d = parse(iso);
+  return d ? longFormatter.format(d) : "";
+}

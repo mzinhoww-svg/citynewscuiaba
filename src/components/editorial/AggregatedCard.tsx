@@ -10,6 +10,8 @@ export interface AggregatedCardProps {
   /** Nível do título (padrão h3). */
   as?: "h2" | "h3" | "h4";
   now?: Date;
+  /** aggregated = superfície do Panorama · white = sobre seção que já é Panorama */
+  surface?: "aggregated" | "white";
   className?: string;
 }
 
@@ -24,13 +26,20 @@ export interface AggregatedCardProps {
  * - Superfície neutra (`--surface-aggregated`) e rótulo AGREGADO · fonte.
  * - O link tem o nome do veículo e avisa que abre em nova aba.
  */
-export function AggregatedCard({ item, as: Heading = "h3", now, className }: AggregatedCardProps) {
+export function AggregatedCard({
+  item,
+  as: Heading = "h3",
+  now,
+  surface = "aggregated",
+  className,
+}: AggregatedCardProps) {
   const when = item.publishedAt ? formatWhen(item.publishedAt, now) : "";
   const label = item.labels.shown[0];
   return (
     <article
       className={cx(
-        "relative flex flex-col gap-2.5 border border-line-section bg-aggregated p-4 [--card-radius:var(--r-0)]",
+        "relative flex flex-col gap-2.5 border border-line-section p-4 [--card-radius:var(--r-0)]",
+        surface === "aggregated" ? "bg-aggregated" : "bg-card-white",
         "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:border-line-strong",
         className,
       )}

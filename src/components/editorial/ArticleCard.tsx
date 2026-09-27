@@ -37,7 +37,7 @@ function TypographicCover({ section, className }: { section: string; className?:
       data-testid="typographic-cover"
       aria-hidden="true"
       className={cx(
-        "flex shrink-0 items-end bg-inverse p-4 font-sans font-black leading-tight text-on-inverse",
+        "flex shrink-0 items-end bg-tinta p-4 font-sans font-black leading-tight text-branco",
         className,
       )}
     >
@@ -78,7 +78,11 @@ function Cover({
       section={article.section.name}
       className={cx(
         size,
-        variant === "lead" ? "aspect-video" : variant === "standard" ? "aspect-3/2" : "rounded-md",
+        variant === "lead"
+          ? "aspect-[2/1] lg:aspect-video"
+          : variant === "standard"
+            ? "aspect-3/2"
+            : "rounded-md",
       )}
     />
   );
