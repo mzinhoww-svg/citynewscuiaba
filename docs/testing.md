@@ -81,4 +81,8 @@ Usuários de seed (só banco local e CI; nunca em staging ou produção). Senha 
 | Carlos Nunes | carlos.nunes@citynews.local | moderador | — |
 | Paulo Rezende | paulo.rezende@citynews.local | leitura | — |
 
+Paulo Rezende usa o papel `leitura` de propósito: é a conta de teste do Estúdio **só leitura** (vê métricas e auditoria, não edita nada). Não é um leitor do portal; leitor comum não tem linha em `user_roles`.
+
+A regra de duas pessoas é testada no banco em `tests/integration/rls-two-person.test.ts` (cada tentativa de contorno como `authenticated`, mais o caminho feliz com duas pessoas).
+
 IDs fixos: usuários `c1000000-…-0000000000NN`, matérias `c2…`, itens coletados `c3…`, assuntos `c4…`, fontes `c5…`, eventos `c6…`, coleções `c7…`.

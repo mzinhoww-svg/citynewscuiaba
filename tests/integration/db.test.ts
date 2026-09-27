@@ -41,16 +41,27 @@ describe("banco local com seed fictício", () => {
     expect(articles.data!.filter((a) => a.kind === "normalized")).toHaveLength(8);
     expect(articles.data!.every((a) => a.status === "published")).toBe(true);
     const counts = await Promise.all(
-      (["topics", "collected_items", "event_listings", "collections", "profiles"] as const).map(
+      (["topics", "collected_items", "event_listings", "profiles"] as const).map(
         async (t) => (await db.from(t).select("*", { count: "exact", head: true })).count,
       ),
     );
-    expect(counts).toEqual([3, 30, 10, 4, 10]);
-    const rules = await db.from("rules").select("force_review, body").eq("active", true).single();
+    expect(counts).toEqual([3, 30, 10, 10]);
+    // Outras suítes criam coleções de leitor, regras e pesos em paralelo: conta só o que é do seed.
+    const collections = await db
+      .from("collections")
+      .select("*", { count: "exact", head: true })
+      .eq("is_editorial", true);
+    expect(collections.count).toBe(4);
+    const rules = await db
+      .from("rules")
+      .select("force_review, body, active")
+      .eq("version", 1)
+      .single();
+    expect(rules.data?.active).toBe(true);
     expect(rules.data?.force_review).toBe(true);
     expect(rules.data?.body).toEqual(DEFAULT_RULES);
-    const weights = await db.from("rec_weights").select("version").eq("active", true).single();
-    expect(weights.data?.version).toBe("rec-v1");
+    const weights = await db.from("rec_weights").select("active").eq("version", "rec-v1").single();
+    expect(weights.data?.active).toBe(true);
   });
 });
 

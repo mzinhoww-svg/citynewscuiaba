@@ -1624,7 +1624,10 @@ export type Database = {
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
       article_section: { Args: { article: string }; Returns: string };
+      can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
+      consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      critical_actor: { Args: Record<PropertyKey, never>; Returns: string };
       dearmor: { Args: { "": string }; Returns: string };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
@@ -1638,6 +1641,7 @@ export type Database = {
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      two_person_error: { Args: { msg: string }; Returns: undefined };
       unaccent: { Args: { "": string }; Returns: string };
     };
     Enums: {
