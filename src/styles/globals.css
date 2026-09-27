@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Aliases semânticos de src/styles/tokens.css expostos como utilitários do Tailwind v4.
+ * `inline` faz o utilitário apontar para a variável do token, então o modo escuro
+ * (`:root[data-theme="dark"]`) troca os valores sem classes extras.
+ * Fontes: tokens.css já redefine --font-sans e --font-serif fora de camada, o que
+ * sobrescreve o tema padrão do Tailwind (font-sans / font-serif usam as fontes locais).
+ */
+@theme inline {
+  /* Superfícies */
+  --color-page: var(--bg-page);
+  --color-section: var(--bg-section);
+  --color-inverse: var(--bg-inverse);
+  --color-card: var(--surface-card);
+  --color-card-white: var(--surface-card-white);
+  --color-input: var(--surface-input);
+  --color-photo: var(--surface-photo);
+  --color-overlay: var(--surface-overlay);
+  --color-aggregated: var(--surface-aggregated);
+
+  /* Texto */
+  --color-strong: var(--text-strong);
+  --color-body: var(--text-body);
+  --color-meta: var(--text-meta);
+  --color-placeholder: var(--text-placeholder);
+  --color-on-inverse: var(--text-inverse);
+  --color-link: var(--text-link);
+  --color-eyebrow: var(--text-eyebrow);
+  --color-service: var(--text-service);
+  --color-danger: var(--text-danger);
+  --color-ai: var(--text-ai);
+  --color-warn: var(--text-warn);
+
+  /* Ação e acento */
+  --color-accent: var(--accent);
+  --color-accent-service: var(--accent-service);
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-pressed: var(--action-primary-pressed);
+  --color-action-secondary: var(--action-secondary);
+
+  /* Bordas */
+  --color-line-subtle: var(--border-subtle);
+  --color-line-section: var(--border-section);
+  --color-line-control: var(--border-control);
+  --color-line-strong: var(--border-strong);
+
+  /* Papéis semânticos de marca (fundos suaves de rótulos e estados) */
+  --color-ia-soft: var(--cn-ia-soft);
+  --color-cerrado-soft: var(--cn-cerrado-soft);
+  --color-urucum-soft: var(--cn-urucum-soft);
+  --color-atencao-soft: var(--cn-atencao-soft);
+  --color-erro-soft: var(--cn-erro-soft);
+  --color-urgente: var(--cn-urgente);
+
+  /* Raios */
+  --radius-0: var(--r-0);
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-pill: var(--r-pill);
+
+  /* Espaços e medidas de controle */
+  --spacing-gutter: var(--gutter);
+  --spacing-input: var(--h-input);
+  --spacing-button: var(--h-button);
+  --spacing-button-sm: var(--h-button-sm);
+  --spacing-chip: var(--h-chip);
+  --spacing-icon-btn: var(--h-icon-btn);
+  --spacing-tabbar: var(--h-tabbar);
+  --spacing-tap: var(--tap-min);
+  --container-page: var(--container-max);
+  --container-read: var(--measure-read);
+
+  /* Tipografia auxiliar */
+  --leading-tight: var(--lh-tight);
+  --leading-snug: var(--lh-snug);
+  --leading-normal: var(--lh-normal);
+  --leading-read: var(--lh-read);
+  --tracking-wordmark: var(--ls-wordmark);
+  --tracking-display: var(--ls-display);
+  --tracking-eyebrow: var(--ls-eyebrow);
+}
+
+/* Papéis tipográficos de DESIGN.md §4 */
+@utility type-display {
+  font: var(--type-display);
+  letter-spacing: var(--ls-display);
+}
+@utility type-screen-title {
+  font: var(--type-screen-title);
+}
+@utility type-nav-title {
+  font: var(--type-nav-title);
+}
+@utility type-section {
+  font: var(--type-section);
+}
+@utility type-headline-xl {
+  font: var(--type-headline-xl);
+  letter-spacing: var(--ls-display);
+}
+@utility type-headline {
+  font: var(--type-headline);
+}
+@utility type-headline-sm {
+  font: var(--type-headline-sm);
+}
+@utility type-body-read {
+  font: var(--type-body-read);
+  max-width: var(--measure-read);
+}
+@utility type-body {
+  font: var(--type-body);
+}
+@utility type-label {
+  font: var(--type-label);
+}
+@utility type-button {
+  font: var(--type-button);
+}
+@utility type-meta {
+  font: var(--type-meta);
+}
+@utility type-eyebrow {
+  font: var(--type-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Sombras e camadas: sistema plano, só diálogo e folha usam elevação */
+@utility shadow-dialog {
+  box-shadow: var(--shadow-lg);
+}
+@utility z-sticky {
+  z-index: var(--z-sticky);
+}
+@utility z-dropdown {
+  z-index: var(--z-dropdown);
+}
+@utility z-overlay {
+  z-index: var(--z-overlay);
+}
+@utility z-sheet {
+  z-index: var(--z-sheet);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+@utility z-tooltip {
+  z-index: var(--z-tooltip);
+}
+
+@layer base {
+  body {
+    font: var(--type-body);
+  }
+}
