@@ -8,7 +8,7 @@
 - **Fase ativa:** P1 Portal público ∥ P3 Pipeline e busca
 - **Tarefa ativa:** P1-T1 e P3-T1
 - **Próxima tarefa:** P1-T1 Queries de leitura · P3-T1 Extensões e filas
-- **Progresso:** 11/70 tarefas · 1/7 fases
+- **Progresso:** 26/70 tarefas · 1/7 fases
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -29,8 +29,10 @@
 
 ## Próxima ação imediata
 
-1. P1 no diretório principal e P3 em worktree `../cn-p3` (branch local `p3-pipeline`, `.local/offset` = 100), depois merge de P3 no branch de trabalho.
-2. P3 deve tratar "nenhuma regra ativa" como `forceReview`.
+1. Aguardar P1-T9..T12 (subagente no diretório principal).
+2. Em seguida: merge de `p3-pipeline` (worktree `../cn-p3`, P3-T1..T9 prontos) no branch de trabalho; migrations 0004, 0006 e 0008 convivem; resolver conflitos em `tests/integration/db.test.ts`, `src/lib/db/types.ts` (regenerar) e `package.json`.
+3. P3-T10 e T11 (busca e busca com IA) no diretório principal, usando os componentes do P1.
+4. Gates de P1 e P3.
 
 ## Últimos checkpoints
 
