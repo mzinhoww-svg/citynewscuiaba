@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T18:09:44.519Z",
+  "updatedAt": "2026-09-27T18:18:18.009Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -336,35 +336,35 @@
           "id": "P3-T7",
           "title": "Mídia",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "836383b",
           "notes": ""
         },
         {
           "id": "P3-T8",
           "title": "Write, decide, publish, index, notify",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "0149918",
           "notes": ""
         },
         {
           "id": "P3-T9",
           "title": "Watchdog",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "024efd5",
           "notes": ""
         },
         {
           "id": "P3-T10",
           "title": "Busca tradicional",
           "parallel": false,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
