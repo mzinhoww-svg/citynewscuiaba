@@ -16,9 +16,9 @@ export interface AggregatedCardProps {
 }
 
 /**
- * Item de outro veículo no Panorama: título original, data, resumo de até 2 frases quando a
- * política da fonte permite, e link para o original em nova aba (spec §4). Nunca vira página
- * de leitura no CityNews.
+ * Item de outro veículo no Panorama: título original, data, resumo de até 2 frases escrito pelo
+ * CityNews quando a política da fonte permite (nunca o texto da fonte), e link para o original em
+ * nova aba (spec §4, D10). Nunca vira página de leitura no CityNews.
  *
  * ```tsx
  * <AggregatedCard item={item} />
@@ -34,7 +34,7 @@ export function AggregatedCard({
   className,
 }: AggregatedCardProps) {
   const when = item.publishedAt ? formatWhen(item.publishedAt, now) : "";
-  const label = item.labels.shown[0];
+  const labels = item.labels.shown;
   return (
     <article
       className={cx(
@@ -44,9 +44,11 @@ export function AggregatedCard({
         className,
       )}
     >
-      {label && (
-        <div className="relative">
-          <OriginLabel label={label} />
+      {labels.length > 0 && (
+        <div className="relative flex flex-wrap gap-1.5">
+          {labels.map((l) => (
+            <OriginLabel key={l.kind} label={l} />
+          ))}
         </div>
       )}
       <Heading className="line-clamp-3 type-headline-sm text-strong">

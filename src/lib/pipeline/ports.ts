@@ -111,6 +111,13 @@ export interface RawPayload {
   contentType: string | null;
   body: string;
   sourceKind: SourceKind;
+  /**
+   * Validadores da coleta condicional. Só vão para a fonte depois do `validate` (ou seja, depois
+   * que o bruto e a mensagem seguinte existem): uma queda no meio não troca a próxima tentativa
+   * por um 304 sem item.
+   */
+  etag?: string | null;
+  lastModified?: string | null;
 }
 
 export type RawState = "new" | "valid" | "quarantine" | "extracted";
@@ -150,8 +157,14 @@ export interface IngestRepo {
     id: string,
     patch: { state: RawState; entries?: RawEntry[]; error?: string },
   ): Promise<void>;
-  /** Idempotente por `canonical_url`: `created = false` quando o item já existia. */
-  insertCollectedItem(item: CollectedInsert): Promise<{ id: string; created: boolean }>;
+  /**
+   * Idempotente por `canonical_url`: `created = false` quando o item já existia. `pending` = o item
+   * ainda não avançou (sem classificação, não duplicado, fora da quarentena): a etapa devolve a
+   * próxima mensagem de novo e o dedupe da fila evita repetição.
+   */
+  insertCollectedItem(
+    item: CollectedInsert,
+  ): Promise<{ id: string; created: boolean; pending: boolean }>;
 }
 
 /** Item coletado como as etapas de Entendimento (dedupe em diante) o enxergam. */
@@ -204,9 +217,13 @@ export interface ClusterRepo {
 }
 
 /** Embedding de um texto (produção: OpenRouter `/embeddings`; teste: provedor falso). */
-export type Embed = (text: string) => Promise<Result<number[], string>>;
+export type Embed = (
+  text: string,
+  opts?: { signal?: AbortSignal },
+) => Promise<Result<number[], string>>;
 
 export type SourceReliability = "primary" | "verified" | "standard" | "low";
+export type RepublishPolicy = "link_only" | "summary_2_sentences";
 
 /** Item como as etapas classify e locate o enxergam. */
 export interface UnderstandItem {
@@ -216,8 +233,13 @@ export interface UnderstandItem {
   reliability: SourceReliability;
   /** Localidade padrão da fonte (`sources.locality`). */
   sourceLocality: string;
+  /** Política de republicação da fonte: resumo próprio só com `summary_2_sentences`. */
+  republishPolicy: RepublishPolicy;
   title: string;
+  /** Texto da fonte (nunca público): só entrada do pipeline e da IA. */
   excerpt: string | null;
+  /** Resumo próprio do CityNews (até 2 frases), o único texto público do agregado. */
+  summary: string | null;
   publishedAt: string | null;
   topicId: string | null;
   duplicateOf: string | null;
@@ -283,6 +305,8 @@ export interface UnderstandRepo {
   updateItem(id: string, patch: ItemPatch): Promise<void>;
   /** Tira o item do fluxo: assuntos e etapas seguintes o ignoram. */
   quarantineItem(id: string, reason: string): Promise<void>;
+  /** Grava o resumo próprio do agregado (`collected_items.summary`). */
+  saveItemSummary(id: string, summary: string): Promise<void>;
   /** Última decisão da etapa para o objeto com o mesmo hash de entrada (idempotência). */
   findDecision(
     objectRef: string,
@@ -317,6 +341,8 @@ export interface MediaSourceItem {
     id: string;
     slug: string;
     name: string;
+    /** `sources.base_url`: a imagem só é baixada desse domínio (ou subdomínio). */
+    baseUrl: string;
     imagePolicy: ImagePolicy;
     /** `sources.agreement_until` (data ISO) ou `null`. */
     agreementUntil: string | null;

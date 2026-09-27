@@ -1,6 +1,7 @@
 import type {
   DecisionRecord,
   ItemPatch,
+  RepublishPolicy,
   SourceReliability,
   TopicBundle,
   UnderstandRepo,
@@ -23,6 +24,7 @@ interface Row {
   sourceSlug: string;
   title: string;
   excerpt: string | null;
+  summary: string | null;
   publishedAt: string | null;
   topicId: string | null;
   duplicateOf: string | null;
@@ -44,7 +46,10 @@ interface TopicRow {
 
 /** Itens, assuntos e decisões em memória para classify, locate e verify (só testes). */
 export function createMemoryUnderstandRepo(
-  sources: Record<string, { reliability: SourceReliability; locality: string }>,
+  sources: Record<
+    string,
+    { reliability: SourceReliability; locality: string; republishPolicy?: RepublishPolicy }
+  >,
 ) {
   const rows: Row[] = [];
   const topics = new Map<string, TopicRow>();
@@ -67,8 +72,10 @@ export function createMemoryUnderstandRepo(
         sourceSlug: r.sourceSlug,
         reliability: s.reliability,
         sourceLocality: s.locality,
+        republishPolicy: s.republishPolicy ?? "link_only",
         title: r.title,
         excerpt: r.excerpt,
+        summary: r.summary,
         publishedAt: r.publishedAt,
         topicId: r.topicId,
         duplicateOf: r.duplicateOf,
@@ -82,6 +89,10 @@ export function createMemoryUnderstandRepo(
     async quarantineItem(id, reason) {
       const r = find(id);
       if (r) r.quarantineReason = reason;
+    },
+    async saveItemSummary(id, summary) {
+      const r = find(id);
+      if (r) r.summary = summary;
     },
     async findDecision(objectRef, step, inputHash) {
       return (
@@ -130,6 +141,7 @@ export function createMemoryUnderstandRepo(
         sourceSlug: i.sourceSlug,
         title: i.title,
         excerpt: i.excerpt ?? null,
+        summary: null,
         publishedAt: i.publishedAt ?? null,
         topicId: i.topicId ?? null,
         duplicateOf: i.duplicateOf ?? null,

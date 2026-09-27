@@ -44,6 +44,8 @@ afterAll(async () => {
   await db.from("collected_items").delete().in("id", itemIds);
   await db.from("topics").delete().eq("id", topicId);
   await db.from("jobs").delete().like("queue", `u-${tag}:%`);
+  await db.from("pipeline_quarantine").delete().like("queue", `u-${tag}:%`);
+  await db.rpc("purge_pipeline_events", { p_item_refs: refs });
 });
 
 describe("classify, locate e verify com banco real (IA falsa)", () => {

@@ -52,7 +52,13 @@ describe("banco local com seed fictício", () => {
         async (t) => (await db.from(t).select("*", { count: "exact", head: true })).count,
       ),
     );
-    expect(counts).toEqual([3, 10, 10]);
+    // 3 assuntos públicos + 1 interno aberto pelo pipeline (sem matéria, fora do portal).
+    expect(counts).toEqual([4, 10, 10]);
+    const pub = await db
+      .from("topics")
+      .select("id", { count: "exact", head: true })
+      .eq("visibility", "public");
+    expect(pub.count).toBe(3);
     // A suíte de coleta (P3) insere itens em paralelo: os do seed não têm raw_id.
     const seedItems = await db
       .from("collected_items")

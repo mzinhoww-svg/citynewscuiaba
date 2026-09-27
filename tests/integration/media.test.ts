@@ -13,7 +13,7 @@ import { analyzeImage } from "@/lib/media/analyze";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { takedownReproduction } from "@/lib/media/takedown";
 import { createMediaStep } from "@/lib/pipeline/steps/media";
-import { createFakeHttp } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
 
 const db = createServiceClient();
 const tag = randomUUID().slice(0, 8);
@@ -42,6 +42,7 @@ afterAll(async () => {
   await db.from("collected_items").delete().in("id", ids.items);
   await db.from("topics").delete().eq("id", ids.topic);
   await db.from("sources").delete().eq("id", ids.source);
+  await db.from("rate_limits").delete().eq("bucket", "crawler").eq("key_hash", `repro-${tag}`);
 });
 
 describe("imagem com banco real: política reproduction", () => {
@@ -125,6 +126,7 @@ describe("imagem com banco real: política reproduction", () => {
       store,
       flags: createFlags(db),
       http,
+      resolve: fakeResolve(),
       userAgent: "CityNewsBot/1.0",
       now: () => new Date(),
       analyze: analyzeImage,

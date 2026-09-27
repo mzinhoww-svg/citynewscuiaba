@@ -16,7 +16,7 @@ const article = {
   authorIsPerson: false,
   section: { slug: "mobilidade", name: "Mobilidade" },
   image: undefined,
-  sources: [{ url: "https://agenciamt.example/x", title: "Plano", name: "Agência MT" }],
+  sources: [{ url: "https://agenciamt.example/x", title: "Plano", name: "Agência Cerrado" }],
 };
 
 it("NewsArticle com dateModified, author e citation", () => {
@@ -29,6 +29,16 @@ it("NewsArticle com dateModified, author e citation", () => {
     { "@type": "CreativeWork", url: "https://agenciamt.example/x", name: "Plano" },
   ]);
   expect(ld.mainEntityOfPage).toBe("https://citynews.example/materia/plano");
+});
+
+it("imagem da rota de mídia vira URL absoluta", () => {
+  const ld = articleJsonLd(
+    { ...article, image: { src: "/api/media/5b0a3f7e-8c1d-4e2f-9a6b-1c2d3e4f5a6b" } },
+    "https://citynews.example",
+  );
+  expect(ld.image).toEqual([
+    "https://citynews.example/api/media/5b0a3f7e-8c1d-4e2f-9a6b-1c2d3e4f5a6b",
+  ]);
 });
 
 it("Event no fuso de Cuiabá com local", () => {

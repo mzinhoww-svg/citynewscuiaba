@@ -9,7 +9,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const { slug } = await params;
   if (!SLUG.test(slug)) return new Response("Evento não encontrado", { status: 404 });
   const r = await getEvent(slug);
-  if (!r.ok) return new Response("Agenda indisponível", { status: 503 });
+  // Sem banco (ou fora do ar) não há evento para exportar: 404 com motivo, sem cache e sem 5xx.
+  if (!r.ok)
+    return new Response("Agenda indisponível no momento: evento não encontrado.", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
   const e = r.value;
   if (!e) return new Response("Evento não encontrado", { status: 404 });
   const body = toIcs({

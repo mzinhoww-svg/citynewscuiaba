@@ -82,11 +82,14 @@ describe("dedupe e cluster com banco real", () => {
 
     const { data: topic } = await db
       .from("topics")
-      .select("title, slug")
+      .select("title, slug, visibility")
       .eq("id", ia!.topicId!)
       .single();
-    expect(topic?.title).toContain(tag);
-    expect(topic?.slug).toMatch(/^viaduto-/);
+    // Assunto do pipeline nasce interno, com título provisório próprio (nunca a manchete da fonte).
+    expect(topic?.title).toBe("Assunto em apuração");
+    expect(topic?.title).not.toContain(tag);
+    expect(topic?.slug).toMatch(/^apuracao-/);
+    expect(topic?.visibility).toBe("internal");
     const cands = await repo.topicCandidates(a, {
       since: new Date(Date.now() - 3600_000),
       limit: 5,

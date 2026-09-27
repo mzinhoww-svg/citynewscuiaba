@@ -100,7 +100,11 @@ const TASK =
  * pela regra de extração. A confiança sai de `computeConfidence` (spec §6.3).
  */
 export function createVerifyTopic(deps: { callAgent: CallAgent }) {
-  return async (bundle: TopicBundle, now: Date): Promise<Result<VerifyResult, AiError>> => {
+  return async (
+    bundle: TopicBundle,
+    now: Date,
+    signal?: AbortSignal,
+  ): Promise<Result<VerifyResult, AiError>> => {
     const items = bundle.items;
     const system = [
       "Itens do assunto (id: fonte, confiabilidade):",
@@ -110,6 +114,7 @@ export function createVerifyTopic(deps: { callAgent: CallAgent }) {
       "verify",
       { system, data: items.map((i) => ({ id: i.id, text: itemText(i) })), task: TASK },
       VerifySchema,
+      { signal },
     );
     if (!r.ok) return r;
 
@@ -171,7 +176,7 @@ function majoritySection(items: readonly TopicItem[]): string | null {
  */
 export function createVerifyStep(deps: UnderstandStepDeps): StepHandler {
   const verifyTopic = createVerifyTopic(deps);
-  return async (msg) => {
+  return async (msg, ctx) => {
     const topicId = /^topic:(\S+)$/.exec(msg.itemRef)?.[1];
     if (!topicId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const bundle = await deps.repo.topicBundle(topicId);
@@ -187,7 +192,7 @@ export function createVerifyStep(deps: UnderstandStepDeps): StepHandler {
     const next = [nextMessage(msg, "summarize", msg.itemRef)];
     if (await deps.repo.findDecision(msg.itemRef, "verify", hash)) return ok(next);
 
-    const v = await verifyTopic(bundle, deps.now());
+    const v = await verifyTopic(bundle, deps.now(), ctx?.signal);
     if (!v.ok) return err(aiStepError(v.error, "verificação", { topicId }));
     await deps.repo.updateTopic(topicId, {
       confidence: v.value.confidence.level,

@@ -125,6 +125,120 @@ describe("drain", () => {
     expect(r).toMatchObject({ succeeded: 4, remaining: 0 });
   });
 
+  it("exceção ao enfileirar a próxima etapa vira falha transitória, sem abortar o lote", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    await queue.enqueue("pipeline", m("source:b"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: true,
+        value: [nextMessage(msg, "validate", `raw:${msg.itemRef}`)],
+      }),
+      validate: async () => ({ ok: true, value: [] }),
+    });
+    const flaky = {
+      ...queue,
+      enqueue: async (q: Parameters<typeof queue.enqueue>[0], msg: PipelineMessage) => {
+        if (msg.itemRef === "raw:source:a") throw new Error("banco fora");
+        return queue.enqueue(q, msg);
+      },
+    };
+    const events = sink();
+    const r = await drain({ queue: flaky, runStep, events, now: () => 0, queues: ["pipeline"] });
+    expect(r).toMatchObject({ processed: 3, succeeded: 2, retried: 1, remaining: 1 });
+    expect(queue.delays()).toEqual([60]);
+    expect(events.events).toContainEqual(
+      expect.objectContaining({ level: "warn", message: expect.stringMatching(/banco fora/) }),
+    );
+  });
+
+  it("passa o prazo restante às etapas como AbortSignal", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    let seen: AbortSignal | undefined;
+    const runStep = async (_msg: PipelineMessage, ctx?: { signal?: AbortSignal }) => {
+      seen = ctx?.signal;
+      await new Promise((r) => setTimeout(r, 80));
+      return { ok: true as const, value: [] };
+    };
+    await drain({
+      queue,
+      runStep,
+      events: sink(),
+      now: () => 0,
+      hardLimitMs: 30,
+      minStepMs: () => 0,
+    });
+    expect(seen).toBeDefined();
+    expect(seen!.aborted).toBe(true);
+  });
+
+  it("etapa cara sem tempo restante volta à fila sem contar tentativa", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("topic:t1", "summarize"));
+    await queue.enqueue("pipeline", m("article:a1", "notify"));
+    const ran: string[] = [];
+    const runStep = createRunStep({
+      summarize: async () => {
+        ran.push("summarize");
+        return { ok: true, value: [] };
+      },
+      notify: async () => {
+        ran.push("notify");
+        return { ok: true, value: [] };
+      },
+    });
+    // Faltam 10 s até o limite duro: menos do que a redação (IA) precisa; o aviso cabe.
+    const r = await drain({
+      queue,
+      runStep,
+      events: sink(),
+      now: () => 0,
+      hardLimitMs: 10_000,
+      queues: ["pipeline"],
+    });
+    expect(ran).toEqual(["notify"]);
+    expect(r.released).toBeGreaterThanOrEqual(1);
+    expect(queue.readCounts().every((n) => n === 0)).toBe(true);
+  });
+
+  it("falha causada pelo prazo do drain devolve a mensagem sem contar tentativa", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    const runStep = async (_msg: PipelineMessage, ctx?: { signal?: AbortSignal }) => {
+      await new Promise((r) => setTimeout(r, 60));
+      return ctx?.signal?.aborted
+        ? { ok: false as const, error: stepError.transient("timeout") }
+        : { ok: true as const, value: [] };
+    };
+    const r = await drain({
+      queue,
+      runStep,
+      events: sink(),
+      now: () => 0,
+      hardLimitMs: 20,
+      minStepMs: () => 0,
+    });
+    expect(r).toMatchObject({ retried: 0, released: 1 });
+    expect(queue.readCounts()).toEqual([0]);
+  });
+
+  it("grava pipeline_events em lotes durante o drain, não só no fim", async () => {
+    const queue = createMemoryQueue();
+    for (let i = 0; i < 6; i++) await queue.enqueue("pipeline", m(`source:${i}`));
+    const batches: number[] = [];
+    const runStep = createRunStep({ fetch: async () => ({ ok: true, value: [] }) });
+    await drain({
+      queue,
+      runStep,
+      events: { record: async (e) => void batches.push(e.length) },
+      now: () => 0,
+      batchSize: 2,
+    });
+    expect(batches.length).toBeGreaterThanOrEqual(3);
+    expect(batches.reduce((a, b) => a + b, 0)).toBe(6);
+  });
+
   it("queueFor: imagem em media, notificação em notify, o resto em pipeline", () => {
     expect(queueFor("image")).toBe("media");
     expect(queueFor("image_rights")).toBe("media");

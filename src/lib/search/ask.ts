@@ -113,22 +113,29 @@ async function aiEnabled(): Promise<boolean | null> {
   return r.ok ? r.value : null;
 }
 
-/** Conta logada (60/h) ou visitante (20/h, chave = hash do IP com sal diário). */
-async function audienceKey(now: Date): Promise<{ audience: "anon" | "account"; key: string }> {
+/**
+ * Conta logada (60/h) ou visitante (20/h, chave = hash do IP com sal diário). `null` sem sal em
+ * produção (A-051): a pergunta é recusada como indisponível, falha fechado.
+ */
+async function audienceKey(
+  now: Date,
+): Promise<{ audience: "anon" | "account"; key: string } | null> {
+  const salt = rateLimitSalt();
+  if (!salt) return null;
   const hasSession = (await cookies()).getAll().some((c) => c.name.startsWith("sb-"));
   if (hasSession) {
     try {
       const db = await createServerClient();
       const { data } = await db.auth.getUser();
       if (data.user) {
-        const key = createHash("sha256").update(`${rateLimitSalt()}:${data.user.id}`).digest("hex");
+        const key = createHash("sha256").update(`${salt}:${data.user.id}`).digest("hex");
         return { audience: "account", key };
       }
     } catch {
       // Sessão inválida: conta como visitante.
     }
   }
-  return { audience: "anon", key: ipKey(clientIp(await headers()), now, rateLimitSalt()) };
+  return { audience: "anon", key: ipKey(clientIp(await headers()), now, salt) };
 }
 
 export interface AskOutcome {
@@ -159,7 +166,14 @@ export async function answerQuestion(question: string, now = new Date()): Promis
       limit: ASK_LIMITS.anon,
     };
 
-  const { audience, key } = await audienceKey(now);
+  const who = await audienceKey(now);
+  if (!who)
+    return {
+      answer: { kind: "error", reason: "unavailable" },
+      aiOff: false,
+      limit: ASK_LIMITS.anon,
+    };
+  const { audience, key } = who;
   const limit = ASK_LIMITS[audience];
   const allowed = await hitRateLimit(askBucket(audience), key, limit, ASK_WINDOW_SECONDS);
   if (!allowed.ok) return { answer: { kind: "error", reason: "unavailable" }, aiOff: false, limit };

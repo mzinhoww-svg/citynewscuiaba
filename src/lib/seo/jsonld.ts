@@ -45,7 +45,7 @@ export function articleJsonLd(a: ArticleLdInput, base: string = siteUrl()): Ld {
     url,
     isAccessibleForFree: true,
     inLanguage: "pt-BR",
-    ...(a.image ? { image: [a.image.src] } : {}),
+    ...(a.image ? { image: [new URL(a.image.src, `${base}/`).toString()] } : {}),
     citation: a.sources.map((s) => ({ "@type": "CreativeWork", url: s.url, name: s.title })),
   };
 }

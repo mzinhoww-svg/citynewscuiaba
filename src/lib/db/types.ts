@@ -520,6 +520,7 @@ export type Database = {
           sensitive: boolean | null;
           simhash: number | null;
           source_id: string;
+          summary: string | null;
           tags: string[];
           topic_id: string | null;
           tsv: unknown;
@@ -545,6 +546,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id: string;
+          summary?: string | null;
           tags?: string[];
           topic_id?: string | null;
           tsv?: unknown;
@@ -570,6 +572,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id?: string;
+          summary?: string | null;
           tags?: string[];
           topic_id?: string | null;
           tsv?: unknown;
@@ -1731,6 +1734,7 @@ export type Database = {
           tsv: unknown;
           unconfirmed: string[];
           updated_at: string;
+          visibility: string;
         };
         Insert: {
           agreements?: string[];
@@ -1750,6 +1754,7 @@ export type Database = {
           tsv?: unknown;
           unconfirmed?: string[];
           updated_at?: string;
+          visibility?: string;
         };
         Update: {
           agreements?: string[];
@@ -1769,6 +1774,7 @@ export type Database = {
           tsv?: unknown;
           unconfirmed?: string[];
           updated_at?: string;
+          visibility?: string;
         };
         Relationships: [
           {
@@ -2083,6 +2089,10 @@ export type Database = {
           article_id: string;
           reads: number;
         }[];
+      };
+      purge_pipeline_events: {
+        Args: { p_before?: string; p_item_refs?: string[]; p_run_ids?: string[] };
+        Returns: number;
       };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {

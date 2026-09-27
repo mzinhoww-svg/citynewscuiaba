@@ -1,4 +1,5 @@
 import "server-only";
+import { mediaHref } from "@/lib/media/serve";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import { labelsFor, type ImageKind } from "@/lib/labels";
@@ -94,12 +95,6 @@ function readMinutes(blocks: ArticleBlock[], dek: string): number {
   return Math.max(1, Math.round(words / WORDS_PER_MINUTE));
 }
 
-function mediaSrc(path: string): string {
-  if (/^https?:\/\//.test(path)) return path;
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return `${base}/storage/v1/object/public/media/${path.replace(/^\/+/, "")}`;
-}
-
 function hostOf(url: string | null): string | undefined {
   if (!url) return undefined;
   try {
@@ -136,7 +131,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       ? db
           .from("article_media")
           .select(
-            "article_id, media_assets(kind, storage_path, origin_url, license, credit, status)",
+            "article_id, media_assets(id, kind, storage_path, origin_url, license, credit, status)",
           )
           .in("article_id", ids)
           .then(many)
@@ -164,7 +159,8 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
     if (!asset || asset.status !== "approved" || images.has(m.article_id)) continue;
     const kind = MEDIA_KIND[asset.kind];
     images.set(m.article_id, {
-      src: mediaSrc(asset.storage_path),
+      // Bucket privado (ADR-009): a rota própria valida aprovação e flag e assina a URL.
+      src: mediaHref(asset.id),
       alt: "",
       kind,
       credit:

@@ -15,6 +15,7 @@ export const AGENT_TIMEOUT_MS: Record<string, number> = {
   write: 45_000,
   answer: 25_000,
   image: 20_000,
+  aggregate_summary: 15_000,
   embed: 15_000,
 };
 export const DEFAULT_TIMEOUT_MS = 20_000;

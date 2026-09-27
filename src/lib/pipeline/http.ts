@@ -1,5 +1,8 @@
 import type { HttpFetch, IngestRepo } from "./ports";
 import { isAllowedByRobots } from "./crawl";
+import { deadlineSignal, safeGet, urlProblem, type ResolveHost } from "./net";
+
+export { isForbiddenHost } from "./net";
 
 export const DEFAULT_USER_AGENT = "CityNewsBot/1.0 (+https://citynewscuiaba.vercel.app/sobre#robo)";
 export const FETCH_TIMEOUT_MS = 10_000;
@@ -12,6 +15,8 @@ export function crawlerUserAgent(): string {
 export interface CrawlDeps {
   repo: Pick<IngestRepo, "hitRateLimit">;
   http: HttpFetch;
+  /** DNS (todos os endereços): produção `systemResolve`, testes `fakeResolve`. */
+  resolve: ResolveHost;
   userAgent: string;
 }
 
@@ -31,35 +36,11 @@ export type CrawlResponse =
   | { kind: "too_large" }
   | { kind: "rate_limited" };
 
-/** Hosts que o coletor nunca acessa (SSRF): loopback, rede privada, link-local, nomes internos. */
-export function isForbiddenHost(hostname: string): boolean {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  if (
-    h === "localhost" ||
-    h.endsWith(".localhost") ||
-    h.endsWith(".local") ||
-    h.endsWith(".internal")
-  )
-    return true;
-  if (h.includes(":"))
-    return h === "::1" || h === "::" || /^(?:fc|fd|fe8|fe9|fea|feb|::ffff:)/.test(h);
-  const v4 = /^(\d{1,3})\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(h);
-  if (!v4) return false;
-  const [a, b] = [Number(v4[1]), Number(v4[2])];
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 100 && b >= 64 && b <= 127)
-  );
-}
-
 /**
- * GET identificado como `CityNewsBot`, com timeout de 10 s, limite de tamanho, limite por hora
- * da fonte (`rate_limits`, bucket `crawler:<slug>`) e coleta condicional (ETag/Last-Modified).
+ * GET identificado como `CityNewsBot`, com timeout de 10 s (ou o prazo do drain, o que vier
+ * antes), no máximo 3 redirecionamentos revalidados, bloqueio de rede interna por nome e por DNS
+ * (SSRF), corpo lido em streaming até 5 MB, limite por hora da fonte (`rate_limits`, bucket
+ * `crawler:<slug>`) e coleta condicional (ETag/Last-Modified).
  */
 export async function crawlGet(
   deps: CrawlDeps,
@@ -70,6 +51,7 @@ export async function crawlGet(
     etag?: string | null;
     lastModified?: string | null;
     accept?: string;
+    signal?: AbortSignal;
   },
 ): Promise<CrawlResponse> {
   let parsed: URL;
@@ -78,10 +60,8 @@ export async function crawlGet(
   } catch {
     return { kind: "network_error", message: `URL inválida: ${url}` };
   }
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:")
-    return { kind: "network_error", message: `esquema não permitido: ${parsed.protocol}` };
-  if (isForbiddenHost(parsed.hostname))
-    return { kind: "network_error", message: `host não permitido: ${parsed.hostname}` };
+  const problem = await urlProblem(parsed, deps.resolve);
+  if (problem) return { kind: "network_error", message: problem };
   if (!(await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour)))
     return { kind: "rate_limited" };
 
@@ -94,36 +74,33 @@ export async function crawlGet(
   if (opts.etag) headers["If-None-Match"] = opts.etag;
   if (opts.lastModified) headers["If-Modified-Since"] = opts.lastModified;
 
-  let res: Response;
-  try {
-    res = await deps.http(url, {
-      headers,
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      redirect: "follow",
-    });
-  } catch (e) {
-    return { kind: "network_error", message: e instanceof Error ? e.message : String(e) };
+  const res = await safeGet(deps, url, {
+    headers,
+    signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
+    maxBytes: MAX_DOCUMENT_BYTES,
+  });
+  switch (res.kind) {
+    case "blocked":
+      return { kind: "network_error", message: res.reason };
+    case "network_error":
+      return res;
+    case "too_large":
+      return res;
+    case "status":
+      return res.status === 304
+        ? { kind: "not_modified" }
+        : { kind: "http_error", status: res.status };
+    case "ok":
+      return {
+        kind: "ok",
+        url: res.url,
+        status: res.status,
+        body: new TextDecoder().decode(res.body),
+        contentType: res.headers.get("content-type"),
+        etag: res.headers.get("etag"),
+        lastModified: res.headers.get("last-modified"),
+      };
   }
-  if (res.status === 304) return { kind: "not_modified" };
-  if (res.status < 200 || res.status >= 300) return { kind: "http_error", status: res.status };
-  const declared = Number(res.headers.get("content-length") ?? "0");
-  if (declared > MAX_DOCUMENT_BYTES) return { kind: "too_large" };
-  let body: string;
-  try {
-    body = await res.text();
-  } catch (e) {
-    return { kind: "network_error", message: e instanceof Error ? e.message : String(e) };
-  }
-  if (body.length > MAX_DOCUMENT_BYTES) return { kind: "too_large" };
-  return {
-    kind: "ok",
-    url: res.url || url,
-    status: res.status,
-    body,
-    contentType: res.headers.get("content-type"),
-    etag: res.headers.get("etag"),
-    lastModified: res.headers.get("last-modified"),
-  };
 }
 
 export type RobotsVerdict =
@@ -139,7 +116,7 @@ export type RobotsVerdict =
 export async function checkRobots(
   deps: CrawlDeps,
   url: string,
-  opts: { bucket: string; limitPerHour: number },
+  opts: { bucket: string; limitPerHour: number; signal?: AbortSignal },
 ): Promise<RobotsVerdict> {
   const target = new URL(url);
   const robotsUrl = `${target.protocol}//${target.host}/robots.txt`;

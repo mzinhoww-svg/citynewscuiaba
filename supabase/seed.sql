@@ -26,7 +26,7 @@ insert into sources (id, slug, name, base_url, kind, feed_url, categories, local
  ('c5000000-0000-4000-8000-000000000007','agro-em-pauta-mt','Agro em Pauta MT','https://agroempauta.example','rss','https://agroempauta.example/feed','{economia}','mt','verified','with_agreement','summary_2_sentences',false,'2026-12-31'),
  ('c5000000-0000-4000-8000-000000000008','cena-cuiabana','Cena Cuiabana','https://cenacuiabana.example','rss','https://cenacuiabana.example/feed','{cultura}','cuiaba','standard','none','link_only',false,null),
  ('c5000000-0000-4000-8000-000000000009','placar-mt','Placar MT','https://placarmt.example','rss','https://placarmt.example/rss','{esportes}','mt','standard','none','link_only',false,null),
- ('c5000000-0000-4000-8000-000000000010','agencia-mt','Agência MT (governo)','https://agenciamt.example','api','https://agenciamt.example/api/noticias','{cidade,servicos,agenda,clima}','mt','primary','licensed_only','summary_2_sentences',true,null),
+ ('c5000000-0000-4000-8000-000000000010','agencia-mt','Agência Cerrado (governo fictício)','https://agenciamt.example','api','https://agenciamt.example/api/noticias','{cidade,servicos,agenda,clima}','mt','primary','licensed_only','summary_2_sentences',true,null),
  ('c5000000-0000-4000-8000-000000000011','diario-oficial-de-cuiaba','Diário Oficial de Cuiabá','https://diariooficial.example','api','https://diariooficial.example/api/atos','{politica,cidade}','cuiaba','primary','none','summary_2_sentences',true,null),
  ('c5000000-0000-4000-8000-000000000012','brasil-hoje','Brasil Hoje','https://brasilhoje.example','rss','https://brasilhoje.example/feed','{economia,politica}','nacional','standard','none','link_only',false,null);
 
@@ -104,40 +104,44 @@ insert into rec_weights (version, weights, cap, discovery_every, proposed_by, ap
 -- ---------------------------------------------------------------------------
 -- Assuntos (3)
 -- ---------------------------------------------------------------------------
-insert into topics (id, slug, title, summary, state, confidence, confidence_score, section_slug, first_seen_at, updated_at) values
+insert into topics (id, slug, title, summary, state, confidence, confidence_score, section_slug, first_seen_at, updated_at, visibility) values
  ('c4000000-0000-4000-8000-000000000001','plano-de-onibus-cpa-centro','Novo plano de ônibus entre CPA e Centro',
   'A prefeitura reorganiza as linhas que ligam o CPA ao Centro a partir de outubro, com uma linha expressa e novos horários nos fins de semana.',
-  'confirmado','alta',0.88,'cidade','2026-09-18 08:10-04','2026-09-26 17:40-04'),
+  'confirmado','alta',0.88,'cidade','2026-09-18 08:10-04','2026-09-26 17:40-04','public'),
  ('c4000000-0000-4000-8000-000000000002','obra-do-viaduto-na-miguel-sutil','Obra do viaduto na avenida Miguel Sutil',
   'A construção do viaduto na Miguel Sutil entra em nova fase, com interdição parcial de faixas e desvios pelo bairro. O prazo final ainda não foi confirmado.',
-  'em_apuracao','média',0.72,'cidade','2026-09-20 09:30-04','2026-09-26 12:15-04'),
+  'em_apuracao','média',0.72,'cidade','2026-09-20 09:30-04','2026-09-26 12:15-04','public'),
  ('c4000000-0000-4000-8000-000000000003','seca-e-fumaca-na-baixada-cuiabana','Seca e fumaça na Baixada Cuiabana',
   'A umidade do ar abaixo de 15% e a fumaça das queimadas pioram a qualidade do ar em Cuiabá e Várzea Grande; a Defesa Civil mantém alerta.',
-  'confirmado','alta',0.91,'clima','2026-09-15 07:00-04','2026-09-27 08:05-04');
+  'confirmado','alta',0.91,'clima','2026-09-15 07:00-04','2026-09-27 08:05-04','public'),
+ -- Assunto aberto pelo pipeline, ainda sem matéria: interno, com título provisório (nunca a
+ -- manchete de um veículo); fora do portal, das listas e do sitemap até uma matéria ser publicada.
+ ('c4000000-0000-4000-8000-000000000004','apuracao-c3000017','Assunto em apuração',null,
+  'em_apuracao','baixa',0.40,'economia','2026-09-21 10:05-04','2026-09-22 15:10-04','internal');
 
 -- ---------------------------------------------------------------------------
 -- Itens coletados (30), só de veículos fictícios. 2 duplicados (duplicate_of preenchido).
 -- ---------------------------------------------------------------------------
 insert into collected_items (id, source_id, canonical_url, original_title, excerpt, author, published_at, image_url, locality, section_slug, topic_id, duplicate_of) values
- ('c3000000-0000-4000-8000-000000000001','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/novo-plano-onibus-cpa-centro','Prefeitura e governo apresentam novo plano de linhas entre CPA e Centro','O novo plano cria uma linha expressa entre o CPA e o Centro e reforça os horários de pico. As mudanças começam em 6 de outubro.','Redação Agência MT','2026-09-24 09:00-04','https://agenciamt.example/img/onibus-cpa.jpg','cuiaba','cidade','c4000000-0000-4000-8000-000000000001',null),
+ ('c3000000-0000-4000-8000-000000000001','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/novo-plano-onibus-cpa-centro','Prefeitura e governo apresentam novo plano de linhas entre CPA e Centro','O novo plano cria uma linha expressa entre o CPA e o Centro e reforça os horários de pico. As mudanças começam em 6 de outubro.','Redação Agência Cerrado','2026-09-24 09:00-04','https://agenciamt.example/img/onibus-cpa.jpg','cuiaba','cidade','c4000000-0000-4000-8000-000000000001',null),
  ('c3000000-0000-4000-8000-000000000002','c5000000-0000-4000-8000-000000000011','https://diariooficial.example/atos/2026/portaria-linhas-cpa','Portaria define itinerários das linhas CPA–Centro','A portaria publicada no Diário Oficial lista os novos itinerários e pontos de parada. O texto entra em vigor em 6 de outubro.',null,'2026-09-24 07:30-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000001',null),
  ('c3000000-0000-4000-8000-000000000003','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/cidade/passageiros-do-cpa-avaliam-mudancas','Passageiros do CPA avaliam mudanças nas linhas de ônibus','Usuários ouvidos no terminal do CPA aprovam a linha expressa, mas pedem mais ônibus à noite.','Equipe Diário da Baixada','2026-09-25 18:20-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000001',null),
  ('c3000000-0000-4000-8000-000000000004','c5000000-0000-4000-8000-000000000003','https://mtagora.example/cidade/linha-expressa-cpa-centro-horarios','Linha expressa CPA–Centro terá saídas a cada 12 minutos no pico','A nova linha expressa terá intervalo de 12 minutos nos horários de pico. Nos fins de semana, o intervalo será de 25 minutos.','MT Agora','2026-09-25 10:45-04','https://mtagora.example/img/linha-expressa.jpg','cuiaba','cidade','c4000000-0000-4000-8000-000000000001',null),
  ('c3000000-0000-4000-8000-000000000005','c5000000-0000-4000-8000-000000000004','https://portalvarzea.example/cidade/plano-onibus-cpa-centro','Plano de ônibus do CPA muda integração com Várzea Grande',null,'Portal Várzea','2026-09-25 14:00-04',null,'varzea-grande','cidade','c4000000-0000-4000-8000-000000000001',null),
  ('c3000000-0000-4000-8000-000000000006','c5000000-0000-4000-8000-000000000003','https://mtagora.example/cidade/linha-expressa-cpa-centro-horarios-atualizado','Linha expressa CPA–Centro terá saídas a cada 12 minutos no pico (atualizado)','Versão atualizada da mesma reportagem sobre a linha expressa.','MT Agora','2026-09-25 16:10-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000001','c3000000-0000-4000-8000-000000000004'),
  ('c3000000-0000-4000-8000-000000000007','c5000000-0000-4000-8000-000000000001','https://folhadocerrado.example/cidade/viaduto-miguel-sutil-nova-fase','Viaduto da Miguel Sutil entra em nova fase e interdita duas faixas','A obra do viaduto passa a ocupar duas faixas da avenida no sentido Centro. Os desvios valem por pelo menos 30 dias.','Folha do Cerrado','2026-09-22 08:15-04','https://folhadocerrado.example/img/viaduto.jpg','cuiaba','cidade','c4000000-0000-4000-8000-000000000002',null),
- ('c3000000-0000-4000-8000-000000000008','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/viaduto-miguel-sutil-desvios','Governo divulga mapa de desvios da obra na Miguel Sutil','O mapa indica rotas alternativas pelas ruas do bairro Duque de Caxias. Agentes de trânsito orientam motoristas nos horários de pico.','Redação Agência MT','2026-09-22 11:00-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000002',null),
+ ('c3000000-0000-4000-8000-000000000008','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/viaduto-miguel-sutil-desvios','Governo divulga mapa de desvios da obra na Miguel Sutil','O mapa indica rotas alternativas pelas ruas do bairro Duque de Caxias. Agentes de trânsito orientam motoristas nos horários de pico.','Redação Agência Cerrado','2026-09-22 11:00-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000002',null),
  ('c3000000-0000-4000-8000-000000000009','c5000000-0000-4000-8000-000000000005','https://radiopantanal.example/cidade/motoristas-relatam-lentidao-miguel-sutil','Motoristas relatam lentidão na Miguel Sutil após interdição',null,'Rádio Pantanal','2026-09-23 07:40-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000002',null),
  ('c3000000-0000-4000-8000-000000000010','c5000000-0000-4000-8000-000000000006','https://correiomt.example/cidade/prazo-viaduto-miguel-sutil','Prazo de entrega do viaduto da Miguel Sutil segue indefinido',null,'Correio Mato-grossense','2026-09-26 12:00-04',null,'cuiaba','cidade','c4000000-0000-4000-8000-000000000002',null),
- ('c3000000-0000-4000-8000-000000000011','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/defesa-civil-alerta-umidade','Defesa Civil mantém alerta de baixa umidade na Baixada Cuiabana','A umidade relativa do ar deve ficar abaixo de 15% à tarde até o fim da semana. A orientação é evitar atividades ao ar livre entre 11h e 17h.','Redação Agência MT','2026-09-26 07:00-04','https://agenciamt.example/img/alerta-umidade.jpg','mt','clima','c4000000-0000-4000-8000-000000000003',null),
+ ('c3000000-0000-4000-8000-000000000011','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/defesa-civil-alerta-umidade','Defesa Civil mantém alerta de baixa umidade na Baixada Cuiabana','A umidade relativa do ar deve ficar abaixo de 15% à tarde até o fim da semana. A orientação é evitar atividades ao ar livre entre 11h e 17h.','Redação Agência Cerrado','2026-09-26 07:00-04','https://agenciamt.example/img/alerta-umidade.jpg','mt','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000012','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/cidade/fumaca-encobre-cuiaba','Fumaça encobre Cuiabá e reduz visibilidade no fim da tarde','A fumaça de queimadas na região cobriu a cidade no fim da tarde de sexta-feira. Moradores relatam cheiro forte de queimado no CPA e no Coxipó.','Equipe Diário da Baixada','2026-09-26 18:30-04',null,'cuiaba','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000013','c5000000-0000-4000-8000-000000000003','https://mtagora.example/clima/qualidade-do-ar-cuiaba','Qualidade do ar em Cuiabá fica em nível ruim pelo terceiro dia','Medições apontam qualidade do ar ruim em Cuiabá pelo terceiro dia seguido. A previsão é de melhora só com a chegada das chuvas.','MT Agora','2026-09-27 06:50-04','https://mtagora.example/img/fumaca-cuiaba.jpg','cuiaba','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000014','c5000000-0000-4000-8000-000000000004','https://portalvarzea.example/cidade/focos-de-queimada-varzea-grande','Focos de queimada em terrenos baldios preocupam moradores de Várzea Grande',null,'Portal Várzea','2026-09-25 16:30-04',null,'varzea-grande','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000015','c5000000-0000-4000-8000-000000000012','https://brasilhoje.example/brasil/seca-centro-oeste','Seca atinge capitais do Centro-Oeste em setembro',null,'Brasil Hoje','2026-09-24 20:00-04',null,'nacional','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000016','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/cidade/fumaca-encobre-cuiaba-video','Fumaça encobre Cuiabá: veja imagens do fim da tarde','Galeria com imagens da mesma cobertura sobre a fumaça.','Equipe Diário da Baixada','2026-09-26 19:05-04',null,'cuiaba','clima','c4000000-0000-4000-8000-000000000003','c3000000-0000-4000-8000-000000000012'),
- ('c3000000-0000-4000-8000-000000000017','c5000000-0000-4000-8000-000000000007','https://agroempauta.example/economia/feira-agro-cuiaba-negocios','Feira do agro em Cuiabá projeta R$ 180 milhões em negócios','Organizadores esperam 40 mil visitantes em quatro dias de feira. Pequenos produtores terão espaço próprio para venda direta.','Agro em Pauta MT','2026-09-21 10:00-04','https://agroempauta.example/img/feira.jpg','cuiaba','economia',null,null),
+ ('c3000000-0000-4000-8000-000000000017','c5000000-0000-4000-8000-000000000007','https://agroempauta.example/economia/feira-agro-cuiaba-negocios','Feira do agro em Cuiabá projeta R$ 180 milhões em negócios','Organizadores esperam 40 mil visitantes em quatro dias de feira. Pequenos produtores terão espaço próprio para venda direta.','Agro em Pauta MT','2026-09-21 10:00-04','https://agroempauta.example/img/feira.jpg','cuiaba','economia','c4000000-0000-4000-8000-000000000004',null),
  ('c3000000-0000-4000-8000-000000000018','c5000000-0000-4000-8000-000000000006','https://correiomt.example/economia/comercio-centro-vendas-setembro','Comércio do Centro de Cuiabá registra alta nas vendas de setembro',null,'Correio Mato-grossense','2026-09-23 09:20-04',null,'cuiaba','economia',null,null),
- ('c3000000-0000-4000-8000-000000000019','c5000000-0000-4000-8000-000000000003','https://mtagora.example/economia/feira-agro-expositores','Feira do agro reúne 300 expositores no Centro de Eventos','A feira terá 300 expositores e programação de palestras sobre crédito rural. A entrada é gratuita.','MT Agora','2026-09-22 15:00-04',null,'cuiaba','economia',null,null),
+ ('c3000000-0000-4000-8000-000000000019','c5000000-0000-4000-8000-000000000003','https://mtagora.example/economia/feira-agro-expositores','Feira do agro reúne 300 expositores no Centro de Eventos','A feira terá 300 expositores e programação de palestras sobre crédito rural. A entrada é gratuita.','MT Agora','2026-09-22 15:00-04',null,'cuiaba','economia','c4000000-0000-4000-8000-000000000004',null),
  ('c3000000-0000-4000-8000-000000000020','c5000000-0000-4000-8000-000000000012','https://brasilhoje.example/economia/juros-credito-rural','Taxa de juros do crédito rural deve cair no próximo plano safra',null,'Brasil Hoje','2026-09-20 13:00-04',null,'nacional','economia',null,null),
  ('c3000000-0000-4000-8000-000000000021','c5000000-0000-4000-8000-000000000009','https://placarmt.example/esportes/final-copa-cuiabana-amador','Final da Copa Cuiabana de futebol amador será na Arena Pantanal',null,'Placar MT','2026-09-23 17:00-04',null,'cuiaba','esportes',null,null),
  ('c3000000-0000-4000-8000-000000000022','c5000000-0000-4000-8000-000000000005','https://radiopantanal.example/esportes/ingressos-copa-cuiabana','Ingressos para a final da Copa Cuiabana serão trocados por alimentos',null,'Rádio Pantanal','2026-09-24 12:30-04',null,'cuiaba','esportes',null,null),
@@ -146,9 +150,33 @@ insert into collected_items (id, source_id, canonical_url, original_title, excer
  ('c3000000-0000-4000-8000-000000000025','c5000000-0000-4000-8000-000000000011','https://diariooficial.example/atos/2026/lei-revisao-plano-diretor','Publicada lei que revisa o plano diretor de Cuiabá','A lei publicada no Diário Oficial revisa o zoneamento de bairros da região norte. As regras passam a valer em 90 dias.',null,'2026-09-18 07:00-04',null,'cuiaba','politica',null,null),
  ('c3000000-0000-4000-8000-000000000026','c5000000-0000-4000-8000-000000000001','https://folhadocerrado.example/politica/camara-aprova-revisao-plano-diretor','Câmara aprova revisão do plano diretor após duas audiências públicas','A revisão foi aprovada em segunda votação depois de duas audiências públicas. O texto muda regras de altura de prédios na região norte.','Folha do Cerrado','2026-09-16 21:00-04',null,'cuiaba','politica',null,null),
  ('c3000000-0000-4000-8000-000000000027','c5000000-0000-4000-8000-000000000003','https://mtagora.example/politica/plano-diretor-o-que-muda','Plano diretor: o que muda para quem mora na região norte','Guia explica as mudanças de zoneamento para CPA, Morada da Serra e Três Barras. Imóveis já construídos não são afetados.','MT Agora','2026-09-19 08:00-04',null,'cuiaba','politica',null,null),
- ('c3000000-0000-4000-8000-000000000028','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/mutirao-emprego-centro','Mutirão de emprego oferece 800 vagas no Centro de Cuiabá','O mutirão acontece no sábado, das 8h às 14h, na Praça Alencastro. É preciso levar documento com foto e carteira de trabalho.','Redação Agência MT','2026-09-25 08:00-04',null,'cuiaba','servicos',null,null),
+ ('c3000000-0000-4000-8000-000000000028','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/mutirao-emprego-centro','Mutirão de emprego oferece 800 vagas no Centro de Cuiabá','O mutirão acontece no sábado, das 8h às 14h, na Praça Alencastro. É preciso levar documento com foto e carteira de trabalho.','Redação Agência Cerrado','2026-09-25 08:00-04',null,'cuiaba','servicos',null,null),
  ('c3000000-0000-4000-8000-000000000029','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/servicos/mutirao-emprego-vagas','Mutirão de emprego no Centro terá vagas para primeiro emprego','Parte das vagas é para quem busca o primeiro emprego. Haverá atendimento prioritário para pessoas com deficiência.','Equipe Diário da Baixada','2026-09-25 13:00-04',null,'cuiaba','servicos',null,null),
- ('c3000000-0000-4000-8000-000000000030','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/vacinacao-escolas-outubro','Campanha leva vacinação às escolas estaduais em outubro','Equipes de saúde vão visitar escolas estaduais de Cuiabá para atualizar a caderneta de vacinação. Os pais devem enviar a caderneta com os alunos.','Redação Agência MT','2026-09-26 10:00-04',null,'mt','saude',null,null);
+ ('c3000000-0000-4000-8000-000000000030','c5000000-0000-4000-8000-000000000010','https://agenciamt.example/noticias/vacinacao-escolas-outubro','Campanha leva vacinação às escolas estaduais em outubro','Equipes de saúde vão visitar escolas estaduais de Cuiabá para atualizar a caderneta de vacinação. Os pais devem enviar a caderneta com os alunos.','Redação Agência Cerrado','2026-09-26 10:00-04',null,'mt','saude',null,null);
+
+-- Resumos próprios do CityNews (até 2 frases, CLAUDE.md regra 4) para itens de fontes com política
+-- summary_2_sentences. O excerpt acima é o texto (fictício) da fonte: nunca público.
+update collected_items c set summary = v.summary
+from (values
+ ('c3000000-0000-4000-8000-000000000001', 'Plano conjunto de prefeitura e governo prevê ônibus expresso ligando CPA e Centro, com mais viagens nos horários de maior movimento. A mudança vale a partir de 6 de outubro.'),
+ ('c3000000-0000-4000-8000-000000000002', 'Ato oficial detalha trajetos e paradas das linhas que ligam CPA e Centro. As regras passam a valer no início de outubro.'),
+ ('c3000000-0000-4000-8000-000000000003', 'No terminal do CPA, usuários elogiam o ônibus expresso, mas cobram reforço no período noturno.'),
+ ('c3000000-0000-4000-8000-000000000004', 'Ônibus expresso entre CPA e Centro deve passar a cada 12 minutos no pico. Sábados e domingos terão espera maior, de 25 minutos.'),
+ ('c3000000-0000-4000-8000-000000000007', 'Obras do viaduto na Miguel Sutil passam a bloquear duas faixas no sentido Centro. Os desvios devem durar ao menos um mês.'),
+ ('c3000000-0000-4000-8000-000000000008', 'Governo publica mapa com rotas alternativas pelo Duque de Caxias durante a obra. Agentes orientam o trânsito no pico.'),
+ ('c3000000-0000-4000-8000-000000000011', 'Alerta da Defesa Civil segue ativo, com umidade abaixo de 15% nas tardes desta semana. A recomendação é evitar exercício ao ar livre no meio do dia.'),
+ ('c3000000-0000-4000-8000-000000000012', 'Fumaça de queimadas tomou Cuiabá no fim da tarde de sexta. Moradores do CPA e do Coxipó relatam forte cheiro de queimado.'),
+ ('c3000000-0000-4000-8000-000000000013', 'O ar de Cuiabá segue em nível ruim pelo terceiro dia consecutivo, segundo as medições. A melhora só deve vir com as chuvas.'),
+ ('c3000000-0000-4000-8000-000000000017', 'Organizadores da feira do agro em Cuiabá esperam R$ 180 milhões em negócios e 40 mil visitantes. Pequenos produtores terão área para vender direto ao público.'),
+ ('c3000000-0000-4000-8000-000000000019', 'Centro de Eventos recebe 300 expositores na feira do agro, com palestras sobre crédito rural. A entrada é gratuita.'),
+ ('c3000000-0000-4000-8000-000000000025', 'Nova lei do plano diretor muda o zoneamento da região norte de Cuiabá. As regras entram em vigor em 90 dias.'),
+ ('c3000000-0000-4000-8000-000000000026', 'Vereadores aprovaram em segunda votação a revisão do plano diretor, depois de duas audiências. O texto altera limites de altura de prédios na região norte.'),
+ ('c3000000-0000-4000-8000-000000000027', 'Guia mostra o que muda no zoneamento do CPA, Morada da Serra e Três Barras. Construções existentes ficam de fora das novas regras.'),
+ ('c3000000-0000-4000-8000-000000000028', 'Mutirão no sábado oferece 800 vagas de emprego na Praça Alencastro, das 8h às 14h. Leve documento com foto e carteira de trabalho.'),
+ ('c3000000-0000-4000-8000-000000000029', 'Parte das vagas do mutirão no Centro é voltada a quem procura o primeiro emprego. Pessoas com deficiência terão atendimento prioritário.'),
+ ('c3000000-0000-4000-8000-000000000030', 'Equipes de saúde vão às escolas estaduais de Cuiabá em outubro para atualizar a vacinação dos alunos. Os pais devem mandar a caderneta.')
+) as v(id, summary)
+where c.id = v.id::uuid;
 
 -- ---------------------------------------------------------------------------
 -- Matérias publicadas (12): 4 originais e 8 normalizadas. force_review=true → todas revisadas por humano.
@@ -192,7 +220,7 @@ with seed_articles (id, slug, kind, topic_id, section_slug, title, dek, paragrap
   'Prefeitura detalha novo plano de ônibus entre CPA e Centro',
   'Portaria define itinerários e linha expressa com saídas a cada 12 minutos no pico a partir de 6 de outubro.',
   array[
-   'O novo plano de linhas entre o CPA e o Centro de Cuiabá começa a valer em 6 de outubro, segundo portaria publicada no Diário Oficial de Cuiabá e comunicado da Agência MT.',
+   'O novo plano de linhas entre o CPA e o Centro de Cuiabá começa a valer em 6 de outubro, segundo portaria publicada no Diário Oficial de Cuiabá e comunicado da Agência Cerrado.',
    'A linha expressa terá saídas a cada 12 minutos nos horários de pico e a cada 25 minutos nos fins de semana, de acordo com o MT Agora.',
    'Passageiros ouvidos pelo Diário da Baixada aprovam a mudança, mas pedem mais ônibus à noite.'
   ], array['Novo plano de ônibus entre CPA e Centro começa em 6 de outubro.','Linha expressa terá saídas a cada 12 minutos no pico.'], 'alta', 0.89, null, 'redator', 'c1000000-0000-4000-8000-000000000003', '2026-09-25 12:00-04', '2026-09-25 19:00-04'),
@@ -201,7 +229,7 @@ with seed_articles (id, slug, kind, topic_id, section_slug, title, dek, paragrap
   'Desvios pelo Duque de Caxias valem por pelo menos 30 dias; prazo de entrega da obra segue sem confirmação.',
   array[
    'A obra do viaduto na avenida Miguel Sutil passou a ocupar duas faixas no sentido Centro, segundo a Folha do Cerrado. Os desvios devem durar pelo menos 30 dias.',
-   'O governo divulgou um mapa de rotas alternativas pelas ruas do bairro Duque de Caxias, de acordo com a Agência MT.',
+   'O governo divulgou um mapa de rotas alternativas pelas ruas do bairro Duque de Caxias, de acordo com a Agência Cerrado.',
    'O prazo final da obra ainda não foi confirmado pelos responsáveis; o CityNews segue apurando.'
   ], array['Obra do viaduto na Miguel Sutil interdita duas faixas no sentido Centro.','Prazo final da obra ainda não foi confirmado.'], 'média', 0.72, null, 'redator', 'c1000000-0000-4000-8000-000000000003', '2026-09-22 13:00-04', '2026-09-26 12:15-04'),
  ('c2000000-0000-4000-8000-000000000007', 'qualidade-do-ar-em-cuiaba-fica-ruim-pelo-terceiro-dia', 'normalized', 'c4000000-0000-4000-8000-000000000003', 'clima',
@@ -209,13 +237,13 @@ with seed_articles (id, slug, kind, topic_id, section_slug, title, dek, paragrap
   'Fumaça de queimadas e umidade baixa mantêm o ar em nível ruim; melhora depende da chegada das chuvas.',
   array[
    'Pelo terceiro dia seguido, a qualidade do ar em Cuiabá ficou em nível ruim, segundo medições divulgadas pelo MT Agora.',
-   'A Defesa Civil mantém alerta de baixa umidade para a Baixada Cuiabana até o fim da semana, de acordo com a Agência MT.'
+   'A Defesa Civil mantém alerta de baixa umidade para a Baixada Cuiabana até o fim da semana, de acordo com a Agência Cerrado.'
   ], array['Qualidade do ar em Cuiabá está ruim pelo terceiro dia.','Alerta de baixa umidade segue até o fim da semana.'], 'alta', 0.90, null, 'redator', 'c1000000-0000-4000-8000-000000000002', '2026-09-27 08:05-04', '2026-09-27 08:05-04'),
  ('c2000000-0000-4000-8000-000000000008', 'defesa-civil-mantem-alerta-de-baixa-umidade', 'normalized', 'c4000000-0000-4000-8000-000000000003', 'clima',
   'Defesa Civil mantém alerta de baixa umidade na Baixada Cuiabana',
   'Umidade deve ficar abaixo de 15% à tarde; orientação é evitar atividade ao ar livre entre 11h e 17h.',
   array[
-   'A umidade relativa do ar deve ficar abaixo de 15% nas tardes desta semana em Cuiabá e Várzea Grande, segundo alerta da Defesa Civil divulgado pela Agência MT.',
+   'A umidade relativa do ar deve ficar abaixo de 15% nas tardes desta semana em Cuiabá e Várzea Grande, segundo alerta da Defesa Civil divulgado pela Agência Cerrado.',
    'A recomendação é beber água com frequência e evitar exercícios ao ar livre entre 11h e 17h.'
   ], array['Umidade abaixo de 15% nas tardes desta semana.','Evite atividades ao ar livre entre 11h e 17h.'], 'alta', 0.92, null, 'redator', 'c1000000-0000-4000-8000-000000000003', '2026-09-26 08:30-04', '2026-09-26 08:30-04'),
  ('c2000000-0000-4000-8000-000000000009', 'feira-do-agro-em-cuiaba-projeta-r-180-milhoes', 'normalized', null, 'economia',
@@ -244,7 +272,7 @@ with seed_articles (id, slug, kind, topic_id, section_slug, title, dek, paragrap
   'Mutirão de emprego oferece 800 vagas no Centro de Cuiabá',
   'Atendimento no sábado, das 8h às 14h, na Praça Alencastro; leve documento com foto e carteira de trabalho.',
   array[
-   'Um mutirão de emprego oferece 800 vagas neste sábado, das 8h às 14h, na Praça Alencastro, no Centro de Cuiabá, segundo a Agência MT.',
+   'Um mutirão de emprego oferece 800 vagas neste sábado, das 8h às 14h, na Praça Alencastro, no Centro de Cuiabá, segundo a Agência Cerrado.',
    'Parte das vagas é para primeiro emprego e haverá atendimento prioritário para pessoas com deficiência, informou o Diário da Baixada.'
   ], array['Mutirão oferece 800 vagas no sábado na Praça Alencastro.','Leve documento com foto e carteira de trabalho.'], 'alta', 0.88, null, 'redator', 'c1000000-0000-4000-8000-000000000003', '2026-09-25 15:00-04', '2026-09-25 15:00-04')
 )
@@ -410,7 +438,7 @@ update topics set
  where slug = 'plano-de-onibus-cpa-centro';
 update topics set
   agreements = array['A obra ocupa duas faixas da avenida Miguel Sutil no sentido Centro.','Há desvios pelas ruas do bairro Duque de Caxias.'],
-  disagreements = array['A duração dos desvios: pelo menos 30 dias segundo a Folha do Cerrado; a Agência MT não informa prazo.'],
+  disagreements = array['A duração dos desvios: pelo menos 30 dias segundo a Folha do Cerrado; a Agência Cerrado não informa prazo.'],
   unconfirmed = array['O prazo final de entrega do viaduto.','Se haverá interdição total em algum fim de semana.'],
   faq = '[{"q":"Qual é o desvio recomendado?","a":"Pelas ruas do bairro Duque de Caxias, conforme o mapa divulgado pelo governo."},{"q":"Quando a obra termina?","a":"O prazo ainda não foi confirmado pelos responsáveis. O CityNews segue apurando."}]',
   summary_reviewed_by = 'c1000000-0000-4000-8000-000000000003'

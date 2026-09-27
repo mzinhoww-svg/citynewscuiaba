@@ -1,8 +1,9 @@
 import { readFixture } from "../../../../tests/fixtures/read";
 import { drain } from "../drain";
 import type { PipelineEvent, SourceRecord } from "../ports";
+import type { PipelineMessage } from "../types";
 import { createRunStep, type StepHandlers } from "../run-step";
-import { createFakeHttp, type FakeRoute } from "../testing/fake-http";
+import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryIngestRepo } from "../testing/memory-ingest-repo";
 import { createMemoryQueue } from "../testing/memory-queue";
 import { createIngestHandlers } from ".";
@@ -33,7 +34,7 @@ function setup(
   const queue = createMemoryQueue();
   const dedupe: string[] = [];
   const handlers: StepHandlers = {
-    ...createIngestHandlers({ repo, http, userAgent: UA, now: () => NOW }),
+    ...createIngestHandlers({ repo, http, resolve: fakeResolve(), userAgent: UA, now: () => NOW }),
     dedupe: async (m) => {
       dedupe.push(m.itemRef);
       return { ok: true, value: [] };
@@ -237,6 +238,113 @@ describe("coleta: fetch → validate → extract → normalize", () => {
     ]);
   });
 
+  it("retomada: ETag só é gravado depois do validate; a nova tentativa do fetch baixa de novo", async () => {
+    let clock = 0;
+    const { http } = createFakeHttp({
+      "https://folhadocerrado.example/robots.txt": { status: 404 },
+      "https://folhadocerrado.example/feed": (h) =>
+        h.get("if-none-match") === '"v1"'
+          ? { status: 304 }
+          : feedRoute(readFixture("folha-do-cerrado.xml"), { etag: '"v1"' }),
+    });
+    const repo = createMemoryIngestRepo([folha]);
+    const queue = createMemoryQueue(() => clock);
+    const collected: string[] = [];
+    const runStep = createRunStep({
+      ...createIngestHandlers({
+        repo,
+        http,
+        resolve: fakeResolve(),
+        userAgent: UA,
+        now: () => NOW,
+      }),
+      dedupe: async (m) => {
+        collected.push(m.itemRef);
+        return { ok: true, value: [] };
+      },
+    });
+    let failValidate = true;
+    const flaky = {
+      ...queue,
+      enqueue: async (q: Parameters<typeof queue.enqueue>[0], m: PipelineMessage) => {
+        if (m.step === "validate" && failValidate) {
+          failValidate = false;
+          throw new Error("queda antes de enfileirar validate");
+        }
+        return queue.enqueue(q, m);
+      },
+    };
+    await queue.enqueue("pipeline", {
+      runId: "run-1",
+      step: "fetch",
+      itemRef: "source:folha-do-cerrado",
+      attempt: 1,
+    });
+    const drainOnce = () =>
+      drain({
+        queue: flaky,
+        runStep,
+        events: { record: async () => {} },
+        now: () => 0,
+        queues: ["pipeline"],
+      });
+    const first = await drainOnce();
+    expect(first.retried).toBe(1);
+    expect(repo.source("folha-do-cerrado")!.etag).toBeNull();
+    clock += 61_000;
+    await drainOnce();
+    expect(collected).toHaveLength(23);
+    expect(repo.source("folha-do-cerrado")!.etag).toBe('"v1"');
+  });
+
+  it("retomada: normalize reenvia dedupe para item que já existe e ainda não avançou", async () => {
+    const t = setup({
+      "https://folhadocerrado.example/robots.txt": { status: 404 },
+      "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
+    });
+    await t.run();
+    expect(t.dedupe).toHaveLength(23);
+    // Os primeiros 20 itens avançaram (classificados); 3 ficaram parados no meio do caminho.
+    for (const c of t.repo.collected().slice(0, 20)) t.repo.markAdvanced(c.id);
+    await t.queue.enqueue("pipeline", {
+      runId: "run-2",
+      step: "fetch",
+      itemRef: "source:folha-do-cerrado",
+      attempt: 1,
+    });
+    await drain({
+      queue: t.queue,
+      runStep: createRunStep({
+        ...createIngestHandlers({
+          repo: t.repo,
+          http: createFakeHttp({
+            "https://folhadocerrado.example/robots.txt": { status: 404 },
+            "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
+          }).http,
+          resolve: fakeResolve(),
+          userAgent: UA,
+          now: () => NOW,
+        }),
+        dedupe: async (m) => {
+          t.dedupe.push(m.itemRef);
+          return { ok: true, value: [] };
+        },
+      }),
+      events: { record: async () => {} },
+      now: () => 0,
+      queues: ["pipeline"],
+    });
+    expect(t.repo.collected()).toHaveLength(23);
+    const again = t.dedupe.slice(23);
+    expect(again.sort()).toEqual(
+      t.repo
+        .collected()
+        .slice(20)
+        .map((c) => `item:${c.id}`)
+        .sort(),
+    );
+  });
+
   it("segunda coleta do mesmo conteúdo não duplica itens", async () => {
     const t = setup({
       "https://folhadocerrado.example/robots.txt": { status: 404 },
@@ -258,6 +366,7 @@ describe("coleta: fetch → validate → extract → normalize", () => {
             "https://folhadocerrado.example/robots.txt": { status: 404 },
             "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
           }).http,
+          resolve: fakeResolve(),
           userAgent: UA,
           now: () => NOW,
         }),

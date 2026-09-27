@@ -137,6 +137,8 @@ const RawPayloadSchema = z.object({
   contentType: z.string().nullable(),
   body: z.string(),
   sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
+  etag: z.string().nullable().optional(),
+  lastModified: z.string().nullable().optional(),
 });
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
@@ -294,15 +296,18 @@ export function createIngestRepo(db: DbClient): IngestRepo {
         .select("id");
       check("insertCollectedItem", ins.error);
       const created = ins.data?.[0]?.id;
-      if (created) return { id: created, created: true };
+      if (created) return { id: created, created: true, pending: true };
       const { data, error } = await db
         .from("collected_items")
-        .select("id")
+        .select("id, duplicate_of, quarantined_at, relevance")
         .eq("canonical_url", item.canonicalUrl)
         .single();
       check("insertCollectedItem(existing)", error);
       if (!data) throw new Error("pipeline-store: collected_item sumiu");
-      return { id: data.id, created: false };
+      // Ainda não classificado (nem duplicado, nem em quarentena): a retomada o manda seguir.
+      const pending =
+        data.duplicate_of === null && data.quarantined_at === null && data.relevance === null;
+      return { id: data.id, created: false, pending };
     },
   };
 }
@@ -403,19 +408,25 @@ const toReliability = (v: string | null | undefined): SourceReliability =>
   RELIABILITIES.find((r) => r === v) ?? "low";
 
 const ITEM_WITH_SOURCE =
-  "id, source_id, original_title, excerpt, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality)";
+  "id, source_id, original_title, excerpt, summary, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality, republish_policy)";
 
 interface ItemWithSourceRow {
   id: string;
   source_id: string;
   original_title: string;
   excerpt: string | null;
+  summary: string | null;
   published_at: string | null;
   topic_id: string | null;
   duplicate_of: string | null;
   quarantined_at: string | null;
   section_slug: string | null;
-  sources: { slug: string; reliability: string; locality: string } | null;
+  sources: {
+    slug: string;
+    reliability: string;
+    locality: string;
+    republish_policy: string;
+  } | null;
 }
 
 const DecisionOutputSchema = z.record(z.string(), z.unknown());
@@ -470,8 +481,13 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         sourceSlug: data.sources?.slug ?? "",
         reliability: toReliability(data.sources?.reliability),
         sourceLocality: data.sources?.locality ?? "cuiaba",
+        republishPolicy:
+          data.sources?.republish_policy === "summary_2_sentences"
+            ? "summary_2_sentences"
+            : "link_only",
         title: data.original_title,
         excerpt: data.excerpt,
+        summary: data.summary,
         publishedAt: data.published_at,
         topicId: data.topic_id,
         duplicateOf: data.duplicate_of,
@@ -502,6 +518,11 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
         })
         .eq("id", id);
       check("quarantineItem", error);
+    },
+
+    async saveItemSummary(id, summary) {
+      const { error } = await db.from("collected_items").update({ summary }).eq("id", id);
+      check("saveItemSummary", error);
     },
 
     async findDecision(objectRef, step, hash) {
@@ -622,6 +643,7 @@ const MediaContextSchema = z.object({
         id: z.string(),
         slug: z.string(),
         name: z.string(),
+        baseUrl: z.string(),
         imagePolicy: z.enum(["none", "with_agreement", "licensed_only", "reproduction"]),
         agreementUntil: z.string().nullable(),
         rateLimitPerHour: z.number(),

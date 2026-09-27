@@ -69,12 +69,12 @@ it("imagem licenciada mantém fonte e crédito", () => {
   const r = labelsFor({
     ...base,
     kind: "original",
-    image: { kind: "licensed", sourceName: "Agência MT", credit: "Ana Lima" },
+    image: { kind: "licensed", sourceName: "Agência Cerrado", credit: "Ana Lima" },
   });
   expect(r.shown[1]).toEqual({
     kind: "image_licensed",
     text: "IMAGEM LICENCIADA",
-    detail: "Agência MT · Ana Lima",
+    detail: "Agência Cerrado · Ana Lima",
   });
 });
 it("imagem licenciada só com crédito mostra o crédito", () => {

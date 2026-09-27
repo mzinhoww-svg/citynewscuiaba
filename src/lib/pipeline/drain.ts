@@ -1,8 +1,8 @@
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import type { EventSink, PipelineEvent, Queue, QueuedMessage } from "./ports";
 import { MAX_ATTEMPTS, retryPolicy } from "./retry";
-import type { RunStep } from "./run-step";
-import { QUEUE_NAMES, queueFor, type QueueName } from "./types";
+import { stepError, type RunStep, type StepError } from "./run-step";
+import { QUEUE_NAMES, queueFor, type QueueName, type StepName } from "./types";
 
 /** Igual ao `maxDuration` da rota /api/jobs/drain (limite do Vercel Hobby). */
 export const DRAIN_MAX_DURATION_SEC = 60;
@@ -11,6 +11,26 @@ export const DRAIN_BUDGET_RATIO = 0.8;
 export const DRAIN_BATCH_SIZE = 10;
 /** Visibilidade de uma mensagem lida (ADR-004): maior que o `maxDuration`. */
 export const DRAIN_VISIBILITY_SEC = 120;
+/** Folga antes do `maxDuration`: registrar eventos e responder. As etapas são abortadas antes. */
+export const DRAIN_SAFETY_MS = 5_000;
+/** Eventos acumulados antes de gravar em `pipeline_events` (grava também ao fim de cada lote). */
+export const DRAIN_EVENTS_FLUSH = 25;
+
+/**
+ * Tempo mínimo que cada etapa precisa (rede com timeout de 10 s, IA com timeout de 20 a 45 s). Sem
+ * esse tempo até o limite duro, a mensagem volta à fila sem contar tentativa.
+ */
+export const STEP_MIN_MS: Partial<Record<StepName, number>> = {
+  fetch: 12_000,
+  dedupe: 8_000,
+  classify: 15_000,
+  locate: 10_000,
+  verify: 20_000,
+  summarize: 30_000,
+  image: 15_000,
+  index: 8_000,
+};
+const DEFAULT_STEP_MIN_MS = 2_000;
 
 export interface DrainDeps {
   queue: Queue;
@@ -18,9 +38,14 @@ export interface DrainDeps {
   events: EventSink;
   /** Relógio em ms (injetável nos testes). */
   now: () => number;
+  /** Até quando (a partir do início) o drain pega trabalho novo: 80% do `maxDuration`. */
   budgetMs?: number;
+  /** Limite duro (a partir do início) em que as etapas são abortadas: `maxDuration` − folga. */
+  hardLimitMs?: number;
   batchSize?: number;
   vtSec?: number;
+  /** Tempo mínimo por etapa (padrão `STEP_MIN_MS`). */
+  minStepMs?: (step: StepName) => number;
   queues?: readonly QueueName[];
 }
 
@@ -61,10 +86,17 @@ function event(
 export async function drain(deps: DrainDeps): Promise<DrainResult> {
   const { queue, runStep, now } = deps;
   const start = now();
-  const deadline = start + (deps.budgetMs ?? DRAIN_MAX_DURATION_SEC * 1000 * DRAIN_BUDGET_RATIO);
+  const hardDeadline =
+    start + (deps.hardLimitMs ?? DRAIN_MAX_DURATION_SEC * 1000 - DRAIN_SAFETY_MS);
+  const deadline = Math.min(
+    hardDeadline,
+    start + (deps.budgetMs ?? DRAIN_MAX_DURATION_SEC * 1000 * DRAIN_BUDGET_RATIO),
+  );
   const batchSize = deps.batchSize ?? DRAIN_BATCH_SIZE;
   const vtSec = deps.vtSec ?? DRAIN_VISIBILITY_SEC;
   const queues = deps.queues ?? QUEUE_NAMES;
+  const minStepMs =
+    deps.minStepMs ?? ((step: StepName) => STEP_MIN_MS[step] ?? DEFAULT_STEP_MIN_MS);
   const r: DrainResult = {
     processed: 0,
     succeeded: 0,
@@ -74,55 +106,100 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
     exhausted: 0,
     remaining: 0,
   };
-  const log: PipelineEvent[] = [];
+  let log: PipelineEvent[] = [];
+  // Grava os eventos em lotes durante o drain: uma queda no fim não apaga o registro do trabalho.
+  const flush = async () => {
+    if (log.length === 0) return;
+    const out = log;
+    log = [];
+    await deps.events.record(out);
+  };
+  const push = async (e: PipelineEvent) => {
+    log.push(e);
+    if (log.length >= DRAIN_EVENTS_FLUSH) await flush();
+  };
 
   try {
     for (const name of queues) r.exhausted += await queue.moveExhausted(name, MAX_ATTEMPTS);
 
     // Uma etapa pode enfileirar a próxima em outra fila (queueFor): repete a volta pelas filas
     // até nenhuma ter mensagem pronta ou o tempo acabar.
-    outer: while (now() < deadline) {
+    let outOfTime = false;
+    let hardStop = false;
+    outer: while (now() < deadline && !outOfTime && !hardStop) {
       let progressed = false;
       for (const name of queues) {
-        while (now() < deadline) {
+        while (now() < deadline && !outOfTime && !hardStop) {
           const batch = await queue.readBatch(name, batchSize, vtSec);
           if (batch.length === 0) break;
           progressed = true;
           for (let i = 0; i < batch.length; i++) {
             const q = batch[i]!;
-            if (now() >= deadline) {
+            if (now() >= deadline || hardStop) {
               for (const rest of batch.slice(i)) await queue.release(name, rest.msgId);
               r.released += batch.length - i;
+              await flush();
               break outer;
             }
-            r.processed++;
-            const res = await runStep(q.msg);
-            if (res.ok) {
-              for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
-              await queue.ack(name, q.msgId);
-              r.succeeded++;
-              log.push(event(q, "info", "ok", { next: res.value.length }));
+            // Etapa cara sem tempo até o limite duro: devolve sem contar tentativa e não lê mais
+            // lotes (as etapas baratas deste lote ainda rodam).
+            const remainingMs = hardDeadline - now();
+            if (remainingMs < minStepMs(q.msg.step)) {
+              await queue.release(name, q.msgId);
+              r.released++;
+              outOfTime = true;
               continue;
             }
-            const e = res.error;
+            r.processed++;
+            const signal = AbortSignal.timeout(Math.max(0, remainingMs));
+            const res = await runStep(q.msg, { signal });
+            let e: StepError;
+            if (res.ok) {
+              try {
+                for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+                await queue.ack(name, q.msgId);
+                r.succeeded++;
+                await push(event(q, "info", "ok", { next: res.value.length }));
+                continue;
+              } catch (ex) {
+                // Etapa feita, próxima não enfileirada: a mensagem volta como falha transitória
+                // (as etapas são idempotentes e devolvem a próxima de novo), sem abortar o lote.
+                e = stepError.transient(
+                  `falha ao enfileirar a próxima etapa: ${ex instanceof Error ? ex.message : String(ex)}`,
+                );
+              }
+            } else e = res.error;
+            // Falha transitória causada pelo prazo do drain não é culpa da mensagem.
+            if (e.retryable && signal.aborted) {
+              await queue.release(name, q.msgId);
+              r.released++;
+              hardStop = true;
+              await push(event(q, "info", "prazo do drain: devolvida à fila", { kind: e.kind }));
+              continue;
+            }
             const decision = retryPolicy(q.readCt, { retryable: e.retryable });
             const details = { kind: e.kind, ...(e.details ?? {}) };
             if (decision.action === "retry") {
               await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);
               r.retried++;
-              log.push(event(q, "warn", e.message, { ...details, retryInSec: decision.delaySec }));
+              await push(
+                event(q, "warn", e.message, { ...details, retryInSec: decision.delaySec }),
+              );
             } else {
               await queue.quarantine(name, q, `${e.kind}: ${e.message}`);
               r.quarantined++;
-              log.push(event(q, e.kind === "injection" ? "security" : "error", e.message, details));
+              await push(
+                event(q, e.kind === "injection" ? "security" : "error", e.message, details),
+              );
             }
           }
+          await flush();
         }
       }
       if (!progressed) break;
     }
   } finally {
-    if (log.length > 0) await deps.events.record(log);
+    await flush();
   }
 
   for (const name of queues) r.remaining += await queue.pending(name);

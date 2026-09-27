@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { POST as tickPOST } from "@/app/api/ingest/tick/route";
 import { POST as drainPOST } from "@/app/api/jobs/drain/route";
 import { createServiceClient } from "@/lib/db/client";
@@ -10,7 +10,17 @@ import { createQueue } from "@/lib/pipeline/queue";
 import { createRunStep, nextMessage, stepError } from "@/lib/pipeline/run-step";
 import { handleTick } from "@/lib/pipeline/tick";
 
+import { pipelineTrash, purgePipeline } from "./cleanup";
+
 const WINDOW = "2026-09-27T14:30:00.000Z";
+const trash = pipelineTrash();
+
+afterAll(async () => {
+  const db = createServiceClient();
+  const { data } = await db.from("ingest_runs").select("id").eq("window_start", WINDOW);
+  for (const r of data ?? []) trash.runIds.add(r.id);
+  await purgePipeline(db, trash);
+});
 
 function tickReq(secret = process.env.CRON_SECRET) {
   return new Request("http://localhost/api/ingest/tick", {
@@ -30,8 +40,10 @@ async function countRuns(windowStart: string) {
 describe("tick idempotente", () => {
   it("dois ticks na mesma janela criam um run", async () => {
     const db = createServiceClient();
+    const namespace = `t-${randomUUID().slice(0, 8)}`;
+    trash.namespaces.add(namespace);
     const deps = {
-      queue: createQueue(db, { namespace: `t-${randomUUID().slice(0, 8)}` }),
+      queue: createQueue(db, { namespace }),
       runs: createRunStore(db),
       now: () => new Date("2026-09-27T14:44:10Z"),
       secret: process.env.CRON_SECRET,
@@ -59,7 +71,10 @@ describe("drain com banco real", () => {
   it("executa, enfileira a próxima, confirma e registra em pipeline_events", async () => {
     const db = createServiceClient();
     const ref = `source:drain-${randomUUID()}`;
-    const queue = createQueue(db, { namespace: `t-${randomUUID().slice(0, 8)}` });
+    const namespace = `t-${randomUUID().slice(0, 8)}`;
+    trash.namespaces.add(namespace);
+    trash.itemRefLike.add(`${ref}%`);
+    const queue = createQueue(db, { namespace });
     await queue.enqueue("pipeline", { runId: "r-int", step: "fetch", itemRef: ref, attempt: 1 });
     const runStep = createRunStep({
       fetch: async (m) => ({ ok: true, value: [nextMessage(m, "validate", `${ref}#raw`)] }),

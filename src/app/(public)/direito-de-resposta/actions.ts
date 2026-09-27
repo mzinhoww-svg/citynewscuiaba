@@ -9,14 +9,18 @@ import {
   requestRightOfReply,
   type ReplyState,
 } from "@/lib/reports/right-of-reply";
-import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
+import { ok } from "@/lib/result";
+import { clientRateKey } from "@/lib/security/rate-limit";
 
 /** Direito de resposta: sem login, honeypot e 5 pedidos por hora por IP com hash. */
 export async function rightOfReplyAction(_prev: ReplyState, form: FormData): Promise<ReplyState> {
-  const key = ipKey(clientIp(await headers()), new Date(), rateLimitSalt());
+  const key = clientRateKey(await headers(), new Date());
   return requestRightOfReply(form, {
     findArticle: findPublicArticleId,
-    allow: () => hitRateLimit("right_of_reply", key, REPLY_LIMIT, REPLY_WINDOW_SECONDS),
+    allow: () =>
+      key === null
+        ? Promise.resolve(ok(false))
+        : hitRateLimit("right_of_reply", key, REPLY_LIMIT, REPLY_WINDOW_SECONDS),
     save: saveReport,
   });
 }

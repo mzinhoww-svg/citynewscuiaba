@@ -95,6 +95,34 @@ describe("AggregatedCard", () => {
     expect(screen.queryByText(/duas faixas no sentido/)).not.toBeInTheDocument();
     expect(screen.getByText("há 5 h")).toBeInTheDocument();
   });
+
+  it("texto do card = título, resumo próprio, data e link; rótulos AGREGADO e RESUMO POR IA", () => {
+    const item: AggregatedView = {
+      ...fixtureAgg,
+      labels: {
+        shown: [
+          { kind: "aggregated", text: "AGREGADO", detail: "Folha do Cerrado" },
+          { kind: "ai_summary", text: "RESUMO POR IA" },
+        ],
+        hidden: [],
+      },
+    };
+    const { container } = render(<AggregatedCard item={item} now={now} />);
+    expect(screen.getByText("RESUMO POR IA")).toBeInTheDocument();
+    const text = container.textContent ?? "";
+    const rest = [
+      "Abrir em Folha do Cerrado",
+      "AGREGADO",
+      "Folha do Cerrado",
+      "RESUMO POR IA",
+      item.title,
+      item.summary!,
+      "há 5 h",
+      "abre em nova aba",
+    ].reduce((t, part) => t.split(part).join(""), text);
+    // Nada além do permitido (sobram só separadores e pontuação).
+    expect(rest.replace(/[\s.,·:]/g, "")).toBe("");
+  });
 });
 
 describe("ArticleCard", () => {

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 
 /*
@@ -42,4 +44,43 @@ test("agregado não tem página de leitura no CityNews", async ({ request }) => 
   }
   const pages = await (await request.get("/sitemap-pages.xml")).text();
   expect(pages).not.toMatch(/agregado|\.example/);
+});
+
+/*
+ * Revisão P3-GATE (ALTA 1): o texto da fonte (`collected_items.excerpt`) nunca chega ao HTML; o
+ * card mostra só o resumo próprio do CityNews. As frases de todos os excerpts do seed são
+ * procuradas no HTML da home, dos assuntos e da coleção (Panorama).
+ */
+function seedExcerptSentences(): string[] {
+  const sql = readFileSync(join(process.cwd(), "supabase/seed.sql"), "utf8");
+  const start = sql.indexOf("insert into collected_items");
+  const block = sql.slice(start, sql.indexOf(";\n", start));
+  const rows = block.matchAll(
+    /\('c3[0-9a-f-]+','[^']*','[^']*','(?:[^']|'')*',(null|'(?:[^']|'')*')/g,
+  );
+  const excerpts = [...rows]
+    .map((m) => m[1]!)
+    .filter((e) => e !== "null")
+    .map((e) => e.slice(1, -1).replace(/''/g, "'"));
+  return excerpts
+    .flatMap((e) => e.match(/[^.!?]+[.!?]/g) ?? [e])
+    .map((s) => s.trim())
+    .filter((s) => s.split(/\s+/).length >= 5);
+}
+
+test("texto da fonte nunca aparece no HTML da home e do Panorama", async ({ request }) => {
+  const sentences = seedExcerptSentences();
+  expect(sentences.length).toBeGreaterThan(20);
+  let summaries = 0;
+  for (const path of [...PAGES, "/assunto/seca-e-fumaca-na-baixada-cuiabana"]) {
+    const html = await (await request.get(path)).text();
+    for (const s of sentences) expect(html, `${path}: ${s}`).not.toContain(s);
+    if (html.includes("RESUMO POR IA")) summaries++;
+  }
+  // O resumo próprio aparece (item da MT Agora sobre a linha expressa).
+  const topic = await (await request.get("/assunto/plano-de-onibus-cpa-centro")).text();
+  expect(topic).toContain(
+    "Ônibus expresso entre CPA e Centro deve passar a cada 12 minutos no pico.",
+  );
+  expect(summaries).toBeGreaterThan(0);
 });

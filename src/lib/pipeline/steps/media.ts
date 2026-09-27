@@ -7,11 +7,12 @@ import {
   watermarkHint,
 } from "@/lib/media/checks";
 import { chooseImage, mayGenerate } from "@/lib/media/choose";
-import { fetchImage } from "@/lib/media/fetch-image";
+import { fetchImage, outsideSourceDomain, sourceDomain } from "@/lib/media/fetch-image";
 import { mediaPath, type MediaStore } from "@/lib/media/store";
 import type { Candidate, ImageAnalysis, ImagePolicy, MediaChoice } from "@/lib/media/types";
 import { err, ok, type Result } from "@/lib/result";
 import { checkRobots } from "../http";
+import type { ResolveHost } from "../net";
 import type {
   Flags,
   HttpFetch,
@@ -28,6 +29,7 @@ export interface MediaStepDeps {
   store: MediaStore;
   flags: Flags;
   http: HttpFetch;
+  resolve: ResolveHost;
   userAgent: string;
   now: () => Date;
   analyze: (bytes: Uint8Array) => Promise<Result<ImageAnalysis, string>>;
@@ -98,6 +100,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
   const prepare = async (
     item: MediaSourceItem,
     imageUrl: string,
+    signal: AbortSignal | undefined,
   ): Promise<Result<Prepared, string>> => {
     const existing = await deps.repo.assetByOrigin(imageUrl);
     if (existing?.status === "blocked") return err("imagem removida a pedido");
@@ -118,14 +121,30 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         candidate: { ...base, width: existing.width, height: existing.height, phashDistances: [] },
       });
 
+    const domain = sourceDomain(item.source.baseUrl);
+    let parsed: URL;
+    try {
+      parsed = new URL(imageUrl);
+    } catch {
+      return err(`URL de imagem inválida: ${imageUrl}`);
+    }
+    const outside = domain ? outsideSourceDomain(parsed, domain) : "fonte sem URL base válida";
+    if (outside) return err(outside);
     const robots = await checkRobots(
-      { repo: deps.repo, http: deps.http, userAgent: deps.userAgent },
+      { repo: deps.repo, http: deps.http, resolve: deps.resolve, userAgent: deps.userAgent },
       imageUrl,
-      { bucket: `crawler:${item.source.slug}`, limitPerHour: item.source.rateLimitPerHour },
+      {
+        bucket: `crawler:${item.source.slug}`,
+        limitPerHour: item.source.rateLimitPerHour,
+        signal,
+      },
     );
     if (robots.kind !== "allowed")
       return err(robots.kind === "rate_limited" ? "limite de requisições da fonte" : robots.reason);
-    const file = await fetchImage(deps, imageUrl);
+    const file = await fetchImage(deps, imageUrl, {
+      sourceBaseUrl: item.source.baseUrl,
+      signal,
+    });
     if (!file.ok) return err(file.error);
     const analysis = await deps.analyze(file.value.bytes);
     if (!analysis.ok) return err(analysis.error);
@@ -147,7 +166,12 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     });
   };
 
-  const sourceImage = async (ctx: MediaContext, reproductionEnabled: boolean, notes: string[]) => {
+  const sourceImage = async (
+    ctx: MediaContext,
+    reproductionEnabled: boolean,
+    notes: string[],
+    signal: AbortSignal | undefined,
+  ) => {
     const now = deps.now();
     let tried = 0;
     let reproductionOff = false;
@@ -159,7 +183,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         continue;
       }
       if (tried++ >= MAX_SOURCE_IMAGES) break;
-      const p = await prepare(item, item.imageUrl);
+      const p = await prepare(item, item.imageUrl, signal);
       if (!p.ok) {
         notes.push(`${item.source.name}: ${p.error}.`);
         continue;
@@ -175,7 +199,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     return null;
   };
 
-  return async (msg) => {
+  return async (msg, step) => {
     const articleId = ARTICLE_REF.exec(msg.itemRef)?.[1];
     if (!articleId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const ctx = await deps.repo.mediaContext(articleId);
@@ -185,7 +209,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
 
     const reproductionEnabled = await deps.flags.isEnabled("image_reproduction_enabled");
     const notes: string[] = [];
-    const chosen = await sourceImage(ctx, reproductionEnabled, notes);
+    const chosen = await sourceImage(ctx, reproductionEnabled, notes, step?.signal);
 
     const wanted = [...new Set([ctx.sectionSlug, ctx.category, ...ctx.tags])];
     const archive: Candidate[] = (await deps.repo.archiveCandidates(wanted, ARCHIVE_LIMIT))

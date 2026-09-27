@@ -70,10 +70,41 @@ create table pipeline_events (
 create index pipeline_events_run_idx on pipeline_events (run_id, at);
 create index pipeline_events_security_idx on pipeline_events (at desc) where level = 'security';
 
+-- Somente inserção. A única saída é `purge_pipeline_events` (retenção), que liga a variável de
+-- transação `citynews.purge_events` antes de apagar.
 create or replace function pipeline_events_immutable() returns trigger language plpgsql as $$
-begin raise exception 'pipeline_events é somente inserção'; end $$;
+begin
+  if tg_op = 'DELETE' and current_setting('citynews.purge_events', true) = 'on' then return old; end if;
+  raise exception 'pipeline_events é somente inserção';
+end $$;
 create trigger pipeline_events_immutable before update or delete on pipeline_events
   for each row execute function pipeline_events_immutable();
+
+-- Retenção do registro de etapas (e limpeza das suítes de integração): apaga eventos anteriores a
+-- `p_before`, de runs específicos ou com `item_ref` num padrão LIKE. Exige ao menos um filtro;
+-- só o servidor (service_role) chama.
+create or replace function purge_pipeline_events(
+  p_before timestamptz default null, p_run_ids uuid[] default null, p_item_refs text[] default null
+)
+returns int
+language plpgsql
+set search_path = public
+as $$
+declare
+  n int;
+begin
+  if p_before is null and p_run_ids is null and p_item_refs is null then
+    raise exception 'purge_pipeline_events: informe ao menos um filtro';
+  end if;
+  perform set_config('citynews.purge_events', 'on', true);
+  delete from pipeline_events e
+   where (p_before is not null and e.at < p_before)
+      or (p_run_ids is not null and e.run_id = any (p_run_ids))
+      or (p_item_refs is not null and e.item_ref like any (p_item_refs));
+  get diagnostics n = row_count;
+  perform set_config('citynews.purge_events', 'off', true);
+  return n;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Operações da fila (chamadas só pelo servidor com service_role)
@@ -231,12 +262,13 @@ revoke execute on function
   queue_enqueue(text, text, jsonb, int), queue_read(text, int, int), queue_ack(text, bigint),
   queue_fail(text, bigint, text, int), queue_release(text, bigint), queue_quarantine(text, bigint, text),
   queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz),
-  pipeline_events_immutable()
+  pipeline_events_immutable(), purge_pipeline_events(timestamptz, uuid[], text[])
   from public, anon, authenticated;
 grant execute on function
   queue_enqueue(text, text, jsonb, int), queue_read(text, int, int), queue_ack(text, bigint),
   queue_fail(text, bigint, text, int), queue_release(text, bigint), queue_quarantine(text, bigint, text),
-  queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz)
+  queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz),
+  purge_pipeline_events(timestamptz, uuid[], text[])
   to service_role;
 
 -- ---------------------------------------------------------------------------
@@ -462,6 +494,80 @@ grant execute on function
   to service_role;
 
 -- ---------------------------------------------------------------------------
+-- Visibilidade dos assuntos (revisão P1/P3-GATE; spec D10 e D12)
+-- Assunto criado pelo pipeline nasce `internal`, com título provisório próprio ("Assunto em
+-- apuração · <editoria>") e slug neutro (`apuracao-<id>`): nunca a manchete de outro veículo como
+-- página pública. Seed e redação criam `public`. O público (RLS, listas, página e sitemap) só vê
+-- assunto `public` com ao menos uma matéria publicada. O assunto passa a `public` quando uma
+-- matéria dele é publicada (humana, ou automática pelas regras), ganhando título e slug da
+-- matéria; Segurança e urgente só com publicação humana (D12).
+-- ---------------------------------------------------------------------------
+alter table topics
+  add column visibility text not null default 'internal' check (visibility in ('internal', 'public'));
+create index topics_public_idx on topics (updated_at desc) where visibility = 'public';
+
+drop policy topics_read on topics;
+create policy topics_read_public on topics for select to anon, authenticated
+  using (
+    visibility = 'public'
+    and exists (select 1 from articles a
+                where a.topic_id = topics.id and a.status in ('published', 'updated'))
+  );
+create policy topics_read_staff on topics for select to authenticated
+  using (is_staff((select auth.uid())));
+
+-- Título provisório acompanha a editoria enquanto o assunto é interno.
+create or replace function topics_provisional_title()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.visibility = 'internal' and new.title like 'Assunto em apuração%' and new.section_slug is not null then
+    new.title := 'Assunto em apuração · '
+      || coalesce((select s.name from sections s where s.slug = new.section_slug), new.section_slug);
+  end if;
+  return new;
+end $$;
+create trigger topics_provisional_title before insert or update on topics
+  for each row execute function topics_provisional_title();
+
+-- Matéria publicada abre o assunto (D12: Segurança e urgente só com publicação humana).
+create or replace function promote_topic_on_publish()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_topic topics%rowtype;
+  v_blocked boolean;
+begin
+  if new.topic_id is null or new.status not in ('published', 'updated') then return new; end if;
+  select * into v_topic from topics where id = new.topic_id for update;
+  if not found or v_topic.visibility = 'public' then return new; end if;
+  v_blocked := (new.urgent
+                or exists (select 1 from sections s
+                           where s.slug in (new.section_slug, v_topic.section_slug)
+                             and s.autonomy_category = 'seguranca'))
+               and new.publish_mode is distinct from 'human';
+  if v_blocked then return new; end if;
+  update topics t
+     set visibility = 'public',
+         title = case when t.title like 'Assunto em apuração%' then left(new.title, 300) else t.title end,
+         slug = case when t.slug like 'apuracao-%'
+                     then left(trim(both '-' from regexp_replace(lower(unaccent(new.title)), '[^a-z0-9]+', '-', 'g')), 70)
+                          || '-' || left(replace(t.id::text, '-', ''), 8)
+                     else t.slug end,
+         updated_at = greatest(t.updated_at, now())
+   where t.id = new.topic_id;
+  return new;
+end $$;
+revoke execute on function promote_topic_on_publish(), topics_provisional_title() from public, anon, authenticated;
+create trigger articles_promote_topic after insert or update of status, publish_mode on articles
+  for each row execute function promote_topic_on_publish();
+
+-- ---------------------------------------------------------------------------
 -- Entendimento (P3-T6): classificação, localidade e verificação
 -- Item com instrução embutida sai do fluxo (quarantined_at): assuntos e etapas seguintes o ignoram.
 -- Decisões automáticas ficam em `decisions` (idempotência por objeto, etapa e hash da entrada).
@@ -473,6 +579,30 @@ alter table collected_items
   add column quarantined_at timestamptz,
   add column quarantine_reason text;
 create index decisions_lookup_idx on decisions (object_ref, step, input_hash, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Agregado não é republicado (spec D10; CLAUDE.md regra 4; revisão P3-GATE)
+-- `excerpt` é o texto da fonte, sanitizado: só entrada do pipeline e da IA, nunca público.
+-- `summary` é o resumo próprio do CityNews (até 2 frases, agente `aggregate_summary`, só com
+-- política `summary_2_sentences`): o único texto do item que a view pública expõe.
+-- ---------------------------------------------------------------------------
+alter table collected_items
+  add column summary text check (summary is null or char_length(summary) between 1 and 280);
+comment on column collected_items.excerpt is
+  'Texto da fonte (sanitizado). Nunca público: só entrada do pipeline e da IA.';
+comment on column collected_items.summary is
+  'Resumo próprio do CityNews, até 2 frases (agente aggregate_summary). Único texto do agregado exposto em public_aggregated.';
+
+create or replace view public_aggregated as
+  select ci.id, ci.source_id, s.slug as source_slug, coalesce(s.display_name, s.name) as source_name,
+         ci.canonical_url, ci.original_title, ci.published_at, ci.section_slug, ci.locality, ci.topic_id,
+         case when s.republish_policy = 'summary_2_sentences' then ci.summary end as summary,
+         case when s.image_policy <> 'none' then ci.image_url end as image_url,
+         s.image_policy
+  from collected_items ci
+  join sources s on s.id = ci.source_id
+  -- Item em quarentena (instrução embutida) nunca aparece no portal.
+  where ci.duplicate_of is null and ci.quarantined_at is null and s.status <> 'blocked';
 
 -- ---------------------------------------------------------------------------
 -- Mídia e direitos de imagem (P3-T7, spec §6.5, A-010, A-037)
@@ -545,7 +675,7 @@ as $$
         'pageUrl', ci.canonical_url,
         'author', ci.author,
         'source', jsonb_build_object(
-          'id', so.id, 'slug', so.slug, 'name', coalesce(so.display_name, so.name),
+          'id', so.id, 'slug', so.slug, 'name', coalesce(so.display_name, so.name), 'baseUrl', so.base_url,
           'imagePolicy', so.image_policy, 'agreementUntil', so.agreement_until,
           'rateLimitPerHour', so.rate_limit_per_hour))
         order by (so.reliability = 'primary') desc, ci.published_at desc nulls last, ci.id)

@@ -33,6 +33,7 @@ export interface FakeCall {
   modelId: string;
   system: string;
   prompt: string;
+  signal?: AbortSignal;
 }
 
 type Datum = { id: string; text: string };
@@ -115,6 +116,18 @@ const RESPONDERS: Record<string, Responder> = {
     gaps: [],
     conflicts: [],
   }),
+  // Resumo determinístico que nunca copia a fonte: palavras-chave soltas numa frase fixa.
+  aggregate_summary: (data) => {
+    const seen = new Set<string>();
+    const keys = textTokens(data.map((d) => d.text).join(" "))
+      .filter((w) => w.length > 4 && !seen.has(w) && seen.add(w))
+      .slice(0, 4);
+    const list =
+      keys.length > 1 ? `${keys.slice(0, -1).join(", ")} e ${keys.at(-1)}` : (keys[0] ?? "o fato");
+    return {
+      summary: `Resumo do CityNews: a reportagem trata de ${list}. Detalhes no site do veículo.`,
+    };
+  },
   image: () => ({
     allowed: false,
     reason: "O provedor falso não gera imagens.",
@@ -157,7 +170,9 @@ export function createFakeProvider(opts: { embeddingDim?: number } = {}) {
         modelId: req.modelId,
         system: req.system,
         prompt: req.prompt,
+        signal: req.signal,
       });
+      req.signal.throwIfAborted();
       const text = respond(req);
       return { text, tokensIn: tokens(req.system + req.prompt), tokensOut: tokens(text) };
     },

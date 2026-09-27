@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { randomInt, randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFixture } from "../fixtures/read";
 import { createServiceClient } from "@/lib/db/client";
 import { createEventSink, createIngestRepo, createRunStore } from "@/lib/db/pipeline-store";
@@ -9,7 +9,18 @@ import { drain } from "@/lib/pipeline/drain";
 import { createQueue } from "@/lib/pipeline/queue";
 import { createRunStep } from "@/lib/pipeline/run-step";
 import { createIngestHandlers, extractFromFeed } from "@/lib/pipeline/steps";
-import { createFakeHttp } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
+import { pipelineTrash, purgePipeline, rememberSources } from "./cleanup";
+
+const trash = pipelineTrash();
+trash.rateLimits.push(
+  { bucket: "crawler", keyHash: "folha-do-cerrado" },
+  { bucket: "crawler", keyHash: "diario-da-baixada" },
+);
+beforeAll(() =>
+  rememberSources(createServiceClient(), trash, ["folha-do-cerrado", "diario-da-baixada"]),
+);
+afterAll(() => purgePipeline(createServiceClient(), trash));
 
 const UA = "CityNewsBot/1.0 (+https://citynewscuiaba.vercel.app/sobre#robo)";
 const rss = (name: string) => ({
@@ -22,9 +33,11 @@ describe("coleta com banco real (fixtures, sem rede)", () => {
     const db = createServiceClient();
     const namespace = `t-${randomUUID().slice(0, 8)}`;
     const queue = createQueue(db, { namespace });
+    trash.namespaces.add(namespace);
     // Janela própria (ano 2001) para não colidir com outras suítes nem com reexecuções.
     const window = new Date(Date.UTC(2001, 0, 1) + randomInt(1, 2_000_000) * 30 * 60_000);
     const { runId } = await createRunStore(db).startRun(window);
+    trash.runIds.add(runId);
 
     const { http, calls } = createFakeHttp({
       "https://folhadocerrado.example/robots.txt": { body: "User-agent: *\nDisallow: /busca" },
@@ -35,6 +48,7 @@ describe("coleta com banco real (fixtures, sem rede)", () => {
     const handlers = createIngestHandlers({
       repo: createIngestRepo(db),
       http,
+      resolve: fakeResolve(),
       userAgent: UA,
       now: () => new Date("2026-09-27T18:45:00Z"),
     });

@@ -15,7 +15,8 @@ const MAX_CLOCK_SKEW_MS = 48 * 3_600_000;
 export interface EventsDeps {
   insert: (e: EventEnvelope) => Promise<Result<void, WriteError>>;
   hitLimit: (keyHash: string) => Promise<Result<boolean, WriteError>>;
-  salt: string;
+  /** `null` sem sal em produção (A-051): recusa com 503, falha fechado. */
+  salt: string | null;
   now: () => Date;
 }
 
@@ -59,6 +60,7 @@ export async function handleEvents(req: Request, deps: EventsDeps): Promise<Resp
   if (Math.abs(Date.parse(event.at) - now.getTime()) > MAX_CLOCK_SKEW_MS)
     return status(400, "data fora do intervalo");
 
+  if (!deps.salt) return status(503, "indisponível");
   const key = ipKey(clientIp(req.headers), now, deps.salt);
   if (!(await checkRateLimit(`events:${key}`, EVENTS_LIMIT, EVENTS_WINDOW_SECONDS)))
     return status(429, "limite");

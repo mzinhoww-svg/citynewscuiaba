@@ -16,7 +16,7 @@ import { createPublishHandlers } from "./index";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
 const SOURCES = {
-  "agencia-mt": { reliability: "primary", name: "Agência MT (governo)" },
+  "agencia-mt": { reliability: "primary", name: "Agência Cerrado (governo fictício)" },
   "mt-agora": { reliability: "verified", name: "MT Agora" },
   "folha-do-cerrado": { reliability: "verified", name: "Folha do Cerrado" },
 } as const;
@@ -259,6 +259,42 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     expect(await unwrap(s.handlers.publish!(msg("publish", `article:${id}`)))).toEqual([
       msg("index", `article:${id}`),
     ]);
+  });
+
+  it("grava a decisão antes de mudar o status (queda no meio não deixa publicação sem decisão)", async () => {
+    const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: true } });
+    const id = await drafted(s);
+    await s.handlers.rules!(msg("rules", `article:${id}`));
+    const order: string[] = [];
+    const setStatus = s.repo.setStatus.bind(s.repo);
+    const recordDecision = s.repo.recordDecision.bind(s.repo);
+    s.repo.setStatus = async (a, p) => {
+      order.push(`status:${p.status}`);
+      return setStatus(a, p);
+    };
+    s.repo.recordDecision = async (d) => {
+      order.push(`decision:${d.step}`);
+      return recordDecision(d);
+    };
+    await unwrap(s.handlers.publish!(msg("publish", `article:${id}`)));
+    expect(order).toEqual(["decision:publish", "status:published"]);
+
+    const b = setup({ flags: { auto_publish: false } });
+    const idB = await drafted(b);
+    await b.handlers.rules!(msg("rules", `article:${idB}`));
+    const orderB: string[] = [];
+    const setB = b.repo.setStatus.bind(b.repo);
+    const recB = b.repo.recordDecision.bind(b.repo);
+    b.repo.setStatus = async (a, p) => {
+      orderB.push(`status:${p.status}`);
+      return setB(a, p);
+    };
+    b.repo.recordDecision = async (d) => {
+      orderB.push(`decision:${d.step}`);
+      return recB(d);
+    };
+    await unwrap(b.handlers.publish!(msg("publish", `article:${idB}`)));
+    expect(orderB).toEqual(["decision:publish", "status:in_review"]);
   });
 
   it("flag auto_publish desligada ou modo leitura: revisão", async () => {

@@ -87,7 +87,7 @@ function summaryWordsFor(section: string): number {
  * nunca se perde. Idempotente por (assunto, revisão = itens, versão do prompt). Próxima: `image`.
  */
 export function createWriteStep(deps: PublishStepDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, run) => {
     const topicId = TOPIC_REF.exec(msg.itemRef)?.[1];
     if (!topicId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const ctx = await deps.repo.draftContext(topicId);
@@ -123,6 +123,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
         task: "Escreva título, linha fina, resumo e corpo do assunto. Cada parágrafo cita os ids dos itens que o sustentam.",
       },
       WriteSchema,
+      { signal: run?.signal },
     );
     if (!r.ok && r.error === "injection") return err(aiStepError(r.error, "redação", { topicId }));
 

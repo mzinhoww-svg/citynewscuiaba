@@ -20,7 +20,7 @@ export function collectUrl(source: SourceRecord): string | null {
  * `robots.txt`, limite por hora e coleta condicional; 304 encerra sem item novo.
  */
 export function createFetchStep(deps: IngestDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, ctx) => {
     const slug = msg.itemRef.replace(/^source:/, "");
     const source = await deps.repo.sourceBySlug(slug);
     if (!source) return err(stepError.notFound(`fonte ${slug} não encontrada`));
@@ -32,7 +32,11 @@ export function createFetchStep(deps: IngestDeps): StepHandler {
       await deps.repo.updateSource(source.id, { lastError: reason });
       return err(stepError.invalid(reason));
     }
-    const limits = { bucket: `crawler:${source.slug}`, limitPerHour: source.rateLimitPerHour };
+    const limits = {
+      bucket: `crawler:${source.slug}`,
+      limitPerHour: source.rateLimitPerHour,
+      signal: ctx?.signal,
+    };
 
     const robots = await checkRobots(deps, url, limits);
     if (robots.kind === "unavailable") return err(stepError.transient(robots.reason));
@@ -77,14 +81,13 @@ export function createFetchStep(deps: IngestDeps): StepHandler {
             contentType: res.contentType,
             body: res.body,
             sourceKind: source.kind,
+            etag: res.etag,
+            lastModified: res.lastModified,
           },
         });
-        await deps.repo.updateSource(source.id, {
-          etag: res.etag,
-          lastModified: res.lastModified,
-          lastFetchedAt: fetchedAt,
-          lastError: null,
-        });
+        // ETag/Last-Modified só no validate: se esta mensagem cair antes de enfileirar o validate,
+        // a nova tentativa baixa o documento de novo em vez de receber 304.
+        await deps.repo.updateSource(source.id, { lastFetchedAt: fetchedAt, lastError: null });
         return ok([nextMessage(msg, "validate", `raw:${rawId}`)]);
       }
     }

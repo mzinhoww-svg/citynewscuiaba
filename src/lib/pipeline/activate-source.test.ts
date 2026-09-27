@@ -1,7 +1,7 @@
 import { readFixture } from "../../../tests/fixtures/read";
 import { activateSource } from "./activate-source";
 import type { SourceRecord } from "./ports";
-import { createFakeHttp } from "./testing/fake-http";
+import { createFakeHttp, fakeResolve } from "./testing/fake-http";
 import { createMemoryIngestRepo } from "./testing/memory-ingest-repo";
 
 const UA = "CityNewsBot/1.0";
@@ -31,7 +31,13 @@ function run(routes: Parameters<typeof createFakeHttp>[0], source = paused) {
   return {
     repo,
     calls,
-    result: activateSource(source.slug, { repo, http, userAgent: UA, now: () => NOW }),
+    result: activateSource(source.slug, {
+      repo,
+      http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => NOW,
+    }),
   };
 }
 

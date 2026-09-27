@@ -117,6 +117,21 @@ describe("/api/events", () => {
     ).toBe(503);
   });
 
+  it("sem sal (produção sem RATE_LIMIT_SALT nem CRON_SECRET) recusa sem gravar", async () => {
+    let inserted = 0;
+    const deps: EventsDeps = {
+      insert: async () => {
+        inserted++;
+        return ok(undefined);
+      },
+      hitLimit: async () => ok(true),
+      salt: null,
+      now: () => new Date(),
+    };
+    expect((await handleEvents(post(event(), "203.0.113.10"), deps)).status).toBe(503);
+    expect(inserted).toBe(0);
+  });
+
   it("chave do limite é o hash do IP com sal do dia, nunca o IP", async () => {
     const keys: string[] = [];
     const deps: EventsDeps = {

@@ -13,7 +13,10 @@ export interface ProductionAi {
   callAgent: CallAgent;
   embed: Embedder;
   /** Embedding de um texto no formato da porta `Embed` do pipeline. */
-  embedOne: (text: string) => Promise<{ ok: true; value: number[] } | { ok: false; error: string }>;
+  embedOne: (
+    text: string,
+    opts?: { signal?: AbortSignal },
+  ) => Promise<{ ok: true; value: number[] } | { ok: false; error: string }>;
   /** Versão do prompt em produção do agente (idempotência das etapas). */
   promptVersion: (agentId: string) => Promise<number | null>;
 }
@@ -36,8 +39,8 @@ export function createProductionAi(): ProductionAi {
     providerKind: provider.kind,
     callAgent: createCallAgent(deps),
     embed,
-    embedOne: async (text) => {
-      const r = await embed([text]);
+    embedOne: async (text, opts) => {
+      const r = await embed([text], opts);
       if (!r.ok) return err(r.error);
       const v = r.value[0];
       return v ? ok(v) : err("schema");

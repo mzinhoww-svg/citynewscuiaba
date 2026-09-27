@@ -6,7 +6,7 @@ import { analyzeImage } from "@/lib/media/analyze";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { takedownReproduction } from "@/lib/media/takedown";
 import type { FlagKey, MediaSourceItem } from "../ports";
-import { createFakeHttp, type FakeRoute } from "../testing/fake-http";
+import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryMediaRepo } from "../testing/memory-media-repo";
 import type { PipelineMessage } from "../types";
 import { createMediaStep } from "./media";
@@ -36,6 +36,7 @@ function sourceItem(
       id: "src-folha",
       slug: "folha-do-cerrado",
       name: "Folha do Cerrado",
+      baseUrl: "https://folhadocerrado.example",
       imagePolicy: "reproduction",
       agreementUntil: null,
       rateLimitPerHour: 60,
@@ -74,6 +75,7 @@ function setup(opts: {
     store,
     flags: { isEnabled: async (k) => flags[k] ?? false },
     http,
+    resolve: fakeResolve(),
     userAgent: "CityNewsBot/1.0",
     now: () => NOW,
     analyze: analyzeImage,
@@ -187,6 +189,43 @@ describe("etapa de imagem (13 e 14)", () => {
     expect(repo.decisions()[0]!.rationale).toMatch(/robots/);
   });
 
+  it("imagem de outro domínio é descartada com motivo, sem nenhum acesso", async () => {
+    const { repo, step, calls } = setup({
+      items: [sourceItem({}, { imageUrl: "https://cdn.terceiro.example/feira.jpg" })],
+    });
+    await step(msg);
+    expect(repo.assets()).toEqual([]);
+    expect(calls).toEqual([]);
+    expect(repo.decisions()[0]!.rationale).toMatch(/fora do domínio da fonte/);
+  });
+
+  it("subdomínio da fonte vale; redirecionamento para fora do domínio é recusado", async () => {
+    const sub = setup({
+      items: [sourceItem({}, { imageUrl: "https://img.folhadocerrado.example/feira.jpg" })],
+      routes: {
+        "https://img.folhadocerrado.example/robots.txt": { status: 404 },
+        "https://img.folhadocerrado.example/feira.jpg": jpeg("reproducao-1600x900.jpg"),
+      },
+    });
+    await sub.step(msg);
+    expect(sub.repo.assets()).toHaveLength(1);
+
+    const redirected = setup({
+      routes: {
+        "https://folhadocerrado.example/img/feira.jpg": {
+          status: 302,
+          headers: { location: "http://169.254.169.254/latest/meta-data" },
+        },
+      },
+    });
+    await redirected.step(msg);
+    expect(redirected.repo.assets()).toEqual([]);
+    expect(redirected.calls.map((c) => c.url)).not.toContain(
+      "http://169.254.169.254/latest/meta-data",
+    );
+    expect(redirected.repo.decisions()[0]!.rationale).toMatch(/fora do domínio|não permitido/);
+  });
+
   it("SVG ou resposta que não é imagem é ignorada", async () => {
     const { repo, step } = setup({
       routes: {
@@ -225,6 +264,7 @@ describe("etapa de imagem (13 e 14)", () => {
           "reproducao-recomprimida-1400x788.jpg",
         ),
       }).http,
+      resolve: fakeResolve(),
       userAgent: "CityNewsBot/1.0",
       now: () => NOW,
       analyze: analyzeImage,
