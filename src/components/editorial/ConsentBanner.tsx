@@ -41,7 +41,9 @@ function useReserveSpace(ref: React.RefObject<HTMLElement | null>, open: boolean
 
 /**
  * Banner de consentimento da primeira visita (spec §5.2, P22): região fixa no rodapé, acima
- * da barra inferior no mobile, sem bloquear a leitura (não é modal e não prende o foco).
+ * da barra inferior no mobile; no desktop, cartão no canto inferior direito, na largura da
+ * coluna lateral, para não cobrir a manchete. Não bloqueia a leitura (não é modal e não
+ * prende o foco).
  * Sem resposta vale "Só o necessário". "Escolher" abre as categorias no próprio banner.
  *
  * ```tsx
@@ -87,11 +89,11 @@ export function ConsentBanner() {
     <section
       ref={regionRef}
       aria-label={CONSENT_TEXT.region}
-      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t-2 border-line-strong bg-card-white lg:bottom-0"
+      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t-2 border-line-strong bg-card-white lg:inset-x-auto lg:right-gutter lg:bottom-gutter lg:w-80 lg:rounded-lg lg:border-2 lg:shadow-dialog"
     >
       {choosing ? (
         <div
-          className="mx-auto flex max-h-[70dvh] w-full max-w-page flex-col gap-3 overflow-y-auto px-gutter py-4"
+          className="mx-auto flex max-h-[70dvh] w-full max-w-page flex-col gap-3 overflow-y-auto px-gutter py-4 lg:px-4"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.stopPropagation();
@@ -114,10 +116,10 @@ export function ConsentBanner() {
           </div>
         </div>
       ) : (
-        <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-3 lg:flex-row lg:items-center lg:gap-8 lg:py-4">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-3 lg:p-4">
+          <div className="flex min-w-0 flex-col gap-1">
             <h2 className="type-label text-strong">{CONSENT_TEXT.title}</h2>
-            <p className="text-14 leading-snug text-body lg:text-16">
+            <p className="text-14 leading-snug text-body">
               {CONSENT_TEXT.body}{" "}
               <Link
                 href="/privacidade"
@@ -128,7 +130,7 @@ export function ConsentBanner() {
               </Link>
             </p>
           </div>
-          <div ref={actions} className="grid shrink-0 grid-cols-2 gap-2 lg:flex">
+          <div ref={actions} className="grid grid-cols-2 gap-2 lg:grid-cols-1">
             <Button
               variant="outline"
               size="md"
@@ -148,7 +150,7 @@ export function ConsentBanner() {
             </Button>
             <Button
               size="md"
-              className="col-span-2"
+              className="col-span-2 lg:col-span-1"
               onClick={() => decideAndClose({ metrics: true, personalization: true })}
             >
               {CONSENT_TEXT.acceptAll}

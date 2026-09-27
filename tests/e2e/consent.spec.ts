@@ -176,6 +176,26 @@ test("banner não é modal, não cobre o h1 em 360 px e respeita a CSP", async (
   expect(errors).toEqual([]);
 });
 
+test("desktop: o cartão do banner não encosta no h1", async ({ page }) => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1024, 768],
+  ]) {
+    await page.setViewportSize({ width: width!, height: height! });
+    for (const path of ["/", ARTICLE]) {
+      await page.goto(path);
+      const h1 = page.getByRole("heading", { level: 1 });
+      await expect(h1).toBeVisible();
+      await expect(banner(page)).toBeVisible();
+      const h = (await h1.boundingBox())!;
+      const b = (await banner(page).boundingBox())!;
+      const overlap =
+        b.x < h.x + h.width && h.x < b.x + b.width && b.y < h.y + h.height && h.y < b.y + b.height;
+      expect(overlap, `banner sobre o h1 em ${path} (${width}px)`).toBe(false);
+    }
+  }
+});
+
 test("Escolher: painel com as categorias, Esc volta e salvar grava a escolha", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Escolher" }).click();
