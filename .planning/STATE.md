@@ -5,10 +5,10 @@
 
 ## Fase e tarefa
 
-- **Fase ativa:** P0 Fundação
-- **Tarefa ativa:** P0-T10
-- **Próxima tarefa:** P0-T10 CI, GitHub e Vercel
-- **Progresso:** 10/70 tarefas · 0/7 fases
+- **Fase ativa:** P1 Portal público ∥ P3 Pipeline e busca
+- **Tarefa ativa:** P1-T1 e P3-T1
+- **Próxima tarefa:** P1-T1 Queries de leitura · P3-T1 Extensões e filas
+- **Progresso:** 11/70 tarefas · 1/7 fases
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -29,7 +29,8 @@
 
 ## Próxima ação imediata
 
-1. Executar P0-T9 e T9b (UI). Em paralelo, T10: Vercel + `citynews-prod` (aplicar migrations 0001/0002, `seed_sources_real.sql`). Pilha local: `pnpm db:start && pnpm db:reset`; senha dos usuários de seed `citynews-local-123`.
+1. P1 no diretório principal e P3 em worktree `../cn-p3` (branch local `p3-pipeline`, `.local/offset` = 100), depois merge de P3 no branch de trabalho.
+2. P3 deve tratar "nenhuma regra ativa" como `forceReview`.
 
 ## Últimos checkpoints
 
@@ -39,6 +40,7 @@
 | 2026-09-27 | P0-T1..T6 | 93f0c13 | verify verde, 56 testes |
 | 2026-09-27 | P0-T7..T8 | b076479 | verify verde, 178 testes (7 integração) |
 | 2026-09-27 | P0-T9..T9b | 9559129 | verify verde, 227 testes; e2e 24/24; axe 0 serious |
+| 2026-09-27 | P0-GATE | f734ecb | 356 testes, e2e 24/24, CI verde; tag p0-done |
 
 ## Degradados abertos
 

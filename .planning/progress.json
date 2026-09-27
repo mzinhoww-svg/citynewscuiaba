@@ -22,13 +22,13 @@
       "name": "Fundação",
       "plan": "docs/superpowers/plans/2026-09-27-p0-fundacao.md",
       "dependsOn": [],
-      "status": "in_progress",
+      "status": "done",
       "gate": {
-        "verify": false,
+        "verify": true,
         "preview": false,
-        "agentBrowser": false,
-        "impeccable": false,
-        "report": false,
+        "agentBrowser": true,
+        "impeccable": true,
+        "report": true,
         "merged": false
       },
       "tasks": [
@@ -131,7 +131,8 @@
           "commit": "82da9e4",
           "notes": "Parte de repositório; deploy remoto aguarda B-009"
         }
-      ]
+      ],
+      "gateNotes": "preview bloqueado (B-009); agent-browser substituído por Playwright; impeccable ausente, auditoria por revisão + axe (A-026); merge fica com o dono (A-016)"
     },
     {
       "id": "P1",
