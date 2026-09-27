@@ -97,6 +97,56 @@ export function eventJsonLd(e: EventLdInput, base: string = siteUrl()): Ld {
   };
 }
 
+export interface Crumb {
+  name: string;
+  path: string;
+}
+
+export function breadcrumbJsonLd(crumbs: readonly Crumb[], base: string = siteUrl()): Ld {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((c, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: c.name,
+      item: `${base}${c.path}`,
+    })),
+  };
+}
+
+/** Veículo (home): políticas públicas ligadas às páginas institucionais. */
+export function organizationJsonLd(base: string = siteUrl()): Ld {
+  return {
+    "@context": "https://schema.org",
+    "@type": "NewsMediaOrganization",
+    name: SITE.name,
+    url: `${base}/`,
+    logo: { "@type": "ImageObject", url: `${base}/brand/citynews-horizontal.png` },
+    areaServed: { "@type": "City", name: "Cuiabá" },
+    publishingPrinciples: `${base}/principios-editoriais`,
+    correctionsPolicy: `${base}/correcoes`,
+    ethicsPolicy: `${base}/principios-editoriais`,
+    actionableFeedbackPolicy: `${base}/direito-de-resposta`,
+  };
+}
+
+/** Site com busca interna (SearchAction para /busca?q=). */
+export function websiteJsonLd(base: string = siteUrl()): Ld {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE.name,
+    url: `${base}/`,
+    inLanguage: "pt-BR",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: { "@type": "EntryPoint", urlTemplate: `${base}/busca?q={search_term_string}` },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
 /** JSON dentro de <script>: escapa "<" para não fechar a tag. */
 export function ldScript(data: Ld): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");

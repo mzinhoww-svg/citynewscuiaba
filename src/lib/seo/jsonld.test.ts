@@ -1,4 +1,10 @@
-import { articleJsonLd, eventJsonLd } from "./jsonld";
+import {
+  articleJsonLd,
+  breadcrumbJsonLd,
+  eventJsonLd,
+  organizationJsonLd,
+  websiteJsonLd,
+} from "./jsonld";
 
 const article = {
   slug: "plano",
@@ -45,4 +51,43 @@ it("Event no fuso de Cuiabá com local", () => {
   expect(ld.endDate).toBe("2026-10-03T23:30:00-04:00");
   expect(ld.location).toMatchObject({ "@type": "Place", name: "Orla do Porto" });
   expect(ld.isAccessibleForFree).toBe(true);
+});
+
+it("BreadcrumbList com posições e URLs absolutas", () => {
+  const ld = breadcrumbJsonLd(
+    [
+      { name: "Início", path: "/" },
+      { name: "Cidade", path: "/cidade" },
+      { name: "Plano", path: "/materia/plano" },
+    ],
+    "https://citynews.example",
+  );
+  expect(ld["@type"]).toBe("BreadcrumbList");
+  expect(ld.itemListElement).toEqual([
+    { "@type": "ListItem", position: 1, name: "Início", item: "https://citynews.example/" },
+    { "@type": "ListItem", position: 2, name: "Cidade", item: "https://citynews.example/cidade" },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: "Plano",
+      item: "https://citynews.example/materia/plano",
+    },
+  ]);
+});
+
+it("Organization e WebSite com SearchAction para a busca", () => {
+  const org = organizationJsonLd("https://citynews.example");
+  expect(org["@type"]).toBe("NewsMediaOrganization");
+  expect(org.name).toBe("CityNews Cuiabá");
+  expect(org.correctionsPolicy).toBe("https://citynews.example/correcoes");
+  const site = websiteJsonLd("https://citynews.example");
+  expect(site["@type"]).toBe("WebSite");
+  expect(site.potentialAction).toEqual({
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: "https://citynews.example/busca?q={search_term_string}",
+    },
+    "query-input": "required name=search_term_string",
+  });
 });

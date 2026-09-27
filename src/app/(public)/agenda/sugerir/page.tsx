@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { EventSuggestionForm } from "@/components";
 import { AGENDA, SUGGEST } from "@/content/pt-BR/portal";
 import { suggestEventAction } from "./actions";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: SUGGEST.metaTitle,
+  documentTitle: SUGGEST.metaTitle,
   description: SUGGEST.intro,
-  alternates: { canonical: "/agenda/sugerir" },
-};
+  path: "/agenda/sugerir",
+});
 
 /** Sugerir evento (P11): página estática; o envio é uma Server Action. */
 export default function SuggestEventRoute() {

@@ -11,6 +11,9 @@ import type { ArticleSummary, CollectionView, HomeData, QueryError, SourceView }
 /** Blocos de editoria da home (docs/screens.md P01). */
 export const HOME_SECTION_BLOCKS = ["politica", "economia", "cultura"] as const;
 
+/** Home: 60 s (P1 Global Constraints), no cache de dados com a tag `home`. */
+export const HOME_REVALIDATE = 60;
+
 const NOW_COUNT = 6;
 const MOST_READ_COUNT = 5;
 
@@ -73,46 +76,52 @@ export async function pickMostRead(
 }
 
 /** Tudo o que a home precisa, em uma leitura (P01). */
-export async function getHomeData(now: Date = new Date()): Promise<Result<HomeData, QueryError>> {
-  return readPublic(async (db) => {
-    const [rows, topics, collections, events, sources, aggregated] = await Promise.all([
-      fetchRecentArticles(db, 60),
-      fetchActiveTopics(db, 3),
-      fetchCollections(db, 4),
-      fetchEvents(db, { limit: 3 }, now),
-      fetchFeaturedSources(db, 8),
-      fetchAggregated(db, { limit: 4, onePerSource: true }),
-    ]);
-    const articles = await summarize(db, rows);
-    const editorial = articles.filter((a) => !a.sponsored);
+export async function getHomeData(
+  now: Date = new Date(),
+  opts: { cache?: boolean } = {},
+): Promise<Result<HomeData, QueryError>> {
+  return readPublic(
+    async (db) => {
+      const [rows, topics, collections, events, sources, aggregated] = await Promise.all([
+        fetchRecentArticles(db, 60),
+        fetchActiveTopics(db, 3),
+        fetchCollections(db, 4),
+        fetchEvents(db, { limit: 3 }, now),
+        fetchFeaturedSources(db, 8),
+        fetchAggregated(db, { limit: 4, onePerSource: true }),
+      ]);
+      const articles = await summarize(db, rows);
+      const editorial = articles.filter((a) => !a.sponsored);
 
-    // Urgente só se publicado por humano (docs/screens.md P01).
-    const urgent = editorial.find((a) => a.urgent && a.publishMode === "human") ?? null;
-    const lead = editorial.find((a) => a.id !== urgent?.id) ?? null;
-    const shown = new Set<string>([urgent?.id, lead?.id].filter((v): v is string => !!v));
-    const nowList = editorial.filter((a) => !shown.has(a.id)).slice(0, NOW_COUNT);
-    nowList.forEach((a) => shown.add(a.id));
+      // Urgente só se publicado por humano (docs/screens.md P01).
+      const urgent = editorial.find((a) => a.urgent && a.publishMode === "human") ?? null;
+      const lead = editorial.find((a) => a.id !== urgent?.id) ?? null;
+      const shown = new Set<string>([urgent?.id, lead?.id].filter((v): v is string => !!v));
+      const nowList = editorial.filter((a) => !shown.has(a.id)).slice(0, NOW_COUNT);
+      nowList.forEach((a) => shown.add(a.id));
 
-    const sectionBlocks = HOME_SECTION_BLOCKS.map((slug) => {
-      const inSection = editorial.filter((a) => a.section.slug === slug);
-      const section = inSection[0]?.section ?? { slug, name: slug };
-      const fresh = inSection.filter((a) => !shown.has(a.id));
-      return { section, articles: (fresh.length ? fresh : inSection).slice(0, 3) };
-    }).filter((b) => b.articles.length > 0);
+      const sectionBlocks = HOME_SECTION_BLOCKS.map((slug) => {
+        const inSection = editorial.filter((a) => a.section.slug === slug);
+        const section = inSection[0]?.section ?? { slug, name: slug };
+        const fresh = inSection.filter((a) => !shown.has(a.id));
+        return { section, articles: (fresh.length ? fresh : inSection).slice(0, 3) };
+      }).filter((b) => b.articles.length > 0);
 
-    return {
-      generatedAt: now.toISOString(),
-      urgent,
-      lead,
-      now: nowList,
-      topics,
-      collections,
-      events,
-      sectionBlocks,
-      mostRead: await pickMostRead(db, editorial, shown),
-      sponsored: articles.find((a) => a.sponsored) ?? null,
-      sources,
-      aggregated,
-    };
-  });
+      return {
+        generatedAt: now.toISOString(),
+        urgent,
+        lead,
+        now: nowList,
+        topics,
+        collections,
+        events,
+        sectionBlocks,
+        mostRead: await pickMostRead(db, editorial, shown),
+        sponsored: articles.find((a) => a.sponsored) ?? null,
+        sources,
+        aggregated,
+      };
+    },
+    opts.cache ? { tags: ["home"], revalidate: HOME_REVALIDATE } : undefined,
+  );
 }

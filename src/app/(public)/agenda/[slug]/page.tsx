@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import type { ReactNode } from "react";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, EventDateBadge, Icon, ShareSheet, type IconName } from "@/components";
-import { AGENDA } from "@/content/pt-BR/portal";
+import {
+  Button,
+  EmptyState,
+  EventDateBadge,
+  Icon,
+  JsonLd,
+  ShareSheet,
+  type IconName,
+} from "@/components";
+import { AGENDA, ARTICLE, HOME } from "@/content/pt-BR/portal";
 import { getEvent, listEvents, type EventView } from "@/lib/db/queries";
 import {
   formatDateTime,
@@ -14,14 +23,10 @@ import {
   localDateKey,
 } from "@/lib/format/date";
 import { googleCalendarUrl } from "@/lib/ics";
-import { eventJsonLd, ldScript, siteUrl } from "@/lib/seo/jsonld";
+import { breadcrumbJsonLd, eventJsonLd, ldScript, siteUrl } from "@/lib/seo/jsonld";
 
-/** Evento (P10): ISR de 5 min. */
+/** Evento (P10): dados em cache por 5 min (HTML por requisição por causa do nonce da CSP, A-038). */
 export const revalidate = 300;
-
-export function generateStaticParams(): { slug: string }[] {
-  return [];
-}
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -33,11 +38,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!SLUG.test(slug)) return {};
   const r = await getEvent(slug);
   if (!r.ok || !r.value) return {};
-  return {
-    title: `${r.value.title} · ${AGENDA.metaTitle}`,
+  return pageMetadata({
+    title: r.value.title,
+    documentTitle: `${r.value.title} · ${AGENDA.metaTitle}`,
     description: r.value.description ?? undefined,
-    alternates: { canonical: r.value.href },
-  };
+    path: r.value.href,
+  });
 }
 
 function when(e: EventView): string {
@@ -75,6 +81,13 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: ldScript(eventJsonLd({ ...e })) }}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: ARTICLE.home, path: "/" },
+          { name: HOME.agenda, path: "/agenda" },
+          { name: e.title, path: e.href },
+        ])}
       />
       <div className={`${CONTAINER} flex flex-col gap-10 py-8 lg:py-10`}>
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14">

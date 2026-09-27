@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -50,13 +51,14 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   const filters = parseSectionFilters(await searchParams);
   const name = navName(editoria) ?? editoria;
   const filtered = serializeSectionFilters({ ...filters, page: 1 }) !== "";
-  return {
-    title: SECTION_PAGE.metaTitle(name),
+  return pageMetadata({
+    title: name,
+    documentTitle: SECTION_PAGE.metaTitle(name),
     description: SECTION_DESCRIPTION[editoria] ?? SECTION_PAGE.metaDescription(name),
-    alternates: { canonical: `/${editoria}` },
+    path: `/${editoria}`,
     // Combinações de filtro não entram no índice: só a editoria "pura" é canônica.
-    robots: filtered || filters.page > 1 ? { index: false, follow: true } : undefined,
-  };
+    noindex: filtered || filters.page > 1,
+  });
 }
 
 function Header({ data, filters }: { data: SectionPage; filters: SectionFilters }) {

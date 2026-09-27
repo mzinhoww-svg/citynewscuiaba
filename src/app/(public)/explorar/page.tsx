@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import {
   ArticleCard,
@@ -16,11 +17,12 @@ import { getExploreData, type ExploreData } from "@/lib/db/queries";
 /** Hub de descoberta (P07): sem personalização obrigatória. Dados em cache por 300 s. */
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: EXPLORE.metaTitle,
+export const metadata: Metadata = pageMetadata({
+  title: EXPLORE.title,
+  documentTitle: EXPLORE.metaTitle,
   description: EXPLORE.metaDescription,
-  alternates: { canonical: "/explorar" },
-};
+  path: "/explorar",
+});
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 

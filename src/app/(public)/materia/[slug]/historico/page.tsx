@@ -12,10 +12,6 @@ import { formatDateTime } from "@/lib/format/date";
 /** Mesmo ciclo da matéria: 300 s + tag `article:<id>`. */
 export const revalidate = 300;
 
-export function generateStaticParams(): { slug: string }[] {
-  return [];
-}
-
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import {
@@ -18,12 +19,38 @@ import {
 import { HOME, HOME_SERVICES, NEWSLETTER } from "@/content/pt-BR/portal";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
 import { formatHour, formatLongDate } from "@/lib/format/date";
+import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
+import { pageMetadata } from "@/lib/seo/metadata";
+import { SITE } from "@/content/pt-BR/site";
 import { subscribeNewsletterAction } from "./actions";
 
-/** ISR da home: 60 s (P1 Global Constraints; architecture §8). */
+/** Home: dados em cache por 60 s com a tag `home` (P1 Global Constraints; HTML por requisição por causa do nonce da CSP, A-038). */
 export const revalidate = 60;
 
+export const metadata: Metadata = pageMetadata({
+  title: SITE.name,
+  documentTitle: SITE.name,
+  description: SITE.description,
+  path: "/",
+});
+
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
+
+/** Organização e site com busca (architecture §8), só na home. */
+function SiteJsonLd() {
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldScript(organizationJsonLd()) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: ldScript(websiteJsonLd()) }}
+      />
+    </>
+  );
+}
 
 function DateStrip({ generatedAt }: { generatedAt?: string }) {
   const iso = generatedAt ?? new Date().toISOString();
@@ -278,12 +305,24 @@ function Home({ data }: { data: HomeData }) {
 }
 
 export default async function HomePage() {
-  const result = await getHomeData();
-  if (result.ok) return <Home data={result.value} />;
-  // Banco fora em uma revalidação: lançar mantém no ar a última versão boa do cache ISR
+  const result = await getHomeData(new Date(), { cache: true });
+  if (result.ok) {
+    return (
+      <>
+        <SiteJsonLd />
+        <Home data={result.value} />
+      </>
+    );
+  }
+  // Banco fora sem nada no cache de dados: lançar leva à fronteira de erro (P25, 500)
   // (docs/screens.md P01, "Atualizado às hh:mm"). No build e sem variáveis, estado amigável.
   if (result.error.kind === "unavailable" && process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD) {
     throw new Error(`Home indisponível: ${result.error.message}`);
   }
-  return <HomeFallback title={HOME.errorTitle} text={HOME.errorText} />;
+  return (
+    <>
+      <SiteJsonLd />
+      <HomeFallback title={HOME.errorTitle} text={HOME.errorText} />
+    </>
+  );
 }

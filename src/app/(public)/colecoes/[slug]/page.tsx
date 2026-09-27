@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -8,6 +9,7 @@ import {
   Button,
   EmptyState,
   EventDateBadge,
+  JsonLd,
   ShareSheet,
   TopicSummaryCard,
 } from "@/components";
@@ -15,13 +17,10 @@ import { COLLECTION } from "@/content/pt-BR/explore";
 import { HOME } from "@/content/pt-BR/portal";
 import { getCollectionBySlug, type CollectionDetail, type CollectionEntry } from "@/lib/db/queries";
 import { formatDateTime, formatHour } from "@/lib/format/date";
+import { breadcrumbJsonLd } from "@/lib/seo/jsonld";
 
 /** Coleção (P08): dados em cache por 300 s com a tag `collection:<slug>`. */
 export const revalidate = 300;
-
-export function generateStaticParams(): { slug: string }[] {
-  return [];
-}
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -37,12 +36,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const r = await load(slug);
   if (!r?.ok || !r.value) return {};
-  return {
-    title: COLLECTION.metaTitle(r.value.title),
+  return pageMetadata({
+    title: r.value.title,
+    documentTitle: COLLECTION.metaTitle(r.value.title),
     description: r.value.description,
-    alternates: { canonical: r.value.href },
-    openGraph: { type: "website", title: r.value.title, description: r.value.description },
-  };
+    path: r.value.href,
+  });
 }
 
 function Entry({ entry }: { entry: CollectionEntry }) {
@@ -78,6 +77,13 @@ function Entry({ entry }: { entry: CollectionEntry }) {
 function Collection({ c }: { c: CollectionDetail }) {
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-6 lg:py-10`}>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: COLLECTION.home, path: "/" },
+          { name: COLLECTION.explore, path: "/explorar" },
+          { name: c.title, path: c.href },
+        ])}
+      />
       <nav aria-label={COLLECTION.breadcrumb}>
         <ol className="flex flex-wrap items-center gap-x-2 type-meta text-meta">
           <li>

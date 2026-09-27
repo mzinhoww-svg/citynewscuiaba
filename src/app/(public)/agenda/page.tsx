@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -37,11 +38,12 @@ import {
 /** Agenda (P09): filtros e visão na URL, renderizada por requisição. */
 export const revalidate = 60;
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: AGENDA.metaTitle,
+  documentTitle: AGENDA.metaTitle,
   description: AGENDA.metaDescription,
-  alternates: { canonical: "/agenda" },
-};
+  path: "/agenda",
+});
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 

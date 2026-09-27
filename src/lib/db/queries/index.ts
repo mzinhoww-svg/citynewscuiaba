@@ -14,6 +14,7 @@ export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
 export { getCollectionBySlug, getExploreData } from "./explore";
 export { listCorrections } from "./corrections";
+export { listArticleEntries, listNewsEntries, listPageEntries, listTopicEntries } from "./seo";
 export {
   countSectionSince,
   getSectionRef,

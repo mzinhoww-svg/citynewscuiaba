@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { Button, DocPage, EmptyState } from "@/components";
@@ -9,11 +10,12 @@ import { formatDateTime } from "@/lib/format/date";
 /** Correções públicas (P24): dados em cache por 300 s (tag `corrections`). */
 export const revalidate = 300;
 
-export const metadata: Metadata = {
-  title: C.metaTitle,
+export const metadata: Metadata = pageMetadata({
+  title: C.title,
+  documentTitle: C.metaTitle,
   description: C.description,
-  alternates: { canonical: C.path },
-};
+  path: C.path,
+});
 
 async function List() {
   const r = await listCorrections();

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,6 +12,7 @@ import {
   CorrectionNote,
   EmptyState,
   GoneState,
+  JsonLd,
   MadeHow,
   OriginLabel,
   Photo,
@@ -28,16 +30,11 @@ import { SITE } from "@/content/pt-BR/site";
 import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
 import { formatDateTime } from "@/lib/format/date";
-import { articleJsonLd, ldScript } from "@/lib/seo/jsonld";
+import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
 import { reportProblemAction } from "./actions";
 
-/** ISR da matéria: 300 s; as leituras levam a tag `article:<id>` (architecture §8). */
+/** Matéria: leituras em cache por 300 s com a tag `article:<id>` (architecture §8; A-038). */
 export const revalidate = 300;
-
-/** Nenhuma matéria no build: cada uma é gerada no primeiro acesso e fica no cache (ISR). */
-export function generateStaticParams(): { slug: string }[] {
-  return [];
-}
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -57,20 +54,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   if (!r?.ok || !r.value || "gone" in r.value) return { title: SITE.name };
   const a = r.value;
-  return {
-    title: `${a.title} · ${SITE.name}`,
+  return pageMetadata({
+    title: a.title,
     description: a.dek,
-    alternates: { canonical: a.href },
-    openGraph: {
-      type: "article",
-      title: a.title,
-      description: a.dek,
-      publishedTime: a.publishedAt,
-      modifiedTime: a.updatedAt,
-      section: a.section.name,
-      ...(a.image ? { images: [a.image.src] } : {}),
-    },
-  };
+    path: a.href,
+    type: "article",
+    publishedTime: a.publishedAt,
+    modifiedTime: a.updatedAt,
+    section: a.section.name,
+    images: a.image ? [a.image.src] : undefined,
+  });
 }
 
 /** Primeira frase do lide em negrito (DESIGN.md §4). */
@@ -143,6 +136,13 @@ function Article({ a }: { a: ArticleView }) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ldScript(ld) }} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: ARTICLE.home, path: "/" },
+          { name: a.section.name, path: `/${a.section.slug}` },
+          { name: a.title, path: a.href },
+        ])}
+      />
       <ReadingProgress targetId="materia" />
       <UpdatedWhileReading
         endpoint={`/api/materia/${a.slug}/atualizacao`}

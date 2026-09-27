@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  JsonLd,
   AggregatedCard,
   ArticleCard,
   Button,
@@ -20,13 +22,10 @@ import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { ARTICLE, HOME, SECTION_PAGE, TOPIC } from "@/content/pt-BR/portal";
 import { getTopicBySlug, type TopicDetail } from "@/lib/db/queries";
 import { formatDayMonth, formatWhen } from "@/lib/format/date";
+import { breadcrumbJsonLd } from "@/lib/seo/jsonld";
 
-/** ISR do assunto: 120 s (P1 Global Constraints). */
+/** Assunto: leituras em cache por 120 s (P1 Global Constraints; A-038). */
 export const revalidate = 120;
-
-export function generateStaticParams(): { slug: string }[] {
-  return [];
-}
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -38,11 +37,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!SLUG.test(slug)) return {};
   const r = await getTopicBySlug(slug);
   if (!r.ok || !r.value) return {};
-  return {
-    title: TOPIC.metaTitle(r.value.title),
+  return pageMetadata({
+    title: r.value.title,
+    documentTitle: TOPIC.metaTitle(r.value.title),
     description: r.value.summary ?? undefined,
-    alternates: { canonical: r.value.href },
-  };
+    path: r.value.href,
+  });
 }
 
 function Topic({ t }: { t: TopicDetail }) {
@@ -51,6 +51,13 @@ function Topic({ t }: { t: TopicDetail }) {
   );
   return (
     <div className={`${CONTAINER} flex flex-col gap-10 py-8 lg:py-10`}>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: ARTICLE.home, path: "/" },
+          { name: TOPIC.listTitle, path: "/assuntos" },
+          { name: t.title, path: t.href },
+        ])}
+      />
       <header className="flex max-w-read flex-col gap-4">
         <p className="type-eyebrow text-eyebrow">{TOPIC.eyebrow}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">

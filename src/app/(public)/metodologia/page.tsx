@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import { DocPage, OriginLabel } from "@/components";
 import { METHOD } from "@/content/pt-BR/institutional";
 import { LABEL_EXPLAIN, LABEL_TEXT } from "@/content/pt-BR/labels";
@@ -6,11 +7,12 @@ import type { LabelKind } from "@/lib/labels";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
 
 /** Metodologia (P24): confiança, rótulos e regras de autonomia públicas, a partir do código. */
-export const metadata: Metadata = {
-  title: METHOD.metaTitle,
+export const metadata: Metadata = pageMetadata({
+  title: METHOD.title,
+  documentTitle: METHOD.metaTitle,
   description: METHOD.description,
-  alternates: { canonical: METHOD.path },
-};
+  path: METHOD.path,
+});
 
 const pct = (n: number | null) => (n === null ? METHOD.none : n.toFixed(2).replace(".", ","));
 

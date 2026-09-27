@@ -70,6 +70,7 @@ export {
 export { ErrorState, type ErrorStateProps } from "./editorial/ErrorState";
 export { RightOfReplyForm, type RightOfReplyFormProps } from "./editorial/RightOfReplyForm";
 export { DocPage, type DocPageProps } from "./editorial/DocPage";
+export { JsonLd, type JsonLdProps } from "./editorial/JsonLd";
 export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";

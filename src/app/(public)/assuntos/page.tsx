@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/seo/metadata";
 import Form from "next/form";
 import { Suspense } from "react";
 import { Button, Chip, EmptyState, Select, Skeleton, TopicSummaryCard } from "@/components";
@@ -17,11 +18,12 @@ import type { TopicState } from "@/lib/db/queries/types";
 /** Lista de assuntos (P06). Filtros na URL: renderizada por requisição. */
 export const revalidate = 120;
 
-export const metadata: Metadata = {
-  title: TOPIC.listMeta,
+export const metadata: Metadata = pageMetadata({
+  title: TOPIC.listTitle,
+  documentTitle: TOPIC.listMeta,
   description: TOPIC.listIntro,
-  alternates: { canonical: "/assuntos" },
-};
+  path: "/assuntos",
+});
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const STATES: TopicState[] = ["em_apuracao", "confirmado", "corrigido", "encerrado"];
