@@ -10,9 +10,24 @@ export default defineConfig({
     },
   },
   test: {
-    environment: "jsdom",
     globals: true,
-    include: ["src/**/*.test.{ts,tsx}", "tests/integration/**/*.test.ts"],
     setupFiles: ["./vitest.setup.ts"],
+    projects: [
+      {
+        extends: true,
+        test: { name: "unit", environment: "jsdom", include: ["src/**/*.test.{ts,tsx}"] },
+      },
+      {
+        // Integração compartilha um banco: arquivos em série para contagens do seed não
+        // enxergarem linhas temporárias de outras suítes.
+        extends: true,
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["tests/integration/**/*.test.ts"],
+          fileParallelism: false,
+        },
+      },
+    ],
   },
 });

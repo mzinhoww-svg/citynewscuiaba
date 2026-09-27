@@ -1,0 +1,15 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Agência MT (fixture fictícia do ciclo de ponta a ponta, spec §9)",
+  "home_page_url": "https://agenciamt.example",
+  "items": [
+    {
+      "id": "amt-ciclovia-{{SLUG}}",
+      "url": "https://agenciamt.example/noticias/ciclovia-mae-bonifacia-cpa-{{SLUG}}",
+      "title": "Prefeitura entrega ciclovia de 6 km entre o Parque Mãe Bonifácia e o CPA {{TAG}}",
+      "summary": "A nova pista tem iluminação e sinalização.",
+      "date_published": "{{ISO}}",
+      "authors": [{ "name": "Agência MT" }]
+    }
+  ]
+}

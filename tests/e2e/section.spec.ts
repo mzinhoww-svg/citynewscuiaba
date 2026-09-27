@@ -34,6 +34,7 @@ test("lista com rótulos, subeditorias e mais lidas", async ({ page }) => {
   await expect(page.getByText(/matérias? hoje|nenhuma matéria hoje/)).toBeVisible();
   const list = page.getByRole("region", { name: "Matérias de Cidade" });
   const cards = list.locator("article");
+  await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThanOrEqual(5);
   for (const card of await cards.all()) {
     const n = await card.getByTestId("origin-label").count();

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9): sitemap de notícias do MT Agora no ciclo de ponta a ponta. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+  <url>
+    <loc>https://mtagora.example/servicos/mutirao-300-vagas-{{SLUG}}</loc>
+    <news:news>
+      <news:publication><news:name>MT Agora</news:name><news:language>pt</news:language></news:publication>
+      <news:publication_date>{{ISO}}</news:publication_date>
+      <news:title>Mutirão de emprego oferece 300 vagas na Praça Maria Taquara nesta sexta {{TAG}}</news:title>
+    </news:news>
+  </url>
+</urlset>

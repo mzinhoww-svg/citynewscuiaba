@@ -6,6 +6,16 @@ export const RULE_RATIONALE = {
     `Entrada inválida (${fields.join(", ")}): número ausente, negativo ou fora da faixa. Vai para revisão.`,
   breaking: () => "Notícia urgente (breaking) sempre passa por revisão humana.",
   sensitive: (topics: string[]) => `Tema sensível (${topics.join(", ")}) exige revisão humana.`,
+  sensitiveFlag: () => "Tema sensível apontado na classificação exige revisão humana.",
+  rulesUnavailable: (why: string) =>
+    `Regras de autonomia indisponíveis (${why}): revisão obrigatória, falha fechada.`,
+  aiUnavailable: (why: string) =>
+    `IA indisponível na redação (${why}): rascunho montado sem IA, revisão humana obrigatória.`,
+  neverAuto: () =>
+    "Notícia urgente, tema sensível, Segurança ou rascunho sem IA nunca publicam sozinhos: vai para revisão.",
+  staleDecision: () => "Decisão de publicação desatualizada: a matéria mudou depois da regra.",
+  autoPublishOff: () =>
+    "Publicação automática desligada (feature_flags.auto_publish ou modo leitura): vai para revisão.",
   forceReview: (version: number) =>
     `Revisão obrigatória ligada nas regras v${version}: nada é publicado sozinho.`,
   unknownCategory: (category: string) =>

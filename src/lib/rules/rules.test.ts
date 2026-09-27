@@ -176,3 +176,13 @@ describe("temas sensíveis normalizados (A-021)", () => {
       ]),
     ));
 });
+
+describe("item marcado sensível pelo classify (P3-T8)", () => {
+  it("sensitive=true vai para revisão mesmo sem etiqueta da lista", () => {
+    const r = d({ ...ok, sensitive: true }, open);
+    expect(r).toMatchObject({ route: "review", rule: "sensitive" });
+    expect(r.rationale).toMatch(/sensível/);
+  });
+  it("breaking continua vencendo", () =>
+    expect(d({ ...ok, sensitive: true, breaking: true }, open).rule).toBe("breaking"));
+});

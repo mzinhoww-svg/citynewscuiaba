@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9) do ciclo de ponta a ponta: assunto de Serviços. -->
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Folha do Cerrado</title>
+    <link>https://folhadocerrado.example</link>
+    <description>Fixture de teste</description>
+    <item>
+      <title>Mutirão de emprego abre 300 vagas na Praça Maria Taquara nesta sexta {{TAG}}</title>
+      <link>https://folhadocerrado.example/servicos/mutirao-emprego-vagas-{{SLUG}}</link>
+      <pubDate>{{RFC822}}</pubDate>
+      <dc:creator>Redação Folha do Cerrado</dc:creator>
+      <description>Atendimento das 8h às 14h.</description>
+    </item>
+  </channel>
+</rss>

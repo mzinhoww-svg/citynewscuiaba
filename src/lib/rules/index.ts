@@ -12,6 +12,8 @@ export interface Candidate {
   imageApproved: boolean;
   confidenceScore: number;
   breaking: boolean;
+  /** Algum item marcado sensível pelo agente `classify` (crime, tragédia, saúde individual…). */
+  sensitive?: boolean;
 }
 
 export type Route = "publish" | "publish_notify" | "review" | "hold";
@@ -96,6 +98,7 @@ export function decidePublication(c: Candidate, rules: RuleSet): Decision {
     rules.sensitiveTopics.some((term) => sensitiveMatch(t, term)),
   );
   if (hits.length > 0) return review("sensitive", T.sensitive(hits));
+  if (c.sensitive) return review("sensitive", T.sensitiveFlag());
 
   if (rules.forceReview) return review("force_review", T.forceReview(rules.version));
 

@@ -22,6 +22,7 @@ for (const path of PAGES) {
       const card = cards.nth(i);
       await expect(card.getByText(/^AGREGADO/).first()).toBeVisible();
       const links = card.getByRole("link");
+      await expect(links.first()).toBeVisible();
       expect(await links.count()).toBeGreaterThan(0);
       for (const link of await links.all()) {
         const href = (await link.getAttribute("href")) ?? "";

@@ -36,6 +36,7 @@ test("calendário mostra a contagem do dia e leva à lista daquele dia", async (
 test("lista agrupa por dia e todo evento gratuito diz isso", async ({ page }) => {
   await page.goto("/agenda?gratuito=1");
   const events = page.locator("main article");
+  await expect(events.first()).toBeVisible();
   expect(await events.count()).toBeGreaterThan(0);
   for (const e of await events.all()) await expect(e).toContainText("Gratuito");
   await expect(page.getByRole("heading", { level: 2, name: /de outubro/ }).first()).toBeVisible();

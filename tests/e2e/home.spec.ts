@@ -59,6 +59,7 @@ test("home tem os blocos de P01 na ordem", async ({ page }) => {
 test("todo card mostra de 1 a 4 rótulos de origem", async ({ page }) => {
   await page.goto("/");
   const cards = page.locator("main article:has([data-testid='origin-label'])");
+  await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(10);
   for (const card of await cards.all()) {
     const n = await card.getByTestId("origin-label").count();
@@ -69,10 +70,11 @@ test("todo card mostra de 1 a 4 rótulos de origem", async ({ page }) => {
 
 test("agregados abrem o original em nova aba", async ({ page }) => {
   await page.goto("/");
-  const links = page
-    .getByRole("region", { name: "Veja também em outros portais" })
-    .locator("article a[target]");
-  expect(await links.count()).toBe(4);
+  const region = page.getByRole("region", { name: "Veja também em outros portais" });
+  // A home é transmitida em streaming: espera o bloco existir antes de contar.
+  await expect(region).toBeVisible();
+  const links = region.locator("article a[target]");
+  await expect(links).toHaveCount(4);
   for (const link of await links.all()) {
     await expect(link).toHaveAttribute("target", "_blank");
     await expect(link).toHaveAttribute("rel", /noopener/);

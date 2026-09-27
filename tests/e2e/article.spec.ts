@@ -29,6 +29,7 @@ test("matéria mostra resumo por IA, fontes e JSON-LD", async ({ page }) => {
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
   const sources = page.getByRole("region", { name: "Fontes" }).getByRole("link");
+  await expect(sources.first()).toBeVisible();
   expect(await sources.count()).toBeGreaterThanOrEqual(3);
   for (const link of await sources.all()) {
     await expect(link).toHaveAttribute("target", "_blank");

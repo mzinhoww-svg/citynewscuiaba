@@ -363,6 +363,7 @@ export type Database = {
       articles: {
         Row: {
           agent_id: string | null;
+          ai_fallback: boolean;
           ai_summary: string[] | null;
           ai_summary_reviewed_by: string | null;
           author_id: string | null;
@@ -377,6 +378,7 @@ export type Database = {
           neighborhoods: string[];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
+          review_reason: string | null;
           rules_version: number | null;
           scheduled_for: string | null;
           section_slug: string;
@@ -391,6 +393,7 @@ export type Database = {
         };
         Insert: {
           agent_id?: string | null;
+          ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
           author_id?: string | null;
@@ -405,6 +408,7 @@ export type Database = {
           neighborhoods?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug: string;
@@ -419,6 +423,7 @@ export type Database = {
         };
         Update: {
           agent_id?: string | null;
+          ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
           author_id?: string | null;
@@ -433,6 +438,7 @@ export type Database = {
           neighborhoods?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug?: string;
@@ -503,12 +509,18 @@ export type Database = {
           id: string;
           image_url: string | null;
           locality: string | null;
+          neighborhood: string | null;
           original_title: string;
           published_at: string | null;
+          quarantine_reason: string | null;
+          quarantined_at: string | null;
           raw_id: string | null;
+          relevance: number | null;
           section_slug: string | null;
+          sensitive: boolean | null;
           simhash: number | null;
           source_id: string;
+          tags: string[];
           topic_id: string | null;
         };
         Insert: {
@@ -521,12 +533,18 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           locality?: string | null;
+          neighborhood?: string | null;
           original_title: string;
           published_at?: string | null;
+          quarantine_reason?: string | null;
+          quarantined_at?: string | null;
           raw_id?: string | null;
+          relevance?: number | null;
           section_slug?: string | null;
+          sensitive?: boolean | null;
           simhash?: number | null;
           source_id: string;
+          tags?: string[];
           topic_id?: string | null;
         };
         Update: {
@@ -539,12 +557,18 @@ export type Database = {
           id?: string;
           image_url?: string | null;
           locality?: string | null;
+          neighborhood?: string | null;
           original_title?: string;
           published_at?: string | null;
+          quarantine_reason?: string | null;
+          quarantined_at?: string | null;
           raw_id?: string | null;
+          relevance?: number | null;
           section_slug?: string | null;
+          sensitive?: boolean | null;
           simhash?: number | null;
           source_id?: string;
+          tags?: string[];
           topic_id?: string | null;
         };
         Relationships: [
@@ -981,10 +1005,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      jobs: {
+        Row: {
+          dedupe_key: string;
+          enqueued_at: string;
+          id: number;
+          last_error: string | null;
+          message: NonNullable<Json>;
+          queue: string;
+          read_ct: number;
+          visible_at: string;
+        };
+        Insert: {
+          dedupe_key: string;
+          enqueued_at?: string;
+          id?: number;
+          last_error?: string | null;
+          message: NonNullable<Json>;
+          queue: string;
+          read_ct?: number;
+          visible_at?: string;
+        };
+        Update: {
+          dedupe_key?: string;
+          enqueued_at?: string;
+          id?: number;
+          last_error?: string | null;
+          message?: NonNullable<Json>;
+          queue?: string;
+          read_ct?: number;
+          visible_at?: string;
+        };
+        Relationships: [];
+      };
       media_assets: {
         Row: {
           allowed_use: string;
+          author: string | null;
           captured_at: string;
+          content_type: string | null;
           credit: string | null;
           height: number | null;
           id: string;
@@ -992,15 +1051,25 @@ export type Database = {
           license: string;
           license_until: string | null;
           origin_url: string | null;
+          page_url: string | null;
           phash: number | null;
+          provenance: NonNullable<Json>;
+          removal_reason: string | null;
+          removed_at: string | null;
           risk: string;
+          sha256: string | null;
+          source_id: string | null;
+          source_name: string | null;
           status: string;
           storage_path: string;
+          tags: string[];
           width: number | null;
         };
         Insert: {
           allowed_use: string;
+          author?: string | null;
           captured_at?: string;
+          content_type?: string | null;
           credit?: string | null;
           height?: number | null;
           id?: string;
@@ -1008,15 +1077,25 @@ export type Database = {
           license: string;
           license_until?: string | null;
           origin_url?: string | null;
+          page_url?: string | null;
           phash?: number | null;
+          provenance?: NonNullable<Json>;
+          removal_reason?: string | null;
+          removed_at?: string | null;
           risk?: string;
+          sha256?: string | null;
+          source_id?: string | null;
+          source_name?: string | null;
           status?: string;
           storage_path: string;
+          tags?: string[];
           width?: number | null;
         };
         Update: {
           allowed_use?: string;
+          author?: string | null;
           captured_at?: string;
+          content_type?: string | null;
           credit?: string | null;
           height?: number | null;
           id?: string;
@@ -1024,13 +1103,36 @@ export type Database = {
           license?: string;
           license_until?: string | null;
           origin_url?: string | null;
+          page_url?: string | null;
           phash?: number | null;
+          provenance?: NonNullable<Json>;
+          removal_reason?: string | null;
+          removed_at?: string | null;
           risk?: string;
+          sha256?: string | null;
+          source_id?: string | null;
+          source_name?: string | null;
           status?: string;
           storage_path?: string;
+          tags?: string[];
           width?: number | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "media_assets_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       newsletter_subscriptions: {
         Row: {
@@ -1053,6 +1155,131 @@ export type Database = {
           list?: string;
           token_hash?: string;
           unsubscribed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          body: string;
+          channel: string;
+          created_at: string;
+          dedupe_key: string;
+          id: number;
+          kind: string;
+          object_ref: string;
+          read_at: string | null;
+          read_by: string | null;
+          severity: string;
+          status: string;
+          title: string;
+        };
+        Insert: {
+          body: string;
+          channel: string;
+          created_at?: string;
+          dedupe_key: string;
+          id?: number;
+          kind: string;
+          object_ref: string;
+          read_at?: string | null;
+          read_by?: string | null;
+          severity: string;
+          status?: string;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          channel?: string;
+          created_at?: string;
+          dedupe_key?: string;
+          id?: number;
+          kind?: string;
+          object_ref?: string;
+          read_at?: string | null;
+          read_by?: string | null;
+          severity?: string;
+          status?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      pipeline_events: {
+        Row: {
+          at: string;
+          details: NonNullable<Json>;
+          id: number;
+          item_ref: string | null;
+          level: string;
+          message: string;
+          run_id: string | null;
+          step: string;
+        };
+        Insert: {
+          at?: string;
+          details?: NonNullable<Json>;
+          id?: number;
+          item_ref?: string | null;
+          level: string;
+          message: string;
+          run_id?: string | null;
+          step: string;
+        };
+        Update: {
+          at?: string;
+          details?: NonNullable<Json>;
+          id?: number;
+          item_ref?: string | null;
+          level?: string;
+          message?: string;
+          run_id?: string | null;
+          step?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_events_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "ingest_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pipeline_quarantine: {
+        Row: {
+          dedupe_key: string;
+          error: string;
+          id: number;
+          message: NonNullable<Json>;
+          msg_id: number;
+          quarantined_at: string;
+          queue: string;
+          read_ct: number;
+          resolved_at: string | null;
+          resolved_by: string | null;
+        };
+        Insert: {
+          dedupe_key: string;
+          error: string;
+          id?: number;
+          message: NonNullable<Json>;
+          msg_id: number;
+          quarantined_at?: string;
+          queue: string;
+          read_ct: number;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Update: {
+          dedupe_key?: string;
+          error?: string;
+          id?: number;
+          message?: NonNullable<Json>;
+          msg_id?: number;
+          quarantined_at?: string;
+          queue?: string;
+          read_ct?: number;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
         };
         Relationships: [];
       };
@@ -1103,6 +1330,8 @@ export type Database = {
       };
       raw_items: {
         Row: {
+          entries: Json | null;
+          error: string | null;
           fetched_at: string;
           id: string;
           payload: NonNullable<Json>;
@@ -1111,6 +1340,8 @@ export type Database = {
           state: string;
         };
         Insert: {
+          entries?: Json | null;
+          error?: string | null;
           fetched_at?: string;
           id?: string;
           payload: NonNullable<Json>;
@@ -1119,6 +1350,8 @@ export type Database = {
           state?: string;
         };
         Update: {
+          entries?: Json | null;
+          error?: string | null;
           fetched_at?: string;
           id?: string;
           payload?: NonNullable<Json>;
@@ -1360,6 +1593,7 @@ export type Database = {
           categories: string[];
           created_at: string;
           display_name: string | null;
+          etag: string | null;
           feed_url: string | null;
           frequency_minutes: number;
           id: string;
@@ -1367,6 +1601,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["source_kind"];
           last_error: string | null;
           last_fetched_at: string | null;
+          last_modified: string | null;
           locality: string;
           logo_path: string | null;
           may_be_sole_source: boolean;
@@ -1388,6 +1623,7 @@ export type Database = {
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
+          etag?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number;
           id?: string;
@@ -1395,6 +1631,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
           last_fetched_at?: string | null;
+          last_modified?: string | null;
           locality: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;
@@ -1416,6 +1653,7 @@ export type Database = {
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
+          etag?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number;
           id?: string;
@@ -1423,6 +1661,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
           last_fetched_at?: string | null;
+          last_modified?: string | null;
           locality?: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;
@@ -1709,16 +1948,48 @@ export type Database = {
       };
     };
     Functions: {
+      ai_spend_since: {
+        Args: { p_since: string };
+        Returns: {
+          agent_id: string;
+          cost_brl: number;
+        }[];
+      };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
       article_section: { Args: { article: string }; Returns: string };
+      attach_item_to_topic: {
+        Args: { p_id: string; p_now: string; p_topic: string };
+        Returns: undefined;
+      };
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      create_topic_for_item: {
+        Args: { p_id: string; p_now: string; p_slug: string; p_title: string };
+        Returns: string;
+      };
       critical_actor: { Args: Record<PropertyKey, never>; Returns: string };
       dearmor: { Args: { "": string }; Returns: string };
+      dedupe_candidates: {
+        Args: {
+          p_id: string;
+          p_limit: number;
+          p_max_hamming: number;
+          p_min_cosine: number;
+          p_simhash: string;
+          p_since: string;
+        };
+        Returns: {
+          cosine: number;
+          id: string;
+          simhash: string;
+          topic_id: string;
+        }[];
+      };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      hamming64: { Args: { a: number; b: number }; Returns: number };
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][]; uid: string };
         Returns: boolean;
@@ -1731,14 +2002,97 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      index_article: { Args: { p_embedding?: string; p_id: string }; Returns: undefined };
       is_staff: { Args: { uid: string }; Returns: boolean };
+      mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
+      media_insert_asset: { Args: { p: Json }; Returns: string };
+      media_phash_neighbors: {
+        Args: { p_exclude: string; p_max: number; p_phash: string };
+        Returns: {
+          distance: number;
+        }[];
+      };
+      notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      pipeline_decision_context: { Args: { p_article: string }; Returns: Json };
+      pipeline_draft_context: { Args: { p_topic: string }; Returns: Json };
+      pipeline_item: {
+        Args: { p_id: string };
+        Returns: {
+          duplicate_of: string;
+          embedding: number[];
+          excerpt: string;
+          id: string;
+          published_at: string;
+          simhash: string;
+          source_id: string;
+          title: string;
+          topic_id: string;
+        }[];
+      };
+      pipeline_media_context: { Args: { p_article: string }; Returns: Json };
       public_article_gone: { Args: { p_slug: string }; Returns: string };
       public_most_read: {
         Args: { p_hours?: number; p_limit?: number };
         Returns: {
           article_id: string;
           reads: number;
+        }[];
+      };
+      queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
+      queue_enqueue: {
+        Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
+        Returns: number;
+      };
+      queue_fail: {
+        Args: { p_delay_sec: number; p_error: string; p_msg_id: number; p_queue: string };
+        Returns: undefined;
+      };
+      queue_move_exhausted: { Args: { p_max_reads: number; p_queue: string }; Returns: number };
+      queue_pending: {
+        Args: { p_queue: string; p_run_id?: string; p_steps?: string[] };
+        Returns: number;
+      };
+      queue_quarantine: {
+        Args: { p_error: string; p_msg_id: number; p_queue: string };
+        Returns: boolean;
+      };
+      queue_read: {
+        Args: { p_n: number; p_queue: string; p_vt_sec: number };
+        Returns: {
+          message: Json;
+          msg_id: number;
+          read_ct: number;
+        }[];
+      };
+      queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
+      save_item_fingerprint: {
+        Args: { p_embedding: string; p_id: string; p_simhash: string };
+        Returns: undefined;
+      };
+      save_pipeline_draft: {
+        Args: { p: Json };
+        Returns: {
+          article_id: string;
+          version: number;
+        }[];
+      };
+      schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      start_ingest_run: {
+        Args: { p_window: string };
+        Returns: {
+          created: boolean;
+          run_id: string;
+          stats: Json;
+        }[];
+      };
+      topic_candidates: {
+        Args: { p_id: string; p_limit: number; p_since: string };
+        Returns: {
+          centroid: number[];
+          topic_id: string;
+          updated_at: string;
         }[];
       };
       two_person_error: { Args: { msg: string }; Returns: undefined };
