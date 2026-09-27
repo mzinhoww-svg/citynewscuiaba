@@ -26,6 +26,8 @@ export {
 export {
   getRecConfig,
   getSource,
+  getSourceDetail,
+  type SourceDetail,
   getSourceSignals,
   listSourceItems,
   SOURCE_LOCALITIES,

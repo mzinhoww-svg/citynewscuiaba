@@ -63,7 +63,7 @@ export async function listTopicEntries(): Promise<Result<UrlEntry[], QueryError>
 /** Coleções editoriais e eventos confirmados (páginas do próprio CityNews). */
 export async function listPageEntries(): Promise<Result<UrlEntry[], QueryError>> {
   return readPublic(async (db) => {
-    const [collections, events] = await Promise.all([
+    const [collections, events, sources] = await Promise.all([
       db.from("collections").select("slug, updated_at").eq("is_editorial", true).then(many),
       db
         .from("event_listings")
@@ -71,8 +71,11 @@ export async function listPageEntries(): Promise<Result<UrlEntry[], QueryError>>
         .order("starts_at", { ascending: false })
         .limit(1000)
         .then(many),
+      // Páginas das fontes (P15) são indexáveis; pausadas e bloqueadas ficam de fora.
+      db.from("public_sources").select("slug").in("status", ["active", "degraded"]).then(many),
     ]);
     return [
+      ...sources.flatMap((s) => (s.slug ? [{ path: `/fontes/${s.slug}` }] : [])),
       ...collections.map((c) => ({ path: `/colecoes/${c.slug}`, lastModified: c.updated_at })),
       ...events.map((e) => ({ path: eventHref(e.slug) })),
     ];

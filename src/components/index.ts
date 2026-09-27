@@ -85,6 +85,13 @@ export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";
 export { SourceAvatar, type SourceAvatarProps } from "./editorial/SourceAvatar";
+export { BrokenLinkReport, type BrokenLinkReportProps } from "./editorial/BrokenLinkReport";
+export { SourceFollow, type SourceFollowProps } from "./editorial/SourceFollow";
+export {
+  CoverageCompare,
+  type CoverageColumn,
+  type CoverageCompareProps,
+} from "./editorial/CoverageCompare";
 
 /* fontes em destaque (P2-T6, DESIGN.md §6) */
 export { DismissMenu, type DismissMenuProps } from "./editorial/DismissMenu";

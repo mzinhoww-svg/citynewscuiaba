@@ -66,3 +66,16 @@ it("banco fora vira erro amigável", async () => {
   const d = deps({ save: async () => ({ ok: false, error: { kind: "unavailable" } }) });
   expect((await reportProblem(form(valid), d)).status).toBe("error");
 });
+
+it("link quebrado de item agregado (P15) é aceito sem login", async () => {
+  const d = deps();
+  const ref = "aggregated:c3000000-0000-4000-8000-000000000013";
+  const r = await reportProblem(form({ contentRef: ref, kind: "broken_link" }), d);
+  expect(r.status).toBe("success");
+  expect(d.save).toHaveBeenCalledWith({
+    contentRef: ref,
+    kind: "broken_link",
+    message: null,
+    contactEmail: null,
+  });
+});

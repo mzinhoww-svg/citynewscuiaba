@@ -2,7 +2,13 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
-import { getRecConfig, getSource, getSourceSignals, listSourceItems } from "@/lib/db/queries";
+import {
+  getRecConfig,
+  getSource,
+  getSourceDetail,
+  getSourceSignals,
+  listSourceItems,
+} from "@/lib/db/queries";
 import { DEFAULT_REC_CONFIG } from "@/lib/ranking";
 
 function value<T>(r: { ok: true; value: T } | { ok: false; error: unknown }): T {
@@ -167,5 +173,20 @@ describe("fonte e itens", () => {
     expect(items.length).toBeGreaterThan(0);
     expect(items.every((i) => i.sourceSlug === "mt-agora")).toBe(true);
     expect(items.every((i) => i.url.startsWith("https://mtagora.example/"))).toBe(true);
+  });
+
+  it("getSourceDetail traz a ficha da fonte (P15); inexistente = null", async () => {
+    const d = value(await getSourceDetail("folha-do-cerrado"));
+    expect(d).toMatchObject({
+      name: "Folha do Cerrado",
+      kind: "rss",
+      republishPolicy: "summary_2_sentences",
+      imagePolicy: "with_agreement",
+      agreementUntil: "2026-12-31",
+    });
+    expect(d!.availability).toBeGreaterThan(0.9);
+    const cena = value(await getSourceDetail("cena-cuiabana"));
+    expect(cena!.availability).toBeLessThan(0.8);
+    expect(value(await getSourceDetail("nao-existe"))).toBeNull();
   });
 });

@@ -222,3 +222,45 @@ export async function getRecConfig(): Promise<RecConfig> {
   );
   return r.ok ? parseRecConfig(r.value) : DEFAULT_REC_CONFIG;
 }
+
+/** Página da fonte (P15): sinais do card e a ficha "Sobre esta fonte no CityNews". */
+export interface SourceDetail extends SourceEntry {
+  kind: string;
+  frequencyMinutes: number;
+  republishPolicy: "link_only" | "summary_2_sentences";
+  imagePolicy: "none" | "with_agreement" | "licensed_only" | "reproduction";
+  agreementUntil: string | null;
+  /** Coletas bem-sucedidas / total em 30 dias (`null` sem histórico de coleta). */
+  availability: number | null;
+}
+
+export async function getSourceDetail(
+  slug: string,
+): Promise<Result<SourceDetail | null, QueryError>> {
+  return readService(async (db) => {
+    const [all, meta, health] = await Promise.all([
+      fetchEntries(db, { window: "7d" }),
+      db
+        .from("sources")
+        .select("kind, frequency_minutes, republish_policy, image_policy, agreement_until")
+        .eq("slug", slug)
+        .in("status", [...VISIBLE_STATUSES])
+        .maybeSingle()
+        .then(one),
+      db.from("source_fetch_health").select("ok, total").eq("slug", slug).maybeSingle().then(one),
+    ]);
+    const entry = all.find((s) => s.slug === slug);
+    if (!entry || !meta) return null;
+    const ok = health?.ok ?? 0;
+    const total = health?.total ?? 0;
+    return {
+      ...entry,
+      kind: meta.kind,
+      frequencyMinutes: meta.frequency_minutes,
+      republishPolicy: meta.republish_policy,
+      imagePolicy: meta.image_policy,
+      agreementUntil: meta.agreement_until,
+      availability: total > 0 ? ok / total : null,
+    };
+  });
+}

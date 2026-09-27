@@ -79,6 +79,8 @@ export function xmlResponse(xml: string, maxAge = 300): Response {
 export const STATIC_PATHS: readonly string[] = [
   "/",
   "/explorar",
+  "/fontes",
+  "/panorama",
   "/assuntos",
   "/agenda",
   "/agenda/sugerir",

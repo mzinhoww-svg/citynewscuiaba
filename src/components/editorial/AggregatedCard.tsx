@@ -12,6 +12,11 @@ export interface AggregatedCardProps {
   now?: Date;
   /** aggregated = superfície do Panorama · white = sobre seção que já é Panorama */
   surface?: "aggregated" | "white";
+  /**
+   * source = título é o link ("Abrir em {fonte}") · original = na página da própria fonte, o
+   * título é texto e o link é "Abrir original" (o nome do veículo já está na página).
+   */
+  cta?: "source" | "original";
   className?: string;
 }
 
@@ -31,6 +36,7 @@ export function AggregatedCard({
   as: Heading = "h3",
   now,
   surface = "aggregated",
+  cta = "source",
   className,
 }: AggregatedCardProps) {
   const when = item.publishedAt ? formatWhen(item.publishedAt, now) : "";
@@ -51,20 +57,24 @@ export function AggregatedCard({
           ))}
         </div>
       )}
-      <Heading className="line-clamp-3 type-headline-sm text-strong">
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="card-link no-underline"
-        >
-          {item.title}
-          <span className="sr-only">
-            {". "}
-            {CARD.openIn(item.sourceName)}, {CARD.newTab}
-          </span>
-        </a>
-      </Heading>
+      {cta === "source" ? (
+        <Heading className="line-clamp-3 type-headline-sm text-strong">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card-link no-underline"
+          >
+            {item.title}
+            <span className="sr-only">
+              {". "}
+              {CARD.openIn(item.sourceName)}, {CARD.newTab}
+            </span>
+          </a>
+        </Heading>
+      ) : (
+        <Heading className="line-clamp-3 type-headline-sm text-strong">{item.title}</Heading>
+      )}
       {item.summary && <p className="line-clamp-3 type-body text-body">{item.summary}</p>}
       <p className="mt-auto flex flex-wrap items-center gap-x-1.5 type-meta text-meta">
         {when && (
@@ -73,10 +83,29 @@ export function AggregatedCard({
             <span aria-hidden="true">·</span>
           </>
         )}
-        <span aria-hidden="true" className="inline-flex items-center gap-1 font-semibold text-link">
-          {CARD.openIn(item.sourceName)}
-          <Icon name="external-link" size={14} />
-        </span>
+        {cta === "source" ? (
+          <span
+            aria-hidden="true"
+            className="inline-flex items-center gap-1 font-semibold text-link"
+          >
+            {CARD.openIn(item.sourceName)}
+            <Icon name="external-link" size={14} />
+          </span>
+        ) : (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="card-link inline-flex min-h-tap items-center gap-1 font-semibold text-link"
+          >
+            {CARD.openOriginal}
+            <span className="sr-only">
+              {": "}
+              {item.title}, {CARD.newTab}
+            </span>
+            <Icon name="external-link" size={14} />
+          </a>
+        )}
       </p>
     </article>
   );

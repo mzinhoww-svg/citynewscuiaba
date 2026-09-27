@@ -30,7 +30,7 @@ export interface ReportDeps {
 export const REPORT_LIMIT = 5;
 export const REPORT_WINDOW_SECONDS = 3600;
 
-const contentRef = z.string().regex(/^(article|event|topic):[0-9a-f-]{36}$/);
+const contentRef = z.string().regex(/^(article|event|topic|aggregated):[0-9a-f-]{36}$/);
 const kind = z.enum(REPORT_KINDS);
 const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
 

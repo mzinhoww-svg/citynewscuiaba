@@ -36,6 +36,7 @@ export const CARD = {
   summary20s: "Resumo em 20 s",
   openIn: (source: string) => `Abrir em ${source}`,
   newTab: "abre em nova aba",
+  openOriginal: "Abrir original",
   by: (name: string) => `Por ${name}`,
   topicCounts: (articles: number, sources: number) =>
     `${articles === 1 ? "1 matéria" : `${articles} matérias`} · ${sources === 1 ? "1 fonte" : `${sources} fontes`}`,

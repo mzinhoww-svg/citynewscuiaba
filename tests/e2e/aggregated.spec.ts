@@ -11,6 +11,9 @@ const PAGES = [
   "/assunto/obra-do-viaduto-na-miguel-sutil",
   "/assunto/plano-de-onibus-cpa-centro",
   "/colecoes/seca-e-fumaca",
+  "/fontes",
+  "/fontes/mt-agora",
+  "/panorama",
 ];
 
 for (const path of PAGES) {
