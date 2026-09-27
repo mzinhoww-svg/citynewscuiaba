@@ -1,26 +1,47 @@
 import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createProductionAi } from "@/lib/ai/server";
+import { createSupabaseMediaStore } from "@/lib/db/media-store";
 import {
   createClusterRepo,
   createEventSink,
+  createFlags,
   createIngestRepo,
+  createMediaRepo,
   createRunStore,
   createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
+import { analyzeImage } from "@/lib/media/analyze";
+import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
 import type { DrainDeps } from "./drain";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
-import { createClusterHandlers, createIngestHandlers, createUnderstandHandlers } from "./steps";
+import {
+  createClusterHandlers,
+  createIngestHandlers,
+  createMediaHandlers,
+  createUnderstandHandlers,
+} from "./steps";
 import type { TickDeps } from "./tick";
+
+/**
+ * Storage das cópias de imagem. Produção: Supabase Storage (bucket `media`). A pilha local sem
+ * Docker não tem Storage (A-017): `MEDIA_STORE=memory` guarda em memória só no desenvolvimento.
+ */
+function productionMediaStore(db: ReturnType<typeof createServiceClient>): MediaStore {
+  return process.env.MEDIA_STORE === "memory" && process.env.NODE_ENV !== "production"
+    ? createMemoryMediaStore()
+    : createSupabaseMediaStore(db);
+}
 
 /** Handlers de produção por etapa. As etapas entram aqui conforme as tarefas do P3. */
 export function productionHandlers(): StepHandlers {
   const http: HttpFetch = (url, init) => fetch(url, init);
   const db = createServiceClient();
   const ai = createProductionAi();
+  const flags = createFlags(db);
   return {
     ...createIngestHandlers({
       repo: createIngestRepo(db),
@@ -38,6 +59,15 @@ export function productionHandlers(): StepHandlers {
       callAgent: ai.callAgent,
       promptVersion: ai.promptVersion,
       now: () => new Date(),
+    }),
+    ...createMediaHandlers({
+      repo: createMediaRepo(db),
+      store: productionMediaStore(db),
+      flags,
+      http,
+      userAgent: crawlerUserAgent(),
+      now: () => new Date(),
+      analyze: analyzeImage,
     }),
   };
 }

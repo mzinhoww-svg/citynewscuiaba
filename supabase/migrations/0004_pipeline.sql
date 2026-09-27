@@ -473,3 +473,123 @@ alter table collected_items
   add column quarantined_at timestamptz,
   add column quarantine_reason text;
 create index decisions_lookup_idx on decisions (object_ref, step, input_hash, created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Mídia e direitos de imagem (P3-T7, spec §6.5, A-010, A-037)
+-- Política `reproduction`: imagem da matéria original copiada inteira para o bucket privado
+-- `media`, com proveniência, crédito e link; desligável em 1 clique pela flag
+-- `image_reproduction_enabled` (também esconde do portal as reproduções já publicadas);
+-- remoção em 24 h a pedido = asset `blocked` (a URL de origem nunca volta a ser copiada).
+-- ---------------------------------------------------------------------------
+insert into feature_flags (key, enabled) values ('image_reproduction_enabled', true)
+on conflict (key) do nothing;
+
+-- Etiquetas do classify (temas sensíveis, imagem gerada, regras).
+alter table collected_items add column tags text[] not null default '{}';
+
+alter table media_assets
+  add column source_id uuid references sources(id),
+  add column source_name text,
+  add column page_url text,
+  add column author text,
+  add column sha256 text,
+  add column content_type text,
+  add column provenance jsonb not null default '{}',
+  add column tags text[] not null default '{}',
+  add column removed_at timestamptz,
+  add column removal_reason text;
+create index media_assets_origin_idx on media_assets (origin_url);
+create index media_assets_source_idx on media_assets (source_id) where kind = 'reproduction';
+create index media_assets_archive_idx on media_assets using gin (tags) where kind = 'illustrative' and status = 'approved';
+
+-- Reprodução só aparece no portal com a flag ligada (RLS; o Estúdio continua vendo tudo).
+drop policy media_assets_read_public on media_assets;
+create policy media_assets_read_public on media_assets for select to anon, authenticated
+  using (
+    status = 'approved'
+    and (kind <> 'reproduction'
+         or exists (select 1 from feature_flags f where f.key = 'image_reproduction_enabled' and f.enabled))
+  );
+
+-- Bucket privado `media` (ADR-009). A pilha local sem Docker não tem Storage (A-017): lá as cópias
+-- ficam no MediaStore em memória e este bloco não faz nada.
+do $$ begin
+  if to_regclass('storage.buckets') is not null then
+    execute $q$insert into storage.buckets (id, name, public) values ('media', 'media', false)
+             on conflict (id) do update set public = false$q$;
+  end if;
+end $$;
+
+-- Matéria como a etapa de imagem a enxerga: editoria, categoria de autonomia, sensibilidade,
+-- etiquetas e itens do assunto com a fonte (política de imagem, acordo), primárias primeiro.
+create or replace function pipeline_media_context(p_article uuid)
+returns jsonb
+language sql
+stable
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'articleId', a.id,
+    'topicId', a.topic_id,
+    'title', a.title,
+    'sectionSlug', a.section_slug,
+    'category', coalesce(s.autonomy_category, a.section_slug),
+    'sensitive', coalesce(bool_or(ci.sensitive), false),
+    'tags', coalesce((select jsonb_agg(distinct t) from collected_items c2, unnest(c2.tags) t
+                      where c2.topic_id = a.topic_id and c2.duplicate_of is null and c2.quarantined_at is null), '[]'::jsonb),
+    'hasMedia', exists (select 1 from article_media am where am.article_id = a.id),
+    'items', coalesce(jsonb_agg(jsonb_build_object(
+        'itemId', ci.id,
+        'title', ci.original_title,
+        'imageUrl', ci.image_url,
+        'pageUrl', ci.canonical_url,
+        'author', ci.author,
+        'source', jsonb_build_object(
+          'id', so.id, 'slug', so.slug, 'name', coalesce(so.display_name, so.name),
+          'imagePolicy', so.image_policy, 'agreementUntil', so.agreement_until,
+          'rateLimitPerHour', so.rate_limit_per_hour))
+        order by (so.reliability = 'primary') desc, ci.published_at desc nulls last, ci.id)
+      filter (where ci.id is not null and so.id is not null), '[]'::jsonb))
+  from articles a
+  left join sections s on s.slug = a.section_slug
+  left join collected_items ci
+    on ci.topic_id = a.topic_id and a.topic_id is not null
+   and ci.duplicate_of is null and ci.quarantined_at is null
+  left join sources so on so.id = ci.source_id and so.status <> 'blocked'
+  where a.id = p_article
+  group by a.id, s.autonomy_category;
+$$;
+
+-- Distâncias do dHash até assets não bloqueados de outras origens (duplicata no acervo).
+create or replace function media_phash_neighbors(p_phash text, p_max int, p_exclude text)
+returns table (distance int)
+language sql
+stable
+set search_path = public
+as $$
+  select hamming64(m.phash, p_phash::bigint)
+  from media_assets m
+  where m.phash is not null and m.status <> 'blocked'
+    and m.origin_url is distinct from p_exclude
+    and hamming64(m.phash, p_phash::bigint) <= p_max;
+$$;
+
+-- Cópia de imagem de terceiro com proveniência (dHash trafega como texto: JSON perde precisão).
+create or replace function media_insert_asset(p jsonb)
+returns uuid
+language sql
+set search_path = public
+as $$
+  insert into media_assets (kind, storage_path, origin_url, page_url, source_id, source_name, author, license,
+                            credit, allowed_use, width, height, phash, sha256, content_type, risk, status, provenance)
+  values ((p->>'kind')::media_kind, p->>'storagePath', p->>'originUrl', p->>'pageUrl', (p->>'sourceId')::uuid,
+          p->>'sourceName', p->>'author', p->>'license', p->>'credit', p->>'allowedUse', (p->>'width')::int,
+          (p->>'height')::int, (p->>'phash')::bigint, p->>'sha256', p->>'contentType', p->>'risk', 'approved',
+          coalesce(p->'provenance', '{}'::jsonb))
+  returning id;
+$$;
+
+revoke execute on function pipeline_media_context(uuid), media_phash_neighbors(text, int, text), media_insert_asset(jsonb)
+  from public, anon, authenticated;
+grant execute on function pipeline_media_context(uuid), media_phash_neighbors(text, int, text), media_insert_asset(jsonb)
+  to service_role;

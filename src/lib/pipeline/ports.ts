@@ -3,6 +3,7 @@
  * Implementações reais em `queue.ts` e `src/lib/db/pipeline-store.ts`; falsas em `testing/`.
  */
 import type { Result } from "@/lib/result";
+import type { ImagePolicy } from "@/lib/media/types";
 import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
@@ -251,6 +252,8 @@ export interface DecisionRecord {
 
 export interface ItemPatch {
   sectionSlug?: string;
+  /** Etiquetas do `classify` (temas sensíveis, imagem gerada, regras). */
+  tags?: string[];
   relevance?: number;
   sensitive?: boolean;
   locality?: string;
@@ -280,3 +283,118 @@ export interface UnderstandRepo {
   topicBundle(topicId: string): Promise<TopicBundle | null>;
   updateTopic(topicId: string, patch: TopicPatch): Promise<void>;
 }
+
+/** Chaves de `feature_flags` lidas pelo pipeline. */
+export type FlagKey = "auto_publish" | "read_only" | "ai_enabled" | "image_reproduction_enabled";
+
+/**
+ * `feature_flags`. Falha fechada: flag ausente ou erro de leitura = desligada (nada publica
+ * sozinho, nenhuma imagem de terceiros é reproduzida).
+ */
+export interface Flags {
+  isEnabled(key: FlagKey): Promise<boolean>;
+}
+
+/** Item do assunto de uma matéria, com a fonte e a política de imagem dela. */
+export interface MediaSourceItem {
+  itemId: string;
+  title: string;
+  imageUrl: string | null;
+  /** URL canônica da matéria original (link do crédito). */
+  pageUrl: string;
+  author: string | null;
+  source: {
+    id: string;
+    slug: string;
+    name: string;
+    imagePolicy: ImagePolicy;
+    /** `sources.agreement_until` (data ISO) ou `null`. */
+    agreementUntil: string | null;
+    rateLimitPerHour: number;
+  };
+}
+
+/** Matéria como a etapa de imagem a enxerga. */
+export interface MediaContext {
+  articleId: string;
+  topicId: string | null;
+  title: string;
+  sectionSlug: string;
+  /** `sections.autonomy_category`. */
+  category: string;
+  sensitive: boolean;
+  tags: string[];
+  /** A matéria já tem imagem escolhida (idempotência). */
+  hasMedia: boolean;
+  /** Itens do assunto: primárias primeiro, depois os mais recentes. */
+  items: MediaSourceItem[];
+}
+
+export interface MediaAssetRecord {
+  id: string;
+  kind: "original" | "reproduction" | "licensed" | "illustrative" | "ai_generated";
+  storagePath: string;
+  originUrl: string | null;
+  status: "pending" | "approved" | "blocked";
+  width: number | null;
+  height: number | null;
+  credit: string | null;
+  sourceId: string | null;
+  tags: string[];
+}
+
+/** Cópia de imagem de terceiro, com proveniência (A-010). */
+export interface NewMediaAsset {
+  kind: "original" | "reproduction";
+  storagePath: string;
+  originUrl: string;
+  pageUrl: string;
+  sourceId: string;
+  sourceName: string;
+  author: string | null;
+  license: string;
+  /** Autor da foto (crédito); o rótulo exibe "REPRODUÇÃO · Fonte · Autor". */
+  credit: string | null;
+  allowedUse: string;
+  width: number;
+  height: number;
+  /** dHash sem sinal. */
+  phash: bigint;
+  sha256: string;
+  contentType: string;
+  risk: "baixo" | "medio" | "alto";
+  provenance: Record<string, unknown>;
+}
+
+/** Acesso a banco da etapa de imagem (13 e 14) e da remoção de reproduções. */
+export interface MediaRepo extends Pick<IngestRepo, "hitRateLimit"> {
+  mediaContext(articleId: string): Promise<MediaContext | null>;
+  /** Asset com a mesma URL de origem, de qualquer status (bloqueado = removido a pedido). */
+  assetByOrigin(originUrl: string): Promise<MediaAssetRecord | null>;
+  /** Distâncias do hash perceptual até assets não bloqueados de outras origens (≤ `maxDistance`). */
+  phashNeighbors(phash: bigint, maxDistance: number, excludeOrigin: string): Promise<number[]>;
+  /** Acervo ilustrativo aprovado, com alguma das etiquetas. */
+  archiveCandidates(tags: string[], limit: number): Promise<MediaAssetRecord[]>;
+  insertAsset(a: NewMediaAsset): Promise<string>;
+  linkArticleMedia(
+    articleId: string,
+    mediaId: string,
+    rationale: string,
+    chosenBy: string,
+  ): Promise<void>;
+  recordDecision(d: DecisionRecord): Promise<void>;
+  asset(id: string): Promise<MediaAssetRecord | null>;
+  /** Reproduções ativas (não bloqueadas) de uma fonte. */
+  reproductionsOfSource(sourceId: string): Promise<MediaAssetRecord[]>;
+  /** Bloqueia o asset (sai do portal) e devolve as matérias que o usavam. */
+  blockAsset(id: string, reason: string, at: Date): Promise<{ articleIds: string[] }>;
+  audit(entry: {
+    actor: string;
+    action: string;
+    objectRef: string;
+    details: Record<string, unknown>;
+  }): Promise<void>;
+}
+
+/** Invalida o cache das páginas (`revalidateTag`, architecture §8). */
+export type Revalidate = (tags: string[]) => Promise<void>;

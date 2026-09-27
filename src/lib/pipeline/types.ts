@@ -67,3 +67,13 @@ export const RawEntrySchema = z.object({
 });
 
 export type RawEntry = z.infer<typeof RawEntrySchema>;
+
+/**
+ * Fila de cada etapa (ADR-004): imagem e direitos em `media`, notificação em `notify`, o resto em
+ * `pipeline`. O drain enfileira a próxima etapa na fila dela.
+ */
+export function queueFor(step: StepName): QueueName {
+  if (step === "image" || step === "image_rights") return "media";
+  if (step === "notify") return "notify";
+  return "pipeline";
+}

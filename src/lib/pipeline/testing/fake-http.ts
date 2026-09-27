@@ -2,7 +2,8 @@ import type { HttpFetch } from "../ports";
 
 export interface FakeRoute {
   status?: number;
-  body?: string;
+  /** Texto (feeds) ou bytes (imagens de `tests/fixtures/images`). */
+  body?: string | Uint8Array;
   headers?: Record<string, string>;
 }
 
@@ -17,7 +18,8 @@ export function createFakeHttp(routes: Record<string, FakeRoute | ((h: Headers) 
     if (!r) return new Response("não encontrado", { status: 404 });
     const status = r.status ?? 200;
     const nullBody = status === 204 || status === 304;
-    return new Response(nullBody ? null : (r.body ?? ""), { status, headers: r.headers ?? {} });
+    const body = r.body instanceof Uint8Array ? new Uint8Array(r.body) : (r.body ?? "");
+    return new Response(nullBody ? null : body, { status, headers: r.headers ?? {} });
   };
   return { http, calls };
 }

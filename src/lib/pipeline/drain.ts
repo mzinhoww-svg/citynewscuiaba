@@ -2,7 +2,7 @@ import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import type { EventSink, PipelineEvent, Queue, QueuedMessage } from "./ports";
 import { MAX_ATTEMPTS, retryPolicy } from "./retry";
 import type { RunStep } from "./run-step";
-import { QUEUE_NAMES, type QueueName } from "./types";
+import { QUEUE_NAMES, queueFor, type QueueName } from "./types";
 
 /** Igual ao `maxDuration` da rota /api/jobs/drain (limite do Vercel Hobby). */
 export const DRAIN_MAX_DURATION_SEC = 60;
@@ -79,40 +79,47 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
   try {
     for (const name of queues) r.exhausted += await queue.moveExhausted(name, MAX_ATTEMPTS);
 
-    outer: for (const name of queues) {
-      while (now() < deadline) {
-        const batch = await queue.readBatch(name, batchSize, vtSec);
-        if (batch.length === 0) break;
-        for (let i = 0; i < batch.length; i++) {
-          const q = batch[i]!;
-          if (now() >= deadline) {
-            for (const rest of batch.slice(i)) await queue.release(name, rest.msgId);
-            r.released += batch.length - i;
-            break outer;
-          }
-          r.processed++;
-          const res = await runStep(q.msg);
-          if (res.ok) {
-            for (const next of res.value) await queue.enqueue(name, next);
-            await queue.ack(name, q.msgId);
-            r.succeeded++;
-            log.push(event(q, "info", "ok", { next: res.value.length }));
-            continue;
-          }
-          const e = res.error;
-          const decision = retryPolicy(q.readCt, { retryable: e.retryable });
-          const details = { kind: e.kind, ...(e.details ?? {}) };
-          if (decision.action === "retry") {
-            await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);
-            r.retried++;
-            log.push(event(q, "warn", e.message, { ...details, retryInSec: decision.delaySec }));
-          } else {
-            await queue.quarantine(name, q, `${e.kind}: ${e.message}`);
-            r.quarantined++;
-            log.push(event(q, e.kind === "injection" ? "security" : "error", e.message, details));
+    // Uma etapa pode enfileirar a próxima em outra fila (queueFor): repete a volta pelas filas
+    // até nenhuma ter mensagem pronta ou o tempo acabar.
+    outer: while (now() < deadline) {
+      let progressed = false;
+      for (const name of queues) {
+        while (now() < deadline) {
+          const batch = await queue.readBatch(name, batchSize, vtSec);
+          if (batch.length === 0) break;
+          progressed = true;
+          for (let i = 0; i < batch.length; i++) {
+            const q = batch[i]!;
+            if (now() >= deadline) {
+              for (const rest of batch.slice(i)) await queue.release(name, rest.msgId);
+              r.released += batch.length - i;
+              break outer;
+            }
+            r.processed++;
+            const res = await runStep(q.msg);
+            if (res.ok) {
+              for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+              await queue.ack(name, q.msgId);
+              r.succeeded++;
+              log.push(event(q, "info", "ok", { next: res.value.length }));
+              continue;
+            }
+            const e = res.error;
+            const decision = retryPolicy(q.readCt, { retryable: e.retryable });
+            const details = { kind: e.kind, ...(e.details ?? {}) };
+            if (decision.action === "retry") {
+              await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);
+              r.retried++;
+              log.push(event(q, "warn", e.message, { ...details, retryInSec: decision.delaySec }));
+            } else {
+              await queue.quarantine(name, q, `${e.kind}: ${e.message}`);
+              r.quarantined++;
+              log.push(event(q, e.kind === "injection" ? "security" : "error", e.message, details));
+            }
           }
         }
       }
+      if (!progressed) break;
     }
   } finally {
     if (log.length > 0) await deps.events.record(log);

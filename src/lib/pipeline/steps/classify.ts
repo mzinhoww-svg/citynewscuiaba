@@ -75,6 +75,7 @@ export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
       sectionSlug: out.section,
       relevance: out.relevance,
       sensitive: out.sensitive,
+      tags: out.tags,
     });
     return ok([nextMessage(msg, "locate", msg.itemRef)]);
   };

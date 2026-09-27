@@ -3,7 +3,12 @@ import { z } from "zod";
 import type {
   ClusterRepo,
   EventSink,
+  FlagKey,
+  Flags,
   IngestRepo,
+  MediaAssetRecord,
+  MediaContext,
+  MediaRepo,
   RawPayload,
   RunStore,
   SourcePatch,
@@ -427,6 +432,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
     async updateItem(id, patch) {
       const row = {
         ...(patch.sectionSlug !== undefined ? { section_slug: patch.sectionSlug } : {}),
+        ...(patch.tags !== undefined ? { tags: patch.tags.slice(0, 8) } : {}),
         ...(patch.relevance !== undefined ? { relevance: patch.relevance } : {}),
         ...(patch.sensitive !== undefined ? { sensitive: patch.sensitive } : {}),
         ...(patch.locality !== undefined ? { locality: patch.locality } : {}),
@@ -533,6 +539,203 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
           .is("section_slug", null);
         check("updateTopic(section)", s.error);
       }
+    },
+  };
+}
+
+/** `feature_flags` com falha fechada: ausente ou erro = desligada. */
+export function createFlags(db: DbClient): Flags {
+  return {
+    async isEnabled(key: FlagKey) {
+      const { data, error } = await db
+        .from("feature_flags")
+        .select("enabled")
+        .eq("key", key)
+        .maybeSingle();
+      return !error && data?.enabled === true;
+    },
+  };
+}
+
+const MediaContextSchema = z.object({
+  articleId: z.string(),
+  topicId: z.string().nullable(),
+  title: z.string(),
+  sectionSlug: z.string(),
+  category: z.string(),
+  sensitive: z.boolean(),
+  tags: z.array(z.string()),
+  hasMedia: z.boolean(),
+  items: z.array(
+    z.object({
+      itemId: z.string(),
+      title: z.string(),
+      imageUrl: z.string().nullable(),
+      pageUrl: z.string(),
+      author: z.string().nullable(),
+      source: z.object({
+        id: z.string(),
+        slug: z.string(),
+        name: z.string(),
+        imagePolicy: z.enum(["none", "with_agreement", "licensed_only", "reproduction"]),
+        agreementUntil: z.string().nullable(),
+        rateLimitPerHour: z.number(),
+      }),
+    }),
+  ),
+});
+
+const ASSET_COLUMNS =
+  "id, kind, storage_path, origin_url, status, width, height, credit, source_id, tags";
+
+interface AssetRow {
+  id: string;
+  kind: MediaAssetRecord["kind"];
+  storage_path: string;
+  origin_url: string | null;
+  status: string;
+  width: number | null;
+  height: number | null;
+  credit: string | null;
+  source_id: string | null;
+  tags: string[];
+}
+
+const toAsset = (r: AssetRow): MediaAssetRecord => ({
+  id: r.id,
+  kind: r.kind,
+  storagePath: r.storage_path,
+  originUrl: r.origin_url,
+  status: r.status === "approved" || r.status === "blocked" ? r.status : "pending",
+  width: r.width,
+  height: r.height,
+  credit: r.credit,
+  sourceId: r.source_id,
+  tags: r.tags ?? [],
+});
+
+/** Banco da etapa de imagem e da remoção de reproduções (service role). */
+export function createMediaRepo(db: DbClient): MediaRepo {
+  const ingest = createIngestRepo(db);
+  return {
+    hitRateLimit: (bucket, limit) => ingest.hitRateLimit(bucket, limit),
+
+    async mediaContext(articleId): Promise<MediaContext | null> {
+      const { data, error } = await db.rpc("pipeline_media_context", { p_article: articleId });
+      check("mediaContext", error);
+      if (data === null || data === undefined) return null;
+      const parsed = MediaContextSchema.safeParse(data);
+      if (!parsed.success) throw new Error(`pipeline-store: mediaContext: ${parsed.error.message}`);
+      return parsed.data;
+    },
+
+    async assetByOrigin(originUrl) {
+      const { data, error } = await db
+        .from("media_assets")
+        .select(ASSET_COLUMNS)
+        .eq("origin_url", originUrl)
+        .order("captured_at", { ascending: true })
+        .limit(20)
+        .returns<AssetRow[]>();
+      check("assetByOrigin", error);
+      const rows = (data ?? []).map(toAsset);
+      // Removida a pedido vence: a mesma origem nunca volta a ser usada.
+      return rows.find((r) => r.status === "blocked") ?? rows[0] ?? null;
+    },
+
+    async phashNeighbors(phash, maxDistance, excludeOrigin) {
+      const { data, error } = await db.rpc("media_phash_neighbors", {
+        p_phash: toSigned64(phash).toString(),
+        p_max: maxDistance,
+        p_exclude: excludeOrigin,
+      });
+      check("phashNeighbors", error);
+      return (data ?? []).map((r) => r.distance);
+    },
+
+    async archiveCandidates(tags, limit) {
+      if (tags.length === 0) return [];
+      const { data, error } = await db
+        .from("media_assets")
+        .select(ASSET_COLUMNS)
+        .eq("kind", "illustrative")
+        .eq("status", "approved")
+        .overlaps("tags", tags)
+        .order("captured_at", { ascending: false })
+        .limit(limit)
+        .returns<AssetRow[]>();
+      check("archiveCandidates", error);
+      return (data ?? []).map(toAsset);
+    },
+
+    async insertAsset(a) {
+      const { data, error } = await db.rpc("media_insert_asset", {
+        p: toJson({ ...a, phash: toSigned64(a.phash).toString() }),
+      });
+      check("insertAsset", error);
+      if (!data) throw new Error("pipeline-store: insertAsset sem retorno");
+      return data;
+    },
+
+    async linkArticleMedia(articleId, mediaId, rationale, chosenBy) {
+      const { error } = await db
+        .from("article_media")
+        .upsert(
+          { article_id: articleId, media_id: mediaId, rationale, chosen_by: chosenBy },
+          { onConflict: "article_id,media_id", ignoreDuplicates: true },
+        );
+      check("linkArticleMedia", error);
+    },
+
+    async recordDecision(d) {
+      await createUnderstandRepo(db).recordDecision(d);
+    },
+
+    async asset(id) {
+      const { data, error } = await db
+        .from("media_assets")
+        .select(ASSET_COLUMNS)
+        .eq("id", id)
+        .maybeSingle<AssetRow>();
+      check("asset", error);
+      return data ? toAsset(data) : null;
+    },
+
+    async reproductionsOfSource(sourceId) {
+      const { data, error } = await db
+        .from("media_assets")
+        .select(ASSET_COLUMNS)
+        .eq("kind", "reproduction")
+        .eq("source_id", sourceId)
+        .neq("status", "blocked")
+        .returns<AssetRow[]>();
+      check("reproductionsOfSource", error);
+      return (data ?? []).map(toAsset);
+    },
+
+    async blockAsset(id, reason, at) {
+      const { error } = await db
+        .from("media_assets")
+        .update({
+          status: "blocked",
+          removed_at: at.toISOString(),
+          removal_reason: reason.slice(0, 500),
+        })
+        .eq("id", id);
+      check("blockAsset", error);
+      const links = await db.from("article_media").select("article_id").eq("media_id", id);
+      check("blockAsset(links)", links.error);
+      return { articleIds: (links.data ?? []).map((l) => l.article_id) };
+    },
+
+    async audit(entry) {
+      const { error } = await db.from("audit_log").insert({
+        actor: entry.actor,
+        action: entry.action,
+        object_ref: entry.objectRef,
+        details: toJsonObject(entry.details),
+      });
+      check("audit", error);
     },
   };
 }

@@ -4,6 +4,7 @@ import { createClusterStep } from "./cluster";
 import { createDedupeStep, type UnderstandingDeps } from "./dedupe";
 import { createExtractStep } from "./extract";
 import { createLocateStep } from "./locate";
+import { createMediaStep, type MediaStepDeps } from "./media";
 import { createFetchStep, type IngestDeps } from "./fetch";
 import { createNormalizeStep } from "./normalize";
 import { createValidateStep } from "./validate";
@@ -12,6 +13,8 @@ import { createVerifyStep } from "./verify";
 export type { IngestDeps } from "./fetch";
 export type { UnderstandingDeps } from "./dedupe";
 export type { UnderstandStepDeps } from "./classify";
+export type { MediaStepDeps } from "./media";
+export { imageLabel, REPRODUCTION_LICENSE } from "./media";
 export { confirmConflict, createVerifyTopic, extractNumbers, type VerifyResult } from "./verify";
 export { isDuplicate } from "./dedupe";
 export { assignTopic } from "./cluster";
@@ -39,4 +42,9 @@ export function createUnderstandHandlers(deps: UnderstandStepDeps): StepHandlers
     locate: createLocateStep(deps),
     verify: createVerifyStep(deps),
   };
+}
+
+/** Etapas 13 e 14: imagem e direitos da imagem (fila `media`). */
+export function createMediaHandlers(deps: MediaStepDeps): StepHandlers {
+  return { image: createMediaStep(deps) };
 }

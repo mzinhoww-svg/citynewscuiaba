@@ -508,6 +508,7 @@ export type Database = {
           sensitive: boolean | null;
           simhash: number | null;
           source_id: string;
+          tags: string[];
           topic_id: string | null;
         };
         Insert: {
@@ -531,6 +532,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id: string;
+          tags?: string[];
           topic_id?: string | null;
         };
         Update: {
@@ -554,6 +556,7 @@ export type Database = {
           sensitive?: boolean | null;
           simhash?: number | null;
           source_id?: string;
+          tags?: string[];
           topic_id?: string | null;
         };
         Relationships: [
@@ -1023,7 +1026,9 @@ export type Database = {
       media_assets: {
         Row: {
           allowed_use: string;
+          author: string | null;
           captured_at: string;
+          content_type: string | null;
           credit: string | null;
           height: number | null;
           id: string;
@@ -1031,15 +1036,25 @@ export type Database = {
           license: string;
           license_until: string | null;
           origin_url: string | null;
+          page_url: string | null;
           phash: number | null;
+          provenance: NonNullable<Json>;
+          removal_reason: string | null;
+          removed_at: string | null;
           risk: string;
+          sha256: string | null;
+          source_id: string | null;
+          source_name: string | null;
           status: string;
           storage_path: string;
+          tags: string[];
           width: number | null;
         };
         Insert: {
           allowed_use: string;
+          author?: string | null;
           captured_at?: string;
+          content_type?: string | null;
           credit?: string | null;
           height?: number | null;
           id?: string;
@@ -1047,15 +1062,25 @@ export type Database = {
           license: string;
           license_until?: string | null;
           origin_url?: string | null;
+          page_url?: string | null;
           phash?: number | null;
+          provenance?: NonNullable<Json>;
+          removal_reason?: string | null;
+          removed_at?: string | null;
           risk?: string;
+          sha256?: string | null;
+          source_id?: string | null;
+          source_name?: string | null;
           status?: string;
           storage_path: string;
+          tags?: string[];
           width?: number | null;
         };
         Update: {
           allowed_use?: string;
+          author?: string | null;
           captured_at?: string;
+          content_type?: string | null;
           credit?: string | null;
           height?: number | null;
           id?: string;
@@ -1063,13 +1088,36 @@ export type Database = {
           license?: string;
           license_until?: string | null;
           origin_url?: string | null;
+          page_url?: string | null;
           phash?: number | null;
+          provenance?: NonNullable<Json>;
+          removal_reason?: string | null;
+          removed_at?: string | null;
           risk?: string;
+          sha256?: string | null;
+          source_id?: string | null;
+          source_name?: string | null;
           status?: string;
           storage_path?: string;
+          tags?: string[];
           width?: number | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "media_assets_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "media_assets_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       newsletter_subscriptions: {
         Row: {
@@ -1838,6 +1886,13 @@ export type Database = {
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
+      media_insert_asset: { Args: { p: Json }; Returns: string };
+      media_phash_neighbors: {
+        Args: { p_exclude: string; p_max: number; p_phash: string };
+        Returns: {
+          distance: number;
+        }[];
+      };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pipeline_item: {
         Args: { p_id: string };
@@ -1853,6 +1908,7 @@ export type Database = {
           topic_id: string;
         }[];
       };
+      pipeline_media_context: { Args: { p_article: string }; Returns: Json };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };

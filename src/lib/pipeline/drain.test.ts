@@ -3,7 +3,7 @@ import { maxDuration, runtime } from "@/app/api/jobs/drain/route";
 import { createRunStep, nextMessage, stepError } from "./run-step";
 import { createMemoryQueue } from "./testing/memory-queue";
 import type { PipelineEvent } from "./ports";
-import type { PipelineMessage } from "./types";
+import { queueFor, type PipelineMessage } from "./types";
 
 const m = (itemRef: string, step: PipelineMessage["step"] = "fetch"): PipelineMessage => ({
   runId: "r1",
@@ -87,5 +87,48 @@ describe("drain", () => {
     // 0 → 20 → 40 → 60 s: a 3ª começa em 40 s (< 48 s); a 4ª já passaria do orçamento.
     expect(r).toMatchObject({ succeeded: 3, released: 2, remaining: 2 });
     expect(queue.readCounts()).toEqual([0, 0]);
+  });
+
+  it("etapa de imagem vai para a fila media, notificação para notify, e o drain esvazia todas", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("topic:t1", "summarize"));
+    const seen: string[] = [];
+    const runStep = createRunStep({
+      summarize: async (msg) => {
+        seen.push(`summarize`);
+        return { ok: true, value: [nextMessage(msg, "image", "article:a1")] };
+      },
+      image: async (msg) => {
+        seen.push("image");
+        return { ok: true, value: [nextMessage(msg, "rules", "article:a1")] };
+      },
+      rules: async (msg) => {
+        seen.push("rules");
+        return { ok: true, value: [nextMessage(msg, "notify", "article:a1#review")] };
+      },
+      notify: async () => {
+        seen.push("notify");
+        return { ok: true, value: [] };
+      },
+    });
+    const enqueued: string[] = [];
+    const spy = {
+      ...queue,
+      enqueue: (q: Parameters<typeof queue.enqueue>[0], msg: PipelineMessage) => {
+        enqueued.push(`${q}:${msg.step}`);
+        return queue.enqueue(q, msg);
+      },
+    };
+    const r = await drain({ queue: spy, runStep, events: sink(), now: () => 0 });
+    expect(seen).toEqual(["summarize", "image", "rules", "notify"]);
+    expect(enqueued).toEqual(["media:image", "pipeline:rules", "notify:notify"]);
+    expect(r).toMatchObject({ succeeded: 4, remaining: 0 });
+  });
+
+  it("queueFor: imagem em media, notificação em notify, o resto em pipeline", () => {
+    expect(queueFor("image")).toBe("media");
+    expect(queueFor("image_rights")).toBe("media");
+    expect(queueFor("notify")).toBe("notify");
+    expect(queueFor("publish")).toBe("pipeline");
   });
 });
