@@ -1,25 +1,21 @@
 import { z } from "zod";
 import { REPLY } from "@/content/pt-BR/institutional";
 import type { Result } from "@/lib/result";
+import { REPLY_FIELDS, REPLY_HONEYPOT, type ReplyField, type ReplyState } from "./form-state";
+
+export {
+  REPLY_FIELDS,
+  REPLY_HONEYPOT,
+  REPLY_IDLE,
+  type ReplyField,
+  type ReplyState,
+} from "./form-state";
 
 /** Pedido de direito de resposta (P24) → fila `reports` (tipo right_of_reply) do Estúdio. */
-export const REPLY_FIELDS = ["name", "email", "article", "reply", "consent"] as const;
-export type ReplyField = (typeof REPLY_FIELDS)[number];
-
-export const REPLY_HONEYPOT = "website";
 export const REPLY_LIMIT = 5;
 export const REPLY_WINDOW_SECONDS = 3600;
 const REPLY_MIN = 40;
 const REPLY_MAX = 3000;
-
-export interface ReplyState {
-  status: "idle" | "success" | "invalid" | "rate_limited" | "error";
-  message: string;
-  errors: Partial<Record<ReplyField, string>>;
-  values: Partial<Record<ReplyField, string>>;
-}
-
-export const REPLY_IDLE: ReplyState = { status: "idle", message: "", errors: {}, values: {} };
 
 type SaveError = { kind: "unconfigured" | "unavailable" };
 

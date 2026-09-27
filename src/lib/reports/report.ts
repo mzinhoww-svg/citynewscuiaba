@@ -1,27 +1,16 @@
 import { z } from "zod";
 import { REPORT } from "@/content/pt-BR/portal";
 import type { Result } from "@/lib/result";
+import { REPORT_HONEYPOT, REPORT_KINDS, type ReportKind, type ReportState } from "./form-state";
 
-/** Tipos de problema (tabela `reports`, docs/screens.md E14). */
-export const REPORT_KINDS = [
-  "wrong_info",
-  "broken_link",
-  "image",
-  "right_of_reply",
-  "other",
-] as const;
-export type ReportKind = (typeof REPORT_KINDS)[number];
-
-export type ReportStatus = "idle" | "success" | "invalid" | "rate_limited" | "error";
-
-export interface ReportState {
-  status: ReportStatus;
-  message: string;
-  /** Campo com erro, para ligar a mensagem ao controle. */
-  field?: "kind" | "contact" | "message";
-}
-
-export const REPORT_IDLE: ReportState = { status: "idle", message: "" };
+export {
+  REPORT_HONEYPOT,
+  REPORT_IDLE,
+  REPORT_KINDS,
+  type ReportKind,
+  type ReportState,
+  type ReportStatus,
+} from "./form-state";
 
 export interface NewReport {
   contentRef: string;
@@ -40,7 +29,6 @@ export interface ReportDeps {
 /** Limite dos formulários públicos: 5 por hora por IP com hash (architecture §7). */
 export const REPORT_LIMIT = 5;
 export const REPORT_WINDOW_SECONDS = 3600;
-export const REPORT_HONEYPOT = "website";
 
 const contentRef = z.string().regex(/^(article|event|topic):[0-9a-f-]{36}$/);
 const kind = z.enum(REPORT_KINDS);

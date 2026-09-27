@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useId } from "react";
-import { HONEYPOT_FIELD, NEWSLETTER_IDLE, type NewsletterState } from "@/lib/newsletter/subscribe";
+import { HONEYPOT_FIELD, NEWSLETTER_IDLE, type NewsletterState } from "@/lib/newsletter/form-state";
 import { NEWSLETTER } from "@/content/pt-BR/portal";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";

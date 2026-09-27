@@ -7,7 +7,7 @@ import {
   REPLY_IDLE,
   type ReplyField,
   type ReplyState,
-} from "@/lib/reports/right-of-reply";
+} from "@/lib/reports/form-state";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { TextField } from "../ui/TextField";

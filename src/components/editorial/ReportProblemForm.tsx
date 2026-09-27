@@ -2,7 +2,12 @@
 
 import { useActionState, useId, useState } from "react";
 import { REPORT } from "@/content/pt-BR/portal";
-import { REPORT_HONEYPOT, REPORT_IDLE, REPORT_KINDS, type ReportState } from "@/lib/reports/report";
+import {
+  REPORT_HONEYPOT,
+  REPORT_IDLE,
+  REPORT_KINDS,
+  type ReportState,
+} from "@/lib/reports/form-state";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";

@@ -10,7 +10,7 @@ import {
   SUBMIT_IDLE,
   type SubmitField,
   type SubmitState,
-} from "@/lib/agenda/submission";
+} from "@/lib/agenda/form-state";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";

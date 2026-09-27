@@ -1,17 +1,14 @@
 import { z } from "zod";
 import { NEWSLETTER } from "@/content/pt-BR/portal";
 import type { Result } from "@/lib/result";
+import { HONEYPOT_FIELD, type NewsletterState } from "./form-state";
 
-export type NewsletterStatus = "idle" | "success" | "invalid" | "rate_limited" | "error";
-
-export interface NewsletterState {
-  status: NewsletterStatus;
-  message: string;
-  /** E-mail digitado, preservado quando há erro. */
-  email: string;
-}
-
-export const NEWSLETTER_IDLE: NewsletterState = { status: "idle", message: "", email: "" };
+export {
+  HONEYPOT_FIELD,
+  NEWSLETTER_IDLE,
+  type NewsletterState,
+  type NewsletterStatus,
+} from "./form-state";
 
 export type SaveError = { kind: "unconfigured" | "unavailable" };
 
@@ -23,9 +20,6 @@ export interface SubscribeDeps {
 
 /** Lista padrão (spec §5: newsletter só com e-mail). */
 export const NEWSLETTER_LIST = "diaria";
-
-/** Campo-armadilha: invisível para pessoas; robôs preenchem. */
-export const HONEYPOT_FIELD = "website";
 
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
