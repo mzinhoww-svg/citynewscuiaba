@@ -63,3 +63,51 @@ it("revisão humana leva o nome de quem revisou", () => {
   expect(r.shown.map((l) => l.text)).toEqual(["ORIGINAL CITYNEWS", "REVISADO POR HUMANO"]);
   expect(r.shown[1]!.detail).toBe("Marina");
 });
+
+// Revisão do gate P0
+it("imagem licenciada mantém fonte e crédito", () => {
+  const r = labelsFor({
+    ...base,
+    kind: "original",
+    image: { kind: "licensed", sourceName: "Agência MT", credit: "Ana Lima" },
+  });
+  expect(r.shown[1]).toEqual({
+    kind: "image_licensed",
+    text: "IMAGEM LICENCIADA",
+    detail: "Agência MT · Ana Lima",
+  });
+});
+it("imagem licenciada só com crédito mostra o crédito", () => {
+  const r = labelsFor({
+    ...base,
+    kind: "original",
+    image: { kind: "licensed", credit: "Ana Lima" },
+  });
+  expect(r.shown[1]!.detail).toBe("Ana Lima");
+});
+it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+  "max %d não finito vira 4",
+  (max) => {
+    const r = labelsFor(
+      {
+        ...base,
+        kind: "normalized",
+        sourceCount: 3,
+        hasAiSummary: true,
+        publishMode: "auto",
+        image: { kind: "illustrative" },
+        sponsored: true,
+      },
+      max,
+    );
+    expect(r.shown).toHaveLength(4);
+    expect(r.hidden).toHaveLength(1);
+  },
+);
+it.each([0, undefined, -2, Number.NaN, 1.5])(
+  "normalizado com sourceCount %s não mostra número enganoso",
+  (sourceCount) => {
+    const r = labelsFor({ ...base, kind: "normalized", sourceCount });
+    expect(r.shown[0]).toEqual({ kind: "normalized", text: "NORMALIZADO PELO CITYNEWS" });
+  },
+);

@@ -54,9 +54,14 @@ function textLabel(input: LabelInput): Label {
     case "original":
       return label("original");
     case "normalized":
+      // Só conta positiva e inteira vira detalhe; 0, ausente ou inválida não mostram número.
       return label(
         "normalized",
-        input.sourceCount === undefined ? undefined : sourceCountText(input.sourceCount),
+        input.sourceCount !== undefined &&
+          Number.isInteger(input.sourceCount) &&
+          input.sourceCount > 0
+          ? sourceCountText(input.sourceCount)
+          : undefined,
       );
     case "aggregated":
       return label("aggregated", input.sourceName);
@@ -71,7 +76,7 @@ function imageLabel(image: NonNullable<LabelInput["image"]>): Label {
     case "reproduction":
       return label(kind, joinDetail([image.sourceName, image.credit]));
     case "licensed":
-      return label(kind, joinDetail([image.sourceName ?? image.credit]));
+      return label(kind, joinDetail([image.sourceName, image.credit]));
     case "illustrative":
     case "ai_generated":
       return label(kind);
@@ -80,10 +85,11 @@ function imageLabel(image: NonNullable<LabelInput["image"]>): Label {
 
 /**
  * Rótulos de origem na ordem fixa: texto → IA → imagem → publicação → patrocinado.
- * Os `max` primeiros vão para `shown`; o excedente, para `hidden`.
+ * Os `max` primeiros vão para `shown`; o excedente, para `hidden`. `max` não finito vale 4.
  * Conteúdo agregado nunca recebe rótulo de modo de publicação.
  */
 export function labelsFor(input: LabelInput, max = 4): { shown: Label[]; hidden: Label[] } {
+  const limit = Number.isFinite(max) ? Math.max(0, Math.floor(max)) : 4;
   const all: Label[] = [textLabel(input)];
   if (input.hasAiSummary) all.push(label("ai_summary"));
   if (input.image) all.push(imageLabel(input.image));
@@ -92,6 +98,5 @@ export function labelsFor(input: LabelInput, max = 4): { shown: Label[]; hidden:
     if (input.publishMode === "auto") all.push(label("auto_published"));
   }
   if (input.sponsored) all.push(label("sponsored"));
-  const limit = Math.max(0, max);
   return { shown: all.slice(0, limit), hidden: all.slice(limit) };
 }
