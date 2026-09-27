@@ -23,7 +23,7 @@
 | docker | ausente | A-017 |
 | agent-browser | ausente | Playwright + Chromium pré-instalado (`/opt/pw-browsers`) fazem o roteiro exploratório com screenshots |
 | Postgres | 16.13 + pgvector + pg_cron instalados via apt | — |
-| Supabase remoto | org free com 2 projetos ativos, criação recusada | B-007 (decisão do dono) |
+| Supabase remoto | `citynews-prod` criado (ref `vmvirmemxfdtxfdmivuu`, sa-east-1) após pausar `listada-escola` | A-019 |
 | Variáveis de `.env.example` | nenhuma presente (`OPENROUTER_API_KEY` ausente) | `AI_PROVIDER=fake` (A-018, B-008) |
 | Branch de trabalho | `claude/keen-hypatia-8qn86r` | A-016 |
 
@@ -43,4 +43,4 @@
 
 ## Decisão do dono necessária
 
-- **B-007 · Supabase de produção.** A conta Supabase atingiu o limite de 2 projetos free ativos (`listada-escola` e `ListaEscolar`). Para ter banco em produção é preciso pausar um deles (ou liberar cota). Eu não pausei nada porque é ação fora do repositório. Enquanto isso, tudo roda na pilha local e o portal em produção funciona em modo sem banco.
+(vazio; B-007 resolvido com A-019)
