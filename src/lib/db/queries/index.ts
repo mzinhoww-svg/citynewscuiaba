@@ -23,5 +23,14 @@ export {
   type SectionFilters,
   type SectionPage,
 } from "./sections";
+export {
+  getRecConfig,
+  getSource,
+  getSourceSignals,
+  listSourceItems,
+  SOURCE_LOCALITIES,
+  type SourceLocality,
+  type SourceSignalsQuery,
+} from "./sources";
 export { getTopicBySlug, listTopics, topicHref, type TopicListFilters } from "./topics";
 export type * from "./types";

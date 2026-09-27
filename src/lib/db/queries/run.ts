@@ -1,5 +1,10 @@
 import "server-only";
-import { createPublicClient, type DbClient, type PublicCache } from "@/lib/db/client";
+import {
+  createPublicClient,
+  createServiceClient,
+  type DbClient,
+  type PublicCache,
+} from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import { err, ok, type Result } from "@/lib/result";
 import type { QueryError } from "./types";
@@ -29,6 +34,27 @@ export async function readPublic<T>(
   }
   try {
     return ok(await fn(db, (c) => createPublicClient(c)));
+  } catch (e) {
+    return err({ kind: "unavailable", message: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+/**
+ * Leitura de servidor com service role (dados que não são públicos, como estatísticas de fonte
+ * e pesos de recomendação). Mesmo contrato de `readPublic`: nunca lança.
+ */
+export async function readService<T>(
+  fn: (db: DbClient) => Promise<T>,
+): Promise<Result<T, QueryError>> {
+  let db: DbClient;
+  try {
+    db = createServiceClient();
+  } catch (e) {
+    if (e instanceof SupabaseEnvError) return err({ kind: "unconfigured" });
+    throw e;
+  }
+  try {
+    return ok(await fn(db));
   } catch (e) {
     return err({ kind: "unavailable", message: e instanceof Error ? e.message : String(e) });
   }

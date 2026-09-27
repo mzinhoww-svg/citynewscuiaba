@@ -17,3 +17,16 @@ export {
 } from "./score";
 export { isQualifiedRead, isWeakSignal } from "@/lib/events/weak";
 export type * from "./types";
+export {
+  computeSignals,
+  decayWeight,
+  formatReach,
+  operationalScore,
+  percentiles,
+  type ComputedSignals,
+  type FetchHealth,
+  type ReaderEvent,
+  type SourceRawInput,
+  type SourceStatsDay,
+  type TrendDirection,
+} from "./signals";

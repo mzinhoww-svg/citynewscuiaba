@@ -1,5 +1,6 @@
 import type { ConfidenceLevel } from "@/lib/confidence";
 import type { ImageKind, Label } from "@/lib/labels";
+import type { ComputedSignals } from "@/lib/ranking";
 
 /**
  * Tipos de leitura do portal público (P1-T1). Os componentes recebem estes dados prontos,
@@ -250,3 +251,19 @@ export interface HomeData {
   sources: SourceView[];
   aggregated: AggregatedView[];
 }
+
+/**
+ * Fonte com sinais de ranking normalizados (P2-T5) e dados do card (DESIGN.md §6).
+ * `reach` é a soma de sessões em 30 dias: a interface só mostra o aproximado (`formatReach`).
+ */
+export type SourceEntry = ComputedSignals & {
+  id: string;
+  name: string;
+  href: string;
+  baseUrl: string;
+  categories: string[];
+  reliability: "primary" | "verified" | "standard" | "low";
+  itemsToday: number;
+  /** Último item publicado pela fonte (ou última coleta). */
+  lastUpdatedAt: string | null;
+};

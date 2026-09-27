@@ -426,3 +426,36 @@ update topics set
 -- P1-T8 · agenda: a noite de rasqueado vai até 1h30 (evento que atravessa a meia-noite no .ics)
 -- ---------------------------------------------------------------------------
 update event_listings set ends_at = '2026-10-17 01:30-04' where slug = 'noite-de-rasqueado-no-sesc-arsenal';
+
+-- ---------------------------------------------------------------------------
+-- P2-T5 · ranking de fontes: 30 dias de estatísticas diárias (relativas à data do reset, dia de
+-- Cuiabá) e histórico de coleta. Placar MT sobe na semana (em alta); Correio Mato-grossense cai.
+-- Cena Cuiabana tem 3 falhas seguidas de coleta (qualidade operacional ≤ 0,2).
+-- ---------------------------------------------------------------------------
+with base (slug, sessions, trend) as (values
+  ('folha-do-cerrado', 620, 0.0), ('diario-da-baixada', 410, 0.0), ('mt-agora', 380, 0.1),
+  ('portal-varzea', 150, 0.0), ('radio-pantanal', 210, 0.05), ('correio-mato-grossense', 170, -0.3),
+  ('agro-em-pauta-mt', 120, 0.0), ('cena-cuiabana', 90, 0.1), ('placar-mt', 160, 0.9),
+  ('agencia-mt', 300, 0.0), ('diario-oficial-de-cuiaba', 80, 0.0), ('brasil-hoje', 140, -0.1)
+), days as (
+  select g as ago, (now() at time zone 'America/Cuiaba')::date - g as day from generate_series(1, 30) g
+)
+insert into source_stats_daily (day, source_id, locality, sessions, clicks, reads, avg_read_seconds, saves, shares, returns, follows)
+select d.day, s.id, s.locality, v.n, round(v.n * 1.3)::int, round(v.n * 0.4)::int, 72.5,
+       round(v.n * 0.03)::int, round(v.n * 0.02)::int, round(v.n * 0.1)::int, round(v.n * 0.01)::int
+from base b
+join sources s on s.slug = b.slug
+cross join days d
+cross join lateral (
+  select greatest(1, round(b.sessions * (1 + b.trend * greatest(0, 8 - d.ago) / 7.0)
+                           * (1 + 0.05 * ((d.ago + length(b.slug)) % 3))))::int as n
+) v;
+
+-- Coletas dos últimos dias (etapa fetch): sucesso a cada 6 h; Cena Cuiabana falha nas 3 últimas.
+insert into pipeline_events (at, step, item_ref, level, message, details)
+select now() - make_interval(hours => 6 * g), 'fetch', 'source:' || s.slug,
+       case when s.slug = 'cena-cuiabana' and g <= 3 then 'error' else 'info' end,
+       case when s.slug = 'cena-cuiabana' and g <= 3 then 'HTTP 503 em ' || s.feed_url else 'ok' end,
+       jsonb_build_object('attempt', 1, 'seed', true)
+from sources s
+cross join generate_series(1, 12) g;

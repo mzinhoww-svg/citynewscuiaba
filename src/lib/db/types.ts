@@ -1955,6 +1955,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      source_fetch_health: {
+        Row: {
+          consecutive_failures: number | null;
+          ok: number | null;
+          slug: string | null;
+          total: number | null;
+        };
+        Relationships: [];
+      };
+      source_item_stats: {
+        Row: {
+          items_24h: number | null;
+          items_today: number | null;
+          last_item_at: string | null;
+          source_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "collected_items_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collected_items_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Functions: {
       ai_spend_since: {
@@ -2079,6 +2112,7 @@ export type Database = {
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
+      refresh_source_stats_daily: { Args: { p_day?: string }; Returns: number };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;

@@ -53,7 +53,7 @@ export interface SourceSignals {
   matchesSearch?: boolean;
   /** A fonte cobre uma editoria que o leitor acompanha (com Personalização). */
   matchesTopic?: boolean;
-  /** A fonte é da mesma editoria e localidade das que o leitor lê (com Personalização). */
+  /** A fonte cobre as mesmas editorias das que o leitor lê, sem ele a ler ainda (com Personalização). */
   similar?: boolean;
 }
 

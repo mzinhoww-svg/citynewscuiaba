@@ -42,7 +42,7 @@ export function reasonFor(
     if (s.matchesTopic) return "topic";
     if (s.recentVisit) return "recent_visit";
     if (s.individual > 0 && s.locality === "cuiaba") return "local_follow";
-    if (s.individual > 0 && s.similar) return "similar";
+    if (s.similar) return "similar";
   }
   if (s.locality === "cuiaba") return "local_popular";
   if (s.trend >= TRENDING_MIN) return "trending";
