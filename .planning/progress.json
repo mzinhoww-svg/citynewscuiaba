@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T17:17:42.972Z",
+  "updatedAt": "2026-09-27T17:19:25.719Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -155,44 +155,44 @@
           "id": "P1-T1",
           "title": "Queries de leitura",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "6372297",
           "notes": ""
         },
         {
           "id": "P1-T2",
           "title": "Componentes de origem e confiança",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "dd8b5e6",
           "notes": ""
         },
         {
           "id": "P1-T3",
           "title": "Cards editoriais",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "f4b5e15",
           "notes": ""
         },
         {
           "id": "P1-T4",
           "title": "Home",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "cceb5c0",
           "notes": ""
         },
         {
           "id": "P1-T5",
           "title": "Editoria",
           "parallel": false,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
