@@ -244,7 +244,12 @@
  * contêiner do input.
  */
 @utility border-control {
-  border: 1px solid var(--border-control);
+  border: 1px solid var(--cn-field-border, var(--border-control));
+}
+
+/* Estado de erro do campo: troca só a cor da borda de controle. */
+@utility field-error {
+  --cn-field-border: var(--text-danger);
 }
 
 /*
@@ -306,6 +311,50 @@
 }
 @utility pb-tabbar-safe {
   padding-bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
+
+/* Slider nativo (input range): trilho com preenchimento Urucum até --cn-range-fill. */
+@utility cn-range {
+  appearance: none;
+  background: transparent;
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: linear-gradient(
+      to right,
+      var(--accent) var(--cn-range-fill, 0%),
+      var(--border-control) var(--cn-range-fill, 0%)
+    );
+  }
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: var(--border-control);
+  }
+  &::-moz-range-progress {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: var(--accent);
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+    border-radius: var(--r-pill);
+    background: var(--cn-branco);
+    border: 3px solid var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border-radius: var(--r-pill);
+    background: var(--cn-branco);
+    border: 3px solid var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 @utility scrollbar-none {

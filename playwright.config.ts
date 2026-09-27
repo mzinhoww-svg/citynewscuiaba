@@ -40,6 +40,8 @@ export default defineConfig({
   ],
   webServer: {
     command: "pnpm build && pnpm start",
+    // Libera a vitrine /design-system no build de produção para o teste de a11y (P0-T9b).
+    env: { CN_SHOW_DS: "1" },
     port: 3000,
     reuseExistingServer: !isCI,
     timeout: 240_000,
