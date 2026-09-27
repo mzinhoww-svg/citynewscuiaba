@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T17:19:25.719Z",
+  "updatedAt": "2026-09-27T17:43:45.344Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -309,35 +309,35 @@
           "id": "P3-T4",
           "title": "Dedupe e cluster",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "71b842b",
           "notes": ""
         },
         {
           "id": "P3-T5",
           "title": "Camada de IA",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "a67f3af",
           "notes": ""
         },
         {
           "id": "P3-T6",
           "title": "Classify, locate, verify",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "3fafa04",
           "notes": ""
         },
         {
           "id": "P3-T7",
           "title": "Mídia",
           "parallel": false,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
