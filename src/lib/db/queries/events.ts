@@ -17,6 +17,10 @@ export interface EventFilters {
   category?: string;
   neighborhood?: string;
   freeOnly?: boolean;
+  /** Só classificação livre (para crianças). */
+  kidsOnly?: boolean;
+  origin?: "official" | "organizer" | "reader";
+  excludeId?: string;
   limit?: number;
 }
 
@@ -41,6 +45,7 @@ function toView(r: EventRow): EventView {
     accessibility: r.accessibility,
     origin: r.origin === "official" || r.origin === "reader" ? r.origin : "organizer",
     description: r.description,
+    confirmedAt: r.confirmed_at,
   };
 }
 
@@ -60,10 +65,13 @@ export async function fetchEvents(
     .order("starts_at", { ascending: true })
     .limit(Math.max(1, Math.min(f.limit ?? 50, 100)));
   const to = f.to ? new Date(f.to) : null;
-  if (to && !Number.isNaN(to.getTime())) q = q.lte("starts_at", to.toISOString());
+  if (to && !Number.isNaN(to.getTime())) q = q.lt("starts_at", to.toISOString());
   if (f.category) q = q.eq("category", f.category);
   if (f.neighborhood) q = q.eq("neighborhood", f.neighborhood);
   if (f.freeOnly) q = q.eq("is_free", true);
+  if (f.kidsOnly) q = q.eq("age_rating", "livre");
+  if (f.origin) q = q.eq("origin", f.origin);
+  if (f.excludeId) q = q.neq("id", f.excludeId);
   return (await q.then(many)).map(toView);
 }
 

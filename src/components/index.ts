@@ -89,6 +89,17 @@ export { Timeline, type TimelineProps } from "./editorial/Timeline";
 export { TopicCoverage, type TopicCoverageProps } from "./editorial/TopicCoverage";
 export { TopicFaq, type TopicFaqProps } from "./editorial/TopicFaq";
 
+export {
+  AgendaCalendar,
+  type AgendaCalendarProps,
+  type CalendarDay,
+} from "./editorial/AgendaCalendar";
+
+export {
+  EventSuggestionForm,
+  type EventSuggestionFormProps,
+} from "./editorial/EventSuggestionForm";
+
 /* studio */
 export {
   StudioShell,

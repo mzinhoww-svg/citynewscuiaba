@@ -81,3 +81,25 @@ export async function saveReport(r: {
     if (error) throw new Error(error.message);
   });
 }
+
+/** Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h. */
+export async function saveEventSubmission(s: {
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  venue: string;
+  neighborhood: string | null;
+  priceCents: number | null;
+  ageRating: string;
+  link: string | null;
+  description: string | null;
+  contactEmail: string;
+}): Promise<Result<void, WriteError>> {
+  return withService(async (db) => {
+    const { contactEmail, ...payload } = s;
+    const { error } = await db
+      .from("event_submissions")
+      .insert({ payload, contact_email: contactEmail });
+    if (error) throw new Error(error.message);
+  });
+}

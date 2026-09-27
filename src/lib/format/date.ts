@@ -141,3 +141,34 @@ export function formatDateTime(iso: string): string {
   const p = parts(d);
   return `${p.day}/${p.month}/${p.year}, ${hourText(p.hour, p.minute)}`;
 }
+
+/** Instante da meia-noite de Cuiabá do dia "2026-10-03". */
+export function dayStart(key: string): Date {
+  const [y, m, d] = key.split("-").map(Number);
+  const guess = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1, 12));
+  return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1) - zoneOffsetMinutes(guess) * MINUTE);
+}
+
+/** Dia da semana em Cuiabá (0 = domingo). */
+export function localWeekday(d: Date): number {
+  return new Date(`${localDateKey(d)}T12:00:00Z`).getUTCDay();
+}
+
+/** Soma dias a uma data local "AAAA-MM-DD". */
+export function addDays(key: string, n: number): string {
+  const d = new Date(`${key}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+const monthYearFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "UTC",
+  month: "long",
+  year: "numeric",
+});
+
+/** "outubro de 2026" a partir de "2026-10". */
+export function formatMonthYear(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return monthYearFormatter.format(new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, 15)));
+}

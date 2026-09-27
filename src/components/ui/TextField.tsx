@@ -11,7 +11,9 @@ export interface TextFieldProps {
   /** Rótulo sempre visível. */
   label: string;
   icon?: IconName;
-  type?: "text" | "email" | "password" | "tel";
+  type?: "text" | "email" | "password" | "tel" | "url" | "datetime-local";
+  inputMode?: "text" | "decimal" | "numeric" | "email" | "url";
+  maxLength?: number;
   name?: string;
   placeholder?: string;
   value?: string;
@@ -51,6 +53,8 @@ export function TextField({
   onChange,
   autoComplete,
   required,
+  inputMode,
+  maxLength,
   hint,
   error,
   disabled = false,
@@ -88,6 +92,8 @@ export function TextField({
           onChange={onChange}
           autoComplete={autoComplete}
           required={required}
+          inputMode={inputMode}
+          maxLength={maxLength}
           disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}

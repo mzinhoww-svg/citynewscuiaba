@@ -177,6 +177,8 @@ export interface EventView {
   accessibility: string | null;
   origin: "official" | "organizer" | "reader";
   description: string | null;
+  /** Quando a organização (ou a fonte oficial) confirmou as informações. */
+  confirmedAt: string | null;
 }
 
 export interface CollectionView {

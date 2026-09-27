@@ -415,3 +415,8 @@ update topics set
   faq = '[{"q":"Qual horário evitar atividade ao ar livre?","a":"Entre 11h e 17h, segundo a Defesa Civil."}]',
   summary_reviewed_by = 'c1000000-0000-4000-8000-000000000002'
  where slug = 'seca-e-fumaca-na-baixada-cuiabana';
+
+-- ---------------------------------------------------------------------------
+-- P1-T8 · agenda: a noite de rasqueado vai até 1h30 (evento que atravessa a meia-noite no .ics)
+-- ---------------------------------------------------------------------------
+update event_listings set ends_at = '2026-10-17 01:30-04' where slug = 'noite-de-rasqueado-no-sesc-arsenal';
