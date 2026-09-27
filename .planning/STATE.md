@@ -50,4 +50,4 @@
 
 ## Decisão do dono necessária
 
-- **Escrita em produção (B-009).** O classificador de permissões bloqueou aplicar migrations no `citynews-prod` e criar o projeto na Vercel. Pedido ao dono em 27/09: autorizar na conversa ou liberar as ferramentas MCP do Supabase e da Vercel. Todo o resto segue local.
+(vazio; B-009 autorizado em 27/09. Pendências de configuração do dono: B-012 repositório público, B-013 service role e CRON_SECRET na Vercel, B-008 chave OpenRouter, B-006 Google OAuth, B-010 secrets do GitHub)
