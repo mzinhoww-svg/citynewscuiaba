@@ -1,0 +1,77 @@
+/* Página offline (P25): estática, sem script, cores dos tokens (DESIGN.md §3). */
+:root {
+  color-scheme: light dark;
+  --tinta: #0f1b2d;
+  --nevoa: #f3f5f8;
+  --grafite: #4a4f57;
+  --urucum: #e8491d;
+  --foco: #e8491d;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--nevoa);
+  color: var(--tinta);
+  font: 1rem/1.5 system-ui, sans-serif;
+}
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 3rem 1rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+}
+.dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--urucum);
+}
+h1 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+}
+p {
+  color: var(--grafite);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 1.5rem;
+  border-radius: 999px;
+  background: var(--tinta);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+.actions a.secondary {
+  background: transparent;
+  color: var(--tinta);
+  border: 1px solid #7d8591;
+}
+a:focus-visible {
+  outline: 3px solid var(--foco);
+  outline-offset: 2px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tinta: #e8edf4;
+    --nevoa: #0f1b2d;
+    --grafite: #b9c1cc;
+  }
+  .actions a {
+    color: #0f1b2d;
+  }
+}

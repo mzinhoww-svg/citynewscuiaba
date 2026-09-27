@@ -475,3 +475,10 @@ export async function getArticleHistory(
     };
   });
 }
+
+/** id da matéria pública pelo slug (direito de resposta); null se não existe ou saiu do ar. */
+export async function findPublicArticleId(
+  slug: string,
+): Promise<Result<string | null, QueryError>> {
+  return readPublic((db) => idForSlug(db, slug));
+}

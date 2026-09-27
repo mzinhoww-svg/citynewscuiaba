@@ -190,6 +190,15 @@ export interface CollectionView {
   itemCount: number;
 }
 
+/** Correção publicada (P24, /correcoes). */
+export interface PublicCorrection {
+  id: string;
+  kind: "correction" | "right_of_reply";
+  note: string;
+  publishedAt: string;
+  article: { title: string; href: string } | null;
+}
+
 /** Coleção com capa e itens em ordem (P08). */
 export type CollectionEntry =
   | { kind: "article"; item: ArticleSummary }

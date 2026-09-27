@@ -60,6 +60,16 @@ export {
   type SectionFiltersFormProps,
 } from "./editorial/SectionFiltersForm";
 export { ServiceTile, type ServiceTileProps } from "./editorial/ServiceTile";
+export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
+export {
+  GoneState,
+  NotFoundState,
+  SystemState,
+  type SystemStateProps,
+} from "./editorial/SystemState";
+export { ErrorState, type ErrorStateProps } from "./editorial/ErrorState";
+export { RightOfReplyForm, type RightOfReplyFormProps } from "./editorial/RightOfReplyForm";
+export { DocPage, type DocPageProps } from "./editorial/DocPage";
 export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";

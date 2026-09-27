@@ -10,6 +10,7 @@ import {
   ConfidenceMeter,
   CorrectionNote,
   EmptyState,
+  GoneState,
   MadeHow,
   OriginLabel,
   Photo,
@@ -24,6 +25,7 @@ import {
 } from "@/components";
 import { ARTICLE, CARD, SECTION_PAGE } from "@/content/pt-BR/portal";
 import { SITE } from "@/content/pt-BR/site";
+import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
 import { formatDateTime } from "@/lib/format/date";
 import { articleJsonLd, ldScript } from "@/lib/seo/jsonld";
@@ -50,6 +52,9 @@ async function load(slug: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const r = await load(slug);
+  if (r?.ok && r.value && "gone" in r.value) {
+    return { title: SYSTEM.goneMeta, robots: { index: false, follow: true } };
+  }
   if (!r?.ok || !r.value || "gone" in r.value) return { title: SITE.name };
   const a = r.value;
   return {
@@ -348,30 +353,6 @@ function Article({ a }: { a: ArticleView }) {
   );
 }
 
-function Gone({ reason }: { reason: string }) {
-  return (
-    <div className={`${CONTAINER} py-10`}>
-      <EmptyState
-        as="h1"
-        icon="circle-alert"
-        title={ARTICLE.goneTitle}
-        actions={
-          <>
-            <Button href="/correcoes" size="md">
-              {ARTICLE.goneCorrections}
-            </Button>
-            <Button href="/" size="md" variant="outline">
-              {SECTION_PAGE.backHome}
-            </Button>
-          </>
-        }
-      >
-        <p>{reason}</p>
-      </EmptyState>
-    </div>
-  );
-}
-
 export default async function ArticleRoute({ params }: Props) {
   const { slug } = await params;
   const result = await load(slug);
@@ -399,7 +380,7 @@ export default async function ArticleRoute({ params }: Props) {
     );
   }
   if (!result.value) notFound();
-  // 410 com motivo é a Task 10 (P25); aqui já mostramos o motivo em vez de 404.
-  if ("gone" in result.value) return <Gone reason={result.value.reason} />;
+  // O status 410 vem do proxy (src/proxy.ts); a página mostra o motivo (P25, Review Focus 2).
+  if ("gone" in result.value) return <GoneState reason={result.value.reason} />;
   return <Article a={result.value} />;
 }
