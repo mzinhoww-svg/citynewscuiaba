@@ -5,7 +5,7 @@ import type { Result } from "@/lib/result";
 import { many, one, readPublic } from "./run";
 import type { EventView, QueryError } from "./types";
 
-type EventRow = Database["public"]["Tables"]["event_listings"]["Row"];
+type EventRow = Omit<Database["public"]["Tables"]["event_listings"]["Row"], "tsv">;
 
 export const EVENT_COLUMNS =
   "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description";

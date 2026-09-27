@@ -36,6 +36,10 @@ const ROUTES = [
   "/termos",
   "/anuncie",
   "/contato",
+  "/busca",
+  "/busca?q=onibus+cpa",
+  "/busca?q=viaduto&origem=outros",
+  "/busca?q=viadutu",
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];

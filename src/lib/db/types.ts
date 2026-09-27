@@ -522,6 +522,7 @@ export type Database = {
           source_id: string;
           tags: string[];
           topic_id: string | null;
+          tsv: unknown;
         };
         Insert: {
           author?: string | null;
@@ -546,6 +547,7 @@ export type Database = {
           source_id: string;
           tags?: string[];
           topic_id?: string | null;
+          tsv?: unknown;
         };
         Update: {
           author?: string | null;
@@ -570,6 +572,7 @@ export type Database = {
           source_id?: string;
           tags?: string[];
           topic_id?: string | null;
+          tsv?: unknown;
         };
         Relationships: [
           {
@@ -784,6 +787,7 @@ export type Database = {
           slug: string;
           starts_at: string;
           title: string;
+          tsv: unknown;
           venue: string;
         };
         Insert: {
@@ -801,6 +805,7 @@ export type Database = {
           slug: string;
           starts_at: string;
           title: string;
+          tsv?: unknown;
           venue: string;
         };
         Update: {
@@ -818,6 +823,7 @@ export type Database = {
           slug?: string;
           starts_at?: string;
           title?: string;
+          tsv?: unknown;
           venue?: string;
         };
         Relationships: [];
@@ -1722,6 +1728,7 @@ export type Database = {
           summary: string | null;
           summary_reviewed_by: string | null;
           title: string;
+          tsv: unknown;
           unconfirmed: string[];
           updated_at: string;
         };
@@ -1740,6 +1747,7 @@ export type Database = {
           summary?: string | null;
           summary_reviewed_by?: string | null;
           title: string;
+          tsv?: unknown;
           unconfirmed?: string[];
           updated_at?: string;
         };
@@ -1758,6 +1766,7 @@ export type Database = {
           summary?: string | null;
           summary_reviewed_by?: string | null;
           title?: string;
+          tsv?: unknown;
           unconfirmed?: string[];
           updated_at?: string;
         };
@@ -1955,9 +1964,11 @@ export type Database = {
           cost_brl: number;
         }[];
       };
+      article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
       article_section: { Args: { article: string }; Returns: string };
+      article_tsv: { Args: { p_body: Json; p_dek: string; p_title: string }; Returns: unknown };
       attach_item_to_topic: {
         Args: { p_id: string; p_now: string; p_topic: string };
         Returns: undefined;
@@ -2079,6 +2090,33 @@ export type Database = {
         }[];
       };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      search_did_you_mean: { Args: { p_q: string }; Returns: string };
+      search_hybrid: {
+        Args: {
+          p_embedding?: string;
+          p_filters?: Json;
+          p_k?: number;
+          p_limit?: number;
+          p_q: string;
+        };
+        Returns: {
+          fts_rank: number;
+          id: string;
+          kind: string;
+          matched: number;
+          score: number;
+          topic_id: string;
+          vec_rank: number;
+        }[];
+      };
+      search_suggest: {
+        Args: { p_limit?: number; p_prefix: string };
+        Returns: {
+          suggestion: string;
+        }[];
+      };
+      show_limit: { Args: Record<PropertyKey, never>; Returns: number };
+      show_trgm: { Args: { "": string }; Returns: string[] };
       start_ingest_run: {
         Args: { p_window: string };
         Returns: {

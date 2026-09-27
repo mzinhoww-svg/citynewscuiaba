@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /*
- * docs/testing.md §2, item 1: visitante lê sem conta e sem convite bloqueante. Busca (P3) e
- * Fontes (P2) ainda não existem neste branch: a visita precisa responder sem erro de servidor
- * e sem bloqueio; o conteúdo delas é testado nas fases que as entregam.
+ * docs/testing.md §2, item 1: visitante lê sem conta e sem convite bloqueante. Fontes (P2)
+ * ainda não existe neste branch: a visita precisa responder sem erro de servidor e sem
+ * bloqueio; o conteúdo é testado na fase que a entrega. Busca (P3-T10): tests/e2e/search.spec.ts.
  */
 const PAGES = [
   { path: "/", h1: true },

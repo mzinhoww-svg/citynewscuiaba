@@ -60,6 +60,15 @@ export {
   type SectionFiltersFormProps,
 } from "./editorial/SectionFiltersForm";
 export { ServiceTile, type ServiceTileProps } from "./editorial/ServiceTile";
+export { Highlight, type HighlightProps } from "./editorial/Highlight";
+export { SearchBox, type SearchBoxProps } from "./editorial/SearchBox";
+export { SearchFiltersBar, type SearchFiltersBarProps } from "./editorial/SearchFiltersBar";
+export {
+  SearchGroupBlock,
+  SearchResultItem,
+  type SearchGroupBlockProps,
+  type SearchResultItemProps,
+} from "./editorial/SearchResults";
 export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
 export {
   GoneState,
