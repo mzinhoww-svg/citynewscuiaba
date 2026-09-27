@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T16:01:48.059Z",
+  "updatedAt": "2026-09-27T16:26:18.733Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -108,19 +108,19 @@
           "id": "P0-T9",
           "title": "Shells de layout e página de status",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "383de31",
           "notes": ""
         },
         {
           "id": "P0-T9b",
           "title": "Portar o brand kit para TSX e regra de aderência",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "9559129",
+          "notes": "TabBar por href; overlays com <dialog> nativo; Papel→Névoa; accent Tinta sobre Urgente"
         },
         {
           "id": "P0-T10",

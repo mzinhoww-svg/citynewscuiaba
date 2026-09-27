@@ -10,4 +10,4 @@
 | B-006 | 2026-09-27 | P2-T11 | Google OAuth precisa de Client ID e Secret criados no Google Cloud Console | Botão Google atrás da flag `google_login` até as credenciais existirem | Credenciais cadastradas no Supabase | aberto |
 | B-007 | 2026-09-27 | kickoff | Supabase recusou criar `citynews-prod`: a conta já tem 2 projetos free ativos (`listada-escola`, `ListaEscolar`), que é o limite do plano free | Pilha local (A-017) para desenvolvimento e testes; produção fica sem banco remoto até haver cota. Pausar ou apagar projetos existentes é ação fora do repositório, então não foi feita | Dono pausar um projeto existente ou liberar cota; aí `citynews-prod` é criado e as migrations aplicadas | resolvido em 27/09: dono mandou pausar `listada-escola`; `citynews-prod` criado (A-019) |
 | B-008 | 2026-09-27 | kickoff | `OPENROUTER_API_KEY` não está no ambiente do container | `AI_PROVIDER=fake` (A-018) | Chave configurada na Vercel | aberto |
-
+| B-009 | 2026-09-27 | P0-T10 | Auto mode bloqueou escrita em produção (migrations no `citynews-prod`, projeto Vercel) | Desenvolvimento e gates na pilha local e em `next start` | Dono autorizar | aberto, **decisão do dono** |

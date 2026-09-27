@@ -6,9 +6,9 @@
 ## Fase e tarefa
 
 - **Fase ativa:** P0 Fundação
-- **Tarefa ativa:** P0-T9
-- **Próxima tarefa:** P0-T9 Shells de layout e página de status
-- **Progresso:** 8/70 tarefas · 0/7 fases
+- **Tarefa ativa:** P0-T10
+- **Próxima tarefa:** P0-T10 CI, GitHub e Vercel
+- **Progresso:** 10/70 tarefas · 0/7 fases
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -38,6 +38,7 @@
 | 2026-09-27 | kit | e14a386 | kit importado |
 | 2026-09-27 | P0-T1..T6 | 93f0c13 | verify verde, 56 testes |
 | 2026-09-27 | P0-T7..T8 | b076479 | verify verde, 178 testes (7 integração) |
+| 2026-09-27 | P0-T9..T9b | 9559129 | verify verde, 227 testes; e2e 24/24; axe 0 serious |
 
 ## Degradados abertos
 
@@ -45,4 +46,4 @@
 
 ## Decisão do dono necessária
 
-(vazio; B-007 resolvido com A-019)
+- **Escrita em produção (B-009).** O classificador de permissões bloqueou aplicar migrations no `citynews-prod` e criar o projeto na Vercel. Pedido ao dono em 27/09: autorizar na conversa ou liberar as ferramentas MCP do Supabase e da Vercel. Todo o resto segue local.
