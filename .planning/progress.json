@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T18:18:18.009Z",
+  "updatedAt": "2026-09-27T18:56:27.204Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -227,36 +227,36 @@
           "id": "P1-T9",
           "title": "Explorar e coleções",
           "parallel": true,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
+          "commit": "c8cc34b",
           "notes": ""
         },
         {
           "id": "P1-T10",
           "title": "Institucionais e estados de sistema",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "057958d",
           "notes": ""
         },
         {
           "id": "P1-T11",
           "title": "SEO técnico",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "185f444",
           "notes": ""
         },
         {
           "id": "P1-T12",
           "title": "Acessibilidade, verificação e relatório da fase",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "19c7444",
           "notes": ""
         }
       ]

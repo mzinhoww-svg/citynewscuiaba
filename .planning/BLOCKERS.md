@@ -12,3 +12,4 @@
 | B-008 | 2026-09-27 | kickoff | `OPENROUTER_API_KEY` não está no ambiente do container | `AI_PROVIDER=fake` (A-018) | Chave configurada na Vercel | aberto |
 | B-009 | 2026-09-27 | P0-T10 | Auto mode bloqueou escrita em produção (migrations no `citynews-prod`, projeto Vercel) | Desenvolvimento e gates na pilha local e em `next start` | Dono autorizar | aberto, **decisão do dono** |
 | B-010 | 2026-09-27 | P0-T10 | Secrets do GitHub (`APP_URL`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL` do session pooler, `BACKUP_PASSPHRASE`) não existem | Watchdog e backup saem com aviso sem falhar | Dono cadastrar os secrets | aberto, não bloqueia |
+| B-011 | 2026-09-27 | P1-T12 | JS inicial da home 191 kB gzip (meta 170 kB); React DOM + runtime do Next ≈ 140 kB | Registrado; zod removido do cliente | P6 (ícones por import individual, dividir textos do cliente) | aberto |
