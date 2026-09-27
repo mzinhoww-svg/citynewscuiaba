@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T16:53:15.541Z",
+  "updatedAt": "2026-09-27T17:17:42.972Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -282,35 +282,35 @@
           "id": "P3-T1",
           "title": "Extensões e filas",
           "parallel": false,
-          "status": "in_progress",
+          "status": "done",
           "attempts": 1,
-          "commit": null,
-          "notes": ""
+          "commit": "178ec07",
+          "notes": "branch p3-pipeline; fila em tabela jobs (A-029)"
         },
         {
           "id": "P3-T2",
           "title": "Tick e drain",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "85ee9a3",
           "notes": ""
         },
         {
           "id": "P3-T3",
           "title": "Fetch, validate, extract, normalize",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "dc8f82f",
           "notes": ""
         },
         {
           "id": "P3-T4",
           "title": "Dedupe e cluster",
           "parallel": false,
-          "status": "pending",
-          "attempts": 0,
+          "status": "in_progress",
+          "attempts": 1,
           "commit": null,
           "notes": ""
         },
