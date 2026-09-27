@@ -104,16 +104,20 @@ insert into rec_weights (version, weights, cap, discovery_every, proposed_by, ap
 -- ---------------------------------------------------------------------------
 -- Assuntos (3)
 -- ---------------------------------------------------------------------------
-insert into topics (id, slug, title, summary, state, confidence, confidence_score, section_slug, first_seen_at, updated_at) values
+insert into topics (id, slug, title, summary, state, confidence, confidence_score, section_slug, first_seen_at, updated_at, visibility) values
  ('c4000000-0000-4000-8000-000000000001','plano-de-onibus-cpa-centro','Novo plano de ônibus entre CPA e Centro',
   'A prefeitura reorganiza as linhas que ligam o CPA ao Centro a partir de outubro, com uma linha expressa e novos horários nos fins de semana.',
-  'confirmado','alta',0.88,'cidade','2026-09-18 08:10-04','2026-09-26 17:40-04'),
+  'confirmado','alta',0.88,'cidade','2026-09-18 08:10-04','2026-09-26 17:40-04','public'),
  ('c4000000-0000-4000-8000-000000000002','obra-do-viaduto-na-miguel-sutil','Obra do viaduto na avenida Miguel Sutil',
   'A construção do viaduto na Miguel Sutil entra em nova fase, com interdição parcial de faixas e desvios pelo bairro. O prazo final ainda não foi confirmado.',
-  'em_apuracao','média',0.72,'cidade','2026-09-20 09:30-04','2026-09-26 12:15-04'),
+  'em_apuracao','média',0.72,'cidade','2026-09-20 09:30-04','2026-09-26 12:15-04','public'),
  ('c4000000-0000-4000-8000-000000000003','seca-e-fumaca-na-baixada-cuiabana','Seca e fumaça na Baixada Cuiabana',
   'A umidade do ar abaixo de 15% e a fumaça das queimadas pioram a qualidade do ar em Cuiabá e Várzea Grande; a Defesa Civil mantém alerta.',
-  'confirmado','alta',0.91,'clima','2026-09-15 07:00-04','2026-09-27 08:05-04');
+  'confirmado','alta',0.91,'clima','2026-09-15 07:00-04','2026-09-27 08:05-04','public'),
+ -- Assunto aberto pelo pipeline, ainda sem matéria: interno, com título provisório (nunca a
+ -- manchete de um veículo); fora do portal, das listas e do sitemap até uma matéria ser publicada.
+ ('c4000000-0000-4000-8000-000000000004','apuracao-c3000017','Assunto em apuração',null,
+  'em_apuracao','baixa',0.40,'economia','2026-09-21 10:05-04','2026-09-22 15:10-04','internal');
 
 -- ---------------------------------------------------------------------------
 -- Itens coletados (30), só de veículos fictícios. 2 duplicados (duplicate_of preenchido).
@@ -135,9 +139,9 @@ insert into collected_items (id, source_id, canonical_url, original_title, excer
  ('c3000000-0000-4000-8000-000000000014','c5000000-0000-4000-8000-000000000004','https://portalvarzea.example/cidade/focos-de-queimada-varzea-grande','Focos de queimada em terrenos baldios preocupam moradores de Várzea Grande',null,'Portal Várzea','2026-09-25 16:30-04',null,'varzea-grande','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000015','c5000000-0000-4000-8000-000000000012','https://brasilhoje.example/brasil/seca-centro-oeste','Seca atinge capitais do Centro-Oeste em setembro',null,'Brasil Hoje','2026-09-24 20:00-04',null,'nacional','clima','c4000000-0000-4000-8000-000000000003',null),
  ('c3000000-0000-4000-8000-000000000016','c5000000-0000-4000-8000-000000000002','https://diariodabaixada.example/cidade/fumaca-encobre-cuiaba-video','Fumaça encobre Cuiabá: veja imagens do fim da tarde','Galeria com imagens da mesma cobertura sobre a fumaça.','Equipe Diário da Baixada','2026-09-26 19:05-04',null,'cuiaba','clima','c4000000-0000-4000-8000-000000000003','c3000000-0000-4000-8000-000000000012'),
- ('c3000000-0000-4000-8000-000000000017','c5000000-0000-4000-8000-000000000007','https://agroempauta.example/economia/feira-agro-cuiaba-negocios','Feira do agro em Cuiabá projeta R$ 180 milhões em negócios','Organizadores esperam 40 mil visitantes em quatro dias de feira. Pequenos produtores terão espaço próprio para venda direta.','Agro em Pauta MT','2026-09-21 10:00-04','https://agroempauta.example/img/feira.jpg','cuiaba','economia',null,null),
+ ('c3000000-0000-4000-8000-000000000017','c5000000-0000-4000-8000-000000000007','https://agroempauta.example/economia/feira-agro-cuiaba-negocios','Feira do agro em Cuiabá projeta R$ 180 milhões em negócios','Organizadores esperam 40 mil visitantes em quatro dias de feira. Pequenos produtores terão espaço próprio para venda direta.','Agro em Pauta MT','2026-09-21 10:00-04','https://agroempauta.example/img/feira.jpg','cuiaba','economia','c4000000-0000-4000-8000-000000000004',null),
  ('c3000000-0000-4000-8000-000000000018','c5000000-0000-4000-8000-000000000006','https://correiomt.example/economia/comercio-centro-vendas-setembro','Comércio do Centro de Cuiabá registra alta nas vendas de setembro',null,'Correio Mato-grossense','2026-09-23 09:20-04',null,'cuiaba','economia',null,null),
- ('c3000000-0000-4000-8000-000000000019','c5000000-0000-4000-8000-000000000003','https://mtagora.example/economia/feira-agro-expositores','Feira do agro reúne 300 expositores no Centro de Eventos','A feira terá 300 expositores e programação de palestras sobre crédito rural. A entrada é gratuita.','MT Agora','2026-09-22 15:00-04',null,'cuiaba','economia',null,null),
+ ('c3000000-0000-4000-8000-000000000019','c5000000-0000-4000-8000-000000000003','https://mtagora.example/economia/feira-agro-expositores','Feira do agro reúne 300 expositores no Centro de Eventos','A feira terá 300 expositores e programação de palestras sobre crédito rural. A entrada é gratuita.','MT Agora','2026-09-22 15:00-04',null,'cuiaba','economia','c4000000-0000-4000-8000-000000000004',null),
  ('c3000000-0000-4000-8000-000000000020','c5000000-0000-4000-8000-000000000012','https://brasilhoje.example/economia/juros-credito-rural','Taxa de juros do crédito rural deve cair no próximo plano safra',null,'Brasil Hoje','2026-09-20 13:00-04',null,'nacional','economia',null,null),
  ('c3000000-0000-4000-8000-000000000021','c5000000-0000-4000-8000-000000000009','https://placarmt.example/esportes/final-copa-cuiabana-amador','Final da Copa Cuiabana de futebol amador será na Arena Pantanal',null,'Placar MT','2026-09-23 17:00-04',null,'cuiaba','esportes',null,null),
  ('c3000000-0000-4000-8000-000000000022','c5000000-0000-4000-8000-000000000005','https://radiopantanal.example/esportes/ingressos-copa-cuiabana','Ingressos para a final da Copa Cuiabana serão trocados por alimentos',null,'Rádio Pantanal','2026-09-24 12:30-04',null,'cuiaba','esportes',null,null),

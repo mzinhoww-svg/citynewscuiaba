@@ -96,3 +96,15 @@ test("assunto no modo escuro sem violações graves @a11y", async ({ page }) => 
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((v) => blocking(v.impact)).map((v) => v.id)).toEqual([]);
 });
+
+// Revisão P1/P3-GATE (ALTA 2): assunto aberto pelo pipeline sem matéria publicada é interno.
+test("assunto interno do pipeline: 404, fora da lista e do sitemap", async ({ page, request }) => {
+  expect((await request.get("/assunto/apuracao-c3000017")).status()).toBe(404);
+  await page.goto("/assuntos");
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+  await expect(page.getByText(/Assunto em apuração/)).toHaveCount(0);
+  await expect(page.locator('a[href*="/assunto/apuracao-"]')).toHaveCount(0);
+  const sitemap = await (await request.get("/sitemap-topics.xml")).text();
+  expect(sitemap).toContain("/assunto/plano-de-onibus-cpa-centro");
+  expect(sitemap).not.toContain("apuracao-");
+});

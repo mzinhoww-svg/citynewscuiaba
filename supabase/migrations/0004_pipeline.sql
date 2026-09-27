@@ -462,6 +462,80 @@ grant execute on function
   to service_role;
 
 -- ---------------------------------------------------------------------------
+-- Visibilidade dos assuntos (revisão P1/P3-GATE; spec D10 e D12)
+-- Assunto criado pelo pipeline nasce `internal`, com título provisório próprio ("Assunto em
+-- apuração · <editoria>") e slug neutro (`apuracao-<id>`): nunca a manchete de outro veículo como
+-- página pública. Seed e redação criam `public`. O público (RLS, listas, página e sitemap) só vê
+-- assunto `public` com ao menos uma matéria publicada. O assunto passa a `public` quando uma
+-- matéria dele é publicada (humana, ou automática pelas regras), ganhando título e slug da
+-- matéria; Segurança e urgente só com publicação humana (D12).
+-- ---------------------------------------------------------------------------
+alter table topics
+  add column visibility text not null default 'internal' check (visibility in ('internal', 'public'));
+create index topics_public_idx on topics (updated_at desc) where visibility = 'public';
+
+drop policy topics_read on topics;
+create policy topics_read_public on topics for select to anon, authenticated
+  using (
+    visibility = 'public'
+    and exists (select 1 from articles a
+                where a.topic_id = topics.id and a.status in ('published', 'updated'))
+  );
+create policy topics_read_staff on topics for select to authenticated
+  using (is_staff((select auth.uid())));
+
+-- Título provisório acompanha a editoria enquanto o assunto é interno.
+create or replace function topics_provisional_title()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if new.visibility = 'internal' and new.title like 'Assunto em apuração%' and new.section_slug is not null then
+    new.title := 'Assunto em apuração · '
+      || coalesce((select s.name from sections s where s.slug = new.section_slug), new.section_slug);
+  end if;
+  return new;
+end $$;
+create trigger topics_provisional_title before insert or update on topics
+  for each row execute function topics_provisional_title();
+
+-- Matéria publicada abre o assunto (D12: Segurança e urgente só com publicação humana).
+create or replace function promote_topic_on_publish()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_topic topics%rowtype;
+  v_blocked boolean;
+begin
+  if new.topic_id is null or new.status not in ('published', 'updated') then return new; end if;
+  select * into v_topic from topics where id = new.topic_id for update;
+  if not found or v_topic.visibility = 'public' then return new; end if;
+  v_blocked := (new.urgent
+                or exists (select 1 from sections s
+                           where s.slug in (new.section_slug, v_topic.section_slug)
+                             and s.autonomy_category = 'seguranca'))
+               and new.publish_mode is distinct from 'human';
+  if v_blocked then return new; end if;
+  update topics t
+     set visibility = 'public',
+         title = case when t.title like 'Assunto em apuração%' then left(new.title, 300) else t.title end,
+         slug = case when t.slug like 'apuracao-%'
+                     then left(trim(both '-' from regexp_replace(lower(unaccent(new.title)), '[^a-z0-9]+', '-', 'g')), 70)
+                          || '-' || left(replace(t.id::text, '-', ''), 8)
+                     else t.slug end,
+         updated_at = greatest(t.updated_at, now())
+   where t.id = new.topic_id;
+  return new;
+end $$;
+revoke execute on function promote_topic_on_publish(), topics_provisional_title() from public, anon, authenticated;
+create trigger articles_promote_topic after insert or update of status, publish_mode on articles
+  for each row execute function promote_topic_on_publish();
+
+-- ---------------------------------------------------------------------------
 -- Entendimento (P3-T6): classificação, localidade e verificação
 -- Item com instrução embutida sai do fluxo (quarantined_at): assuntos e etapas seguintes o ignoram.
 -- Decisões automáticas ficam em `decisions` (idempotência por objeto, etapa e hash da entrada).

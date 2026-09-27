@@ -1,12 +1,22 @@
 import { err, ok } from "@/lib/result";
 import type { TopicCandidate } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
-import { slugify } from "../slug";
 import { cosine } from "../vector";
 import type { UnderstandingDeps } from "./dedupe";
 import { itemIdFrom, TOPIC_WINDOW_HOURS, windowSince } from "./understanding";
 
 export const CLUSTER_MIN_COSINE = 0.82;
+
+/**
+ * Título provisório do assunto criado pelo pipeline (ALTA 2 da revisão): nunca a manchete de
+ * outro veículo. O banco acrescenta a editoria (`topics_provisional_title`) e troca pelo título
+ * da matéria quando ela é publicada (`promote_topic_on_publish`).
+ */
+export const PROVISIONAL_TOPIC_TITLE = "Assunto em apuração";
+
+/** Slug neutro do assunto interno (vira o slug da matéria quando o assunto fica público). */
+export const provisionalTopicSlug = (itemId: string): string =>
+  `apuracao-${itemId.replace(/-/g, "").slice(0, 8)}`;
 const CANDIDATES = 10;
 
 /**
@@ -54,10 +64,7 @@ export function createClusterStep(deps: UnderstandingDeps): StepHandler {
     else
       await deps.repo.createTopic(
         id,
-        {
-          slug: `${slugify(item.title, 70)}-${id.replace(/-/g, "").slice(0, 8)}`,
-          title: item.title,
-        },
+        { slug: provisionalTopicSlug(id), title: PROVISIONAL_TOPIC_TITLE },
         now,
       );
     return ok(next);

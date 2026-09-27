@@ -1727,6 +1727,7 @@ export type Database = {
           title: string;
           unconfirmed: string[];
           updated_at: string;
+          visibility: string;
         };
         Insert: {
           agreements?: string[];
@@ -1745,6 +1746,7 @@ export type Database = {
           title: string;
           unconfirmed?: string[];
           updated_at?: string;
+          visibility?: string;
         };
         Update: {
           agreements?: string[];
@@ -1763,6 +1765,7 @@ export type Database = {
           title?: string;
           unconfirmed?: string[];
           updated_at?: string;
+          visibility?: string;
         };
         Relationships: [
           {

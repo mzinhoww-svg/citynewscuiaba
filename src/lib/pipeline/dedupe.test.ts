@@ -4,7 +4,12 @@ import { drain } from "./drain";
 import type { PipelineEvent } from "./ports";
 import { createRunStep } from "./run-step";
 import { hamming, simhash64 } from "./simhash";
-import { assignTopic, CLUSTER_MIN_COSINE, createClusterStep } from "./steps/cluster";
+import {
+  assignTopic,
+  CLUSTER_MIN_COSINE,
+  createClusterStep,
+  PROVISIONAL_TOPIC_TITLE,
+} from "./steps/cluster";
 import { createDedupeStep, isDuplicate } from "./steps/dedupe";
 import { createMemoryClusterRepo } from "./testing/memory-cluster-repo";
 import { createMemoryQueue } from "./testing/memory-queue";
@@ -203,6 +208,11 @@ describe("etapas dedupe e cluster", () => {
     const topic = repo.topics().find((t) => t.id === a.topicId)!;
     expect(topic.members).toEqual(["a", "b"]);
     expect(topic.updatedAt).toBe(NOW.toISOString());
+    // Assunto novo nunca usa a manchete de outro veículo: título provisório próprio e slug neutro.
+    for (const t of repo.topics()) {
+      expect(t.title).toBe(PROVISIONAL_TOPIC_TITLE);
+      expect(t.slug).toMatch(/^apuracao-[0-9a-z]+$/);
+    }
     expect(classified).toEqual(["item:a", "item:b", "item:c"]);
   });
 
