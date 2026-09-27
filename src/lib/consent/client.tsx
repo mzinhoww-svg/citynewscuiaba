@@ -11,6 +11,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { ReactNode } from "react";
+import { getAnonStore } from "@/lib/anon/store";
 import {
   UNDECIDED,
   consentCookie,
@@ -75,6 +76,9 @@ export function ConsentProvider({ initial, children }: ConsentProviderProps) {
   const current = useRef(consent);
   useEffect(() => {
     current.current = consent;
+    // Perfil anônimo segue a escolha: `anonId` só com Personalização (spec §5.3). Sem ela,
+    // ou sem escolha, o id e o histórico local saem; seguidas e salvos ficam.
+    if (consent) getAnonStore().ensureAnonId(consent).catch(noop);
   }, [consent]);
 
   const update = useCallback((next: Partial<ConsentChoice>) => {

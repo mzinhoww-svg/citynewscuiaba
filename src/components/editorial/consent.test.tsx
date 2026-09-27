@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach } from "vitest";
+import { getAnonStore } from "@/lib/anon/store";
 import { ConsentProvider } from "@/lib/consent/client";
 import { parseConsent, readConsentCookie } from "@/lib/consent";
 import { ConsentBanner, PrivacyPreferences } from "../index";
@@ -52,13 +53,19 @@ it("Só o necessário grava m0|p0, fecha e devolve o foco ao conteúdo", async (
   expect(document.activeElement?.id).toBe("conteudo");
 });
 
-it("Aceitar recomendações grava m1|p1", async () => {
-  renderBanner();
+it("Aceitar recomendações grava m1|p1 e cria o anonId; Só o necessário apaga", async () => {
+  const { unmount } = renderBanner();
   await userEvent.click(screen.getByRole("button", { name: "Aceitar recomendações" }));
   expect(readConsentCookie(document.cookie)).toMatchObject({
     metrics: true,
     personalization: true,
   });
+  await waitFor(async () => expect((await getAnonStore().get()).anonId).toMatch(/^[0-9a-f-]{36}$/));
+  unmount();
+  clearCookie();
+  renderBanner();
+  await userEvent.click(screen.getByRole("button", { name: "Só o necessário" }));
+  await waitFor(async () => expect((await getAnonStore().get()).anonId).toBeNull());
 });
 
 it("Escolher abre o painel com foco no título, Esc volta sem prender o foco", async () => {

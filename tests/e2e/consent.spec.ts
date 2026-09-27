@@ -28,6 +28,25 @@ function cspErrors(page: Page): string[] {
 
 const banner = (page: Page) => page.getByRole("region", { name: "Sua privacidade" });
 
+/** Perfil anônimo no IndexedDB (`citynews`/`anon`/`profile`), sem criar o banco se não existir. */
+async function storedProfile(page: Page) {
+  return page.evaluate(async () => {
+    const dbs = await indexedDB.databases();
+    if (!dbs.some((d) => d.name === "citynews")) return null;
+    return new Promise<{ anonId: string | null } | null>((resolve) => {
+      const req = indexedDB.open("citynews");
+      req.onerror = () => resolve(null);
+      req.onsuccess = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("anon")) return resolve(null);
+        const get = db.transaction("anon").objectStore("anon").get("profile");
+        get.onsuccess = () => resolve((get.result as { anonId: string | null }) ?? null);
+        get.onerror = () => resolve(null);
+      };
+    });
+  });
+}
+
 async function consentCookie(page: Page) {
   return (await page.context().cookies()).find((c) => c.name === "cn_consent");
 }
@@ -45,6 +64,30 @@ test("Só o necessário não envia eventos", async ({ page }) => {
   expect(calls).toEqual([]);
   // A escolha vale nas próximas páginas: o banner não volta.
   await expect(banner(page)).toHaveCount(0);
+});
+
+test("anonId só com Personalização e sai quando ela é desligada", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Só o necessário" }).click();
+  // O perfil existe (seguir e salvar funcionam localmente), mas sem anonId.
+  await expect
+    .poll(async () => {
+      const p = await storedProfile(page);
+      return p ? p.anonId : "sem perfil";
+    })
+    .toBe(null);
+  await page.goto("/privacidade");
+  await page.getByRole("switch", { name: "Personalização" }).click();
+  await page.getByRole("button", { name: "Salvar escolhas" }).click();
+  await expect
+    .poll(async () => (await storedProfile(page))?.anonId)
+    .toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  const id = (await storedProfile(page))?.anonId;
+  await page.reload();
+  await expect.poll(async () => (await storedProfile(page))?.anonId).toBe(id);
+  await page.getByRole("switch", { name: "Personalização" }).click();
+  await page.getByRole("button", { name: "Salvar escolhas" }).click();
+  await expect.poll(async () => (await storedProfile(page))?.anonId).toBe(null);
 });
 
 test("sem resposta vale só o necessário: banner continua e nada é enviado", async ({ page }) => {
