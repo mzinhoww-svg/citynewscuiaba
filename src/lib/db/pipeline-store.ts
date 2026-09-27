@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type {
+  ClusterRepo,
   EventSink,
   IngestRepo,
   RawPayload,
@@ -8,7 +9,9 @@ import type {
   SourcePatch,
   SourceRecord,
 } from "@/lib/pipeline/ports";
+import { toSigned64, toUnsigned64 } from "@/lib/pipeline/simhash";
 import { RawEntrySchema } from "@/lib/pipeline/types";
+import { vectorLiteral } from "@/lib/pipeline/vector";
 import type { DbClient } from "./client";
 import type { Json } from "./types";
 
@@ -276,6 +279,97 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       check("insertCollectedItem(existing)", error);
       if (!data) throw new Error("pipeline-store: collected_item sumiu");
       return { id: data.id, created: false };
+    },
+  };
+}
+
+const toVector = (v: readonly number[] | null | undefined): number[] | null =>
+  Array.isArray(v) && v.length > 0 ? v.map(Number) : null;
+
+/** Banco das etapas dedupe e cluster (service role). Simhash trafega como texto. */
+export function createClusterRepo(db: DbClient): ClusterRepo {
+  return {
+    async collectedItem(id) {
+      const { data, error } = await db.rpc("pipeline_item", { p_id: id }).maybeSingle();
+      check("collectedItem", error);
+      if (!data) return null;
+      return {
+        id: data.id,
+        sourceId: data.source_id,
+        title: data.title,
+        excerpt: data.excerpt ?? null,
+        publishedAt: data.published_at ?? null,
+        simhash: data.simhash === null ? null : toUnsigned64(BigInt(data.simhash)),
+        embedding: toVector(data.embedding),
+        duplicateOf: data.duplicate_of ?? null,
+        topicId: data.topic_id ?? null,
+      };
+    },
+
+    async saveFingerprint(id, f) {
+      const { error } = await db.rpc("save_item_fingerprint", {
+        p_id: id,
+        p_simhash: toSigned64(f.simhash).toString(),
+        p_embedding: vectorLiteral(f.embedding),
+      });
+      check("saveFingerprint", error);
+    },
+
+    async dedupeCandidates(id, q) {
+      const { data, error } = await db.rpc("dedupe_candidates", {
+        p_id: id,
+        p_simhash: toSigned64(q.simhash).toString(),
+        p_since: q.since.toISOString(),
+        p_max_hamming: q.maxHamming,
+        p_min_cosine: q.minCosine,
+        p_limit: q.limit,
+      });
+      check("dedupeCandidates", error);
+      return (data ?? []).map((c) => ({
+        id: c.id,
+        simhash: toUnsigned64(BigInt(c.simhash)),
+        cosine: typeof c.cosine === "number" ? c.cosine : null,
+        topicId: c.topic_id ?? null,
+      }));
+    },
+
+    async markDuplicate(id, originalId) {
+      const { error } = await db.rpc("mark_item_duplicate", { p_id: id, p_original: originalId });
+      check("markDuplicate", error);
+    },
+
+    async topicCandidates(id, q) {
+      const { data, error } = await db.rpc("topic_candidates", {
+        p_id: id,
+        p_since: q.since.toISOString(),
+        p_limit: q.limit,
+      });
+      check("topicCandidates", error);
+      return (data ?? []).flatMap((t) => {
+        const centroid = toVector(t.centroid);
+        return centroid ? [{ topicId: t.topic_id, centroid, updatedAt: t.updated_at }] : [];
+      });
+    },
+
+    async attachToTopic(id, topicId, now) {
+      const { error } = await db.rpc("attach_item_to_topic", {
+        p_id: id,
+        p_topic: topicId,
+        p_now: now.toISOString(),
+      });
+      check("attachToTopic", error);
+    },
+
+    async createTopic(id, t, now) {
+      const { data, error } = await db.rpc("create_topic_for_item", {
+        p_id: id,
+        p_slug: t.slug,
+        p_title: t.title,
+        p_now: now.toISOString(),
+      });
+      check("createTopic", error);
+      if (!data) throw new Error("pipeline-store: createTopic sem retorno");
+      return data;
     },
   };
 }

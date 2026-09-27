@@ -2,6 +2,7 @@
  * Portas do pipeline: o domínio conversa com fila, banco e rede só por estas interfaces.
  * Implementações reais em `queue.ts` e `src/lib/db/pipeline-store.ts`; falsas em `testing/`.
  */
+import type { Result } from "@/lib/result";
 import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
@@ -148,3 +149,55 @@ export interface IngestRepo {
   /** Idempotente por `canonical_url`: `created = false` quando o item já existia. */
   insertCollectedItem(item: CollectedInsert): Promise<{ id: string; created: boolean }>;
 }
+
+/** Item coletado como as etapas de Entendimento (dedupe em diante) o enxergam. */
+export interface CollectedItemRecord {
+  id: string;
+  sourceId: string;
+  title: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  /** Simhash de 64 bits sem sinal; `null` antes do dedupe. */
+  simhash: bigint | null;
+  embedding: number[] | null;
+  duplicateOf: string | null;
+  topicId: string | null;
+}
+
+export interface DedupeCandidate {
+  id: string;
+  simhash: bigint;
+  /** Cosseno com o item; `null` quando o candidato não tem embedding. */
+  cosine: number | null;
+  topicId: string | null;
+}
+
+export interface TopicCandidate {
+  topicId: string;
+  centroid: number[];
+  updatedAt: string;
+}
+
+/** Acesso a banco das etapas dedupe e cluster. */
+export interface ClusterRepo {
+  collectedItem(id: string): Promise<CollectedItemRecord | null>;
+  saveFingerprint(id: string, f: { simhash: bigint; embedding: number[] }): Promise<void>;
+  /**
+   * Itens anteriores ao item (ordem `created_at, id`), não duplicados, criados desde `since`, com
+   * simhash a distância ≤ `maxHamming` ou cosseno ≥ `minCosine`. O primeiro a chegar é o original.
+   */
+  dedupeCandidates(
+    id: string,
+    q: { simhash: bigint; since: Date; maxHamming: number; minCosine: number; limit: number },
+  ): Promise<DedupeCandidate[]>;
+  markDuplicate(id: string, originalId: string): Promise<void>;
+  /** Assuntos atualizados desde `since`, os mais próximos do embedding do item primeiro. */
+  topicCandidates(id: string, q: { since: Date; limit: number }): Promise<TopicCandidate[]>;
+  /** Liga o item ao assunto, recalcula o centróide (média) e atualiza `updated_at`. */
+  attachToTopic(id: string, topicId: string, now: Date): Promise<void>;
+  /** Cria assunto com o item como semente (centróide = embedding do item); devolve o id. */
+  createTopic(id: string, t: { slug: string; title: string }, now: Date): Promise<string>;
+}
+
+/** Embedding de um texto (produção: OpenRouter `/embeddings`; teste: provedor falso). */
+export type Embed = (text: string) => Promise<Result<number[], string>>;

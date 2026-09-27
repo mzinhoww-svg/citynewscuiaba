@@ -307,3 +307,156 @@ alter table sources add column etag text, add column last_modified text;
 alter table raw_items add column entries jsonb, add column error text;
 -- Um documento por fonte e run (idempotência de `fetch`, architecture §4).
 create unique index raw_items_run_source_uidx on raw_items (run_id, source_id);
+
+-- ---------------------------------------------------------------------------
+-- Entendimento (P3-T4): deduplicação e agrupamento em assuntos
+-- Simhash guardado como bigint com sinal (64 bits); o app troca como texto (JSON perde precisão).
+-- Embeddings sem dimensão fixa na coluna (EMBEDDING_DIM parametrizável, ADR-006); todos os
+-- vetores de um ambiente têm a mesma dimensão. Sem índice vetorial: a busca é restrita a 72 h.
+-- ---------------------------------------------------------------------------
+create index collected_items_created_idx on collected_items (created_at desc) where duplicate_of is null;
+create index collected_items_topic_idx on collected_items (topic_id);
+create index topics_updated_idx on topics (updated_at desc);
+
+create or replace function hamming64(a bigint, b bigint)
+returns int
+language sql
+immutable
+parallel safe
+as $$ select bit_count((a # b)::bit(64))::int $$;
+
+-- Item como as etapas dedupe/cluster o enxergam (simhash como texto, embedding como real[]).
+create or replace function pipeline_item(p_id uuid)
+returns table (
+  id uuid, source_id uuid, title text, excerpt text, published_at timestamptz,
+  simhash text, embedding real[], duplicate_of uuid, topic_id uuid
+)
+language sql
+stable
+set search_path = public
+as $$
+  select c.id, c.source_id, c.original_title, c.excerpt, c.published_at,
+         c.simhash::text, c.embedding::real[], c.duplicate_of, c.topic_id
+  from collected_items c where c.id = p_id;
+$$;
+
+create or replace function save_item_fingerprint(p_id uuid, p_simhash text, p_embedding vector)
+returns void
+language sql
+set search_path = public
+as $$
+  update collected_items set simhash = p_simhash::bigint, embedding = p_embedding where id = p_id;
+$$;
+
+-- Candidatos a original: itens anteriores (created_at, id), não duplicados, desde p_since, com
+-- simhash a distância ≤ p_max_hamming ou cosseno ≥ p_min_cosine. Os de simhash próximo primeiro.
+create or replace function dedupe_candidates(
+  p_id uuid, p_simhash text, p_since timestamptz, p_max_hamming int, p_min_cosine float8, p_limit int
+)
+returns table (id uuid, simhash text, cosine float8, topic_id uuid)
+language sql
+stable
+set search_path = public
+as $$
+  with self as (select created_at, embedding from collected_items where id = p_id),
+  cand as (
+    select c.id, c.simhash, c.topic_id,
+           hamming64(c.simhash, p_simhash::bigint) as ham,
+           case when c.embedding is not null and s.embedding is not null
+                then 1 - (c.embedding <=> s.embedding) end as cos
+    from collected_items c, self s
+    where c.duplicate_of is null
+      and c.simhash is not null
+      and c.id <> p_id
+      and c.created_at >= p_since
+      and (c.created_at, c.id) < (s.created_at, p_id)
+  )
+  select cand.id, cand.simhash::text, cand.cos, cand.topic_id
+  from cand
+  where cand.ham <= p_max_hamming or cand.cos >= p_min_cosine
+  order by (cand.ham <= p_max_hamming) desc, cand.cos desc nulls last, cand.ham
+  limit greatest(p_limit, 0);
+$$;
+
+-- Duplicado herda o assunto do original.
+create or replace function mark_item_duplicate(p_id uuid, p_original uuid)
+returns void
+language sql
+set search_path = public
+as $$
+  update collected_items c
+     set duplicate_of = o.id, topic_id = coalesce(c.topic_id, o.topic_id)
+    from collected_items o
+   where c.id = p_id and o.id = p_original and c.duplicate_of is null;
+$$;
+
+-- Assuntos atualizados desde p_since, os de centróide mais próximo do item primeiro.
+create or replace function topic_candidates(p_id uuid, p_since timestamptz, p_limit int)
+returns table (topic_id uuid, centroid real[], updated_at timestamptz)
+language sql
+stable
+set search_path = public
+as $$
+  select t.id, t.centroid::real[], t.updated_at
+  from topics t, (select embedding from collected_items where id = p_id) s
+  where t.updated_at >= p_since and t.centroid is not null and s.embedding is not null
+    and vector_dims(t.centroid) = vector_dims(s.embedding)
+  order by t.centroid <=> s.embedding
+  limit greatest(p_limit, 0);
+$$;
+
+-- Centróide = média dos embeddings dos itens não duplicados do assunto.
+create or replace function recompute_topic_centroid(p_topic uuid, p_now timestamptz)
+returns void
+language sql
+set search_path = public
+as $$
+  update topics t
+     set centroid = (select avg(c.embedding) from collected_items c
+                      where c.topic_id = p_topic and c.duplicate_of is null and c.embedding is not null),
+         updated_at = greatest(t.updated_at, p_now)
+   where t.id = p_topic;
+$$;
+
+create or replace function attach_item_to_topic(p_id uuid, p_topic uuid, p_now timestamptz)
+returns void
+language plpgsql
+set search_path = public
+as $$
+begin
+  update collected_items set topic_id = p_topic where id = p_id and topic_id is null;
+  if found then perform recompute_topic_centroid(p_topic, p_now); end if;
+end $$;
+
+-- Cria o assunto com o item como semente. Idempotente: item que já tem assunto devolve o dele.
+create or replace function create_topic_for_item(p_id uuid, p_slug text, p_title text, p_now timestamptz)
+returns uuid
+language plpgsql
+set search_path = public
+as $$
+declare
+  v_current uuid;
+  v_topic uuid;
+begin
+  select topic_id into v_current from collected_items where id = p_id for update;
+  if not found then raise exception 'item % não existe', p_id; end if;
+  if v_current is not null then return v_current; end if;
+  insert into topics (slug, title, centroid, first_seen_at, updated_at)
+  values (p_slug, left(p_title, 300), (select embedding from collected_items where id = p_id), p_now, p_now)
+  returning id into v_topic;
+  update collected_items set topic_id = v_topic where id = p_id;
+  return v_topic;
+end $$;
+
+revoke execute on function
+  pipeline_item(uuid), save_item_fingerprint(uuid, text, vector),
+  dedupe_candidates(uuid, text, timestamptz, int, float8, int), mark_item_duplicate(uuid, uuid),
+  topic_candidates(uuid, timestamptz, int), recompute_topic_centroid(uuid, timestamptz),
+  attach_item_to_topic(uuid, uuid, timestamptz), create_topic_for_item(uuid, text, text, timestamptz)
+  from public, anon, authenticated;
+grant execute on function
+  pipeline_item(uuid), save_item_fingerprint(uuid, text, vector),
+  dedupe_candidates(uuid, text, timestamptz, int, float8, int), mark_item_duplicate(uuid, uuid),
+  topic_candidates(uuid, timestamptz, int), recompute_topic_centroid(uuid, timestamptz),
+  attach_item_to_topic(uuid, uuid, timestamptz), create_topic_for_item(uuid, text, text, timestamptz)
+  to service_role;

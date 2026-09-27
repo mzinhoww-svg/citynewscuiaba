@@ -1770,13 +1770,38 @@ export type Database = {
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
       article_section: { Args: { article: string }; Returns: string };
+      attach_item_to_topic: {
+        Args: { p_id: string; p_now: string; p_topic: string };
+        Returns: undefined;
+      };
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      create_topic_for_item: {
+        Args: { p_id: string; p_now: string; p_slug: string; p_title: string };
+        Returns: string;
+      };
       critical_actor: { Args: Record<PropertyKey, never>; Returns: string };
       dearmor: { Args: { "": string }; Returns: string };
+      dedupe_candidates: {
+        Args: {
+          p_id: string;
+          p_limit: number;
+          p_max_hamming: number;
+          p_min_cosine: number;
+          p_simhash: string;
+          p_since: string;
+        };
+        Returns: {
+          cosine: number;
+          id: string;
+          simhash: string;
+          topic_id: string;
+        }[];
+      };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      hamming64: { Args: { a: number; b: number }; Returns: number };
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][]; uid: string };
         Returns: boolean;
@@ -1790,7 +1815,22 @@ export type Database = {
         Returns: boolean;
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
+      mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      pipeline_item: {
+        Args: { p_id: string };
+        Returns: {
+          duplicate_of: string;
+          embedding: number[];
+          excerpt: string;
+          id: string;
+          published_at: string;
+          simhash: string;
+          source_id: string;
+          title: string;
+          topic_id: string;
+        }[];
+      };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
@@ -1818,6 +1858,11 @@ export type Database = {
         }[];
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
+      save_item_fingerprint: {
+        Args: { p_embedding: string; p_id: string; p_simhash: string };
+        Returns: undefined;
+      };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
       start_ingest_run: {
         Args: { p_window: string };
@@ -1825,6 +1870,14 @@ export type Database = {
           created: boolean;
           run_id: string;
           stats: Json;
+        }[];
+      };
+      topic_candidates: {
+        Args: { p_id: string; p_limit: number; p_since: string };
+        Returns: {
+          centroid: number[];
+          topic_id: string;
+          updated_at: string;
         }[];
       };
       two_person_error: { Args: { msg: string }; Returns: undefined };
