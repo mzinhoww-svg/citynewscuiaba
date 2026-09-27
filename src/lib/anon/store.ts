@@ -1,5 +1,17 @@
 import { createStore, del, get, set } from "idb-keyval";
-import type { AnonProfile, AnonStore, DismissReason, FollowKind, KV, ReadEntry } from "./types";
+import type {
+  AlertChannel,
+  AlertFrequency,
+  AlertKind,
+  AnonProfile,
+  AnonStore,
+  DismissReason,
+  FollowKind,
+  KV,
+  LocalAlert,
+  ReadEntry,
+  SavedMeta,
+} from "./types";
 
 export type { AnonProfile, AnonStore, DismissReason, FollowKind, KV } from "./types";
 
@@ -10,6 +22,13 @@ const MAX_SAVED = 500;
 const MAX_FOLLOWS = 500;
 const MAX_HIDDEN = 500;
 const MAX_HISTORY = 1000;
+const MAX_COLLECTIONS = 50;
+const MAX_ALERTS = 20;
+const ALERT_KINDS: readonly AlertKind[] = ["bairro", "tema", "assunto", "urgentes", "agenda"];
+const FREQUENCIES: readonly AlertFrequency[] = ["immediate", "daily", "weekly"];
+const CHANNELS: readonly AlertChannel[] = ["browser", "email"];
+/** Caminho interno: começa com uma barra só (nunca `//host` nem URL absoluta). */
+const INTERNAL_PATH = /^\/(?!\/)[^\s]*$/;
 const KEY = "profile";
 const DAY_MS = 86_400_000;
 
@@ -62,6 +81,19 @@ function emptyProfile(now: Date): AnonProfile {
     searches: [],
     interests: [],
     hidden: [],
+    collections: [],
+    alerts: [],
+  };
+}
+
+function savedMeta(x: Record<string, unknown>): SavedMeta {
+  const title = str(x.title, 300);
+  const href = str(x.href, 300);
+  const section = str(x.section, 120);
+  return {
+    ...(title ? { title } : {}),
+    ...(href && INTERNAL_PATH.test(href) ? { href } : {}),
+    ...(section ? { section } : {}),
   };
 }
 
@@ -73,13 +105,14 @@ export function normalizeProfile(raw: unknown, now: Date): AnonProfile {
     const kind = FOLLOW_KINDS.find((k) => k === f.kind);
     const id = str(f.id);
     const at = iso(f.at);
-    return kind && id && at ? [{ kind, id, at }] : [];
+    const label = str(f.label, 200);
+    return kind && id && at ? [{ kind, id, at, ...(label ? { label } : {}) }] : [];
   });
   const saved = arr(raw.saved).flatMap((x) => {
     if (!isObj(x)) return [];
     const ref = str(x.ref);
     const at = iso(x.at);
-    return ref && at ? [{ ref, at, progress: num(x.progress, 0, 100) }] : [];
+    return ref && at ? [{ ref, at, progress: num(x.progress, 0, 100), ...savedMeta(x) }] : [];
   });
   const history = arr(raw.history).flatMap((h) => {
     if (!isObj(h)) return [];
@@ -116,6 +149,30 @@ export function normalizeProfile(raw: unknown, now: Date): AnonProfile {
     const at = iso(h.at);
     return sourceSlug && reason && at ? [{ sourceSlug, reason, at }] : [];
   });
+  const collections = arr(raw.collections).flatMap((c) => {
+    if (!isObj(c)) return [];
+    const id = str(c.id, 64);
+    const name = str(c.name, 80);
+    const at = iso(c.at);
+    const items = arr(c.items).flatMap((i) => (str(i) ? [i as string] : []));
+    return id && name && at ? [{ id, name, at, items }] : [];
+  });
+  const alerts = arr(raw.alerts).flatMap((a): LocalAlert[] => {
+    if (!isObj(a)) return [];
+    const id = str(a.id, 64);
+    const kind = ALERT_KINDS.find((k) => k === a.kind);
+    const target = str(a.target, 120);
+    const label = str(a.label, 120);
+    const frequency = FREQUENCIES.find((f) => f === a.frequency);
+    const channel = CHANNELS.find((c) => c === a.channel);
+    const at = iso(a.at);
+    const status = a.status === "pending_email" ? "pending_email" : "active";
+    const email = str(a.email, 254);
+    if (!id || !kind || !target || !label || !frequency || !channel || !at) return [];
+    return [
+      { id, kind, target, label, frequency, channel, status, at, ...(email ? { email } : {}) },
+    ];
+  });
   const tracking = anonId !== null;
   return prune(
     {
@@ -128,6 +185,8 @@ export function normalizeProfile(raw: unknown, now: Date): AnonProfile {
       searches: tracking ? searches : [],
       interests: tracking ? interests : [],
       hidden,
+      collections,
+      alerts,
     },
     now,
   );
@@ -143,6 +202,8 @@ function prune(p: AnonProfile, now: Date): AnonProfile {
     history: p.history.filter((h) => Date.parse(h.at) >= cutoff).slice(0, MAX_HISTORY),
     searches: p.searches.slice(0, MAX_SEARCHES),
     hidden: p.hidden.slice(0, MAX_HIDDEN),
+    collections: p.collections.slice(0, MAX_COLLECTIONS),
+    alerts: p.alerts.slice(0, MAX_ALERTS),
   };
 }
 
@@ -216,23 +277,95 @@ export function createAnonStore(backend?: KV, opts: AnonStoreOptions = {}): Anon
       chain = run.catch(() => undefined);
       return run;
     },
-    follow: (kind, id) =>
+    follow: (kind, id, label) =>
       change((p) =>
         p.follows.some((f) => f.kind === kind && f.id === id)
           ? p
-          : { ...p, follows: [{ kind, id, at: stamp() }, ...p.follows] },
+          : {
+              ...p,
+              follows: [
+                { kind, id, at: stamp(), ...(label ? { label: label.slice(0, 200) } : {}) },
+                ...p.follows,
+              ],
+            },
       ),
+    reorderFollows: (kind, ids) =>
+      change((p) => {
+        const mine = p.follows.filter((f) => f.kind === kind);
+        const pos = new Map(ids.map((id, i) => [id, i]));
+        const sorted = [...mine].sort(
+          (a, b) => (pos.get(a.id) ?? ids.length) - (pos.get(b.id) ?? ids.length),
+        );
+        let i = 0;
+        return { ...p, follows: p.follows.map((f) => (f.kind === kind ? sorted[i++]! : f)) };
+      }),
     unfollow: (kind, id) =>
       change((p) => ({
         ...p,
         follows: p.follows.filter((f) => !(f.kind === kind && f.id === id)),
       })),
-    save: (ref, progress = 0) =>
+    save: (ref, progress = 0, meta = {}) =>
       change((p) =>
         p.saved.some((s) => s.ref === ref)
           ? p
-          : { ...p, saved: [{ ref, at: stamp(), progress: num(progress, 0, 100) }, ...p.saved] },
+          : {
+              ...p,
+              saved: [
+                { ref, at: stamp(), progress: num(progress, 0, 100), ...savedMeta({ ...meta }) },
+                ...p.saved,
+              ],
+            },
       ),
+    setProgress: (ref, progress) =>
+      change((p) =>
+        p.saved.some((s) => s.ref === ref)
+          ? {
+              ...p,
+              saved: p.saved.map((s) =>
+                s.ref === ref ? { ...s, progress: num(progress, 0, 100) } : s,
+              ),
+            }
+          : p,
+      ),
+    createCollection: (name) =>
+      change((p) => {
+        const n = name.trim().slice(0, 80);
+        if (!n) return p;
+        return {
+          ...p,
+          collections: [...p.collections, { id: uuid(), name: n, at: stamp(), items: [] }],
+        };
+      }),
+    renameCollection: (id, name) =>
+      change((p) => {
+        const n = name.trim().slice(0, 80);
+        if (!n) return p;
+        return {
+          ...p,
+          collections: p.collections.map((c) => (c.id === id ? { ...c, name: n } : c)),
+        };
+      }),
+    deleteCollection: (id) =>
+      change((p) => ({ ...p, collections: p.collections.filter((c) => c.id !== id) })),
+    addAlert: (a) =>
+      change((p) => ({
+        ...p,
+        alerts: [
+          {
+            id: uuid(),
+            kind: a.kind,
+            target: a.target.slice(0, 120),
+            label: a.label.slice(0, 120),
+            frequency: a.frequency,
+            channel: a.channel,
+            status: a.status ?? "active",
+            at: stamp(),
+            ...(a.email ? { email: a.email.slice(0, 254) } : {}),
+          },
+          ...p.alerts,
+        ],
+      })),
+    removeAlert: (id) => change((p) => ({ ...p, alerts: p.alerts.filter((x) => x.id !== id) })),
     unsave: (ref) => change((p) => ({ ...p, saved: p.saved.filter((s) => s.ref !== ref) })),
     recordRead: (entry) =>
       change((p) =>

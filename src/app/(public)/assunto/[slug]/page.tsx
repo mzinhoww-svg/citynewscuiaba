@@ -4,6 +4,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  FollowTopicButton,
   JsonLd,
   AggregatedCard,
   ArticleCard,
@@ -68,6 +69,9 @@ function Topic({ t }: { t: TopicDetail }) {
           </p>
         </div>
         <h1 className="type-display text-balance text-strong">{t.title}</h1>
+        <div>
+          <FollowTopicButton slug={t.slug} title={t.title} />
+        </div>
         {t.state === "em_apuracao" && (
           <p className="flex items-start gap-2 bg-atencao-soft px-4 py-3 type-body text-warn">
             <Icon name="clock" size={20} className="mt-0.5 shrink-0" />

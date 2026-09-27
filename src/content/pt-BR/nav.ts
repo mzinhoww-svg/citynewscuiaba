@@ -42,6 +42,9 @@ export const SECTIONS: readonly NavItem[] = [
 /** Páginas institucionais (docs/screens.md P23). */
 export const FOOTER_NAV: readonly NavItem[] = [
   { id: "sobre", label: "Sobre", href: "/sobre" },
+  { id: "panorama", label: "Panorama de fontes", href: "/panorama" },
+  { id: "newsletter", label: "Newsletters", href: "/newsletter" },
+  { id: "alertas", label: "Alertas", href: "/alertas" },
   { id: "principios", label: "Princípios editoriais", href: "/principios-editoriais" },
   { id: "metodologia", label: "Metodologia", href: "/metodologia" },
   { id: "ia", label: "Como usamos IA", href: "/como-usamos-ia" },

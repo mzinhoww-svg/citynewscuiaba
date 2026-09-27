@@ -69,6 +69,8 @@ function profile(over: Partial<AnonProfile> = {}): AnonProfile {
     searches: [],
     interests: [],
     hidden: [],
+    collections: [],
+    alerts: [],
     ...over,
   };
 }

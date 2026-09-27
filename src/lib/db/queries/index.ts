@@ -10,6 +10,7 @@ export {
   parseBody,
 } from "./articles";
 export { listAggregated, type AggregatedFilters } from "./aggregated";
+export { listAlertItems } from "./alerts";
 export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
 export { getCollectionBySlug, getExploreData } from "./explore";

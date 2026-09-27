@@ -49,7 +49,7 @@ export const InlineAlert = forwardRef<HTMLDivElement, InlineAlertProps>(function
       )}
     >
       <Icon name={t.icon} size={20} className={cx("mt-0.5 shrink-0", t.ink)} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1 type-body text-body">
+      <div className="flex min-w-0 flex-1 basis-56 flex-col gap-1 type-body text-body">
         {title && <p className="font-semibold text-strong">{title}</p>}
         {children}
       </div>

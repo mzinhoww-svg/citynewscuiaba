@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { NAV_TEXT } from "@/content/pt-BR/nav";
 import type { Consent } from "@/lib/consent";
 import { ConsentProvider } from "@/lib/consent/client";
+import { AlertWatcher } from "./AlertWatcher";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
 import { SiteFooter } from "./SiteFooter";
@@ -30,6 +31,7 @@ export function PublicShell({ children, consent }: PublicShellProps) {
           {NAV_TEXT.skipToContent}
         </a>
         <ConsentBanner />
+        <AlertWatcher />
         <SiteHeader />
         <main id="conteudo" className="flex-1">
           {children}

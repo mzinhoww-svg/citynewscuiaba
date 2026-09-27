@@ -4,14 +4,20 @@ import { subscribeNewsletter, type SubscribeDeps } from "./subscribe";
 function deps(over: Partial<SubscribeDeps> = {}): SubscribeDeps {
   return {
     allow: vi.fn(async () => ({ ok: true as const, value: true })),
-    save: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    save: vi.fn(async () => ({ ok: true as const, value: { alreadyActive: [] as string[] } })),
+    queue: vi.fn(async () => ({ ok: true as const, value: undefined })),
+    link: vi.fn(
+      (email: string, lists: string[], confirm: boolean) =>
+        `https://citynews.test/newsletter/preferencias?token=${email}:${lists.join(",")}${confirm ? "&confirmar=1" : ""}`,
+    ),
     ...over,
   };
 }
 
-function form(fields: Record<string, string>): FormData {
+function form(fields: Record<string, string | string[]>): FormData {
   const f = new FormData();
-  for (const [k, v] of Object.entries(fields)) f.set(k, v);
+  for (const [k, v] of Object.entries(fields))
+    for (const x of Array.isArray(v) ? v : [v]) f.append(k, x);
   return f;
 }
 
@@ -39,11 +45,44 @@ it("acima do limite recusa com mensagem clara", async () => {
   expect(d.save).not.toHaveBeenCalled();
 });
 
-it("grava e-mail normalizado na lista diária", async () => {
+it("sem lista escolhida vale a diária (formulário da home); grava normalizado e pede confirmação", async () => {
   const d = deps();
   const r = await subscribeNewsletter(form({ email: "  Ana@Exemplo.com " }), d);
   expect(r.status).toBe("success");
-  expect(d.save).toHaveBeenCalledWith("ana@exemplo.com", "diaria");
+  expect(d.save).toHaveBeenCalledWith("ana@exemplo.com", ["diaria"]);
+  expect(d.queue).toHaveBeenCalledWith(
+    expect.objectContaining({
+      kind: "newsletter_confirm",
+      to: "ana@exemplo.com",
+      body: expect.stringContaining("&confirmar=1"),
+    }),
+  );
+});
+
+it("várias listas: só ids conhecidos; lista desconhecida é ignorada; nenhuma válida é inválido", async () => {
+  const d = deps();
+  await subscribeNewsletter(
+    form({ email: "a@exemplo.com", lists: ["agenda-fds", "xyz", "politica-semana"] }),
+    d,
+  );
+  expect(d.save).toHaveBeenCalledWith("a@exemplo.com", ["agenda-fds", "politica-semana"]);
+  const r = await subscribeNewsletter(
+    form({ email: "a@exemplo.com", lists: ["xyz"], picked: "1" }),
+    d,
+  );
+  expect(r.status).toBe("invalid");
+  const none = await subscribeNewsletter(form({ email: "a@exemplo.com", picked: "1" }), d);
+  expect(none.status).toBe("invalid");
+  expect(none.message).toMatch(/ao menos uma/);
+});
+
+it("já inscrito e confirmado em tudo: avisa e manda o link de preferências", async () => {
+  const d = deps({
+    save: vi.fn(async () => ({ ok: true as const, value: { alreadyActive: ["diaria"] } })),
+  });
+  const r = await subscribeNewsletter(form({ email: "a@exemplo.com", lists: "diaria" }), d);
+  expect(r.status).toBe("already");
+  expect(d.queue).toHaveBeenCalledWith(expect.objectContaining({ kind: "newsletter_manage" }));
 });
 
 it("banco indisponível vira erro amigável", async () => {

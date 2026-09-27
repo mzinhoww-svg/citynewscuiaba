@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import type { ReactNode } from "react";
 import { cx } from "../cx";
 import { Icon } from "./Icon";
@@ -14,6 +15,9 @@ export interface SelectProps {
   name: string;
   options: readonly SelectOption[];
   defaultValue?: string;
+  /** Controlado (formulários interativos); sem ele, o campo é livre (`defaultValue`). */
+  value?: string;
+  onChange?: (value: string) => void;
   /** Primeira opção sem valor ("Todos os bairros"). */
   placeholder?: string;
   hint?: string;
@@ -38,6 +42,8 @@ export function Select({
   name,
   options,
   defaultValue,
+  value,
+  onChange,
   placeholder,
   hint,
   error,
@@ -60,7 +66,9 @@ export function Select({
         <select
           id={id}
           name={name}
-          defaultValue={defaultValue ?? ""}
+          {...(value !== undefined
+            ? { value, onChange: (e: ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
+            : { defaultValue: defaultValue ?? "" })}
           required={required}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}

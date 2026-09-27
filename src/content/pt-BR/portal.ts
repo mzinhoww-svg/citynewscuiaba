@@ -57,7 +57,7 @@ export const NEWSLETTER = {
   rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
   error: "Não conseguimos registrar agora. Tente de novo em alguns minutos.",
   success:
-    "Inscrição recebida. Quando o envio começar, você recebe um e-mail para confirmar; sem confirmação, nada é enviado.",
+    "Inscrição recebida. Enviamos um link de confirmação para o seu e-mail; sem confirmação, nada é enviado. O envio das edições começa em breve.",
   privacy: "Você pode sair da lista a qualquer momento.",
   honeypotLabel: "Não preencha este campo",
 } as const;

@@ -15,6 +15,7 @@ export interface IconButtonProps {
   iconColor?: string;
   href?: string;
   pressed?: boolean;
+  disabled?: boolean;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   className?: string;
   style?: CSSProperties;
@@ -47,6 +48,7 @@ export function IconButton({
   iconColor,
   href,
   pressed,
+  disabled,
   onClick,
   className,
   style,
@@ -55,6 +57,7 @@ export function IconButton({
     "relative inline-flex shrink-0 cursor-pointer items-center justify-center rounded-pill p-0",
     "transition-colors duration-(--dur-base) ease-(--ease-standard)",
     size === 48 ? "size-icon-btn" : "size-tap",
+    "disabled:cursor-not-allowed disabled:opacity-50",
     VARIANT[variant],
     className,
   );
@@ -81,6 +84,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       aria-pressed={pressed}
+      disabled={disabled}
       onClick={onClick}
       className={classes}
       style={style}

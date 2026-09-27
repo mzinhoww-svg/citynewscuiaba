@@ -159,4 +159,82 @@ describe("perfil anônimo", () => {
     expect(p.follows).toEqual([]);
     expect(p.saved).toEqual([]);
   });
+
+  it("salvo guarda título e link para Favoritos e progresso de leitura", async () => {
+    const s = createAnonStore(memoryKV(), { now: () => NOW });
+    await s.save("article:1", 0, {
+      title: "Plano de ônibus",
+      href: "/materia/x",
+      section: "cidade",
+    });
+    await s.setProgress("article:1", 62.4);
+    await s.setProgress("article:nao-salvo", 50);
+    const p = await s.get();
+    expect(p.saved).toEqual([
+      {
+        ref: "article:1",
+        at: NOW.toISOString(),
+        progress: 62.4,
+        title: "Plano de ônibus",
+        href: "/materia/x",
+        section: "cidade",
+      },
+    ]);
+  });
+
+  it("link de salvo só aceita caminho interno", async () => {
+    const s = createAnonStore(memoryKV());
+    await s.save("article:1", 0, { title: "X", href: "https://mal.example/phish" });
+    expect((await s.get()).saved[0]!.href).toBeUndefined();
+  });
+
+  it("seguidas com rótulo e reordenação", async () => {
+    const s = createAnonStore(memoryKV());
+    await s.follow("source", "a");
+    await s.follow("source", "b");
+    await s.follow("topic", "plano-de-onibus", "Plano de ônibus");
+    expect((await s.get()).follows.map((f) => f.id)).toEqual(["plano-de-onibus", "b", "a"]);
+    await s.reorderFollows("source", ["a", "b"]);
+    const p = await s.get();
+    expect(p.follows.filter((f) => f.kind === "source").map((f) => f.id)).toEqual(["a", "b"]);
+    expect(p.follows.find((f) => f.kind === "topic")!.label).toBe("Plano de ônibus");
+  });
+
+  it("coleções pessoais: criar, renomear e apagar", async () => {
+    const s = createAnonStore(memoryKV(), { uuid: () => "c1" });
+    await s.createCollection("  Para ler no fim de semana  ");
+    await s.renameCollection("c1", "Fim de semana");
+    expect((await s.get()).collections).toEqual([
+      expect.objectContaining({ id: "c1", name: "Fim de semana", items: [] }),
+    ]);
+    await s.createCollection("   ");
+    expect((await s.get()).collections).toHaveLength(1);
+    await s.deleteCollection("c1");
+    expect((await s.get()).collections).toEqual([]);
+  });
+
+  it("alertas locais: criar e remover, sem conta", async () => {
+    const s = createAnonStore(memoryKV(), { uuid: () => "al1", now: () => NOW });
+    await s.addAlert({
+      kind: "bairro",
+      target: "cpa",
+      label: "CPA",
+      frequency: "immediate",
+      channel: "browser",
+    });
+    expect((await s.get()).alerts).toEqual([
+      {
+        id: "al1",
+        kind: "bairro",
+        target: "cpa",
+        label: "CPA",
+        frequency: "immediate",
+        channel: "browser",
+        status: "active",
+        at: NOW.toISOString(),
+      },
+    ]);
+    await s.removeAlert("al1");
+    expect((await s.get()).alerts).toEqual([]);
+  });
 });

@@ -1392,6 +1392,39 @@ export type Database = {
           },
         ];
       };
+      reader_emails: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          sent_at: string | null;
+          status: string;
+          subject: string;
+          to_email: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          sent_at?: string | null;
+          status?: string;
+          subject: string;
+          to_email: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          sent_at?: string | null;
+          status?: string;
+          subject?: string;
+          to_email?: string;
+        };
+        Relationships: [];
+      };
       rec_weights: {
         Row: {
           active: boolean;
@@ -2094,6 +2127,7 @@ export type Database = {
         Args: { p_before?: string; p_item_refs?: string[]; p_run_ids?: string[] };
         Returns: number;
       };
+      purge_reader_emails: { Args: { p_days?: number }; Returns: number };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
@@ -2160,6 +2194,7 @@ export type Database = {
           suggestion: string;
         }[];
       };
+      search_topic_is_public: { Args: { p_id: string }; Returns: boolean };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       start_ingest_run: {

@@ -20,6 +20,7 @@ import {
   ReadingSettings,
   ReadTracker,
   ReportProblemForm,
+  SaveButton,
   ShareSheet,
   SourcesList,
   TopicStatus,
@@ -206,6 +207,13 @@ function Article({ a }: { a: ArticleView }) {
                 aria-label={ARTICLE.actions}
                 className="flex flex-wrap gap-2 border-y border-line-subtle py-3"
               >
+                <SaveButton
+                  contentRef={`article:${a.id}`}
+                  title={a.title}
+                  href={a.href}
+                  section={a.section.name}
+                  targetId="materia"
+                />
                 <ShareSheet title={a.title} url={a.href} />
                 <ReadingSettings />
                 <ReportProblemForm contentRef={`article:${a.id}`} action={reportProblemAction} />

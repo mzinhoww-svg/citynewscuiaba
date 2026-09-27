@@ -81,6 +81,7 @@ export const STATIC_PATHS: readonly string[] = [
   "/explorar",
   "/fontes",
   "/panorama",
+  "/newsletter",
   "/assuntos",
   "/agenda",
   "/agenda/sugerir",

@@ -52,7 +52,7 @@ export const config = {
       // Páginas HTML. Fora: API, arquivos estáticos, imagens otimizadas, sitemaps, robots e
       // arquivos de /public (brand, offline).
       source:
-        "/((?!api/|_next/static|_next/image|favicon.ico|icon.svg|brand/|offline\\.|robots.txt|sitemap).*)",
+        "/((?!api/|_next/static|_next/image|favicon.ico|icon.svg|brand/|offline\\.|sw\\.js|robots.txt|sitemap).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
