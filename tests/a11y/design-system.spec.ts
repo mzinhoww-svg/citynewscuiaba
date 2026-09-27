@@ -53,3 +53,18 @@ test("mostrar senha funciona pelo teclado", async ({ page }) => {
   await expect(toggle).toHaveAttribute("aria-pressed", "true");
   await expect(field).toHaveAttribute("type", "text");
 });
+
+test("fontes: menu de ocultar abre com teclado e fica sem violações @a11y", async ({ page }) => {
+  await page.goto("/design-system");
+  const trigger = page.getByRole("button", { name: "Ocultar Placar MT" }).first();
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const menu = page.getByRole("menu", { name: "Por que ocultar Placar MT?" });
+  await expect(menu).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Não tenho interesse" })).toBeFocused();
+  const results = await new AxeBuilder({ page }).include("#ds-fontes").analyze();
+  expect(results.violations.filter((v) => blocking(v.impact))).toEqual([]);
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+});

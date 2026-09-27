@@ -8,10 +8,12 @@ export interface SourceAvatarProps {
   initials?: string;
   /** Código curto da fonte (monograma de 2 letras); sinônimo de `initials`. */
   code?: string;
-  /** 40 (listas), 56 (grade), 64 (fileira mobile), 72 (fileira desktop). */
-  size?: 40 | 56 | 64 | 72;
+  /** 40 (listas), 56 (grade), 64 (fileira mobile), 72 (fileira desktop), "rail" (64 → 72 no desktop). */
+  size?: 40 | 56 | 64 | 72 | "rail";
   href?: string;
   onClick?: () => void;
+  /** Só o círculo, escondido de leitores de tela (o nome já está ao lado, em cards e linhas). */
+  decorative?: boolean;
   className?: string;
 }
 
@@ -20,6 +22,7 @@ const SIZE = {
   56: { box: "size-14", text: "text-16", width: "w-18" },
   64: { box: "size-16", text: "text-18", width: "w-20" },
   72: { box: "size-18", text: "text-20", width: "w-22" },
+  rail: { box: "size-16 lg:size-18", text: "text-18 lg:text-20", width: "w-20 lg:w-22" },
 } as const;
 
 const AVATAR_BG = [
@@ -66,9 +69,26 @@ export function SourceAvatar({
   size = 56,
   href,
   onClick,
+  decorative = false,
   className,
 }: SourceAvatarProps) {
   const s = SIZE[size];
+  const circle = (
+    <span
+      aria-hidden="true"
+      className={cx(
+        "flex shrink-0 items-center justify-center rounded-pill bg-cover bg-center font-bold text-branco",
+        s.box,
+        s.text,
+        !image && avatarBg(name),
+        decorative && className,
+      )}
+      style={image ? { backgroundImage: `url(${JSON.stringify(image)})` } : undefined}
+    >
+      {!image && (code ?? initials ?? monogram(name))}
+    </span>
+  );
+  if (decorative) return circle;
   const classes = cx(
     "flex shrink-0 flex-col items-center gap-2 rounded-md text-center no-underline",
     s.width,
@@ -77,18 +97,7 @@ export function SourceAvatar({
   );
   const content = (
     <>
-      <span
-        aria-hidden="true"
-        className={cx(
-          "flex items-center justify-center rounded-pill bg-cover bg-center font-bold text-branco",
-          s.box,
-          s.text,
-          !image && avatarBg(name),
-        )}
-        style={image ? { backgroundImage: `url(${JSON.stringify(image)})` } : undefined}
-      >
-        {!image && (code ?? initials ?? monogram(name))}
-      </span>
+      {circle}
       <span className="line-clamp-2 text-13 font-medium leading-snug text-strong">{name}</span>
     </>
   );

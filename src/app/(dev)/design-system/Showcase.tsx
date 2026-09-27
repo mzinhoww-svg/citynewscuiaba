@@ -28,7 +28,11 @@ import {
   SiteFooter,
   SiteHeader,
   Slider,
+  PopularSourcesRail,
   SourceAvatar,
+  SourceCard,
+  SourceRow,
+  type SourceCardData,
   StatCard,
   StoryCard,
   TabBar,
@@ -38,6 +42,80 @@ import {
   TopicCard,
   VideoLowerThird,
 } from "@/components";
+
+const DEMO_SOURCES: SourceCardData[] = [
+  {
+    slug: "folha-do-cerrado",
+    name: "Folha do Cerrado",
+    href: "/fontes/folha-do-cerrado",
+    category: "Política",
+    locality: "Cuiabá",
+    reason: "Popular em Cuiabá",
+    reach: 18_342,
+    trend: "stable",
+    itemsToday: 42,
+    updatedAt: "2026-09-27T17:48:00Z",
+    verified: true,
+    preferred: true,
+    followed: true,
+  },
+  {
+    slug: "placar-mt",
+    name: "Placar MT",
+    href: "/fontes/placar-mt",
+    category: "Esportes",
+    locality: "Mato Grosso",
+    reason: "Em alta nesta semana",
+    reach: 4_120,
+    trend: "up",
+    itemsToday: 9,
+    updatedAt: null,
+  },
+];
+
+/** Card, linha e fileira de fontes (P2-T6) com seguir e ocultar em memória. */
+function SourcesDemo() {
+  const [followed, setFollowed] = useState<Set<string>>(new Set(["folha-do-cerrado"]));
+  const [hidden, setHidden] = useState<string[]>([]);
+  const onFollow = (slug: string, next: boolean) =>
+    setFollowed((prev) => {
+      const out = new Set(prev);
+      if (next) out.add(slug);
+      else out.delete(slug);
+      return out;
+    });
+  const onHide = (slug: string) => setHidden((h) => [...h, slug]);
+  const visible = DEMO_SOURCES.filter((s) => !hidden.includes(s.slug)).map((s) => ({
+    ...s,
+    followed: followed.has(s.slug),
+  }));
+  return (
+    <div className="flex flex-col gap-6">
+      <PopularSourcesRail title="Mais acessadas em Cuiabá" sources={DEMO_SOURCES} />
+      <div className="grid gap-4 md:grid-cols-2">
+        {visible.map((s) => (
+          <SourceCard
+            key={s.slug}
+            source={s}
+            onFollow={onFollow}
+            onHide={onHide}
+            now={new Date("2026-09-27T18:00:00Z")}
+          />
+        ))}
+      </div>
+      <ul className="flex max-w-xl flex-col">
+        {visible.map((s) => (
+          <SourceRow key={s.slug} source={s} onFollow={onFollow} onHide={onHide} />
+        ))}
+      </ul>
+      {hidden.length > 0 && (
+        <Button variant="text" onClick={() => setHidden([])}>
+          Mostrar fontes ocultadas
+        </Button>
+      )}
+    </div>
+  );
+}
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
@@ -352,6 +430,10 @@ export function Showcase() {
           labels={["0h", "6", "12h", "18", "24h"]}
           highlight={12}
         />
+      </Section>
+
+      <Section id="ds-fontes" title="Fontes em destaque">
+        <SourcesDemo />
       </Section>
 
       <Section id="ds-listas" title="Listas e ações">

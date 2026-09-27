@@ -84,6 +84,24 @@ export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";
 export { SourceAvatar, type SourceAvatarProps } from "./editorial/SourceAvatar";
+
+/* fontes em destaque (P2-T6, DESIGN.md §6) */
+export { DismissMenu, type DismissMenuProps } from "./editorial/DismissMenu";
+export { PopularSourcesRail, type PopularSourcesRailProps } from "./editorial/PopularSourcesRail";
+export {
+  RecommendationReason,
+  type RecommendationReasonProps,
+} from "./editorial/RecommendationReason";
+export {
+  FollowButton,
+  SourceBadges,
+  SourceCard,
+  type FollowHandler,
+  type HideHandler,
+  type SourceCardData,
+  type SourceCardProps,
+} from "./editorial/SourceCard";
+export { SourceRow, type SourceRowProps } from "./editorial/SourceRow";
 export { StatCard, type StatCardProps } from "./editorial/StatCard";
 export { StoryCard, type StoryCardProps } from "./editorial/StoryCard";
 export { TopicCard, type TopicCardProps } from "./editorial/TopicCard";
