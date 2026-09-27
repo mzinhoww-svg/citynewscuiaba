@@ -1,0 +1,5 @@
+/* Minimal base: body font + link colors. */
+html,body{font-family:var(--font-sans);color:var(--text-body);-webkit-font-smoothing:antialiased}
+a{color:var(--text-link);text-decoration:none}
+a:hover{color:var(--cn-tinta);text-decoration:underline;text-underline-offset:2px}
+.cn-eyebrow{font:var(--type-eyebrow);letter-spacing:var(--ls-eyebrow);text-transform:uppercase;color:var(--text-eyebrow)}

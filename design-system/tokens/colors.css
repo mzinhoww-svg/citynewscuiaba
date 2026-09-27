@@ -1,0 +1,48 @@
+/* CityNews Cuiabá — color tokens. Base palette from "Identidade de marca" (03 / Sistema). */
+:root{
+/* Brand palette */
+--cn-tinta:#0F1B2D;          /* Marca, texto, fundos escuros. Confiança. */
+--cn-urucum:#E8491D;         /* O Ponto, "ao vivo", destaques gráficos. */
+--cn-urucum-texto:#B33A12;   /* Links e rótulos pequenos sobre branco (5,9:1). */
+--cn-cerrado:#1E6B52;        /* Guia, serviços e utilidade pública. */
+--cn-papel:#F5F2EC;          /* Fundos de seção e agenda. */
+--cn-grafite:#4A4F57;        /* Legendas e metadados (8,3:1). */
+--cn-branco:#FFFFFF;
+/* Derived tints (oklch-matched to the palette) */
+--cn-tinta-80:#27324A;
+--cn-tinta-60:#3B465C;
+--cn-urucum-soft:#FCE6DD;
+--cn-cerrado-soft:#DDEDE6;
+--cn-papel-2:#EDE8DF;        /* pressed / secondary fill on papel */
+--cn-foto:#E6E1D8;           /* photo placeholder ("Foto") */
+--cn-linha:#E4DFD5;          /* hairline on papel */
+--cn-linha-branca:#ECEAE6;   /* hairline on white */
+--cn-grafite-2:#767B84;      /* placeholder / disabled text */
+--cn-erro:#C4281C;
+/* Semantic aliases */
+--bg-page:var(--cn-branco);
+--bg-section:var(--cn-papel);
+--bg-inverse:var(--cn-tinta);
+--surface-card:var(--cn-papel);
+--surface-card-white:var(--cn-branco);
+--surface-input:var(--cn-papel);
+--surface-photo:var(--cn-foto);
+--surface-overlay:rgba(15,27,45,.48);
+--text-strong:var(--cn-tinta);
+--text-body:var(--cn-tinta);
+--text-meta:var(--cn-grafite);
+--text-placeholder:var(--cn-grafite-2);
+--text-inverse:var(--cn-branco);
+--text-link:var(--cn-urucum-texto);
+--text-eyebrow:var(--cn-urucum-texto);
+--text-service:var(--cn-cerrado);
+--text-danger:var(--cn-erro);
+--accent:var(--cn-urucum);           /* live dot, active indicators, progress */
+--accent-service:var(--cn-cerrado);  /* Guia / serviços */
+--action-primary:var(--cn-tinta);
+--action-primary-pressed:var(--cn-tinta-80);
+--action-secondary:var(--cn-papel);
+--border-subtle:var(--cn-linha-branca);
+--border-strong:var(--cn-tinta);
+--focus-ring:rgba(232,73,29,.35);
+}

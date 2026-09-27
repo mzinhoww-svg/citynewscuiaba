@@ -1,0 +1,18 @@
+<!-- @dsCard group="Components" viewport="700x400" name="Navigation" subtitle="Chip, Tabs, TabBar, NavHeader, SectionHeader" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script></head><body style="margin:0;padding:20px 24px;background:#fff"><div id="root"></div>
+<script type="text/babel">const DS = window.CityNewsDesignSystem_4f3e0e;
+const Row=({children,gap=12,style})=><div style={{display:'flex',gap,alignItems:'center',flexWrap:'wrap',...style}}>{children}</div>;
+const {ChipGroup,Tabs,TabBar,NavHeader,SectionHeader,IconButton}=DS;
+const Card=()=>{const [c,setC]=React.useState('Tudo');const [t,setT]=React.useState('home');return <div style={{display:'flex',flexDirection:'column',gap:18}}>
+<ChipGroup items={['Tudo','Cidade','Política','Esporte','Cultura','Economia','Agro']} value={c} onChange={setC}/>
+<div style={{background:'var(--cn-tinta)',padding:12,borderRadius:16}}><ChipGroup tone="dark" items={['Tudo','Cidade','Política','Esporte','Cultura']} value="Tudo"/></div>
+<Tabs items={['Matérias','Temas','Autores']} defaultValue="Temas"/>
+<SectionHeader title="Explorar"/>
+<div style={{border:'1px solid var(--border-subtle)',borderRadius:16,overflow:'hidden'}}><NavHeader title="Buscar" onBack={()=>{}} right={<IconButton icon="ellipsis"/>} style={{padding:'12px 16px'}}/>
+<TabBar value={t} onChange={setT} items={[{id:'home',label:'Início',icon:'house'},{id:'agenda',label:'Agenda',icon:'calendar'},{id:'saved',label:'Salvos',icon:'bookmark',fillActive:true},{id:'me',label:'Perfil',icon:'user'}]}/></div>
+</div>};
+ReactDOM.createRoot(document.getElementById('root')).render(<Card/>);</script></body></html>

@@ -1,0 +1,18 @@
+<!-- @dsCard group="Components" viewport="700x390" name="Forms" subtitle="TextField, SearchBar, Toggle, Slider, SegmentedToggle" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script></head><body style="margin:0;padding:20px 24px;background:#fff"><div id="root"></div>
+<script type="text/babel">const DS = window.CityNewsDesignSystem_4f3e0e;
+const Row=({children,gap=12,style})=><div style={{display:'flex',gap,alignItems:'center',flexWrap:'wrap',...style}}>{children}</div>;
+const {TextField,SearchBar,Toggle,Slider,SegmentedToggle,Icon}=DS;
+const Card=()=><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'18px 24px'}}>
+<TextField label="E-mail ou telefone" icon="mail" placeholder="Digite seu e-mail ou telefone"/>
+<TextField label="Senha" icon="lock" type="password" defaultValue="cuiaba2026"/>
+<TextField label="Usuário" icon="user" placeholder="Crie seu usuário" error="Esse usuário já existe"/>
+<div style={{display:'flex',flexDirection:'column',gap:16,paddingTop:28}}><SearchBar/><Row gap={20}><Toggle defaultChecked label="on"/><Toggle label="off"/><Toggle disabled defaultChecked label="dis"/><SegmentedToggle options={[{value:'light',label:'Claro',icon:'sun'},{value:'dark',label:'Escuro',icon:'moon'}]}/></Row></div>
+<Slider steps={7} defaultValue={50} startAdornment={<span style={{font:'500 16px var(--font-sans)'}}>A</span>} endAdornment={<span style={{font:'500 28px var(--font-sans)'}}>A</span>}/>
+<Slider defaultValue={72} startAdornment={<Icon name="sun" size={20}/>} endAdornment={<Icon name="sun" size={26}/>}/>
+</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<Card/>);</script></body></html>

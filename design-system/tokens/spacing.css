@@ -1,0 +1,27 @@
+/* CityNews — spacing, radius, elevation, motion. Values read from the 375pt app mockups. */
+:root{
+--sp-2:2px;--sp-4:4px;--sp-6:6px;--sp-8:8px;--sp-10:10px;--sp-12:12px;--sp-16:16px;--sp-20:20px;--sp-24:24px;--sp-32:32px;--sp-40:40px;--sp-48:48px;--sp-64:64px;
+--gutter-mobile:24px;       /* screen side padding */
+--gutter-desktop:40px;
+--container-max:1200px;
+/* Radius */
+--r-xs:4px;   /* logo lockups, small tags on photos (brand) */
+--r-sm:8px;   /* thumbnails in agenda rows */
+--r-md:12px;  /* list-card thumbnails */
+--r-lg:16px;  /* inputs, feature cards, photos */
+--r-xl:20px;  /* list cards, modals */
+--r-2xl:28px; /* bottom sheet top corners */
+--r-pill:999px;
+/* Control sizes */
+--h-input:52px;--h-button:56px;--h-button-sm:32px;--h-chip:34px;--h-icon-btn:48px;--h-tabbar:64px;
+/* Elevation — the system is flat; shadows are rare and soft */
+--shadow-none:none;
+--shadow-sm:0 1px 2px rgba(15,27,45,.06);
+--shadow-md:0 8px 24px rgba(15,27,45,.08);
+--shadow-lg:0 16px 40px rgba(15,27,45,.14);
+--blur-overlay:8px;
+/* Motion */
+--ease-standard:cubic-bezier(.2,0,0,1);/* @kind other */
+--ease-exit:cubic-bezier(.4,0,1,1);/* @kind other */
+--dur-fast:120ms;/* @kind other */--dur-base:200ms;/* @kind other */--dur-slow:320ms;/* @kind other */
+}

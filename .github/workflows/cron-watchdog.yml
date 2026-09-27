@@ -1,0 +1,22 @@
+name: Cron watchdog
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check last ingest run and trigger if late
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          late=$(curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/ingest/status" | jq -r '.late')
+          if [ "$late" = "true" ]; then
+            curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/ingest/tick"
+            echo "tick disparado pelo watchdog"
+          else
+            echo "ciclo em dia"
+          fi

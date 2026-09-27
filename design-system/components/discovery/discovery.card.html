@@ -1,0 +1,19 @@
+<!-- @dsCard group="Components" viewport="700x470" name="Discovery & data" subtitle="TopicCard, SourceAvatar, AgendaList, StatCard, BarChart" -->
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script></head><body style="margin:0;padding:20px 24px;background:#fff"><div id="root"></div>
+<script type="text/babel">const DS = window.CityNewsDesignSystem_4f3e0e;
+const Row=({children,gap=12,style})=><div style={{display:'flex',gap,alignItems:'center',flexWrap:'wrap',...style}}>{children}</div>;
+const {TopicCard,SourceAvatar,AgendaList,StatCard,BarChart}=DS;
+const Card=()=><div style={{display:'grid',gridTemplateColumns:'1fr 220px',gap:20}}>
+<div style={{display:'flex',flexDirection:'column',gap:16}}>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}><TopicCard label="Mobilidade" icon="map-pin" defaultFollowing/><TopicCard label="Política" icon="newspaper"/><TopicCard label="Economia" icon="trending-up"/></div>
+<Row gap={8}><SourceAvatar name="Ana Lima"/><SourceAvatar name="Rafael Souza"/><SourceAvatar name="Júlia Campos"/><SourceAvatar name="Guia CN" initials="GC"/></Row>
+<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}><StatCard icon="eye" label="Visualizações" value="213 mil" delta="+12%"/><StatCard icon="users" label="Seguidores" value="400" delta="-0,2%" trend="down"/></div>
+<BarChart height={60} values={[8,5,0,9,6,0,0,3,0,5,0,7,9,0,4]} labels={['0h','6','12h','18','24h']} highlight={12}/>
+</div>
+<AgendaList title="Agenda de hoje" items={[{when:'19h',title:'Show no Sesc Arsenal',place:'Centro'},{when:'20h30',title:'Cine Teatro: mostra regional',place:'Centro Histórico'},{when:'22h',title:'Rasqueado na Orla',place:'Porto'}]}/>
+</div>;
+ReactDOM.createRoot(document.getElementById('root')).render(<Card/>);</script></body></html>

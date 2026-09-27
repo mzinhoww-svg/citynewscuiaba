@@ -1,0 +1,792 @@
+{
+  "schema": 1,
+  "project": "CityNews Cuiabá",
+  "updatedAt": null,
+  "kickoff": {
+    "questionsAsked": true,
+    "answered": true,
+    "answeredAt": "2026-09-27"
+  },
+  "order": [
+    "P0",
+    "P1",
+    "P3",
+    "P2",
+    "P4",
+    "P5",
+    "P6"
+  ],
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Fundação",
+      "plan": "docs/superpowers/plans/2026-09-27-p0-fundacao.md",
+      "dependsOn": [],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P0-T1",
+          "title": "Scaffold do projeto e qualidade",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T2",
+          "title": "Result e utilitários",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T3",
+          "title": "Rótulos de origem",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T4",
+          "title": "Confiança",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T5",
+          "title": "Regras de publicação",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T6",
+          "title": "Segurança de texto externo",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T7",
+          "title": "Supabase local, schema e seed",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T8",
+          "title": "Autorização",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T9",
+          "title": "Shells de layout e página de status",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T9b",
+          "title": "Portar o brand kit para TSX e regra de aderência",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P0-T10",
+          "title": "CI, GitHub e Vercel",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "name": "Portal público",
+      "plan": "docs/superpowers/plans/2026-09-27-p1-portal-publico.md",
+      "dependsOn": [
+        "P0"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P1-T1",
+          "title": "Queries de leitura",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T2",
+          "title": "Componentes de origem e confiança",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T3",
+          "title": "Cards editoriais",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T4",
+          "title": "Home",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T5",
+          "title": "Editoria",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T6",
+          "title": "Matéria, histórico e informar problema",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T7",
+          "title": "Assunto e lista de assuntos",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T8",
+          "title": "Agenda, evento, .ics e sugerir evento",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T9",
+          "title": "Explorar e coleções",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T10",
+          "title": "Institucionais e estados de sistema",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T11",
+          "title": "SEO técnico",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P1-T12",
+          "title": "Acessibilidade, verificação e relatório da fase",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "Pipeline e busca",
+      "plan": "docs/superpowers/plans/2026-09-27-p3-pipeline-busca.md",
+      "dependsOn": [
+        "P0"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P3-T1",
+          "title": "Extensões e filas",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T2",
+          "title": "Tick e drain",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T3",
+          "title": "Fetch, validate, extract, normalize",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T4",
+          "title": "Dedupe e cluster",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T5",
+          "title": "Camada de IA",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T6",
+          "title": "Classify, locate, verify",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T7",
+          "title": "Mídia",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T8",
+          "title": "Write, decide, publish, index, notify",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T9",
+          "title": "Watchdog",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T10",
+          "title": "Busca tradicional",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P3-T11",
+          "title": "Busca com IA",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "Fontes, personalização e conta",
+      "plan": "docs/superpowers/plans/2026-09-27-p2-fontes-personalizacao-conta.md",
+      "dependsOn": [
+        "P0",
+        "P1"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P2-T1",
+          "title": "Consentimento",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T2",
+          "title": "Perfil anônimo local",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T3",
+          "title": "Eventos",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T4",
+          "title": "Ranking de fontes",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T5",
+          "title": "Dados de fontes no servidor",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T6",
+          "title": "Componentes de fonte",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T7",
+          "title": "Tela Fontes em destaque",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T8",
+          "title": "Página da fonte e Panorama",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T9",
+          "title": "Favoritos, Alertas e Newsletter",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T10",
+          "title": "Convites (primeira visita e login contextual)",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T11",
+          "title": "Conta: entrar, criar, recuperar, confirmar e migrar",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P2-T12",
+          "title": "Perfil e Como usamos suas recomendações",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "name": "Estúdio editorial",
+      "plan": "docs/superpowers/plans/2026-09-27-p4-estudio-editorial.md",
+      "dependsOn": [
+        "P0",
+        "P3"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P4-T1",
+          "title": "Guardas e auditoria do Estúdio",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T2",
+          "title": "Newsroom e fila",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T3",
+          "title": "Revisão de item autônomo e editor",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T4",
+          "title": "Versões e histórico",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T5",
+          "title": "Publicação e agendamento",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T6",
+          "title": "Calendário, correções e direito de resposta",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T7",
+          "title": "Mídia, licenças, aprovação e geração",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P4-T8",
+          "title": "Sugestões de evento e denúncias",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "name": "Control Center e administração",
+      "plan": "docs/superpowers/plans/2026-09-27-p5-control-center-admin.md",
+      "dependsOn": [
+        "P0",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P5-T1",
+          "title": "Aprovações",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T2",
+          "title": "Regras de autonomia",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T3",
+          "title": "Visão geral, tempo real, falhas, execuções e logs",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T4",
+          "title": "Fontes (lista, cadastro, teste de conexão, recomendação)",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T5",
+          "title": "Agentes, modelos, prompts e playground",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T6",
+          "title": "Bases, avaliações, custos e governança da IA",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T7",
+          "title": "Recomendação: painel, pesos, campanhas e A/B",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T8",
+          "title": "Administração (usuários, papéis, equipes, taxonomia, home)",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T9",
+          "title": "Administração (publicidade, SEO, notificações, auditoria, segurança, governança, integrações, configurações)",
+          "parallel": true,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P5-T10",
+          "title": "Contingência",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "name": "Endurecimento e lançamento",
+      "plan": "docs/superpowers/plans/2026-09-27-p6-endurecimento-lancamento.md",
+      "dependsOn": [
+        "P0",
+        "P1",
+        "P2",
+        "P3",
+        "P4",
+        "P5"
+      ],
+      "status": "pending",
+      "gate": {
+        "verify": false,
+        "preview": false,
+        "agentBrowser": false,
+        "impeccable": false,
+        "report": false,
+        "merged": false
+      },
+      "tasks": [
+        {
+          "id": "P6-T1",
+          "title": "Performance",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P6-T2",
+          "title": "Acessibilidade completa",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P6-T3",
+          "title": "Segurança",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P6-T4",
+          "title": "Observabilidade e recuperação",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P6-T5",
+          "title": "Privacidade",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        },
+        {
+          "id": "P6-T6",
+          "title": "Polimento visual e verificação final",
+          "parallel": false,
+          "status": "pending",
+          "attempts": 0,
+          "commit": null,
+          "notes": ""
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env*.local
+.env
+coverage/
+playwright-report/
+test-results/
+.vercel/
+.supabase/
+.supabase.env
+logs/*.jsonl

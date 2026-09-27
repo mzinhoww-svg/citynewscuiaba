@@ -1,0 +1,25 @@
+# Registro de decisões
+
+Decisões de produto e arquitetura D1 a D18 estão em `docs/superpowers/specs/2026-09-27-citynews-design.md` §2 e não são reabertas. Refinamentos visuais R1 a R14 estão em `DESIGN.md` §2.
+
+Decisões autônomas tomadas durante a execução recebem `A-###`:
+
+| ID | Data | Tarefa | Contexto | Decisão | Alternativas descartadas | Reversível? |
+|---|---|---|---|---|---|---|
+| A-000 | 2026-09-27 | kit | Brand kit usa "CityNews" e o canvas usava "CITYNEWS" | Interface usa "CityNews" (brand kit, com assets reais); rótulos de origem continuam em caixa alta | CITYNEWS em todo lugar | Sim, troca de string |
+| A-000b | 2026-09-27 | kit | Brand kit usa Papel como superfície de UI | Papel só em marca, impresso e social; UI usa Névoa | Manter Papel | Sim, token |
+| A-001 | 2026-09-27 | kickoff | Repositório | `mzinhoww-svg/citynewscuiaba`, privado | Repo novo | Sim |
+| A-002 | 2026-09-27 | kickoff | Domínio | `*.vercel.app` até haver domínio próprio | Comprar domínio | Sim |
+| A-003 | 2026-09-27 | kickoff | Supabase inexistente | Claude Code cria projetos free (`prod` primeiro; `staging` se a cota de projetos free permitir) e conecta Vercel e GitHub | Só local | Sim |
+| A-004 | 2026-09-27 | kickoff | Plano Vercel | Hobby. `drain` em lotes pequenos, cron do ciclo no Supabase | Pro | Sim |
+| A-005 | 2026-09-27 | kickoff | Provedor de IA | OpenRouter via Vercel AI SDK com provedor compatível com OpenAI (`baseURL https://openrouter.ai/api/v1`). Embedding `openai/text-embedding-3-small` (1536) pela rota `/embeddings` do OpenRouter. `FakeProvider` em teste e CI | Chamar provedores direto | Sim |
+| A-006 | 2026-09-27 | kickoff | Orçamento | R$ 30/dia, pausa em 100% | — | Sim |
+| A-007 | 2026-09-27 | kickoff | Login social | Google pelo OAuth do Supabase Auth (Client ID e Secret do Google Cloud cadastrados no Supabase) | Sem Google | Sim |
+| A-008 | 2026-09-27 | kickoff | E-mail | SMTP padrão do Supabase Auth para confirmação, link mágico e recuperação. Newsletter e alertas por e-mail ficam na fila `notify` sem envio até haver provedor (BLOCKER B-005); alertas de navegador funcionam | Provedor externo já | Sim |
+| A-009 | 2026-09-27 | kickoff | Fontes | Produção só com fontes reais (`supabase/seed_sources_real.sql`, 32 fontes, todas `paused` até validação). Testes e CI continuam com fixtures fictícias para serem determinísticos. Manchete inventada nunca é atribuída a veículo real | Fictícias em produção | Sim |
+| A-010 | 2026-09-27 | kickoff | Imagens | Nova política `reproduction`: imagem da matéria original com rótulo REPRODUÇÃO · fonte, crédito, link, sem recorte de crédito, remoção em 24 h e opt-out por veículo. Risco jurídico registrado (B-002) | Só card tipográfico | Sim, por fonte |
+| A-011 | 2026-09-27 | kickoff | Plantão | E-mail do dono do repositório no GitHub | — | Sim |
+| A-012 | 2026-09-27 | kickoff | Grafia | "CityNews" confirmado | — | Sim |
+| A-013 | 2026-09-27 | kickoff | Logotipo vetorial | SVGs gerados a partir do PNG do kit: símbolo medido (arco ±40°, ponto a 1,0 raio externo) e wordmark convertido em contornos de Schibsted Grotesk 800 (tracking −0,065em, igual ao PNG). Arquivos em `design-system/assets/logo/svg/` | PNG | Sim |
+| A-014 | 2026-09-27 | kickoff | Dados institucionais | `[PREENCHER]` e B-001 | — | Sim |
+| A-015 | 2026-09-27 | kickoff | Recursos | Pode criar tudo o que for gratuito; nunca pago | — | Sim |

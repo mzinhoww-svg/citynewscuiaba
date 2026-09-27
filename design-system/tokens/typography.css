@@ -1,0 +1,24 @@
+/* CityNews — typography tokens. Schibsted Grotesk (UI/títulos) + Source Serif 4 (manchetes e corpo editorial). */
+:root{
+--font-sans:'Schibsted Grotesk','Instrument Sans',system-ui,sans-serif;
+--font-serif:'Source Serif 4','Newsreader',Georgia,serif;
+--fw-regular:400;/* @kind font */--fw-medium:500;/* @kind font */--fw-semibold:600;/* @kind font */--fw-bold:700;/* @kind font */--fw-black:800;/* @kind font */
+/* Scale (px, mobile-first; mockup base = 375pt frame) */
+--fs-10:10px;--fs-12:12px;--fs-13:13px;--fs-14:14px;--fs-16:16px;--fs-18:18px;--fs-20:20px;--fs-24:24px;--fs-28:28px;--fs-32:32px;--fs-40:40px;--fs-56:56px;
+--lh-tight:1.1;/* @kind font */--lh-snug:1.25;/* @kind font */--lh-normal:1.45;/* @kind font */--lh-read:1.65;/* @kind font */
+--ls-wordmark:-0.04em;/* @kind font */--ls-display:-0.02em;/* @kind font */--ls-normal:0;/* @kind font */--ls-eyebrow:0.08em;/* @kind font */
+/* Semantic roles */
+--type-display:800 var(--fs-40)/var(--lh-tight) var(--font-sans);        /* "O que fazer em Cuiabá" */
+--type-screen-title:700 var(--fs-24)/var(--lh-snug) var(--font-sans);    /* "Login Account" */
+--type-nav-title:600 var(--fs-16)/var(--lh-snug) var(--font-sans);       /* centered header */
+--type-section:700 var(--fs-20)/var(--lh-snug) var(--font-sans);         /* "Explore" */
+--type-headline-xl:600 var(--fs-28)/var(--lh-snug) var(--font-serif);    /* article title */
+--type-headline:600 var(--fs-20)/var(--lh-snug) var(--font-serif);       /* feature card */
+--type-headline-sm:600 var(--fs-16)/1.3 var(--font-serif);               /* list card */
+--type-body-read:400 var(--fs-16)/var(--lh-read) var(--font-serif);      /* article body */
+--type-body:400 var(--fs-14)/var(--lh-normal) var(--font-sans);
+--type-label:600 var(--fs-14)/1.2 var(--font-sans);
+--type-button:600 var(--fs-16)/1 var(--font-sans);
+--type-meta:400 var(--fs-12)/1.3 var(--font-sans);
+--type-eyebrow:700 var(--fs-12)/1 var(--font-sans);                      /* uppercase + --ls-eyebrow */
+}

@@ -1,0 +1,10 @@
+# Bloqueios e contornos
+
+| ID | Aberto em | Tarefa | Problema | Contorno aplicado | Condição de revisita | Status |
+|---|---|---|---|---|---|---|
+| B-001 | 2026-09-27 | P1-T10 | Razão social, CNPJ e encarregado LGPD indefinidos | `[PREENCHER]` no rodapé, `/privacidade` e `/termos` | Dono informar | aberto |
+| B-002 | 2026-09-27 | P3-T7 | Política `reproduction` de imagem tem risco de direito autoral (fotografia é obra protegida; o art. 46 da Lei 9.610/98 trata de notícia e artigo informativo) | Rótulo REPRODUÇÃO, crédito, link, remoção em 24 h, opt-out por veículo, flag `image_reproduction_enabled` para desligar em 1 clique | Revisão jurídica antes do lançamento público | aberto, não bloqueia |
+| B-003 | 2026-09-27 | P0-T10 | Plano Hobby da Vercel é voltado a uso pessoal e não comercial; patrocinado nativo é uso comercial | Rodar em Hobby durante a construção; `sponsored_campaigns` desligado por flag | Migrar para Pro antes de vender patrocínio | aberto, não bloqueia |
+| B-004 | 2026-09-27 | P0-T10 | Supabase free tem limite de projetos ativos por organização | Criar `prod` primeiro; `staging` se houver cota, senão previews usam `prod` com schema separado `preview` e dados de fixture | Cota liberada | aberto |
+| B-005 | 2026-09-27 | P2-T9 | SMTP padrão do Supabase serve para Auth e tem limite baixo de envio; não serve para newsletter | Fila `notify` guarda os envios; UI mostra "inscrição confirmada, envio começa em breve" | Provedor de e-mail com chave | aberto |
+| B-006 | 2026-09-27 | P2-T11 | Google OAuth precisa de Client ID e Secret criados no Google Cloud Console | Botão Google atrás da flag `google_login` até as credenciais existirem | Credenciais cadastradas no Supabase | aberto |
