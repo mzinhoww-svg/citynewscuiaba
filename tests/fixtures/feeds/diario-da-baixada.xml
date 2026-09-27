@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9). Datas sem fuso: devem ser lidas como America/Cuiaba (UTC-4). -->
+<rss version="2.0">
+  <channel>
+    <title>Diário da Baixada</title>
+    <link>https://diariodabaixada.example</link>
+    <description>Fixture de teste</description>
+    <item>
+      <title>Moradores do Porto pedem faixa de pedestres na Beira Rio</title>
+      <link>/cidade/porto-faixa-pedestres-beira-rio</link>
+      <pubDate>2026-09-27 14:00</pubDate>
+      <description>Abaixo-assinado reúne 1.200 nomes e será entregue na segunda-feira.</description>
+    </item>
+    <item>
+      <title>Terminal do CPA terá bicicletário coberto</title>
+      <link>https://diariodabaixada.example/cidade/terminal-cpa-bicicletario</link>
+      <pubDate>2026-09-27T09:30:00</pubDate>
+      <description>O espaço terá 60 vagas e câmeras de monitoramento.</description>
+    </item>
+    <item>
+      <title>Chuva volta a Cuiabá no fim de semana, prevê meteorologia</title>
+      <link>https://diariodabaixada.example/clima/chuva-fim-de-semana</link>
+      <pubDate>27/09/2026 08:15</pubDate>
+      <description>A previsão indica pancadas isoladas a partir de sábado à tarde.</description>
+    </item>
+    <item>
+      <title>Feira de livros ocupa a Praça da República</title>
+      <link>https://diariodabaixada.example/cultura/feira-livros-praca-republica</link>
+      <pubDate>Dom, 27 Set 2026 07:00:00</pubDate>
+      <description>Editoras locais participam com descontos de até 40%.</description>
+    </item>
+  </channel>
+</rss>

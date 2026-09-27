@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9): sitemap de notícias do MT Agora. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:news="http://www.google.com/schemas/sitemap-news/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url>
+    <loc>https://mtagora.example/cidade/viaduto-miguel-sutil-cronograma</loc>
+    <news:news>
+      <news:publication><news:name>MT Agora</news:name><news:language>pt</news:language></news:publication>
+      <news:publication_date>2026-09-27T13:10:00-04:00</news:publication_date>
+      <news:title>Viaduto da Miguel Sutil: cronograma prevê entrega em 90 dias</news:title>
+    </news:news>
+    <image:image><image:loc>https://mtagora.example/img/viaduto.jpg</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://mtagora.example/economia/cesta-basica-setembro</loc>
+    <news:news>
+      <news:publication><news:name>MT Agora</news:name><news:language>pt</news:language></news:publication>
+      <news:publication_date>2026-09-27T11:00:00Z</news:publication_date>
+      <news:title>Cesta básica fica 2,1% mais barata em setembro</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://mtagora.example/politica/assembleia-orcamento-2027</loc>
+    <news:news>
+      <news:publication><news:name>MT Agora</news:name><news:language>pt</news:language></news:publication>
+      <news:publication_date>2026-09-26</news:publication_date>
+      <news:title>Assembleia recebe proposta de orçamento para 2027</news:title>
+    </news:news>
+  </url>
+  <url>
+    <loc>https://mtagora.example/institucional/sobre</loc>
+  </url>
+</urlset>

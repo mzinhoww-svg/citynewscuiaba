@@ -1,14 +1,25 @@
 import "server-only";
 import { createServiceClient } from "@/lib/db/client";
-import { createEventSink, createRunStore } from "@/lib/db/pipeline-store";
+import { createEventSink, createIngestRepo, createRunStore } from "@/lib/db/pipeline-store";
 import type { DrainDeps } from "./drain";
 import { pipelineQueue } from "./queue";
+import { crawlerUserAgent } from "./http";
+import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
+import { createIngestHandlers } from "./steps";
 import type { TickDeps } from "./tick";
 
 /** Handlers de produção por etapa. As etapas entram aqui conforme as tarefas do P3. */
 export function productionHandlers(): StepHandlers {
-  return {};
+  const http: HttpFetch = (url, init) => fetch(url, init);
+  return {
+    ...createIngestHandlers({
+      repo: createIngestRepo(createServiceClient()),
+      http,
+      userAgent: crawlerUserAgent(),
+      now: () => new Date(),
+    }),
+  };
 }
 
 export function defaultTickDeps(): TickDeps & { secret: string | undefined } {

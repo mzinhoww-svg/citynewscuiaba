@@ -1,5 +1,14 @@
 import "server-only";
-import type { EventSink, RunStore } from "@/lib/pipeline/ports";
+import { z } from "zod";
+import type {
+  EventSink,
+  IngestRepo,
+  RawPayload,
+  RunStore,
+  SourcePatch,
+  SourceRecord,
+} from "@/lib/pipeline/ports";
+import { RawEntrySchema } from "@/lib/pipeline/types";
 import type { DbClient } from "./client";
 import type { Json } from "./types";
 
@@ -9,6 +18,11 @@ export function toJsonObject(value: Record<string, unknown> | undefined): { [key
   return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
     ? (parsed as { [key: string]: Json })
     : {};
+}
+
+/** Valor serializável como JSON do banco. */
+function toJson(value: object): NonNullable<Json> {
+  return JSON.parse(JSON.stringify(value)) as NonNullable<Json>;
 }
 
 function check(op: string, error: { message: string } | null): void {
@@ -86,6 +100,182 @@ export function createEventSink(db: DbClient): EventSink {
         })),
       );
       check("record", error);
+    },
+  };
+}
+
+const RawPayloadSchema = z.object({
+  url: z.string(),
+  status: z.number().int(),
+  contentType: z.string().nullable(),
+  body: z.string(),
+  sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
+});
+const EntriesSchema = z.array(RawEntrySchema).nullable();
+
+const SOURCE_COLUMNS =
+  "id, slug, name, base_url, kind, feed_url, status, rate_limit_per_hour, locality, etag, last_modified";
+
+interface SourceRow {
+  id: string;
+  slug: string;
+  name: string;
+  base_url: string;
+  kind: SourceRecord["kind"];
+  feed_url: string | null;
+  status: SourceRecord["status"];
+  rate_limit_per_hour: number;
+  locality: string;
+  etag: string | null;
+  last_modified: string | null;
+}
+
+const toSource = (r: SourceRow): SourceRecord => ({
+  id: r.id,
+  slug: r.slug,
+  name: r.name,
+  baseUrl: r.base_url,
+  kind: r.kind,
+  feedUrl: r.feed_url,
+  status: r.status,
+  rateLimitPerHour: r.rate_limit_per_hour,
+  locality: r.locality,
+  etag: r.etag,
+  lastModified: r.last_modified,
+});
+
+/** Banco das etapas de Coleta (service role). */
+export function createIngestRepo(db: DbClient): IngestRepo {
+  const source = async (column: "slug" | "id", value: string) => {
+    const { data, error } = await db
+      .from("sources")
+      .select(SOURCE_COLUMNS)
+      .eq(column, value)
+      .maybeSingle();
+    check("source", error);
+    return data ? toSource(data) : null;
+  };
+
+  return {
+    sourceBySlug: (slug) => source("slug", slug),
+    sourceById: (id) => source("id", id),
+
+    async updateSource(id, patch: SourcePatch) {
+      const row = {
+        ...(patch.feedUrl !== undefined ? { feed_url: patch.feedUrl } : {}),
+        ...(patch.kind !== undefined ? { kind: patch.kind } : {}),
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.lastError !== undefined ? { last_error: patch.lastError } : {}),
+        ...(patch.etag !== undefined ? { etag: patch.etag } : {}),
+        ...(patch.lastModified !== undefined ? { last_modified: patch.lastModified } : {}),
+        ...(patch.lastFetchedAt !== undefined ? { last_fetched_at: patch.lastFetchedAt } : {}),
+      };
+      if (Object.keys(row).length === 0) return;
+      const { error } = await db.from("sources").update(row).eq("id", id);
+      check("updateSource", error);
+    },
+
+    async hitRateLimit(bucket, limit) {
+      // "crawler:<slug>" → bucket "crawler", chave "<slug>" (fonte, não dado pessoal).
+      const i = bucket.indexOf(":");
+      const { data, error } = await db.rpc("hit_rate_limit", {
+        p_bucket: i > 0 ? bucket.slice(0, i) : bucket,
+        p_key_hash: i > 0 ? bucket.slice(i + 1) : "-",
+        p_limit: limit,
+        p_window_seconds: 3600,
+      });
+      check("hitRateLimit", error);
+      return data === true;
+    },
+
+    async insertRawItem({ runId, sourceId, payload }) {
+      const ins = await db
+        .from("raw_items")
+        .upsert(
+          { run_id: runId, source_id: sourceId, payload: toJson(payload) },
+          { onConflict: "run_id,source_id", ignoreDuplicates: true },
+        )
+        .select("id");
+      check("insertRawItem", ins.error);
+      const created = ins.data?.[0]?.id;
+      if (created) return created;
+      const { data, error } = await db
+        .from("raw_items")
+        .select("id")
+        .eq("run_id", runId)
+        .eq("source_id", sourceId)
+        .single();
+      check("insertRawItem(existing)", error);
+      if (!data) throw new Error("pipeline-store: raw_item sumiu");
+      return data.id;
+    },
+
+    async rawItem(id) {
+      const { data, error } = await db
+        .from("raw_items")
+        .select("id, run_id, source_id, state, payload, entries")
+        .eq("id", id)
+        .maybeSingle();
+      check("rawItem", error);
+      if (!data) return null;
+      const payload = RawPayloadSchema.safeParse(data.payload);
+      const entries = EntriesSchema.safeParse(data.entries ?? null);
+      if (!payload.success || !entries.success) return null;
+      const state = data.state;
+      if (state !== "new" && state !== "valid" && state !== "quarantine" && state !== "extracted")
+        return null;
+      const p: RawPayload = payload.data;
+      return {
+        id: data.id,
+        runId: data.run_id,
+        sourceId: data.source_id,
+        state,
+        payload: p,
+        entries: entries.data,
+      };
+    },
+
+    async updateRawItem(id, patch) {
+      const { error } = await db
+        .from("raw_items")
+        .update({
+          state: patch.state,
+          ...(patch.entries !== undefined ? { entries: toJson(patch.entries) } : {}),
+          ...(patch.error !== undefined ? { error: patch.error.slice(0, 2000) } : {}),
+        })
+        .eq("id", id);
+      check("updateRawItem", error);
+    },
+
+    async insertCollectedItem(item) {
+      const ins = await db
+        .from("collected_items")
+        .upsert(
+          {
+            raw_id: item.rawId,
+            source_id: item.sourceId,
+            canonical_url: item.canonicalUrl,
+            original_title: item.originalTitle,
+            excerpt: item.excerpt,
+            author: item.author,
+            published_at: item.publishedAt,
+            image_url: item.imageUrl,
+            locality: item.locality,
+          },
+          { onConflict: "canonical_url", ignoreDuplicates: true },
+        )
+        .select("id");
+      check("insertCollectedItem", ins.error);
+      const created = ins.data?.[0]?.id;
+      if (created) return { id: created, created: true };
+      const { data, error } = await db
+        .from("collected_items")
+        .select("id")
+        .eq("canonical_url", item.canonicalUrl)
+        .single();
+      check("insertCollectedItem(existing)", error);
+      if (!data) throw new Error("pipeline-store: collected_item sumiu");
+      return { id: data.id, created: false };
     },
   };
 }

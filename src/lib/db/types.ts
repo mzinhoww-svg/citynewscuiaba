@@ -1207,6 +1207,8 @@ export type Database = {
       };
       raw_items: {
         Row: {
+          entries: Json | null;
+          error: string | null;
           fetched_at: string;
           id: string;
           payload: NonNullable<Json>;
@@ -1215,6 +1217,8 @@ export type Database = {
           state: string;
         };
         Insert: {
+          entries?: Json | null;
+          error?: string | null;
           fetched_at?: string;
           id?: string;
           payload: NonNullable<Json>;
@@ -1223,6 +1227,8 @@ export type Database = {
           state?: string;
         };
         Update: {
+          entries?: Json | null;
+          error?: string | null;
           fetched_at?: string;
           id?: string;
           payload?: NonNullable<Json>;
@@ -1464,6 +1470,7 @@ export type Database = {
           categories: string[];
           created_at: string;
           display_name: string | null;
+          etag: string | null;
           feed_url: string | null;
           frequency_minutes: number;
           id: string;
@@ -1471,6 +1478,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["source_kind"];
           last_error: string | null;
           last_fetched_at: string | null;
+          last_modified: string | null;
           locality: string;
           logo_path: string | null;
           may_be_sole_source: boolean;
@@ -1492,6 +1500,7 @@ export type Database = {
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
+          etag?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number;
           id?: string;
@@ -1499,6 +1508,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
           last_fetched_at?: string | null;
+          last_modified?: string | null;
           locality: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;
@@ -1520,6 +1530,7 @@ export type Database = {
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
+          etag?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number;
           id?: string;
@@ -1527,6 +1538,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
           last_fetched_at?: string | null;
+          last_modified?: string | null;
           locality?: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;

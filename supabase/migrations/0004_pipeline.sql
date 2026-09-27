@@ -299,3 +299,11 @@ end $fn$;
 revoke execute on function schedule_pipeline_cron() from public, anon, authenticated, service_role;
 
 select schedule_pipeline_cron();
+
+-- ---------------------------------------------------------------------------
+-- Coleta (P3-T3): coleta condicional, entradas extraídas e idempotência do fetch
+-- ---------------------------------------------------------------------------
+alter table sources add column etag text, add column last_modified text;
+alter table raw_items add column entries jsonb, add column error text;
+-- Um documento por fonte e run (idempotência de `fetch`, architecture §4).
+create unique index raw_items_run_source_uidx on raw_items (run_id, source_id);

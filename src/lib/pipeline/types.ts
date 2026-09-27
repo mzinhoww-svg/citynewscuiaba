@@ -51,3 +51,19 @@ export function parsePipelineMessage(value: unknown): Result<PipelineMessage, st
 export function dedupeKey(msg: PipelineMessage): string {
   return `${msg.step}:${msg.itemRef}`;
 }
+
+/** Item bruto de um feed, já com texto sanitizado (spec §6.6) e data em ISO UTC. */
+export const RawEntrySchema = z.object({
+  title: z.string().min(1),
+  /** URL absoluta como veio do feed; `normalize` canonicaliza. */
+  url: z.string().min(1),
+  publishedAt: z.string().nullable(),
+  excerpt: z.string().nullable(),
+  author: z.string().nullable(),
+  imageUrl: z.string().nullable(),
+  /** Instrução embutida em algum campo: o item vai para a quarentena em `normalize`. */
+  injection: z.boolean(),
+  injectionMatches: z.array(z.string()),
+});
+
+export type RawEntry = z.infer<typeof RawEntrySchema>;

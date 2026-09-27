@@ -41,11 +41,17 @@ describe("banco local com seed fictício", () => {
     expect(articles.data!.filter((a) => a.kind === "normalized")).toHaveLength(8);
     expect(articles.data!.every((a) => a.status === "published")).toBe(true);
     const counts = await Promise.all(
-      (["topics", "collected_items", "event_listings", "profiles"] as const).map(
+      (["topics", "event_listings", "profiles"] as const).map(
         async (t) => (await db.from(t).select("*", { count: "exact", head: true })).count,
       ),
     );
-    expect(counts).toEqual([3, 30, 10, 10]);
+    expect(counts).toEqual([3, 10, 10]);
+    // A suíte de coleta (P3) insere itens em paralelo: os do seed não têm raw_id.
+    const seedItems = await db
+      .from("collected_items")
+      .select("*", { count: "exact", head: true })
+      .is("raw_id", null);
+    expect(seedItems.count).toBe(30);
     // Outras suítes criam coleções de leitor, regras e pesos em paralelo: conta só o que é do seed.
     const collections = await db
       .from("collections")
