@@ -8,7 +8,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const headers = { "Cache-Control": "no-store" };
   const result = await getArticleUpdatedAt(slug);
-  if (!result.ok) return Response.json({ updatedAt: null }, { status: 503, headers });
+  // Sem banco: nada a avisar (o leitor continua na versão que tem), sem 5xx.
+  if (!result.ok) return Response.json({ updatedAt: null }, { headers });
   if (!result.value) return Response.json({ updatedAt: null }, { status: 404, headers });
   return Response.json({ updatedAt: result.value }, { headers });
 }

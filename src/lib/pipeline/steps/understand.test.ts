@@ -253,7 +253,7 @@ describe("classify e locate", () => {
 });
 
 describe("verify", () => {
-  it("verify marca papel primária para Diário Oficial e Agência MT", async () => {
+  it("verify marca papel primária para Diário Oficial e Agência Cerrado", async () => {
     const { verifyTopic } = setup();
     const v = unwrap(
       await verifyTopic(

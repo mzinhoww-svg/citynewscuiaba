@@ -16,7 +16,7 @@ const article = {
   authorIsPerson: false,
   section: { slug: "mobilidade", name: "Mobilidade" },
   image: undefined,
-  sources: [{ url: "https://agenciamt.example/x", title: "Plano", name: "Agência MT" }],
+  sources: [{ url: "https://agenciamt.example/x", title: "Plano", name: "Agência Cerrado" }],
 };
 
 it("NewsArticle com dateModified, author e citation", () => {

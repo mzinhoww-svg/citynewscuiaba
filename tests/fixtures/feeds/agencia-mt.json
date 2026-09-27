@@ -1,6 +1,6 @@
 {
   "version": "https://jsonfeed.org/version/1.1",
-  "title": "Agência MT (fixture fictícia, spec §9)",
+  "title": "Agência Cerrado (fixture fictícia, spec §9)",
   "home_page_url": "https://agenciamt.example",
   "items": [
     {
@@ -9,7 +9,7 @@
       "title": "Governo divulga farmácias de plantão no fim de semana",
       "summary": "A lista oficial inclui unidades em Cuiabá e Várzea Grande.",
       "date_published": "2026-09-27T10:00:00-04:00",
-      "authors": [{ "name": "Agência MT" }],
+      "authors": [{ "name": "Agência Cerrado" }],
       "image": "https://agenciamt.example/img/farmacias.jpg"
     },
     {

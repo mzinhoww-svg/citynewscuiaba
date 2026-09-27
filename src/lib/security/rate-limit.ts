@@ -15,9 +15,39 @@ export function clientIp(headers: Headers): string {
   return forwarded || headers.get("x-real-ip")?.trim() || "desconhecido";
 }
 
-/** Sal do hash de IP: segredo do servidor (nunca exposto ao navegador). */
-export function rateLimitSalt(): string {
-  return process.env.RATE_LIMIT_SALT ?? process.env.CRON_SECRET ?? "citynews";
+type SaltEnv = Partial<Record<"NODE_ENV" | "RATE_LIMIT_SALT" | "CRON_SECRET", string>>;
+
+/** Sal só para desenvolvimento e teste (nunca em produção). */
+const DEV_SALT = "citynews-dev";
+
+/**
+ * Sal do hash de IP: segredo do servidor (nunca exposto ao navegador). Em produção, sem
+ * `RATE_LIMIT_SALT` nem `CRON_SECRET`, falha fechado: devolve `null` e registra o motivo (com
+ * sal previsível a chave do IP seria reversível por força bruta).
+ */
+export function rateLimitSalt(env: SaltEnv = process.env): string | null {
+  const salt = env.RATE_LIMIT_SALT?.trim() || env.CRON_SECRET?.trim();
+  if (salt) return salt;
+  if (env.NODE_ENV === "production") {
+    console.error(
+      "rate-limit: RATE_LIMIT_SALT e CRON_SECRET ausentes em produção; formulários recusados",
+    );
+    return null;
+  }
+  return DEV_SALT;
+}
+
+/**
+ * Chave de limite de uso da conexão, ou `null` sem sal (o formulário recusa o envio como se
+ * tivesse passado do limite).
+ */
+export function clientRateKey(
+  headers: Headers,
+  now: Date,
+  env: SaltEnv = process.env,
+): string | null {
+  const salt = rateLimitSalt(env);
+  return salt ? ipKey(clientIp(headers), now, salt) : null;
 }
 
 const memoryHits = new Map<string, number>();

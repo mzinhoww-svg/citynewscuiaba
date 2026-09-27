@@ -93,13 +93,13 @@ describe("extractFromFeed", () => {
 });
 
 describe("outros formatos", () => {
-  it("JSON Feed (api da Agência MT)", () => {
+  it("JSON Feed (api da Agência Cerrado)", () => {
     const e = extractFromJsonFeed(readFixture("agencia-mt.json"));
     expect(e).toHaveLength(2);
     expect(e[0]).toMatchObject({
       title: "Governo divulga farmácias de plantão no fim de semana",
       publishedAt: "2026-09-27T14:00:00.000Z",
-      author: "Agência MT",
+      author: "Agência Cerrado",
       imageUrl: "https://agenciamt.example/img/farmacias.jpg",
     });
     expect(e[1]!.publishedAt).toBe("2026-09-27T13:00:00.000Z");

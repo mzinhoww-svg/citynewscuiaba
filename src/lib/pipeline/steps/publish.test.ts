@@ -16,7 +16,7 @@ import { createPublishHandlers } from "./index";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
 const SOURCES = {
-  "agencia-mt": { reliability: "primary", name: "Agência MT (governo)" },
+  "agencia-mt": { reliability: "primary", name: "Agência Cerrado (governo fictício)" },
   "mt-agora": { reliability: "verified", name: "MT Agora" },
   "folha-do-cerrado": { reliability: "verified", name: "Folha do Cerrado" },
 } as const;
