@@ -17,3 +17,7 @@ bash scripts/local-stack/stop.sh
 ```
 
 `pgmq` e `pg_net` não existem aqui; as migrations os habilitam só se estiverem disponíveis (no Supabase real e no CI com `supabase start`). Senha local do banco: `postgres` (só local).
+
+## Várias pilhas em paralelo (worktrees)
+
+Grave um deslocamento de portas em `.local/offset` do worktree antes do primeiro `start.sh` (ex.: `mkdir -p .local && echo 100 > .local/offset`). Postgres, PostgREST, Auth, proxy e a porta do app (`3000 + offset`, usada pelo Playwright) se deslocam juntos.

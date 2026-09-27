@@ -53,7 +53,7 @@ start_bg auth env \
   GOTRUE_DB_DRIVER=postgres DB_NAMESPACE=auth \
   DATABASE_URL="postgresql://supabase_auth_admin:postgres@127.0.0.1:$PGPORT/postgres?search_path=auth" \
   GOTRUE_API_HOST=127.0.0.1 PORT=$AUTH_PORT API_EXTERNAL_URL="http://127.0.0.1:$PROXY_PORT/auth/v1" \
-  GOTRUE_SITE_URL="${APP_URL:-http://localhost:3000}" GOTRUE_URI_ALLOW_LIST="http://localhost:3000/**,http://127.0.0.1:3000/**" \
+  GOTRUE_SITE_URL="http://localhost:$APP_PORT" GOTRUE_URI_ALLOW_LIST="http://localhost:$APP_PORT/**,http://127.0.0.1:$APP_PORT/**" \
   GOTRUE_JWT_SECRET="$JWT_SECRET" GOTRUE_JWT_EXP=3600 GOTRUE_JWT_AUD=authenticated GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated \
   GOTRUE_JWT_ADMIN_ROLES=service_role GOTRUE_DISABLE_SIGNUP=false GOTRUE_EXTERNAL_EMAIL_ENABLED=true \
   GOTRUE_MAILER_AUTOCONFIRM=true GOTRUE_SMTP_ADMIN_EMAIL=admin@citynews.local GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=2500 \
@@ -88,7 +88,7 @@ ENV
 if [ ! -f "$ROOT/.env.local" ]; then
   {
     cat "$LOCAL/stack.env"
-    echo "APP_URL=http://localhost:3000"
+    echo "APP_URL=http://localhost:$APP_PORT"
     echo "CRON_SECRET=local-cron-secret-local-cron-secret"
     echo "AI_PROVIDER=fake"
   } >"$ROOT/.env.local"

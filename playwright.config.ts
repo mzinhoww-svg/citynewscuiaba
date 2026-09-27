@@ -1,6 +1,12 @@
+import { existsSync, readFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 const isCI = Boolean(process.env.CI);
+// Worktrees em paralelo usam .local/offset para deslocar portas (scripts/local-stack/env.sh).
+const offset = existsSync(".local/offset")
+  ? Number(readFileSync(".local/offset", "utf8").trim())
+  : 0;
+const port = 3000 + offset;
 
 export default defineConfig({
   testDir: "tests",
@@ -10,7 +16,7 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${port}`,
     locale: "pt-BR",
     timezoneId: "America/Cuiaba",
     trace: "on-first-retry",
@@ -39,10 +45,10 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: "pnpm build && pnpm start",
+    command: `pnpm build && pnpm exec next start -p ${port}`,
     // Libera a vitrine /design-system no build de produção para o teste de a11y (P0-T9b).
     env: { CN_SHOW_DS: "1" },
-    port: 3000,
+    port,
     reuseExistingServer: !isCI,
     timeout: 240_000,
   },
