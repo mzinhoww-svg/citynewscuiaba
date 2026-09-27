@@ -29,26 +29,33 @@ export { Toggle, type ToggleProps } from "./ui/Toggle";
 export { VisuallyHidden } from "./ui/VisuallyHidden";
 
 /* editorial: notícia, descoberta e marca */
+export { AggregatedCard, type AggregatedCardProps } from "./editorial/AggregatedCard";
 export { AgendaList, type AgendaItem, type AgendaListProps } from "./editorial/AgendaList";
+export { ArticleCard, type ArticleCardProps } from "./editorial/ArticleCard";
 export { ArticleActionBar, type ArticleActionBarProps } from "./editorial/ArticleActionBar";
 export { BarChart, type BarChartProps } from "./editorial/BarChart";
 export { BottomNav, type BottomNavProps } from "./editorial/BottomNav";
 export { CategoryTag, type CategoryTagProps } from "./editorial/CategoryTag";
+export { CollectionCard, type CollectionCardProps } from "./editorial/CollectionCard";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./editorial/ConfidenceMeter";
+export { EventDateBadge, type EventDateBadgeProps } from "./editorial/EventDateBadge";
 export { FeatureCard, type FeatureCardProps } from "./editorial/FeatureCard";
 export { LiveIndicator, type LiveIndicatorProps } from "./editorial/LiveIndicator";
 export { Logo, type LogoCity, type LogoProps } from "./editorial/Logo";
 export { MadeHow, type MadeHowProps } from "./editorial/MadeHow";
 export { MetaRow, type MetaRowProps } from "./editorial/MetaRow";
 export { NewsCard, type NewsCardProps } from "./editorial/NewsCard";
+export { NowList, type NowListProps } from "./editorial/NowList";
 export { OriginLabel, type OriginLabelProps } from "./editorial/OriginLabel";
 export { Photo, type PhotoProps } from "./editorial/Photo";
+export { ServiceTile, type ServiceTileProps } from "./editorial/ServiceTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
 export { SiteHeader, type SiteHeaderProps } from "./editorial/SiteHeader";
 export { SourceAvatar, type SourceAvatarProps } from "./editorial/SourceAvatar";
 export { StatCard, type StatCardProps } from "./editorial/StatCard";
 export { StoryCard, type StoryCardProps } from "./editorial/StoryCard";
 export { TopicCard, type TopicCardProps } from "./editorial/TopicCard";
+export { TopicSummaryCard, type TopicSummaryCardProps } from "./editorial/TopicSummaryCard";
 export { TopicStatus, type TopicStatusProps } from "./editorial/TopicStatus";
 export { VideoLowerThird, type VideoLowerThirdProps } from "./editorial/VideoLowerThird";
 

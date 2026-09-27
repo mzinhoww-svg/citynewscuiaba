@@ -30,3 +30,17 @@ export const MADE_HOW = {
   methodology: "Entenda a metodologia",
   methodologyHref: "/metodologia",
 } as const;
+
+export const CARD = {
+  origin: "Origem",
+  summary20s: "Resumo em 20 s",
+  openIn: (source: string) => `Abrir em ${source}`,
+  newTab: "abre em nova aba",
+  by: (name: string) => `Por ${name}`,
+  topicCounts: (articles: number, sources: number) =>
+    `${articles === 1 ? "1 matéria" : `${articles} matérias`} · ${sources === 1 ? "1 fonte" : `${sources} fontes`}`,
+  updated: (when: string) => `atualizado ${when}`,
+  collectionItems: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
+  now: "Agora",
+  nextCycle: (min: number) => `Próximo ciclo em ${min} min`,
+} as const;

@@ -6,6 +6,8 @@ export interface SourceAvatarProps {
   /** Logotipo licenciado; sem ele, monograma de 2 letras. */
   image?: string;
   initials?: string;
+  /** Código curto da fonte (monograma de 2 letras); sinônimo de `initials`. */
+  code?: string;
   /** 40 (listas), 56 (grade), 64 (fileira mobile), 72 (fileira desktop). */
   size?: 40 | 56 | 64 | 72;
   href?: string;
@@ -53,12 +55,14 @@ function monogram(name: string): string {
  * <SourceAvatar name="Guia CityNews" image={logo} size={72} href="/fontes/guia" />
  * ```
  * - Sem logotipo licenciado: monograma de 2 letras sobre `--cn-avatar-1..6`.
- * - Nome em até 2 linhas. É link (ou botão) com o nome da fonte como nome acessível.
+ * - Nome em até 2 linhas. É link (ou botão) com o nome da fonte como nome acessível; sem ação,
+ *   vira imagem com o nome (`code` define o monograma: `<SourceAvatar name="Folha do Cerrado" code="FC" />`).
  */
 export function SourceAvatar({
   name,
   image,
   initials,
+  code,
   size = 56,
   href,
   onClick,
@@ -83,7 +87,7 @@ export function SourceAvatar({
         )}
         style={image ? { backgroundImage: `url(${JSON.stringify(image)})` } : undefined}
       >
-        {!image && (initials ?? monogram(name))}
+        {!image && (code ?? initials ?? monogram(name))}
       </span>
       <span className="line-clamp-2 text-13 font-medium leading-snug text-strong">{name}</span>
     </>
@@ -102,5 +106,10 @@ export function SourceAvatar({
       </button>
     );
   }
-  return <div className={classes}>{content}</div>;
+  // Sem ação: figura com o nome da fonte como nome acessível (o monograma é só visual).
+  return (
+    <div role="img" aria-label={name} className={classes}>
+      {content}
+    </div>
+  );
 }
