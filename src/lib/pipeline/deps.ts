@@ -1,6 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/db/client";
-import { hashEmbedding } from "@/lib/ai/hash-embedding";
+import { createProductionAi } from "@/lib/ai/server";
 import {
   createClusterRepo,
   createEventSink,
@@ -19,6 +19,7 @@ import type { TickDeps } from "./tick";
 export function productionHandlers(): StepHandlers {
   const http: HttpFetch = (url, init) => fetch(url, init);
   const db = createServiceClient();
+  const ai = createProductionAi();
   return {
     ...createIngestHandlers({
       repo: createIngestRepo(db),
@@ -28,8 +29,7 @@ export function productionHandlers(): StepHandlers {
     }),
     ...createClusterHandlers({
       repo: createClusterRepo(db),
-      // Provisório até a camada de IA (P3-T5): embedding determinístico do provedor falso.
-      embed: async (text) => ({ ok: true, value: hashEmbedding(text) }),
+      embed: ai.embedOne,
       now: () => new Date(),
     }),
   };

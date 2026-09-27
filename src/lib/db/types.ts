@@ -1767,6 +1767,13 @@ export type Database = {
       };
     };
     Functions: {
+      ai_spend_since: {
+        Args: { p_since: string };
+        Returns: {
+          agent_id: string;
+          cost_brl: number;
+        }[];
+      };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
       article_section: { Args: { article: string }; Returns: string };

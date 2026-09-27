@@ -18,9 +18,11 @@
     "db:seed:sources": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed_sources_real.sql"
   },
   "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.57",
     "@mozilla/readability": "^0.6.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
+    "ai": "^7.0.118",
     "fast-xml-parser": "^5.11.1",
     "linkedom": "^0.18.13",
     "lucide-react": "^1.48.0",

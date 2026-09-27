@@ -34,8 +34,17 @@ export function createMemoryClusterRepo() {
     async collectedItem(id) {
       const r = find(id);
       if (!r) return null;
-      const { seq: _s, createdAt: _c, ...item } = r;
-      return { ...item, embedding: item.embedding ? [...item.embedding] : null };
+      return {
+        id: r.id,
+        sourceId: r.sourceId,
+        title: r.title,
+        excerpt: r.excerpt,
+        publishedAt: r.publishedAt,
+        simhash: r.simhash,
+        embedding: r.embedding ? [...r.embedding] : null,
+        duplicateOf: r.duplicateOf,
+        topicId: r.topicId,
+      };
     },
     async saveFingerprint(id, f) {
       const r = find(id);
@@ -62,7 +71,7 @@ export function createMemoryClusterRepo() {
         .filter((c) => c.ham <= q.maxHamming || (c.cosine ?? -1) >= q.minCosine)
         .sort((a, b) => Number(b.ham <= q.maxHamming) - Number(a.ham <= q.maxHamming))
         .slice(0, q.limit)
-        .map(({ ham: _h, ...c }) => c);
+        .map((c) => ({ id: c.id, simhash: c.simhash, cosine: c.cosine, topicId: c.topicId }));
     },
     async markDuplicate(id, originalId) {
       const r = find(id);
