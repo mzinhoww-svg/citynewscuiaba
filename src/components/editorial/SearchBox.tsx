@@ -70,6 +70,7 @@ export function SearchBox({
   const recentId = `${id}-recentes`;
   const router = useRouter();
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(defaultValue);
   const [focused, setFocused] = useState(false);
   const [fetched, setFetched] = useState<{ q: string; list: string[] }>({ q: "", list: [] });
@@ -77,6 +78,17 @@ export function SearchBox({
   // Só é lido depois do foco (nada disto aparece na primeira renderização): sem divergência
   // de hidratação.
   const [recent, setRecent] = useState<string[]>(readRecent);
+  // Hidratado: quem digitou ou focou o campo antes do JavaScript carregar (celular lento) não
+  // perde o texto nem as sugestões. `data-ready` expõe o estado (testes esperam por ele).
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    const typed = inputRef.current?.value;
+    if (typed !== undefined && typed !== defaultValue) setValue(typed);
+    if (rootRef.current?.contains(document.activeElement)) setFocused(true);
+    setReady(true);
+    // Só na montagem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const query = normalizeQuery(value);
   const suggestions = fetched.q === query && query.length >= 2 ? fetched.list : [];
 
@@ -149,7 +161,13 @@ export function SearchBox({
   };
 
   return (
-    <form role="search" action={action} onSubmit={onSubmit} className={className}>
+    <form
+      role="search"
+      action={action}
+      onSubmit={onSubmit}
+      className={className}
+      data-ready={ready ? "true" : undefined}
+    >
       {Object.entries(hidden).map(([name, v]) => (
         <input key={name} type="hidden" name={name} value={v} />
       ))}
@@ -167,6 +185,7 @@ export function SearchBox({
         <div className="border-control control-field flex h-input items-center gap-3 rounded-lg bg-input pr-1 pl-4">
           <Icon name="search" className="shrink-0 text-placeholder" />
           <input
+            ref={inputRef}
             id={id}
             type="search"
             name="q"

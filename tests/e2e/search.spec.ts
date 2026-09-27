@@ -64,6 +64,8 @@ test("nada encontrado sugere grafia e oferece caminhos", async ({ page }) => {
 
 test("autocomplete sugere títulos e guarda buscas recentes removíveis", async ({ page }) => {
   await page.goto("/busca");
+  // Espera a hidratação do campo (sem ela, o foco e o texto chegam antes do React).
+  await expect(page.locator("form[role=search][data-ready=true]").first()).toBeVisible();
   const box = page.getByRole("combobox", { name: "Buscar no CityNews" });
   await box.fill("onib");
   const option = page.getByRole("option", { name: /ônibus/ }).first();
@@ -75,6 +77,7 @@ test("autocomplete sugere títulos e guarda buscas recentes removíveis", async 
   await expect(page.locator("mark").first()).toBeVisible();
 
   await page.goto("/busca");
+  await expect(page.locator("form[role=search][data-ready=true]").first()).toBeVisible();
   await page.getByRole("combobox", { name: "Buscar no CityNews" }).focus();
   const recent = page.getByRole("region", { name: "Buscas recentes" });
   await expect(recent.getByRole("link").first()).toBeVisible();
