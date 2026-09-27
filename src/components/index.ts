@@ -96,6 +96,7 @@ export { AiSummaryBlock, type AiSummaryBlockProps } from "./editorial/AiSummaryB
 export { CorrectionNote, UpdateNote, type NoteProps } from "./editorial/ArticleNotes";
 export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingProgress";
 export { ReadingSettings } from "./editorial/ReadingSettings";
+export { ReadTracker, type ReadTrackerProps } from "./editorial/ReadTracker";
 export { ConsentBanner } from "./editorial/ConsentBanner";
 export { ConsentChoices } from "./editorial/ConsentChoices";
 export { PrivacyPreferences } from "./editorial/PrivacyPreferences";

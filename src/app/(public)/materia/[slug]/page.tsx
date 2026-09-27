@@ -18,6 +18,7 @@ import {
   Photo,
   ReadingProgress,
   ReadingSettings,
+  ReadTracker,
   ReportProblemForm,
   ShareSheet,
   SourcesList,
@@ -144,6 +145,7 @@ function Article({ a }: { a: ArticleView }) {
         ])}
       />
       <ReadingProgress targetId="materia" />
+      <ReadTracker contentId={`article:${a.id}`} targetId="materia" section={a.section.slug} />
       <UpdatedWhileReading
         endpoint={`/api/materia/${a.slug}/atualizacao`}
         updatedAt={a.updatedAt}

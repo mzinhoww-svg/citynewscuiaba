@@ -90,6 +90,56 @@ test("anonId só com Personalização e sai quando ela é desligada", async ({ p
   await expect.poll(async () => (await storedProfile(page))?.anonId).toBe(null);
 });
 
+type Sent = {
+  name: string;
+  anonId: string | null;
+  session: { id: string };
+  consent: { metrics: boolean; personalization: boolean };
+  props: Record<string, unknown>;
+};
+
+function sentEvents(page: Page): { events: Sent[]; statuses: number[] } {
+  const out = { events: [] as Sent[], statuses: [] as number[] };
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/events") && r.method() === "POST")
+      out.events.push(JSON.parse(r.postData() ?? "{}") as Sent);
+  });
+  page.on("response", (r) => {
+    if (r.url().endsWith("/api/events")) out.statuses.push(r.status());
+  });
+  return out;
+}
+
+test("Aceitar recomendações cria o anonId e os eventos vão com personalização", async ({
+  page,
+}) => {
+  const sent = sentEvents(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Aceitar recomendações" }).click();
+  await expect.poll(() => sent.events.map((e) => e.name)).toContain("privacy_settings_updated");
+  const enabled = sent.events.find((e) => e.name === "personalization_enabled")!;
+  expect(enabled.props).toEqual({ from: "banner" });
+  expect(enabled.consent).toMatchObject({ metrics: true, personalization: true });
+  const stored = (await storedProfile(page))?.anonId;
+  expect(stored).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+  expect(sent.events.every((e) => e.anonId === stored)).toBe(true);
+  // A API valida e grava (pilha local com banco).
+  await expect.poll(() => sent.statuses).toContain(204);
+  expect(sent.statuses.every((s) => s === 204)).toBe(true);
+});
+
+test("só métricas: eventos sem identificador", async ({ page }) => {
+  const sent = sentEvents(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Escolher" }).click();
+  await page.getByRole("switch", { name: "Métricas agregadas" }).click();
+  await page.getByRole("button", { name: "Salvar escolhas" }).click();
+  await expect.poll(() => sent.events.map((e) => e.name)).toEqual(["privacy_settings_updated"]);
+  expect(sent.events[0]!.anonId).toBeNull();
+  expect(sent.events[0]!.session.id).toBe("-");
+  expect(sent.events[0]!.consent).toMatchObject({ metrics: true, personalization: false });
+});
+
 test("sem resposta vale só o necessário: banner continua e nada é enviado", async ({ page }) => {
   const calls = eventCalls(page);
   await page.goto("/");

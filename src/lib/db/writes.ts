@@ -103,3 +103,35 @@ export async function saveEventSubmission(s: {
     if (error) throw new Error(error.message);
   });
 }
+
+/**
+ * Evento do leitor já validado (`src/lib/events/schema.ts`): tabela `events` (ADR-008).
+ * `user_id` fica nulo até existir sessão de conta no servidor (P2-T11); o IP nunca é gravado.
+ */
+export async function saveReaderEvent(e: {
+  name: string;
+  anonId: string | null;
+  at: string;
+  sourceId: string | null;
+  contentId: string | null;
+  session: { id: string; page: string; referrer: string | null; device: string };
+  consent: { version: string; metrics: boolean; personalization: boolean };
+  algoVersion: string;
+  props: Record<string, string | number | boolean>;
+}): Promise<Result<void, WriteError>> {
+  return withService(async (db) => {
+    const { error } = await db.from("events").insert({
+      name: e.name,
+      anon_id: e.anonId,
+      user_id: null,
+      at: e.at,
+      source_slug: e.sourceId,
+      content_ref: e.contentId,
+      session: e.session,
+      consent: e.consent,
+      algo_version: e.algoVersion,
+      props: e.props,
+    });
+    if (error) throw new Error(error.message);
+  });
+}

@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import { getAnonStore } from "@/lib/anon/store";
+import { trackWithConsent } from "@/lib/events/send";
 import {
   UNDECIDED,
   consentCookie,
@@ -81,15 +82,16 @@ export function ConsentProvider({ initial, children }: ConsentProviderProps) {
     if (consent) getAnonStore().ensureAnonId(consent).catch(noop);
   }, [consent]);
 
-  const update = useCallback((next: Partial<ConsentChoice>) => {
-    const base = current.current ?? UNDECIDED;
+  const update = useCallback((next: Partial<ConsentChoice>, from: ConsentSource = "switch") => {
+    const prev = current.current ?? UNDECIDED;
     const decided = decide({
-      metrics: next.metrics ?? base.metrics,
-      personalization: next.personalization ?? base.personalization,
+      metrics: next.metrics ?? prev.metrics,
+      personalization: next.personalization ?? prev.personalization,
     });
     current.current = decided;
     writeCookie(decided);
     setChosen(decided);
+    void reportChange(prev, decided, from);
   }, []);
 
   const value = useMemo(() => ({ consent, update }), [consent, update]);
@@ -111,3 +113,23 @@ export function useConsentKnown(): boolean {
 }
 
 function noop() {}
+
+/**
+ * Eventos da escolha (tracking-plan §2), já sob o consentimento novo: com "Só o necessário"
+ * nada sai. `personalization_enabled`/`_disabled` só quando a personalização muda.
+ */
+async function reportChange(prev: Consent, next: Consent, from: ConsentSource) {
+  // O perfil precisa do anonId novo antes do primeiro evento personalizado.
+  await getAnonStore().ensureAnonId(next).catch(noop);
+  if (prev.personalization !== next.personalization) {
+    await trackWithConsent(
+      next,
+      next.personalization ? "personalization_enabled" : "personalization_disabled",
+      { from },
+    );
+  }
+  await trackWithConsent(next, "privacy_settings_updated", {
+    metrics: next.metrics,
+    personalization: next.personalization,
+  });
+}

@@ -1964,6 +1964,7 @@ export type Database = {
           cost_brl: number;
         }[];
       };
+      anonymize_old_events: { Args: { p_days?: number }; Returns: number };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
