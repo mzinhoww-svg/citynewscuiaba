@@ -1,0 +1,161 @@
+import type { ConfidenceLevel } from "@/lib/confidence";
+import type { ImageKind, Label } from "@/lib/labels";
+
+/**
+ * Tipos de leitura do portal público (P1-T1). Os componentes recebem estes dados prontos,
+ * sem conhecer o banco. Datas em ISO 8601; a formatação fica em src/lib/format/date.ts.
+ */
+
+/** Falha de leitura: sem variáveis do Supabase (portal sem banco) ou banco fora do ar. */
+export type QueryError = { kind: "unconfigured" } | { kind: "unavailable"; message: string };
+
+export type LabelSet = { shown: Label[]; hidden: Label[] };
+
+export interface SectionRef {
+  slug: string;
+  name: string;
+}
+
+export interface ArticleImage {
+  src: string;
+  alt: string;
+  kind: ImageKind;
+  credit?: string;
+}
+
+/** Matéria em card (home, editoria, assunto). */
+export interface ArticleSummary {
+  id: string;
+  slug: string;
+  href: string;
+  kind: "original" | "normalized";
+  title: string;
+  dek: string;
+  section: SectionRef;
+  status: "published" | "updated";
+  publishMode: "human" | "auto" | null;
+  publishedAt: string;
+  updatedAt: string;
+  labels: LabelSet;
+  confidence: { level: ConfidenceLevel; score: number };
+  sourceCount: number;
+  readMinutes: number;
+  aiSummary: string[] | null;
+  byline: string;
+  reviewer?: string;
+  image?: ArticleImage;
+  topicId: string | null;
+  urgent: boolean;
+  sponsored: boolean;
+}
+
+export type ArticleBlock =
+  { type: "paragraph"; text: string } | { type: "heading"; level: 2 | 3; text: string };
+
+export interface ArticleSource {
+  name: string;
+  sourceSlug: string;
+  role: "primary" | "secondary" | "context";
+  confirmed: boolean;
+  url: string;
+  title: string;
+  publishedAt: string | null;
+}
+
+/** Matéria completa (P03). */
+export interface ArticleView extends ArticleSummary {
+  body: ArticleBlock[];
+  sources: ArticleSource[];
+  versions: number;
+  agentId: string | null;
+  topic: TopicRef | null;
+}
+
+export type ArticleLookup = ArticleView | { gone: true; reason: string } | null;
+
+/** Item de outro veículo: só título original, data, resumo permitido e link (spec §4). */
+export interface AggregatedView {
+  id: string;
+  title: string;
+  url: string;
+  sourceName: string;
+  sourceSlug: string;
+  publishedAt: string | null;
+  summary: string | null;
+  sectionSlug: string | null;
+  topicId: string | null;
+  labels: LabelSet;
+}
+
+export type TopicState = "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
+
+export interface TopicRef {
+  slug: string;
+  title: string;
+  state: TopicState;
+}
+
+export interface TopicView extends TopicRef {
+  id: string;
+  href: string;
+  summary: string | null;
+  confidence: { level: ConfidenceLevel; score: number };
+  sectionSlug: string | null;
+  updatedAt: string;
+  articleCount: number;
+  sourceCount: number;
+}
+
+export interface TopicDetail extends TopicView {
+  articles: ArticleSummary[];
+  aggregated: AggregatedView[];
+}
+
+export interface EventView {
+  id: string;
+  slug: string;
+  href: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  venue: string;
+  neighborhood: string | null;
+  priceCents: number | null;
+  isFree: boolean;
+  ageRating: string;
+  category: string;
+  accessibility: string | null;
+  origin: "official" | "organizer" | "reader";
+  description: string | null;
+}
+
+export interface CollectionView {
+  id: string;
+  slug: string;
+  href: string;
+  title: string;
+  description: string;
+  itemCount: number;
+}
+
+export interface SourceView {
+  slug: string;
+  name: string;
+  href: string;
+  locality: string;
+}
+
+export interface HomeData {
+  generatedAt: string;
+  urgent: ArticleSummary | null;
+  lead: ArticleSummary | null;
+  now: ArticleSummary[];
+  topics: TopicView[];
+  collections: CollectionView[];
+  events: EventView[];
+  sectionBlocks: { section: SectionRef; articles: ArticleSummary[] }[];
+  mostRead: ArticleSummary[];
+  sponsored: ArticleSummary | null;
+  sources: SourceView[];
+  aggregated: AggregatedView[];
+}

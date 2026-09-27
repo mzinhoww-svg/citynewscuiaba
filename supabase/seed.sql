@@ -326,3 +326,20 @@ insert into collection_items (collection_id, content_ref, position) values
  ('c7000000-0000-4000-8000-000000000003','event:c6000000-0000-4000-8000-000000000008',3),
  ('c7000000-0000-4000-8000-000000000003','article:c2000000-0000-4000-8000-000000000003',4),
  ('c7000000-0000-4000-8000-000000000004','article:c2000000-0000-4000-8000-000000000011',1);
+
+-- ---------------------------------------------------------------------------
+-- P1 · portal: 1 matéria arquivada (resposta 410 com motivo, P25). Não conta entre as 12 publicadas.
+-- ---------------------------------------------------------------------------
+insert into articles (id, slug, kind, topic_id, section_slug, title, dek, body, status, publish_mode,
+                      confidence, confidence_score, author_id, published_at, updated_at, rules_version, gone_reason)
+values ('c2000000-0000-4000-8000-000000000099', 'materia-arquivada-seed', 'original', null, 'cidade',
+        'Feira de bairro no Coxipó muda de endereço',
+        'Texto de teste retirado do ar para exercitar a resposta 410.',
+        '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Matéria fictícia arquivada."}]}]}',
+        'archived', 'human', 'média', 0.60, 'c1000000-0000-4000-8000-000000000004',
+        '2026-09-10 09:00-04', '2026-09-12 10:00-04', 1,
+        'A informação sobre o novo endereço não se confirmou e a matéria foi retirada do ar.');
+
+insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, created_at)
+select a.id, 1, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', a.author_id, 'edit', a.published_at
+from articles a where a.slug = 'materia-arquivada-seed';

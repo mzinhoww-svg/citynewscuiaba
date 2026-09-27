@@ -371,6 +371,7 @@ export type Database = {
           confidence_score: number;
           dek: string;
           embedding: string | null;
+          gone_reason: string | null;
           id: string;
           kind: Database["public"]["Enums"]["content_kind"];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
@@ -397,6 +398,7 @@ export type Database = {
           confidence_score?: number;
           dek: string;
           embedding?: string | null;
+          gone_reason?: string | null;
           id?: string;
           kind: Database["public"]["Enums"]["content_kind"];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
@@ -423,6 +425,7 @@ export type Database = {
           confidence_score?: number;
           dek?: string;
           embedding?: string | null;
+          gone_reason?: string | null;
           id?: string;
           kind?: Database["public"]["Enums"]["content_kind"];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
@@ -1532,6 +1535,13 @@ export type Database = {
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "user_roles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
         ];
       };
     };
@@ -1582,6 +1592,21 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      public_bylines: {
+        Row: {
+          display_name: string | null;
+          id: string | null;
+        };
+        Insert: {
+          display_name?: string | null;
+          id?: string | null;
+        };
+        Update: {
+          display_name?: string | null;
+          id?: string | null;
+        };
+        Relationships: [];
       };
       public_sources: {
         Row: {
@@ -1666,6 +1691,14 @@ export type Database = {
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      public_article_gone: { Args: { p_slug: string }; Returns: string };
+      public_most_read: {
+        Args: { p_hours?: number; p_limit?: number };
+        Returns: {
+          article_id: string;
+          reads: number;
+        }[];
+      };
       two_person_error: { Args: { msg: string }; Returns: undefined };
       unaccent: { Args: { "": string }; Returns: string };
     };

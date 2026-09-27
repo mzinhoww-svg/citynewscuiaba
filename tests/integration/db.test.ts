@@ -35,7 +35,10 @@ describe("banco local com seed fictício", () => {
 
   it("seed tem o conteúdo editorial esperado", async () => {
     const db = createServiceClient();
-    const articles = await db.from("articles").select("kind, status");
+    // 12 publicadas + 1 arquivada (P1: resposta 410 com motivo).
+    const all = await db.from("articles").select("kind, status");
+    expect(all.data!.filter((a) => a.status === "archived")).toHaveLength(1);
+    const articles = { data: all.data!.filter((a) => a.status !== "archived") };
     expect(articles.data).toHaveLength(12);
     expect(articles.data!.filter((a) => a.kind === "original")).toHaveLength(4);
     expect(articles.data!.filter((a) => a.kind === "normalized")).toHaveLength(8);

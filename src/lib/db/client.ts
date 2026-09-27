@@ -32,6 +32,28 @@ export async function createServerClient(): Promise<DbClient> {
   });
 }
 
+/** Tempo máximo de uma requisição ao Supabase na leitura pública (build e ISR não travam). */
+const PUBLIC_FETCH_TIMEOUT_MS = 8000;
+
+/**
+ * Cliente anônimo sem sessão para as páginas públicas com ISR (P1). Não lê cookies, então não
+ * torna a rota dinâmica; respeita RLS como `anon`. Lança `SupabaseEnvError` sem variáveis:
+ * quem chama (src/lib/db/queries) converte em `Result`.
+ */
+export function createPublicClient(): DbClient {
+  const { url, anonKey } = publicSupabaseEnv();
+  return createClient<Database>(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          signal: init?.signal ?? AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
+        }),
+    },
+  });
+}
+
 /** Cliente com service role: ignora RLS. Só pipeline e rotas de servidor. */
 export function createServiceClient(): DbClient {
   const { url, serviceRoleKey } = serviceSupabaseEnv();
