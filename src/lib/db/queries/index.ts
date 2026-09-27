@@ -1,5 +1,13 @@
 /** Leituras públicas do portal (P1). Todas devolvem `Result<_, QueryError>` e nunca lançam. */
-export { getArticleBySlug, articleHref, parseBody } from "./articles";
+export {
+  ARTICLE_REVALIDATE,
+  articleHref,
+  articleTag,
+  getArticleBySlug,
+  getArticleHistory,
+  getArticleUpdatedAt,
+  parseBody,
+} from "./articles";
 export { listAggregated, type AggregatedFilters } from "./aggregated";
 export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";

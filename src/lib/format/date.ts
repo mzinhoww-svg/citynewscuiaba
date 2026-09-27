@@ -119,3 +119,25 @@ export function startOfDay(now: Date = new Date()): Date {
   const midnightUtc = Date.UTC(y ?? 1970, (m ?? 1) - 1, day ?? 1);
   return new Date(midnightUtc - zoneOffsetMinutes(now) * MINUTE);
 }
+
+/** ISO com o deslocamento de Cuiabá: "2026-10-03T20:00:00-04:00" (JSON-LD de evento). */
+export function toZonedIso(iso: string): string {
+  const d = parse(iso);
+  if (!d) return "";
+  const p = parts(d);
+  const off = zoneOffsetMinutes(d);
+  const sign = off < 0 ? "-" : "+";
+  const abs = Math.abs(off);
+  const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+  const mm = String(abs % 60).padStart(2, "0");
+  const sec = String(d.getUTCSeconds()).padStart(2, "0");
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${sec}${sign}${hh}:${mm}`;
+}
+
+/** "25/09/2026, 12h" sempre absoluto (datas de publicação e de versão). */
+export function formatDateTime(iso: string): string {
+  const d = parse(iso);
+  if (!d) return "";
+  const p = parts(d);
+  return `${p.day}/${p.month}/${p.year}, ${hourText(p.hour, p.minute)}`;
+}

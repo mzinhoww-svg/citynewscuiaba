@@ -195,6 +195,19 @@
   font: var(--type-body-read);
   max-width: var(--measure-read);
 }
+/* Ajustar leitura (P03): escala do corpo da matéria escolhida pelo leitor (cn_reading_size). */
+:root[data-reading-size="lg"] {
+  --reading-scale: 1.12;
+}
+:root[data-reading-size="xl"] {
+  --reading-scale: 1.25;
+}
+@utility reading-body {
+  font: var(--type-body-read);
+  font-size: calc(clamp(1.125rem, 1.08rem + 0.25vw, 1.25rem) * var(--reading-scale, 1));
+  max-width: var(--measure-read);
+  text-wrap: pretty;
+}
 @utility type-body {
   font: var(--type-body);
 }

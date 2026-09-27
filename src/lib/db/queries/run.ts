@@ -1,5 +1,5 @@
 import "server-only";
-import { createPublicClient, type DbClient } from "@/lib/db/client";
+import { createPublicClient, type DbClient, type PublicCache } from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import { err, ok, type Result } from "@/lib/result";
 import type { QueryError } from "./types";
@@ -17,17 +17,18 @@ class ReadError extends Error {
  * As páginas mostram estado amigável em vez de quebrar (portal funciona sem banco).
  */
 export async function readPublic<T>(
-  fn: (db: DbClient) => Promise<T>,
+  fn: (db: DbClient, cached: (cache: PublicCache) => DbClient) => Promise<T>,
+  cache?: PublicCache,
 ): Promise<Result<T, QueryError>> {
   let db: DbClient;
   try {
-    db = createPublicClient();
+    db = createPublicClient(cache);
   } catch (e) {
     if (e instanceof SupabaseEnvError) return err({ kind: "unconfigured" });
     throw e;
   }
   try {
-    return ok(await fn(db));
+    return ok(await fn(db, (c) => createPublicClient(c)));
   } catch (e) {
     return err({ kind: "unavailable", message: e instanceof Error ? e.message : String(e) });
   }

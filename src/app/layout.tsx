@@ -27,8 +27,8 @@ export const metadata: Metadata = {
   description: SITE.description,
 };
 
-/* Aplica o tema salvo (cn_theme) ou o do sistema antes da primeira pintura. */
-const themeScript = `(function(){try{var t=localStorage.getItem("cn_theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})();`;
+/* Aplica o tema salvo (cn_theme) ou o do sistema e o tamanho de leitura (cn_reading_size) antes da primeira pintura. */
+const themeScript = `(function(){try{var t=localStorage.getItem("cn_theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t);var r=localStorage.getItem("cn_reading_size");if(r==="lg"||r==="xl")document.documentElement.setAttribute("data-reading-size",r)}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (

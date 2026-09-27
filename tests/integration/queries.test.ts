@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/db/client";
 import {
   countSectionSince,
   getArticleBySlug,
+  getArticleHistory,
+  getArticleUpdatedAt,
   getEvent,
   getHomeData,
   getTopicBySlug,
@@ -47,9 +49,31 @@ describe("queries públicas (P1-T1)", () => {
     expect(r.labels.shown[0]!.detail).toBe("4 fontes");
     expect(r.sources[0]!.role).toBe("primary");
     expect(r.sources.every((s) => s.url.startsWith("https://"))).toBe(true);
-    expect(r.versions).toBe(1);
+    expect(r.versions).toBe(2);
+    expect(r.notes).toEqual([
+      expect.objectContaining({
+        kind: "update",
+        version: 2,
+        note: expect.stringMatching(/linhas noturnas/),
+      }),
+    ]);
+    expect(r.related.length).toBeGreaterThan(0);
+    expect(r.related.some((a) => a.slug === r.slug)).toBe(false);
     expect(r.body.length).toBeGreaterThan(0);
     expect(r.topic?.slug).toBe("plano-de-onibus-cpa-centro");
+  });
+
+  it("histórico público só tem versões publicadas, com correção", async () => {
+    const h = value(
+      await getArticleHistory("com-fumaca-escolas-ajustam-horario-de-educacao-fisica"),
+    );
+    expect(h?.versions.map((v) => v.kind)).toEqual(["correction", "edit"]);
+    expect(h?.versions[0]?.note).toMatch(/20 minutos, não 18/);
+    expect(h?.versions[1]?.body.at(-1)?.text).toMatch(/18 minutos/);
+    expect(value(await getArticleHistory("materia-arquivada-seed"))).toBeNull();
+    expect(
+      value(await getArticleUpdatedAt("prefeitura-detalha-novo-plano-de-onibus-cpa-centro")),
+    ).toBeTruthy();
   });
 
   it("matéria arquivada retorna gone", async () => {

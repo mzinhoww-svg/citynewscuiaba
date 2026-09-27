@@ -57,3 +57,17 @@ grant execute on function public_most_read(int, int) to anon, authenticated, ser
 -- src/content/pt-BR/neighborhoods.ts; a taxonomia editável chega no P5 (A05).
 alter table articles add column if not exists neighborhoods text[] not null default '{}';
 create index if not exists articles_neighborhoods_idx on articles using gin (neighborhoods);
+
+-- Histórico público de versões (P04): só versões publicadas (criadas a partir da publicação) de
+-- matérias públicas, e só título, linha fina, corpo, tipo e nota pública. Nada de autor interno,
+-- origem (IA/humano) ou decisões. Roda com os direitos do dono, como public_bylines.
+create or replace view public_article_versions as
+  select v.article_id, v.number, v.change_kind, v.public_note, v.created_at,
+         v.snapshot->>'title' as title, v.snapshot->>'dek' as dek, v.snapshot->'body' as body
+  from article_versions v
+  join articles a on a.id = v.article_id
+  where a.status in ('published', 'updated')
+    and a.published_at is not null
+    and v.created_at >= a.published_at - interval '1 minute';
+revoke all on public_article_versions from anon, authenticated;
+grant select on public_article_versions to anon, authenticated, service_role;

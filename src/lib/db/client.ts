@@ -40,7 +40,7 @@ const PUBLIC_FETCH_TIMEOUT_MS = 8000;
  * torna a rota dinâmica; respeita RLS como `anon`. Lança `SupabaseEnvError` sem variáveis:
  * quem chama (src/lib/db/queries) converte em `Result`.
  */
-export function createPublicClient(): DbClient {
+export function createPublicClient(cache?: PublicCache): DbClient {
   const { url, anonKey } = publicSupabaseEnv();
   return createClient<Database>(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -49,9 +49,19 @@ export function createPublicClient(): DbClient {
         fetch(input, {
           ...init,
           signal: init?.signal ?? AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
+          ...(cache ? { next: { tags: cache.tags, revalidate: cache.revalidate } } : {}),
         }),
     },
   });
+}
+
+/**
+ * Cache de dados do Next para leituras de página com ISR: `revalidateTag("article:<id>")`
+ * invalida a página que usou essas leituras (architecture §8).
+ */
+export interface PublicCache {
+  tags: string[];
+  revalidate: number;
 }
 
 /** Cliente com service role: ignora RLS. Só pipeline e rotas de servidor. */

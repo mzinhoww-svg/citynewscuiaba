@@ -7,6 +7,8 @@ import { BYLINE } from "@/content/pt-BR/portal";
 import { many, one, readPublic } from "./run";
 import type {
   ArticleBlock,
+  ArticleHistory,
+  ArticleNote,
   ArticleImage,
   ArticleLookup,
   ArticleSource,
@@ -256,19 +258,94 @@ export async function fetchRecentArticles(db: DbClient, limit: number): Promise<
 
 const ROLE_ORDER = { primary: 0, secondary: 1, context: 2 } as const;
 
-/**
- * Matéria pública pelo slug. Arquivada ou despublicada devolve `{ gone, reason }` (410);
- * inexistente devolve `null` (404).
- */
-export async function getArticleBySlug(slug: string): Promise<Result<ArticleLookup, QueryError>> {
-  return readPublic(async (db) => {
-    const row = await db
+/** ISR da matéria: 300 s + tag `article:<id>` (architecture §8). */
+export const ARTICLE_REVALIDATE = 300;
+
+export function articleTag(id: string): string {
+  return `article:${id}`;
+}
+
+type VersionRow = {
+  number: number | null;
+  change_kind: string | null;
+  public_note: string | null;
+  created_at: string | null;
+};
+
+function toNotes(rows: VersionRow[]): ArticleNote[] {
+  return rows.flatMap((v) =>
+    (v.change_kind === "update" || v.change_kind === "correction") && v.public_note && v.created_at
+      ? [{ kind: v.change_kind, note: v.public_note, at: v.created_at, version: v.number ?? 0 }]
+      : [],
+  );
+}
+
+async function fetchRelated(db: DbClient, row: ArticleRow): Promise<ArticleSummary[]> {
+  const [sameTopic, sameSection] = await Promise.all([
+    row.topic_id
+      ? db
+          .from("articles")
+          .select(ARTICLE_COLUMNS)
+          .eq("topic_id", row.topic_id)
+          .neq("id", row.id)
+          .in("status", [...PUBLIC_STATUSES])
+          .order("published_at", { ascending: false })
+          .limit(3)
+          .then(many)
+      : Promise.resolve([]),
+    db
       .from("articles")
       .select(ARTICLE_COLUMNS)
-      .eq("slug", slug)
+      .eq("section_slug", row.section_slug)
+      .neq("id", row.id)
       .in("status", [...PUBLIC_STATUSES])
-      .maybeSingle()
-      .then(one);
+      .eq("sponsored", false)
+      .order("published_at", { ascending: false })
+      .limit(4)
+      .then(many),
+  ]);
+  const seen = new Set(sameTopic.map((r) => r.id));
+  const extra = sameSection.filter((r) => !seen.has(r.id)).slice(0, 2);
+  return summarize(db, [...sameTopic, ...extra]);
+}
+
+/** Resolve slug → id (estável; em cache pela tag do slug). */
+async function idForSlug(db: DbClient, slug: string): Promise<string | null> {
+  const row = await db
+    .from("articles")
+    .select("id")
+    .eq("slug", slug)
+    .in("status", [...PUBLIC_STATUSES])
+    .maybeSingle()
+    .then(one);
+  return row?.id ?? null;
+}
+
+/**
+ * Matéria pública pelo slug. Arquivada ou despublicada devolve `{ gone, reason }` (410);
+ * inexistente devolve `null` (404). Com `cache`, as leituras entram no cache de dados do Next
+ * com a tag `article:<id>` e revalidação de 300 s.
+ */
+export async function getArticleBySlug(
+  slug: string,
+  opts: { cache?: boolean } = {},
+): Promise<Result<ArticleLookup, QueryError>> {
+  const slugCache = opts.cache
+    ? { tags: [`article-slug:${slug}`], revalidate: ARTICLE_REVALIDATE }
+    : undefined;
+  return readPublic(async (first, cached) => {
+    const id = await idForSlug(first, slug);
+    const db =
+      id && opts.cache ? cached({ tags: [articleTag(id)], revalidate: ARTICLE_REVALIDATE }) : first;
+    const row = id
+      ? await db
+          .from("articles")
+          .select(ARTICLE_COLUMNS)
+          .eq("id", id)
+          .in("status", [...PUBLIC_STATUSES])
+          .maybeSingle()
+          .then(one)
+      : null;
 
     if (!row) {
       const reason = await db.rpc("public_article_gone", { p_slug: slug }).then(one);
@@ -277,20 +354,18 @@ export async function getArticleBySlug(slug: string): Promise<Result<ArticleLook
 
     const [summary] = await summarize(db, [row]);
     if (!summary) return null;
-    const [links, versions, topic] = await Promise.all([
+    const [links, versionRows, topic, related] = await Promise.all([
       db
         .from("article_sources")
         .select("item_id, role, confirmed")
         .eq("article_id", row.id)
         .then(many),
       db
-        .from("article_versions")
-        .select("id", { count: "exact", head: true })
+        .from("public_article_versions")
+        .select("number, change_kind, public_note, created_at")
         .eq("article_id", row.id)
-        .then((r) => {
-          if (r.error) throw new Error(r.error.message);
-          return r.count ?? 0;
-        }),
+        .order("number", { ascending: false })
+        .then(many),
       row.topic_id
         ? db
             .from("topics")
@@ -299,6 +374,7 @@ export async function getArticleBySlug(slug: string): Promise<Result<ArticleLook
             .maybeSingle()
             .then(one)
         : Promise.resolve(null),
+      fetchRelated(db, row),
     ]);
 
     const items = links.length
@@ -335,10 +411,67 @@ export async function getArticleBySlug(slug: string): Promise<Result<ArticleLook
       ...summary,
       body: parseBody(row.body),
       sources,
-      versions,
+      versions: versionRows.length,
+      notes: toNotes(versionRows),
       agentId: row.agent_id,
+      authorIsPerson: summary.byline !== BYLINE.newsroom,
       topic: topic ? { slug: topic.slug, title: topic.title, state: topic.state } : null,
+      related,
     };
     return view;
+  }, slugCache);
+}
+
+/** Último `updated_at` público da matéria (aviso "foi atualizada", polling de 120 s). Sem cache. */
+export async function getArticleUpdatedAt(
+  slug: string,
+): Promise<Result<string | null, QueryError>> {
+  return readPublic(async (db) => {
+    const row = await db
+      .from("articles")
+      .select("updated_at")
+      .eq("slug", slug)
+      .in("status", [...PUBLIC_STATUSES])
+      .maybeSingle()
+      .then(one);
+    return row?.updated_at ?? null;
+  });
+}
+
+/** Histórico público de versões (P04): só versões publicadas, mais recente primeiro. */
+export async function getArticleHistory(
+  slug: string,
+): Promise<Result<ArticleHistory | null, QueryError>> {
+  return readPublic(async (first, cached) => {
+    const id = await idForSlug(first, slug);
+    if (!id) return null;
+    const db = cached({ tags: [articleTag(id)], revalidate: ARTICLE_REVALIDATE });
+    const [row, sections, versions] = await Promise.all([
+      db.from("articles").select("slug, title, section_slug").eq("id", id).maybeSingle().then(one),
+      db.from("sections").select("slug, name").then(many),
+      db
+        .from("public_article_versions")
+        .select("number, change_kind, public_note, created_at, title, dek, body")
+        .eq("article_id", id)
+        .order("number", { ascending: false })
+        .then(many),
+    ]);
+    if (!row) return null;
+    const section = sections.find((s) => s.slug === row.section_slug);
+    return {
+      slug: row.slug,
+      href: articleHref(row.slug),
+      title: row.title,
+      section: section ?? { slug: row.section_slug, name: row.section_slug },
+      versions: versions.map((v) => ({
+        number: v.number ?? 0,
+        kind: v.change_kind === "update" || v.change_kind === "correction" ? v.change_kind : "edit",
+        note: v.public_note,
+        at: v.created_at ?? "",
+        title: v.title ?? "",
+        dek: v.dek ?? "",
+        body: parseBody(v.body),
+      })),
+    };
   });
 }

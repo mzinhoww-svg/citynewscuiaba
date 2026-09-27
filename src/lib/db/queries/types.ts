@@ -62,13 +62,46 @@ export interface ArticleSource {
   publishedAt: string | null;
 }
 
+/** Nota pública de atualização ou correção (UpdateNote, CorrectionNote). */
+export interface ArticleNote {
+  kind: "update" | "correction";
+  note: string;
+  at: string;
+  version: number;
+}
+
 /** Matéria completa (P03). */
 export interface ArticleView extends ArticleSummary {
   body: ArticleBlock[];
   sources: ArticleSource[];
+  /** Versões publicadas (histórico público). */
   versions: number;
+  notes: ArticleNote[];
   agentId: string | null;
+  /** Assinatura de pessoa da redação (false = Redação CityNews / agente). */
+  authorIsPerson: boolean;
   topic: TopicRef | null;
+  /** Mesmo assunto primeiro, depois 2 da editoria. */
+  related: ArticleSummary[];
+}
+
+/** Uma versão publicada no histórico público (P04). */
+export interface PublicVersion {
+  number: number;
+  kind: "edit" | "update" | "correction";
+  note: string | null;
+  at: string;
+  title: string;
+  dek: string;
+  body: ArticleBlock[];
+}
+
+export interface ArticleHistory {
+  slug: string;
+  href: string;
+  title: string;
+  section: SectionRef;
+  versions: PublicVersion[];
 }
 
 export type ArticleLookup = ArticleView | { gone: true; reason: string } | null;

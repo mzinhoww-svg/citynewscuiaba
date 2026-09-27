@@ -42,7 +42,11 @@ describe("banco local com seed fictício", () => {
     expect(articles.data).toHaveLength(12);
     expect(articles.data!.filter((a) => a.kind === "original")).toHaveLength(4);
     expect(articles.data!.filter((a) => a.kind === "normalized")).toHaveLength(8);
-    expect(articles.data!.every((a) => a.status === "published")).toBe(true);
+    // P1-T6: duas matérias foram atualizadas depois de publicadas (atualização e correção).
+    expect(articles.data!.every((a) => a.status === "published" || a.status === "updated")).toBe(
+      true,
+    );
+    expect(articles.data!.filter((a) => a.status === "updated")).toHaveLength(2);
     const counts = await Promise.all(
       (["topics", "collected_items", "event_listings", "profiles"] as const).map(
         async (t) => (await db.from(t).select("*", { count: "exact", head: true })).count,
@@ -92,7 +96,10 @@ describe("RLS", () => {
     expect(draft.error).toBeNull();
     expect(draft.data).toHaveLength(0);
 
-    const published = await anon.from("articles").select("slug, status").eq("status", "published");
+    const published = await anon
+      .from("articles")
+      .select("slug, status")
+      .in("status", ["published", "updated"]);
     expect(published.data?.length).toBe(12);
   });
 

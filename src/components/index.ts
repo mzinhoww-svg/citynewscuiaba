@@ -71,6 +71,19 @@ export { TopicStatus, type TopicStatusProps } from "./editorial/TopicStatus";
 export { UrgentBar, type UrgentBarProps } from "./editorial/UrgentBar";
 export { VideoLowerThird, type VideoLowerThirdProps } from "./editorial/VideoLowerThird";
 
+export { AiSummaryBlock, type AiSummaryBlockProps } from "./editorial/AiSummaryBlock";
+export { CorrectionNote, UpdateNote, type NoteProps } from "./editorial/ArticleNotes";
+export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingProgress";
+export { ReadingSettings } from "./editorial/ReadingSettings";
+export { ReportProblemForm, type ReportProblemFormProps } from "./editorial/ReportProblemForm";
+export { ShareSheet, type ShareSheetProps } from "./editorial/ShareSheet";
+export { SourcesList, type SourcesListProps } from "./editorial/SourcesList";
+export {
+  UpdatedWhileReading,
+  type UpdatedWhileReadingProps,
+} from "./editorial/UpdatedWhileReading";
+export { VersionDiff, type VersionDiffProps } from "./editorial/VersionDiff";
+
 /* studio */
 export {
   StudioShell,

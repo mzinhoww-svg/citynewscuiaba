@@ -1596,6 +1596,27 @@ export type Database = {
           },
         ];
       };
+      public_article_versions: {
+        Row: {
+          article_id: string | null;
+          body: Json | null;
+          change_kind: string | null;
+          created_at: string | null;
+          dek: string | null;
+          number: number | null;
+          public_note: string | null;
+          title: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "article_versions_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       public_bylines: {
         Row: {
           display_name: string | null;

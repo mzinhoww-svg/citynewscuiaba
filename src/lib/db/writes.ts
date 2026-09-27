@@ -63,3 +63,21 @@ export async function saveNewsletterSubscription(
     if (error) throw new Error(error.message);
   });
 }
+
+/** Denúncia de leitor (Informar problema): entra na fila do Estúdio com prazo de 24 h (E14). */
+export async function saveReport(r: {
+  contentRef: string;
+  kind: "wrong_info" | "broken_link" | "image" | "right_of_reply" | "other";
+  message: string | null;
+  contactEmail: string | null;
+}): Promise<Result<void, WriteError>> {
+  return withService(async (db) => {
+    const { error } = await db.from("reports").insert({
+      content_ref: r.contentRef,
+      kind: r.kind,
+      message: r.message,
+      contact_email: r.contactEmail,
+    });
+    if (error) throw new Error(error.message);
+  });
+}

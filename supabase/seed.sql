@@ -356,3 +356,38 @@ update articles set neighborhoods = '{duque-de-caxias}' where id = 'c2000000-000
 update articles set neighborhoods = '{porto}' where id = 'c2000000-0000-4000-8000-000000000002';
 update articles set neighborhoods = '{cpa,morada-da-serra,tres-barras}' where id = 'c2000000-0000-4000-8000-000000000011';
 update articles set neighborhoods = '{centro-norte}' where id = 'c2000000-0000-4000-8000-000000000012';
+
+-- ---------------------------------------------------------------------------
+-- P1-T6 · matéria: uma atualização (plano de ônibus) e uma correção pública (escolas),
+-- com versões publicadas para o histórico (P04) e a nota em /correcoes (P24).
+-- ---------------------------------------------------------------------------
+update article_versions
+   set snapshot = jsonb_set(snapshot, '{body,content}', (snapshot->'body'->'content') || jsonb_build_array(
+     jsonb_build_object('type','paragraph','content', jsonb_build_array(jsonb_build_object('type','text','text',
+       'Cada aula ao ar livre passa a durar no máximo 18 minutos, com pausa para água no meio da atividade.')))))
+ where article_id = 'c2000000-0000-4000-8000-000000000004' and number = 1;
+update articles
+   set body = jsonb_set(body, '{content}', (body->'content') || jsonb_build_array(
+     jsonb_build_object('type','paragraph','content', jsonb_build_array(jsonb_build_object('type','text','text',
+       'Cada aula ao ar livre passa a durar no máximo 20 minutos, com pausa para água no meio da atividade.'))))),
+       status = 'updated', updated_at = '2026-09-26 16:40-04'
+ where id = 'c2000000-0000-4000-8000-000000000004';
+insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, public_note, created_at)
+select a.id, 2, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', 'c1000000-0000-4000-8000-000000000005',
+       'correction', 'Cada aula ao ar livre dura no máximo 20 minutos, não 18, como informado na primeira versão.', a.updated_at
+from articles a where a.id = 'c2000000-0000-4000-8000-000000000004';
+insert into corrections (article_id, kind, public_note, requested_by, status, published_at) values
+ ('c2000000-0000-4000-8000-000000000004', 'correction',
+  'Cada aula ao ar livre dura no máximo 20 minutos, não 18, como informado na primeira versão.',
+  'leitor', 'published', '2026-09-26 16:40-04');
+
+update articles
+   set body = jsonb_set(body, '{content}', (body->'content') || jsonb_build_array(
+     jsonb_build_object('type','paragraph','content', jsonb_build_array(jsonb_build_object('type','text','text',
+       'Depois da publicação, a prefeitura informou que duas linhas noturnas serão reforçadas a partir de novembro.'))))),
+       status = 'updated', updated_at = '2026-09-26 10:30-04'
+ where id = 'c2000000-0000-4000-8000-000000000005';
+insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, public_note, created_at)
+select a.id, 2, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', 'c1000000-0000-4000-8000-000000000003',
+       'update', 'A prefeitura anunciou reforço de duas linhas noturnas a partir de novembro.', a.updated_at
+from articles a where a.id = 'c2000000-0000-4000-8000-000000000005';
