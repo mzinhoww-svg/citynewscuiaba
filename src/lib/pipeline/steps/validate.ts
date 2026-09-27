@@ -35,6 +35,12 @@ export function createValidateStep(deps: { repo: IngestRepo }): StepHandler {
       return err(stepError.invalid(problem, { rawId: id }));
     }
     await deps.repo.updateRawItem(id, { state: "valid" });
+    const { etag, lastModified } = raw.payload;
+    if (etag !== undefined || lastModified !== undefined)
+      await deps.repo.updateSource(raw.sourceId, {
+        etag: etag ?? null,
+        lastModified: lastModified ?? null,
+      });
     return ok([nextMessage(msg, "extract", `raw:${id}`)]);
   };
 }

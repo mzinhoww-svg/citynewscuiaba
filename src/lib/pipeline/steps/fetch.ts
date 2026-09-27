@@ -77,14 +77,13 @@ export function createFetchStep(deps: IngestDeps): StepHandler {
             contentType: res.contentType,
             body: res.body,
             sourceKind: source.kind,
+            etag: res.etag,
+            lastModified: res.lastModified,
           },
         });
-        await deps.repo.updateSource(source.id, {
-          etag: res.etag,
-          lastModified: res.lastModified,
-          lastFetchedAt: fetchedAt,
-          lastError: null,
-        });
+        // ETag/Last-Modified só no validate: se esta mensagem cair antes de enfileirar o validate,
+        // a nova tentativa baixa o documento de novo em vez de receber 304.
+        await deps.repo.updateSource(source.id, { lastFetchedAt: fetchedAt, lastError: null });
         return ok([nextMessage(msg, "validate", `raw:${rawId}`)]);
       }
     }

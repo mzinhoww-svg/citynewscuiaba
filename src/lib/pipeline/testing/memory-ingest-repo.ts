@@ -14,6 +14,7 @@ export function createMemoryIngestRepo(sources: SourceRecord[]) {
   const raws: (RawItemRecord & { error?: string })[] = [];
   const collected: (CollectedInsert & { id: string })[] = [];
   const hits = new Map<string, number>();
+  const advanced = new Set<string>();
   let seq = 0;
 
   const repo: IngestRepo = {
@@ -48,15 +49,17 @@ export function createMemoryIngestRepo(sources: SourceRecord[]) {
     },
     async insertCollectedItem(item) {
       const existing = collected.find((c) => c.canonicalUrl === item.canonicalUrl);
-      if (existing) return { id: existing.id, created: false };
+      if (existing) return { id: existing.id, created: false, pending: !advanced.has(existing.id) };
       const id = `item-${++seq}`;
       collected.push({ ...item, id });
-      return { id, created: true };
+      return { id, created: true, pending: true };
     },
   };
   return Object.assign(repo, {
     source: (slug: string) => rows.find((s) => s.slug === slug),
     raw: () => raws,
     collected: () => collected,
+    /** Marca o item como já classificado (avançou além da Coleta). */
+    markAdvanced: (id: string) => void advanced.add(id),
   });
 }

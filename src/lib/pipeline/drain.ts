@@ -1,7 +1,7 @@
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import type { EventSink, PipelineEvent, Queue, QueuedMessage } from "./ports";
 import { MAX_ATTEMPTS, retryPolicy } from "./retry";
-import type { RunStep } from "./run-step";
+import { stepError, type RunStep, type StepError } from "./run-step";
 import { QUEUE_NAMES, queueFor, type QueueName } from "./types";
 
 /** Igual ao `maxDuration` da rota /api/jobs/drain (limite do Vercel Hobby). */
@@ -97,14 +97,22 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             }
             r.processed++;
             const res = await runStep(q.msg);
+            let e: StepError;
             if (res.ok) {
-              for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
-              await queue.ack(name, q.msgId);
-              r.succeeded++;
-              log.push(event(q, "info", "ok", { next: res.value.length }));
-              continue;
-            }
-            const e = res.error;
+              try {
+                for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+                await queue.ack(name, q.msgId);
+                r.succeeded++;
+                log.push(event(q, "info", "ok", { next: res.value.length }));
+                continue;
+              } catch (ex) {
+                // Etapa feita, próxima não enfileirada: a mensagem volta como falha transitória
+                // (as etapas são idempotentes e devolvem a próxima de novo), sem abortar o lote.
+                e = stepError.transient(
+                  `falha ao enfileirar a próxima etapa: ${ex instanceof Error ? ex.message : String(ex)}`,
+                );
+              }
+            } else e = res.error;
             const decision = retryPolicy(q.readCt, { retryable: e.retryable });
             const details = { kind: e.kind, ...(e.details ?? {}) };
             if (decision.action === "retry") {

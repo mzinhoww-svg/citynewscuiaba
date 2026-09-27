@@ -34,7 +34,7 @@ export function createNormalizeStep(deps: { repo: IngestRepo }): StepHandler {
     const source = await deps.repo.sourceById(raw.sourceId);
     if (!source) return err(stepError.notFound(`fonte ${raw.sourceId} não encontrada`));
 
-    const { id, created } = await deps.repo.insertCollectedItem({
+    const { id, created, pending } = await deps.repo.insertCollectedItem({
       rawId,
       sourceId: raw.sourceId,
       canonicalUrl: canonical,
@@ -45,6 +45,7 @@ export function createNormalizeStep(deps: { repo: IngestRepo }): StepHandler {
       imageUrl: entry.imageUrl,
       locality: source.locality,
     });
-    return ok(created ? [nextMessage(msg, "dedupe", `item:${id}`)] : []);
+    // Item novo, ou que já existia e ainda não avançou (retomada depois de queda): segue.
+    return ok(created || pending ? [nextMessage(msg, "dedupe", `item:${id}`)] : []);
   };
 }

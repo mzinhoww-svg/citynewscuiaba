@@ -111,6 +111,13 @@ export interface RawPayload {
   contentType: string | null;
   body: string;
   sourceKind: SourceKind;
+  /**
+   * Validadores da coleta condicional. Só vão para a fonte depois do `validate` (ou seja, depois
+   * que o bruto e a mensagem seguinte existem): uma queda no meio não troca a próxima tentativa
+   * por um 304 sem item.
+   */
+  etag?: string | null;
+  lastModified?: string | null;
 }
 
 export type RawState = "new" | "valid" | "quarantine" | "extracted";
@@ -150,8 +157,14 @@ export interface IngestRepo {
     id: string,
     patch: { state: RawState; entries?: RawEntry[]; error?: string },
   ): Promise<void>;
-  /** Idempotente por `canonical_url`: `created = false` quando o item já existia. */
-  insertCollectedItem(item: CollectedInsert): Promise<{ id: string; created: boolean }>;
+  /**
+   * Idempotente por `canonical_url`: `created = false` quando o item já existia. `pending` = o item
+   * ainda não avançou (sem classificação, não duplicado, fora da quarentena): a etapa devolve a
+   * próxima mensagem de novo e o dedupe da fila evita repetição.
+   */
+  insertCollectedItem(
+    item: CollectedInsert,
+  ): Promise<{ id: string; created: boolean; pending: boolean }>;
 }
 
 /** Item coletado como as etapas de Entendimento (dedupe em diante) o enxergam. */

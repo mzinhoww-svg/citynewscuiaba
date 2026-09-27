@@ -125,6 +125,33 @@ describe("drain", () => {
     expect(r).toMatchObject({ succeeded: 4, remaining: 0 });
   });
 
+  it("exceção ao enfileirar a próxima etapa vira falha transitória, sem abortar o lote", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    await queue.enqueue("pipeline", m("source:b"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: true,
+        value: [nextMessage(msg, "validate", `raw:${msg.itemRef}`)],
+      }),
+      validate: async () => ({ ok: true, value: [] }),
+    });
+    const flaky = {
+      ...queue,
+      enqueue: async (q: Parameters<typeof queue.enqueue>[0], msg: PipelineMessage) => {
+        if (msg.itemRef === "raw:source:a") throw new Error("banco fora");
+        return queue.enqueue(q, msg);
+      },
+    };
+    const events = sink();
+    const r = await drain({ queue: flaky, runStep, events, now: () => 0, queues: ["pipeline"] });
+    expect(r).toMatchObject({ processed: 3, succeeded: 2, retried: 1, remaining: 1 });
+    expect(queue.delays()).toEqual([60]);
+    expect(events.events).toContainEqual(
+      expect.objectContaining({ level: "warn", message: expect.stringMatching(/banco fora/) }),
+    );
+  });
+
   it("queueFor: imagem em media, notificação em notify, o resto em pipeline", () => {
     expect(queueFor("image")).toBe("media");
     expect(queueFor("image_rights")).toBe("media");

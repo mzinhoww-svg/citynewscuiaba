@@ -47,8 +47,9 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
     else if (neverAuto(ctx)) blocked = RULE_RATIONALE.neverAuto();
     else if (!autoPublish || readOnly) blocked = RULE_RATIONALE.autoPublishOff();
 
+    // A decisão vem antes da mudança de status: uma queda no meio nunca deixa matéria publicada
+    // (ou retida) sem o registro do porquê; a nova tentativa grava de novo e muda o status.
     if (blocked) {
-      await deps.repo.setStatus(articleId, { status: "in_review", reviewReason: blocked });
       await deps.repo.recordDecision({
         objectRef: msg.itemRef,
         step: "publish",
@@ -60,17 +61,11 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
         rationale: blocked,
         recommended: "review",
       });
+      await deps.repo.setStatus(articleId, { status: "in_review", reviewReason: blocked });
       return ok([nextMessage(msg, "notify", `${msg.itemRef}#review`)]);
     }
 
     const publishedAt = deps.now().toISOString();
-    await deps.repo.setStatus(articleId, {
-      status: "published",
-      publishMode: "auto",
-      publishedAt,
-      rulesVersion: last!.rulesVersion ?? null,
-      reviewReason: null,
-    });
     await deps.repo.recordDecision({
       objectRef: msg.itemRef,
       step: "publish",
@@ -89,6 +84,13 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
       },
       rationale: last!.rationale,
       recommended: typeof route === "string" ? route : null,
+    });
+    await deps.repo.setStatus(articleId, {
+      status: "published",
+      publishMode: "auto",
+      publishedAt,
+      rulesVersion: last!.rulesVersion ?? null,
+      reviewReason: null,
     });
     const kind = route === "publish_notify" ? "auto_published_notify" : "auto_published";
     return ok([index, nextMessage(msg, "notify", `${msg.itemRef}#${kind}`)]);

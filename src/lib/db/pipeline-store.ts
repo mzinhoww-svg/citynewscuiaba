@@ -137,6 +137,8 @@ const RawPayloadSchema = z.object({
   contentType: z.string().nullable(),
   body: z.string(),
   sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
+  etag: z.string().nullable().optional(),
+  lastModified: z.string().nullable().optional(),
 });
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
@@ -294,15 +296,18 @@ export function createIngestRepo(db: DbClient): IngestRepo {
         .select("id");
       check("insertCollectedItem", ins.error);
       const created = ins.data?.[0]?.id;
-      if (created) return { id: created, created: true };
+      if (created) return { id: created, created: true, pending: true };
       const { data, error } = await db
         .from("collected_items")
-        .select("id")
+        .select("id, duplicate_of, quarantined_at, relevance")
         .eq("canonical_url", item.canonicalUrl)
         .single();
       check("insertCollectedItem(existing)", error);
       if (!data) throw new Error("pipeline-store: collected_item sumiu");
-      return { id: data.id, created: false };
+      // Ainda não classificado (nem duplicado, nem em quarentena): a retomada o manda seguir.
+      const pending =
+        data.duplicate_of === null && data.quarantined_at === null && data.relevance === null;
+      return { id: data.id, created: false, pending };
     },
   };
 }
