@@ -6,9 +6,9 @@
 ## Fase e tarefa
 
 - **Fase ativa:** P0 Fundação
-- **Tarefa ativa:** P0-T1
-- **Próxima tarefa:** P0-T1 Scaffold do projeto e qualidade
-- **Progresso:** 0/70 tarefas · 0/7 fases
+- **Tarefa ativa:** P0-T7
+- **Próxima tarefa:** P0-T7 Supabase local, schema e seed
+- **Progresso:** 6/70 tarefas · 0/7 fases
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -29,13 +29,14 @@
 
 ## Próxima ação imediata
 
-1. Executar P0-T1 (scaffold) e seguir o plano P0.
+1. Executar P0-T7 (schema, RLS, seed) com a pilha local (`bash scripts/local-stack/start.sh`, `pnpm db:reset`), depois T8, T9, T9b, T10.
 
 ## Últimos checkpoints
 
 | Quando | Tarefa | Commit | Resultado |
 |---|---|---|---|
 | 2026-09-27 | kit | e14a386 | kit importado |
+| 2026-09-27 | P0-T1..T6 | 93f0c13 | verify verde, 56 testes |
 
 ## Degradados abertos
 

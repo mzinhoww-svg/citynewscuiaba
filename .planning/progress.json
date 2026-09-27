@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": null,
+  "updatedAt": "2026-09-27T15:47:51.702Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -22,7 +22,7 @@
       "name": "Fundação",
       "plan": "docs/superpowers/plans/2026-09-27-p0-fundacao.md",
       "dependsOn": [],
-      "status": "pending",
+      "status": "in_progress",
       "gate": {
         "verify": false,
         "preview": false,
@@ -36,54 +36,54 @@
           "id": "P0-T1",
           "title": "Scaffold do projeto e qualidade",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "2dddada",
           "notes": ""
         },
         {
           "id": "P0-T2",
           "title": "Result e utilitários",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "d14b485",
           "notes": ""
         },
         {
           "id": "P0-T3",
           "title": "Rótulos de origem",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "e5ae497",
           "notes": ""
         },
         {
           "id": "P0-T4",
           "title": "Confiança",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "febee4a",
+          "notes": "Caso 2+1+30h esperado 0,80 (spec §6.3), não 0,84 do plano (A-020)"
         },
         {
           "id": "P0-T5",
           "title": "Regras de publicação",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "54676f9",
           "notes": ""
         },
         {
           "id": "P0-T6",
           "title": "Segurança de texto externo",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "93f0c13",
           "notes": ""
         },
         {
