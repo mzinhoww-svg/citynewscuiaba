@@ -5,4 +5,5 @@ export const CONFIDENCE_REASONS = {
   noPrimary: "Sem fonte primária",
   centralConflict: "Fontes divergem em fato central",
   stale: "Atualizada há mais de 24 h",
+  invalidDate: "Data de atualização inválida",
 } as const;

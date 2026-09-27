@@ -99,3 +99,80 @@ it("DEFAULT_RULES é a versão 1 com forceReview ligado", () => {
     "servicos",
   ]);
 });
+
+// Revisão do gate P0: entrada inválida falha fechado.
+describe("entrada inválida vai para revisão (invalid_input)", () => {
+  it.each([
+    ["independentSources NaN", { independentSources: Number.NaN }],
+    ["independentSources Infinity", { independentSources: Number.POSITIVE_INFINITY }],
+    ["independentSources negativo", { independentSources: -1 }],
+    ["primarySources NaN", { primarySources: Number.NaN }],
+    ["primarySources -Infinity", { primarySources: Number.NEGATIVE_INFINITY }],
+    ["confidenceScore NaN", { confidenceScore: Number.NaN }],
+    ["confidenceScore Infinity", { confidenceScore: Number.POSITIVE_INFINITY }],
+    ["confidenceScore negativo", { confidenceScore: -0.5 }],
+    ["confidenceScore acima de 1", { confidenceScore: 1.5 }],
+  ])("%s", (_name, patch) => {
+    const r = d({ ...ok, ...patch }, open);
+    expect(r.route).toBe("review");
+    expect(r.rule).toBe("invalid_input");
+    expect(r.rationale).toMatch(/inválid/);
+  });
+  it("regra com mínimo não finito também falha fechado", () => {
+    const broken = {
+      ...open,
+      categories: {
+        ...open.categories,
+        servicos: { ...open.categories.servicos!, minScore: Number.NaN },
+      },
+    };
+    expect(d({ ...ok, confidenceScore: 0.99 }, broken).rule).toBe("invalid_input");
+  });
+});
+
+describe("temas sensíveis normalizados (A-021)", () => {
+  const rules = { ...open, sensitiveTopics: DEFAULT_RULES.sensitiveTopics };
+  it.each([
+    "crimes",
+    "Crime",
+    "violência doméstica",
+    "Violência_Doméstica",
+    "violencia-domestica",
+    "homicídio",
+    "Homicídios",
+    "assassinato",
+    "estupro",
+    "feminicídio",
+    "sequestro",
+    "overdose",
+    "mortes",
+    "acidente de trânsito",
+    "eleições",
+    "saúde individual",
+    "saude_individual",
+  ])("%s é sensível", (tag) => expect(d({ ...ok, tags: [tag] }, rules).rule).toBe("sensitive"));
+  it.each([
+    "incidente",
+    "desmorte",
+    "morteiro",
+    "saúde",
+    "criação",
+    "criminologia-curso",
+    "abusivo",
+  ])("%s não casa dentro de palavra não relacionada", (tag) =>
+    expect(d({ ...ok, tags: [tag] }, rules).rule).not.toBe("sensitive"),
+  );
+  it("categoria também é conferida", () =>
+    expect(d({ ...ok, category: "Crimes" }, rules).rule).toBe("sensitive"));
+  it("lista padrão inclui os novos temas", () =>
+    expect(DEFAULT_RULES.sensitiveTopics).toEqual(
+      expect.arrayContaining([
+        "homicidio",
+        "assassinato",
+        "estupro",
+        "feminicidio",
+        "sequestro",
+        "overdose",
+      ]),
+    ));
+});

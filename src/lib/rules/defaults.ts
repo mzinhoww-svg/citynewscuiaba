@@ -30,6 +30,12 @@ export const DEFAULT_RULES: RuleSet = {
     "abuso",
     "saude-individual",
     "eleicoes",
+    "homicidio",
+    "assassinato",
+    "estupro",
+    "feminicidio",
+    "sequestro",
+    "overdose",
   ],
   categories: {
     servicos: rule("auto", 2, false, false, 0.6, 60),

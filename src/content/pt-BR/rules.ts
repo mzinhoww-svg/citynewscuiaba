@@ -2,6 +2,8 @@
 const n2 = (x: number): string => x.toFixed(2).replace(".", ",");
 
 export const RULE_RATIONALE = {
+  invalidInput: (fields: string[]) =>
+    `Entrada inválida (${fields.join(", ")}): número ausente, negativo ou fora da faixa. Vai para revisão.`,
   breaking: () => "Notícia urgente (breaking) sempre passa por revisão humana.",
   sensitive: (topics: string[]) => `Tema sensível (${topics.join(", ")}) exige revisão humana.`,
   forceReview: (version: number) =>
