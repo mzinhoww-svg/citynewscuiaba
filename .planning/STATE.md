@@ -6,9 +6,9 @@
 ## Fase e tarefa
 
 - **Fase ativa:** P0 Fundação
-- **Tarefa ativa:** P0-T7
-- **Próxima tarefa:** P0-T7 Supabase local, schema e seed
-- **Progresso:** 6/70 tarefas · 0/7 fases
+- **Tarefa ativa:** P0-T9
+- **Próxima tarefa:** P0-T9 Shells de layout e página de status
+- **Progresso:** 8/70 tarefas · 0/7 fases
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -29,7 +29,7 @@
 
 ## Próxima ação imediata
 
-1. Executar P0-T7 (schema, RLS, seed) com a pilha local (`bash scripts/local-stack/start.sh`, `pnpm db:reset`), depois T8, T9, T9b, T10.
+1. Executar P0-T9 e T9b (UI). Em paralelo, T10: Vercel + `citynews-prod` (aplicar migrations 0001/0002, `seed_sources_real.sql`). Pilha local: `pnpm db:start && pnpm db:reset`; senha dos usuários de seed `citynews-local-123`.
 
 ## Últimos checkpoints
 
@@ -37,6 +37,7 @@
 |---|---|---|---|
 | 2026-09-27 | kit | e14a386 | kit importado |
 | 2026-09-27 | P0-T1..T6 | 93f0c13 | verify verde, 56 testes |
+| 2026-09-27 | P0-T7..T8 | b076479 | verify verde, 178 testes (7 integração) |
 
 ## Degradados abertos
 

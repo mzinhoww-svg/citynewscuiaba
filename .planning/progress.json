@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T15:47:51.702Z",
+  "updatedAt": "2026-09-27T16:01:48.059Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -90,19 +90,19 @@
           "id": "P0-T7",
           "title": "Supabase local, schema e seed",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "85c27bc",
+          "notes": "13 editorias, 6 fontes com resumo (dados do kit); senha seed citynews-local-123"
         },
         {
           "id": "P0-T8",
           "title": "Autorização",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "b076479",
+          "notes": "Sem permissão → /entrar?motivo=sem-permissao; createServerClient assíncrono (Next 16)"
         },
         {
           "id": "P0-T9",
