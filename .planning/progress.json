@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T20:54:01.341Z",
+  "updatedAt": "2026-09-27T21:32:28.260Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -428,27 +428,27 @@
           "id": "P2-T4",
           "title": "Ranking de fontes",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "f27781d",
           "notes": ""
         },
         {
           "id": "P2-T5",
           "title": "Dados de fontes no servidor",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "9f7cd0d",
           "notes": ""
         },
         {
           "id": "P2-T6",
           "title": "Componentes de fonte",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "0e21fee",
           "notes": ""
         },
         {
