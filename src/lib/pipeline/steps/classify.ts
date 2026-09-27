@@ -23,7 +23,7 @@ const TASK =
  * Idempotente por (item, versão do prompt, texto).
  */
 export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, ctx) => {
     const id = itemIdFrom(msg.itemRef);
     if (!id) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const item = await deps.repo.understandItem(id);
@@ -54,6 +54,7 @@ export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
         "classify",
         { system: "", data: [{ id: objectRef, text: clean.text }], task: TASK },
         ClassifySchema,
+        { signal: ctx?.signal },
       );
       if (!r.ok) {
         if (r.error === "injection")

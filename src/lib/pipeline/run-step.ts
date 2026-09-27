@@ -33,9 +33,15 @@ export const stepError = {
 };
 
 export type StepResult = Result<PipelineMessage[], StepError>;
-export type StepHandler = (msg: PipelineMessage) => Promise<StepResult>;
+
+/** Contexto de execução: o prazo do drain (as chamadas de rede e IA usam o menor tempo). */
+export interface StepContext {
+  signal?: AbortSignal;
+}
+
+export type StepHandler = (msg: PipelineMessage, ctx?: StepContext) => Promise<StepResult>;
 export type StepHandlers = Partial<Record<StepName, StepHandler>>;
-export type RunStep = (msg: PipelineMessage) => Promise<StepResult>;
+export type RunStep = (msg: PipelineMessage, ctx?: StepContext) => Promise<StepResult>;
 
 /** Próxima etapa do mesmo run. */
 export function nextMessage(
@@ -51,11 +57,11 @@ export function nextMessage(
  * transitório (nova tentativa com espera); nunca derruba o worker.
  */
 export function createRunStep(handlers: StepHandlers): RunStep {
-  return async (msg) => {
+  return async (msg, ctx) => {
     const handler = handlers[msg.step];
     if (!handler) return err(stepError.noHandler(`etapa ${msg.step} sem implementação`));
     try {
-      const r = await handler(msg);
+      const r = await handler(msg, ctx);
       return r.ok ? ok(r.value) : r;
     } catch (e) {
       return err(stepError.transient(e instanceof Error ? e.message : String(e)));

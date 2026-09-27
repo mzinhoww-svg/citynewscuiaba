@@ -80,6 +80,17 @@ describe("coletor HTTP", () => {
     expect(r.kind).toBe("too_large");
   });
 
+  it("prazo do drain já esgotado: não baixa nada", async () => {
+    const { http } = createFakeHttp({ "https://a.example/feed": { body: "<rss/>" } });
+    const signal = AbortSignal.abort(new DOMException("prazo", "TimeoutError"));
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://a.example/feed",
+      { ...opts, signal },
+    );
+    expect(r.kind).toBe("network_error");
+  });
+
   it("identificação padrão do robô", () =>
     expect(DEFAULT_USER_AGENT).toMatch(/^CityNewsBot\/1\.0/));
 });

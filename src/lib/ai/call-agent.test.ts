@@ -177,6 +177,22 @@ describe("callAgent", () => {
     expect(fake.calls).toHaveLength(0);
   });
 
+  it("prazo do drain: o provedor recebe o sinal combinado e prazo esgotado não tenta fallback", async () => {
+    const { fake, callAgent, store } = setup({ models: { primary: "A", fallback: "C" } });
+    const deadline = new AbortController();
+    await callAgent("classify", input, ClassifySchema, { signal: deadline.signal });
+    const seen = fake.calls.at(-1)!.signal!;
+    expect(seen.aborted).toBe(false);
+    deadline.abort(new DOMException("prazo do drain", "TimeoutError"));
+    expect(seen.aborted).toBe(true);
+
+    const before = fake.calls.length;
+    const r = await callAgent("classify", input, ClassifySchema, { signal: deadline.signal });
+    expect(r).toEqual({ ok: false, error: "timeout" });
+    expect(fake.calls.length).toBe(before);
+    expect(store.calls.at(-1)).toMatchObject({ ok: false, error: "timeout" });
+  });
+
   it("aceita JSON dentro de bloco de código", async () => {
     const { fake, callAgent } = setup();
     fake.script([{ text: "```json\n" + JSON.stringify(validClassify) + "\n```" }]);

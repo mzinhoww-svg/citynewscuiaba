@@ -10,7 +10,7 @@ import type { PublishStepDeps } from "./write";
  * Arquivo `indexing.ts` porque `steps/index.ts` é o índice do módulo.
  */
 export function createIndexStep(deps: PublishStepDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, run) => {
     const articleId = articleIdFrom(msg.itemRef);
     if (!articleId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const ctx = await deps.repo.decisionContext(articleId);
@@ -18,7 +18,7 @@ export function createIndexStep(deps: PublishStepDeps): StepHandler {
     if (ctx.status !== "published" && ctx.status !== "updated") return ok([]);
 
     const text = await deps.repo.articleText(articleId);
-    const vector = text ? await deps.embed(text) : null;
+    const vector = text ? await deps.embed(text, { signal: run?.signal }) : null;
     await deps.repo.indexArticle(articleId, vector?.ok ? vector.value : null);
     await deps.revalidate(articleTags(ctx));
     return ok([]);

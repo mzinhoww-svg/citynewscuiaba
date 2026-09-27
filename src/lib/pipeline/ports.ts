@@ -217,7 +217,10 @@ export interface ClusterRepo {
 }
 
 /** Embedding de um texto (produção: OpenRouter `/embeddings`; teste: provedor falso). */
-export type Embed = (text: string) => Promise<Result<number[], string>>;
+export type Embed = (
+  text: string,
+  opts?: { signal?: AbortSignal },
+) => Promise<Result<number[], string>>;
 
 export type SourceReliability = "primary" | "verified" | "standard" | "low";
 

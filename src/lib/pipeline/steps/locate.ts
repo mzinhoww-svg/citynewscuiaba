@@ -15,7 +15,7 @@ const TASK =
  * localidade da fonte: localização nunca trava o item.
  */
 export function createLocateStep(deps: UnderstandStepDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, ctx) => {
     const id = itemIdFrom(msg.itemRef);
     if (!id) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const item = await deps.repo.understandItem(id);
@@ -39,6 +39,7 @@ export function createLocateStep(deps: UnderstandStepDeps): StepHandler {
           "locate",
           { system: "", data: [{ id: objectRef, text }], task: TASK },
           LocateSchema,
+          { signal: ctx?.signal },
         );
         if (!r.ok && r.error === "injection") {
           await deps.repo.quarantineItem(id, `${INJECTION_MESSAGE} (detectada na chamada de IA)`);

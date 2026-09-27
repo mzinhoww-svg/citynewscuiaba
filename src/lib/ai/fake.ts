@@ -27,6 +27,7 @@ export interface FakeCall {
   modelId: string;
   system: string;
   prompt: string;
+  signal?: AbortSignal;
 }
 
 type Datum = { id: string; text: string };
@@ -149,7 +150,9 @@ export function createFakeProvider(opts: { embeddingDim?: number } = {}) {
         modelId: req.modelId,
         system: req.system,
         prompt: req.prompt,
+        signal: req.signal,
       });
+      req.signal.throwIfAborted();
       const text = respond(req);
       return { text, tokensIn: tokens(req.system + req.prompt), tokensOut: tokens(text) };
     },

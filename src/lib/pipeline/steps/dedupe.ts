@@ -25,7 +25,7 @@ export interface UnderstandingDeps {
  * das últimas 72 h. Duplicado herda o assunto do original e para aqui; novo segue para `cluster`.
  */
 export function createDedupeStep(deps: UnderstandingDeps): StepHandler {
-  return async (msg) => {
+  return async (msg, ctx) => {
     const id = itemIdFrom(msg.itemRef);
     if (!id) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const item = await deps.repo.collectedItem(id);
@@ -36,7 +36,7 @@ export function createDedupeStep(deps: UnderstandingDeps): StepHandler {
     if (simhash === null || item.embedding === null) {
       let embedding = item.embedding;
       if (!embedding) {
-        const e = await deps.embed(itemText(item));
+        const e = await deps.embed(itemText(item), { signal: ctx?.signal });
         if (!e.ok) return err(stepError.transient(`embedding indisponível: ${e.error}`));
         embedding = e.value;
       }
