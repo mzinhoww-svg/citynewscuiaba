@@ -1,44 +1,11 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
 import { createServiceClient } from "@/lib/db/client";
-import {
-  dedupeKey,
-  parsePipelineMessage,
-  type PipelineMessage,
-  type QueueName,
-  type StepName,
-} from "./types";
+import type { Queue, QueuedMessage } from "./ports";
+import { dedupeKey, parsePipelineMessage, type QueueName } from "./types";
 
+export type { Queue, QueuedMessage } from "./ports";
 export type { PipelineMessage, QueueName, StepName } from "./types";
-
-export interface QueuedMessage {
-  msgId: number;
-  /** Quantas vezes a mensagem foi lida, contando esta leitura. */
-  readCt: number;
-  msg: PipelineMessage;
-}
-
-/**
- * Fila do pipeline (ADR-004 com o contorno de docs/AUTONOMY.md §4): tabela `jobs` com
- * `for update skip locked`, visibilidade e contagem de leituras, igual ao pgmq.
- */
-export interface Queue {
-  /** `false` quando a mesma etapa do mesmo item já está na fila. */
-  enqueue(queue: QueueName, msg: PipelineMessage, opts?: { delaySec?: number }): Promise<boolean>;
-  readBatch(queue: QueueName, n: number, vtSec: number): Promise<QueuedMessage[]>;
-  ack(queue: QueueName, msgId: number): Promise<void>;
-  /** Reagenda para nova tentativa depois de `delaySec`. */
-  fail(queue: QueueName, msgId: number, error: string, delaySec: number): Promise<void>;
-  /** Devolve uma mensagem lida e não processada; não conta como tentativa. */
-  release(queue: QueueName, msgId: number): Promise<void>;
-  quarantine(queue: QueueName, item: Pick<QueuedMessage, "msgId">, error: string): Promise<void>;
-  /** Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis. */
-  moveExhausted(queue: QueueName, maxReads: number): Promise<number>;
-  pending(
-    queue: QueueName,
-    filter?: { runId?: string; steps?: readonly StepName[] },
-  ): Promise<number>;
-}
 
 export class QueueError extends Error {
   constructor(op: string, detail: string) {
