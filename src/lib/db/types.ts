@@ -972,6 +972,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      jobs: {
+        Row: {
+          dedupe_key: string;
+          enqueued_at: string;
+          id: number;
+          last_error: string | null;
+          message: NonNullable<Json>;
+          queue: string;
+          read_ct: number;
+          visible_at: string;
+        };
+        Insert: {
+          dedupe_key: string;
+          enqueued_at?: string;
+          id?: number;
+          last_error?: string | null;
+          message: NonNullable<Json>;
+          queue: string;
+          read_ct?: number;
+          visible_at?: string;
+        };
+        Update: {
+          dedupe_key?: string;
+          enqueued_at?: string;
+          id?: number;
+          last_error?: string | null;
+          message?: NonNullable<Json>;
+          queue?: string;
+          read_ct?: number;
+          visible_at?: string;
+        };
+        Relationships: [];
+      };
       media_assets: {
         Row: {
           allowed_use: string;
@@ -1044,6 +1077,86 @@ export type Database = {
           list?: string;
           token_hash?: string;
           unsubscribed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      pipeline_events: {
+        Row: {
+          at: string;
+          details: NonNullable<Json>;
+          id: number;
+          item_ref: string | null;
+          level: string;
+          message: string;
+          run_id: string | null;
+          step: string;
+        };
+        Insert: {
+          at?: string;
+          details?: NonNullable<Json>;
+          id?: number;
+          item_ref?: string | null;
+          level: string;
+          message: string;
+          run_id?: string | null;
+          step: string;
+        };
+        Update: {
+          at?: string;
+          details?: NonNullable<Json>;
+          id?: number;
+          item_ref?: string | null;
+          level?: string;
+          message?: string;
+          run_id?: string | null;
+          step?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_events_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "ingest_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pipeline_quarantine: {
+        Row: {
+          dedupe_key: string;
+          error: string;
+          id: number;
+          message: NonNullable<Json>;
+          msg_id: number;
+          quarantined_at: string;
+          queue: string;
+          read_ct: number;
+          resolved_at: string | null;
+          resolved_by: string | null;
+        };
+        Insert: {
+          dedupe_key: string;
+          error: string;
+          id?: number;
+          message: NonNullable<Json>;
+          msg_id: number;
+          quarantined_at?: string;
+          queue: string;
+          read_ct: number;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+        };
+        Update: {
+          dedupe_key?: string;
+          error?: string;
+          id?: number;
+          message?: NonNullable<Json>;
+          msg_id?: number;
+          quarantined_at?: string;
+          queue?: string;
+          read_ct?: number;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
         };
         Relationships: [];
       };
@@ -1666,6 +1779,42 @@ export type Database = {
       };
       is_staff: { Args: { uid: string }; Returns: boolean };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
+      queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
+      queue_enqueue: {
+        Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
+        Returns: number;
+      };
+      queue_fail: {
+        Args: { p_delay_sec: number; p_error: string; p_msg_id: number; p_queue: string };
+        Returns: undefined;
+      };
+      queue_move_exhausted: { Args: { p_max_reads: number; p_queue: string }; Returns: number };
+      queue_pending: {
+        Args: { p_queue: string; p_run_id?: string; p_steps?: string[] };
+        Returns: number;
+      };
+      queue_quarantine: {
+        Args: { p_error: string; p_msg_id: number; p_queue: string };
+        Returns: boolean;
+      };
+      queue_read: {
+        Args: { p_n: number; p_queue: string; p_vt_sec: number };
+        Returns: {
+          message: Json;
+          msg_id: number;
+          read_ct: number;
+        }[];
+      };
+      queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      start_ingest_run: {
+        Args: { p_window: string };
+        Returns: {
+          created: boolean;
+          run_id: string;
+          stats: Json;
+        }[];
+      };
       two_person_error: { Args: { msg: string }; Returns: undefined };
       unaccent: { Args: { "": string }; Returns: string };
     };
