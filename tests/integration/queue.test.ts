@@ -1,12 +1,18 @@
 // @vitest-environment node
 import { randomUUID } from "node:crypto";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
 import { createQueue } from "@/lib/pipeline/queue";
+
+import { pipelineTrash, purgePipeline } from "./cleanup";
+
+const trash = pipelineTrash();
+afterAll(() => purgePipeline(createServiceClient(), trash));
 
 // Cada suíte usa um namespace próprio: as filas de produção e as outras suítes não interferem.
 function isolatedQueue() {
   const namespace = `t-${randomUUID().slice(0, 8)}`;
+  trash.namespaces.add(namespace);
   const db = createServiceClient();
   const queue = createQueue(db, { namespace });
   const countQuarantine = async () =>

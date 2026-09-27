@@ -42,6 +42,7 @@ afterAll(async () => {
   await db.from("collected_items").delete().in("id", ids.items);
   await db.from("topics").delete().eq("id", ids.topic);
   await db.from("sources").delete().eq("id", ids.source);
+  await db.from("rate_limits").delete().eq("bucket", "crawler").eq("key_hash", `repro-${tag}`);
 });
 
 describe("imagem com banco real: política reproduction", () => {

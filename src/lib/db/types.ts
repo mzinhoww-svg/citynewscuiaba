@@ -2045,6 +2045,10 @@ export type Database = {
           reads: number;
         }[];
       };
+      purge_pipeline_events: {
+        Args: { p_before?: string; p_item_refs?: string[]; p_run_ids?: string[] };
+        Returns: number;
+      };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };

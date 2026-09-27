@@ -6,7 +6,8 @@ import { randomInt, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { pipelineTrash, purgePipeline, rememberSources } from "./cleanup";
 import { createCallAgent } from "@/lib/ai/call-agent";
 import { createFakeProvider } from "@/lib/ai/fake";
 import { hashEmbedding } from "@/lib/ai/hash-embedding";
@@ -74,6 +75,8 @@ const created = {
   articles: new Set<string>(),
   namespaces: [] as string[],
 };
+const trash = pipelineTrash();
+trash.rateLimits.push(...SLUGS.map((slug) => ({ bucket: "crawler", keyHash: slug })));
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -222,6 +225,7 @@ async function runCycle(opts: {
   const window = new Date(Date.UTC(2001, 0, 1) + randomInt(1, 2_000_000) * 30 * 60_000);
   const tick = await runTick({ queue, runs, now: () => window });
   expect(tick).toMatchObject({ status: "started", enqueued: 3 });
+  trash.runIds.add(tick.runId);
 
   let result = { remaining: 1, retried: 0, quarantined: 0 };
   let quarantined = 0;
@@ -260,6 +264,8 @@ async function articleFor(canonicalUrl: string) {
   created.articles.add(article!.id);
   return { item: item!, article: article! };
 }
+
+beforeAll(() => rememberSources(db, trash, SLUGS));
 
 afterAll(async () => {
   const articles = [...created.articles];
@@ -312,7 +318,8 @@ afterAll(async () => {
     await db.from("collected_items").delete().in("topic_id", topics);
     await db.from("topics").delete().in("id", topics);
   }
-  for (const ns of created.namespaces) await db.from("jobs").delete().like("queue", `${ns}:%`);
+  for (const ns of created.namespaces) trash.namespaces.add(ns);
+  await purgePipeline(db, trash);
 });
 
 describe("pipeline de ponta a ponta (tick → publicação)", () => {

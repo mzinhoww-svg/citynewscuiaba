@@ -70,10 +70,41 @@ create table pipeline_events (
 create index pipeline_events_run_idx on pipeline_events (run_id, at);
 create index pipeline_events_security_idx on pipeline_events (at desc) where level = 'security';
 
+-- Somente inserção. A única saída é `purge_pipeline_events` (retenção), que liga a variável de
+-- transação `citynews.purge_events` antes de apagar.
 create or replace function pipeline_events_immutable() returns trigger language plpgsql as $$
-begin raise exception 'pipeline_events é somente inserção'; end $$;
+begin
+  if tg_op = 'DELETE' and current_setting('citynews.purge_events', true) = 'on' then return old; end if;
+  raise exception 'pipeline_events é somente inserção';
+end $$;
 create trigger pipeline_events_immutable before update or delete on pipeline_events
   for each row execute function pipeline_events_immutable();
+
+-- Retenção do registro de etapas (e limpeza das suítes de integração): apaga eventos anteriores a
+-- `p_before`, de runs específicos ou com `item_ref` num padrão LIKE. Exige ao menos um filtro;
+-- só o servidor (service_role) chama.
+create or replace function purge_pipeline_events(
+  p_before timestamptz default null, p_run_ids uuid[] default null, p_item_refs text[] default null
+)
+returns int
+language plpgsql
+set search_path = public
+as $$
+declare
+  n int;
+begin
+  if p_before is null and p_run_ids is null and p_item_refs is null then
+    raise exception 'purge_pipeline_events: informe ao menos um filtro';
+  end if;
+  perform set_config('citynews.purge_events', 'on', true);
+  delete from pipeline_events e
+   where (p_before is not null and e.at < p_before)
+      or (p_run_ids is not null and e.run_id = any (p_run_ids))
+      or (p_item_refs is not null and e.item_ref like any (p_item_refs));
+  get diagnostics n = row_count;
+  perform set_config('citynews.purge_events', 'off', true);
+  return n;
+end $$;
 
 -- ---------------------------------------------------------------------------
 -- Operações da fila (chamadas só pelo servidor com service_role)
@@ -231,12 +262,13 @@ revoke execute on function
   queue_enqueue(text, text, jsonb, int), queue_read(text, int, int), queue_ack(text, bigint),
   queue_fail(text, bigint, text, int), queue_release(text, bigint), queue_quarantine(text, bigint, text),
   queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz),
-  pipeline_events_immutable()
+  pipeline_events_immutable(), purge_pipeline_events(timestamptz, uuid[], text[])
   from public, anon, authenticated;
 grant execute on function
   queue_enqueue(text, text, jsonb, int), queue_read(text, int, int), queue_ack(text, bigint),
   queue_fail(text, bigint, text, int), queue_release(text, bigint), queue_quarantine(text, bigint, text),
-  queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz)
+  queue_move_exhausted(text, int), queue_pending(text, text, text[]), start_ingest_run(timestamptz),
+  purge_pipeline_events(timestamptz, uuid[], text[])
   to service_role;
 
 -- ---------------------------------------------------------------------------
