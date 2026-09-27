@@ -301,3 +301,61 @@ export const ARTICLE = {
   backToArticle: "Voltar para a matéria",
   historyEmpty: "Esta matéria ainda não tem versões publicadas.",
 } as const;
+
+/** Assunto (P05) e lista de assuntos (P06). */
+export const TOPIC = {
+  metaTitle: (t: string) => `${t} · Assunto · CityNews Cuiabá`,
+  eyebrow: "Assunto",
+  counts: (articles: number, sources: number) =>
+    `${articles === 1 ? "1 matéria do CityNews" : `${articles} matérias do CityNews`} · ${sources === 1 ? "1 veículo" : `${sources} veículos`}`,
+  updated: (when: string) => `atualizado ${when}`,
+  investigating:
+    "Em apuração: as informações ainda estão sendo confirmadas e podem mudar. Os pontos em aberto estão listados abaixo.",
+  closed: (date: string) => `Assunto encerrado. Sem novidades desde ${date}.`,
+  summaryTitle: "O que se sabe",
+  summaryReviewed: (name: string) => `Resumo revisado por ${name}.`,
+  summaryNotReviewed: "Resumo ainda sem revisão humana. Confira nas matérias e fontes abaixo.",
+  agree: "As fontes concordam",
+  diverge: "As fontes divergem",
+  unconfirmed: "Ainda não confirmado",
+  nothing: "Nada registrado até agora.",
+  filterLabel: "Mostrar",
+  filterOrigin: { all: "Tudo", citynews: "Do CityNews", external: "Outros veículos" },
+  filterSource: "Veículo",
+  allSources: "Todos os veículos",
+  fromCityNews: "Do CityNews",
+  fromCityNewsEmpty: "O CityNews ainda não publicou matéria própria sobre este assunto.",
+  external: "Cobertura de outros veículos",
+  externalNotice:
+    "Links para matérias de outros veículos. O CityNews não republica esses textos: eles abrem no site de origem.",
+  externalEmpty: "Nenhum outro veículo com cobertura registrada.",
+  timeline: "Linha do tempo",
+  timelineCityNews: "CityNews",
+  confidenceHow: "Como medimos a confiança",
+  confidenceHowText:
+    "A confiança combina quantas fontes independentes confirmam o fato, se há fonte primária (oficial) e quão recente é a informação.",
+  confidenceHowLink: "Entenda a metodologia",
+  faq: "Perguntas frequentes",
+  errorTitle: "Não conseguimos carregar este assunto agora",
+  listTitle: "Assuntos",
+  listIntro:
+    "Os fatos que o CityNews acompanha, com o que já foi confirmado, o que diverge entre as fontes e o que falta apurar.",
+  listMeta: "Assuntos · CityNews Cuiabá",
+  listFilters: "Filtrar assuntos",
+  listAll: "Todos",
+  listStates: {
+    em_apuracao: "Em apuração",
+    confirmado: "Confirmados",
+    corrigido: "Corrigidos",
+    encerrado: "Encerrados",
+  },
+  listWeek: "Da semana",
+  listSection: "Editoria",
+  listAllSections: "Todas as editorias",
+  listApply: "Filtrar",
+  listEmpty: "Nenhum assunto com esses filtros",
+  listEmptyText: "Tente outra situação ou veja todos os assuntos.",
+  listSeeAll: "Ver todos os assuntos",
+  listError: "Não conseguimos carregar os assuntos agora",
+  loading: "Carregando assuntos",
+} as const;

@@ -391,3 +391,27 @@ insert into article_versions (article_id, number, snapshot, origin, author_id, c
 select a.id, 2, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', 'c1000000-0000-4000-8000-000000000003',
        'update', 'A prefeitura anunciou reforço de duas linhas noturnas a partir de novembro.', a.updated_at
 from articles a where a.id = 'c2000000-0000-4000-8000-000000000005';
+
+-- ---------------------------------------------------------------------------
+-- P1-T7 · assunto: convergências, divergências, não confirmados e perguntas frequentes
+-- ---------------------------------------------------------------------------
+update topics set
+  agreements = array['O novo plano começa a valer em 6 de outubro.','Haverá uma linha expressa entre o CPA e o Centro.'],
+  disagreements = array['O intervalo nos fins de semana: 25 minutos segundo o MT Agora; a portaria não informa.'],
+  unconfirmed = array['Se haverá reforço de ônibus no período noturno.'],
+  faq = '[{"q":"Quando o novo plano começa?","a":"Em 6 de outubro, segundo a portaria publicada no Diário Oficial de Cuiabá."},{"q":"A tarifa muda?","a":"Nenhuma das fontes consultadas informa mudança na tarifa."}]',
+  summary_reviewed_by = 'c1000000-0000-4000-8000-000000000003'
+ where slug = 'plano-de-onibus-cpa-centro';
+update topics set
+  agreements = array['A obra ocupa duas faixas da avenida Miguel Sutil no sentido Centro.','Há desvios pelas ruas do bairro Duque de Caxias.'],
+  disagreements = array['A duração dos desvios: pelo menos 30 dias segundo a Folha do Cerrado; a Agência MT não informa prazo.'],
+  unconfirmed = array['O prazo final de entrega do viaduto.','Se haverá interdição total em algum fim de semana.'],
+  faq = '[{"q":"Qual é o desvio recomendado?","a":"Pelas ruas do bairro Duque de Caxias, conforme o mapa divulgado pelo governo."},{"q":"Quando a obra termina?","a":"O prazo ainda não foi confirmado pelos responsáveis. O CityNews segue apurando."}]',
+  summary_reviewed_by = 'c1000000-0000-4000-8000-000000000003'
+ where slug = 'obra-do-viaduto-na-miguel-sutil';
+update topics set
+  agreements = array['A umidade do ar fica abaixo de 15% nas tardes desta semana.','A Defesa Civil mantém alerta para a Baixada Cuiabana.'],
+  unconfirmed = array['Quando as chuvas devem voltar a Cuiabá.'],
+  faq = '[{"q":"Qual horário evitar atividade ao ar livre?","a":"Entre 11h e 17h, segundo a Defesa Civil."}]',
+  summary_reviewed_by = 'c1000000-0000-4000-8000-000000000002'
+ where slug = 'seca-e-fumaca-na-baixada-cuiabana';

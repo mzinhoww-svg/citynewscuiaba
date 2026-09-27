@@ -6,6 +6,7 @@ import {
   getArticleBySlug,
   getArticleHistory,
   getArticleUpdatedAt,
+  listTopics,
   getEvent,
   getHomeData,
   getTopicBySlug,
@@ -92,6 +93,34 @@ describe("queries públicas (P1-T1)", () => {
     expect(t?.articles.length).toBeGreaterThanOrEqual(2);
     expect(t?.aggregated.every((a) => a.labels.shown[0]!.kind === "aggregated")).toBe(true);
     expect(value(await getTopicBySlug("nao-existe"))).toBeNull();
+  });
+
+  it("assunto traz convergências, lacunas, perguntas, revisor e linha do tempo", async () => {
+    const t = value(await getTopicBySlug("obra-do-viaduto-na-miguel-sutil"));
+    expect(t?.state).toBe("em_apuracao");
+    expect(t?.agreements.length).toBe(2);
+    expect(t?.disagreements.length).toBe(1);
+    expect(t?.unconfirmed).toContain("O prazo final de entrega do viaduto.");
+    expect(t?.faq[0]).toEqual({ q: expect.any(String), a: expect.any(String) });
+    expect(t?.summaryReviewer).toBeTruthy();
+    const when = t?.timeline.map((e) => e.at) ?? [];
+    expect(when.length).toBeGreaterThan(2);
+    expect([...when].sort().reverse()).toEqual(when);
+    expect(t?.timeline.some((e) => e.kind === "aggregated" && e.href.startsWith("https://"))).toBe(
+      true,
+    );
+  });
+
+  it("lista de assuntos filtra por situação, semana e editoria", async () => {
+    const now = new Date("2026-09-27T18:00:00Z");
+    const all = value(await listTopics({}, now));
+    expect(all.length).toBe(3);
+    expect([...all.map((t) => t.updatedAt)].sort().reverse()).toEqual(all.map((t) => t.updatedAt));
+    expect(value(await listTopics({ state: "em_apuracao" }, now)).map((t) => t.slug)).toEqual([
+      "obra-do-viaduto-na-miguel-sutil",
+    ]);
+    expect(value(await listTopics({ section: "clima" }, now)).length).toBe(1);
+    expect(value(await listTopics({ week: true }, new Date("2026-10-30T12:00:00Z")))).toEqual([]);
   });
 
   it("editoria pagina e filtra por origem", async () => {

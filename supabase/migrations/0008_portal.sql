@@ -71,3 +71,13 @@ create or replace view public_article_versions as
     and v.created_at >= a.published_at - interval '1 minute';
 revoke all on public_article_versions from anon, authenticated;
 grant select on public_article_versions to anon, authenticated, service_role;
+
+-- Assunto (P05): o que as fontes concordam, divergem e o que ainda não foi confirmado, perguntas
+-- frequentes e revisor do resumo por IA. Preenchidos pelo agente de assunto (P3) e revisados no
+-- Estúdio (P4); texto do CityNews, nunca trecho copiado das fontes.
+alter table topics add column if not exists agreements text[] not null default '{}';
+alter table topics add column if not exists disagreements text[] not null default '{}';
+alter table topics add column if not exists unconfirmed text[] not null default '{}';
+alter table topics add column if not exists faq jsonb not null default '[]'
+  check (jsonb_typeof(faq) = 'array');
+alter table topics add column if not exists summary_reviewed_by uuid;

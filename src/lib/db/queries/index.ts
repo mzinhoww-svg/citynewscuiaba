@@ -19,5 +19,5 @@ export {
   type SectionFilters,
   type SectionPage,
 } from "./sections";
-export { getTopicBySlug, topicHref } from "./topics";
+export { getTopicBySlug, listTopics, topicHref, type TopicListFilters } from "./topics";
 export type * from "./types";

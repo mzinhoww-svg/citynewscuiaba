@@ -139,9 +139,26 @@ export interface TopicView extends TopicRef {
   sourceCount: number;
 }
 
+export interface TimelineEntry {
+  at: string;
+  title: string;
+  /** Matéria do CityNews (link interno) ou item de outro veículo (link externo). */
+  kind: "citynews" | "aggregated";
+  href: string;
+  sourceName: string;
+}
+
 export interface TopicDetail extends TopicView {
   articles: ArticleSummary[];
   aggregated: AggregatedView[];
+  agreements: string[];
+  disagreements: string[];
+  unconfirmed: string[];
+  faq: { q: string; a: string }[];
+  /** Quem revisou o resumo por IA do assunto. */
+  summaryReviewer?: string;
+  /** Mais recente primeiro. */
+  timeline: TimelineEntry[];
 }
 
 export interface EventView {

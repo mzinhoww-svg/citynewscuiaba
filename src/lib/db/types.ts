@@ -1466,42 +1466,57 @@ export type Database = {
       };
       topics: {
         Row: {
+          agreements: string[];
           centroid: string | null;
           confidence: Database["public"]["Enums"]["confidence_level"];
           confidence_score: number;
+          disagreements: string[];
+          faq: NonNullable<Json>;
           first_seen_at: string;
           id: string;
           section_slug: string | null;
           slug: string;
           state: Database["public"]["Enums"]["topic_state"];
           summary: string | null;
+          summary_reviewed_by: string | null;
           title: string;
+          unconfirmed: string[];
           updated_at: string;
         };
         Insert: {
+          agreements?: string[];
           centroid?: string | null;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
+          disagreements?: string[];
+          faq?: NonNullable<Json>;
           first_seen_at?: string;
           id?: string;
           section_slug?: string | null;
           slug: string;
           state?: Database["public"]["Enums"]["topic_state"];
           summary?: string | null;
+          summary_reviewed_by?: string | null;
           title: string;
+          unconfirmed?: string[];
           updated_at?: string;
         };
         Update: {
+          agreements?: string[];
           centroid?: string | null;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
+          disagreements?: string[];
+          faq?: NonNullable<Json>;
           first_seen_at?: string;
           id?: string;
           section_slug?: string | null;
           slug?: string;
           state?: Database["public"]["Enums"]["topic_state"];
           summary?: string | null;
+          summary_reviewed_by?: string | null;
           title?: string;
+          unconfirmed?: string[];
           updated_at?: string;
         };
         Relationships: [
