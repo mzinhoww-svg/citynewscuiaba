@@ -1,0 +1,80 @@
+name: Backup do banco
+
+# pg_dump diário do banco de produção, guardado como artifact do GitHub por 7 dias
+# (sem armazenamento externo pago). Complementa o backup diário do plano free do Supabase.
+on:
+  schedule:
+    - cron: "17 6 * * *" # 03:17 em Cuiabá (UTC-4)
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  pg-dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      # O dump inclui auth.users; em repositório público o artifact só sai cifrado (gpg simétrico).
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      REPO_PRIVATE: ${{ github.event.repository.private }}
+      # Mesma major do banco (supabase/config.toml → [db] major_version).
+      PG_MAJOR: "17"
+    steps:
+      - name: Conferir o secret
+        id: check
+        run: |
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::warning::Secret SUPABASE_DB_URL ausente. Backup não executado."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          elif [ "$REPO_PRIVATE" != "true" ] && [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "::warning::Repositório público sem o secret BACKUP_PASSPHRASE. Backup não executado para não expor dados."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Instalar o cliente do Postgres
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends postgresql-common gnupg
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y --no-install-recommends "postgresql-client-${PG_MAJOR}"
+
+      - name: pg_dump (formato custom)
+        id: dump
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y%m%dT%H%MZ)
+          file="citynews-prod-${stamp}.dump"
+          mkdir -p backup
+          "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_dump" \
+            --format=custom --compress=9 --no-owner --no-privileges \
+            --schema=public --schema=auth --schema=storage \
+            --file="backup/${file}" "$SUPABASE_DB_URL"
+          "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_restore" --list "backup/${file}" > /dev/null
+          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
+            gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+              --symmetric --cipher-algo AES256 -o "backup/${file}.gpg" "backup/${file}" <<< "$BACKUP_PASSPHRASE"
+            rm "backup/${file}"
+            file="${file}.gpg"
+          fi
+          ls -lh backup
+          echo "name=${file}" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar como artifact (7 dias)
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.dump.outputs.name }}
+          path: backup/
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0

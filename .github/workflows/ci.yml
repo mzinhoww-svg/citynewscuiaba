@@ -1,47 +1,94 @@
 name: CI
+
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, "claude/**"]
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       AI_PROVIDER: fake
+      # Valor fictício, só para o runner (a pilha local do CI não é acessível de fora).
       CRON_SECRET: ci-secret-ci-secret-ci-secret-00
       APP_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
+
+      # A versão do pnpm vem de "packageManager" no package.json.
       - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 22
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
+
+      # O CLI existe no runner, então `pnpm db:reset` usa `supabase db reset` (scripts/db-reset.mjs).
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
-      - run: supabase start
-      - name: Export Supabase env
+          version: 2.118.0
+
+      - name: Supabase local (Docker)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+      - name: Exportar env do Supabase e gravar .env.local
         run: |
           supabase status -o env > .supabase.env
-          echo "NEXT_PUBLIC_SUPABASE_URL=$(grep '^API_URL=' .supabase.env | cut -d= -f2- | tr -d '\"')" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(grep '^ANON_KEY=' .supabase.env | cut -d= -f2- | tr -d '\"')" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' .supabase.env | cut -d= -f2- | tr -d '\"')" >> $GITHUB_ENV
-      - run: supabase db reset
+          set -a
+          . ./.supabase.env
+          set +a
+          anon="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          service="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          if [ -z "${API_URL:-}" ] || [ -z "$anon" ] || [ -z "$service" ] || [ -z "${DB_URL:-}" ]; then
+            echo "::error::supabase status não devolveu API_URL, ANON_KEY, SERVICE_ROLE_KEY e DB_URL"
+            exit 1
+          fi
+          echo "::add-mask::$service"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$service"
+            echo "SUPABASE_DB_URL=$DB_URL"
+            echo "APP_URL=$APP_URL"
+            echo "CRON_SECRET=$CRON_SECRET"
+            echo "AI_PROVIDER=$AI_PROVIDER"
+          } > .env.local
+          cat .env.local >> "$GITHUB_ENV"
+
+      - name: Recriar banco (migrations + seed)
+        run: pnpm db:reset
+
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test -- --coverage
+      - run: pnpm test
       - run: pnpm build
+
+      # playwright.config.ts adiciona o projeto mobile-webkit quando CI=true.
       - run: pnpm exec playwright install --with-deps chromium webkit
+
+      # test:e2e roda todo o diretório tests/, incluindo os testes @a11y (sem rodar test:a11y de novo).
       - run: pnpm test:e2e
-      - run: pnpm test:a11y
+
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - if: always()
+        run: supabase stop --no-backup

@@ -1,22 +1,77 @@
 name: Cron watchdog
+
+# ADR-003: o pg_cron chama o tick a cada 30 min. Este vigia roda a cada 15 min e só
+# dispara o tick quando o último ingest_runs.started_at tem mais de 45 min.
 on:
   schedule:
     - cron: "*/15 * * * *"
   workflow_dispatch:
+
+concurrency:
+  group: cron-watchdog
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
   watchdog:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Check last ingest run and trigger if late
+      - name: Conferir o último ciclo e disparar o tick se estiver atrasado
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAX_AGE_MIN: "45"
         run: |
-          late=$(curl -fsS -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/ingest/status" | jq -r '.late')
-          if [ "$late" = "true" ]; then
-            curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/ingest/tick"
-            echo "tick disparado pelo watchdog"
-          else
-            echo "ciclo em dia"
+          set -euo pipefail
+          missing=""
+          for name in APP_URL CRON_SECRET SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+            if [ -z "${!name:-}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::Secrets ausentes:$missing. Watchdog não executado."
+            exit 0
           fi
+
+          body=$(mktemp)
+          code=$(curl -sS -o "$body" -w '%{http_code}' \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "${SUPABASE_URL%/}/rest/v1/ingest_runs?select=started_at&order=started_at.desc&limit=1")
+          if [ "$code" != "200" ]; then
+            echo "::error::Consulta a ingest_runs devolveu HTTP $code"
+            exit 1
+          fi
+
+          last=$(jq -r '.[0].started_at // empty' "$body")
+          now=$(date -u +%s)
+          if [ -z "$last" ]; then
+            echo "Nenhum ingest_run registrado; tratando como atrasado."
+            age_min=999999
+          else
+            age_min=$(( (now - $(date -u -d "$last" +%s)) / 60 ))
+            echo "Último ciclo: $last (${age_min} min atrás)."
+          fi
+
+          if [ "$age_min" -le "$MAX_AGE_MIN" ]; then
+            echo "Ciclo em dia."
+            exit 0
+          fi
+
+          code=$(curl -sS -o "$body" -w '%{http_code}' -X POST \
+            --max-time 60 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "${APP_URL%/}/api/ingest/tick" || echo "000")
+          case "$code" in
+            2??) echo "Tick disparado pelo watchdog (HTTP $code)." ;;
+            404) echo "::warning::/api/ingest/tick ainda não existe (HTTP 404); nada a fazer." ;;
+            *)
+              echo "::error::Tick devolveu HTTP $code"
+              head -c 500 "$body" || true
+              exit 1
+              ;;
+          esac
