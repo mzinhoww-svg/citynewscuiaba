@@ -344,3 +344,49 @@ export async function topicOptions(): Promise<{ value: string; label: string }[]
     .limit(50);
   return (data ?? []).map((t) => ({ value: t.id, label: t.title }));
 }
+
+export interface StudioVersionFull extends StudioVersion {
+  snapshot: { title: string; dek: string; body: Json };
+}
+
+/** Versões da matéria com o conteúdo de cada uma (E05), mais recentes primeiro. */
+export async function listVersions(
+  id: string,
+): Promise<{ title: string; versions: StudioVersionFull[] } | null> {
+  if (!/^[0-9a-f-]{36}$/.test(id)) return null;
+  const ctx = await studioContext();
+  const [{ data: a }, { data: rows, error }] = await Promise.all([
+    ctx.db.from("articles").select("title").eq("id", id).maybeSingle(),
+    ctx.db
+      .from("article_versions")
+      .select("number, origin, author_id, change_kind, public_note, created_at, snapshot")
+      .eq("article_id", id)
+      .order("number", { ascending: false }),
+  ]);
+  if (error) throw new Error(`versões: ${error.message}`);
+  if (!a) return null;
+  const people = [...new Set((rows ?? []).flatMap((r) => (r.author_id ? [r.author_id] : [])))];
+  const { data: profiles } = people.length
+    ? await ctx.db.from("profiles").select("id, display_name").in("id", people)
+    : { data: [] as { id: string; display_name: string }[] };
+  const nameOf = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+  return {
+    title: a.title,
+    versions: (rows ?? []).map((v) => {
+      const s = record(v.snapshot);
+      return {
+        number: v.number,
+        origin: v.origin === "ai" ? "ai" : "human",
+        authorName: v.author_id ? (nameOf.get(v.author_id) ?? null) : null,
+        changeKind: v.change_kind,
+        publicNote: v.public_note,
+        createdAt: v.created_at,
+        snapshot: {
+          title: typeof s.title === "string" ? s.title : "",
+          dek: typeof s.dek === "string" ? s.dek : "",
+          body: s.body ?? null,
+        },
+      };
+    }),
+  };
+}

@@ -337,3 +337,23 @@ export const REVIEW_TEXT = {
   forbidden: "Seu papel não permite esta ação nesta matéria.",
   genericError: "Não foi possível concluir. Tente de novo.",
 } as const;
+
+export const VERSIONS_TEXT = {
+  title: "Comparação de versões",
+  from: "Versão anterior",
+  to: "Versão nova",
+  compare: "Comparar",
+  legendAdded: "Acrescentado",
+  legendRemoved: "Removido",
+  legend: "Legenda",
+  unchanged: "Sem mudança neste campo.",
+  noChanges: "As duas versões têm o mesmo título, linha fina e texto.",
+  list: "Todas as versões",
+  kind: { edit: "Edição", update: "Atualização", correction: "Correção" } as Record<string, string>,
+  origin: { ai: "IA", human: "Humano" },
+  option: (n: number, kind: string, date: string) => `v${n} · ${kind} · ${date}`,
+  publicNote: "Nota pública",
+  single: "Esta matéria tem uma versão só. A comparação aparece a partir da segunda.",
+  back: "Voltar ao editor",
+  notFound: "Matéria não encontrada",
+} as const;

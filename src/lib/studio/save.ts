@@ -1,9 +1,9 @@
 import "server-only";
 import { z } from "zod";
 import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
-import { diffWords } from "@/lib/diff/words";
 import type { Json } from "@/lib/db/types";
 import { studioAction, StudioFailure, type ActionContext } from "./action";
+import { diffText, type DiffOp } from "./diff";
 import { aiParagraph, appendParagraph, docText } from "./doc";
 import { articleScope } from "./scope";
 
@@ -52,15 +52,14 @@ const SaveInput = z.object({
 });
 export type SaveInput = z.input<typeof SaveInput>;
 
-export type DiffOp = { op: "eq" | "add" | "del"; text: string };
+export type { DiffOp };
 export interface ConflictData {
   version: number;
   /** Diff da versão salva por outra pessoa (del) × o que esta pessoa tentou salvar (add). */
   diff: { title: DiffOp[]; dek: DiffOp[]; body: DiffOp[] };
 }
 
-const ops = (a: string, b: string): DiffOp[] =>
-  diffWords(a, b).map((p) => ({ op: p.type === "same" ? "eq" : p.type, text: p.text }));
+const ops = diffText;
 
 interface Current {
   status: string;

@@ -224,3 +224,9 @@ export {
   type SaveReply,
 } from "./studio/ArticleEditor";
 export { RichEditor, type RichEditorProps } from "./studio/editor/Editor";
+export {
+  VersionCompare,
+  type VersionCompareField,
+  type VersionCompareProps,
+  type VersionDiffOp,
+} from "./studio/VersionDiff";
