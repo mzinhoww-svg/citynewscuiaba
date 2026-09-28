@@ -1944,12 +1944,14 @@ export type Database = {
       sources: {
         Row: {
           agreement_until: string | null;
+          auto_paused_at: string | null;
           base_url: string;
           categories: string[];
           created_at: string;
           display_name: string | null;
           etag: string | null;
           feed_url: string | null;
+          fetch_reset_at: string | null;
           frequency_minutes: number;
           id: string;
           image_policy: Database["public"]["Enums"]["image_policy"];
@@ -1974,12 +1976,14 @@ export type Database = {
         };
         Insert: {
           agreement_until?: string | null;
+          auto_paused_at?: string | null;
           base_url: string;
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
           etag?: string | null;
           feed_url?: string | null;
+          fetch_reset_at?: string | null;
           frequency_minutes?: number;
           id?: string;
           image_policy?: Database["public"]["Enums"]["image_policy"];
@@ -2004,12 +2008,14 @@ export type Database = {
         };
         Update: {
           agreement_until?: string | null;
+          auto_paused_at?: string | null;
           base_url?: string;
           categories?: string[];
           created_at?: string;
           display_name?: string | null;
           etag?: string | null;
           feed_url?: string | null;
+          fetch_reset_at?: string | null;
           frequency_minutes?: number;
           id?: string;
           image_policy?: Database["public"]["Enums"]["image_policy"];
@@ -2448,6 +2454,100 @@ export type Database = {
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      control_can_operate: { Args: { uid: string }; Returns: boolean };
+      control_can_view: { Args: { uid: string }; Returns: boolean };
+      control_guard_view: { Args: Record<PropertyKey, never>; Returns: undefined };
+      control_logs: {
+        Args: {
+          p_before?: number;
+          p_item?: string;
+          p_level?: string;
+          p_limit?: number;
+          p_q?: string;
+          p_run?: string;
+          p_since?: string;
+          p_source?: string;
+          p_steps?: string[];
+        };
+        Returns: {
+          at: string;
+          details: Json;
+          id: number;
+          item_ref: string;
+          level: string;
+          message: string;
+          run_id: string;
+          step: string;
+        }[];
+      };
+      control_queue_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          in_flight: number;
+          oldest_at: string;
+          queue: string;
+          ready: number;
+          retrying: number;
+          step: string;
+        }[];
+      };
+      control_retrying_jobs: {
+        Args: { p_limit?: number };
+        Returns: {
+          enqueued_at: string;
+          id: number;
+          item_ref: string;
+          last_error: string;
+          queue: string;
+          read_ct: number;
+          run_ref: string;
+          step: string;
+          visible_at: string;
+        }[];
+      };
+      control_run_steps: {
+        Args: { p_run_ids: string[] };
+        Returns: {
+          error: number;
+          first_at: string;
+          last_at: string;
+          ok: number;
+          run_id: string;
+          security: number;
+          step: string;
+          warn: number;
+        }[];
+      };
+      control_run_totals: {
+        Args: { p_run_ids: string[] };
+        Returns: {
+          ai_calls: number;
+          cost_brl: number;
+          pending: number;
+          quarantined: number;
+          run_id: string;
+        }[];
+      };
+      control_source_health: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          auto_paused_at: string;
+          consecutive_failures: number;
+          errors_24h: number;
+          frequency_minutes: number;
+          id: string;
+          items_24h: number;
+          kind: string;
+          last_error: string;
+          last_fetched_at: string;
+          name: string;
+          ok_30d: number;
+          reliability: string;
+          slug: string;
+          status: string;
+          total_30d: number;
+        }[];
+      };
       create_topic_for_item: {
         Args: { p_id: string; p_now: string; p_slug: string; p_title: string };
         Returns: string;
@@ -2610,6 +2710,7 @@ export type Database = {
       search_topic_is_public: { Args: { p_id: string }; Returns: boolean };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
+      source_consecutive_failures: { Args: { p_reset: string; p_slug: string }; Returns: number };
       start_ingest_run: {
         Args: { p_window: string };
         Returns: {

@@ -21,6 +21,8 @@ export const STAFF = {
   rafael: { id: "c1000000-0000-4000-8000-000000000005", email: "rafael.siqueira@citynews.local" },
   beatriz: { id: "c1000000-0000-4000-8000-000000000006", email: "beatriz.lemos@citynews.local" },
   carlos: { id: "c1000000-0000-4000-8000-000000000009", email: "carlos.nunes@citynews.local" },
+  diego: { id: "c1000000-0000-4000-8000-000000000007", email: "diego.prado@citynews.local" },
+  thiago: { id: "c1000000-0000-4000-8000-000000000008", email: "thiago.moraes@citynews.local" },
 } as const;
 export type Staff = keyof typeof STAFF;
 

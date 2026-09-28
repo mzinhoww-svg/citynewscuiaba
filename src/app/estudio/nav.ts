@@ -42,7 +42,32 @@ const GROUPS: { label: string; items: Entry[] }[] = [
   {
     label: "Control Center",
     items: [
-      { href: "/estudio/control", label: "Visão geral", icon: "gauge", action: "metrics.view" },
+      {
+        href: "/estudio/control",
+        label: "Visão geral",
+        icon: "gauge",
+        action: "metrics.view",
+        exact: true,
+      },
+      {
+        href: "/estudio/control/tempo-real",
+        label: "Tempo real",
+        icon: "activity",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/falhas",
+        label: "Falhas",
+        icon: "circle-alert",
+        action: "source.manage",
+      },
+      {
+        href: "/estudio/control/execucoes",
+        label: "Execuções",
+        icon: "history",
+        action: "metrics.view",
+      },
+      { href: "/estudio/control/logs", label: "Logs", icon: "scroll-text", action: "audit.view" },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },

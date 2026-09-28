@@ -28,6 +28,10 @@ export const AUDIT_ACTIONS = [
   "media.takedown.request",
   "report.respond",
   "media.image_text",
+  "pipeline.run_now",
+  "pipeline.reprocess",
+  "pipeline.quarantine.discard",
+  "logs.export",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
