@@ -6,6 +6,7 @@ import {
   EMPTY_STATE,
   type AlertItem,
   type NotifyState,
+  pollSince,
 } from "@/lib/alerts/match";
 import { getAnonStore } from "@/lib/anon/store";
 import { showNotification } from "@/lib/offline/sw";
@@ -41,7 +42,8 @@ async function check() {
   const profile = await getAnonStore().get();
   const alerts = profile.alerts.filter((a) => a.channel === "browser" && a.status === "active");
   if (alerts.length === 0) return;
-  const since = alerts.map((a) => a.at).sort()[0]!;
+  // Janela de 15 min, nunca o horário exato do alerta (não vira identificador do aparelho).
+  const since = pollSince(alerts, new Date());
   const res = await fetch(`/api/alertas/novidades?desde=${encodeURIComponent(since)}`, {
     cache: "no-store",
   });
