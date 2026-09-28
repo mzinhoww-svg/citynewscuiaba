@@ -25,7 +25,11 @@ const nextConfig: NextConfig = {
   // Imagens aprovadas só pela rota própria /api/media/[id] (valida aprovação e flag de reprodução
   // e redireciona para URL assinada curta do bucket privado); nada de URL pública do bucket.
   images: {
-    localPatterns: [{ pathname: "/api/media/**", search: "" }],
+    localPatterns: [
+      { pathname: "/api/media/**", search: "" },
+      // Prévia do Estúdio (qualquer estado, só com sessão da equipe).
+      { pathname: "/api/estudio/midia/**", search: "" },
+    ],
     remotePatterns: supabaseStoragePattern(),
   },
   // HSTS, Referrer-Policy, Permissions-Policy e afins em toda resposta; a CSP com nonce sai do

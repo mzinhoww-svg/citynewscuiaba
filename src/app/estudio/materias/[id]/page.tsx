@@ -8,6 +8,7 @@ import {
   ConfidenceMeter,
   CorrectionForm,
   EmptyState,
+  GenerateImageDrawer,
   InlineAlert,
   OriginLabel,
   PublishDialog,
@@ -31,6 +32,7 @@ import {
   openCorrectionAction,
   publishAction,
   publishUpdateAction,
+  suggestIllustrationAction,
   rejectSuggestionAction,
   saveDraftAction,
   updateSourcesAction,
@@ -191,6 +193,9 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
             />
           )}
           <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
+          {canEdit && !isPublic && (
+            <GenerateImageDrawer articleId={a.id} suggest={suggestIllustrationAction} />
+          )}
           <AiSuggestionInline
             articleId={a.id}
             baseVersion={a.version}

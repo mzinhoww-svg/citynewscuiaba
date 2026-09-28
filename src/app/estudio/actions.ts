@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   CORRECTIONS_TEXT,
   EDITOR_TEXT,
+  MEDIA_TEXT,
   PUBLISH_TEXT,
   QUEUE_TEXT,
   REVIEW_TEXT,
@@ -15,8 +16,17 @@ import {
   type PublishCorrectionInput,
   type PublishUpdateInput,
 } from "@/lib/studio/corrections";
+import type { GenerateReply } from "@/components";
 import { formatDateTime } from "@/lib/format/date";
 import type { StudioResult } from "@/lib/studio/action";
+import {
+  approveImage,
+  blockExpired,
+  blockImage,
+  generateIllustration,
+  renewLicense,
+  replaceImage,
+} from "@/lib/studio/media";
 import { publishArticle } from "@/lib/studio/publish";
 import { rejectItem, reprocessItem, requestChanges, updateSources } from "@/lib/studio/review";
 import {
@@ -220,4 +230,49 @@ export async function openCorrectionAction(formData: FormData): Promise<void> {
   const r = await openCorrection({ articleId, kind: "correction", requestedBy: "redação" });
   if (r.ok) redirect(`/estudio/correcoes/${r.value.id}`);
   redirect(`/estudio/materias/${articleId}?erro=correcao`);
+}
+
+export async function approveImageAction(input: { id: string }): Promise<ActionReply> {
+  return reply(await approveImage(input), MEDIA_TEXT.approved);
+}
+
+export async function blockImageAction(input: {
+  id: string;
+  reason: string;
+}): Promise<ActionReply> {
+  return reply(await blockImage(input), MEDIA_TEXT.blocked);
+}
+
+export async function replaceImageAction(input: {
+  articleId: string;
+  mediaId: string;
+}): Promise<ActionReply> {
+  return reply(await replaceImage(input), MEDIA_TEXT.replaced);
+}
+
+export async function renewLicenseAction(input: {
+  license: string;
+  until: string;
+}): Promise<ActionReply> {
+  return reply(await renewLicense(input), MEDIA_TEXT.renewed);
+}
+
+export async function blockExpiredAction(input: { license: string }): Promise<ActionReply> {
+  const r = await blockExpired(input);
+  return reply(r, r.ok ? MEDIA_TEXT.blockedExpired(r.value.count) : "");
+}
+
+export async function suggestIllustrationAction(input: {
+  articleId: string;
+}): Promise<GenerateReply> {
+  const r = await generateIllustration(input);
+  if (r.ok)
+    return {
+      ok: true,
+      prompt: r.value.prompt,
+      alt: r.value.alt,
+      restrictions: r.value.restrictions,
+      generatorAvailable: r.value.generatorAvailable,
+    };
+  return { ok: false, message: reply(r, "").message };
 }

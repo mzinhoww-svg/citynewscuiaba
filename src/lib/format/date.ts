@@ -172,3 +172,11 @@ export function formatMonthYear(month: string): string {
   const [y, m] = month.split("-").map(Number);
   return monthYearFormatter.format(new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, 15)));
 }
+
+/** "25/09/2026" (data sem hora, no fuso de Cuiabá). Aceita "AAAA-MM-DD" (dia local). */
+export function formatDate(isoOrKey: string): string {
+  const d = parse(/^\d{4}-\d{2}-\d{2}$/.test(isoOrKey) ? `${isoOrKey}T12:00:00-04:00` : isoOrKey);
+  if (!d) return "";
+  const p = parts(d);
+  return `${p.day}/${p.month}/${p.year}`;
+}

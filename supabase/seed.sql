@@ -601,3 +601,27 @@ values ('c2000000-0000-4000-8000-000000000025', 'estudio-vacinacao-sabado', 'ori
 insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, created_at)
 select a.id, 1, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', a.author_id, 'edit', a.updated_at
 from articles a where a.id = 'c2000000-0000-4000-8000-000000000025';
+
+-- P4-T7 · acervo de mídia do Estúdio (fora das matérias públicas): licença que vence em 20 dias,
+-- licença vencida (em matéria agendada), reprodução pendente de aprovação e foto original.
+-- A pilha local não tem Storage (A-017): as prévias aparecem como "Prévia indisponível".
+insert into media_assets (id, kind, storage_path, origin_url, page_url, license, credit, allowed_use, width, height,
+                          risk, status, license_until, source_id, source_name, captured_at) values
+ ('c6000000-0000-4000-8000-000000000001', 'licensed', 'licenciadas/banco-cerrado-orla.jpg', null, null,
+  'Banco Cerrado Imagens · contrato 2026-14', 'Banco Cerrado Imagens', 'Editorial, portal e redes', 1600, 1067,
+  'baixo', 'approved', current_date + 20, null, null, now() - interval '30 days'),
+ ('c6000000-0000-4000-8000-000000000002', 'licensed', 'licenciadas/arquivo-pantanal-posto.jpg', null, null,
+  'Arquivo Pantanal Foto · contrato 88', 'Arquivo Pantanal Foto', 'Editorial, só portal', 1800, 1200,
+  'baixo', 'approved', current_date - 3, null, null, now() - interval '90 days'),
+ ('c6000000-0000-4000-8000-000000000003', 'reproduction', 'reproducao/folha-cerrado-onibus.jpg',
+  'https://folhadocerrado.example/img/onibus-noturno.jpg', 'https://folhadocerrado.example/cidade/onibus-noturnos',
+  'Reprodução com acordo', 'Folha do Cerrado', 'Reprodução com crédito e link', 1200, 800,
+  'medio', 'pending', null, 'c5000000-0000-4000-8000-000000000001', 'Folha do Cerrado', now() - interval '50 minutes'),
+ ('c6000000-0000-4000-8000-000000000004', 'original', 'originais/terminal-cpa.jpg', null, null,
+  'CityNews', 'Juliana Campos/CityNews', 'Livre para o CityNews', 2000, 1333,
+  'baixo', 'approved', null, null, null, now() - interval '5 days');
+insert into article_media (article_id, media_id, rationale, chosen_by, alt) values
+ ('c2000000-0000-4000-8000-000000000020', 'c6000000-0000-4000-8000-000000000003',
+  'Única imagem das fontes com política de reprodução', 'pipeline', null),
+ ('c2000000-0000-4000-8000-000000000025', 'c6000000-0000-4000-8000-000000000002',
+  'Foto de arquivo de posto de saúde', 'c1000000-0000-4000-8000-000000000004', 'Fachada de posto de saúde em Cuiabá');

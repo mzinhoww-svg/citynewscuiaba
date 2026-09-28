@@ -236,3 +236,12 @@ export {
   type PublishDialogProps,
 } from "./studio/PublishDialog";
 export { CorrectionForm, type CorrectionFormProps } from "./studio/CorrectionForm";
+export { MediaThumb, type MediaThumbProps } from "./studio/MediaThumb";
+export { MediaGrid, type MediaGridItem, type MediaGridProps } from "./studio/MediaGrid";
+export { ImageApproval, type ImageApprovalProps } from "./studio/ImageApproval";
+export {
+  GenerateImageDrawer,
+  type GenerateImageDrawerProps,
+  type GenerateReply,
+} from "./studio/GenerateImageDrawer";
+export { LicenseActions, type LicenseActionsProps } from "./studio/LicenseActions";
