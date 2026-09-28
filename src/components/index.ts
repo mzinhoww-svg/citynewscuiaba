@@ -235,3 +235,4 @@ export {
   type PublishDestination,
   type PublishDialogProps,
 } from "./studio/PublishDialog";
+export { CorrectionForm, type CorrectionFormProps } from "./studio/CorrectionForm";

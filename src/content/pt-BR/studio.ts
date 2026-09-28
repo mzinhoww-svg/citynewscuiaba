@@ -391,3 +391,78 @@ export const PUBLISH_TEXT = {
   blocked: (why: string) => `Publicação indisponível: ${why}`,
   alreadyPublic: "A matéria já está publicada. Use Atualização ou Correção.",
 } as const;
+
+export const CORRECTIONS_TEXT = {
+  title: "Correções e direito de resposta",
+  intro: "Pedidos de correção e de direito de resposta, com prazo de 24 h.",
+  caption: "Fila de correções",
+  col: {
+    article: "Matéria",
+    kind: "Tipo",
+    requestedBy: "Solicitante",
+    due: "Prazo",
+    status: "Estado",
+  },
+  kind: { correction: "Correção", right_of_reply: "Direito de resposta" } as Record<string, string>,
+  status: { open: "Aberta", published: "Publicada" } as Record<string, string>,
+  overdue: "Vencido",
+  open: "Tratar",
+  view: "Ver",
+  tabs: { open: "Abertas", published: "Publicadas" },
+  tabsLabel: "Estado das correções",
+  empty: {
+    open: "Nenhum pedido de correção aberto.",
+    published: "Nenhuma correção publicada ainda.",
+  },
+  emptyTitle: "Nada por aqui",
+  screenTitle: "Correção",
+  request: "Pedido",
+  requestedBy: "Solicitante",
+  due: "Prazo",
+  report: "Mensagem do leitor",
+  fields: "Campos corrigidos",
+  fieldsHint: "Edite só o que está errado. O diff aparece no histórico público da matéria.",
+  publicNote: "Nota pública",
+  publicNoteHint:
+    "Aparece na matéria e em /correcoes. Ex.: A feira abre às 6h, não às 5h, como informado antes.",
+  notify: "Avisar quem salvou a matéria",
+  notifyHint: "Leitores com conta que salvaram recebem a nota.",
+  submit: "Publicar correção",
+  published: (n: number) =>
+    n === 0
+      ? "Correção publicada"
+      : n === 1
+        ? "Correção publicada · 1 pessoa avisada"
+        : `Correção publicada · ${n} pessoas avisadas`,
+  noteRequired: "Escreva a nota pública da correção",
+  updateNoteRequired: "Escreva a nota pública da atualização",
+  alreadyPublished: "Esta correção já foi publicada.",
+  notPublic: "Só matéria publicada recebe correção ou atualização.",
+  conflict:
+    "A matéria mudou depois que você abriu a correção. Nada foi publicado: recarregue e confira.",
+  publishedAt: "Publicada em",
+  notified: (n: number) => (n === 1 ? "1 pessoa avisada" : `${n} pessoas avisadas`),
+  openFromEditor: "Abrir correção",
+  updateMode: "Atualização",
+  updateModeIntro:
+    "Matéria publicada: mudanças entram como Atualização (fato novo, com nota pública) ou Correção (erro, com nota pública e aviso a quem salvou).",
+  updateNote: "Nota pública da atualização",
+  updateNoteHint: "Ex.: A prefeitura informou o novo horário às 15h.",
+  updateSubmit: "Publicar atualização",
+  updated: (v: number) => `Atualização publicada · versão ${v}`,
+  notFound: "Pedido de correção não encontrado",
+  back: "Voltar para correções",
+} as const;
+
+export const CALENDAR_TEXT = {
+  title: "Calendário editorial",
+  intro: "Agendadas, prazos e publicadas por dia, no fuso de Cuiabá.",
+  prev: "7 dias antes",
+  next: "Próximos 7 dias",
+  today: "A partir de hoje",
+  weekOf: (from: string, to: string) => `${from} a ${to}`,
+  kind: { scheduled: "Agendada", due: "Prazo", published: "Publicada" },
+  empty: "Nada neste dia.",
+  emptyWeek: "Nenhuma matéria agendada, com prazo ou publicada nesta semana.",
+  nav: "Semanas",
+} as const;

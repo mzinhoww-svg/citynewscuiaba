@@ -580,3 +580,24 @@ insert into article_suggestions (article_id, field, value, rationale, agent_id, 
   'Verbo no início e o dado principal no título.', 'write', 1);
 update articles set tags = '{iluminação,praça}', neighborhoods = '{cpa}' where id = 'c2000000-0000-4000-8000-000000000023';
 update articles set tags = '{ônibus,transporte}', neighborhoods = '{cpa,centro-norte}' where id = 'c2000000-0000-4000-8000-000000000020';
+
+-- P4-T6 · fila de correções: um pedido de leitor em aberto (prazo em 20 h) e um direito de
+-- resposta; uma matéria agendada para amanhã (calendário).
+insert into corrections (article_id, kind, public_note, requested_by, status, due_at, created_at) values
+ ('c2000000-0000-4000-8000-000000000007', 'correction', '', 'leitor', 'open', now() + interval '20 hours', now() - interval '4 hours'),
+ ('c2000000-0000-4000-8000-000000000011', 'right_of_reply', '', 'Associação de Moradores do CPA', 'open', now() + interval '6 hours', now() - interval '18 hours');
+
+insert into articles (id, slug, kind, section_slug, title, dek, body, status, publish_mode, confidence, confidence_score,
+                      author_id, scheduled_for, updated_at, tags, neighborhoods, seo_title, seo_description)
+values ('c2000000-0000-4000-8000-000000000025', 'estudio-vacinacao-sabado', 'original', 'servicos',
+        'Postos de saúde abrem no sábado para vacinação contra a gripe',
+        'Doze unidades atendem das 8h às 17h; leve a caderneta.',
+        '{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"Doze postos de saúde de Cuiabá abrem no sábado para vacinação contra a gripe."}]}]}',
+        'scheduled', 'human', 'alta', 0.85, 'c1000000-0000-4000-8000-000000000004',
+        ((date_trunc('day', now() at time zone 'America/Cuiaba') + interval '1 day 7 hours') at time zone 'America/Cuiaba'),
+        now() - interval '1 hour', '{vacinação,saúde}', '{centro-norte}',
+        'Postos de saúde abrem no sábado para vacinar contra a gripe',
+        'Doze unidades de Cuiabá atendem no sábado das 8h às 17h. Leve a caderneta de vacinação.');
+insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, created_at)
+select a.id, 1, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body), 'human', a.author_id, 'edit', a.updated_at
+from articles a where a.id = 'c2000000-0000-4000-8000-000000000025';

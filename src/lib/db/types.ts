@@ -821,28 +821,46 @@ export type Database = {
       corrections: {
         Row: {
           article_id: string;
+          created_at: string;
+          due_at: string;
+          fields: string[];
+          handled_by: string | null;
           id: string;
           kind: string;
+          notified: number;
           public_note: string;
           published_at: string | null;
+          report_id: string | null;
           requested_by: string;
           status: string;
         };
         Insert: {
           article_id: string;
+          created_at?: string;
+          due_at?: string;
+          fields?: string[];
+          handled_by?: string | null;
           id?: string;
           kind: string;
+          notified?: number;
           public_note: string;
           published_at?: string | null;
+          report_id?: string | null;
           requested_by: string;
           status?: string;
         };
         Update: {
           article_id?: string;
+          created_at?: string;
+          due_at?: string;
+          fields?: string[];
+          handled_by?: string | null;
           id?: string;
           kind?: string;
+          notified?: number;
           public_note?: string;
           published_at?: string | null;
+          report_id?: string | null;
           requested_by?: string;
           status?: string;
         };
@@ -859,6 +877,27 @@ export type Database = {
             columns: ["article_id"];
             isOneToOne: false;
             referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "corrections_handled_by_fkey";
+            columns: ["handled_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "corrections_handled_by_fkey";
+            columns: ["handled_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "corrections_report_id_fkey";
+            columns: ["report_id"];
+            isOneToOne: false;
+            referencedRelation: "reports";
             referencedColumns: ["id"];
           },
         ];
@@ -1565,6 +1604,39 @@ export type Database = {
           status?: string;
           subject?: string;
           to_email?: string;
+        };
+        Relationships: [];
+      };
+      reader_notifications: {
+        Row: {
+          body: string;
+          content_ref: string;
+          created_at: string;
+          id: string;
+          kind: string;
+          owner_ref: string;
+          read_at: string | null;
+          title: string;
+        };
+        Insert: {
+          body: string;
+          content_ref: string;
+          created_at?: string;
+          id?: string;
+          kind: string;
+          owner_ref: string;
+          read_at?: string | null;
+          title: string;
+        };
+        Update: {
+          body?: string;
+          content_ref?: string;
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          owner_ref?: string;
+          read_at?: string | null;
+          title?: string;
         };
         Relationships: [];
       };
@@ -2437,6 +2509,16 @@ export type Database = {
           name: string;
           roles: Database["public"]["Enums"]["app_role"][];
         }[];
+      };
+      studio_publish_correction: {
+        Args: {
+          p_base: number;
+          p_correction: string;
+          p_note: string;
+          p_notify?: boolean;
+          p_patch: Json;
+        };
+        Returns: Json;
       };
       studio_request_reprocess: { Args: { p_article: string }; Returns: number };
       studio_save_draft: {

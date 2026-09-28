@@ -1,6 +1,20 @@
 "use server";
 
-import { EDITOR_TEXT, PUBLISH_TEXT, QUEUE_TEXT, REVIEW_TEXT } from "@/content/pt-BR/studio";
+import { redirect } from "next/navigation";
+import {
+  CORRECTIONS_TEXT,
+  EDITOR_TEXT,
+  PUBLISH_TEXT,
+  QUEUE_TEXT,
+  REVIEW_TEXT,
+} from "@/content/pt-BR/studio";
+import {
+  openCorrection,
+  publishCorrection,
+  publishUpdate,
+  type PublishCorrectionInput,
+  type PublishUpdateInput,
+} from "@/lib/studio/corrections";
 import { formatDateTime } from "@/lib/format/date";
 import type { StudioResult } from "@/lib/studio/action";
 import { publishArticle } from "@/lib/studio/publish";
@@ -155,4 +169,55 @@ export async function publishAction(input: {
   if (r.ok && r.value.status === "scheduled" && r.value.scheduledFor)
     return { ok: true, message: PUBLISH_TEXT.scheduled(formatDateTime(r.value.scheduledFor)) };
   return reply(r, PUBLISH_TEXT.published);
+}
+
+function conflictOr(r: StudioResult<unknown>): SaveReply {
+  if (!r.ok && r.error === "conflict")
+    return {
+      ok: false,
+      message: r.message ?? EDITOR_TEXT.conflict,
+      conflict: r.data as ConflictData,
+    };
+  return { ok: false, message: reply(r, "").message };
+}
+
+export async function publishCorrectionAction(input: {
+  id: string;
+  baseVersion: number;
+  doc: unknown;
+  publicNote: string;
+  notifySavers: boolean;
+}): Promise<SaveReply> {
+  const r = await publishCorrection(input as PublishCorrectionInput);
+  if (r.ok)
+    return {
+      ok: true,
+      message: CORRECTIONS_TEXT.published(r.value.notified),
+      version: r.value.version,
+    };
+  return conflictOr(r);
+}
+
+export async function publishUpdateAction(input: {
+  id: string;
+  baseVersion: number;
+  doc: unknown;
+  publicNote: string;
+}): Promise<SaveReply> {
+  const r = await publishUpdate(input as PublishUpdateInput);
+  if (r.ok)
+    return {
+      ok: true,
+      message: CORRECTIONS_TEXT.updated(r.value.version),
+      version: r.value.version,
+    };
+  return conflictOr(r);
+}
+
+/** Editor de matéria publicada → abre um pedido de correção da redação e vai para a tela dele. */
+export async function openCorrectionAction(formData: FormData): Promise<void> {
+  const articleId = String(formData.get("articleId") ?? "");
+  const r = await openCorrection({ articleId, kind: "correction", requestedBy: "redação" });
+  if (r.ok) redirect(`/estudio/correcoes/${r.value.id}`);
+  redirect(`/estudio/materias/${articleId}?erro=correcao`);
 }

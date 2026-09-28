@@ -6,13 +6,14 @@ import {
   Button,
   ChecklistPanel,
   ConfidenceMeter,
+  CorrectionForm,
   EmptyState,
   InlineAlert,
   OriginLabel,
   PublishDialog,
   SourcesEditor,
 } from "@/components";
-import { ARTICLE_STATUS_LABEL, EDITOR_TEXT as T } from "@/content/pt-BR/studio";
+import { ARTICLE_STATUS_LABEL, CORRECTIONS_TEXT, EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import { can, canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { listSectionOptions } from "@/lib/db/queries/queue";
@@ -27,7 +28,9 @@ import { SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/studio/checklist";
 import type { EditorDoc } from "@/lib/studio/doc";
 import {
   acceptSuggestionAction,
+  openCorrectionAction,
   publishAction,
+  publishUpdateAction,
   rejectSuggestionAction,
   saveDraftAction,
   updateSourcesAction,
@@ -116,39 +119,66 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
       </header>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        <ArticleEditor
-          key={a.id}
-          articleId={a.id}
-          baseVersion={a.version}
-          userId={session.userId}
-          initial={{
-            title: a.title,
-            dek: a.dek,
-            body,
-            sectionSlug: a.section.slug,
-            topicId: a.topic?.id ?? null,
-            tags: a.tags,
-            neighborhoods: a.neighborhoods,
-            seoTitle: a.seoTitle ?? "",
-            seoDescription: a.seoDescription ?? "",
-          }}
-          origins={originNotes(a)}
-          options={{ sections, topics }}
-          readOnly={!canEdit || isPublic}
-          notice={
-            !canEdit ? (
-              <InlineAlert tone="info" role="none">
-                {T.readonly}
-              </InlineAlert>
-            ) : isPublic ? (
-              <InlineAlert tone="warn" role="none">
-                {T.publishedNeedsMode}
-              </InlineAlert>
-            ) : undefined
-          }
-          save={canEdit && !isPublic ? saveDraftAction : undefined}
-          seoLimits={{ title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX }}
-        />
+        {isPublic && canEdit ? (
+          <div className="flex flex-col gap-4">
+            <InlineAlert tone="info" role="none" title={CORRECTIONS_TEXT.updateMode}>
+              {CORRECTIONS_TEXT.updateModeIntro}
+            </InlineAlert>
+            {can(session.roles, "correction.manage", scope) && (
+              <form action={openCorrectionAction}>
+                <input type="hidden" name="articleId" value={a.id} />
+                <Button type="submit" size="md" variant="outline" icon="pencil">
+                  {CORRECTIONS_TEXT.openFromEditor}
+                </Button>
+              </form>
+            )}
+            {can(session.roles, "article.publish", scope) ? (
+              <CorrectionForm
+                key={a.id}
+                mode="update"
+                targetId={a.id}
+                baseVersion={a.version}
+                userId={session.userId}
+                initial={{ title: a.title, dek: a.dek, body }}
+                submit={publishUpdateAction}
+              />
+            ) : null}
+          </div>
+        ) : (
+          <ArticleEditor
+            key={a.id}
+            articleId={a.id}
+            baseVersion={a.version}
+            userId={session.userId}
+            initial={{
+              title: a.title,
+              dek: a.dek,
+              body,
+              sectionSlug: a.section.slug,
+              topicId: a.topic?.id ?? null,
+              tags: a.tags,
+              neighborhoods: a.neighborhoods,
+              seoTitle: a.seoTitle ?? "",
+              seoDescription: a.seoDescription ?? "",
+            }}
+            origins={originNotes(a)}
+            options={{ sections, topics }}
+            readOnly={!canEdit || isPublic}
+            notice={
+              !canEdit ? (
+                <InlineAlert tone="info" role="none">
+                  {T.readonly}
+                </InlineAlert>
+              ) : isPublic ? (
+                <InlineAlert tone="warn" role="none">
+                  {T.publishedNeedsMode}
+                </InlineAlert>
+              ) : undefined
+            }
+            save={canEdit && !isPublic ? saveDraftAction : undefined}
+            seoLimits={{ title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX }}
+          />
+        )}
         <aside className="flex flex-col gap-4" aria-label={T.title}>
           {canPublish && (
             <PublishDialog

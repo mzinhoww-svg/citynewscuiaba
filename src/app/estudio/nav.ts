@@ -18,6 +18,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "article.edit",
       },
       {
+        href: "/estudio/calendario",
+        label: "Calendário",
+        icon: "calendar-days",
+        action: "article.edit",
+      },
+      {
         href: "/estudio/correcoes",
         label: "Correções",
         icon: "check",
