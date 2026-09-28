@@ -8,6 +8,7 @@ import { formatHour } from "@/lib/format/date";
 import { Button } from "../ui/Button";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
+import { useHydratedForm } from "../ui/useHydratedForm";
 
 export interface SignInFormProps {
   signIn: (state: SignInState, form: FormData) => Promise<SignInState>;
@@ -26,6 +27,8 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
   const [state, signInAction, signingIn] = useActionState(signIn, IDLE as SignInState);
   const [magic, magicAction, sending] = useActionState(magicLink, IDLE as EmailLinkState);
   const [email, setEmail] = useState("");
+  // E-mail digitado antes da hidratação (celular lento) não se perde ao enviar.
+  const { ref, ready } = useHydratedForm(({ text }) => setEmail((v) => text("email") ?? v));
   const id = useId();
   const busy = signingIn || sending;
 
@@ -36,7 +39,13 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
 
   return (
     <div className="flex flex-col gap-8">
-      <form action={signInAction} noValidate className="flex flex-col gap-5">
+      <form
+        ref={ref}
+        action={signInAction}
+        noValidate
+        className="flex flex-col gap-5"
+        data-ready={ready ? "true" : undefined}
+      >
         <input type="hidden" name="next" value={next} />
         <TextField
           id={`${id}-email`}
@@ -102,7 +111,7 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
             <InlineAlert tone="success" title={T.magicSent(magic.email)} />
           )}
           {magic.status === "rate_limited" && (
-            <InlineAlert tone="warn" title={A.unavailable} role="alert" />
+            <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
           )}
         </div>
 

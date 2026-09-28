@@ -147,3 +147,18 @@ export function dueNotifications(
     state: { seen: [...seen].slice(-MAX_SEEN), sentAt, digestAt },
   };
 }
+
+const POLL_WINDOW_MS = 15 * 60_000;
+/** Mesma janela máxima do servidor (`listAlertItems`): 48 h. */
+const POLL_MAX_MS = 48 * 3_600_000;
+
+/**
+ * `desde` enviado ao servidor pelos alertas de navegador (gate P2, I7): o alerta mais antigo,
+ * limitado às últimas 48 h e arredondado para baixo à janela de 15 min. Assim o valor não
+ * identifica o aparelho: é o mesmo para quem pergunta na mesma janela.
+ */
+export function pollSince(alerts: Pick<LocalAlert, "at">[], now: Date): string {
+  const oldest = Math.min(...alerts.map((a) => Date.parse(a.at)).filter(Number.isFinite));
+  const from = Math.max(Number.isFinite(oldest) ? oldest : 0, now.getTime() - POLL_MAX_MS);
+  return new Date(Math.floor(from / POLL_WINDOW_MS) * POLL_WINDOW_MS).toISOString();
+}

@@ -35,5 +35,11 @@ export {
   type SourceLocality,
   type SourceSignalsQuery,
 } from "./sources";
-export { getTopicBySlug, listTopics, topicHref, type TopicListFilters } from "./topics";
+export {
+  getTopicBySlug,
+  getTopicTitle,
+  listTopics,
+  topicHref,
+  type TopicListFilters,
+} from "./topics";
 export type * from "./types";

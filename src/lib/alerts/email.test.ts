@@ -10,6 +10,9 @@ function deps(over: Partial<EmailAlertDeps> = {}): EmailAlertDeps {
     })),
     queue: vi.fn(async () => ({ ok: true as const, value: undefined })),
     link: vi.fn(() => "https://citynews.test/alertas/confirmar?token=t"),
+    resolveLabel: vi.fn(async (kind: string, target: string) =>
+      kind === "bairro" && target === "cpa" ? "CPA" : null,
+    ),
     ...over,
   };
 }
@@ -73,5 +76,37 @@ describe("alerta por e-mail sem conta (P18)", () => {
         )
       ).status,
     ).toBe("error");
+  });
+
+  it("dedupe por alerta: a mensagem leva a referência do alerta (gate P2, I4)", async () => {
+    const d = deps();
+    await createEmailAlert(valid, d);
+    expect(d.queue).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: "alert:c0000000-0000-4000-8000-000000000001" }),
+    );
+  });
+
+  it("rótulo do e-mail vem do servidor, nunca do texto do cliente (gate P2, I8)", async () => {
+    const d = deps();
+    await createEmailAlert(
+      { ...valid, label: "Pix recusado, regularize em http://golpe.example" },
+      d,
+    );
+    const mail = vi.mocked(d.queue).mock.calls[0]?.[0];
+    expect(mail?.body).toContain('"Bairro: CPA"');
+    expect(mail?.body).not.toContain("golpe");
+    expect(mail?.body).not.toContain("Pix");
+  });
+
+  it("alvo desconhecido é inválido e não grava", async () => {
+    const d = deps();
+    expect((await createEmailAlert({ ...valid, target: "inexistente" }, d)).status).toBe("invalid");
+    expect(d.save).not.toHaveBeenCalled();
+  });
+
+  it("sem rótulo do cliente também funciona", async () => {
+    const { label: _l, ...noLabel } = valid;
+    void _l;
+    expect((await createEmailAlert(noLabel, deps())).status).toBe("pending");
   });
 });

@@ -156,18 +156,20 @@ export async function setNewsletterPrefs(
   });
 }
 
-/** Janela de dedupe dos e-mails para leitores: 1 por tipo e endereço a cada 10 min. */
+/** Janela de dedupe dos e-mails para leitores: 1 por tipo, endereço e alvo a cada 10 min. */
 const READER_EMAIL_DEDUPE_MS = 10 * 60_000;
 
 /**
  * Põe um e-mail para leitor na fila de saída `reader_emails` (B-005: nada é enviado ainda).
- * Pedidos repetidos em 10 min não geram outra mensagem.
+ * Pedidos repetidos em 10 min para o mesmo alvo (`ref`: o alerta ou as listas) não geram outra
+ * mensagem; outro alerta ou outra lista ganha a própria (gate P2, I4).
  */
 export async function queueReaderEmail(mail: {
   kind: "newsletter_confirm" | "newsletter_manage" | "alert_confirm";
   to: string;
   subject: string;
   body: string;
+  ref: string;
 }): Promise<Result<void, WriteError>> {
   return withService(async (db) => {
     const since = new Date(Date.now() - READER_EMAIL_DEDUPE_MS).toISOString();
@@ -176,6 +178,7 @@ export async function queueReaderEmail(mail: {
       .select("id")
       .eq("to_email", mail.to)
       .eq("kind", mail.kind)
+      .eq("ref", mail.ref.slice(0, 300))
       .gte("created_at", since)
       .limit(1);
     if (error) throw new Error(error.message);
@@ -185,6 +188,7 @@ export async function queueReaderEmail(mail: {
       to_email: mail.to,
       subject: mail.subject.slice(0, 200),
       body: mail.body.slice(0, 4000),
+      ref: mail.ref.slice(0, 300),
     });
     if (e2) throw new Error(e2.message);
   });

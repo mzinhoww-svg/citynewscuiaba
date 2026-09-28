@@ -7,6 +7,7 @@ import { passwordStrength } from "@/lib/auth/password";
 import { Button } from "../ui/Button";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
+import { useHydratedForm } from "../ui/useHydratedForm";
 
 export interface NewPasswordFormProps {
   action: (state: NewPasswordState, form: FormData) => Promise<NewPasswordState>;
@@ -17,10 +18,17 @@ export interface NewPasswordFormProps {
 export function NewPasswordForm({ action, submit = T.resetSubmit }: NewPasswordFormProps) {
   const [state, formAction, pending] = useActionState(action, IDLE as NewPasswordState);
   const [password, setPassword] = useState("");
+  const { ref, ready } = useHydratedForm(({ text }) => setPassword((v) => text("password") ?? v));
   const id = useId();
   const strength = password ? passwordStrength(password) : null;
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-5">
+    <form
+      ref={ref}
+      action={formAction}
+      noValidate
+      className="flex flex-col gap-5"
+      data-ready={ready ? "true" : undefined}
+    >
       <div className="flex flex-col gap-2">
         <TextField
           id={`${id}-senha`}

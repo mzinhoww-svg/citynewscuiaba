@@ -121,6 +121,7 @@ export const rejectSubmission = studioAction(
       p_to: s.contact_email,
       p_subject: T.rejectedSubject,
       p_body: T.rejectedBody(title, i.reason),
+      p_ref: `submission:${i.id}`,
     });
     if (mail.error) throw new Error(`e-mail: ${mail.error.message}`);
     ctx.detail({ reason: i.reason });
@@ -166,6 +167,7 @@ export const respondReport = studioAction(
         p_to: r.contact_email,
         p_subject: T.responseSubject,
         p_body: i.response,
+        p_ref: `report:${i.id}`,
       });
       if (mail.error) throw new Error(`e-mail: ${mail.error.message}`);
     }

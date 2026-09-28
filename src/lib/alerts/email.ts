@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ALERTS_TEXT } from "@/content/pt-BR/alerts";
+import type { AlertKind } from "@/lib/anon/types";
 import type { ReaderEmail } from "@/lib/newsletter/subscribe";
 import type { Result } from "@/lib/result";
 
@@ -16,6 +17,11 @@ export interface EmailAlertDeps {
   queue: (mail: ReaderEmail) => Promise<Result<void, SaveError>>;
   /** Link assinado de confirmação para o alerta criado. */
   link: (email: string, alertId: string) => string | null;
+  /**
+   * Nome do alvo no servidor (bairro, editoria, assunto público); `null` quando o alvo não
+   * existe. O texto do e-mail nunca usa rótulo vindo do cliente (gate P2, I8).
+   */
+  resolveLabel: (kind: AlertKind, target: string) => Promise<string | null>;
 }
 
 export type EmailAlertResult =
@@ -29,7 +35,8 @@ const schema = z.object({
     .trim()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
     .max(120),
-  label: z.string().trim().min(1).max(120),
+  /** Ignorado: o rótulo sai de `resolveLabel`. Aceito só para não quebrar clientes antigos. */
+  label: z.string().max(200).optional(),
   frequency: z.enum(["immediate", "daily", "weekly"]),
 });
 
@@ -47,6 +54,8 @@ export async function createEmailAlert(
   const allowed = await deps.allow();
   if (!allowed.ok) return { status: "error" };
   if (!allowed.value) return { status: "rate_limited" };
+  const label = await deps.resolveLabel(a.kind, a.target);
+  if (!label) return { status: "invalid" };
   const saved = await deps.save({
     email: a.email,
     targetKind: a.kind,
@@ -60,7 +69,8 @@ export async function createEmailAlert(
     kind: "alert_confirm",
     to: a.email,
     subject: ALERTS_TEXT.mailSubject,
-    body: ALERTS_TEXT.mailBody(a.label, link),
+    body: ALERTS_TEXT.mailBody(`${ALERTS_TEXT.kinds[a.kind]}: ${label}`, link),
+    ref: `alert:${saved.value.id}`,
   });
   if (!queued.ok) return { status: "error" };
   return { status: "pending", email: a.email };

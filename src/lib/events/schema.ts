@@ -115,6 +115,19 @@ export const EventEnvelope = z
     if (e.anonId !== null && !e.consent.personalization)
       ctx.addIssue({ code: "custom", message: "anonId exige personalização", path: ["anonId"] });
     if (!e.consent.personalization) {
+      // Só métricas: nada que ligue eventos entre si (gate P2, M1).
+      if (e.session.id !== "-")
+        ctx.addIssue({
+          code: "custom",
+          message: "sessão exige personalização",
+          path: ["session", "id"],
+        });
+      if (e.session.referrer !== null)
+        ctx.addIssue({
+          code: "custom",
+          message: "referência exige personalização",
+          path: ["session", "referrer"],
+        });
       if (e.userId !== null)
         ctx.addIssue({ code: "custom", message: "userId exige personalização", path: ["userId"] });
       for (const key of PERSONAL_PROPS)

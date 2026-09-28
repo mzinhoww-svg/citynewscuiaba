@@ -6,6 +6,7 @@ import { IDLE, type EmailLinkState } from "@/lib/auth/form-state";
 import { Button } from "../ui/Button";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
+import { useHydratedForm } from "../ui/useHydratedForm";
 
 export interface EmailLinkFormProps {
   action: (state: EmailLinkState, form: FormData) => Promise<EmailLinkState>;
@@ -34,9 +35,16 @@ export function EmailLinkForm({
 }: EmailLinkFormProps) {
   const [state, formAction, pending] = useActionState(action, IDLE as EmailLinkState);
   const [email, setEmail] = useState(defaultEmail);
+  const { ref, ready } = useHydratedForm(({ text }) => setEmail((v) => text("email") ?? v));
   const id = useId();
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-5">
+    <form
+      ref={ref}
+      action={formAction}
+      noValidate
+      className="flex flex-col gap-5"
+      data-ready={ready ? "true" : undefined}
+    >
       {Object.entries(hidden).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
@@ -59,8 +67,11 @@ export function EmailLinkForm({
             {sentDetail && <p>{sentDetail}</p>}
           </InlineAlert>
         )}
-        {(state.status === "unavailable" || state.status === "rate_limited") && (
+        {state.status === "unavailable" && (
           <InlineAlert tone="error" title={A.unavailable} role="alert" />
+        )}
+        {state.status === "rate_limited" && (
+          <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
         )}
       </div>
       <Button type="submit" fullWidth disabled={pending}>

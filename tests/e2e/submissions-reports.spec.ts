@@ -81,7 +81,7 @@ test("rejeitar sugestão exige motivo e o motivo vai ao remetente", async ({ pag
   const t = tag();
   const email = `e2e-p4-${t}@exemplo.com`;
   emails.push(email);
-  await submission(`Bazar de teste ${t}`, email);
+  const sid = await submission(`Bazar de teste ${t}`, email);
   await loginAs(page, "marina", "/estudio/agenda/sugestoes");
   const card = page.getByRole("article", { name: `Bazar de teste ${t}` });
   await card.getByRole("button", { name: "Rejeitar" }).click();
@@ -94,10 +94,11 @@ test("rejeitar sugestão exige motivo e o motivo vai ao remetente", async ({ pag
   await expect(page.getByRole("status").filter({ hasText: "Sugestão rejeitada" })).toBeVisible();
   const { data } = await service()
     .from("reader_emails")
-    .select("kind, body")
+    .select("kind, body, ref")
     .eq("to_email", email)
     .single();
   expect(data?.kind).toBe("event_rejected");
+  expect(data?.ref).toBe(`submission:${sid}`);
   expect(data?.body).toContain("Evento de venda, fora da linha da agenda");
 });
 
@@ -134,4 +135,10 @@ test("denúncia respondida sai da fila e registra resposta", async ({ page }) =>
     response: "Corrigimos o link. Obrigado pelo aviso.",
     responded_by: "c1000000-0000-4000-8000-000000000009",
   });
+  const { data: mail } = await service()
+    .from("reader_emails")
+    .select("kind, ref")
+    .eq("to_email", `e2e-p4-${t}@exemplo.com`)
+    .single();
+  expect(mail).toMatchObject({ kind: "report_response", ref: `report:${id}` });
 });

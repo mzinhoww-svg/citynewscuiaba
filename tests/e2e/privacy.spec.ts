@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test, type Page } from "@playwright/test";
+import { accountFormReady } from "./account-form";
 import { forwardedFor } from "./own-ip";
 
 /*
@@ -93,6 +94,7 @@ async function newAccount(page: Page, tag: string): Promise<string> {
   const email = `perfil-${tag}-${Date.now()}-${Math.floor(Math.random() * 1e6)}@exemplo.com`;
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto("/criar-conta?next=%2Fperfil");
+  await accountFormReady(page);
   await page.getByLabel("Nome de exibição").fill("Ana Cuiabana");
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByLabel("Senha", { exact: true }).fill("senha-forte-123");
@@ -122,6 +124,7 @@ test("excluir conta exige digitar EXCLUIR", async ({ page }) => {
 test("conta: dados, bairro, exportar e sair", async ({ page }) => {
   const email = await newAccount(page, "dados");
   await expect(page.getByText(email)).toBeVisible();
+  await accountFormReady(page);
   await page.getByLabel("Nome de exibição").fill("Ana do Porto");
   await page.getByLabel("Bairro principal").selectOption("Porto");
   await page.getByRole("button", { name: "Salvar dados" }).click();

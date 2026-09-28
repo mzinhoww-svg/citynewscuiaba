@@ -25,6 +25,7 @@ export type SignUpState =
     }
   | { status: "exists" }
   | { status: "check_email"; email: string }
+  | { status: "rate_limited" }
   | { status: "unavailable" };
 
 export type NewPasswordState =

@@ -47,8 +47,14 @@ test("centro de preferências: confirmar, mudar, sair e voltar", async ({ page }
   await form.getByRole("button", { name: "Inscrever" }).click();
   await expect(form.getByRole("status")).toContainText("Enviamos um link de confirmação");
 
-  const token = signNewsletterToken(email, ["diaria", "agenda-fds"], 3600);
+  const token = signNewsletterToken("newsletter", email, ["diaria", "agenda-fds"], 3600);
   await page.goto(`/newsletter/preferencias?token=${encodeURIComponent(token)}&confirmar=1`);
+  // Abrir o link não confirma (robôs de e-mail abrem links): só o toque no botão (gate P2, I6).
+  await expect(page.getByText("Inscrição confirmada. Obrigado!")).toHaveCount(0);
+  await expect(
+    page.getByRole("checkbox", { name: /Cuiabá em 5 minutos.*Aguardando confirmação/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Confirmar inscrição" }).click();
   await expect(page.getByText("Inscrição confirmada. Obrigado!")).toBeVisible();
   await expect(
     page.getByRole("checkbox", { name: /Cuiabá em 5 minutos.*Recebendo/ }),
@@ -74,10 +80,14 @@ test("centro de preferências: confirmar, mudar, sair e voltar", async ({ page }
 });
 
 test("link expirado ou inválido explica e oferece novo link", async ({ page }) => {
-  const expired = signNewsletterToken("a@exemplo.com", ["diaria"], -10);
+  const expired = signNewsletterToken("newsletter", "a@exemplo.com", ["diaria"], -10);
   await page.goto(`/newsletter/preferencias?token=${encodeURIComponent(expired)}`);
   await expect(page.getByRole("heading", { name: "Este link expirou" })).toBeVisible();
   await page.goto("/newsletter/preferencias?token=abc.def");
+  await expect(page.getByRole("heading", { name: "Este link não é válido" })).toBeVisible();
+  // Link de alerta não abre as preferências da newsletter (gate P2, M11).
+  const alertToken = signNewsletterToken("alert", "a@exemplo.com", ["alert:x"], 3600);
+  await page.goto(`/newsletter/preferencias?token=${encodeURIComponent(alertToken)}`);
   await expect(page.getByRole("heading", { name: "Este link não é válido" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Pedir um novo link" })).toHaveAttribute(
     "href",

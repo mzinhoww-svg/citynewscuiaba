@@ -22,7 +22,8 @@ export function downloadJson(name: string, json: string) {
   a.href = url;
   a.download = name;
   a.click();
-  URL.revokeObjectURL(url);
+  // Revogar logo depois do clique cancela o download no Safari e no Firefox (gate P2, M8).
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 /**

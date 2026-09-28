@@ -9,6 +9,7 @@ import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
+import { useHydratedForm } from "../ui/useHydratedForm";
 
 export interface SignUpFormProps {
   action: (state: SignUpState, form: FormData) => Promise<SignUpState>;
@@ -69,6 +70,14 @@ export function SignUpForm({ action, next }: SignUpFormProps) {
   const [password, setPassword] = useState("");
   const [terms, setTerms] = useState(false);
   const [newsletter, setNewsletter] = useState(false);
+  // O que foi digitado ou marcado antes da hidratação vale (celular lento).
+  const { ref, ready } = useHydratedForm(({ text, checked }) => {
+    setName((v) => text("name") ?? v);
+    setEmail((v) => text("email") ?? v);
+    setPassword((v) => text("password") ?? v);
+    setTerms((v) => checked("terms") ?? v);
+    setNewsletter((v) => checked("newsletter") ?? v);
+  });
   const id = useId();
   const bad = state.status === "invalid" ? state.fields : {};
   const strength = password ? passwordStrength(password) : null;
@@ -89,7 +98,13 @@ export function SignUpForm({ action, next }: SignUpFormProps) {
   }
 
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-5">
+    <form
+      ref={ref}
+      action={formAction}
+      noValidate
+      className="flex flex-col gap-5"
+      data-ready={ready ? "true" : undefined}
+    >
       <input type="hidden" name="next" value={next} />
       <TextField
         id={`${id}-nome`}
@@ -180,6 +195,9 @@ export function SignUpForm({ action, next }: SignUpFormProps) {
         )}
         {state.status === "unavailable" && (
           <InlineAlert tone="error" title={A.unavailable} role="alert" />
+        )}
+        {state.status === "rate_limited" && (
+          <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
         )}
       </div>
 
