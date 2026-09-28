@@ -12,12 +12,41 @@ import type { PageSelectors } from "./types";
 const MAX_ITEMS = 50;
 const TITLE_MAX = 300;
 
-const SAFE_SELECTOR = /^[\w\s.#\-,:>[\]="'*~+()]+$/;
+/** Comprimento máximo do seletor completo (FS-T4 fix round 1: era 200). */
+const MAX_SELECTOR_CHARS = 120;
+/** Até 3 partes compostas por seletor (combinadas por espaço ou `>`). */
+const MAX_COMPOUND_PARTS = 3;
+/**
+ * Qualquer um destes caracteres recusa o seletor inteiro: `*` (universal), `:` (pseudo-classe ou
+ * pseudo-elemento, cobre `:has`/`:not`/`:is`/`:where` e qualquer outro), `[`/`]` (seletor de
+ * atributo, ex.: `a[href^="javascript:"]`), `"`/`'` (string), `\` (escape), `,` (lista de
+ * seletores), `~`/`+` (combinadores irmãos).
+ */
+const FORBIDDEN_CHARS = /[*:[\]"'\\,~+]/;
+/**
+ * Uma "parte composta": um seletor de tipo opcional seguido de zero ou mais seletores de classe
+ * ou id (`article.card`, `h2`, `#main`, `.item`) — nunca vazia, nunca só símbolo.
+ */
+const COMPOUND_PART =
+  /^(?:[a-zA-Z][a-zA-Z0-9-]*(?:[.#][a-zA-Z_][\w-]*)*|(?:[.#][a-zA-Z_][\w-]*)+)$/;
 
-/** Recusa seletor com marcação, chaves de bloco CSS ou `@regra`, ou comprimento excessivo. */
+/**
+ * Gramática de permissão (FS-T4 fix round 1, review): só seletor de tipo, classe e id,
+ * combinados por espaço (descendente) ou `>` (filho direto), até 3 partes compostas. Recusa `*`,
+ * qualquer pseudo-classe/pseudo-elemento (`:has`, `:not`, `:is`, `:where`…), seletor de atributo,
+ * vírgula (lista), `~`/`+`, string, escape com barra invertida e seletor com mais de 120
+ * caracteres.
+ */
 export function isSafeSelector(s: string): boolean {
-  if (!s || s.length > 200) return false;
-  return SAFE_SELECTOR.test(s);
+  if (!s || s.length > MAX_SELECTOR_CHARS) return false;
+  if (FORBIDDEN_CHARS.test(s)) return false;
+
+  const childGroups = s.trim().split(/\s*>\s*/);
+  if (childGroups.some((g) => g.length === 0)) return false;
+  const parts = childGroups.flatMap((g) => g.split(/\s+/).filter(Boolean));
+  if (parts.length === 0 || parts.length > MAX_COMPOUND_PARTS) return false;
+
+  return parts.every((p) => COMPOUND_PART.test(p));
 }
 
 function absoluteUrl(href: string, base: string): URL | null {

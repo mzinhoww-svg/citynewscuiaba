@@ -10,7 +10,7 @@
  */
 import { parseHTML } from "linkedom";
 import type { CallAgent } from "@/lib/ai/call-agent";
-import { sourceProfileSchema } from "@/lib/ai/schemas/source-profile";
+import { sourceProfileSchema, type QualityFlag } from "@/lib/ai/schemas/source-profile";
 import type { AiError } from "@/lib/ai/types";
 import { err, ok, type Result } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
@@ -37,7 +37,7 @@ export interface SuggestedField<T> {
 export interface ProfileSuggestion {
   categories: SuggestedField<string[]>;
   locality: SuggestedField<Locality>;
-  qualityFlags: SuggestedField<string[]>;
+  qualityFlags: SuggestedField<QualityFlag[]>;
   pageSelectors: SuggestedField<PageSelectors | null>;
   rationale: SuggestedField<string>;
 }
@@ -109,7 +109,7 @@ export async function profileSource(
   if (!res.ok) return res;
 
   const draft = res.value;
-  const categories = draft.categories.filter((c) => input.sections.includes(c)).slice(0, 5);
+  const categories = draft.categories.filter((c) => input.sections.includes(c));
   const pageSelectors =
     draft.pageSelectors && selectorsSafe(draft.pageSelectors) ? draft.pageSelectors : null;
   const confidence = draft.localityConfidence;

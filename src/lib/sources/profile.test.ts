@@ -232,4 +232,14 @@ describe("ruleSuggestions", () => {
     expect(r.name.value).toBe("Folha do Cerrado");
     expect(r.slug.value).toBe("folha-do-cerrado");
   });
+
+  it("domínio parecido com .gov.br não é tratado como oficial (fix round 1)", () => {
+    const preview = previewWith(3);
+    for (const host of ["gov.br.evil.com", "evilgov.br"]) {
+      const r = ruleSuggestions(preview, new URL(`https://${host}/`));
+      expect(r.reliability).toMatchObject({ value: "standard", origin: "regra" });
+      expect(r.reliability.needsApproval).toBeFalsy();
+      expect(r.layer.value).toBe(2);
+    }
+  });
 });
