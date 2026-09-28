@@ -11,6 +11,7 @@ export interface DraftView {
   /** A regra ativa da categoria exige fonte primária? */
   requirePrimary: boolean;
   sources: { role: "primary" | "secondary" | "context"; confirmed: boolean }[];
+  /** `alt` nulo = não escrito; `""` = imagem decorativa, marcada de propósito. */
   images: { credit: string | null; alt: string | null }[];
   seoTitle: string | null;
   seoDescription: string | null;
@@ -68,7 +69,7 @@ export function checklist(a: DraftView): Checklist {
       : T.reason.primary;
   const images = a.images.some((i) => !filled(i.credit))
     ? T.reason.credit
-    : a.images.some((i) => !filled(i.alt))
+    : a.images.some((i) => i.alt === null || (i.alt !== "" && !filled(i.alt)))
       ? T.reason.alt
       : null;
   const seo =

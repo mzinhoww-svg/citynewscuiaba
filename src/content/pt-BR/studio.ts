@@ -160,6 +160,25 @@ export const QUEUE_TEXT = {
   loading: "Carregando a fila",
 } as const;
 
+export const IMAGE_TEXT = {
+  title: "Imagem da matéria",
+  none: "A matéria ainda não tem imagem.",
+  alt: "Texto alternativo",
+  altHint: "Descreva o que a imagem mostra para quem usa leitor de tela. Até 250 caracteres.",
+  decorative: "Imagem decorativa (não acrescenta informação; texto alternativo fica vazio)",
+  caption: "Legenda (opcional)",
+  captionHint: "Aparece junto da imagem. Até 300 caracteres.",
+  save: "Salvar texto da imagem",
+  saved: "Texto da imagem salvo",
+  count: (n: number, max: number) => `${n} de ${max} caracteres`,
+  altRequired: "Escreva o texto alternativo ou marque a imagem como decorativa",
+  altTooLong: (max: number) => `O texto alternativo passa de ${max} caracteres`,
+  captionTooLong: (max: number) => `A legenda passa de ${max} caracteres`,
+  missing: "Sem texto alternativo",
+  decorativeShort: "Decorativa",
+  forArticle: (title: string) => `Texto da imagem em "${title}"`,
+} as const;
+
 export const CHECKLIST_TEXT = {
   title: "Checklist de publicação",
   complete: "Checklist completo",

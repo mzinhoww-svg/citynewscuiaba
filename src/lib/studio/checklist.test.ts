@@ -42,7 +42,7 @@ it("cada item tem o próprio motivo, na ordem do checklist", () => {
   expect(checklist({ ...ok, sources: [{ role: "primary", confirmed: false }] }).blocker).toBe(
     "Falta fonte primária confirmada",
   );
-  expect(checklist({ ...ok, images: [{ credit: "X", alt: "" }] }).blocker).toBe(
+  expect(checklist({ ...ok, images: [{ credit: "X", alt: null }] }).blocker).toBe(
     "Falta texto alternativo da imagem",
   );
   expect(checklist({ ...ok, seoDescription: null }).blocker).toBe(
@@ -91,4 +91,12 @@ describe("rascunho sem IA (B-015)", () => {
     expect(c.complete).toBe(true);
     expect(c.items[0]).toMatchObject({ key: "ai_fallback", ok: true });
   });
+});
+
+it("imagem decorativa (alt vazio de propósito) passa; alt não escrito bloqueia", () => {
+  expect(checklist({ ...ok, images: [{ credit: "X", alt: "" }] }).complete).toBe(true);
+  expect(checklist({ ...ok, images: [{ credit: "X", alt: null }] }).blocker).toBe(
+    "Falta texto alternativo da imagem",
+  );
+  expect(checklist({ ...ok, images: [{ credit: "X", alt: "   " }] }).complete).toBe(false);
 });

@@ -13,8 +13,15 @@ import {
   OriginLabel,
   PublishDialog,
   SourcesEditor,
+  ImageTextForm,
+  MediaThumb,
 } from "@/components";
-import { ARTICLE_STATUS_LABEL, CORRECTIONS_TEXT, EDITOR_TEXT as T } from "@/content/pt-BR/studio";
+import {
+  ARTICLE_STATUS_LABEL,
+  CORRECTIONS_TEXT,
+  EDITOR_TEXT as T,
+  IMAGE_TEXT,
+} from "@/content/pt-BR/studio";
 import { can, canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { listSectionOptions } from "@/lib/db/queries/queue";
@@ -35,6 +42,7 @@ import {
   suggestIllustrationAction,
   rejectSuggestionAction,
   saveDraftAction,
+  setImageTextAction,
   updateSourcesAction,
 } from "../../actions";
 import { articleLabels, originNotes } from "../view";
@@ -78,6 +86,10 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
   };
   const canEdit = can(session.roles, "article.edit", scope);
   const isPublic = a.status === "published" || a.status === "updated";
+  // Texto da imagem: editoria mesmo em publicada (acessibilidade); jornalista só com a redação.
+  const canEditImageText =
+    can(session.roles, "article.publish", scope) ||
+    (canEdit && ["draft", "in_review", "changes_requested"].includes(a.status));
   const canPublish = can(session.roles, "article.publish", scope) && !isPublic;
   const [sections, topics, candidates, headline] = await Promise.all([
     listSectionOptions(),
@@ -196,6 +208,36 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
             />
           )}
           <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
+          <section
+            aria-labelledby="imagem-da-materia"
+            className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
+          >
+            <h2 id="imagem-da-materia" className="type-section text-strong">
+              {IMAGE_TEXT.title}
+            </h2>
+            {a.images.length === 0 ? (
+              <p className="type-body text-meta">{IMAGE_TEXT.none}</p>
+            ) : (
+              a.images.map((img) => (
+                <div key={img.mediaId} className="flex flex-col gap-3">
+                  <MediaThumb
+                    src={`/api/estudio/midia/${img.mediaId}`}
+                    alt={img.alt ?? ""}
+                    className="max-w-sm"
+                  />
+                  <ImageTextForm
+                    key={img.mediaId}
+                    articleId={a.id}
+                    mediaId={img.mediaId}
+                    alt={img.alt}
+                    caption={img.caption}
+                    heading={img.credit ?? img.license}
+                    save={canEditImageText ? setImageTextAction : undefined}
+                  />
+                </div>
+              ))
+            )}
+          </section>
           {canEdit && !isPublic && (
             <GenerateImageDrawer articleId={a.id} suggest={suggestIllustrationAction} />
           )}

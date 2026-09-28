@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EmptyState, ImageApproval, InlineAlert, MediaThumb, OriginLabel } from "@/components";
-import { ARTICLE_STATUS_LABEL, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
+import {
+  EmptyState,
+  ImageApproval,
+  ImageTextForm,
+  InlineAlert,
+  MediaThumb,
+  OriginLabel,
+} from "@/components";
+import { ARTICLE_STATUS_LABEL, IMAGE_TEXT, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { getMedia, replacementOptions } from "@/lib/db/queries/studio-media";
@@ -12,6 +19,7 @@ import {
   approveImageAction,
   blockImageAction,
   replaceImageAction,
+  setImageTextAction,
   takedownImageAction,
 } from "../../actions";
 import { LoadError, loadOrNull } from "../../load-error";
@@ -49,6 +57,15 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
   const replaceable = m.articles.filter((a) =>
     can(session.roles, "article.edit", { section: a.sectionSlug, userId: session.userId }),
   );
+  // Texto da imagem por matéria: editoria (inclusive publicada) ou jornalista autor com a redação.
+  const canEditText = (a: (typeof m.articles)[number]) =>
+    can(session.roles, "article.publish", { section: a.sectionSlug, userId: session.userId }) ||
+    (can(session.roles, "article.edit", {
+      section: a.sectionSlug,
+      ownerId: a.authorId ?? undefined,
+      userId: session.userId,
+    }) &&
+      ["draft", "in_review", "changes_requested"].includes(a.status));
   const options = replaceable.length ? await replacementOptions(m.id) : [];
   const label = labelsFor({
     kind: "original",
@@ -149,17 +166,28 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
             ) : (
               <ul className="mt-2 flex flex-col gap-2">
                 {m.articles.map((a) => (
-                  <li key={a.id} className="type-body">
-                    <Link
-                      href={`/estudio/materias/${a.id}`}
-                      className="font-semibold text-strong underline-offset-4 hover:underline"
-                    >
-                      {a.title}
-                    </Link>
-                    <span className="block type-meta text-meta">
-                      {ARTICLE_STATUS_LABEL[a.status as keyof typeof ARTICLE_STATUS_LABEL] ??
-                        a.status}
-                    </span>
+                  <li key={a.id} className="flex flex-col gap-3 type-body">
+                    <div>
+                      <Link
+                        href={`/estudio/materias/${a.id}`}
+                        className="font-semibold text-strong underline-offset-4 hover:underline"
+                      >
+                        {a.title}
+                      </Link>
+                      <span className="block type-meta text-meta">
+                        {ARTICLE_STATUS_LABEL[a.status as keyof typeof ARTICLE_STATUS_LABEL] ??
+                          a.status}
+                      </span>
+                    </div>
+                    <ImageTextForm
+                      key={a.id}
+                      articleId={a.id}
+                      mediaId={m.id}
+                      alt={a.alt}
+                      caption={a.caption}
+                      heading={IMAGE_TEXT.forArticle(a.title)}
+                      save={canEditText(a) ? setImageTextAction : undefined}
+                    />
                   </li>
                 ))}
               </ul>

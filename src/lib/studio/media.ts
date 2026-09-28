@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
+import { IMAGE_TEXT, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { ImageSchema } from "@/lib/ai/schemas/image";
 import { illustrationGuard } from "@/lib/media/licenses";
 import { takedownReproduction } from "@/lib/media/takedown";
@@ -8,6 +8,7 @@ import { localDateKey } from "@/lib/format/date";
 import { studioAction, StudioFailure, type ActionContext } from "./action";
 import type { StudioContext } from "./context";
 import { articleCacheTags } from "./queue";
+import { imageTextError, normalizeImageText } from "./image-text";
 import { articleScope, MULTI_SECTION } from "./scope";
 
 /**
@@ -188,6 +189,53 @@ export const replaceImage = studioAction(
     return { articleId: i.articleId, mediaId: i.mediaId };
   },
   { schema: ReplaceInput, objectRef: (i) => `article:${i.articleId}`, auditAs: "media.replace" },
+);
+
+const ImageTextInput = z.object({
+  articleId: z.uuid(),
+  mediaId: z.uuid(),
+  alt: z.string().max(2000),
+  caption: z.string().max(2000),
+  decorative: z.boolean(),
+});
+export type ImageTextInput = z.infer<typeof ImageTextInput>;
+
+/**
+ * Texto alternativo e legenda da imagem numa matéria (E04 e E10, `article.edit`: editoria,
+ * ou jornalista autor enquanto a matéria está com a redação). "Decorativa" grava alt vazio de
+ * propósito. Grava por `studio_set_image_text` (security definer, mesmo caminho da troca de
+ * imagem). Em matéria publicada, invalida o cache.
+ */
+export const setImageText = studioAction(
+  "article.edit",
+  (i: ImageTextInput, ctx) => articleScope(ctx, i.articleId),
+  async (raw, ctx) => {
+    const problem = imageTextError(raw);
+    if (problem) throw new StudioFailure("invalid", problem);
+    const i = normalizeImageText(raw);
+    const { data, error } = await ctx.db.rpc("studio_set_image_text", {
+      p_article: raw.articleId,
+      p_media: raw.mediaId,
+      p_alt: i.alt,
+      p_caption: i.caption,
+      p_decorative: i.decorative,
+    });
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden");
+      throw new Error(`texto da imagem: ${error.message}`);
+    }
+    const r = (data ?? {}) as { status?: string; public?: boolean };
+    if (r.status === "not_found") throw new StudioFailure("not_found");
+    if (r.status === "invalid") throw new StudioFailure("invalid", IMAGE_TEXT.altRequired);
+    ctx.detail({ media: raw.mediaId, decorative: i.decorative, caption: i.caption !== "" });
+    if (r.public) await ctx.revalidate(await articleCacheTags(ctx, raw.articleId));
+    return { articleId: raw.articleId, mediaId: raw.mediaId, decorative: i.decorative };
+  },
+  {
+    schema: ImageTextInput,
+    objectRef: (i) => `article:${i.articleId}`,
+    auditAs: "media.image_text",
+  },
 );
 
 const RenewInput = z.object({

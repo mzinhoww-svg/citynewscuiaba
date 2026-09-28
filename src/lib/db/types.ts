@@ -241,6 +241,7 @@ export type Database = {
         Row: {
           alt: string | null;
           article_id: string;
+          caption: string | null;
           chosen_at: string;
           chosen_by: string;
           media_id: string;
@@ -249,6 +250,7 @@ export type Database = {
         Insert: {
           alt?: string | null;
           article_id: string;
+          caption?: string | null;
           chosen_at?: string;
           chosen_by: string;
           media_id: string;
@@ -257,6 +259,7 @@ export type Database = {
         Update: {
           alt?: string | null;
           article_id?: string;
+          caption?: string | null;
           chosen_at?: string;
           chosen_by?: string;
           media_id?: string;
@@ -2712,6 +2715,16 @@ export type Database = {
       studio_replace_image: { Args: { p_article: string; p_media: string }; Returns: Json };
       studio_request_reprocess: { Args: { p_article: string }; Returns: number };
       studio_save_draft: { Args: { p_base: number; p_id: string; p_patch: Json }; Returns: Json };
+      studio_set_image_text: {
+        Args: {
+          p_alt: string;
+          p_article: string;
+          p_caption: string;
+          p_decorative?: boolean;
+          p_media: string;
+        };
+        Returns: Json;
+      };
       studio_set_sources: { Args: { p_id: string; p_sources: Json }; Returns: Json };
       studio_snapshot: {
         Args: { a: Database["public"]["Tables"]["articles"]["Row"] };

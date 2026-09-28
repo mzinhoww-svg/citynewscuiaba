@@ -27,6 +27,7 @@ export const AUDIT_ACTIONS = [
   "media.replace",
   "media.takedown.request",
   "report.respond",
+  "media.image_text",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

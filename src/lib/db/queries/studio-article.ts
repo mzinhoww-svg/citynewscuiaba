@@ -35,6 +35,7 @@ export interface StudioImage {
   license: string;
   licenseUntil: string | null;
   alt: string | null;
+  caption: string | null;
   sourceName: string | null;
   rationale: string;
   chosenBy: string;
@@ -151,7 +152,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     db
       .from("article_media")
       .select(
-        "media_id, rationale, chosen_by, alt, media_assets(kind, status, credit, license, license_until, source_name)",
+        "media_id, rationale, chosen_by, alt, caption, media_assets(kind, status, credit, license, license_until, source_name)",
       )
       .eq("article_id", id),
     db
@@ -264,6 +265,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
               license: m.media_assets.license,
               licenseUntil: m.media_assets.license_until,
               alt: m.alt,
+              caption: m.caption,
               sourceName: m.media_assets.source_name,
               rationale: m.rationale,
               chosenBy: m.chosen_by,

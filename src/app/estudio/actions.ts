@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import {
   CORRECTIONS_TEXT,
+  IMAGE_TEXT,
   EDITOR_TEXT,
   MEDIA_TEXT,
   MODERATION_TEXT,
@@ -27,7 +28,9 @@ import {
   generateIllustration,
   renewLicense,
   replaceImage,
+  setImageText,
   takedownImage,
+  type ImageTextInput,
 } from "@/lib/studio/media";
 import { approveSubmission, rejectSubmission, respondReport } from "@/lib/studio/moderation";
 import { publishArticle } from "@/lib/studio/publish";
@@ -256,6 +259,10 @@ export async function openCorrectionAction(formData: FormData): Promise<void> {
 
 export async function approveImageAction(input: { id: string }): Promise<ActionReply> {
   return reply(await approveImage(input), MEDIA_TEXT.approved);
+}
+
+export async function setImageTextAction(input: ImageTextInput): Promise<ActionReply> {
+  return reply(await setImageText(input), IMAGE_TEXT.saved);
 }
 
 export async function takedownImageAction(input: {

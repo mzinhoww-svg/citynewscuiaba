@@ -9,7 +9,10 @@ import { POST as revalidatePOST } from "@/app/api/jobs/revalidate/route";
 import type { Json } from "@/lib/db/types";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { openCorrection } from "@/lib/studio/corrections";
-import { approveImage, takedownImage } from "@/lib/studio/media";
+import { approveImage, setImageText, takedownImage } from "@/lib/studio/media";
+import { checklist } from "@/lib/studio/checklist";
+import { studioContext } from "@/lib/studio/context";
+import { loadDraftView } from "@/lib/studio/draft-view";
 import { publishArticle } from "@/lib/studio/publish";
 import { approveSubmission, rejectSubmission } from "@/lib/studio/moderation";
 import { assign } from "@/lib/studio/queue";
@@ -45,6 +48,7 @@ const ids = {
   dueBad: randomUUID(),
   dueGood: randomUUID(),
   other: randomUUID(),
+  juliana: randomUUID(),
 };
 const media: string[] = [];
 const corrections: string[] = [];
@@ -804,5 +808,110 @@ describe("FKs para profiles e exclusão de ex-integrante", () => {
       .single();
     expect(after).toEqual({ responded_by: null, response: "Respondido" });
     expect(JSON.stringify((await statusOf(ids.draft)).field_origins)).not.toContain(uid);
+  });
+});
+
+describe("texto alternativo e legenda da imagem", () => {
+  it("jornalista escreve o texto alternativo no próprio rascunho e o checklist passa", async () => {
+    await createArticle(ids.juliana, { author_id: SEED_USERS.juliana.id, status: "draft" });
+    await service
+      .from("article_sources")
+      .insert({ article_id: ids.juliana, item_id: ITEM, role: "primary", confirmed: true });
+    const { data: m } = await service
+      .from("media_assets")
+      .insert({
+        kind: "original",
+        storage_path: `original/gate-alt-${randomUUID()}.jpg`,
+        license: "CityNews",
+        credit: "Foto: Redação",
+        allowed_use: "editorial",
+        status: "approved",
+      })
+      .select("id")
+      .single();
+    media.push(m!.id);
+    await service
+      .from("article_media")
+      .insert({ article_id: ids.juliana, media_id: m!.id, rationale: "t", chosen_by: "t" });
+
+    const check = () =>
+      asUser("juliana", async () =>
+        checklist((await loadDraftView(await studioContext(), ids.juliana))!),
+      );
+    expect((await check()).blocker).toBe("Falta texto alternativo da imagem");
+
+    const empty = await asUser("juliana", () =>
+      setImageText({
+        articleId: ids.juliana,
+        mediaId: m!.id,
+        alt: " ",
+        caption: "",
+        decorative: false,
+      }),
+    );
+    expect(empty).toMatchObject({ ok: false, error: "invalid" });
+    const long = await asUser("juliana", () =>
+      setImageText({
+        articleId: ids.juliana,
+        mediaId: m!.id,
+        alt: "a".repeat(251),
+        caption: "",
+        decorative: false,
+      }),
+    );
+    expect(long).toMatchObject({ ok: false, error: "invalid" });
+    const other = await asUser("rafael", () =>
+      setImageText({
+        articleId: ids.juliana,
+        mediaId: m!.id,
+        alt: "x",
+        caption: "",
+        decorative: false,
+      }),
+    );
+    expect(other).toEqual({ ok: false, error: "forbidden" });
+
+    const r = await asUser("juliana", () =>
+      setImageText({
+        articleId: ids.juliana,
+        mediaId: m!.id,
+        alt: "Agentes limpam o córrego do CPA com pás e sacos de lixo",
+        caption: "Mutirão no córrego do CPA",
+        decorative: false,
+      }),
+    );
+    expect(r).toMatchObject({ ok: true });
+    const c = await check();
+    expect(c.complete).toBe(true);
+    const { data: link } = await service
+      .from("article_media")
+      .select("alt, caption")
+      .eq("article_id", ids.juliana)
+      .single();
+    expect(link).toEqual({
+      alt: "Agentes limpam o córrego do CPA com pás e sacos de lixo",
+      caption: "Mutirão no córrego do CPA",
+    });
+    // O banco concorda: nada bloqueia a publicação.
+    const { data: blockers } = await service.rpc("studio_publish_blockers", { p_id: ids.juliana });
+    expect(blockers).toEqual([]);
+
+    const deco = await asUser("juliana", () =>
+      setImageText({
+        articleId: ids.juliana,
+        mediaId: m!.id,
+        alt: "sobra",
+        caption: "",
+        decorative: true,
+      }),
+    );
+    expect(deco).toMatchObject({ ok: true });
+    expect((await check()).complete).toBe(true);
+    const { data: after } = await service
+      .from("article_media")
+      .select("alt, caption")
+      .eq("article_id", ids.juliana)
+      .single();
+    expect(after).toEqual({ alt: "", caption: null });
   });
 });

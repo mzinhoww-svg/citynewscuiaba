@@ -239,6 +239,7 @@ export { CorrectionForm, type CorrectionFormProps } from "./studio/CorrectionFor
 export { MediaThumb, type MediaThumbProps } from "./studio/MediaThumb";
 export { MediaGrid, type MediaGridItem, type MediaGridProps } from "./studio/MediaGrid";
 export { ImageApproval, type ImageApprovalProps } from "./studio/ImageApproval";
+export { ImageTextForm, type ImageTextFormProps } from "./studio/ImageTextForm";
 export {
   GenerateImageDrawer,
   type GenerateImageDrawerProps,
