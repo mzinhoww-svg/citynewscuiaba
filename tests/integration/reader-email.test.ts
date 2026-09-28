@@ -160,6 +160,43 @@ describe("dedupe por alvo (gate P2, I4)", () => {
   });
 });
 
+describe("retenção da fila e de alertas não confirmados (gate P2, M5)", () => {
+  const old = `${tag}-velho@exemplo.com`;
+  afterAll(async () => {
+    await db.from("reader_emails").delete().eq("to_email", old);
+    await db.from("alerts").delete().eq("owner_ref", `email:${old}`);
+  });
+
+  it("apaga fila com mais de 30 dias e alerta por e-mail nunca confirmado depois de 7", async () => {
+    const d40 = new Date(Date.now() - 40 * 86_400_000).toISOString();
+    const d8 = new Date(Date.now() - 8 * 86_400_000).toISOString();
+    const now = new Date().toISOString();
+    const m = await db.from("reader_emails").insert([
+      { kind: "alert_confirm", to_email: old, subject: "s", body: "b", ref: "a", created_at: d40 },
+      { kind: "alert_confirm", to_email: old, subject: "s", body: "b", ref: "b", created_at: now },
+    ]);
+    const base = {
+      owner_ref: `email:${old}`,
+      target_kind: "bairro",
+      frequency: "daily",
+      channel: "email",
+    };
+    expect(m.error).toBeNull();
+    const a = await db.from("alerts").insert([
+      { ...base, target_id: "cpa", active: false, created_at: d8 },
+      { ...base, target_id: "centro-norte", active: true, created_at: d8 },
+      { ...base, target_id: "boa-esperanca", active: false, created_at: now },
+    ]);
+    expect(a.error).toBeNull();
+    const r = await db.rpc("purge_reader_emails", { p_days: 30 });
+    expect(r.error).toBeNull();
+    const mails = await db.from("reader_emails").select("ref").eq("to_email", old);
+    expect(mails.data).toEqual([{ ref: "b" }]);
+    const alerts = await db.from("alerts").select("target_id").eq("owner_ref", `email:${old}`);
+    expect(alerts.data?.map((a) => a.target_id).sort()).toEqual(["boa-esperanca", "centro-norte"]);
+  });
+});
+
 describe("novidades para alertas de navegador", () => {
   it("traz matérias públicas com bairros e assunto público, nunca assunto interno", async () => {
     const items = value(await listAlertItems(new Date(0), new Date("2026-09-28T12:00:00Z")));

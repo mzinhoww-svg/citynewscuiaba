@@ -14,7 +14,9 @@ async function messages(code: string, filePath: string): Promise<string[]> {
 
 const component = "src/components/ui/Fake.tsx";
 
-it("bloqueia hex cru em componente", async () => {
+// O primeiro lint carrega a configuração inteira do ESLint (partida a frio): com a máquina
+// ocupada passa dos 5 s padrão, por isso o prazo maior só aqui.
+it("bloqueia hex cru em componente", { timeout: 30_000 }, async () => {
   const out = await messages(
     `export const A = () => <div style={{ color: "#fff" }} />;\n`,
     component,
