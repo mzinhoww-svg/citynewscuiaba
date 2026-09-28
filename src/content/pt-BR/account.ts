@@ -172,6 +172,11 @@ export const MIGRATE_TEXT = {
     history: "Histórico de leitura dos últimos 30 dias",
     conversations: "Conversas com a IA",
   },
+  /** Avisos que acompanham a caixa (gate P2, I3). */
+  hints: {
+    history:
+      "Leva também o identificador anônimo deste navegador: as leituras que ele registrou nos últimos 90 dias passam a ficar ligadas à sua conta.",
+  } as Partial<Record<"follows" | "saved" | "interests" | "history" | "conversations", string>>,
   count: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
   noConversations: "Nenhuma conversa guardada neste navegador.",
   submit: "Levar selecionados",

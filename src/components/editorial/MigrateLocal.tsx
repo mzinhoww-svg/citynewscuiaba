@@ -7,6 +7,7 @@ import {
   DEFAULT_MIGRATION_CHOICE,
   hasLocalData,
   migrationCounts,
+  migrationPayload,
   type MigrationChoice,
 } from "@/lib/anon/migrate";
 import type { AnonProfile } from "@/lib/anon/types";
@@ -116,7 +117,11 @@ export function MigrateLocal({ action, next, method, userId }: MigrateLocalProps
   };
   const submit = async () => {
     setPhase("busy");
-    const r = await action(profile, choice).catch((): Result => ({ ok: false, reason: "error" }));
+    // Só o que foi marcado sai do navegador (buscas nunca; id anônimo só com o histórico).
+    const r = await action(migrationPayload(profile, choice), choice).catch((): Result => ({
+      ok: false,
+      reason: "error",
+    }));
     if (!r.ok) {
       if (r.reason === "session") router.replace(`/entrar?next=${encodeURIComponent(next)}`);
       setPhase("error");
@@ -154,6 +159,7 @@ export function MigrateLocal({ action, next, method, userId }: MigrateLocalProps
         {KEYS.map((k) => {
           const n = counts[k];
           const off = k === "conversations" && n === 0;
+          const hint = T.hints[k];
           return (
             <label
               key={k}
@@ -165,12 +171,18 @@ export function MigrateLocal({ action, next, method, userId }: MigrateLocalProps
                 type="checkbox"
                 checked={choice[k] && !off}
                 disabled={off}
+                aria-describedby={hint ? `${id}-${k}-hint` : undefined}
                 onChange={(e) => setChoice({ ...choice, [k]: e.target.checked })}
                 className="mt-0.5 size-5 shrink-0 accent-(--action-primary)"
               />
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="type-body text-strong">{T.options[k]}</span>
                 <span className="type-meta text-meta">{off ? T.noConversations : T.count(n)}</span>
+                {hint && (
+                  <span id={`${id}-${k}-hint`} className="type-meta text-meta">
+                    {hint}
+                  </span>
+                )}
               </span>
             </label>
           );
