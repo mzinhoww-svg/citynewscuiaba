@@ -69,6 +69,7 @@ export function AlertsClient({ targets }: AlertsClientProps) {
         await act((s) => s.addAlert(base));
         void showNotification(T.testTitle, { body: T.testBody, href: "/alertas", tag: "cn-teste" });
         setFeedback({ tone: "success", text: T.created });
+        requestLoginInvite("alert");
       } else {
         const res = await fetch("/api/alertas", {
           method: "POST",
@@ -84,6 +85,7 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           await act((s) => s.addAlert({ ...base, status: "pending_email", email: confirmed }));
           setFeedback({ tone: "success", text: T.createdEmail });
           setEmail("");
+          requestLoginInvite("alert");
         } else
           setFeedback({
             tone: "error",
@@ -95,7 +97,6 @@ export function AlertsClient({ targets }: AlertsClientProps) {
                   : T.error,
           });
       }
-      requestLoginInvite("alert");
     } finally {
       setBusy(false);
     }

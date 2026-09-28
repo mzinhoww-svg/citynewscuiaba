@@ -9,8 +9,9 @@ export const FAVORITES_TEXT = {
   deviceOnlyText:
     "Seus favoritos ficam guardados neste navegador. Se limpar os dados do navegador, eles somem.",
   sync: "Sincronizar (opcional)",
+  /** Texto fixo de "ação que exige conta" (spec §5.4). */
   syncSoon:
-    "A sincronização entre aparelhos chega com a conta opcional. Você pode continuar sem cadastro.",
+    "Para sincronizar essa preferência entre dispositivos, é necessário entrar ou criar uma conta. Você pode continuar usando o CityNews sem cadastro.",
   tabsLabel: "Seus favoritos",
   tabs: {
     saved: "Salvos",

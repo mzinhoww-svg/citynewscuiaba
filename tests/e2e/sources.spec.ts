@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { skipInvite } from "./invite";
 
 /*
  * Fontes em destaque (P14, spec §7.5, docs/testing.md §2 item 3, P2-T7): 7 listas, seguir sem
@@ -106,6 +107,7 @@ test("seguir sem login aparece em Fontes que você segue e continua depois de re
   const follow = panel(page).getByRole("button", { name: "Seguir MT Agora" });
   await follow.click();
   await expect(follow).toHaveAttribute("aria-pressed", "true");
+  await skipInvite(page);
   await page.getByRole("tab", { name: "Fontes que você segue" }).click();
   await expect(panel(page).getByRole("link", { name: "MT Agora" })).toBeVisible();
   await expect(panel(page).getByText("Veículo seguido por você")).toBeVisible();

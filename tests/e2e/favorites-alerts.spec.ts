@@ -1,10 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { skipInvite } from "./invite";
 import { forwardedFor } from "./own-ip";
 
 /*
  * Favoritos (P17) e Alertas (P18), P2-T9: tudo sem conta, guardado neste navegador. O convite
- * de login (P2-T10) ainda não tem interface: nenhum "Agora não" aparece aqui.
+ * de login (P2-T10) aparece uma vez por gatilho: aqui ele é recusado com "Agora não".
  */
 const ARTICLE = "/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const TITLE = "Prefeitura detalha novo plano de ônibus entre CPA e Centro";
@@ -25,6 +26,7 @@ async function saveArticle(page: Page) {
   await save.click();
   await expect(save).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByText("Salvo neste aparelho.")).toBeVisible();
+  await skipInvite(page);
 }
 
 test("salvos anônimos mostram aviso de aparelho e funcionam", async ({ page }) => {
@@ -73,6 +75,7 @@ test("fontes e assuntos seguidos e coleções pessoais em Favoritos", async ({ p
   await page.goto("/fontes/mt-agora");
   await ready(page);
   await page.getByRole("button", { name: "Seguir MT Agora" }).click();
+  await skipInvite(page);
   await page.goto("/fontes/placar-mt");
   await ready(page);
   await page.getByRole("button", { name: "Seguir Placar MT" }).click();
@@ -87,6 +90,7 @@ test("fontes e assuntos seguidos e coleções pessoais em Favoritos", async ({ p
     "aria-pressed",
     "true",
   );
+  await skipInvite(page);
 
   await page.goto("/favoritos");
   await ready(page);
@@ -110,6 +114,7 @@ test("fontes e assuntos seguidos e coleções pessoais em Favoritos", async ({ p
   await expect(page.getByText("Nenhuma coleção pessoal")).toBeVisible();
   await page.getByLabel("Nome da nova coleção").fill("Para o fim de semana");
   await page.getByRole("button", { name: "Criar coleção" }).click();
+  await skipInvite(page);
   await page.getByRole("button", { name: "Renomear Para o fim de semana" }).click();
   await page.getByLabel("Novo nome para Para o fim de semana").fill("Sábado");
   await page.getByRole("button", { name: "Salvar nome" }).click();
@@ -145,6 +150,7 @@ test("alerta de navegador com permissão fica ativo neste aparelho", async ({
   await expect(page.getByText(/Alerta criado. Você recebe/)).toBeVisible();
   await expect(page.getByText("Bairro: CPA")).toBeVisible();
   await expect(page.getByText(/Resumo diário · Navegador · Ativo/)).toBeVisible();
+  await skipInvite(page);
   await page.reload();
   await ready(page);
   await expect(page.getByText("Bairro: CPA")).toBeVisible();
@@ -164,6 +170,7 @@ test("alerta por e-mail fica pendente até a confirmação", async ({ page }) =>
   await page.getByRole("textbox", { name: "E-mail" }).fill(`alerta-${Date.now()}@exemplo.com`);
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Enviamos um link de confirmação/)).toBeVisible();
+  await skipInvite(page);
   await expect(page.getByText(/E-mail não confirmado: enviamos um link para/)).toBeVisible();
   await page.goto("/alertas/confirmar?token=lixo");
   await expect(page.getByRole("heading", { name: "Este link não é válido" })).toBeVisible();

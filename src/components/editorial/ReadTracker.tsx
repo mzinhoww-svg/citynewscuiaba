@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { noteQualifiedRead } from "@/lib/anon/invite-storage";
 import { getAnonStore } from "@/lib/anon/store";
 import { useConsent } from "@/lib/consent/client";
 import { isQualifiedRead } from "@/lib/events/weak";
@@ -26,15 +27,15 @@ function scrollPct(el: HTMLElement): number {
  * Mede a leitura da matéria (sem renderizar nada): tempo com a aba visível e rolagem máxima.
  * Leitura qualificada (≥ 30 s e ≥ 50%, ou ≥ 60 s, spec §7.2) vira `article_read`, só com
  * consentimento. Com Personalização, a leitura também entra no histórico local (30 dias);
- * sem ela, nada é guardado nem enviado.
+ * sem ela, nada é guardado nem enviado. Em qualquer caso, a leitura qualificada soma 1 no
+ * contador da aba (sessionStorage, nunca enviado) que abre o painel da primeira visita (P23).
  */
 export function ReadTracker({ contentId, targetId, section, sourceSlug }: ReadTrackerProps) {
   const [consent] = useConsent();
   const send = useTrack();
-  const active = consent.decided && (consent.metrics || consent.personalization);
+  const sending = consent.decided && (consent.metrics || consent.personalization);
 
   useEffect(() => {
-    if (!active) return;
     const el = document.getElementById(targetId);
     if (!el) return;
     let seconds = 0;
@@ -52,6 +53,8 @@ export function ReadTracker({ contentId, targetId, section, sourceSlug }: ReadTr
     const check = () => {
       if (sent || !isQualifiedRead(seconds, maxScroll)) return;
       sent = true;
+      noteQualifiedRead();
+      if (!sending) return;
       void send("article_read", { seconds, scrollPct: maxScroll }, { contentId });
       record();
     };
@@ -77,7 +80,7 @@ export function ReadTracker({ contentId, targetId, section, sourceSlug }: ReadTr
       window.removeEventListener("pagehide", record);
       record();
     };
-  }, [active, consent.personalization, contentId, targetId, section, sourceSlug, send]);
+  }, [sending, consent.personalization, contentId, targetId, section, sourceSlug, send]);
 
   return null;
 }

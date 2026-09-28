@@ -5,6 +5,8 @@ import { ConsentProvider } from "@/lib/consent/client";
 import { AlertWatcher } from "./AlertWatcher";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
+import { FirstVisitInvite } from "./FirstVisitInvite";
+import { LoginInvite } from "./LoginInvite";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
@@ -38,6 +40,8 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         </main>
         <SiteFooter />
         <BottomNav />
+        <FirstVisitInvite />
+        <LoginInvite />
       </div>
     </ConsentProvider>
   );

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { skipInvite } from "./invite";
 import { forwardedFor } from "./own-ip";
 
 /*
@@ -48,6 +49,7 @@ test("seguir na página da fonte sem login e filtro por editoria", async ({ page
   const follow = page.getByRole("button", { name: "Seguir MT Agora" });
   await follow.click();
   await expect(follow).toHaveAttribute("aria-pressed", "true");
+  await skipInvite(page);
   await page.goto("/fontes?aba=seguidas");
   await expect(page.locator('[data-ready="true"]')).toBeVisible();
   await expect(

@@ -56,7 +56,7 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
             variant="outline"
             onClick={() => {
               setSyncAsked(true);
-              requestLoginInvite("sync");
+              requestLoginInvite("sync", { explicit: true });
             }}
           >
             {T.sync}
