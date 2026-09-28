@@ -390,3 +390,18 @@ export async function listVersions(
     }),
   };
 }
+
+/** Manchete atual da home: a publicada mais recente com destino home (fora a própria matéria). */
+export async function currentHeadline(exceptId: string): Promise<string | null> {
+  const ctx = await studioContext();
+  const { data } = await ctx.db
+    .from("articles")
+    .select("title")
+    .in("status", ["published", "updated"])
+    .contains("publish_destinations", ["home"])
+    .neq("id", exceptId)
+    .order("published_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.title ?? null;
+}

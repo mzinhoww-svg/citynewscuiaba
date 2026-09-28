@@ -474,6 +474,7 @@ export type Database = {
           id: string;
           kind: Database["public"]["Enums"]["content_kind"];
           neighborhoods: string[];
+          publish_destinations: string[];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
           review_reason: string | null;
@@ -510,6 +511,7 @@ export type Database = {
           id?: string;
           kind: Database["public"]["Enums"]["content_kind"];
           neighborhoods?: string[];
+          publish_destinations?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           review_reason?: string | null;
@@ -546,6 +548,7 @@ export type Database = {
           id?: string;
           kind?: Database["public"]["Enums"]["content_kind"];
           neighborhoods?: string[];
+          publish_destinations?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           review_reason?: string | null;
@@ -2329,6 +2332,15 @@ export type Database = {
         Returns: {
           article_id: string;
           reads: number;
+        }[];
+      };
+      publish_due_scheduled: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          section_slug: string;
+          slug: string;
+          topic_id: string;
         }[];
       };
       purge_deleted_accounts: { Args: { p_days?: number }; Returns: number };

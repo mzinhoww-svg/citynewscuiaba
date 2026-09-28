@@ -230,3 +230,8 @@ export {
   type VersionCompareProps,
   type VersionDiffOp,
 } from "./studio/VersionDiff";
+export {
+  PublishDialog,
+  type PublishDestination,
+  type PublishDialogProps,
+} from "./studio/PublishDialog";

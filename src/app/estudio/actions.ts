@@ -1,6 +1,7 @@
 "use server";
 
-import { EDITOR_TEXT, QUEUE_TEXT, REVIEW_TEXT } from "@/content/pt-BR/studio";
+import { EDITOR_TEXT, PUBLISH_TEXT, QUEUE_TEXT, REVIEW_TEXT } from "@/content/pt-BR/studio";
+import { formatDateTime } from "@/lib/format/date";
 import type { StudioResult } from "@/lib/studio/action";
 import { publishArticle } from "@/lib/studio/publish";
 import { rejectItem, reprocessItem, requestChanges, updateSources } from "@/lib/studio/review";
@@ -143,4 +144,15 @@ export async function requestChangesAction(input: {
 
 export async function reprocessAction(input: { id: string }): Promise<ActionReply> {
   return reply(await reprocessItem(input), REVIEW_TEXT.reprocessed);
+}
+
+export async function publishAction(input: {
+  id: string;
+  when: "now" | { at: string };
+  destinations: ("home" | "section" | "topic" | "newsletter")[];
+}): Promise<ActionReply> {
+  const r = await publishArticle(input);
+  if (r.ok && r.value.status === "scheduled" && r.value.scheduledFor)
+    return { ok: true, message: PUBLISH_TEXT.scheduled(formatDateTime(r.value.scheduledFor)) };
+  return reply(r, PUBLISH_TEXT.published);
 }

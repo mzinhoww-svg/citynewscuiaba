@@ -9,18 +9,25 @@ import {
   EmptyState,
   InlineAlert,
   OriginLabel,
+  PublishDialog,
   SourcesEditor,
 } from "@/components";
 import { ARTICLE_STATUS_LABEL, EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import { can, canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { listSectionOptions } from "@/lib/db/queries/queue";
-import { getStudioArticle, sourceCandidates, topicOptions } from "@/lib/db/queries/studio-article";
+import {
+  currentHeadline,
+  getStudioArticle,
+  sourceCandidates,
+  topicOptions,
+} from "@/lib/db/queries/studio-article";
 import { formatDateTime } from "@/lib/format/date";
 import { SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/studio/checklist";
 import type { EditorDoc } from "@/lib/studio/doc";
 import {
   acceptSuggestionAction,
+  publishAction,
   rejectSuggestionAction,
   saveDraftAction,
   updateSourcesAction,
@@ -63,11 +70,14 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
   };
   const canEdit = can(session.roles, "article.edit", scope);
   const isPublic = a.status === "published" || a.status === "updated";
-  const [sections, topics, candidates] = await Promise.all([
+  const canPublish = can(session.roles, "article.publish", scope) && !isPublic;
+  const [sections, topics, candidates, headline] = await Promise.all([
     listSectionOptions(),
     topicOptions(),
     canEdit ? sourceCandidates(a) : Promise.resolve([]),
+    canPublish ? currentHeadline(a.id) : Promise.resolve(null),
   ]);
+  const labels = articleLabels(a);
   const body: EditorDoc = isDoc(a.body) ? a.body : { type: "doc", content: [] };
 
   return (
@@ -88,7 +98,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
           {a.authorName ? ` · ${a.authorName}` : ""} · {formatDateTime(a.updatedAt)}
         </p>
         <div className="flex flex-wrap items-center gap-2" aria-label={T.labels} role="group">
-          {articleLabels(a).map((l) => (
+          {labels.map((l) => (
             <OriginLabel key={l.kind} label={l} />
           ))}
           <ConfidenceMeter level={a.confidence} />
@@ -140,6 +150,16 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
           seoLimits={{ title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX }}
         />
         <aside className="flex flex-col gap-4" aria-label={T.title}>
+          {canPublish && (
+            <PublishDialog
+              articleId={a.id}
+              blocker={a.checklist.blocker}
+              labels={articleLabels({ ...a, publishMode: "human" })}
+              hasTopic={a.topic !== null}
+              headline={headline}
+              publish={publishAction}
+            />
+          )}
           <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
           <AiSuggestionInline
             articleId={a.id}
