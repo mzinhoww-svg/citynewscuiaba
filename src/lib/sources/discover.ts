@@ -154,8 +154,10 @@ export function crawlDelayFromRobots(robotsTxt: string | null, userAgent: string
       lastWasAgent = false;
     }
   }
-  const mine = groups.find((g) => g.agents.includes(token) && g.delay !== null);
-  if (mine) return mine.delay;
+  // N4 (fix round 2): se o nosso grupo existe, a resposta é dele — mesmo sem `Crawl-delay` (`null`
+  // nesse caso). Só cai para o `*` quando não existe grupo nosso nenhum.
+  const mineGroup = groups.find((g) => g.agents.includes(token));
+  if (mineGroup) return mineGroup.delay;
   const wildcard = groups.find((g) => g.agents.includes("*") && g.delay !== null);
   return wildcard ? wildcard.delay : null;
 }
@@ -214,7 +216,14 @@ export async function discoverConsumption(
 
   let requestsUsed = 0;
   const tried: { url: string; outcome: string }[] = [];
-  const onHop = (): string | null => {
+  /**
+   * Achado N2 (fix round 2): a régua de "mesmo site" vale para TODO salto, inclusive os de
+   * redirecionamento dentro de uma única `crawlGet` — não só para o candidato inicial (que já passa
+   * por `attemptSameSite`/`sameSite` antes de chegar aqui). Um `/feed` do próprio site que
+   * redireciona para outro host ou outra porta é interrompido aqui mesmo, antes do pedido.
+   */
+  const onHop = (hop: URL): string | null => {
+    if (!sameSite(hop, url)) return "outro domínio";
     if (requestsUsed >= maxRequests) return BUDGET_SENTINEL;
     requestsUsed++;
     return null;
@@ -263,7 +272,13 @@ export async function discoverConsumption(
           return { kind: "budget" };
         }
         if (res.blocked) {
-          tried.push({ url: candidate, outcome: "endereço não permitido" });
+          // N2: um salto de redirecionamento recusado por `onHop` chega aqui com a mensagem exata
+          // que `onHop` devolveu ("outro domínio"); qualquer outro bloqueio de política usa o texto
+          // genérico.
+          tried.push({
+            url: candidate,
+            outcome: res.message === "outro domínio" ? "outro domínio" : "endereço não permitido",
+          });
           return { kind: "forbidden" };
         }
         tried.push({ url: candidate, outcome: "não respondeu" });
@@ -335,7 +350,12 @@ export async function discoverConsumption(
     return attempt(candidateUrl);
   };
 
-  // 1. O próprio link colado, se já for feed (ou sitemap, ou página).
+  // 1. O próprio link colado, se já for feed (ou sitemap, ou página). Só este primeiro candidato
+  // aborta a análise inteira com `forbidden_host` quando bloqueado (achado #5/N1, fix round 2): é o
+  // link que a pessoa colou, então um bloqueio de política nele é o próprio veredito. Um candidato
+  // secundário (autodiscovery, `Sitemap:`, JSON Feed, caminho conhecido) que seja bloqueado — por
+  // exemplo um redirecionamento para outro host (N2) — só fica registrado em `tried`, e a
+  // descoberta segue adiante para o próximo candidato.
   const first = await attempt(target);
   if (first.kind === "rate_limited") return err("rate_limited");
   if (first.kind === "forbidden") return err("forbidden_host");
@@ -350,7 +370,6 @@ export async function discoverConsumption(
     if (found) {
       const r = await attemptSameSite(found.url);
       if (r?.kind === "rate_limited") return err("rate_limited");
-      if (r?.kind === "forbidden") return err("forbidden_host");
       if (r?.kind === "feed") return ok(finish(found.url, r));
     }
   }
@@ -360,7 +379,6 @@ export async function discoverConsumption(
   if (sitemapUrl) {
     const r = await attemptSameSite(sitemapUrl);
     if (r?.kind === "rate_limited") return err("rate_limited");
-    if (r?.kind === "forbidden") return err("forbidden_host");
     if (r?.kind === "feed") return ok(finish(sitemapUrl, r));
   }
 
@@ -370,7 +388,6 @@ export async function discoverConsumption(
     if (jsonLink) {
       const r = await attemptSameSite(jsonLink);
       if (r?.kind === "rate_limited") return err("rate_limited");
-      if (r?.kind === "forbidden") return err("forbidden_host");
       if (r?.kind === "feed") return ok(finish(jsonLink, r));
     }
   }
@@ -385,7 +402,6 @@ export async function discoverConsumption(
     }
     const r = await attempt(candidate);
     if (r.kind === "rate_limited") return err("rate_limited");
-    if (r.kind === "forbidden") return err("forbidden_host");
     if (r.kind === "feed") return ok(finish(candidate, r));
   }
 

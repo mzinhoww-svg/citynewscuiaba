@@ -224,20 +224,100 @@ describe("discoverConsumption", () => {
     expect(calls.some((c) => c.url.includes("wp-json"))).toBe(false);
   });
 
-  it("link morto (falha de rede de verdade) é registrado e a descoberta segue adiante (achado 5)", async () => {
+  it("twin www cujo DNS falha (via resolve injetável) é registrado e a descoberta segue adiante (achado 5/N1, fix round 2)", async () => {
     const { http: baseHttp } = createFakeHttp({
-      "https://comlinkmorto.example/robots.txt": text("User-agent: *\nAllow: /"),
-      "https://comlinkmorto.example/": html(
-        '<html><head><link rel="alternate" type="application/rss+xml" href="/feed"></head><body><h1>Página com link morto</h1></body></html>',
+      "https://comdnsruim.example/robots.txt": text("User-agent: *\nAllow: /"),
+      "https://comdnsruim.example/": html(
+        '<html><head><link rel="alternate" type="application/rss+xml" href="https://www.comdnsruim.example/feed"></head><body><h1>Página com twin www sem DNS</h1></body></html>',
       ),
-      "https://comlinkmorto.example/rss": xml(read("feeds/folha-do-cerrado.xml")),
+      "https://comdnsruim.example/rss": xml(read("feeds/folha-do-cerrado.xml")),
     });
-    const http = withThrow(baseHttp, "https://comlinkmorto.example/feed", "DNS falhou");
-    const r = await discoverConsumption(deps(http), new URL("https://comlinkmorto.example/"));
+    const base = deps(baseHttp);
+    const semDnsParaWww: CrawlDeps = {
+      ...base,
+      resolve: async (host) => {
+        if (host === "www.comdnsruim.example") throw new Error("ENOTFOUND");
+        return base.resolve(host);
+      },
+    };
+    const r = await discoverConsumption(semDnsParaWww, new URL("https://comdnsruim.example/"));
     expect(r).toMatchObject({
       ok: true,
-      value: { strategy: "rss", feedUrl: "https://comlinkmorto.example/rss" },
+      value: { strategy: "rss", feedUrl: "https://comdnsruim.example/rss" },
     });
+    expect(r.ok && r.value.tried).toContainEqual({
+      url: "https://www.comdnsruim.example/feed",
+      outcome: "não respondeu",
+    });
+  });
+
+  it("um /feed que redireciona em loop não é 'proibido': registrado e a descoberta segue até /rss (achado 5/N1, fix round 2)", async () => {
+    const { http } = createFakeHttp({
+      "https://loopfeed.example/robots.txt": text("User-agent: *\nAllow: /"),
+      "https://loopfeed.example/": html(
+        '<html><head><link rel="alternate" type="application/rss+xml" href="/feed"></head><body><h1>Home com feed em loop</h1></body></html>',
+      ),
+      "https://loopfeed.example/feed": redirect("https://loopfeed.example/feed"),
+      "https://loopfeed.example/rss": xml(read("feeds/folha-do-cerrado.xml")),
+    });
+    // `/feed` aparece duas vezes nos candidatos (autodiscovery e caminho conhecido — deduplicar
+    // candidatos é um problema à parte, fora do escopo desta rodada) e cada tentativa consome 4
+    // requisições reais até estourar o teto de redirecionamentos; `maxRequests` folgado aqui garante
+    // orçamento para as duas tentativas de `/feed` e ainda chegar ao `/rss`.
+    const r = await discoverConsumption(deps(http), new URL("https://loopfeed.example/"), {
+      maxRequests: 20,
+    });
+    expect(r).toMatchObject({
+      ok: true,
+      value: { strategy: "rss", feedUrl: "https://loopfeed.example/rss" },
+    });
+    expect(r.ok && r.value.tried.some((t) => t.url === "https://loopfeed.example/feed")).toBe(true);
+  });
+
+  it("salto de redirecionamento para outro domínio/porta é recusado sem chegar lá (achado N2, fix round 2)", async () => {
+    const { http, calls } = createFakeHttp({
+      "https://hop.example/robots.txt": text("User-agent: *\nAllow: /"),
+      "https://hop.example/": html(
+        '<html><head><link rel="alternate" type="application/rss+xml" href="https://hop.example/feed"></head><body><h1>Home com feed que redireciona para fora</h1></body></html>',
+      ),
+      "https://hop.example/feed": redirect("https://victim.example:8080/admin"),
+    });
+    const r = await discoverConsumption(deps(http), new URL("https://hop.example/"));
+    expect(calls.some((c) => c.url.includes("victim.example"))).toBe(false);
+    expect(r.ok && r.value.tried).toContainEqual({
+      url: "https://hop.example/feed",
+      outcome: "outro domínio",
+    });
+    // Sem outro feed disponível, a descoberta cai para a página (nunca aborta a análise inteira).
+    expect(r).toMatchObject({ ok: true, value: { strategy: "page_article" } });
+  });
+
+  it("JSON Feed anunciado é descoberto com sucesso quando não há RSS/Atom (achado 14, fix round 2)", async () => {
+    const { http, calls } = createFakeHttp({
+      "https://feedjson.example/robots.txt": text("User-agent: *\nAllow: /"),
+      "https://feedjson.example/": html(
+        '<html><head><link rel="alternate" type="application/feed+json" href="/feed.json"></head><body><h1>Home só com JSON Feed</h1></body></html>',
+      ),
+      "https://feedjson.example/feed.json": {
+        body: read("feeds/agencia-mt.json"),
+        headers: { "content-type": "application/feed+json" },
+      },
+    });
+    const r = await discoverConsumption(deps(http), new URL("https://feedjson.example/"));
+    expect(r).toMatchObject({
+      ok: true,
+      value: {
+        strategy: "jsonfeed",
+        kind: "api",
+        feedUrl: "https://feedjson.example/feed.json",
+      },
+    });
+    expect(r.ok && r.value.entries.length).toBeGreaterThan(0);
+    expect(calls.map((c) => c.url)).toEqual([
+      "https://feedjson.example/robots.txt",
+      "https://feedjson.example/",
+      "https://feedjson.example/feed.json",
+    ]);
   });
 
   it("página com falha de rede de verdade na própria URL colada dá unreachable, não forbidden_host", async () => {
@@ -277,6 +357,11 @@ describe("crawlDelayFromRobots", () => {
 
   it("sem Crawl-delay nenhum, devolve null", () => {
     expect(crawlDelayFromRobots("User-agent: *\nAllow: /", "CityNewsBot/1.0")).toBeNull();
+  });
+
+  it("grupo do nosso robô existe mas não tem Crawl-delay: null, nunca cai para o * (achado N4, fix round 2)", () => {
+    const robots = "User-agent: CityNewsBot\nDisallow: /x\n\nUser-agent: *\nCrawl-delay: 60";
+    expect(crawlDelayFromRobots(robots, "CityNewsBot/1.0")).toBeNull();
   });
 });
 
