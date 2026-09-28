@@ -273,10 +273,18 @@ export async function readAccountProfile(db: DbClient, userId: string) {
     : null;
 }
 
+type Row = Record<string, Json>;
+/** Resultado de `export_email_data` (0021). */
+export interface EmailData {
+  newsletter: Row[];
+  alerts: Row[];
+  emails: Row[];
+}
+
 /** Cópia dos dados da conta (P20, LGPD): tudo o que é do leitor, sem dados de outras pessoas. */
 export async function exportAccount(db: DbClient, user: User) {
   const owner = user.id;
-  const [profile, prefs, follows, saved, alerts, collections] = await Promise.all([
+  const [profile, prefs, follows, saved, alerts, collections, byEmail] = await Promise.all([
     db
       .from("profiles")
       .select("display_name, neighborhood, created_at, delete_requested_at")
@@ -298,8 +306,10 @@ export async function exportAccount(db: DbClient, user: User) {
       .select("title, description, collection_items(content_ref, position)")
       .eq("owner_ref", owner)
       .eq("is_editorial", false),
+    // Guardado pelo e-mail da conta (newsletter, alertas por e-mail, fila): gate P2, I5.
+    db.rpc("export_email_data"),
   ]);
-  for (const r of [profile, prefs, follows, saved, alerts, collections])
+  for (const r of [profile, prefs, follows, saved, alerts, collections, byEmail])
     if (r.error) throw new Error(r.error.message);
   return {
     exportedAt: new Date().toISOString(),
@@ -310,5 +320,6 @@ export async function exportAccount(db: DbClient, user: User) {
     saved: saved.data,
     alerts: alerts.data,
     collections: collections.data,
+    byEmail: byEmail.data as EmailData | null,
   };
 }
