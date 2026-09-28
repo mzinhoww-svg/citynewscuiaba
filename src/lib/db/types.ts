@@ -1011,6 +1011,10 @@ export type Database = {
         Row: {
           contact_email: string;
           created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_reason: string | null;
+          event_id: string | null;
           id: string;
           payload: NonNullable<Json>;
           status: string;
@@ -1018,6 +1022,10 @@ export type Database = {
         Insert: {
           contact_email: string;
           created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_reason?: string | null;
+          event_id?: string | null;
           id?: string;
           payload: NonNullable<Json>;
           status?: string;
@@ -1025,11 +1033,37 @@ export type Database = {
         Update: {
           contact_email?: string;
           created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_reason?: string | null;
+          event_id?: string | null;
           id?: string;
           payload?: NonNullable<Json>;
           status?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "event_submissions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_submissions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_submissions_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "event_listings";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       events: {
         Row: {
@@ -1682,6 +1716,9 @@ export type Database = {
           id: string;
           kind: string;
           message: string | null;
+          responded_at: string | null;
+          responded_by: string | null;
+          response: string | null;
           status: string;
         };
         Insert: {
@@ -1692,6 +1729,9 @@ export type Database = {
           id?: string;
           kind: string;
           message?: string | null;
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response?: string | null;
           status?: string;
         };
         Update: {
@@ -1702,9 +1742,27 @@ export type Database = {
           id?: string;
           kind?: string;
           message?: string | null;
+          responded_at?: string | null;
+          responded_by?: string | null;
+          response?: string | null;
           status?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "reports_responded_by_fkey";
+            columns: ["responded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reports_responded_by_fkey";
+            columns: ["responded_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       rules: {
         Row: {
@@ -2519,6 +2577,10 @@ export type Database = {
           p_patch: Json;
         };
         Returns: Json;
+      };
+      studio_queue_reader_email: {
+        Args: { p_body: string; p_kind: string; p_subject: string; p_to: string };
+        Returns: string;
       };
       studio_request_reprocess: { Args: { p_article: string }; Returns: number };
       studio_save_draft: {

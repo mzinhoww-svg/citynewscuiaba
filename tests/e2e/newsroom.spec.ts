@@ -65,7 +65,7 @@ test("fila filtra por editoria e atribui em lote", async ({ page }) => {
   await page.goto("/estudio/fila?editoria=cidade&estado=draft");
   const row = page.getByRole("row", { name: new RegExp(`atribuir ${t}`) });
   await row.getByRole("checkbox").check();
-  await page.getByLabel("Atribuir a").selectOption({ label: "Otávio Reis" });
+  await page.getByLabel("Atribuir a", { exact: true }).selectOption({ label: "Otávio Reis" });
   await page.getByRole("button", { name: "Atribuir selecionadas" }).click();
   await expect(page.getByRole("status")).toContainText("1 matéria atribuída");
   await expect(page.getByRole("row", { name: new RegExp(`atribuir ${t}`) })).toContainText(

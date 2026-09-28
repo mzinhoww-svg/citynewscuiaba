@@ -625,3 +625,22 @@ insert into article_media (article_id, media_id, rationale, chosen_by, alt) valu
   'Única imagem das fontes com política de reprodução', 'pipeline', null),
  ('c2000000-0000-4000-8000-000000000025', 'c6000000-0000-4000-8000-000000000002',
   'Foto de arquivo de posto de saúde', 'c1000000-0000-4000-8000-000000000004', 'Fachada de posto de saúde em Cuiabá');
+
+-- P4-T8 · moderação: duas sugestões de evento de leitores e três denúncias abertas.
+insert into event_submissions (id, payload, contact_email, status, created_at) values
+ ('c8000000-0000-4000-8000-000000000001',
+  '{"title":"Sarau de poesia na Praça da Mandioca","startsAt":"2026-10-10T19:00:00-04:00","endsAt":"2026-10-10T22:00:00-04:00","venue":"Praça da Mandioca","neighborhood":"centro-sul","priceCents":null,"ageRating":"livre","link":null,"description":"Leitura aberta de poesia com microfone livre."}',
+  'coletivo.poesia@exemplo.com', 'pending', now() - interval '5 hours'),
+ ('c8000000-0000-4000-8000-000000000002',
+  '{"title":"Oficina de viola de cocho para crianças","startsAt":"2026-10-12T09:00:00-04:00","endsAt":null,"venue":"Casa do Artesão","neighborhood":"porto","priceCents":1500,"ageRating":"livre","link":"https://casadoartesao.example/oficina","description":"Oficina para crianças de 8 a 12 anos."}',
+  'casa.artesao@exemplo.com', 'pending', now() - interval '26 hours');
+
+insert into reports (id, content_ref, kind, message, contact_email, status, due_at, created_at) values
+ ('c9000000-0000-4000-8000-000000000001', 'article:c2000000-0000-4000-8000-000000000007', 'wrong_info',
+  'O índice de qualidade do ar citado é de ontem, não de hoje.', 'leitora@exemplo.com', 'open',
+  now() + interval '20 hours', now() - interval '4 hours'),
+ ('c9000000-0000-4000-8000-000000000002', 'article:c2000000-0000-4000-8000-000000000010', 'broken_link',
+  'O link para a tabela de jogos não abre.', null, 'open', now() + interval '2 hours', now() - interval '22 hours'),
+ ('c9000000-0000-4000-8000-000000000003', 'article:c2000000-0000-4000-8000-000000000011', 'right_of_reply',
+  'A associação pede para registrar que não foi ouvida antes da votação.', 'associacao.cpa@exemplo.com', 'open',
+  now() - interval '1 hour', now() - interval '25 hours');

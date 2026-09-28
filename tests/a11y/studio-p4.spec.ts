@@ -20,6 +20,8 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/midia", as: "beatriz" },
   { path: "/estudio/midia/c6000000-0000-4000-8000-000000000003", as: "marina" },
   { path: "/estudio/midia/licencas", as: "marina" },
+  { path: "/estudio/agenda/sugestoes", as: "otavio" },
+  { path: "/estudio/denuncias", as: "carlos" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];

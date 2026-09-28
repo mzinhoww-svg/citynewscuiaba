@@ -30,6 +30,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "correction.manage",
       },
       { href: "/estudio/midia", label: "Mídia", icon: "camera", action: "media.approve" },
+      {
+        href: "/estudio/agenda/sugestoes",
+        label: "Sugestões de evento",
+        icon: "calendar",
+        action: "article.publish",
+      },
       { href: "/estudio/denuncias", label: "Denúncias", icon: "flag", action: "reports.moderate" },
     ],
   },

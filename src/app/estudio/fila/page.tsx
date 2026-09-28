@@ -115,12 +115,13 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         >
           {T.errorBody}
         </EmptyState>
-      ) : rows.length === 0 ? (
-        <EmptyState title={T.emptyTitle} icon="check">
-          {T.empty[tab]}
-        </EmptyState>
       ) : (
         <QueueTable
+          empty={
+            <EmptyState title={T.emptyTitle} icon="check">
+              {T.empty[tab]}
+            </EmptyState>
+          }
           rows={rows.map((r) => toTableRow(r, session, now))}
           unpublish={canUnpublishAny ? unpublishAutoAction : undefined}
           bulk={

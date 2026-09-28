@@ -111,20 +111,19 @@ export default async function StudioHomePage() {
                 items={QUEUE_TABS.map((k) => ({ key: k, label: T.tabs[k], href: tabHref(k) }))}
               />
               <SectionHeader title={T.tabs.exceptions} as="h2" />
-              {rows.length > 0 ? (
-                <QueueTable
-                  rows={rows.map((r) => toTableRow(r, session, now))}
-                  unpublish={
-                    canAccess(session.roles, "article.unpublish_auto")
-                      ? unpublishAutoAction
-                      : undefined
-                  }
-                />
-              ) : (
-                <EmptyState title={T.emptyTitle} icon="check">
-                  {T.empty.exceptions}
-                </EmptyState>
-              )}
+              <QueueTable
+                rows={rows.map((r) => toTableRow(r, session, now))}
+                unpublish={
+                  canAccess(session.roles, "article.unpublish_auto")
+                    ? unpublishAutoAction
+                    : undefined
+                }
+                empty={
+                  <EmptyState title={T.emptyTitle} icon="check">
+                    {T.empty.exceptions}
+                  </EmptyState>
+                }
+              />
               <div>
                 <Button href={tabHref("all")} size="md" variant="text" iconRight="chevron-right">
                   {T.seeAll}

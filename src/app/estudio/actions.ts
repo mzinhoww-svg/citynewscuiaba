@@ -5,6 +5,7 @@ import {
   CORRECTIONS_TEXT,
   EDITOR_TEXT,
   MEDIA_TEXT,
+  MODERATION_TEXT,
   PUBLISH_TEXT,
   QUEUE_TEXT,
   REVIEW_TEXT,
@@ -27,6 +28,7 @@ import {
   renewLicense,
   replaceImage,
 } from "@/lib/studio/media";
+import { approveSubmission, rejectSubmission, respondReport } from "@/lib/studio/moderation";
 import { publishArticle } from "@/lib/studio/publish";
 import { rejectItem, reprocessItem, requestChanges, updateSources } from "@/lib/studio/review";
 import {
@@ -275,4 +277,42 @@ export async function suggestIllustrationAction(input: {
       generatorAvailable: r.value.generatorAvailable,
     };
   return { ok: false, message: reply(r, "").message };
+}
+
+export async function approveSubmissionAction(input: {
+  id: string;
+  edits: {
+    title: string;
+    startsAt: string;
+    venue: string;
+    category: string;
+    description: string | null;
+  };
+}): Promise<ActionReply> {
+  const r = await approveSubmission(input as Parameters<typeof approveSubmission>[0]);
+  return reply(r, MODERATION_TEXT.approved);
+}
+
+export async function rejectSubmissionAction(input: {
+  id: string;
+  reason: string;
+}): Promise<ActionReply> {
+  return reply(await rejectSubmission(input), MODERATION_TEXT.rejected);
+}
+
+export async function respondReportAction(input: {
+  id: string;
+  response: string;
+}): Promise<ActionReply> {
+  return reply(await respondReport(input), MODERATION_TEXT.answered);
+}
+
+/** Denúncia de informação errada ou direito de resposta → pedido de correção vinculado. */
+export async function correctionFromReportAction(formData: FormData): Promise<void> {
+  const articleId = String(formData.get("articleId") ?? "");
+  const reportId = String(formData.get("reportId") ?? "");
+  const kind = formData.get("kind") === "right_of_reply" ? "right_of_reply" : "correction";
+  const r = await openCorrection({ articleId, kind, requestedBy: "leitor", reportId });
+  if (r.ok) redirect(`/estudio/correcoes/${r.value.id}`);
+  redirect("/estudio/denuncias?erro=correcao");
 }
