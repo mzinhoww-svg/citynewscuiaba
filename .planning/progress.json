@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-28T14:28:03.323Z",
+  "updatedAt": "2026-09-28T14:43:00.095Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -611,10 +611,10 @@
           "id": "P5-T1",
           "title": "Aprovações",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "c34e2fd",
+          "notes": "approvals via RPC invoker (0027): pedido/decisão/efeito/auditoria atômicos; tela /estudio/control/aprovacoes; 1302 testes"
         },
         {
           "id": "P5-T2",
