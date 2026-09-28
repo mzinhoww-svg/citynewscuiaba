@@ -93,6 +93,7 @@ export const reprocessItem = studioAction(
     const { error } = await ctx.db.rpc("studio_request_reprocess", { p_article: i.id });
     if (error) {
       if (error.code === "42501") throw new StudioFailure("forbidden");
+      if (error.code === "55000") throw new StudioFailure("invalid", T.reprocessPublic);
       if (error.code === "22023") throw new StudioFailure("invalid", T.cannotReprocess);
       throw new Error(`reprocessar: ${error.message}`);
     }
@@ -112,25 +113,29 @@ const SourceRow = z.object({
 const SourcesInput = z.object({ id: z.uuid(), sources: z.array(SourceRow).max(30) });
 export type SourcesInput = z.infer<typeof SourcesInput>;
 
-/** Bloco "Fontes" do editor: item coletado, papel e confirmação (substitui a lista). */
+/**
+ * Bloco "Fontes" do editor: item coletado, papel e confirmação (substitui a lista). Matéria
+ * publicada muda fontes só pelo modo Atualização.
+ */
 export const updateSources = studioAction(
   "article.edit",
   (i: SourcesInput, ctx) => articleScope(ctx, i.id),
   async (i, ctx) => {
     const unique = [...new Map(i.sources.map((s) => [s.itemId, s])).values()];
-    const del = await ctx.db.from("article_sources").delete().eq("article_id", i.id);
-    if (del.error) throw new StudioFailure("forbidden");
-    if (unique.length > 0) {
-      const { error } = await ctx.db.from("article_sources").insert(
-        unique.map((s) => ({
-          article_id: i.id,
-          item_id: s.itemId,
-          role: s.role,
-          confirmed: s.confirmed,
-        })),
-      );
-      if (error) throw new StudioFailure("invalid", T.sourcesInvalid);
+    // Troca atômica no banco (achado 13): falha no meio não deixa a matéria sem fontes.
+    const { data, error } = await ctx.db.rpc("studio_set_sources", {
+      p_id: i.id,
+      p_sources: unique,
+    });
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden");
+      if (error.code === "23503" || error.code === "23514" || error.code === "22P02")
+        throw new StudioFailure("invalid", T.sourcesInvalid);
+      throw new Error(`fontes: ${error.message}`);
     }
+    const r = (data ?? {}) as { status?: string };
+    if (r.status === "not_found") throw new StudioFailure("not_found");
+    if (r.status === "public") throw new StudioFailure("invalid", T.sourcesPublic);
     ctx.detail({ sources: unique.length });
     return { count: unique.length };
   },

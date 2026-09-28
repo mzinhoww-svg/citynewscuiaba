@@ -495,6 +495,7 @@ export type Database = {
           tsv: unknown;
           updated_at: string;
           urgent: boolean;
+          studio_snapshot: Json | null;
         };
         Insert: {
           agent_id?: string | null;
@@ -2057,6 +2058,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      studio_revalidations: {
+        Row: {
+          created_at: string;
+          id: number;
+          tags: string[];
+        };
+        Insert: {
+          created_at?: string;
+          id?: number;
+          tags: string[];
+        };
+        Update: {
+          created_at?: string;
+          id?: number;
+          tags?: string[];
+        };
+        Relationships: [];
+      };
       topics: {
         Row: {
           agreements: string[];
@@ -2448,6 +2467,7 @@ export type Database = {
           topic_id: string;
         }[];
       };
+      email_escape: { Args: { p: string; p_max: number }; Returns: string };
       export_email_data: { Args: Record<PropertyKey, never>; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
@@ -2558,6 +2578,7 @@ export type Database = {
         }[];
       };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      scrub_field_origins: { Args: { p: Json; p_person?: string }; Returns: Json };
       search_did_you_mean: { Args: { p_q: string }; Returns: string };
       search_hybrid: {
         Args: {
@@ -2594,10 +2615,72 @@ export type Database = {
           stats: Json;
         }[];
       };
+      studio_accept_suggestion: {
+        Args: { p_article: string; p_base: number; p_suggestion: string };
+        Returns: Json;
+      };
+      studio_ai_marks: { Args: { p_body: Json }; Returns: string[] };
+      studio_apply_patch: {
+        Args: { a: Database["public"]["Tables"]["articles"]["Row"]; p_patch: Json; uid: string };
+        Returns: {
+          agent_id: string | null;
+          ai_fallback: boolean;
+          ai_summary: string[] | null;
+          ai_summary_reviewed_by: string | null;
+          assignee_id: string | null;
+          author_id: string | null;
+          body: NonNullable<Json>;
+          confidence: Database["public"]["Enums"]["confidence_level"];
+          confidence_score: number;
+          dek: string;
+          due_at: string | null;
+          embedding: string | null;
+          field_origins: NonNullable<Json>;
+          gone_reason: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["content_kind"];
+          neighborhoods: string[];
+          publish_destinations: string[];
+          publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
+          published_at: string | null;
+          review_reason: string | null;
+          rules_version: number | null;
+          scheduled_for: string | null;
+          section_slug: string;
+          seo_description: string | null;
+          seo_title: string | null;
+          slug: string;
+          sponsored: boolean;
+          status: Database["public"]["Enums"]["article_status"];
+          tags: string[];
+          title: string;
+          topic_id: string | null;
+          tsv: unknown;
+          updated_at: string;
+          urgent: boolean;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "articles";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       studio_audit: {
         Args: { p_action: string; p_actor: string; p_details?: Json; p_object_ref: string };
         Returns: number;
       };
+      studio_audit_actions: { Args: Record<PropertyKey, never>; Returns: string[] };
+      studio_can_edit: {
+        Args: {
+          a: Database["public"]["Tables"]["articles"]["Row"];
+          new_section: string;
+          uid: string;
+        };
+        Returns: boolean;
+      };
+      studio_doc_text: { Args: { p_body: Json }; Returns: string };
+      studio_fallback_pending: { Args: { p_id: string }; Returns: boolean };
       studio_people: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -2606,6 +2689,11 @@ export type Database = {
           roles: Database["public"]["Enums"]["app_role"][];
         }[];
       };
+      studio_publish: {
+        Args: { p_at?: string; p_base?: number; p_destinations: string[]; p_id: string };
+        Returns: Json;
+      };
+      studio_publish_blockers: { Args: { p_id: string }; Returns: string[] };
       studio_publish_correction: {
         Args: {
           p_base: number;
@@ -2616,20 +2704,25 @@ export type Database = {
         };
         Returns: Json;
       };
-      studio_queue_reader_email: {
-        Args: { p_body: string; p_kind: string; p_ref: string; p_subject: string; p_to: string };
-        Returns: string;
-      };
-      studio_request_reprocess: { Args: { p_article: string }; Returns: number };
-      studio_save_draft: {
-        Args: {
-          p_base: number;
-          p_change_kind?: string;
-          p_id: string;
-          p_patch: Json;
-          p_public_note?: string;
-        };
+      studio_publish_update: {
+        Args: { p_base: number; p_id: string; p_note: string; p_patch: Json };
         Returns: Json;
+      };
+      studio_queue_reader_email: { Args: { p_kind: string; p_ref: string }; Returns: string };
+      studio_replace_image: { Args: { p_article: string; p_media: string }; Returns: Json };
+      studio_request_reprocess: { Args: { p_article: string }; Returns: number };
+      studio_save_draft: { Args: { p_base: number; p_id: string; p_patch: Json }; Returns: Json };
+      studio_set_sources: { Args: { p_id: string; p_sources: Json }; Returns: Json };
+      studio_snapshot: {
+        Args: { a: Database["public"]["Tables"]["articles"]["Row"] };
+        Returns: Json;
+      };
+      studio_words: { Args: { p: string }; Returns: string[] };
+      take_studio_revalidations: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          tags: string[];
+        }[];
       };
       topic_candidates: {
         Args: { p_id: string; p_limit: number; p_since: string };

@@ -68,3 +68,27 @@ it("sem imagem não bloqueia; o primeiro problema vira o motivo", () => {
   expect(c.blocker).toBe("Falta título ou linha fina");
   expect(c.items.filter((i) => !i.ok).map((i) => i.key)).toEqual(["title_dek", "ai_suggestions"]);
 });
+
+describe("rascunho sem IA (B-015)", () => {
+  it("fora do rascunho sem IA o item não aparece", () => {
+    expect(checklist(ok).items.some((i) => i.key === "ai_fallback")).toBe(false);
+    expect(checklist({ ...ok, fallbackPending: null }).complete).toBe(true);
+  });
+
+  it("corpo ainda com texto das fontes bloqueia, e é o primeiro motivo", () => {
+    const c = checklist({ ...ok, fallbackPending: true });
+    expect(c.complete).toBe(false);
+    expect(c.blocker).toBe("Rascunho sem IA: reescreva o texto das fontes antes de publicar");
+    expect(c.items[0]).toMatchObject({
+      key: "ai_fallback",
+      ok: false,
+      label: "Texto reescrito pela redação (rascunho sem IA)",
+    });
+  });
+
+  it("reescrito pela redação, o item passa", () => {
+    const c = checklist({ ...ok, fallbackPending: false });
+    expect(c.complete).toBe(true);
+    expect(c.items[0]).toMatchObject({ key: "ai_fallback", ok: true });
+  });
+});

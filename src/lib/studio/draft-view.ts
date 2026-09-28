@@ -20,11 +20,13 @@ export async function requiresPrimary(ctx: StudioContext, sectionSlug: string): 
 export async function loadDraftView(ctx: StudioContext, id: string): Promise<DraftView | null> {
   const { data: a } = await ctx.db
     .from("articles")
-    .select("title, dek, section_slug, tags, neighborhoods, seo_title, seo_description")
+    .select(
+      "title, dek, section_slug, tags, neighborhoods, seo_title, seo_description, ai_fallback",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!a) return null;
-  const [sources, media, suggestions, requirePrimary] = await Promise.all([
+  const [sources, media, suggestions, requirePrimary, fallback] = await Promise.all([
     ctx.db.from("article_sources").select("role, confirmed").eq("article_id", id),
     ctx.db.from("article_media").select("alt, media_assets(credit)").eq("article_id", id),
     ctx.db
@@ -33,6 +35,10 @@ export async function loadDraftView(ctx: StudioContext, id: string): Promise<Dra
       .eq("article_id", id)
       .eq("status", "open"),
     requiresPrimary(ctx, a.section_slug),
+    // B-015: a regra de "reescrito" mora no banco (a mesma que a publicação confere).
+    a.ai_fallback
+      ? ctx.db.rpc("studio_fallback_pending", { p_id: id })
+      : Promise.resolve({ data: null, error: null }),
   ]);
   return {
     title: a.title,
@@ -52,5 +58,7 @@ export async function loadDraftView(ctx: StudioContext, id: string): Promise<Dra
     seoTitle: a.seo_title,
     seoDescription: a.seo_description,
     openSuggestions: suggestions.count ?? 0,
+    // Sem resposta do banco num rascunho sem IA: pendente (falha fechada).
+    fallbackPending: a.ai_fallback ? (fallback.error ? true : fallback.data !== false) : null,
   };
 }

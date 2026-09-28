@@ -1,7 +1,8 @@
 import "server-only";
 import type { ZodType } from "zod";
-import { can, type Action, type Scope } from "@/lib/auth/permissions";
+import { can, canAccess, type Action, type Scope } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
+import type { AuditAction } from "@/lib/audit/actions";
 import { studioContext, type StudioContext } from "./context";
 
 /**
@@ -48,7 +49,7 @@ export interface StudioActionOptions<I> {
   /** Objeto na auditoria (`article:<id>`). Padrão: `<ação>:` + id da entrada, se houver. */
   objectRef?: (input: I) => string;
   /** Nome na auditoria, quando difere da ação de permissão (ex.: article.save). */
-  auditAs?: string;
+  auditAs?: AuditAction;
 }
 
 function defaultRef(action: Action, input: unknown): string {
@@ -88,9 +89,7 @@ export function studioAction<I, O>(
     if (!session) return fail("forbidden");
 
     let objectRef = options.objectRef?.(input) ?? defaultRef(action, input);
-    const scope = await scopeOf(input, ctx);
-    if (scope === null) return fail("not_found");
-    if (!can(session.roles, action, { ...scope, userId: session.userId })) {
+    const denied = async (scope: Scope | null) => {
       await audit(
         session.userId,
         `${options.auditAs ?? action}.denied`,
@@ -99,7 +98,13 @@ export function studioAction<I, O>(
         ctx.db,
       );
       return fail("forbidden");
-    }
+    };
+    // Sem o papel em escopo nenhum, nega (com rastro) antes de olhar o objeto: a RLS pode
+    // esconder o objeto de quem não é da equipe, e isso não pode virar "não encontrado" mudo.
+    if (!canAccess(session.roles, action)) return denied(null);
+    const scope = await scopeOf(input, ctx);
+    if (scope === null) return fail("not_found");
+    if (!can(session.roles, action, { ...scope, userId: session.userId })) return denied(scope);
 
     const details: Record<string, unknown> = {};
     try {

@@ -15,6 +15,8 @@ export interface ImageApprovalProps {
   status: "pending" | "approved" | "blocked";
   approve?: (i: { id: string }) => Promise<ActionReply>;
   block?: (i: { id: string; reason: string }) => Promise<ActionReply>;
+  /** Reprodução de veículo: remoção a pedido (apaga a cópia; opção de remover todas da fonte). */
+  takedown?: (i: { id: string; reason: string; allFromSource: boolean }) => Promise<ActionReply>;
   /** Matérias em que a pessoa pode trocar a imagem, com as imagens candidatas. */
   replace?: {
     articles: { id: string; title: string }[];
@@ -25,7 +27,8 @@ export interface ImageApprovalProps {
 }
 
 /**
- * Ações da aprovação de imagem (E10): Aprovar, Bloquear com motivo e Trocar imagem nas matérias
+ * Ações da aprovação de imagem (E10): Aprovar (só pendente), Bloquear com motivo, Remover a
+ * pedido do veículo (reprodução) e Trocar imagem nas matérias
  * que a usam (troca sugerida quando a licença venceu). Resultado em `role="status"`.
  */
 export function ImageApproval({
@@ -33,12 +36,14 @@ export function ImageApproval({
   status,
   approve,
   block,
+  takedown,
   replace,
   className,
 }: ImageApprovalProps) {
   const router = useRouter();
   const uid = useId();
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<"block" | "takedown" | null>(null);
+  const [allFromSource, setAllFromSource] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [reply, setReply] = useState<ActionReply | null>(null);
@@ -67,7 +72,7 @@ export function ImageApproval({
         )}
       </p>
       <div className="flex flex-wrap gap-2">
-        {approve && status !== "approved" && (
+        {approve && status === "pending" && (
           <Button
             size="md"
             disabled={pending}
@@ -77,8 +82,18 @@ export function ImageApproval({
           </Button>
         )}
         {block && status !== "blocked" && (
-          <Button size="md" variant="outline" disabled={pending} onClick={() => setAsking(true)}>
+          <Button size="md" variant="outline" disabled={pending} onClick={() => setAsking("block")}>
             {T.block}
+          </Button>
+        )}
+        {takedown && status !== "blocked" && (
+          <Button
+            size="md"
+            variant="outline"
+            disabled={pending}
+            onClick={() => setAsking("takedown")}
+          >
+            {T.takedown}
           </Button>
         )}
       </div>
@@ -116,9 +131,9 @@ export function ImageApproval({
       )}
 
       <Dialog
-        open={asking}
-        title={T.block}
-        onClose={() => setAsking(false)}
+        open={asking !== null}
+        title={asking === "takedown" ? T.takedown : T.block}
+        onClose={() => setAsking(null)}
         actions={
           <>
             <Button
@@ -130,17 +145,22 @@ export function ImageApproval({
                   setError(T.reasonRequired);
                   return;
                 }
+                const mode = asking;
                 start(async () => {
-                  const r = await block!({ id: mediaId, reason });
-                  setAsking(false);
+                  const r =
+                    mode === "takedown"
+                      ? await takedown!({ id: mediaId, reason, allFromSource })
+                      : await block!({ id: mediaId, reason });
+                  setAsking(null);
                   setReason("");
+                  setAllFromSource(false);
                   done(r);
                 });
               }}
             >
               {T.confirm}
             </Button>
-            <Button size="md" variant="text" onClick={() => setAsking(false)}>
+            <Button size="md" variant="text" onClick={() => setAsking(null)}>
               {T.cancel}
             </Button>
           </>
@@ -148,7 +168,7 @@ export function ImageApproval({
       >
         <div className="flex flex-col gap-2 text-left">
           <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
-            {T.blockReason}
+            {asking === "takedown" ? T.takedownReason : T.blockReason}
           </label>
           <textarea
             id={`${uid}-motivo`}
@@ -172,8 +192,23 @@ export function ImageApproval({
             </p>
           ) : (
             <p id={`${uid}-dica`} className="type-meta text-meta">
-              {T.blockReasonHint}
+              {asking === "takedown" ? T.takedownHint : T.blockReasonHint}
             </p>
+          )}
+          {asking === "takedown" && (
+            <label
+              htmlFor={`${uid}-todas`}
+              className="flex min-h-tap cursor-pointer items-start gap-3 type-body"
+            >
+              <input
+                id={`${uid}-todas`}
+                type="checkbox"
+                checked={allFromSource}
+                onChange={(e) => setAllFromSource(e.target.checked)}
+                className="mt-0.5 size-5 shrink-0 accent-(--action-primary)"
+              />
+              <span className="text-body">{T.takedownAll}</span>
+            </label>
           )}
         </div>
       </Dialog>

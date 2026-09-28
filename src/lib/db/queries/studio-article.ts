@@ -3,7 +3,15 @@ import type { Database, Json } from "@/lib/db/types";
 import { checklist, type Checklist } from "@/lib/studio/checklist";
 import { studioContext } from "@/lib/studio/context";
 import { loadDraftView } from "@/lib/studio/draft-view";
-import type { FieldOrigins } from "@/lib/studio/save";
+import { EDITOR_TEXT } from "@/content/pt-BR/studio";
+import { ORIGIN_FIELDS, type FieldOrigins, type OriginField } from "@/lib/studio/save";
+
+/** Origem de um campo com o nome resolvido na leitura (o banco guarda só ids, achado 5). */
+export interface FieldOriginView {
+  origin: "ai" | "human";
+  /** Quem aceitou (IA) ou editou (humano); conta excluída vira "Ex-integrante da redação". */
+  name: string;
+}
 
 type Status = Database["public"]["Enums"]["article_status"];
 type Confidence = Database["public"]["Enums"]["confidence_level"];
@@ -77,7 +85,7 @@ export interface StudioArticle {
   neighborhoods: string[];
   seoTitle: string | null;
   seoDescription: string | null;
-  fieldOrigins: FieldOrigins;
+  fieldOrigins: Partial<Record<OriginField, FieldOriginView>>;
   confidence: Confidence;
   confidenceScore: number;
   agentId: string | null;
@@ -167,6 +175,13 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
   for (const v of versions.data ?? []) if (v.author_id) people.add(v.author_id);
   for (const d of decisions.data ?? []) if (d.human_id) people.add(d.human_id);
   if (a.author_id) people.add(a.author_id);
+  const origins = record(a.field_origins) as FieldOrigins;
+  const originPerson = (o: FieldOrigins[OriginField]) =>
+    o?.origin === "ai" ? o.acceptedBy : o?.origin === "human" ? o.editedBy : undefined;
+  for (const f of ORIGIN_FIELDS) {
+    const who = originPerson(origins[f]);
+    if (who) people.add(who);
+  }
   const { data: profiles } = people.size
     ? await db
         .from("profiles")
@@ -197,7 +212,15 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     neighborhoods: a.neighborhoods,
     seoTitle: a.seo_title,
     seoDescription: a.seo_description,
-    fieldOrigins: record(a.field_origins) as FieldOrigins,
+    fieldOrigins: Object.fromEntries(
+      ORIGIN_FIELDS.flatMap((f) => {
+        const o = origins[f];
+        if (o?.origin !== "ai" && o?.origin !== "human") return [];
+        const who = originPerson(o);
+        const name = (who && nameOf.get(who)) || EDITOR_TEXT.formerStaff;
+        return [[f, { origin: o.origin, name } satisfies FieldOriginView]];
+      }),
+    ),
     confidence: a.confidence,
     confidenceScore: Number(a.confidence_score),
     agentId: a.agent_id,

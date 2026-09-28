@@ -3,26 +3,31 @@ import { z } from "zod";
 import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { ImageSchema } from "@/lib/ai/schemas/image";
 import { illustrationGuard } from "@/lib/media/licenses";
+import { takedownReproduction } from "@/lib/media/takedown";
 import { localDateKey } from "@/lib/format/date";
 import { studioAction, StudioFailure, type ActionContext } from "./action";
 import type { StudioContext } from "./context";
 import { articleCacheTags } from "./queue";
-import { articleScope } from "./scope";
+import { articleScope, MULTI_SECTION } from "./scope";
 
 /**
- * Escopo de uma imagem: a editoria da primeira matéria que a usa (editor aprova só na editoria
- * dele; editor-chefe e revisor em tudo). Imagem sem matéria: escopo sem editoria.
+ * Escopo de uma imagem (achado 15: determinístico). Usada em uma editoria só: essa editoria
+ * (editor aprova na dele). Em mais de uma: escopo que nenhum editor de editoria cobre, só
+ * editor-chefe e revisor (o banco confere o mesmo em `can_approve_media`). Sem matéria:
+ * escopo sem editoria.
  */
 async function mediaScope(ctx: StudioContext, id: string) {
   const { data: m } = await ctx.db.from("media_assets").select("id").eq("id", id).maybeSingle();
   if (!m) return null;
-  const { data: link } = await ctx.db
+  const { data: links } = await ctx.db
     .from("article_media")
     .select("articles(section_slug)")
-    .eq("media_id", id)
-    .limit(1)
-    .maybeSingle();
-  return link?.articles ? { section: link.articles.section_slug } : {};
+    .eq("media_id", id);
+  const sections = [
+    ...new Set((links ?? []).flatMap((l) => (l.articles ? [l.articles.section_slug] : []))),
+  ];
+  if (sections.length === 0) return {};
+  return { section: sections.length === 1 ? sections[0]! : MULTI_SECTION };
 }
 
 async function publicTagsFor(ctx: ActionContext, mediaId: string): Promise<string[]> {
@@ -40,15 +45,29 @@ async function publicTagsFor(ctx: ActionContext, mediaId: string): Promise<strin
 const Only = z.object({ id: z.uuid() });
 type Only = z.infer<typeof Only>;
 
-/** Aprovar imagem (E10, `media.approve`): passa a aparecer nas matérias públicas que a usam. */
+/**
+ * Aprovar imagem (E10, `media.approve`): passa a aparecer nas matérias públicas que a usam.
+ * Imagem bloqueada (inclusive remoção a pedido do veículo) não volta, e licença vencida não
+ * aprova (achado 7); o banco recusa o mesmo por gatilho.
+ */
 export const approveImage = studioAction(
   "media.approve",
   (i: Only, ctx) => mediaScope(ctx, i.id),
   async (i, ctx) => {
+    const { data: m } = await ctx.db
+      .from("media_assets")
+      .select("status, license_until")
+      .eq("id", i.id)
+      .maybeSingle();
+    if (!m) throw new StudioFailure("not_found");
+    if (m.status === "blocked") throw new StudioFailure("invalid", T.approveBlocked);
+    if (m.license_until !== null && m.license_until < localDateKey(ctx.now()))
+      throw new StudioFailure("invalid", T.approveExpired);
     const { data, error } = await ctx.db
       .from("media_assets")
-      .update({ status: "approved", removed_at: null, removal_reason: null })
+      .update({ status: "approved" })
       .eq("id", i.id)
+      .neq("status", "blocked")
       .select("id");
     if (error || !data?.length) throw new StudioFailure("forbidden");
     await ctx.revalidate(await publicTagsFor(ctx, i.id));
@@ -81,6 +100,65 @@ export const blockImage = studioAction(
   { schema: BlockInput, objectRef: (i) => `media:${i.id}`, auditAs: "media.block" },
 );
 
+const TakedownInput = z.object({
+  id: z.uuid(),
+  reason: z.string().trim().min(1, T.reasonRequired).max(300),
+  /** Opt-out do veículo: remove todas as reproduções da mesma fonte. */
+  allFromSource: z.boolean().optional(),
+});
+type TakedownInput = z.infer<typeof TakedownInput>;
+
+/**
+ * Remover a pedido do veículo (CLAUDE.md §5.11, em até 24 h; A-010): só para reprodução.
+ * Bloqueia (sai do portal na hora), apaga a cópia do Storage, mantém a URL de origem como
+ * bloqueada (o pipeline não copia de novo), invalida as matérias e audita `media.takedown` por
+ * imagem. Com `allFromSource`, remove todas as reproduções do veículo. A guarda de papel é a
+ * do `media.approve`; a remoção roda com o service role (Storage) depois da guarda.
+ */
+export const takedownImage = studioAction(
+  "media.approve",
+  (i: TakedownInput, ctx) => mediaScope(ctx, i.id),
+  async (i, ctx) => {
+    const { data: m } = await ctx.db
+      .from("media_assets")
+      .select("kind, source_id")
+      .eq("id", i.id)
+      .maybeSingle();
+    if (!m) throw new StudioFailure("not_found");
+    if (m.kind !== "reproduction") throw new StudioFailure("invalid", T.takedownOnlyReproduction);
+    const [{ createServiceClient }, { createMediaRepo }, { productionMediaStore }] =
+      await Promise.all([
+        import("@/lib/db/client"),
+        import("@/lib/db/pipeline-store"),
+        import("@/lib/pipeline/deps"),
+      ]);
+    const service = createServiceClient();
+    const target = i.allFromSource && m.source_id ? { sourceId: m.source_id } : { mediaId: i.id };
+    const r = await takedownReproduction(
+      {
+        repo: createMediaRepo(service),
+        store: ctx.mediaStore ?? productionMediaStore(service),
+        revalidate: async (tags) => {
+          const extra: string[] = [];
+          for (const t of tags) {
+            const id = t.startsWith("article:") ? t.slice("article:".length) : null;
+            if (id) extra.push(...(await articleCacheTags(ctx, id)));
+          }
+          await ctx.revalidate([...new Set([...tags, ...extra])]);
+        },
+        now: ctx.now,
+      },
+      target,
+      ctx.userId,
+      i.reason,
+    );
+    if (!r.ok) throw new StudioFailure("invalid", T.reasonRequired);
+    ctx.detail({ reason: i.reason, blocked: r.value.blocked, ...target });
+    return r.value;
+  },
+  { schema: TakedownInput, objectRef: (i) => `media:${i.id}`, auditAs: "media.takedown.request" },
+);
+
 const ReplaceInput = z.object({ articleId: z.uuid(), mediaId: z.uuid() });
 type ReplaceInput = z.infer<typeof ReplaceInput>;
 
@@ -92,28 +170,19 @@ export const replaceImage = studioAction(
   "article.edit",
   (i: ReplaceInput, ctx) => articleScope(ctx, i.articleId),
   async (i, ctx) => {
-    const { data: m } = await ctx.db
-      .from("media_assets")
-      .select("status, license_until")
-      .eq("id", i.mediaId)
-      .maybeSingle();
-    const today = localDateKey(ctx.now());
-    if (!m || m.status !== "approved" || (m.license_until !== null && m.license_until < today))
-      throw new StudioFailure("invalid", T.replaceInvalid);
-    const { data: old } = await ctx.db
-      .from("article_media")
-      .select("media_id, alt")
-      .eq("article_id", i.articleId);
-    const del = await ctx.db.from("article_media").delete().eq("article_id", i.articleId);
-    if (del.error) throw new StudioFailure("forbidden");
-    const { error } = await ctx.db.from("article_media").insert({
-      article_id: i.articleId,
-      media_id: i.mediaId,
-      rationale: "Troca pela redação",
-      chosen_by: ctx.userId,
-      alt: old?.[0]?.alt ?? null,
+    // Troca atômica no banco (achado 13): só por imagem aprovada e com licença válida hoje.
+    const { data, error } = await ctx.db.rpc("studio_replace_image", {
+      p_article: i.articleId,
+      p_media: i.mediaId,
     });
-    if (error) throw new StudioFailure("forbidden");
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden");
+      throw new Error(`trocar imagem: ${error.message}`);
+    }
+    const r = (data ?? {}) as { status?: string; from?: string[] };
+    if (r.status === "not_found") throw new StudioFailure("not_found");
+    if (r.status === "invalid") throw new StudioFailure("invalid", T.replaceInvalid);
+    const old = (r.from ?? []).map((media_id) => ({ media_id }));
     ctx.detail({ from: (old ?? []).map((o) => o.media_id), to: i.mediaId });
     await ctx.revalidate(await articleCacheTags(ctx, i.articleId));
     return { articleId: i.articleId, mediaId: i.mediaId };

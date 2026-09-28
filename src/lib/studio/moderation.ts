@@ -60,6 +60,16 @@ export const approveSubmission = studioAction(
     const startsAt = new Date(i.edits.startsAt);
     if (Number.isNaN(startsAt.getTime())) throw new StudioFailure("invalid", T.invalidDate);
     const eventId = randomUUID();
+    // Reserva a sugestão antes de criar o evento (achado 13): dois cliques concorrentes não
+    // criam dois eventos; só um UPDATE encontra a linha ainda pendente.
+    const claim = await ctx.db
+      .from("event_submissions")
+      .update({ status: "approved", decided_by: ctx.userId, decided_at: ctx.now().toISOString() })
+      .eq("id", i.id)
+      .eq("status", "pending")
+      .select("id");
+    if (claim.error) throw new StudioFailure("forbidden");
+    if (!claim.data?.length) throw new StudioFailure("invalid", T.alreadyDecided);
     const { error } = await ctx.db.from("event_listings").insert({
       id: eventId,
       slug: `${slugify(i.edits.title).slice(0, 80)}-${eventId.slice(0, 6)}`,
@@ -75,16 +85,14 @@ export const approveSubmission = studioAction(
       confirmed_at: ctx.now().toISOString(),
       description: i.edits.description ?? p.data.description ?? null,
     });
-    if (error) throw new StudioFailure("forbidden");
-    const upd = await ctx.db
-      .from("event_submissions")
-      .update({
-        status: "approved",
-        decided_by: ctx.userId,
-        decided_at: ctx.now().toISOString(),
-        event_id: eventId,
-      })
-      .eq("id", i.id);
+    if (error) {
+      await ctx.db
+        .from("event_submissions")
+        .update({ status: "pending", decided_by: null, decided_at: null })
+        .eq("id", i.id);
+      throw new StudioFailure("forbidden");
+    }
+    const upd = await ctx.db.from("event_submissions").update({ event_id: eventId }).eq("id", i.id);
     if (upd.error) throw new StudioFailure("forbidden");
     ctx.detail({ event: eventId, category: i.edits.category });
     await ctx.revalidate(["agenda", `event:${eventId}`, "home"]);
@@ -104,7 +112,7 @@ export const rejectSubmission = studioAction(
   "article.publish",
   () => AGENDA_SCOPE,
   async (i: RejectSubmissionInput, ctx) => {
-    const s = await pendingSubmission(ctx, i.id);
+    await pendingSubmission(ctx, i.id);
     const upd = await ctx.db
       .from("event_submissions")
       .update({
@@ -113,14 +121,14 @@ export const rejectSubmission = studioAction(
         decided_at: ctx.now().toISOString(),
         decision_reason: i.reason,
       })
-      .eq("id", i.id);
+      .eq("id", i.id)
+      .eq("status", "pending")
+      .select("id");
     if (upd.error) throw new StudioFailure("forbidden");
-    const title = Payload.safeParse(s.payload).data?.title ?? "";
+    if (!upd.data?.length) throw new StudioFailure("invalid", T.alreadyDecided);
+    // Destinatário e texto vêm da sugestão rejeitada, em modelo fixo (achado 8).
     const mail = await ctx.db.rpc("studio_queue_reader_email", {
       p_kind: "event_rejected",
-      p_to: s.contact_email,
-      p_subject: T.rejectedSubject,
-      p_body: T.rejectedBody(title, i.reason),
       p_ref: `submission:${i.id}`,
     });
     if (mail.error) throw new Error(`e-mail: ${mail.error.message}`);
@@ -151,7 +159,7 @@ export const respondReport = studioAction(
       .maybeSingle();
     if (!r) throw new StudioFailure("not_found");
     if (r.status !== "open") throw new StudioFailure("invalid", T.alreadyAnswered);
-    const { error } = await ctx.db
+    const { data: upd, error } = await ctx.db
       .from("reports")
       .update({
         status: "answered",
@@ -159,14 +167,14 @@ export const respondReport = studioAction(
         responded_at: ctx.now().toISOString(),
         responded_by: ctx.userId,
       })
-      .eq("id", i.id);
+      .eq("id", i.id)
+      .eq("status", "open")
+      .select("id");
     if (error) throw new StudioFailure("forbidden");
+    if (!upd?.length) throw new StudioFailure("invalid", T.alreadyAnswered);
     if (r.contact_email) {
       const mail = await ctx.db.rpc("studio_queue_reader_email", {
         p_kind: "report_response",
-        p_to: r.contact_email,
-        p_subject: T.responseSubject,
-        p_body: i.response,
         p_ref: `report:${i.id}`,
       });
       if (mail.error) throw new Error(`e-mail: ${mail.error.message}`);

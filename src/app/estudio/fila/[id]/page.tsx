@@ -29,6 +29,7 @@ import {
   requestChangesAction,
 } from "../../actions";
 import { articleLabels } from "../../materias/view";
+import { LoadError, loadOrNull } from "../../load-error";
 
 export const metadata: Metadata = {
   title: "Revisão de item autônomo · Estúdio · CityNews Cuiabá",
@@ -40,7 +41,9 @@ const OPEN = new Set(["draft", "in_review", "changes_requested", "approved"]);
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireRole("article.edit", undefined, { next: `/estudio/fila/${id}` });
-  const a = await getStudioArticle(id);
+  const loaded = await loadOrNull("fila", () => getStudioArticle(id));
+  if (!loaded) return <LoadError retryHref={`/estudio/fila/${id}`} />;
+  const a = loaded.value;
   if (!a) {
     return (
       <EmptyState
@@ -262,7 +265,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             actions={
               open && (canDecide || canEdit)
                 ? {
-                    approve: canDecide ? approveAction : undefined,
+                    approve: canDecide ? approveAction.bind(null, a.version) : undefined,
                     reject: canDecide ? rejectItemAction : undefined,
                     requestChanges: canDecide ? requestChangesAction : undefined,
                     reprocess: canEdit && a.agentId ? reprocessAction : undefined,

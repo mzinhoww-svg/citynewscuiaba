@@ -7,7 +7,14 @@ import { requireRole } from "@/lib/auth/require-role";
 import { getMedia, replacementOptions } from "@/lib/db/queries/studio-media";
 import { formatDate, formatDateTime, localDateKey } from "@/lib/format/date";
 import { labelsFor } from "@/lib/labels";
-import { approveImageAction, blockImageAction, replaceImageAction } from "../../actions";
+import { MULTI_SECTION } from "@/lib/studio/scope";
+import {
+  approveImageAction,
+  blockImageAction,
+  replaceImageAction,
+  takedownImageAction,
+} from "../../actions";
+import { LoadError, loadOrNull } from "../../load-error";
 
 export const metadata: Metadata = { title: "Aprovação de imagem · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -15,7 +22,9 @@ export const dynamic = "force-dynamic";
 export default async function MediaApprovalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireRole("media.approve", undefined, { next: `/estudio/midia/${id}` });
-  const m = await getMedia(id);
+  const loaded = await loadOrNull("midia", () => getMedia(id));
+  if (!loaded) return <LoadError retryHref={`/estudio/midia/${id}`} />;
+  const m = loaded.value;
   if (!m) {
     return (
       <EmptyState as="h1" tone="error" icon="circle-alert" title={T.notFound}>
@@ -25,7 +34,9 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
       </EmptyState>
     );
   }
-  const section = m.articles[0]?.sectionSlug;
+  // Mesmo escopo da ação (achado 15): usada em várias editorias, só quem aprova em todas.
+  const sections = [...new Set(m.articles.map((a) => a.sectionSlug))];
+  const section = sections.length > 1 ? MULTI_SECTION : sections[0];
   const canApprove = can(session.roles, "media.approve", {
     ...(section ? { section } : {}),
     userId: session.userId,
@@ -160,6 +171,7 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
           status={m.status}
           approve={canApprove ? approveImageAction : undefined}
           block={canApprove ? blockImageAction : undefined}
+          takedown={canApprove && m.kind === "reproduction" ? takedownImageAction : undefined}
           replace={
             replaceable.length
               ? {

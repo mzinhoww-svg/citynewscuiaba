@@ -16,10 +16,16 @@ export interface DraftView {
   seoDescription: string | null;
   /** Sugestões de IA ainda sem decisão (aceitar ou descartar). */
   openSuggestions: number;
+  /**
+   * Rascunho sem IA (B-015): `true` enquanto o corpo ainda tiver texto das fontes (regra em
+   * `studio_fallback_pending`, migration 0023); `false` depois de reescrito; `null`/ausente
+   * quando a matéria não nasceu de rascunho sem IA (o item nem aparece).
+   */
+  fallbackPending?: boolean | null;
 }
 
 export type ChecklistKey =
-  "title_dek" | "taxonomy" | "primary_source" | "images" | "seo" | "ai_suggestions";
+  "ai_fallback" | "title_dek" | "taxonomy" | "primary_source" | "images" | "seo" | "ai_suggestions";
 
 export interface ChecklistItem {
   key: ChecklistKey;
@@ -46,7 +52,7 @@ function item(key: ChecklistKey, label: string, reason: string | null): Checklis
 }
 
 /**
- * Checklist de publicação: título e linha fina; editoria, tags e local; fonte primária quando a
+ * Checklist de publicação: rascunho sem IA reescrito (quando for o caso); título e linha fina; editoria, tags e local; fonte primária quando a
  * regra da categoria exige; crédito e texto alternativo em toda imagem; título e descrição de
  * SEO; sugestões de IA resolvidas. Aprovar fica desabilitado com `blocker` visível.
  */
@@ -75,7 +81,13 @@ export function checklist(a: DraftView): Checklist {
           : null;
   const ai = a.openSuggestions > 0 ? T.reason.suggestions(a.openSuggestions) : null;
 
+  const fallback =
+    a.fallbackPending === undefined || a.fallbackPending === null
+      ? []
+      : [item("ai_fallback", T.label.aiFallback, a.fallbackPending ? T.reason.aiFallback : null)];
+
   const items = [
+    ...fallback,
     item("title_dek", T.label.titleDek, titleDek),
     item("taxonomy", T.label.taxonomy, taxonomy),
     item("primary_source", a.requirePrimary ? T.label.primary : T.label.primaryOptional, primary),

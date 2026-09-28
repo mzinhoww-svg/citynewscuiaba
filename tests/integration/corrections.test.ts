@@ -130,6 +130,26 @@ describe("correção pelo Estúdio (P4-T6)", () => {
     });
     const { data: a } = await service.from("articles").select("status, dek").eq("id", art).single();
     expect(a).toEqual({ status: "updated", dek: "Feira passa a abrir às 6h." });
+    // Snapshot no mesmo formato das outras versões (gate P4, achado 16): o E05 compara igual.
+    const { data: snap } = await service
+      .from("article_versions")
+      .select("snapshot")
+      .eq("article_id", art)
+      .eq("number", 2)
+      .single();
+    expect(Object.keys(snap?.snapshot as object).sort()).toEqual(
+      [
+        "body",
+        "dek",
+        "fieldOrigins",
+        "neighborhoods",
+        "sectionSlug",
+        "seoDescription",
+        "seoTitle",
+        "tags",
+        "title",
+      ].sort(),
+    );
 
     const list = await listCorrections();
     if (!list.ok) throw new Error(JSON.stringify(list.error));

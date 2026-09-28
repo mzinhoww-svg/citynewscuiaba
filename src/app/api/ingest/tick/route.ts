@@ -13,7 +13,8 @@ export async function POST(req: Request): Promise<Response> {
   // Autoriza antes de montar dependências: sem segredo, nada toca o banco.
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
-  // Agendadas do Estúdio que venceram (P4-T5): publica e invalida o cache antes do ciclo.
+  // Agendadas do Estúdio que venceram (P4-T5): publica e invalida o cache (inclusive das que
+  // o pg_cron publicou antes, pendentes em studio_revalidations) antes do ciclo.
   await publishDueScheduled(revalidateTags).catch((e: unknown) =>
     console.error("agendadas:", e instanceof Error ? e.message : e),
   );

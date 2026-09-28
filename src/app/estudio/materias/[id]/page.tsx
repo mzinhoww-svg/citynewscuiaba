@@ -38,6 +38,7 @@ import {
   updateSourcesAction,
 } from "../../actions";
 import { articleLabels, originNotes } from "../view";
+import { LoadError, loadOrNull } from "../../load-error";
 
 export const metadata: Metadata = { title: "Editor de matéria · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -49,7 +50,9 @@ function isDoc(v: unknown): v is EditorDoc {
 export default async function ArticleEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await requireRole("article.edit", undefined, { next: `/estudio/materias/${id}` });
-  const a = await getStudioArticle(id);
+  const loaded = await loadOrNull("materia", () => getStudioArticle(id));
+  if (!loaded) return <LoadError retryHref={`/estudio/materias/${id}`} />;
+  const a = loaded.value;
   if (!a) {
     return (
       <EmptyState
@@ -189,7 +192,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
               labels={articleLabels({ ...a, publishMode: "human" })}
               hasTopic={a.topic !== null}
               headline={headline}
-              publish={publishAction}
+              publish={publishAction.bind(null, a.version)}
             />
           )}
           <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
