@@ -165,3 +165,17 @@ export { EditorialScore, type EditorialScoreProps } from "./studio/sources/Edito
 export { FrequencyLabel, type FrequencyLabelProps } from "./studio/sources/FrequencyLabel";
 export { HealthBadge, type HealthBadgeProps } from "./studio/sources/HealthBadge";
 export { SourceStatusBadge, type SourceStatusBadgeProps } from "./studio/sources/SourceStatusBadge";
+
+/* studio · painel de fontes, lista O03 (FS-T7) */
+export { BulkActionsBar, type BulkActionsBarProps } from "./studio/sources/BulkActionsBar";
+export {
+  CollectionSettingsDialog,
+  type CollectionSettingsDialogProps,
+} from "./studio/sources/CollectionSettingsDialog";
+export {
+  SourceApprovalsNotice,
+  type SourceApprovalsNoticeProps,
+} from "./studio/sources/SourceApprovalsNotice";
+export { SourceFilters, type SourceFiltersProps } from "./studio/sources/SourceFilters";
+export { SourceRowMobile, type SourceRowMobileProps } from "./studio/sources/SourceRowMobile";
+export { SourcesTable, type SourcesTableProps } from "./studio/sources/SourcesTable";

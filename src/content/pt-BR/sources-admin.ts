@@ -272,3 +272,109 @@ export const ANALYZE_TEXT = {
   },
   aiUnavailable: "Sugestões da IA indisponíveis agora. Preencha os campos manualmente.",
 } as const;
+
+const fullDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Cuiaba",
+  day: "2-digit",
+  month: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** "27/09 14:32" no fuso de Cuiabá (colunas de data da lista e do histórico). */
+export function fullDateTime(at: string): string {
+  const d = new Date(at);
+  return Number.isNaN(d.getTime()) ? "" : fullDateTimeFormatter.format(d);
+}
+
+const listPlural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+/** Textos da tela O03 (lista de fontes), spec §8. */
+export const SOURCES_LIST_TEXT = {
+  title: "Fontes",
+  addSource: "Adicionar fonte",
+  collectionSettings: "Configurações da coleta",
+  fastLane: (used: number, max: number) => `Via rápida: ${used} de ${max}`,
+  never: "Nunca",
+  search: { label: "Buscar", placeholder: "Nome ou domínio" },
+  filters: {
+    status: "Status",
+    statusAll: "Todos os status",
+    layer: "Camada",
+    layerAll: "Todas as camadas",
+    locality: "Localidade",
+    localityAll: "Todas as localidades",
+    health: "Saúde",
+    healthAll: "Todas",
+    via: "Via",
+    viaAll: "Todas",
+    viaFast: "Rápida",
+    viaNormal: "Normal",
+    pending: "Só com aprovação pendente",
+    submit: "Filtrar",
+    clear: "Limpar filtros",
+  },
+  columns: {
+    selectAll: "Selecionar todas",
+    selectOne: (name: string) => `Selecionar ${name}`,
+    source: "Fonte",
+    status: "Status",
+    layer: "Camada",
+    locality: "Localidade",
+    score: "Score",
+    priority: "Prioridade",
+    frequency: "Frequência",
+    health: "Saúde",
+    lastFetch: "Última coleta",
+    nextFetch: "Próxima coleta",
+    errors: "Erros 24 h",
+    actions: "Ações",
+  },
+  rowActions: {
+    open: "Abrir",
+    collectNow: "Coletar agora",
+    pause: "Pausar",
+    resume: "Retomar",
+    menuFor: (name: string) => `Ações de ${name}`,
+  },
+  bulk: {
+    selected: (n: number) => `${n} ${listPlural(n, "fonte selecionada", "fontes selecionadas")}`,
+    clear: "Limpar seleção",
+    pause: "Pausar",
+    activate: "Ativar",
+    frequencyLabel: "Frequência",
+    apply: "Aplicar",
+    pauseDialogTitle: (n: number) => `Pausar ${n} ${listPlural(n, "fonte", "fontes")}?`,
+    pauseDialogBody: "As fontes selecionadas param de ser coletadas até você retomá-las.",
+    pauseDialogConfirm: (n: number) => `Pausar ${n} ${listPlural(n, "fonte", "fontes")}`,
+    cancel: "Cancelar",
+  },
+  empty: {
+    noneTitle: "Nenhuma fonte cadastrada ainda.",
+    filteredTitle: "Nenhuma fonte com esses filtros.",
+  },
+  error: {
+    title: "Não foi possível carregar as fontes.",
+    retry: "Tentar de novo",
+  },
+  pagination: {
+    prev: "Página anterior",
+    next: "Próxima página",
+    of: (page: number, total: number) => `Página ${page} de ${total}`,
+  },
+  settings: {
+    trigger: "Configurações da coleta",
+    title: "Configurações da coleta",
+    defaultFrequencyLabel: "Frequência padrão",
+    fastLaneMaxLabel: "Vagas da via rápida",
+    fastLaneMaxHint: (used: number, max: number) => `Via rápida: ${used} de ${max}`,
+    save: "Salvar",
+    close: "Fechar",
+  },
+  approvalsNotice: {
+    one: "1 mudança aguarda segunda aprovação.",
+    many: (n: number) => `${n} mudanças aguardam segunda aprovação.`,
+    review: "Revisar",
+  },
+} as const;
