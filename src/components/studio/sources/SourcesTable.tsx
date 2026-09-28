@@ -311,7 +311,7 @@ export function SourcesTable({
                       className="size-5 accent-action-primary"
                     />
                   </td>
-                  <td className="p-3">
+                  <td className="w-[1%] max-w-[13rem] p-3 wide:max-w-[16rem]">
                     <Link
                       href={hrefFor(row.id)}
                       className="type-body font-semibold text-strong no-underline hover:underline"

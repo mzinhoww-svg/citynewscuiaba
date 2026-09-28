@@ -33,11 +33,11 @@ export function HealthBadge({ score, label, className }: HealthBadgeProps) {
     >
       <Icon name={look.icon} size={14} />
       {score !== null && label !== "sem_dados" ? (
-        <span>
+        <span className="whitespace-nowrap">
           <span className="font-semibold">{score}</span> · {HEALTH_TEXT[label]}
         </span>
       ) : (
-        <span>{HEALTH_TEXT[label]}</span>
+        <span className="whitespace-nowrap">{HEALTH_TEXT[label]}</span>
       )}
     </span>
   );

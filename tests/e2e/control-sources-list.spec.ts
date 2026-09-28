@@ -145,6 +145,19 @@ test("1280 px: colunas-chave cabem sem rolagem horizontal; secundárias ficam oc
   await expect(page.getByRole("columnheader", { name: "Prioridade" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "Última coleta" })).toHaveCount(0);
   await expect(page.getByRole("columnheader", { name: "Erros 24 h" })).toHaveCount(0);
+
+  // Re-review fix round 2: Score, Frequência e Saúde não podem quebrar em 2-3 linhas na primeira
+  // linha da tabela (colunas 4, 6 e 7: checkbox, Fonte, Status, Score, Prioridade[oculta],
+  // Frequência, Saúde, ...).
+  const row = page.locator("tbody tr").first();
+  for (const col of [4, 6, 7]) {
+    const text = row.locator(`td:nth-child(${col}) span.whitespace-nowrap`).first();
+    const { height, lineHeight } = await text.evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(el).lineHeight),
+    }));
+    expect(height).toBeLessThanOrEqual(lineHeight * 1.5);
+  }
 });
 
 test("360 px vira lista sem rolagem horizontal", async ({ page }) => {

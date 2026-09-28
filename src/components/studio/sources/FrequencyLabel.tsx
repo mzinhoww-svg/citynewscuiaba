@@ -34,11 +34,11 @@ export function FrequencyLabel({
   const raised = effective.raisedBy ? ` (${FREQUENCY_TEXT.raisedBy[effective.raisedBy]})` : "";
   const main = `${parts.join(FREQUENCY_TEXT.separator)}${raised}`;
   if (nextCollectionAt === undefined)
-    return <span className={cx("type-meta", className)}>{main}</span>;
+    return <span className={cx("type-meta whitespace-nowrap", className)}>{main}</span>;
   return (
     <span className={cx("inline-flex flex-col gap-0.5", className)}>
-      <span className="type-meta text-strong">{main}</span>
-      <span className="type-meta text-meta">
+      <span className="type-meta text-strong whitespace-nowrap">{main}</span>
+      <span className="type-meta text-meta whitespace-nowrap">
         {nextCollectionAt
           ? FREQUENCY_TEXT.next(clockTime(nextCollectionAt))
           : FREQUENCY_TEXT.noNext}

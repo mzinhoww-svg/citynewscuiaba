@@ -27,7 +27,7 @@ export function EditorialScore({ score, className }: EditorialScoreProps) {
           </span>
         ))}
       </span>
-      <span className="type-meta text-strong">{scoreText(value)}</span>
+      <span className="type-meta text-strong whitespace-nowrap">{scoreText(value)}</span>
     </span>
   );
 }
