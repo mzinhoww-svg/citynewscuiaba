@@ -20,6 +20,11 @@ export interface ReaderEmail {
   to: string;
   subject: string;
   body: string;
+  /**
+   * O que a mensagem confirma (`alert:<id>` ou `lists:<ids>`). O dedupe de 10 min é por
+   * endereço, tipo e referência: outro alerta ou outra lista ganha a própria mensagem (I4).
+   */
+  ref: string;
 }
 
 export interface SubscribeDeps {
@@ -86,6 +91,7 @@ export async function subscribeNewsletter(
   const already = lists.every((l) => saved.value.alreadyActive.includes(l));
   const link = deps.link(email, lists, !already);
   if (!link) return { status: "error", message: NEWSLETTER.error, email: raw };
+  const ref = `lists:${[...lists].sort().join(",")}`;
   const queued = await deps.queue(
     already
       ? {
@@ -93,12 +99,14 @@ export async function subscribeNewsletter(
           to: email,
           subject: NEWSLETTER_MAIL.manageSubject,
           body: NEWSLETTER_MAIL.manageBody(link),
+          ref,
         }
       : {
           kind: "newsletter_confirm",
           to: email,
           subject: NEWSLETTER_MAIL.confirmSubject,
           body: NEWSLETTER_MAIL.confirmBody(listNames(lists), link),
+          ref,
         },
   );
   if (!queued.ok) return { status: "error", message: NEWSLETTER.error, email: raw };

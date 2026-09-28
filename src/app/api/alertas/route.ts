@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createEmailAlert } from "@/lib/alerts/email";
+import { alertTargetLabel } from "@/lib/alerts/labels";
 import { hitRateLimit, queueReaderEmail, saveEmailAlert } from "@/lib/db/writes";
 import { ok } from "@/lib/result";
 import { clientRateKey } from "@/lib/security/rate-limit";
@@ -24,7 +25,8 @@ export async function POST(req: Request) {
         : hitRateLimit("alert", key, NEWSLETTER_LIMIT, 3600),
     save: saveEmailAlert,
     queue: queueReaderEmail,
-    link: (email, id) => signedLink("/alertas/confirmar", email, [`alert:${id}`]),
+    link: (email, id) => signedLink("alert", "/alertas/confirmar", email, [`alert:${id}`]),
+    resolveLabel: alertTargetLabel,
   });
   const code =
     r.status === "pending"

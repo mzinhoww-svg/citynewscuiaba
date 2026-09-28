@@ -3,7 +3,9 @@ import { err, ok, type Result } from "@/lib/result";
 
 /**
  * Link assinado da newsletter e dos alertas por e-mail (P19, P18): `payload.assinatura`, com
- * payload em base64url `{ e, l, x }` (e-mail, listas, expiração em segundos) e HMAC-SHA256.
+ * payload em base64url `{ p, e, l, x }` (finalidade, e-mail, listas, expiração em segundos) e
+ * HMAC-SHA256. A finalidade (`newsletter` ou `alert`) é conferida em cada rota: um link de
+ * alerta não abre o centro de preferências da newsletter (gate P2, M11).
  * Serve para confirmar a inscrição (confirmação dupla) e abrir o centro de preferências sem
  * conta. Nada no token é secreto; só a assinatura impede forjar outro e-mail.
  */
@@ -18,10 +20,13 @@ export function newsletterSecret(env: SecretEnv = process.env): string | null {
   return env.NODE_ENV === "production" ? null : DEV_SECRET;
 }
 
+export type LinkPurpose = "newsletter" | "alert";
+
 const sign = (payload: string, secret: string) =>
-  createHmac("sha256", secret).update(`newsletter:${payload}`).digest("base64url");
+  createHmac("sha256", secret).update(`citynews-link:${payload}`).digest("base64url");
 
 export function signNewsletterToken(
+  purpose: LinkPurpose,
   email: string,
   lists: string[],
   expSec: number,
@@ -30,13 +35,14 @@ export function signNewsletterToken(
   if (!secret) throw new Error("newsletter: segredo ausente");
   const x = Math.floor(Date.now() / 1000) + Math.floor(expSec);
   const payload = Buffer.from(
-    JSON.stringify({ e: email.trim().toLowerCase(), l: lists, x }),
+    JSON.stringify({ p: purpose, e: email.trim().toLowerCase(), l: lists, x }),
   ).toString("base64url");
   return `${payload}.${sign(payload, secret)}`;
 }
 
 export function verifyNewsletterToken(
   token: string,
+  purpose: LinkPurpose,
   secret: string | null = newsletterSecret(),
 ): Result<{ email: string; lists: string[] }, "expired" | "invalid"> {
   if (!secret) return err("invalid");
@@ -53,7 +59,8 @@ export function verifyNewsletterToken(
     return err("invalid");
   }
   if (typeof data !== "object" || data === null) return err("invalid");
-  const d = data as { e?: unknown; l?: unknown; x?: unknown };
+  const d = data as { p?: unknown; e?: unknown; l?: unknown; x?: unknown };
+  if (d.p !== purpose) return err("invalid");
   if (typeof d.e !== "string" || typeof d.x !== "number" || !Array.isArray(d.l))
     return err("invalid");
   const lists = d.l.filter((v): v is string => typeof v === "string");
