@@ -1,4 +1,6 @@
 import { createStore, del, get, set } from "idb-keyval";
+import { SECTIONS } from "@/content/pt-BR/nav";
+import { deriveInterests } from "./interests";
 import type {
   AlertChannel,
   AlertFrequency,
@@ -30,6 +32,9 @@ const CHANNELS: readonly AlertChannel[] = ["browser", "email"];
 /** Caminho interno: começa com uma barra só (nunca `//host` nem URL absoluta). */
 const INTERNAL_PATH = /^\/(?!\/)[^\s]*$/;
 const KEY = "profile";
+const SECTION_LABELS: Record<string, string> = Object.fromEntries(
+  SECTIONS.map((s) => [s.id, s.label]),
+);
 const DAY_MS = 86_400_000;
 
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -140,7 +145,10 @@ export function normalizeProfile(raw: unknown, now: Date): AnonProfile {
     if (!isObj(i)) return [];
     const key = str(i.key, 120);
     const evidence = str(i.evidence);
-    return key && evidence ? [{ key, evidence, weak: i.weak === true }] : [];
+    const section = str(i.section, 120);
+    return key && evidence
+      ? [{ key, evidence, weak: i.weak === true, ...(section ? { section } : {}) }]
+      : [];
   });
   const hidden = arr(raw.hidden).flatMap((h) => {
     if (!isObj(h)) return [];
@@ -368,22 +376,25 @@ export function createAnonStore(backend?: KV, opts: AnonStoreOptions = {}): Anon
     removeAlert: (id) => change((p) => ({ ...p, alerts: p.alerts.filter((x) => x.id !== id) })),
     unsave: (ref) => change((p) => ({ ...p, saved: p.saved.filter((s) => s.ref !== ref) })),
     recordRead: (entry) =>
-      change((p) =>
-        p.anonId === null
-          ? p
-          : {
-              ...p,
-              history: [
-                {
-                  ...entry,
-                  at: entry.at ?? stamp(),
-                  seconds: num(entry.seconds, 0, 86_400),
-                  scrollPct: num(entry.scrollPct, 0, 100),
-                },
-                ...p.history,
-              ],
-            },
-      ),
+      change((p) => {
+        if (p.anonId === null) return p;
+        const history = prune(
+          {
+            ...p,
+            history: [
+              {
+                ...entry,
+                at: entry.at ?? stamp(),
+                seconds: num(entry.seconds, 0, 86_400),
+                scrollPct: num(entry.scrollPct, 0, 100),
+              },
+              ...p.history,
+            ],
+          },
+          now(),
+        ).history;
+        return { ...p, history, interests: deriveInterests(history, SECTION_LABELS) };
+      }),
     recordSearch: (query) =>
       change((p) => {
         const q = query.trim().slice(0, 200);
@@ -401,6 +412,18 @@ export function createAnonStore(backend?: KV, opts: AnonStoreOptions = {}): Anon
     unhide: (sourceSlug) =>
       change((p) => ({ ...p, hidden: p.hidden.filter((h) => h.sourceSlug !== sourceSlug) })),
     clearHistory: () => change((p) => ({ ...p, history: [], searches: [], interests: [] })),
+    removeInterest: (key) =>
+      change((p) => {
+        const it = p.interests.find((i) => i.key === key);
+        const section = it?.section;
+        return {
+          ...p,
+          interests: p.interests.filter((i) => i.key !== key),
+          history: section ? p.history.filter((h) => h.section !== section) : p.history,
+        };
+      }),
+    resetRecommendations: () =>
+      change((p) => ({ ...p, history: [], searches: [], interests: [], hidden: [] })),
     reset: () => change(() => emptyProfile(now())),
     ensureAnonId: (consent) =>
       mutate((p) => {

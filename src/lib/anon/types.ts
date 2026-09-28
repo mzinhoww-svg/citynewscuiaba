@@ -52,7 +52,8 @@ export interface AnonProfile {
     scrollPct: number;
   }[];
   searches: string[];
-  interests: { key: string; evidence: string; weak: boolean }[];
+  /** Interesses considerados (P21), com a evidência; `section` liga o interesse ao histórico. */
+  interests: { key: string; evidence: string; weak: boolean; section?: string }[];
   hidden: { sourceSlug: string; reason: DismissReason; at: string }[];
   /** Coleções pessoais (Favoritos). */
   collections: { id: string; name: string; at: string; items: string[] }[];
@@ -93,6 +94,10 @@ export interface AnonStore {
   unhide(sourceSlug: string): Promise<void>;
   /** Apaga histórico, buscas e interesses; mantém seguidas, salvos e ocultações. */
   clearHistory(): Promise<void>;
+  /** Remove um interesse e as leituras que eram a evidência dele (P21). */
+  removeInterest(key: string): Promise<void>;
+  /** "Redefinir recomendações": histórico, buscas, interesses e ocultações; mantém o resto. */
+  resetRecommendations(): Promise<void>;
   /** Apaga o perfil inteiro. */
   reset(): Promise<void>;
   /**

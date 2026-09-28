@@ -49,3 +49,46 @@ export const ANON_TEXT = {
   degraded: "Não conseguimos salvar neste navegador",
   degradedDetail: "Suas escolhas valem só enquanto esta página estiver aberta.",
 } as const;
+
+/** P21 · Como usamos suas recomendações. */
+export const RECS_PAGE_TEXT = {
+  metaTitle: "Como usamos suas recomendações · CityNews Cuiabá",
+  title: "Como usamos suas recomendações",
+  intro:
+    "As recomendações de fontes e matérias usam o que é popular em Cuiabá e, só se você deixar, o que você lê neste navegador. Nada aqui exige conta.",
+  choices: "Suas escolhas",
+  switchLabel: "Recomendações pelo que você lê",
+  switchHelp:
+    "Liga o histórico de leitura e o identificador anônimo neste navegador. Desligado, você vê o que é popular na região.",
+  metricsLabel: "Métricas agregadas",
+  metricsHelp: "Contagens de leitura sem identificar você.",
+  necessary: "Necessários: sempre ativos (sessão, segurança e esta escolha).",
+  browser: "Seu perfil neste navegador",
+  browserCounts: (reads: number, searches: number) =>
+    `${reads === 1 ? "1 leitura" : `${reads} leituras`} nos últimos 30 dias e ${
+      searches === 1 ? "1 busca recente" : `${searches} buscas recentes`
+    }.`,
+  browserOff: "Com a personalização desligada, não guardamos histórico nem buscas.",
+  interests: "Interesses considerados",
+  interestsIntro:
+    "Editorias que você leu com atenção. Nunca inferimos saúde, religião, posição política, raça, renda ou outro dado sensível.",
+  interestsEmpty: "Nenhum interesse considerado ainda.",
+  weak: "sinal fraco: ainda não usado",
+  remove: (key: string) => `Remover ${key}`,
+  removeText: "Remover",
+  removed: "Interesse removido.",
+  actions: "Controles",
+  clear: "Apagar histórico local",
+  cleared: "Histórico local apagado.",
+  reset: "Redefinir recomendações",
+  resetDone: "Recomendações redefinidas",
+  disable: "Desativar recomendações personalizadas",
+  disabled: "Recomendações personalizadas desativadas.",
+  notifications: "Notificações",
+  notificationsText: "Alertas do navegador e por e-mail são escolhas suas, uma por uma.",
+  notificationsLink: "Gerenciar alertas",
+  policy: "Política de privacidade",
+  policyText: "O texto completo, os cookies por categoria e seus direitos na LGPD.",
+  policyLink: "Ler a política de privacidade",
+  loading: "Carregando suas escolhas",
+} as const;

@@ -37,3 +37,10 @@ export type ConfirmState =
   { status: "idle" } | { status: "confirmed" } | { status: "expired" } | { status: "unavailable" };
 
 export const IDLE = { status: "idle" } as const;
+
+export type ProfileState =
+  { status: "idle" } | { status: "saved" } | { status: "invalid" } | { status: "unavailable" };
+
+export type DeleteState = { status: "idle" } | { status: "invalid" } | { status: "unavailable" };
+
+export type ExportResult = { ok: true; data: string } | { ok: false };

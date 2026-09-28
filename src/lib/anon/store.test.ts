@@ -151,6 +151,49 @@ describe("perfil anônimo", () => {
     expect(p.anonId).toBeNull();
   });
 
+  it("leituras viram interesses com evidência; remover apaga a evidência (P21)", async () => {
+    const s = createAnonStore(memoryKV(), { now: () => NOW });
+    await s.ensureAnonId(PERSO);
+    for (const d of [1, 2, 3]) {
+      const at = new Date(NOW.getTime() - d * DAY).toISOString();
+      await s.recordRead({
+        ref: `article:${d}`,
+        section: "cidade",
+        seconds: 45,
+        scrollPct: 80,
+        at,
+      });
+    }
+    await s.recordRead({ ref: "article:9", section: "cultura", seconds: 70, scrollPct: 10 });
+    let p = await s.get();
+    expect(p.interests).toEqual([
+      expect.objectContaining({ key: "Cidade", weak: false, section: "cidade" }),
+      expect.objectContaining({ key: "Cultura", weak: true }),
+    ]);
+    await s.removeInterest("Cidade");
+    p = await s.get();
+    expect(p.interests.map((i) => i.key)).toEqual(["Cultura"]);
+    expect(p.history.map((h) => h.section)).toEqual(["cultura"]);
+  });
+
+  it("redefinir recomendações apaga histórico, buscas, interesses e ocultações", async () => {
+    const s = createAnonStore(memoryKV());
+    await s.ensureAnonId(PERSO);
+    await s.follow("source", "a");
+    await s.save("article:1");
+    await s.hide("b", "not_interested");
+    await s.recordRead({ ref: "article:1", section: "cidade", seconds: 60, scrollPct: 90 });
+    await s.recordSearch("x");
+    await s.resetRecommendations();
+    const p = await s.get();
+    expect(p.history).toEqual([]);
+    expect(p.searches).toEqual([]);
+    expect(p.interests).toEqual([]);
+    expect(p.hidden).toEqual([]);
+    expect(p.follows).toHaveLength(1);
+    expect(p.saved).toHaveLength(1);
+  });
+
   it("dado corrompido no navegador vira perfil vazio válido", async () => {
     const kv = memoryKV();
     await kv.set("profile", { anonId: "não-é-uuid", follows: "x", saved: [{ ref: 1 }] });

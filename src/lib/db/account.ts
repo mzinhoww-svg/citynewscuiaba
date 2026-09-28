@@ -247,3 +247,59 @@ export async function applyMigration(
     .eq("id", owner);
   if (ue) throw new Error(ue.message);
 }
+
+/** Perfil da conta para /perfil (RLS: só o próprio). `null` se ainda não existe. */
+export async function readAccountProfile(db: DbClient, userId: string) {
+  const [profile, roles] = await Promise.all([
+    db
+      .from("profiles")
+      .select("display_name, neighborhood, delete_requested_at, created_at")
+      .eq("id", userId)
+      .maybeSingle(),
+    db.from("user_roles").select("role").eq("user_id", userId),
+  ]);
+  if (profile.error) throw new Error(profile.error.message);
+  return profile.data
+    ? {
+        displayName: profile.data.display_name,
+        neighborhood: profile.data.neighborhood,
+        deleteRequestedAt: profile.data.delete_requested_at,
+        createdAt: profile.data.created_at,
+        staff: (roles.data ?? []).length > 0,
+      }
+    : null;
+}
+
+/** Cópia dos dados da conta (P20, LGPD): tudo o que é do leitor, sem dados de outras pessoas. */
+export async function exportAccount(db: DbClient, user: User) {
+  const owner = user.id;
+  const [profile, follows, saved, alerts, collections] = await Promise.all([
+    db
+      .from("profiles")
+      .select("display_name, neighborhood, created_at, preferences, delete_requested_at")
+      .eq("id", owner)
+      .maybeSingle(),
+    db.from("follows").select("target_kind, target_id, created_at").eq("owner_ref", owner),
+    db.from("saved_items").select("content_ref, progress, created_at").eq("owner_ref", owner),
+    db
+      .from("alerts")
+      .select("target_kind, target_id, frequency, channel, active")
+      .eq("owner_ref", owner),
+    db
+      .from("collections")
+      .select("title, description, collection_items(content_ref, position)")
+      .eq("owner_ref", owner)
+      .eq("is_editorial", false),
+  ]);
+  for (const r of [profile, follows, saved, alerts, collections])
+    if (r.error) throw new Error(r.error.message);
+  return {
+    exportedAt: new Date().toISOString(),
+    account: { email: user.email, createdAt: user.created_at, lastSignInAt: user.last_sign_in_at },
+    profile: profile.data,
+    follows: follows.data,
+    saved: saved.data,
+    alerts: alerts.data,
+    collections: collections.data,
+  };
+}

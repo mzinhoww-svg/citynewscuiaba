@@ -71,7 +71,7 @@ export const SIGN_IN_TEXT = {
   notConfirmed: "Confirme seu e-mail antes de entrar.",
   resendConfirm: "Reenviar confirmação",
   magicTitle: "Entrar sem senha",
-  magicIntro: "Enviamos um link de acesso para o seu e-mail.",
+  magicIntro: "Receba no seu e-mail um link para entrar, sem digitar senha.",
   magicSubmit: "Receber link por e-mail",
   magicSent: (email: string) =>
     `Se houver conta com ${email}, enviamos um link para entrar. Ele vale por 1 hora.`,
@@ -182,4 +182,90 @@ export const MIGRATE_TEXT = {
   continue: "Continuar",
   error: "Não conseguimos sincronizar agora. Nada foi perdido: tente de novo.",
   retry: "Tentar de novo",
+} as const;
+
+/** P20 · Perfil. */
+export const PROFILE_TEXT = {
+  metaTitle: "Perfil · CityNews Cuiabá",
+  title: "Perfil",
+  description: "Seu perfil neste navegador e, se quiser, sua conta para sincronizar.",
+  loading: "Carregando seu perfil",
+  anon: {
+    title: "Seu perfil neste navegador",
+    intro: "Sem conta, o CityNews guarda suas escolhas só aqui. Nada disso exige cadastro.",
+    localId: "Identificador local",
+    noId: "Sem identificador (personalização desligada)",
+    createdAt: "Criado em",
+    counts: "Guardado aqui",
+    count: {
+      follows: (n: number) =>
+        n === 1 ? "1 fonte ou tema seguido" : `${n} fontes e temas seguidos`,
+      saved: (n: number) => (n === 1 ? "1 matéria salva" : `${n} matérias salvas`),
+      alerts: (n: number) => (n === 1 ? "1 alerta" : `${n} alertas`),
+      collections: (n: number) => (n === 1 ? "1 coleção" : `${n} coleções`),
+    },
+    loss: "Se você limpar os dados do navegador ou trocar de aparelho, isto se perde.",
+    create: "Criar conta para sincronizar",
+    signIn: "Entrar",
+    export: "Baixar dados deste navegador",
+  },
+  shortcuts: "Atalhos",
+  links: {
+    favorites: "Favoritos",
+    alerts: "Alertas",
+    privacy: "Privacidade e recomendações",
+    newsletter: "Newsletters",
+  },
+  account: {
+    title: "Sua conta",
+    name: "Nome de exibição",
+    email: "E-mail",
+    neighborhood: "Bairro principal",
+    neighborhoodHint: "Usado em Perto de você. Opcional.",
+    none: "Não informar",
+    save: "Salvar dados",
+    saved: "Dados salvos.",
+    nameError: "Digite um nome de exibição (até 80 caracteres).",
+  },
+  sessions: {
+    title: "Sessões",
+    current: "Este navegador",
+    since: (when: string) => `Última entrada ${when}`,
+    note: "Para encerrar o acesso em outros aparelhos, saia de todos os dispositivos.",
+    signOut: "Sair",
+    signOutAll: "Sair de todos os dispositivos",
+    signedOut: "Você saiu da conta. Suas escolhas neste navegador continuam aqui.",
+  },
+  password: {
+    title: "Alterar senha",
+    changed: "Senha alterada. Você continua na sua conta.",
+    submit: "Alterar senha",
+  },
+  data: {
+    title: "Seus dados",
+    intro:
+      "Baixe uma cópia do que a conta guarda: perfil, fontes, salvos, alertas, coleções e preferências.",
+    export: "Exportar dados",
+    exporting: "Preparando…",
+    exportError: "Não conseguimos preparar o arquivo agora. Tente de novo.",
+  },
+  delete: {
+    title: "Excluir conta",
+    intro:
+      "A exclusão vale depois de 7 dias. Até lá, você pode cancelar. Os dados deste navegador não são apagados.",
+    open: "Excluir conta",
+    dialogTitle: "Excluir sua conta?",
+    dialogBody:
+      "Fontes, salvos, alertas, coleções e preferências da conta serão apagados em 7 dias.",
+    type: "Digite EXCLUIR para confirmar",
+    word: "EXCLUIR",
+    confirm: "Excluir conta",
+    cancel: "Cancelar",
+    scheduled: (date: string) => `Exclusão agendada para ${date}.`,
+    scheduledDetail: "Até lá, a conta continua funcionando e você pode desistir.",
+    undo: "Cancelar exclusão",
+    undone: "Exclusão cancelada. Sua conta continua ativa.",
+    staff: "Contas da equipe são removidas pela administração do CityNews.",
+    error: "Não conseguimos registrar agora. Tente de novo.",
+  },
 } as const;

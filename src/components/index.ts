@@ -78,6 +78,15 @@ export { EmailLinkForm, type EmailLinkFormProps } from "./editorial/EmailLinkFor
 export { NewPasswordForm, type NewPasswordFormProps } from "./editorial/NewPasswordForm";
 export { ConfirmEmail, type ConfirmEmailProps } from "./editorial/ConfirmEmail";
 export { MigrateLocal, type MigrateLocalProps } from "./editorial/MigrateLocal";
+export { RecommendationControls } from "./editorial/RecommendationControls";
+export { LocalProfileCard, type LocalProfileCardProps } from "./editorial/LocalProfileCard";
+export {
+  DeleteAccount,
+  ExportAccountButton,
+  ProfileDetailsForm,
+  type DeleteAccountProps,
+  type ProfileDetailsFormProps,
+} from "./editorial/AccountForms";
 export {
   GoneState,
   NotFoundState,

@@ -1295,6 +1295,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string;
+          delete_requested_at: string | null;
           display_name: string;
           id: string;
           migrated_from_anon: string | null;
@@ -1303,6 +1304,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          delete_requested_at?: string | null;
           display_name: string;
           id: string;
           migrated_from_anon?: string | null;
@@ -1311,6 +1313,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          delete_requested_at?: string | null;
           display_name?: string;
           id?: string;
           migrated_from_anon?: string | null;
@@ -2126,6 +2129,7 @@ export type Database = {
           reads: number;
         }[];
       };
+      purge_deleted_accounts: { Args: { p_days?: number }; Returns: number };
       purge_pipeline_events: {
         Args: { p_before?: string; p_item_refs?: string[]; p_run_ids?: string[] };
         Returns: number;
