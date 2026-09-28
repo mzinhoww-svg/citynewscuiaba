@@ -81,9 +81,22 @@ export interface SuggestedConsumption {
   cadence: { itemsPerDay: number; medianGapMinutes: number | null; sampledAt: string };
 }
 
-export interface LinkAnalysis {
+/**
+ * Fonte já cadastrada para o mesmo endereço: a análise para antes de tocar o host (achado 11 da
+ * revisão FS-T6) e a tela oferece abrir (ou restaurar, se arquivada).
+ */
+export interface DuplicateFound {
+  status: "duplicate";
   url: string;
-  duplicate: { id: string; name: string; archived: boolean } | null;
+  duplicate: { id: string; name: string; archived: boolean };
+}
+
+export type AnalyzeResult = DuplicateFound | LinkAnalysis;
+
+export interface LinkAnalysis {
+  status: "analyzed";
+  url: string;
+  duplicate: null;
   discovery: DiscoverySummary;
   preview: SourcePreview;
   termsLinks: string[];
@@ -183,13 +196,22 @@ function summary(d: Discovery): DiscoverySummary {
 export async function analyzeLink(
   input: string,
   deps: AnalyzeDeps,
-): Promise<Result<LinkAnalysis, AnalyzeError>> {
+): Promise<Result<AnalyzeResult, AnalyzeError>> {
   if (!(await deps.isEnabled("source_link_analysis"))) return err("disabled");
 
   const normalized = normalizePastedUrl(withScheme(input));
   if (!normalized.ok) return normalized;
   const url = normalized.value;
   const now = deps.now();
+
+  // Duplicidade antes de qualquer requisição: fonte já cadastrada não custa nada ao host.
+  const duplicate = matchDuplicate(url, await deps.existingSources());
+  if (duplicate)
+    return ok({
+      status: "duplicate",
+      url: url.toString(),
+      duplicate: { id: duplicate.id, name: duplicate.name, archived: duplicate.archived },
+    });
 
   const found = await discoverConsumption(deps.crawl, url);
   if (!found.ok) return found;
@@ -279,8 +301,6 @@ export async function analyzeLink(
     },
   };
 
-  const duplicate = matchDuplicate(url, await deps.existingSources());
-
   const discoveryId = await deps.saveDiscovery({
     inputUrl: input,
     finalUrl: preview.finalUrl,
@@ -296,16 +316,16 @@ export async function analyzeLink(
       ai,
       aiStatus,
       selectorsValidated,
-      duplicateOf: duplicate?.id ?? null,
+      // Robots e cadência lidos pelo servidor: o cadastro usa estes, nunca os do formulário.
+      consumption,
     },
     promptVersion: ai && deps.promptVersion ? await deps.promptVersion() : null,
   });
 
   return ok({
+    status: "analyzed",
     url: url.toString(),
-    duplicate: duplicate
-      ? { id: duplicate.id, name: duplicate.name, archived: duplicate.archived }
-      : null,
+    duplicate: null,
     discovery: summary(discovery),
     preview,
     termsLinks: preview.termsLinks,

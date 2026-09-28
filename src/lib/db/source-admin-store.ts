@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { Json } from "@/lib/db/types";
 import { err, ok, type Result } from "@/lib/result";
 import {
@@ -377,9 +377,13 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
       const lane = await store.fastLane();
       const { eligible, results } = planBulk(ids, rows ?? [], action, value, lane);
 
+      // O id do lote é escolhido aqui e gravado pelo banco em toda linha de auditoria (0032):
+      // nada de ler a auditoria de volta, que corria contra lotes simultâneos (achado 7).
       let batchId: string | null = null;
       if (eligible.length > 0) {
+        batchId = randomUUID();
         const { data, error } = await db.rpc("source_admin_bulk", {
+          p_batch_id: batchId,
           p_ids: eligible,
           p_action: action,
           p_value: { frequencyMinutes: value.frequencyMinutes ?? null },
@@ -400,19 +404,6 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
             reason: item.ok ? null : bulkReason(item.reason ?? ""),
           });
         }
-        // O banco gera um batchId por chamada e grava em toda linha de auditoria do lote.
-        const { data: audit } = await db
-          .from("audit_log")
-          .select("details")
-          .in(
-            "object_ref",
-            eligible.map((i) => `source:${i}`),
-          )
-          .not("details->>batchId", "is", null)
-          .order("id", { ascending: false })
-          .limit(1);
-        const details = audit?.[0]?.details as { batchId?: string } | undefined;
-        batchId = details?.batchId ?? null;
       }
       return ok({
         items: ids.map(
@@ -478,6 +469,16 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
         return error ? err("unavailable") : ok({ path });
       } catch {
         return err("unavailable");
+      }
+    },
+
+    /** Apaga um logotipo enviado que não chegou a ser gravado na fonte (sem órfão no bucket). */
+    async removeLogo(path: string): Promise<void> {
+      try {
+        const client = opts.storage ? opts.storage() : db;
+        await client.storage.from("source-logos").remove([path]);
+      } catch (e) {
+        console.error("painel de fontes: remoção de logotipo órfão falhou", path, e);
       }
     },
 

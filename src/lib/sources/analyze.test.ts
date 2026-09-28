@@ -93,6 +93,7 @@ describe("analyzeLink", () => {
     expect(r).toMatchObject({
       ok: true,
       value: {
+        status: "analyzed",
         url: "https://vozdocoxipo.example/",
         duplicate: null,
         rules: { name: { value: "Voz do Coxipó" }, frequency: { value: 60 } },
@@ -103,7 +104,7 @@ describe("analyzeLink", () => {
         discovery: { strategy: "rss", feedUrl: "https://vozdocoxipo.example/feed" },
       },
     });
-    if (!r.ok) throw new Error("falhou");
+    if (!r.ok || r.value.status !== "analyzed") throw new Error("falhou");
     expect(r.value.preview.items).toHaveLength(5);
     expect(r.value.termsLinks).toEqual(["https://vozdocoxipo.example/termos-de-uso"]);
     expect(r.value.consumption).toMatchObject({
@@ -130,7 +131,7 @@ describe("analyzeLink", () => {
     expect(fake.calls).toHaveLength(0);
   });
 
-  it("Folha do Cerrado já cadastrada é apontada como duplicada; arquivada oferece restaurar", async () => {
+  it("Folha do Cerrado já cadastrada é apontada como duplicada sem nenhuma requisição; arquivada oferece restaurar", async () => {
     const folha: ExistingSource = {
       id: "s-folha",
       name: "Folha do Cerrado",
@@ -139,15 +140,24 @@ describe("analyzeLink", () => {
       archived: false,
     };
     const active = depsWithFakes({ routes: FOLHA, existing: [folha] });
-    expect(await analyzeLink("https://folhadocerrado.example/", active.deps)).toMatchObject({
+    expect(await analyzeLink("https://folhadocerrado.example/", active.deps)).toEqual({
       ok: true,
-      value: { duplicate: { id: "s-folha", name: "Folha do Cerrado", archived: false } },
+      value: {
+        status: "duplicate",
+        url: "https://folhadocerrado.example/",
+        duplicate: { id: "s-folha", name: "Folha do Cerrado", archived: false },
+      },
     });
+    expect(active.calls).toHaveLength(0);
+    expect(saved).toBeNull();
     const archived = depsWithFakes({ routes: FOLHA, existing: [{ ...folha, archived: true }] });
-    expect(await analyzeLink("https://folhadocerrado.example/", archived.deps)).toMatchObject({
+    expect(
+      await analyzeLink("https://www.folhadocerrado.example/feed", archived.deps),
+    ).toMatchObject({
       ok: true,
-      value: { duplicate: { id: "s-folha", archived: true } },
+      value: { status: "duplicate", duplicate: { id: "s-folha", archived: true } },
     });
+    expect(archived.calls).toHaveLength(0);
   });
 
   it("seletores que extraem menos de 3 itens são descartados", async () => {
@@ -196,7 +206,7 @@ describe("analyzeLink", () => {
         },
       },
     });
-    if (!r.ok) throw new Error("falhou");
+    if (!r.ok || r.value.status !== "analyzed") throw new Error("falhou");
     expect(r.value.preview.items).toHaveLength(3);
     expect(r.value.preview.items.every((i) => i.url.startsWith("https://mtagora.example/"))).toBe(
       true,

@@ -915,7 +915,8 @@ export async function sourceRuns(id: string): Promise<Result<SourceRun[], QueryE
       if (skip)
         runs.push({
           runId: r.id,
-          trigger: "fast",
+          // Gatilho real do run que pulou a fonte (achado 10): ciclo, via rápida ou manual.
+          trigger: r.trigger as SourceRun["trigger"],
           startedAt: r.started_at,
           status: r.status,
           outcome: `skipped:${skip.reason}`,

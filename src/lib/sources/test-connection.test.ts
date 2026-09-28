@@ -47,6 +47,19 @@ const folhaOk = createFakeHttp({
 }).http;
 
 describe("testConnection", () => {
+  it("devolve o Crawl-delay lido do robots.txt (spec §7.8.1, FS-T6)", async () => {
+    const { http } = createFakeHttp({
+      "https://folhadocerrado.example/robots.txt": {
+        body: "User-agent: *\nCrawl-delay: 600\nAllow: /",
+      },
+      "https://folhadocerrado.example/feed": xml(read("folha-do-cerrado.xml")),
+    });
+    const r = await testConnection(src("https://folhadocerrado.example/feed"), deps(http));
+    expect(r).toMatchObject({ ok: true, crawlDelaySec: 600 });
+    const plain = await testConnection(src("https://folhadocerrado.example/feed"), deps(folhaOk));
+    expect(plain.crawlDelaySec).toBeNull();
+  });
+
   it("403: acesso negado", async () => {
     const { http } = createFakeHttp({
       ...robotsOk("mtagora.example"),
@@ -83,6 +96,7 @@ describe("testConnection", () => {
       items: 0,
       ms: expect.any(Number),
       message: "O robots.txt da fonte não permite a coleta deste endereço",
+      crawlDelaySec: null,
     });
   });
 

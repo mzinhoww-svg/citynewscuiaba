@@ -40,6 +40,7 @@ import { defaultCollectNowDeps } from "@/lib/pipeline/deps";
 import { revalidateTags } from "@/lib/pipeline/revalidate";
 import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
 import {
+  consumptionSchema,
   criticalChanges,
   defaultFrequencySchema,
   diffConfig,
@@ -55,7 +56,7 @@ import {
   type PageSelectors,
   type SourceConfig,
 } from "@/lib/sources";
-import { analyzeLink, type AnalyzeError, type LinkAnalysis } from "@/lib/sources/analyze";
+import { analyzeLink, type AnalyzeError, type AnalyzeResult } from "@/lib/sources/analyze";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import { validateLogo } from "@/lib/sources/logo";
 import { testConnection } from "@/lib/sources/test-connection";
@@ -63,6 +64,7 @@ import {
   ANALYZE_TEXT,
   APPROVAL_ERROR_TEXT,
   clockTime,
+  CRITICAL_FIELD_TEXT,
   SOURCE_ACTION_TEXT as T,
 } from "@/content/pt-BR/sources-admin";
 
@@ -92,6 +94,8 @@ const done = (message: string, data?: unknown): ActionState =>
 // ---------------------------------------------------------------------------
 
 interface Ctx {
+  /** Alguma auditoria complementar falhou depois de gravar (relatada na mensagem, achado 6). */
+  auditFailed: boolean;
   userId: string;
   roles: Awaited<ReturnType<typeof requireRole>>["roles"];
   now: Date;
@@ -107,6 +111,7 @@ async function context(): Promise<Ctx> {
   const ipHash = salt ? ipKey(clientIp(await headers()), now, salt) : null;
   const db = await createServerClient();
   return {
+    auditFailed: false,
     userId: session.userId,
     roles: session.roles,
     now,
@@ -127,6 +132,28 @@ const auditCtx = (ctx: Ctx, extra: Omit<AuditCtx, "ipHash"> = {}): AuditCtx => (
   ...extra,
   ipHash: ctx.ipHash,
 });
+
+/**
+ * Auditoria complementar (aprovações, coletar agora, teste, análise). Roda depois de a escrita
+ * principal já ter sido gravada: se falhar, não desfaz nem esconde o sucesso — registra no log do
+ * servidor e a mensagem avisa (achado 6 da revisão FS-T6).
+ */
+async function safeAudit(ctx: Ctx, entry: Parameters<SourceAdminStore["audit"]>[0]) {
+  try {
+    await ctx.store.audit(entry);
+    return true;
+  } catch (e) {
+    ctx.auditFailed = true;
+    console.error(`painel de fontes: auditoria ${entry.action} falhou`, e);
+    return false;
+  }
+}
+
+/** Sucesso, com o aviso de auditoria quando ela falhou. */
+function finish(ctx: Ctx, message: string, data?: unknown): ActionState {
+  const text = ctx.auditFailed ? `${message} ${T.auditFailed}` : message;
+  return done(text, data === undefined ? undefined : data);
+}
 
 function refresh(id?: string) {
   revalidatePath(NEXT, "layout");
@@ -199,6 +226,9 @@ const text = (form: FormData, key: string): string | undefined => {
   return typeof v === "string" ? v : undefined;
 };
 const toBool = (v: string) => v === "true" || v === "on" || v === "1";
+/** "site.example/feed" vira "https://site.example/feed"; esquema explícito é mantido (e checado). */
+const withScheme = (v: string): string =>
+  /^[a-z][a-z0-9+.-]*:/i.test(v.trim()) ? v.trim() : `https://${v.trim()}`;
 const toInt = (v: string): number => (/^-?\d+$/.test(v.trim()) ? Number(v) : Number.NaN);
 
 /**
@@ -258,13 +288,23 @@ function readConfigPatch(form: FormData): {
     }
     return { patch: {}, errors };
   }
+  // URLs que o pipeline executa ou que a tela mostra como link: mesma régua do endereço base
+  // (achado 2 da revisão FS-T6). `crawlGet` revalida na coleta, mas lixo não entra no banco.
+  const data: Partial<SourceConfig> = { ...(parsed.data as Partial<SourceConfig>) };
+  for (const key of ["feedUrl", "termsUrl"] as const) {
+    const value = data[key];
+    if (typeof value !== "string") continue;
+    const checked = normalizePastedUrl(withScheme(value));
+    if (checked.ok) data[key] = checked.value.toString();
+    else errors[key] = ANALYZE_TEXT.errors[checked.error];
+  }
   const sel = parsed.data.pageSelectors;
   if (
     sel &&
     ![sel.item, sel.link, sel.title, ...(sel.date ? [sel.date] : [])].every(isSafeSelector)
   )
     errors.pageSelectors = T.invalid;
-  return { patch: parsed.data as Partial<SourceConfig>, errors };
+  return { patch: data, errors };
 }
 
 /** Patch de escrita (não crítico) a partir do diff; estratégia/seletores vão para `consumption`. */
@@ -296,51 +336,84 @@ function writePatch(
   return patch as SourcePatch;
 }
 
-const CRITICAL_KEYS = new Set(["imagePolicy", "republishPolicy", "reliability", "maySoleSource"]);
-
 /** `source:<id>:<campo>=<valor>` → `{ field, value }` (snake, texto) para a auditoria. */
 function targetParts(ref: string) {
   const t = parseSourceTarget(ref);
   return t ? { field: t.field, value: t.value } : { field: "", value: "" };
 }
 
+interface CriticalOutcome {
+  /** Campos (snake) com pedido pendente (novo ou já existente). */
+  pending: string[];
+  /** Campos (snake) cujo pedido não pôde ser gravado. */
+  failed: string[];
+}
+
 /**
  * Pede segunda aprovação para cada mudança crítica (D-F3), sem duplicar um pedido pendente
- * idêntico, e audita `source.approval_requested` (com o valor de antes, para detectar pedido
- * obsoleto na aprovação).
+ * idêntico, e audita `source.approval_requested` com o valor de antes (a checagem de pedido
+ * obsoleto só confia nessa linha quando ela é da própria pessoa que pediu). Nunca pula uma falha
+ * em silêncio nem lança depois de outras escritas: devolve o que ficou pendente e o que falhou
+ * (achado 5 da revisão FS-T6).
  */
 async function requestCritical(
   ctx: Ctx,
   sourceId: string,
   changes: { targetRef: string; from: unknown }[],
   justification: string,
-): Promise<number> {
+): Promise<CriticalOutcome> {
+  const out: CriticalOutcome = { pending: [], failed: [] };
   const approvals = createApprovals(ctx.db);
-  const open = await approvals.pending(`source:${sourceId}:`);
-  let n = 0;
+  let open: { id: string; targetRef: string }[] = [];
+  try {
+    open = await approvals.pending(`source:${sourceId}:`);
+  } catch (e) {
+    console.error("painel de fontes: leitura de aprovações pendentes falhou", e);
+  }
   for (const c of changes) {
-    const existing = open.find((a) => a.targetRef === c.targetRef);
-    let approvalId = existing?.id;
-    if (!approvalId) {
+    const { field, value } = targetParts(c.targetRef);
+    if (open.some((a) => a.targetRef === c.targetRef)) {
+      out.pending.push(field);
+      continue;
+    }
+    let approvalId: string | null = null;
+    try {
       const r = await approvals.requestApproval({
         kind: "source.critical",
         targetRef: c.targetRef,
         justification,
       });
-      if (!r.ok) continue;
-      approvalId = r.value.id;
-      const { field, value } = targetParts(c.targetRef);
-      await ctx.store.audit({
-        actor: ctx.userId,
-        action: "source.approval_requested",
-        objectRef: `source:${sourceId}`,
-        details: { approvalId, field, from: c.from, to: value, justification },
-        ipHash: ctx.ipHash,
-      });
+      if (r.ok) approvalId = r.value.id;
+    } catch (e) {
+      console.error("painel de fontes: pedido de aprovação falhou", c.targetRef, e);
     }
-    n++;
+    if (!approvalId) {
+      out.failed.push(field);
+      continue;
+    }
+    out.pending.push(field);
+    await safeAudit(ctx, {
+      actor: ctx.userId,
+      action: "source.approval_requested",
+      objectRef: `source:${sourceId}`,
+      details: { approvalId, field, from: c.from, to: value, justification },
+      ipHash: ctx.ipHash,
+    });
   }
-  return n;
+  return out;
+}
+
+/** Mensagem exata do que foi salvo, do que aguarda aprovação e do que falhou. */
+function criticalMessage(saved: boolean, outcome: CriticalOutcome): ActionState["message"] {
+  const parts: string[] = [];
+  const pending = outcome.pending.length;
+  if (saved && pending > 0) parts.push(T.savedWithPending(pending));
+  else if (saved) parts.push(T.saved);
+  else if (pending > 0) parts.push(T.pendingApproval(pending));
+  const msg = parts.join("");
+  if (outcome.failed.length === 0) return msg;
+  const names = outcome.failed.map((f) => CRITICAL_FIELD_TEXT[f] ?? f).join(", ");
+  return `${msg ? `${msg}. ` : ""}${T.approvalRequestFailed(names)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -368,8 +441,9 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
   const after: SourceConfig = { ...before, ...patch };
   const changes = diffConfig(before, after);
   const critical = criticalChanges(before, after);
-  const nonCritical = changes.filter((c) => !CRITICAL_KEYS.has(c.field));
-  if (changes.length === 0) return done(T.nothingToSave, { version: row.version });
+  // Só o que AFROUXA vai para aprovação; restringir um campo crítico aplica na hora (D-F3).
+  const nonCritical = changes.filter((c) => !critical.some((k) => k.field === c.field));
+  if (changes.length === 0) return finish(ctx, T.nothingToSave, { version: row.version });
 
   const justification = text(form, "justification")?.trim() ?? "";
   if (critical.length > 0 && !justification)
@@ -388,7 +462,7 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
     newVersion = r.value.version;
   }
 
-  const pending =
+  const outcome =
     critical.length > 0
       ? await requestCritical(
           ctx,
@@ -396,15 +470,17 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
           critical.map((c) => ({ targetRef: targetRefFor(id, c), from: c.from })),
           justification,
         )
-      : 0;
+      : { pending: [], failed: [] };
   refresh(id);
-  const message =
-    pending === 0
-      ? T.saved
-      : nonCritical.length > 0
-        ? T.savedWithPending(pending)
-        : T.pendingApproval(pending);
-  return done(message, { version: newVersion, pending });
+  const message = criticalMessage(nonCritical.length > 0, outcome);
+  const data = {
+    version: newVersion,
+    saved: nonCritical.map((c) => c.field),
+    pending: outcome.pending.length,
+    failed: outcome.failed,
+  };
+  if (outcome.failed.length > 0) return fail(message);
+  return finish(ctx, message, data);
 }
 
 // ---------------------------------------------------------------------------
@@ -447,7 +523,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     if (!reason) return fail(T.reasonRequired, { reason: T.reasonRequired });
     const r = await approvals.reject({ id, reason });
     if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
-    await ctx.store.audit({
+    await safeAudit(ctx, {
       actor: ctx.userId,
       action: "source.approval_rejected",
       objectRef,
@@ -455,7 +531,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       ipHash: ctx.ipHash,
     });
     refresh(target.sourceId);
-    return done(T.approval.rejected);
+    return finish(ctx, T.approval.rejected);
   }
 
   const row = await sourceRow(ctx, target.sourceId);
@@ -469,6 +545,10 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       .eq("object_ref", objectRef)
       .eq("action", "source.approval_requested")
       .eq("details->>approvalId", id)
+      // Só a linha da própria pessoa que pediu (a política de audit_log exige actor = auth.uid()):
+      // outra pessoa do Estúdio não consegue forjar o "valor de antes" (achado 6).
+      .eq("actor", approval.requestedBy)
+      .order("id")
       .limit(1)
       .maybeSingle();
     const from = (asked?.details as { from?: unknown } | undefined)?.from;
@@ -477,7 +557,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     if (expected !== null && currentText(row, target.field) !== expected) {
       const reason = T.approval.obsoleteReason;
       await approvals.reject({ id, reason });
-      await ctx.store.audit({
+      await safeAudit(ctx, {
         actor: ctx.userId,
         action: "source.approval_rejected",
         objectRef,
@@ -516,7 +596,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
   }
   if (!applied.ok) return fail(T.approval.notApplied);
 
-  await ctx.store.audit({
+  await safeAudit(ctx, {
     actor: ctx.userId,
     action: "source.approval_applied",
     objectRef,
@@ -531,7 +611,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     ipHash: ctx.ipHash,
   });
   refresh(target.sourceId);
-  return done(T.approval.approved, { version: applied.value.version });
+  return finish(ctx, T.approval.approved, { version: applied.value.version });
 }
 
 // ---------------------------------------------------------------------------
@@ -564,10 +644,9 @@ function takedownDeps() {
 
 type Row = NonNullable<Awaited<ReturnType<typeof sourceRow>>>;
 
-/** Ativar/retomar (§7.3): termos revisados, robots.txt e teste de conexão antes de `active`. */
-async function activationCheck(ctx: Ctx, row: Row): Promise<string | null> {
-  if (!row.terms_reviewed_at) return T.termsRequired;
-  const result = await testConnection(
+/** Teste de conexão da fonte com a cota por pessoa (FS-T3: `callerId`). */
+function runTest(ctx: Ctx, row: Row) {
+  return testConnection(
     {
       kind: row.kind,
       feedUrl: row.feed_url,
@@ -580,7 +659,42 @@ async function activationCheck(ctx: Ctx, row: Row): Promise<string | null> {
       callerId: ctx.userId,
     },
   );
-  return result.ok ? null : result.message;
+}
+
+/**
+ * Grava o `Crawl-delay` lido pelo próprio servidor (teste de conexão e ativação, spec §7.8.1) em
+ * `consumption.robots` quando mudou. Devolve a versão atual da fonte (a mesma, se nada mudou).
+ */
+async function recordCrawlDelay(ctx: Ctx, row: Row, crawlDelaySec: number | null) {
+  const consumption = (row.consumption ?? {}) as Record<string, unknown>;
+  const robots = (consumption.robots ?? {}) as Record<string, unknown>;
+  if ((robots.crawlDelaySec ?? null) === crawlDelaySec) return row.version;
+  const r = await ctx.store.update(
+    row.id,
+    row.version,
+    {
+      consumption: {
+        ...consumption,
+        robots: { ...robots, crawlDelaySec, checkedAt: ctx.now.toISOString() },
+      },
+    },
+    auditCtx(ctx, { reason: "Crawl-delay lido do robots.txt" }),
+  );
+  return r.ok ? r.value.version : row.version;
+}
+
+/**
+ * Ativar/retomar (§7.3): termos revisados, robots.txt e teste de conexão antes de `active`; o
+ * `Crawl-delay` lido fica gravado. Devolve o problema (texto) ou a versão para o `setStatus`.
+ */
+async function activationCheck(
+  ctx: Ctx,
+  row: Row,
+): Promise<{ problem: string } | { version: number }> {
+  if (!row.terms_reviewed_at) return { problem: T.termsRequired };
+  const result = await runTest(ctx, row);
+  if (!result.ok) return { problem: result.message };
+  return { version: await recordCrawlDelay(ctx, row, result.crawlDelaySec) };
 }
 
 export async function sourceStatusAction(form: FormData): Promise<ActionState> {
@@ -601,14 +715,15 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
     const justification = text(form, "justification")?.trim() ?? "";
     if (!justification)
       return fail(T.justificationRequired, { justification: T.justificationRequired });
-    await requestCritical(
+    const outcome = await requestCritical(
       ctx,
       id,
       [{ targetRef: `source:${id}:status=paused`, from: "blocked" }],
       justification,
     );
     refresh(id);
-    return done(T.status.unblockRequested, { pending: 1 });
+    if (outcome.failed.length > 0) return fail(criticalMessage(false, outcome));
+    return finish(ctx, T.status.unblockRequested, { pending: 1 });
   }
 
   let statusReason: string | null = null;
@@ -625,18 +740,20 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
     statusReason = reason;
   }
   if (action === "pause") statusReason = "manual";
+  let currentVersion = version;
   if (
     (action === "activate" || action === "resume") &&
     row.status === "paused" &&
     !row.archived_at
   ) {
-    const problem = await activationCheck(ctx, row);
-    if (problem) return fail(problem);
+    const checked = await activationCheck(ctx, row);
+    if ("problem" in checked) return fail(checked.problem);
+    currentVersion = checked.version;
   }
 
   const r = await ctx.store.setStatus(
     id,
-    version,
+    currentVersion,
     action,
     statusReason,
     auditCtx(ctx, { reason: reason || null }),
@@ -649,16 +766,38 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
   let message: string = T.status[action];
   if (action === "block" && reason === "opt_out") {
     // Opt-out (D-F20): o banco já zerou `image_policy`; aqui saem as reproduções (A-010, A-038).
-    const removed = await takedownReproduction(
-      takedownDeps(),
-      { sourceId: id },
-      ctx.userId,
-      "Pedido do veículo (opt-out)",
-    );
-    message = T.status.blockOptOut(removed.ok ? removed.value.blocked : 0);
+    // A spec não diz o que fazer se a remoção falhar: o bloqueio fica (reduz risco, vale na hora)
+    // e a falha é relatada alto — ok:false, log e `source.takedown_failed` na auditoria. Bloquear
+    // de novo com "Pedido do veículo" repete a remoção (achado 4 da revisão FS-T6).
+    let removed: Awaited<ReturnType<typeof takedownReproduction>> | null = null;
+    let failure: string | null = null;
+    try {
+      removed = await takedownReproduction(
+        takedownDeps(),
+        { sourceId: id },
+        ctx.userId,
+        "Pedido do veículo (opt-out)",
+      );
+      if (!removed.ok) failure = removed.error;
+    } catch (e) {
+      failure = e instanceof Error ? e.message : String(e);
+    }
+    if (failure !== null || !removed?.ok) {
+      console.error("painel de fontes: remoção das reproduções (opt-out) falhou", id, failure);
+      await safeAudit(ctx, {
+        actor: ctx.userId,
+        action: "source.takedown_failed",
+        objectRef: `source:${id}`,
+        details: { reason: "opt_out", error: failure },
+        ipHash: ctx.ipHash,
+      });
+      refresh(id);
+      return fail(T.status.blockOptOutTakedownFailed);
+    }
+    message = T.status.blockOptOut(removed.value.blocked);
   }
   refresh(id);
-  return done(message, { version: r.value.version });
+  return finish(ctx, message, { version: r.value.version });
 }
 
 export async function activateSourceAction(form: FormData): Promise<ActionState> {
@@ -684,12 +823,12 @@ export async function activateSourceAction(form: FormData): Promise<ActionState>
   }
   if (!row.terms_reviewed_at) return fail(T.termsRequired, { termsReviewed: T.termsRequired });
 
-  const problem = await activationCheck(ctx, row);
-  if (problem) return fail(problem);
-  const r = await ctx.store.setStatus(id, version, "activate", null, auditCtx(ctx));
+  const checked = await activationCheck(ctx, row);
+  if ("problem" in checked) return fail(checked.problem);
+  const r = await ctx.store.setStatus(id, checked.version, "activate", null, auditCtx(ctx));
   if (!r.ok) return storeFailure(ctx, id, r.error);
   refresh(id);
-  return done(T.status.activate, { version: r.value.version });
+  return finish(ctx, T.status.activate, { version: r.value.version });
 }
 
 // ---------------------------------------------------------------------------
@@ -701,27 +840,17 @@ export async function testConnectionAction(form: FormData): Promise<ActionState>
   if (!(await allow(ctx, LIMITS.test))) return fail(T.test.rateLimited);
   const row = await sourceRow(ctx, text(form, "id") ?? "");
   if (!row) return fail(T.notFound);
-  const result = await testConnection(
-    {
-      kind: row.kind,
-      feedUrl: row.feed_url,
-      baseUrl: row.base_url,
-      consumption: (row.consumption ?? {}) as never,
-    },
-    {
-      ...crawlDeps({ repo: createIngestRepo(createServiceClient()) }),
-      now: () => Date.now(),
-      callerId: ctx.userId,
-    },
-  );
-  await ctx.store.audit({
+  const result = await runTest(ctx, row);
+  // O teste também grava o Crawl-delay que o servidor leu (spec §7.8.1), quando o robots respondeu.
+  if (result.ok) await recordCrawlDelay(ctx, row, result.crawlDelaySec);
+  await safeAudit(ctx, {
     actor: ctx.userId,
     action: "source.test",
     objectRef: `source:${row.id}`,
     details: { ok: result.ok, status: result.status, items: result.items, ms: result.ms },
     ipHash: ctx.ipHash,
   });
-  return result.ok ? done(result.message, result) : fail(result.message);
+  return result.ok ? finish(ctx, result.message, result) : fail(result.message);
 }
 
 export async function collectNowAction(form: FormData): Promise<ActionState> {
@@ -735,7 +864,7 @@ export async function collectNowAction(form: FormData): Promise<ActionState> {
     return fail(T.notFound);
   }
   // `collectNow` não audita (FS-T5): a auditoria da pessoa fica aqui.
-  await ctx.store.audit({
+  await safeAudit(ctx, {
     actor: ctx.userId,
     action: "source.collect_now",
     objectRef: `source:${row.id}`,
@@ -743,7 +872,7 @@ export async function collectNowAction(form: FormData): Promise<ActionState> {
     ipHash: ctx.ipHash,
   });
   refresh(row.id);
-  return done(T.collectNow.queued, { runId: r.value.runId });
+  return finish(ctx, T.collectNow.queued, { runId: r.value.runId });
 }
 
 // ---------------------------------------------------------------------------
@@ -827,7 +956,7 @@ export async function bulkSourcesAction(form: FormData): Promise<ActionState> {
   refresh();
   const fast =
     frequencyMinutes !== null && (FAST_FREQUENCIES as readonly number[]).includes(frequencyMinutes);
-  return done(bulkMessage(action, fast, r.value.items), r.value);
+  return finish(ctx, bulkMessage(action, fast, r.value.items), r.value);
 }
 
 // ---------------------------------------------------------------------------
@@ -843,7 +972,7 @@ export async function setDefaultFrequencyAction(form: FormData): Promise<ActionS
   const r = await ctx.store.setDefaultFrequency(parsed.data, auditCtx(ctx));
   if (!r.ok) return fail(r.error === "forbidden" ? T.forbidden : T.defaultFrequency.invalid);
   refresh();
-  return done(T.defaultFrequency.saved, { value: parsed.data });
+  return finish(ctx, T.defaultFrequency.saved, { value: parsed.data });
 }
 
 export async function setFastLaneMaxAction(form: FormData): Promise<ActionState> {
@@ -854,7 +983,7 @@ export async function setFastLaneMaxAction(form: FormData): Promise<ActionState>
   const r = await ctx.store.setFastLaneMax(parsed.data, auditCtx(ctx));
   if (!r.ok) return fail(r.error === "forbidden" ? T.forbidden : T.fastLaneMax.invalid);
   refresh();
-  return done(T.fastLaneMax.saved, { value: parsed.data });
+  return finish(ctx, T.fastLaneMax.saved, { value: parsed.data });
 }
 
 // ---------------------------------------------------------------------------
@@ -882,9 +1011,13 @@ export async function uploadLogoAction(form: FormData): Promise<ActionState> {
   const up = await ctx.store.uploadLogo(id, { bytes, contentType: checked.value.contentType });
   if (!up.ok) return fail(T.logo.unavailable);
   const r = await ctx.store.update(id, version, { logoPath: up.value.path }, auditCtx(ctx));
-  if (!r.ok) return storeFailure(ctx, id, r.error);
+  if (!r.ok) {
+    // A versão mudou (ou a escrita falhou) entre a checagem e a gravação: nada de órfão no bucket.
+    await ctx.store.removeLogo(up.value.path);
+    return storeFailure(ctx, id, r.error);
+  }
   refresh(id);
-  return done(T.logo.saved, { version: r.value.version, path: up.value.path });
+  return finish(ctx, T.logo.saved, { version: r.value.version, path: up.value.path });
 }
 
 // ---------------------------------------------------------------------------
@@ -972,20 +1105,60 @@ export async function analyzeLinkAction(form: FormData): Promise<ActionState> {
     const msg = analyzeMessage(r.error, input, ctx.now);
     return fail(msg, { url: msg });
   }
-  await ctx.store.audit({
+  const value: AnalyzeResult = r.value;
+  if (value.status === "duplicate") {
+    await safeAudit(ctx, {
+      actor: ctx.userId,
+      action: "source.analyze",
+      objectRef: `source:${value.duplicate.id}`,
+      details: { inputUrl: input, duplicateOf: value.duplicate.id },
+      ipHash: ctx.ipHash,
+    });
+    return finish(
+      ctx,
+      value.duplicate.archived
+        ? ANALYZE_TEXT.duplicateArchived
+        : ANALYZE_TEXT.duplicate(value.duplicate.name),
+      value,
+    );
+  }
+  await safeAudit(ctx, {
     actor: ctx.userId,
     action: "source.analyze",
-    objectRef: `discovery:${r.value.discoveryId}`,
-    details: {
-      inputUrl: input,
-      strategy: r.value.discovery.strategy,
-      aiStatus: r.value.aiStatus,
-      duplicateOf: r.value.duplicate?.id ?? null,
-    },
+    objectRef: `discovery:${value.discoveryId}`,
+    details: { inputUrl: input, strategy: value.discovery.strategy, aiStatus: value.aiStatus },
     ipHash: ctx.ipHash,
   });
-  const data: LinkAnalysis = r.value;
-  return done(ANALYZE_TEXT.done, data);
+  return finish(ctx, ANALYZE_TEXT.done, value);
+}
+
+/**
+ * Robots, cadência e registro da descoberta gravados pelo servidor na análise (`analyzeLink`),
+ * só de uma descoberta da própria pessoa. É daqui — nunca do formulário — que vem o
+ * `Crawl-delay` que eleva a frequência efetiva (spec §7.8.1).
+ */
+async function trustedDiscovery(
+  ctx: Ctx,
+  id: string,
+): Promise<{ robots: unknown; cadence: unknown; discovery: unknown } | null> {
+  const { data } = await ctx.db
+    .from("source_discoveries")
+    .select("suggestion, created_by")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data || data.created_by !== ctx.userId) return null;
+  const c = ((data.suggestion as { consumption?: Record<string, unknown> } | null)?.consumption ??
+    {}) as Record<string, unknown>;
+  const robots = c.robots as { crawlDelaySec?: unknown } | undefined;
+  const delay = robots?.crawlDelaySec;
+  return {
+    robots: {
+      ...(robots ?? {}),
+      crawlDelaySec: typeof delay === "number" && delay >= 0 ? delay : null,
+    },
+    cadence: c.cadence ?? null,
+    discovery: c.discovery ?? null,
+  };
 }
 
 const SLUG = /^[a-z0-9](?:[a-z0-9-]{0,58}[a-z0-9])?$/;
@@ -1048,22 +1221,29 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
   if (critical.length > 0 && !justification)
     return fail(T.justificationRequired, { justification: T.justificationRequired });
 
-  let consumption: Record<string, unknown> = {};
+  // `consumption` do formulário nunca é confiável (achado 3): só passa pelo schema, e robots,
+  // cadência e o registro da descoberta vêm da análise que o próprio servidor gravou.
   const rawConsumption = text(form, "consumption");
   if (rawConsumption) {
+    let parsed: unknown = null;
     try {
-      const parsed = JSON.parse(rawConsumption) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
-        consumption = parsed as Record<string, unknown>;
+      parsed = JSON.parse(rawConsumption);
     } catch {
-      return fail(T.invalid, { consumption: T.invalid });
+      /* cai no erro abaixo */
     }
+    if (!consumptionSchema.safeParse(parsed).success)
+      return fail(T.invalid, { consumption: T.invalid });
   }
-  consumption = {
-    ...consumption,
+  const discoveryId = text(form, "discoveryId");
+  const trusted =
+    discoveryId && UUID.test(discoveryId) ? await trustedDiscovery(ctx, discoveryId) : null;
+  const consumption: Record<string, unknown> = {
     strategy: restricted.strategy,
     feedUrl: restricted.feedUrl,
     pageSelectors: restricted.pageSelectors,
+    robots: trusted?.robots ?? { crawlDelaySec: null },
+    ...(trusted?.discovery ? { discovery: trusted.discovery } : {}),
+    ...(trusted?.cadence ? { cadence: trusted.cadence } : {}),
   };
 
   const created = await ctx.store.create(
@@ -1103,13 +1283,14 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
     followUp.termsReviewedBy = ctx.userId;
   }
   if (restricted.reliability !== "standard") followUp.reliability = restricted.reliability;
+  const problems: string[] = [];
   if (Object.keys(followUp).length > 0) {
     const r = await ctx.store.update(id, version, followUp, auditCtx(ctx));
     if (r.ok) version = r.value.version;
+    else problems.push(T.createdFollowUpFailed);
   }
 
-  const discoveryId = text(form, "discoveryId");
-  if (discoveryId && UUID.test(discoveryId)) {
+  if (trusted && discoveryId) {
     const accepted = form
       .getAll("acceptedFields")
       .filter((v): v is string => typeof v === "string" && /^[a-zA-Z]{1,40}$/.test(v));
@@ -1120,7 +1301,7 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
     });
   }
 
-  const pending =
+  const outcome =
     critical.length > 0
       ? await requestCritical(
           ctx,
@@ -1128,20 +1309,25 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
           critical.map((c) => ({ targetRef: targetRefFor(id, c), from: c.from })),
           justification,
         )
-      : 0;
+      : { pending: [], failed: [] };
 
   let message: string = T.created;
   if (toBool(text(form, "activate") ?? "")) {
     const row = await sourceRow(ctx, id);
-    const problem = row ? await activationCheck(ctx, row) : T.notFound;
-    if (problem) message = T.createdNotActivated(problem);
+    const checked = row ? await activationCheck(ctx, row) : { problem: T.notFound };
+    if ("problem" in checked) message = T.createdNotActivated(checked.problem);
     else {
-      const r = await ctx.store.setStatus(id, row!.version, "activate", null, auditCtx(ctx));
+      const r = await ctx.store.setStatus(id, checked.version, "activate", null, auditCtx(ctx));
       message = r.ok ? T.createdActive : T.createdNotActivated(T.invalidTransition.activate);
       if (r.ok) version = r.value.version;
     }
   }
-  if (pending > 0) message = `${message} ${T.pendingApproval(pending)}.`;
+  if (outcome.pending.length > 0)
+    message = `${message} ${T.pendingApproval(outcome.pending.length)}.`;
+  if (outcome.failed.length > 0) problems.push(criticalMessage(false, { ...outcome, pending: [] }));
   refresh(id);
-  return done(message, { id, version, pending });
+  const data = { id, version, pending: outcome.pending.length, failed: outcome.failed };
+  // A fonte foi criada: com falha depois disso, a mensagem diz o que ficou faltando.
+  if (problems.length > 0) return { ok: false, message: `${message} ${problems.join(" ")}` };
+  return finish(ctx, message, data);
 }

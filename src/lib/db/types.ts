@@ -2446,6 +2446,7 @@ export type Database = {
       source_admin_bulk: {
         Args: {
           p_action: string;
+          p_batch_id?: string;
           p_ctx?: Json;
           p_ids: string[];
           p_ip_hash?: string;

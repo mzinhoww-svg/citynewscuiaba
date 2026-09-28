@@ -3,7 +3,7 @@
  * pt-BR, se deu certo. Nunca `fetch` direto — sempre `checkRobots`/`crawlGet`.
  */
 import type { z } from "zod";
-import { isForbiddenTarget } from "./discover";
+import { crawlDelayFromRobots, isForbiddenTarget } from "./discover";
 import { checkRobots, crawlGet, type CrawlDeps } from "@/lib/pipeline/http";
 import type { SourceKind } from "@/lib/pipeline/ports";
 import { detectFormat, extractEntries, extractFromPage } from "@/lib/pipeline/steps/extract";
@@ -25,6 +25,8 @@ export interface TestConnectionResult {
   items: number;
   ms: number;
   message: string;
+  /** `Crawl-delay` do robots.txt para o nosso agente (spec §7.8.1); `null` sem robots ou sem valor. */
+  crawlDelaySec: number | null;
 }
 
 const TEST_LIMIT_PER_HOUR = 30;
@@ -36,7 +38,7 @@ function result(
   ms: number,
   message: string,
 ): TestConnectionResult {
-  return { ok, status, items, ms, message };
+  return { ok, status, items, ms, message, crawlDelaySec: null };
 }
 
 /** "1 item" / "n itens" (achado 8): plural de verdade, texto do briefing preservado ao pé da letra. */
@@ -80,40 +82,52 @@ export async function testConnection(
   if (robots.kind === "disallowed")
     return result(false, 0, 0, ms(), "O robots.txt da fonte não permite a coleta deste endereço");
 
+  const crawlDelaySec = crawlDelayFromRobots(robots.robotsTxt, deps.userAgent);
   const res = await crawlGet(deps, rawUrl, limits);
-  switch (res.kind) {
-    case "rate_limited":
-      return result(false, 0, 0, ms(), "Limite de requisições por hora atingido");
-    case "http_error":
-      if (res.status === 403) return result(false, 403, 0, ms(), "Acesso negado pela fonte (403)");
-      if (res.status === 404) return result(false, 404, 0, ms(), "Endereço não encontrado (404)");
-      return result(false, res.status, 0, ms(), `A fonte respondeu com erro (HTTP ${res.status})`);
-    case "network_error":
-      return result(
-        false,
-        0,
-        0,
-        ms(),
-        res.blocked ? "Este endereço não é permitido." : "A fonte não respondeu em 10 s",
-      );
-    case "too_large":
-      return result(false, 0, 0, ms(), "Documento maior que o limite permitido");
-    case "not_modified":
-      return result(true, 304, 0, ms(), itemsMessage(0));
-    case "ok": {
-      const format = detectFormat(res.body);
-      if (!format) return result(false, res.status, 0, ms(), "Formato não reconhecido");
-      const pageSelectors =
-        src.consumption?.strategy === "page_list" ? src.consumption.pageSelectors : null;
-      const entries =
-        format === "html" && pageSelectors
-          ? extractPageList(res.body, rawUrl, pageSelectors)
-          : format === "html" && src.consumption?.strategy === "page_article"
-            ? extractFromPage(res.body, rawUrl)
-            : extractEntries(res.body, format, rawUrl);
-      if (entries.length === 0)
-        return result(false, res.status, 0, ms(), "Nenhuma notícia encontrada neste endereço");
-      return result(true, res.status, entries.length, ms(), itemsMessage(entries.length));
+  return { ...fetched(res), crawlDelaySec };
+
+  function fetched(res: Awaited<ReturnType<typeof crawlGet>>): TestConnectionResult {
+    switch (res.kind) {
+      case "rate_limited":
+        return result(false, 0, 0, ms(), "Limite de requisições por hora atingido");
+      case "http_error":
+        if (res.status === 403)
+          return result(false, 403, 0, ms(), "Acesso negado pela fonte (403)");
+        if (res.status === 404) return result(false, 404, 0, ms(), "Endereço não encontrado (404)");
+        return result(
+          false,
+          res.status,
+          0,
+          ms(),
+          `A fonte respondeu com erro (HTTP ${res.status})`,
+        );
+      case "network_error":
+        return result(
+          false,
+          0,
+          0,
+          ms(),
+          res.blocked ? "Este endereço não é permitido." : "A fonte não respondeu em 10 s",
+        );
+      case "too_large":
+        return result(false, 0, 0, ms(), "Documento maior que o limite permitido");
+      case "not_modified":
+        return result(true, 304, 0, ms(), itemsMessage(0));
+      case "ok": {
+        const format = detectFormat(res.body);
+        if (!format) return result(false, res.status, 0, ms(), "Formato não reconhecido");
+        const pageSelectors =
+          src.consumption?.strategy === "page_list" ? src.consumption.pageSelectors : null;
+        const entries =
+          format === "html" && pageSelectors
+            ? extractPageList(res.body, rawUrl, pageSelectors)
+            : format === "html" && src.consumption?.strategy === "page_article"
+              ? extractFromPage(res.body, rawUrl)
+              : extractEntries(res.body, format, rawUrl);
+        if (entries.length === 0)
+          return result(false, res.status, 0, ms(), "Nenhuma notícia encontrada neste endereço");
+        return result(true, res.status, entries.length, ms(), itemsMessage(entries.length));
+      }
     }
   }
 }

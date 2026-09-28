@@ -144,6 +144,11 @@ export const SOURCE_ACTION_TEXT = {
     `Esta fonte foi alterada por ${who} às ${time}. Recarregue para ver a versão atual.`,
   conflictUnknown: "Esta fonte foi alterada por outra pessoa. Recarregue para ver a versão atual.",
   systemActor: "o sistema",
+  auditFailed: "Aviso: a alteração foi feita, mas o registro complementar na auditoria falhou.",
+  approvalRequestFailed: (fields: string) =>
+    `Não foi possível pedir a segunda aprovação para: ${fields}. Nada foi pedido para esse campo; tente de novo.`,
+  createdFollowUpFailed:
+    "Não foi possível registrar a revisão dos termos. Marque de novo na aba Configuração.",
   forbidden: "Sua conta não tem permissão para esta ação.",
   notFound: "Fonte não encontrada.",
   invalid: "Revise os campos destacados.",
@@ -168,6 +173,8 @@ export const SOURCE_ACTION_TEXT = {
     blockOptOut: (n: number) =>
       `Fonte bloqueada a pedido do veículo. ${n} ${plural(n, "reprodução removida", "reproduções removidas")}.`,
     unblockRequested: "O desbloqueio aguarda segunda aprovação",
+    blockOptOutTakedownFailed:
+      "Fonte bloqueada, mas a remoção das reproduções falhou. Bloqueie de novo com “Pedido do veículo” para repetir a remoção: o prazo é de 24 h.",
     archive: "Fonte excluída (arquivada). Itens e matérias continuam íntegros.",
     restore: "Fonte restaurada. Ela volta pausada.",
   },
@@ -241,6 +248,8 @@ export const SOURCE_ACTION_TEXT = {
 
 export const ANALYZE_TEXT = {
   done: "Análise concluída",
+  duplicate: (name: string) => `Esta fonte já está cadastrada: ${name}`,
+  duplicateArchived: "Existe uma fonte arquivada para este endereço. Restaurar?",
   errors: {
     invalid: "Use um endereço como https://www.exemplo.com.br/cidades",
     scheme: "Use um endereço que comece com http:// ou https://, como https://www.exemplo.com.br",

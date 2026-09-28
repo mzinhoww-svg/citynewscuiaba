@@ -34,6 +34,7 @@ const SITES: Record<string, string> = {
   "vozdocoxipo.example": "voz-do-coxipo",
   "jornaldachapada.example": "jornal-da-chapada",
   "proibido.example": "proibido",
+  "cadencia.example": "cadencia",
 };
 
 const EXTRA: Record<string, Record<string, string>> = {

@@ -1,0 +1,4 @@
+# Fixture fictícia (painel de fontes, FS-T6): robots.txt com Crawl-delay de 10 min.
+User-agent: *
+Crawl-delay: 600
+Allow: /
