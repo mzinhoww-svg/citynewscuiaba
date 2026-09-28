@@ -387,7 +387,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
         p_source: sourceId,
         p_run: runId,
         p_outcome: outcome,
-        // Parâmetros opcionais (`default null` em 0012): ausente = sem amostra ou sem erro.
+        // Parâmetros opcionais (`default null` em 0030): ausente = sem amostra ou sem erro.
         ...(latencyMs !== null ? { p_latency_ms: latencyMs } : {}),
         ...(fetchError !== null ? { p_error: fetchError.slice(0, 2000) } : {}),
       });
