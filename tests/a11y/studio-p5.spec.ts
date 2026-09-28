@@ -25,6 +25,10 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "ciclo", path: () => `/estudio/control/execucoes/${fx.runId}`, as: "diego" },
   { name: "logs", path: () => `/estudio/control/logs?q=${fx.mark}`, as: "diego" },
   { name: "logs vazio", path: () => "/estudio/control/logs?q=nada-encontrado-xyz", as: "diego" },
+  { name: "custos", path: () => "/estudio/control/custos", as: "thiago" },
+  { name: "bases de conhecimento", path: () => "/estudio/control/conhecimento", as: "thiago" },
+  { name: "avaliações", path: () => "/estudio/control/avaliacoes", as: "diego" },
+  { name: "governança", path: () => "/estudio/control/governanca", as: "thiago" },
 ];
 
 for (const scheme of ["light", "dark"] as const) {
@@ -35,6 +39,10 @@ for (const scheme of ["light", "dark"] as const) {
         await loginAs(page, route.as);
         await page.goto(route.path());
         await expect(page.locator("main")).toBeVisible();
+        // A tela carregou de verdade (a fronteira de erro também passaria no axe).
+        await expect(page.getByRole("heading", { level: 1 })).not.toHaveText(
+          /Não foi possível carregar|Algo deu errado/,
+        );
         await page.waitForLoadState("load");
         await page.evaluate(() => document.fonts.ready);
         const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();

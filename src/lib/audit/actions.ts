@@ -32,6 +32,8 @@ export const AUDIT_ACTIONS = [
   "pipeline.reprocess",
   "pipeline.quarantine.discard",
   "logs.export",
+  "ai.eval.run",
+  "ai.eval.case",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

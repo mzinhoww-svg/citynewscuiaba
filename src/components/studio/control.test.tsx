@@ -162,3 +162,29 @@ describe("usePolling", () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("CostChart", () => {
+  it("resumo em texto, tabela oculta com cada dia e orçamento fora da escala avisado", async () => {
+    const { CostChart } = await import("./CostChart");
+    render(
+      <CostChart
+        label="Gasto diário"
+        days={[
+          { day: "2026-09-27", costBrl: 1 },
+          { day: "2026-09-28", costBrl: 2 },
+        ]}
+        budgetBrl={30}
+        formatDay={(d) => d.slice(8)}
+        formatMoney={(n) => `R$ ${n}`}
+        summary="Maior gasto: R$ 2 em 28."
+        budgetLabel="Orçamento diário"
+        outOfScale="acima da escala do gráfico"
+        columns={{ day: "Dia", cost: "Gasto" }}
+      />,
+    );
+    expect(screen.getByRole("img", { name: "Gasto diário" })).toBeInTheDocument();
+    expect(screen.getByText("Maior gasto: R$ 2 em 28.")).toBeInTheDocument();
+    expect(screen.getByText(/acima da escala do gráfico/)).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Gasto diário" })).toHaveTextContent("R$ 2");
+  });
+});

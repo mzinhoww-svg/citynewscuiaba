@@ -71,6 +71,24 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },
+      {
+        href: "/estudio/control/conhecimento",
+        label: "Bases de conhecimento",
+        icon: "database",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/avaliacoes",
+        label: "Avaliações",
+        icon: "flask-conical",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/governanca",
+        label: "Governança da IA",
+        icon: "shield",
+        action: "metrics.view",
+      },
     ],
   },
   {

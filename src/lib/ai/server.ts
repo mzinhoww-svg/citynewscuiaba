@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/db/client";
 import { createAiStore } from "@/lib/db/ai-store";
 import { err, ok } from "@/lib/result";
 import { createCallAgent, createEmbedder, type CallAgent, type Embedder } from "./call-agent";
+import { withPromptVersion } from "./eval";
 import { createFakeProvider } from "./fake";
 import { createOpenRouterProvider, openRouterConfigFromEnv } from "./openrouter";
 import { resolveProviderKind, type ProviderKind } from "./registry";
@@ -24,15 +25,25 @@ export interface ProductionAi {
 /**
  * Camada de IA de produção (rotas de servidor do pipeline e da busca). Criada sob demanda: importar
  * este módulo não lê ambiente nem abre conexão. Sem `OPENROUTER_API_KEY`, provedor falso (A-018).
+ * `opts.prompt` troca o prompt de um agente (regressão de uma versão ainda não publicada).
  */
-export function createProductionAi(): ProductionAi {
+export function createProductionAi(
+  opts: { prompt?: { agentId: string; version: number; body: string } } = {},
+): ProductionAi {
   const providerKind = resolveProviderKind(process.env);
   const config = openRouterConfigFromEnv();
   const provider: ModelProvider =
     providerKind === "openrouter" && config
       ? createOpenRouterProvider(config)
       : createFakeProvider();
-  const store = createAiStore(createServiceClient());
+  const base = createAiStore(createServiceClient());
+  // Avaliação de um rascunho (O14): o prompt da versão pedida no lugar do de produção.
+  const store = opts.prompt
+    ? withPromptVersion(base, opts.prompt.agentId, {
+        version: opts.prompt.version,
+        body: opts.prompt.body,
+      })
+    : base;
   const deps = { store, provider, now: () => new Date() };
   const embed = createEmbedder(deps);
   return {

@@ -60,3 +60,20 @@ test("O08 · logs com filtro e estado vazio", async ({ page }) => {
   await expect(page.getByText("Nenhum evento com estes filtros.")).toBeVisible();
   await shot(page, "o08-logs-vazio", false);
 });
+
+test("O09/O13/O14/O16 · custos, bases, avaliações e governança", async ({ page }) => {
+  await loginAs(page, "diego", "/estudio/control/custos");
+  await expect(page.getByText(/^Maior gasto: R\$/)).toBeVisible();
+  await shot(page, "o09-custos");
+  await page.goto("/estudio/control/conhecimento");
+  await expect(page.getByRole("table", { name: "Bases de conhecimento da IA" })).toBeVisible();
+  await shot(page, "o13-conhecimento");
+  await page.goto("/estudio/control/avaliacoes");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Avaliações e regressão" }),
+  ).toBeVisible();
+  await shot(page, "o14-avaliacoes");
+  await page.goto("/estudio/control/governanca");
+  await expect(page.getByText(/A IA nunca responde sem fonte/)).toBeVisible();
+  await shot(page, "o16-governanca");
+});

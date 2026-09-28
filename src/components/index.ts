@@ -273,3 +273,12 @@ export {
   type LogExplorerProps,
   type LogExplorerRow,
 } from "./studio/LogExplorer";
+export { CostChart, type CostChartProps } from "./studio/CostChart";
+export {
+  EvalRunner,
+  EvalCasesTable,
+  type EvalCaseItem,
+  type EvalCasesTableProps,
+  type EvalReply,
+  type EvalRunnerProps,
+} from "./studio/EvalRunner";

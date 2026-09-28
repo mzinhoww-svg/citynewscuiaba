@@ -957,6 +957,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      eval_cases: {
+        Row: {
+          active: boolean;
+          agent_id: string;
+          body: NonNullable<Json>;
+          case_key: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+        };
+        Insert: {
+          active?: boolean;
+          agent_id: string;
+          body: NonNullable<Json>;
+          case_key: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Update: {
+          active?: boolean;
+          agent_id?: string;
+          body?: NonNullable<Json>;
+          case_key?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eval_cases_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eval_cases_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      eval_runs: {
+        Row: {
+          agent_id: string;
+          cases: number;
+          created_at: string;
+          created_by: string | null;
+          gate_failures: string[];
+          id: string;
+          metrics: NonNullable<Json>;
+          model_id: string | null;
+          prompt_version: number | null;
+          provider: string;
+          results: NonNullable<Json>;
+          trigger: string;
+        };
+        Insert: {
+          agent_id: string;
+          cases: number;
+          created_at?: string;
+          created_by?: string | null;
+          gate_failures?: string[];
+          id?: string;
+          metrics: NonNullable<Json>;
+          model_id?: string | null;
+          prompt_version?: number | null;
+          provider: string;
+          results?: NonNullable<Json>;
+          trigger?: string;
+        };
+        Update: {
+          agent_id?: string;
+          cases?: number;
+          created_at?: string;
+          created_by?: string | null;
+          gate_failures?: string[];
+          id?: string;
+          metrics?: NonNullable<Json>;
+          model_id?: string | null;
+          prompt_version?: number | null;
+          provider?: string;
+          results?: NonNullable<Json>;
+          trigger?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eval_runs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eval_runs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_listings: {
         Row: {
           accessibility: string | null;
@@ -2434,6 +2539,31 @@ export type Database = {
       };
     };
     Functions: {
+      ai_cost_daily: {
+        Args: { p_since: string };
+        Returns: {
+          agent_id: string;
+          avg_latency_ms: number;
+          calls: number;
+          cost_brl: number;
+          day: string;
+          errors: number;
+          fallbacks: number;
+          model_id: string;
+          tokens_in: number;
+          tokens_out: number;
+        }[];
+      };
+      ai_knowledge_bases: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          base: string;
+          embedded: number;
+          indexed: number;
+          total: number;
+          updated_at: string;
+        }[];
+      };
       ai_spend_since: {
         Args: { p_since: string };
         Returns: {
