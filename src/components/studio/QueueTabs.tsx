@@ -1,0 +1,53 @@
+import Link from "next/link";
+import { cx } from "../cx";
+
+export interface QueueTabItem {
+  key: string;
+  label: string;
+  href: string;
+  count?: number;
+}
+
+export interface QueueTabsProps {
+  label: string;
+  items: QueueTabItem[];
+  current: string;
+  className?: string;
+}
+
+/**
+ * Abas da fila como links (o estado fica na URL, `?aba=`): Tudo, Fila de exceção, Publicadas
+ * automaticamente em 24 h, Minha fila, Temas sensíveis. A atual leva `aria-current="page"`.
+ */
+export function QueueTabs({ label, items, current, className }: QueueTabsProps) {
+  return (
+    <nav aria-label={label} className={cx("border-b border-line-subtle", className)}>
+      <ul className="-mb-px flex gap-1 overflow-x-auto">
+        {items.map((it) => {
+          const active = it.key === current;
+          return (
+            <li key={it.key} className="shrink-0">
+              <Link
+                href={it.href}
+                aria-current={active ? "page" : undefined}
+                className={cx(
+                  "flex min-h-tap items-center gap-2 border-b-2 px-3 text-14 no-underline",
+                  active
+                    ? "border-line-strong font-semibold text-strong"
+                    : "border-transparent font-medium text-meta hover:text-strong",
+                )}
+              >
+                {it.label}
+                {it.count !== undefined && (
+                  <span className="rounded-pill bg-section px-2 py-0.5 text-13 tabular-nums text-strong">
+                    {it.count}
+                  </span>
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+  );
+}

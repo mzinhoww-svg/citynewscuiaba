@@ -482,3 +482,87 @@ select now() - make_interval(hours => 6 * g), 'fetch', 'source:' || s.slug,
        jsonb_build_object('attempt', 1, 'seed', true)
 from sources s
 cross join generate_series(1, 12) g;
+
+-- ---------------------------------------------------------------------------
+-- P4 · Estúdio: fila de exceção do pipeline, rascunhos e revisão (nada disto é público).
+-- Datas relativas ao reset: prazos e "atualizada há" fazem sentido em qualquer dia.
+-- ---------------------------------------------------------------------------
+with p4 (id, slug, kind, section_slug, title, dek, paragraphs, status, confidence, confidence_score,
+         author_id, agent_id, assignee_id, due_in, updated_ago, review_reason, ai_fallback) as (values
+ ('c2000000-0000-4000-8000-000000000020'::uuid, 'estudio-onibus-noturnos-cpa-centro', 'normalized'::content_kind, 'mobilidade',
+  'Prefeitura amplia horário de ônibus noturnos entre CPA e Centro',
+  'Duas linhas passam a rodar até meia-noite a partir de novembro, segundo portaria.',
+  array['Duas linhas que ligam o CPA ao Centro de Cuiabá passam a rodar até meia-noite a partir de novembro, segundo portaria publicada no Diário Oficial de Cuiabá.',
+        'A Agência Cerrado informou que o intervalo entre os ônibus no período noturno será de 30 minutos.'],
+  'in_review'::article_status, 'média'::confidence_level, 0.74, null::uuid, 'write',
+  'c1000000-0000-4000-8000-000000000003'::uuid, interval '3 hours', interval '40 minutes',
+  'A regra de Cidade exige imagem aprovada e nenhuma imagem foi aprovada.', false),
+ ('c2000000-0000-4000-8000-000000000021', 'estudio-furto-de-fios-em-escolas', 'normalized', 'seguranca',
+  'Polícia investiga furto de fios de cobre em escolas do Coxipó',
+  'Três escolas ficaram sem energia na semana; aulas foram remanejadas.',
+  array['Três escolas estaduais do Coxipó ficaram sem energia depois do furto de fios de cobre, segundo relato de diretores.',
+        'A investigação ainda não tem suspeitos identificados.'],
+  'in_review', 'média', 0.70, null, 'write', null, interval '1 hour', interval '25 minutes',
+  'Segurança nunca publica sozinha: revisão humana obrigatória.', false),
+ ('c2000000-0000-4000-8000-000000000022', 'estudio-feiras-livres-camara', 'normalized', 'politica',
+  'Câmara analisa projeto que muda regras para feiras livres',
+  'Proposta define horários e limpeza obrigatória depois de cada feira.',
+  array['A Câmara de Cuiabá começou a analisar um projeto que muda as regras de funcionamento das feiras livres.',
+        'O texto prevê horário fixo de encerramento e limpeza obrigatória da rua depois de cada feira.'],
+  'in_review', 'baixa', 0.45, null, 'write', null, interval '6 hours', interval '2 hours',
+  'Rascunho montado sem IA: o agente de redação não respondeu.', true),
+ ('c2000000-0000-4000-8000-000000000023', 'estudio-iluminacao-praca-cpa', 'original', 'cidade',
+  'Moradores do CPA cobram iluminação em praça do bairro',
+  'Associação diz que postes estão apagados há dois meses.',
+  array['Moradores do CPA 2 reclamam que a praça central do bairro está sem iluminação há dois meses.',
+        'A associação de moradores protocolou um pedido na prefeitura e aguarda resposta.'],
+  'draft', 'média', 0.60, 'c1000000-0000-4000-8000-000000000004', null,
+  'c1000000-0000-4000-8000-000000000004', interval '1 day', interval '3 hours', null, false),
+ ('c2000000-0000-4000-8000-000000000024', 'estudio-festival-siriri-orla', 'original', 'cultura',
+  'Festival de siriri e cururu volta à Orla do Porto',
+  'Grupos tradicionais se apresentam no fim de semana, com entrada gratuita.',
+  array['O festival de siriri e cururu volta à Orla do Porto no próximo fim de semana.',
+        'A entrada é gratuita e as apresentações começam às 18h.'],
+  'changes_requested', 'média', 0.62, 'c1000000-0000-4000-8000-000000000005', null,
+  'c1000000-0000-4000-8000-000000000005', interval '5 hours', interval '1 hour',
+  'Confirmar o horário com a organização antes de publicar.', false)
+)
+insert into articles (id, slug, kind, section_slug, title, dek, body, status, confidence, confidence_score,
+                      author_id, agent_id, assignee_id, due_at, updated_at, review_reason, ai_fallback, rules_version)
+select p.id, p.slug, p.kind, p.section_slug, p.title, p.dek,
+       jsonb_build_object('type', 'doc', 'content', (
+         select jsonb_agg(jsonb_build_object('type', 'paragraph', 'content',
+                  jsonb_build_array(jsonb_build_object('type', 'text', 'text', x.txt))) order by x.n)
+         from unnest(p.paragraphs) with ordinality as x(txt, n))),
+       p.status, p.confidence, p.confidence_score, p.author_id, p.agent_id, p.assignee_id,
+       now() + p.due_in, now() - p.updated_ago, p.review_reason, p.ai_fallback,
+       case when p.agent_id is not null then 1 end
+from p4 p;
+
+insert into article_versions (article_id, number, snapshot, origin, author_id, change_kind, created_at)
+select a.id, 1, jsonb_build_object('title', a.title, 'dek', a.dek, 'body', a.body),
+       case when a.agent_id is not null then 'ai' else 'human' end, a.author_id, 'edit', a.updated_at
+from articles a where a.slug like 'estudio-%';
+
+insert into article_sources (article_id, item_id, role, confirmed) values
+ ('c2000000-0000-4000-8000-000000000020','c3000000-0000-4000-8000-000000000002','primary',false),
+ ('c2000000-0000-4000-8000-000000000020','c3000000-0000-4000-8000-000000000001','secondary',false),
+ ('c2000000-0000-4000-8000-000000000022','c3000000-0000-4000-8000-000000000026','secondary',false),
+ ('c2000000-0000-4000-8000-000000000022','c3000000-0000-4000-8000-000000000027','context',false);
+
+-- Decisões do pipeline para a fila de exceção: redação (agente e versão do prompt) e regras
+-- (recomendação antes das travas e justificativa).
+insert into decisions (object_ref, step, agent_id, prompt_version, rules_version, input_hash, output, rationale, recommended, created_at)
+select 'article:' || a.id, 'write', 'write', 1, null, 'seed-write-' || a.id,
+       jsonb_build_object('title', a.title, 'aiFallback', a.ai_fallback), 'Rascunho a partir das fontes do assunto.', null,
+       a.updated_at - interval '2 minutes'
+from articles a where a.slug like 'estudio-%' and a.agent_id = 'write'
+union all
+select 'article:' || a.id, 'rules', null, null, 1, 'seed-rules-' || a.id,
+       jsonb_build_object('route', 'review', 'rule', r.rule, 'recommended', r.recommended),
+       a.review_reason, r.recommended, a.updated_at - interval '1 minute'
+from articles a
+join (values ('estudio-onibus-noturnos-cpa-centro', 'image_required', 'publish_notify'),
+             ('estudio-furto-de-fios-em-escolas', 'never_auto', 'hold'),
+             ('estudio-feiras-livres-camara', 'ai_unavailable', 'review')) r(slug, rule, recommended)
+  on r.slug = a.slug;

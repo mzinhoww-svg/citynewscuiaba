@@ -265,6 +265,13 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "article_media_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "article_media_media_id_fkey";
             columns: ["media_id"];
             isOneToOne: false;
@@ -298,6 +305,13 @@ export type Database = {
             columns: ["article_id"];
             isOneToOne: false;
             referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_sources_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
             referencedColumns: ["id"];
           },
           {
@@ -358,6 +372,13 @@ export type Database = {
             referencedRelation: "articles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "article_versions_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
         ];
       };
       articles: {
@@ -366,11 +387,13 @@ export type Database = {
           ai_fallback: boolean;
           ai_summary: string[] | null;
           ai_summary_reviewed_by: string | null;
+          assignee_id: string | null;
           author_id: string | null;
           body: NonNullable<Json>;
           confidence: Database["public"]["Enums"]["confidence_level"];
           confidence_score: number;
           dek: string;
+          due_at: string | null;
           embedding: string | null;
           gone_reason: string | null;
           id: string;
@@ -396,11 +419,13 @@ export type Database = {
           ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
+          assignee_id?: string | null;
           author_id?: string | null;
           body: NonNullable<Json>;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
           dek: string;
+          due_at?: string | null;
           embedding?: string | null;
           gone_reason?: string | null;
           id?: string;
@@ -426,11 +451,13 @@ export type Database = {
           ai_fallback?: boolean;
           ai_summary?: string[] | null;
           ai_summary_reviewed_by?: string | null;
+          assignee_id?: string | null;
           author_id?: string | null;
           body?: NonNullable<Json>;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
           dek?: string;
+          due_at?: string | null;
           embedding?: string | null;
           gone_reason?: string | null;
           id?: string;
@@ -452,6 +479,20 @@ export type Database = {
           urgent?: boolean;
         };
         Relationships: [
+          {
+            foreignKeyName: "articles_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "articles_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "articles_section_slug_fkey";
             columns: ["section_slug"];
@@ -722,6 +763,13 @@ export type Database = {
             columns: ["article_id"];
             isOneToOne: false;
             referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "corrections_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
             referencedColumns: ["id"];
           },
         ];
@@ -1926,6 +1974,13 @@ export type Database = {
             referencedRelation: "articles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "article_versions_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
         ];
       };
       public_bylines: {
@@ -2029,6 +2084,67 @@ export type Database = {
             columns: ["source_id"];
             isOneToOne: false;
             referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      studio_queue: {
+        Row: {
+          agent_id: string | null;
+          ai_fallback: boolean | null;
+          assignee_id: string | null;
+          assignee_name: string | null;
+          author_id: string | null;
+          author_name: string | null;
+          category: string | null;
+          confidence: Database["public"]["Enums"]["confidence_level"] | null;
+          confidence_score: number | null;
+          due_at: string | null;
+          id: string | null;
+          kind: Database["public"]["Enums"]["content_kind"] | null;
+          publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
+          published_at: string | null;
+          recommended: string | null;
+          recommended_rationale: string | null;
+          review_reason: string | null;
+          scheduled_for: string | null;
+          section_name: string | null;
+          section_slug: string | null;
+          sensitive: boolean | null;
+          slug: string | null;
+          status: Database["public"]["Enums"]["article_status"] | null;
+          title: string | null;
+          topic_id: string | null;
+          updated_at: string | null;
+          urgent: boolean | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "articles_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "articles_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "articles_section_slug_fkey";
+            columns: ["section_slug"];
+            isOneToOne: false;
+            referencedRelation: "sections";
+            referencedColumns: ["slug"];
+          },
+          {
+            foreignKeyName: "articles_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "topics";
             referencedColumns: ["id"];
           },
         ];
@@ -2215,6 +2331,14 @@ export type Database = {
       studio_audit: {
         Args: { p_action: string; p_actor: string; p_details?: Json; p_object_ref: string };
         Returns: number;
+      };
+      studio_people: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          name: string;
+          roles: Database["public"]["Enums"]["app_role"][];
+        }[];
       };
       topic_candidates: {
         Args: { p_id: string; p_limit: number; p_since: string };

@@ -38,7 +38,14 @@ describe("banco local com seed fictício", () => {
     // 12 publicadas + 1 arquivada (P1: resposta 410 com motivo).
     const all = await db.from("articles").select("kind, status");
     expect(all.data!.filter((a) => a.status === "archived")).toHaveLength(1);
-    const articles = { data: all.data!.filter((a) => a.status !== "archived") };
+    // P4: rascunhos e fila de exceção do Estúdio (fora do portal).
+    const studio = all.data!.filter((a) =>
+      ["draft", "in_review", "changes_requested", "scheduled"].includes(a.status),
+    );
+    expect(studio.length).toBeGreaterThanOrEqual(5);
+    const articles = {
+      data: all.data!.filter((a) => a.status === "published" || a.status === "updated"),
+    };
     expect(articles.data).toHaveLength(12);
     expect(articles.data!.filter((a) => a.kind === "original")).toHaveLength(4);
     expect(articles.data!.filter((a) => a.kind === "normalized")).toHaveLength(8);
