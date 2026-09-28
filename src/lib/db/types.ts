@@ -2212,6 +2212,10 @@ export type Database = {
           stats: Json;
         }[];
       };
+      studio_audit: {
+        Args: { p_action: string; p_actor: string; p_details?: Json; p_object_ref: string };
+        Returns: number;
+      };
       topic_candidates: {
         Args: { p_id: string; p_limit: number; p_since: string };
         Returns: {
