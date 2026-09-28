@@ -14,6 +14,7 @@ import { Dialog } from "../ui/Dialog";
 import { InlineAlert } from "../ui/InlineAlert";
 import { Select } from "../ui/Select";
 import { TextField } from "../ui/TextField";
+import { useHydratedForm } from "../ui/useHydratedForm";
 import { downloadJson } from "./LocalProfileCard";
 
 export interface ProfileDetailsFormProps {
@@ -28,6 +29,11 @@ export function ProfileDetailsForm({ action, name, email, neighborhood }: Profil
   const [state, formAction, pending] = useActionState(action, IDLE as ProfileState);
   const [value, setValue] = useState(name);
   const [hood, setHood] = useState(neighborhood ?? "");
+  // Edição feita antes da hidratação (celular lento) não volta ao valor salvo.
+  const { ref, ready } = useHydratedForm(({ text }) => {
+    setValue((v) => text("name") ?? v);
+    setHood((v) => text("neighborhood") ?? v);
+  });
   const id = useId();
   const options = [
     { value: "", label: T.account.none },
@@ -37,7 +43,13 @@ export function ProfileDetailsForm({ action, name, email, neighborhood }: Profil
     ...NEIGHBORHOODS.map((n) => ({ value: n.name, label: n.name })),
   ];
   return (
-    <form action={formAction} noValidate className="flex flex-col gap-5">
+    <form
+      ref={ref}
+      action={formAction}
+      noValidate
+      className="flex flex-col gap-5"
+      data-ready={ready ? "true" : undefined}
+    >
       <input type="hidden" name="current_neighborhood" value={neighborhood ?? ""} />
       <TextField
         id={`${id}-nome`}

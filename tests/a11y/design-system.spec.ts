@@ -9,9 +9,12 @@ const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
 
 /**
- * Espera a página (ou o elemento) parar: nenhuma animação ou transição finita em andamento. O
- * axe mede a cor pintada; no meio de um fade ou de uma troca de tema ela é intermediária e o
- * contraste sai falso (visto no WebKit do CI, mais lento).
+ * Espera a página (ou o elemento) parar: nenhuma animação ou transição finita presente. O axe
+ * mede a cor pintada; no meio de um fade ou de uma troca de tema ela é intermediária e o
+ * contraste sai falso. Não basta filtrar `playState === "running"`: o WebKit marca o fade como
+ * `finished` e o mantém em getAnimations() com a opacidade congelada no último quadro (0,2 a
+ * 0,9) até o quadro seguinte; o axe media aí o texto do diálogo a ~71% (#d5675f, 3,53:1). Só
+ * quando a animação sai da lista o estilo final (Erro #c4281c, 5,7:1) está aplicado.
  */
 async function settled(page: Page, selector?: string) {
   await expect
@@ -22,11 +25,8 @@ async function settled(page: Page, selector?: string) {
         const anims = sel
           ? roots.flatMap((r) => r.getAnimations({ subtree: true }))
           : document.getAnimations();
-        return anims.filter(
-          (a) =>
-            a.playState === "running" &&
-            Number.isFinite(Number(a.effect?.getComputedTiming().endTime)),
-        ).length;
+        return anims.filter((a) => Number.isFinite(Number(a.effect?.getComputedTiming().endTime)))
+          .length;
       }, selector),
     )
     .toBe(0);

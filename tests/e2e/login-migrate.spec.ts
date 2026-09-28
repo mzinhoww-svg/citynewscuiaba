@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { accountFormReady } from "./account-form";
 import { skipInvite } from "./invite";
 import { lastLinkFor } from "./mailbox";
 import { forwardedFor } from "./own-ip";
@@ -49,6 +50,7 @@ async function save(page: Page, path: string, invite: boolean) {
 }
 
 async function signUp(page: Page, email: string, name = "Leitora de Teste") {
+  await accountFormReady(page);
   await page.getByLabel("Nome de exibição").fill(name);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(PASSWORD);
@@ -57,6 +59,7 @@ async function signUp(page: Page, email: string, name = "Leitora de Teste") {
 }
 
 async function signIn(page: Page, email: string, password = PASSWORD) {
+  await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByLabel("Senha", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -64,6 +67,7 @@ async function signIn(page: Page, email: string, password = PASSWORD) {
 
 test("erro de login é claro e há saída sem login", async ({ page }) => {
   await page.goto("/entrar");
+  await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill("paulo.rezende@email.com");
   await page.getByLabel("Senha", { exact: true }).fill("errada");
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
@@ -98,6 +102,7 @@ test("5 falhas bloqueiam o acesso com senha por 15 minutos", async ({ page }) =>
 
 test("criar conta valida os campos e mostra a força da senha em texto", async ({ page }) => {
   await page.goto("/criar-conta");
+  await accountFormReady(page);
   await page.getByRole("button", { name: "Criar conta" }).click();
   await expect(page.getByText("Digite um nome de exibição (até 80 caracteres).")).toBeVisible();
   await expect(page.getByText("Confira o e-mail. Exemplo: ana@exemplo.com")).toBeVisible();
@@ -189,6 +194,7 @@ test("link mágico: mensagem neutra e o link abre a sessão", async ({ page, con
   await context.clearCookies({ name: /^sb-/ });
 
   await page.goto("/entrar?next=%2Fagenda");
+  await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Receber link por e-mail" }).click();
   await expect(page.getByText(`Se houver conta com ${email}, enviamos um link`)).toBeVisible();
@@ -214,11 +220,13 @@ test("recuperar senha responde de forma neutra e o link permite nova senha", asy
 
   // E-mail sem conta recebe a mesma resposta que um com conta.
   await page.goto("/recuperar-senha");
+  await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill(uniqueEmail("ninguem"));
   await page.getByRole("button", { name: "Enviar link" }).click();
   await expect(page.getByText("Se houver conta com este e-mail, enviamos um link")).toBeVisible();
 
   await page.goto("/entrar");
+  await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
   await page.getByRole("link", { name: "Esqueci a senha" }).click();
   await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue(email);
@@ -229,6 +237,7 @@ test("recuperar senha responde de forma neutra e o link permite nova senha", asy
   test.skip(!link, "sem caixa de saída do Auth neste ambiente");
   await page.goto(link!);
   await expect(page).toHaveURL(/\/redefinir-senha$/);
+  await accountFormReady(page);
   await page.getByLabel("Nova senha", { exact: true }).fill("outra-senha-456");
   await page.getByLabel("Confirme a nova senha").fill("diferente-789");
   await page.getByRole("button", { name: "Salvar nova senha" }).click();
