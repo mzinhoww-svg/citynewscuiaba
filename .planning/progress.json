@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-28T00:55:56.965Z",
+  "updatedAt": "2026-09-28T02:43:37.463Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -387,14 +387,11 @@
         "P0",
         "P1"
       ],
-      "status": "in_progress",
+      "status": "done",
       "gate": {
-        "verify": false,
-        "preview": false,
-        "agentBrowser": false,
-        "impeccable": false,
-        "report": false,
-        "merged": false
+        "commit": "8c4782b",
+        "date": "2026-09-28",
+        "notes": "21 achados; I1–I8 + 6 menores corrigidos; 1188 testes; e2e 620"
       },
       "tasks": [
         {
