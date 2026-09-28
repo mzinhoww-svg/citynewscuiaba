@@ -4,23 +4,27 @@ import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import type { Json } from "@/lib/db/types";
 import { studioAction, StudioFailure, type ActionContext } from "./action";
 import { diffText, type DiffOp } from "./diff";
-import { aiParagraph, appendParagraph, docText } from "./doc";
+import { docText } from "./doc";
 import { articleScope } from "./scope";
 
 /** Campos com origem marcada (IA aceita por pessoa × edição humana). */
 export const ORIGIN_FIELDS = ["title", "dek", "seoTitle", "seoDescription"] as const;
 export type OriginField = (typeof ORIGIN_FIELDS)[number];
 
+/**
+ * Origem de um campo, como o banco grava (studio_apply_patch / studio_accept_suggestion,
+ * migration 0023): só ids. O nome de quem editou ou aceitou é resolvido na leitura; conta
+ * excluída aparece como ex-integrante (achado 5 do gate P4).
+ */
 export type FieldOrigin =
   | {
       origin: "ai";
       agentId: string;
       promptVersion: number | null;
-      acceptedBy: string;
-      acceptedByName: string;
+      acceptedBy?: string;
       at: string;
     }
-  | { origin: "human"; editedBy: string; editedByName: string; at: string };
+  | { origin: "human"; editedBy?: string; at: string };
 
 export type FieldOrigins = Partial<Record<OriginField, FieldOrigin>>;
 
@@ -61,88 +65,63 @@ export interface ConflictData {
 
 const ops = diffText;
 
-interface Current {
-  status: string;
-  title: string;
-  dek: string;
-  seo_title: string | null;
-  seo_description: string | null;
-  field_origins: Json;
+interface SaveRpc {
+  status?: string;
+  version?: number;
+  snapshot?: Record<string, unknown>;
+  unscheduled?: boolean;
+  field?: string;
+  agentId?: string;
 }
 
-async function current(ctx: ActionContext, id: string): Promise<Current> {
-  const { data } = await ctx.db
-    .from("articles")
-    .select("status, title, dek, seo_title, seo_description, field_origins")
-    .eq("id", id)
-    .maybeSingle();
-  if (!data) throw new StudioFailure("not_found");
-  return data;
+function conflictFrom(r: SaveRpc, patch: Record<string, unknown>): StudioFailure {
+  const s = r.snapshot ?? {};
+  const text = (v: unknown) => (typeof v === "string" ? v : "");
+  const conflict: ConflictData = {
+    version: r.version ?? 0,
+    diff: {
+      title: ops(text(s.title), text(patch.title ?? s.title)),
+      dek: ops(text(s.dek), text(patch.dek ?? s.dek)),
+      body: ops(docText(s.body), docText(patch.body ?? s.body)),
+    },
+  };
+  return new StudioFailure("conflict", T.conflict, conflict);
 }
 
-async function personName(ctx: ActionContext): Promise<string> {
-  const { data } = await ctx.db
-    .from("profiles")
-    .select("display_name")
-    .eq("id", ctx.userId)
-    .maybeSingle();
-  return data?.display_name ?? ctx.session?.email ?? "";
-}
-
-function originsOf(v: Json): FieldOrigins {
-  return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as FieldOrigins) : {};
+function rpcFailure(error: { code?: string; message: string }, what: string): never {
+  if (error.code === "42501") throw new StudioFailure("forbidden");
+  if (error.code === "22023") throw new StudioFailure("invalid", T.aiMarkForged);
+  throw new Error(`${what}: ${error.message}`);
 }
 
 /**
- * Grava pela função com versão base. Conflito → `conflict` com a versão atual e o diff entre o
- * que está salvo e o que a pessoa tentou salvar; nada é sobrescrito.
+ * Grava pela função com versão base (`studio_save_draft`, security definer com a checagem de
+ * papel). O banco calcula a origem de cada campo e ignora status e origens vindos daqui.
+ * Publicada → `invalid` (só Atualização/Correção). Agendada editada perde o agendamento.
+ * Conflito → `conflict` com a versão atual e o diff; nada é sobrescrito.
  */
 async function persist(
   ctx: ActionContext,
   id: string,
   baseVersion: number,
   patch: Record<string, unknown>,
-  changeKind: "edit" | "update" | "correction" = "edit",
-  publicNote: string | null = null,
-): Promise<number> {
+): Promise<{ version: number; unscheduled: boolean }> {
   const { data, error } = await ctx.db.rpc("studio_save_draft", {
     p_id: id,
     p_base: baseVersion,
     p_patch: patch as Json,
-    p_change_kind: changeKind,
-    ...(publicNote ? { p_public_note: publicNote } : {}),
   });
-  if (error) {
-    if (error.code === "42501") throw new StudioFailure("forbidden");
-    throw new Error(`salvar: ${error.message}`);
-  }
-  const r = (data ?? {}) as {
-    status?: string;
-    version?: number;
-    snapshot?: Record<string, unknown>;
-  };
+  if (error) rpcFailure(error, "salvar");
+  const r = (data ?? {}) as SaveRpc;
   if (r.status === "not_found") throw new StudioFailure("not_found");
-  if (r.status === "conflict") {
-    const s = r.snapshot ?? {};
-    const text = (v: unknown) => (typeof v === "string" ? v : "");
-    const conflict: ConflictData = {
-      version: r.version ?? 0,
-      diff: {
-        title: ops(text(s.title), text(patch.title ?? s.title)),
-        dek: ops(text(s.dek), text(patch.dek ?? s.dek)),
-        body: ops(docText(s.body), docText(patch.body ?? s.body)),
-      },
-    };
-    throw new StudioFailure("conflict", T.conflict, conflict);
-  }
-  return r.version ?? baseVersion + 1;
+  if (r.status === "public") throw new StudioFailure("invalid", T.publishedNeedsMode);
+  if (r.status === "conflict") throw conflictFrom(r, patch);
+  return { version: r.version ?? baseVersion + 1, unscheduled: r.unscheduled === true };
 }
 
-export { persist as persistArticle };
-
 /**
- * Salva o rascunho (`article.edit`: editor-chefe, editor na editoria, jornalista nas próprias).
- * Campo alterado à mão ganha origem humana; os demais mantêm a origem (inclusive IA aceita).
+ * Salva o rascunho (`article.edit`: editor-chefe, editor na editoria, jornalista nas próprias,
+ * inclusive depois de "Pedir ajuste"). Campo alterado à mão ganha origem humana (no banco).
  * Matéria publicada só muda pelos modos Atualização e Correção.
  */
 export const saveDraft = studioAction(
@@ -150,32 +129,9 @@ export const saveDraft = studioAction(
   (i: SaveInput, ctx) => articleScope(ctx, i.id),
   async (i, ctx) => {
     const doc = DraftDocSchema.parse(i.doc);
-    const cur = await current(ctx, i.id);
-    if (cur.status === "published" || cur.status === "updated")
-      throw new StudioFailure("invalid", T.publishedNeedsMode);
-    const origins = originsOf(cur.field_origins);
-    const before: Record<OriginField, string> = {
-      title: cur.title,
-      dek: cur.dek,
-      seoTitle: cur.seo_title ?? "",
-      seoDescription: cur.seo_description ?? "",
-    };
-    const after: Record<OriginField, string | undefined> = {
-      title: doc.title,
-      dek: doc.dek,
-      seoTitle: doc.seoTitle === undefined ? undefined : (doc.seoTitle ?? ""),
-      seoDescription: doc.seoDescription === undefined ? undefined : (doc.seoDescription ?? ""),
-    };
-    const changed = ORIGIN_FIELDS.filter((f) => after[f] !== undefined && after[f] !== before[f]);
-    if (changed.length > 0) {
-      const name = await personName(ctx);
-      const at = ctx.now().toISOString();
-      for (const f of changed)
-        origins[f] = { origin: "human", editedBy: ctx.userId, editedByName: name, at };
-    }
-    const version = await persist(ctx, i.id, i.baseVersion, { ...doc, fieldOrigins: origins });
-    ctx.detail({ version, fields: changed });
-    return { version };
+    const r = await persist(ctx, i.id, i.baseVersion, doc);
+    ctx.detail({ version: r.version, ...(r.unscheduled ? { unscheduled: true } : {}) });
+    return r;
   },
   { schema: SaveInput, objectRef: (i) => `article:${i.id}`, auditAs: "article.save" },
 );
@@ -187,17 +143,10 @@ const SuggestionInput = z.object({
 });
 export type SuggestionInput = z.input<typeof SuggestionInput>;
 
-const FIELD_COLUMN = {
-  title: "title",
-  dek: "dek",
-  seo_title: "seoTitle",
-  seo_description: "seoDescription",
-} as const;
-
 async function openSuggestion(ctx: ActionContext, id: string, articleId: string) {
   const { data } = await ctx.db
     .from("article_suggestions")
-    .select("id, field, value, agent_id, prompt_version, status")
+    .select("id, field, status")
     .eq("id", id)
     .eq("article_id", articleId)
     .maybeSingle();
@@ -206,63 +155,30 @@ async function openSuggestion(ctx: ActionContext, id: string, articleId: string)
   return data;
 }
 
-async function decide(ctx: ActionContext, id: string, status: "accepted" | "rejected") {
-  const { error } = await ctx.db
-    .from("article_suggestions")
-    .update({ status, decided_by: ctx.userId, decided_at: ctx.now().toISOString() })
-    .eq("id", id)
-    .eq("status", "open");
-  if (error) throw new StudioFailure("forbidden");
-}
-
 /**
- * Aplica uma sugestão de IA com clique humano: o campo recebe o texto e a origem
- * `{ origin: "ai", agentId, promptVersion, acceptedBy }`; no corpo, o parágrafo entra com a marca
- * `aiSuggestion`. Grava versão (com versão base) e marca a sugestão como aceita.
+ * Aplica uma sugestão de IA com clique humano (`studio_accept_suggestion`): o campo recebe o
+ * texto e a origem `{ origin: "ai", agentId, promptVersion, acceptedBy }` (quem aceitou é
+ * sempre quem está na sessão); no corpo, o parágrafo entra com a marca `aiSuggestion`. Versão
+ * (com versão base) e sugestão aceita na mesma transação.
  */
 export const acceptSuggestion = studioAction(
   "article.edit",
   (i: SuggestionInput, ctx) => articleScope(ctx, i.articleId),
   async (i, ctx) => {
-    const s = await openSuggestion(ctx, i.id, i.articleId);
-    const cur = await current(ctx, i.articleId);
-    if (cur.status === "published" || cur.status === "updated")
-      throw new StudioFailure("invalid", T.publishedNeedsMode);
-    const name = await personName(ctx);
-    const origins = originsOf(cur.field_origins);
-    let patch: Record<string, unknown>;
-    if (s.field === "body") {
-      const { data: a } = await ctx.db
-        .from("articles")
-        .select("body")
-        .eq("id", i.articleId)
-        .single();
-      patch = {
-        body: appendParagraph(
-          a?.body,
-          aiParagraph(s.value, {
-            agentId: s.agent_id,
-            promptVersion: s.prompt_version,
-            acceptedBy: ctx.userId,
-          }),
-        ),
-      };
-    } else {
-      const f = FIELD_COLUMN[s.field as keyof typeof FIELD_COLUMN];
-      origins[f] = {
-        origin: "ai",
-        agentId: s.agent_id,
-        promptVersion: s.prompt_version,
-        acceptedBy: ctx.userId,
-        acceptedByName: name,
-        at: ctx.now().toISOString(),
-      };
-      patch = { [f]: s.value, fieldOrigins: origins };
-    }
-    const version = await persist(ctx, i.articleId, i.baseVersion, patch);
-    await decide(ctx, s.id, "accepted");
-    ctx.detail({ suggestion: s.id, field: s.field, agentId: s.agent_id, version });
-    return { version, field: s.field };
+    const { data, error } = await ctx.db.rpc("studio_accept_suggestion", {
+      p_suggestion: i.id,
+      p_article: i.articleId,
+      p_base: i.baseVersion,
+    });
+    if (error) rpcFailure(error, "aceitar sugestão");
+    const r = (data ?? {}) as SaveRpc;
+    if (r.status === "not_found") throw new StudioFailure("not_found");
+    if (r.status === "decided") throw new StudioFailure("invalid", T.suggestionDecided);
+    if (r.status === "public") throw new StudioFailure("invalid", T.publishedNeedsMode);
+    if (r.status === "conflict") throw conflictFrom(r, {});
+    const version = r.version ?? i.baseVersion + 1;
+    ctx.detail({ suggestion: i.id, field: r.field, agentId: r.agentId, version });
+    return { version, field: r.field ?? "" };
   },
   {
     schema: SuggestionInput,
@@ -270,6 +186,17 @@ export const acceptSuggestion = studioAction(
     auditAs: "article.suggestion.accept",
   },
 );
+
+async function decide(ctx: ActionContext, id: string, status: "rejected") {
+  const { data, error } = await ctx.db
+    .from("article_suggestions")
+    .update({ status, decided_by: ctx.userId, decided_at: ctx.now().toISOString() })
+    .eq("id", id)
+    .eq("status", "open")
+    .select("id");
+  if (error) throw new StudioFailure("forbidden");
+  if (!data?.length) throw new StudioFailure("invalid", T.suggestionDecided);
+}
 
 /** Descarta uma sugestão de IA (fica registrada como rejeitada, com quem decidiu). */
 export const rejectSuggestion = studioAction(

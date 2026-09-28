@@ -8,6 +8,7 @@ import { getCorrection } from "@/lib/db/queries/studio-corrections";
 import { formatDateTime } from "@/lib/format/date";
 import type { EditorDoc } from "@/lib/studio/doc";
 import { publishCorrectionAction } from "../../actions";
+import { LoadError, loadOrNull } from "../../load-error";
 
 export const metadata: Metadata = { title: "Correção · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,9 @@ export default async function CorrectionPage({ params }: { params: Promise<{ id:
   const session = await requireRole("correction.manage", undefined, {
     next: `/estudio/correcoes/${id}`,
   });
-  const c = await getCorrection(id);
+  const loaded = await loadOrNull("correcao", () => getCorrection(id));
+  if (!loaded) return <LoadError retryHref={`/estudio/correcoes/${id}`} />;
+  const c = loaded.value;
   if (!c) {
     return (
       <EmptyState as="h1" tone="error" icon="circle-alert" title={T.notFound}>

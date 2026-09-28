@@ -52,7 +52,7 @@ describe("saveDraft", () => {
     const b = { ...base, title: "Linha 507 deixa de passar pela avenida do CPA" };
     expect(await asUser("marina", () => saveDraft({ id, baseVersion: 1, doc: a }))).toEqual({
       ok: true,
-      value: { version: 2 },
+      value: { version: 2, unscheduled: false },
     });
     const second = await asUser("otavio", () => saveDraft({ id, baseVersion: 1, doc: b }));
     expect(second).toMatchObject({ ok: false, error: "conflict" });
@@ -77,7 +77,7 @@ describe("saveDraft", () => {
     const r = await asUser("juliana", () =>
       saveDraft({ id, baseVersion: 2, doc: { ...base, dek: "Mudança vale já na segunda." } }),
     );
-    expect(r).toEqual({ ok: true, value: { version: 3 } });
+    expect(r).toEqual({ ok: true, value: { version: 3, unscheduled: false } });
     const { data: v } = await service
       .from("article_versions")
       .select("origin, author_id, change_kind, snapshot")
@@ -130,9 +130,10 @@ describe("saveDraft", () => {
         agentId: "write",
         promptVersion: 3,
         acceptedBy: SEED_USERS.juliana.id,
-        acceptedByName: "Juliana Campos",
       },
     });
+    // Só o id: o nome é resolvido na leitura (gate P4, achado 5).
+    expect(JSON.stringify(a?.field_origins)).not.toContain("Juliana");
     const { data: after } = await service
       .from("article_suggestions")
       .select("status, decided_by")

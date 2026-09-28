@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import {
   CORRECTIONS_TEXT,
+  IMAGE_TEXT,
   EDITOR_TEXT,
   MEDIA_TEXT,
   MODERATION_TEXT,
@@ -27,6 +28,9 @@ import {
   generateIllustration,
   renewLicense,
   replaceImage,
+  setImageText,
+  takedownImage,
+  type ImageTextInput,
 } from "@/lib/studio/media";
 import { approveSubmission, rejectSubmission, respondReport } from "@/lib/studio/moderation";
 import { publishArticle } from "@/lib/studio/publish";
@@ -116,7 +120,13 @@ export async function saveDraftAction(input: {
 }): Promise<SaveReply> {
   const r = await saveDraft(input as SaveInput);
   if (r.ok)
-    return { ok: true, message: EDITOR_TEXT.saved(r.value.version), version: r.value.version };
+    return {
+      ok: true,
+      message: r.value.unscheduled
+        ? EDITOR_TEXT.unscheduled(r.value.version)
+        : EDITOR_TEXT.saved(r.value.version),
+      version: r.value.version,
+    };
   if (r.error === "conflict")
     return {
       ok: false,
@@ -150,8 +160,18 @@ export async function updateSourcesAction(input: {
   return reply(await updateSources(input), EDITOR_TEXT.sourcesSaved);
 }
 
-export async function approveAction(input: { id: string }): Promise<ActionReply> {
-  return reply(await publishArticle({ id: input.id, when: "now" }), REVIEW_TEXT.approved);
+/**
+ * Aprovar e publicar da revisão (E03). `baseVersion` vem ligado pela página (`.bind`): publica
+ * a versão que a pessoa revisou; se alguém salvou depois, é conflito.
+ */
+export async function approveAction(
+  baseVersion: number,
+  input: { id: string },
+): Promise<ActionReply> {
+  return reply(
+    await publishArticle({ id: input.id, when: "now", baseVersion }),
+    REVIEW_TEXT.approved,
+  );
 }
 
 export async function rejectItemAction(input: {
@@ -172,12 +192,15 @@ export async function reprocessAction(input: { id: string }): Promise<ActionRepl
   return reply(await reprocessItem(input), REVIEW_TEXT.reprocessed);
 }
 
-export async function publishAction(input: {
-  id: string;
-  when: "now" | { at: string };
-  destinations: ("home" | "section" | "topic" | "newsletter")[];
-}): Promise<ActionReply> {
-  const r = await publishArticle(input);
+export async function publishAction(
+  baseVersion: number,
+  input: {
+    id: string;
+    when: "now" | { at: string };
+    destinations: ("home" | "section" | "topic" | "newsletter")[];
+  },
+): Promise<ActionReply> {
+  const r = await publishArticle({ ...input, baseVersion });
   if (r.ok && r.value.status === "scheduled" && r.value.scheduledFor)
     return { ok: true, message: PUBLISH_TEXT.scheduled(formatDateTime(r.value.scheduledFor)) };
   return reply(r, PUBLISH_TEXT.published);
@@ -236,6 +259,18 @@ export async function openCorrectionAction(formData: FormData): Promise<void> {
 
 export async function approveImageAction(input: { id: string }): Promise<ActionReply> {
   return reply(await approveImage(input), MEDIA_TEXT.approved);
+}
+
+export async function setImageTextAction(input: ImageTextInput): Promise<ActionReply> {
+  return reply(await setImageText(input), IMAGE_TEXT.saved);
+}
+
+export async function takedownImageAction(input: {
+  id: string;
+  reason: string;
+  allFromSource: boolean;
+}): Promise<ActionReply> {
+  return reply(await takedownImage(input), MEDIA_TEXT.takedownDone);
 }
 
 export async function blockImageAction(input: {

@@ -36,7 +36,7 @@ import type { TickDeps } from "./tick";
  * Storage das cópias de imagem. Produção: Supabase Storage (bucket `media`). A pilha local sem
  * Docker não tem Storage (A-017): `MEDIA_STORE=memory` guarda em memória só no desenvolvimento.
  */
-function productionMediaStore(db: ReturnType<typeof createServiceClient>): MediaStore {
+export function productionMediaStore(db: ReturnType<typeof createServiceClient>): MediaStore {
   return process.env.MEDIA_STORE === "memory" && process.env.NODE_ENV !== "production"
     ? createMemoryMediaStore()
     : createSupabaseMediaStore(db);

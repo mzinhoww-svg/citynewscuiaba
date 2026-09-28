@@ -53,7 +53,16 @@ export interface MediaDetail extends MediaCardData {
   height: number | null;
   provenance: Json;
   removalReason: string | null;
-  articles: { id: string; title: string; status: string; sectionSlug: string }[];
+  articles: {
+    id: string;
+    title: string;
+    status: string;
+    sectionSlug: string;
+    authorId: string | null;
+    /** Texto alternativo nesta matéria (`null` = não escrito; `""` = decorativa). */
+    alt: string | null;
+    caption: string | null;
+  }[];
 }
 
 export async function getMedia(id: string): Promise<MediaDetail | null> {
@@ -69,7 +78,7 @@ export async function getMedia(id: string): Promise<MediaDetail | null> {
   if (!m) return null;
   const { data: links } = await ctx.db
     .from("article_media")
-    .select("articles(id, title, status, section_slug)")
+    .select("alt, caption, articles(id, title, status, section_slug, author_id)")
     .eq("media_id", id);
   return {
     id: m.id,
@@ -96,6 +105,9 @@ export async function getMedia(id: string): Promise<MediaDetail | null> {
               title: l.articles.title,
               status: l.articles.status,
               sectionSlug: l.articles.section_slug,
+              authorId: l.articles.author_id,
+              alt: l.alt,
+              caption: l.caption,
             },
           ]
         : [],

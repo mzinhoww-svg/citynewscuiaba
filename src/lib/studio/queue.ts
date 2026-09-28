@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import { QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { studioAction, StudioFailure, type StudioResult } from "./action";
-import type { StudioContext } from "./context";
+import { withSharedStudioContext, type StudioContext } from "./context";
 import { articleScope } from "./scope";
 
 /** Tags de cache de uma matéria pública (mesmas da publicação do pipeline, A-039). */
@@ -74,11 +74,20 @@ export const unpublishAuto = studioAction(
 const AssignOne = z.object({ id: z.uuid(), userId: z.uuid().nullable() });
 type AssignOne = z.infer<typeof AssignOne>;
 
+const ASSIGNABLE = new Set(["editor_chefe", "editor", "jornalista", "revisor"]);
+
 /** Atribuição é gestão da mesa: quem publica na editoria (editor-chefe, editor). */
 const assignOne = studioAction(
   "article.publish",
   (i: AssignOne, ctx) => articleScope(ctx, i.id),
   async (i, ctx) => {
+    if (i.userId !== null) {
+      // Responsável só da redação (achado 20): quem escreve, edita ou revisa.
+      const { data: people } = await ctx.db.rpc("studio_people");
+      const person = (people ?? []).find((p) => p.id === i.userId);
+      if (!person || !person.roles.some((r) => ASSIGNABLE.has(r)))
+        throw new StudioFailure("invalid", QUEUE_TEXT.assigneeInvalid);
+    }
     const { error } = await ctx.db
       .from("articles")
       .update({ assignee_id: i.userId })
@@ -125,13 +134,16 @@ async function batch<I>(
   run: (i: I) => Promise<StudioResult<unknown>>,
   idOf: (i: I) => string,
 ): Promise<BatchOutcome> {
-  const out: BatchOutcome = { done: [], failed: [] };
-  for (const item of items.slice(0, 100)) {
-    const r = await run(item);
-    if (r.ok) out.done.push(idOf(item));
-    else out.failed.push({ id: idOf(item), error: r.error, message: r.message });
-  }
-  return out;
+  // Uma sessão e um cliente para o lote inteiro (achado 18); cada item continua com a guarda.
+  return withSharedStudioContext(async () => {
+    const out: BatchOutcome = { done: [], failed: [] };
+    for (const item of items.slice(0, 100)) {
+      const r = await run(item);
+      if (r.ok) out.done.push(idOf(item));
+      else out.failed.push({ id: idOf(item), error: r.error, message: r.message });
+    }
+    return out;
+  });
 }
 
 /** Atribui matérias a uma pessoa (ou tira o responsável com `userId: null`). */

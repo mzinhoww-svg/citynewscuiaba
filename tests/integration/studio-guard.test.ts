@@ -107,14 +107,14 @@ describe("guarda do Estúdio", () => {
 
   it("audit grava em nome de quem está na sessão e nunca de outra pessoa", async () => {
     await asUser("beatriz", () =>
-      audit(SEED_USERS.beatriz.id, "media.view", "media:teste", { ok: true }),
+      audit(SEED_USERS.beatriz.id, "media.block", "media:teste", { ok: true }),
     );
     expect(await lastAudit(SEED_USERS.beatriz.id)).toMatchObject({
-      action: "media.view",
+      action: "media.block",
       object_ref: "media:teste",
     });
     await expect(
-      asUser("beatriz", () => audit(SEED_USERS.marina.id, "media.view", "media:teste")),
+      asUser("beatriz", () => audit(SEED_USERS.marina.id, "media.block", "media:teste")),
     ).rejects.toThrow();
   });
 });

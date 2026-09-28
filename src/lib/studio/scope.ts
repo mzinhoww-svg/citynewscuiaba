@@ -15,3 +15,9 @@ export async function articleScope(ctx: StudioContext, id: string): Promise<Scop
   if (error || !data) return null;
   return { section: data.section_slug, ...(data.author_id ? { ownerId: data.author_id } : {}) };
 }
+
+/**
+ * Escopo de imagem usada em mais de uma editoria: nenhum editor de editoria cobre, só quem
+ * aprova em tudo (editor-chefe, revisor). Achado 15 do gate P4.
+ */
+export const MULTI_SECTION = "*varias-editorias*";

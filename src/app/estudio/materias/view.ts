@@ -34,8 +34,8 @@ export function originNotes(
   const out: Partial<Record<OriginField, { text: string; ai: boolean }>> = {};
   for (const f of ["title", "dek", "seoTitle", "seoDescription"] as const) {
     const o = a.fieldOrigins[f];
-    if (o?.origin === "ai") out[f] = { text: T.originAi(o.acceptedByName), ai: true };
-    else if (o?.origin === "human") out[f] = { text: T.originHuman(o.editedByName), ai: false };
+    if (o?.origin === "ai") out[f] = { text: T.originAi(o.name), ai: true };
+    else if (o?.origin === "human") out[f] = { text: T.originHuman(o.name), ai: false };
     else if (a.agentId && (f === "title" || f === "dek"))
       out[f] = { text: T.originPipeline, ai: true };
   }

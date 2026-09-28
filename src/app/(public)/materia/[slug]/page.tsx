@@ -57,8 +57,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!r?.ok || !r.value || "gone" in r.value) return { title: SITE.name };
   const a = r.value;
   return pageMetadata({
-    title: a.title,
-    description: a.dek,
+    title: a.seoTitle ?? a.title,
+    description: a.seoDescription ?? a.dek,
     path: a.href,
     type: "article",
     publishedTime: a.publishedAt,

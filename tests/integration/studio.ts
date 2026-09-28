@@ -56,6 +56,12 @@ function signIn(user: SeedUser) {
 export interface AsUserOptions {
   revalidate?: StudioContext["revalidate"];
   now?: () => Date;
+  mediaStore?: StudioContext["mediaStore"];
+}
+
+/** Cliente PostgREST com a sessão de um usuário de seed (chamada direta, sem Server Action). */
+export async function clientOf(user: SeedUser): Promise<DbClient> {
+  return (await signIn(user)).db;
 }
 
 /** Roda `fn` com a sessão de um usuário de seed no contexto do Estúdio. */
@@ -71,6 +77,7 @@ export async function asUser<T>(
       db,
       revalidate: options.revalidate ?? (async () => {}),
       now: options.now ?? (() => new Date()),
+      ...(options.mediaStore ? { mediaStore: options.mediaStore } : {}),
     },
     fn,
   );

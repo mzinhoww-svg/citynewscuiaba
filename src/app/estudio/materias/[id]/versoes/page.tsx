@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { listVersions } from "@/lib/db/queries/studio-article";
 import { formatDateTime } from "@/lib/format/date";
 import { versionDiff } from "@/lib/studio/diff";
+import { LoadError, loadOrNull } from "../../../load-error";
 
 export const metadata: Metadata = { title: "Versões · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -26,7 +27,9 @@ export default async function VersionsPage({
   const { id } = await params;
   await requireRole("article.edit", undefined, { next: `/estudio/materias/${id}/versoes` });
   const sp = await searchParams;
-  const data = await listVersions(id);
+  const loaded = await loadOrNull("versoes", () => listVersions(id));
+  if (!loaded) return <LoadError retryHref={`/estudio/materias/${id}/versoes`} />;
+  const data = loaded.value;
   if (!data) {
     return (
       <EmptyState as="h1" tone="error" icon="circle-alert" title={T.notFound}>

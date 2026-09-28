@@ -2,6 +2,7 @@ import "server-only";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Session } from "@/lib/auth/permissions";
 import type { DbClient } from "@/lib/db/client";
+import type { MediaStore } from "@/lib/media/store";
 
 /** Invalida tags do cache de dados do Next (architecture §8). */
 export type Revalidate = (tags: string[]) => Promise<void>;
@@ -15,6 +16,8 @@ export interface StudioContext {
   db: DbClient;
   revalidate: Revalidate;
   now: () => Date;
+  /** Storage das cópias de imagem (remoção a pedido). Padrão: o de produção. */
+  mediaStore?: MediaStore;
 }
 
 const store = new AsyncLocalStorage<StudioContext>();
@@ -31,6 +34,19 @@ export function runWithStudioContext<T>(ctx: StudioContext, fn: () => Promise<T>
 export async function studioContext(): Promise<StudioContext> {
   const explicit = store.getStore();
   if (explicit) return explicit;
+  return requestContext();
+}
+
+/**
+ * Resolve a sessão e o cliente uma vez e roda `fn` com eles (lotes da fila: 100 itens não
+ * refazem `getUser()` e a leitura de papéis 100 vezes). Dentro de um contexto explícito, reusa.
+ */
+export async function withSharedStudioContext<T>(fn: () => Promise<T>): Promise<T> {
+  if (store.getStore()) return fn();
+  return store.run(await requestContext(), fn);
+}
+
+async function requestContext(): Promise<StudioContext> {
   const [{ getSession }, { createServerClient }, { revalidateTags }] = await Promise.all([
     import("@/lib/auth/require-role"),
     import("@/lib/db/client"),

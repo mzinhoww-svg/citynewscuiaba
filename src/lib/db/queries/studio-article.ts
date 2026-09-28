@@ -3,7 +3,15 @@ import type { Database, Json } from "@/lib/db/types";
 import { checklist, type Checklist } from "@/lib/studio/checklist";
 import { studioContext } from "@/lib/studio/context";
 import { loadDraftView } from "@/lib/studio/draft-view";
-import type { FieldOrigins } from "@/lib/studio/save";
+import { EDITOR_TEXT } from "@/content/pt-BR/studio";
+import { ORIGIN_FIELDS, type FieldOrigins, type OriginField } from "@/lib/studio/save";
+
+/** Origem de um campo com o nome resolvido na leitura (o banco guarda só ids, achado 5). */
+export interface FieldOriginView {
+  origin: "ai" | "human";
+  /** Quem aceitou (IA) ou editou (humano); conta excluída vira "Ex-integrante da redação". */
+  name: string;
+}
 
 type Status = Database["public"]["Enums"]["article_status"];
 type Confidence = Database["public"]["Enums"]["confidence_level"];
@@ -27,6 +35,7 @@ export interface StudioImage {
   license: string;
   licenseUntil: string | null;
   alt: string | null;
+  caption: string | null;
   sourceName: string | null;
   rationale: string;
   chosenBy: string;
@@ -77,7 +86,7 @@ export interface StudioArticle {
   neighborhoods: string[];
   seoTitle: string | null;
   seoDescription: string | null;
-  fieldOrigins: FieldOrigins;
+  fieldOrigins: Partial<Record<OriginField, FieldOriginView>>;
   confidence: Confidence;
   confidenceScore: number;
   agentId: string | null;
@@ -143,7 +152,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     db
       .from("article_media")
       .select(
-        "media_id, rationale, chosen_by, alt, media_assets(kind, status, credit, license, license_until, source_name)",
+        "media_id, rationale, chosen_by, alt, caption, media_assets(kind, status, credit, license, license_until, source_name)",
       )
       .eq("article_id", id),
     db
@@ -167,6 +176,13 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
   for (const v of versions.data ?? []) if (v.author_id) people.add(v.author_id);
   for (const d of decisions.data ?? []) if (d.human_id) people.add(d.human_id);
   if (a.author_id) people.add(a.author_id);
+  const origins = record(a.field_origins) as FieldOrigins;
+  const originPerson = (o: FieldOrigins[OriginField]) =>
+    o?.origin === "ai" ? o.acceptedBy : o?.origin === "human" ? o.editedBy : undefined;
+  for (const f of ORIGIN_FIELDS) {
+    const who = originPerson(origins[f]);
+    if (who) people.add(who);
+  }
   const { data: profiles } = people.size
     ? await db
         .from("profiles")
@@ -197,7 +213,15 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     neighborhoods: a.neighborhoods,
     seoTitle: a.seo_title,
     seoDescription: a.seo_description,
-    fieldOrigins: record(a.field_origins) as FieldOrigins,
+    fieldOrigins: Object.fromEntries(
+      ORIGIN_FIELDS.flatMap((f) => {
+        const o = origins[f];
+        if (o?.origin !== "ai" && o?.origin !== "human") return [];
+        const who = originPerson(o);
+        const name = (who && nameOf.get(who)) || EDITOR_TEXT.formerStaff;
+        return [[f, { origin: o.origin, name } satisfies FieldOriginView]];
+      }),
+    ),
     confidence: a.confidence,
     confidenceScore: Number(a.confidence_score),
     agentId: a.agent_id,
@@ -241,6 +265,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
               license: m.media_assets.license,
               licenseUntil: m.media_assets.license_until,
               alt: m.alt,
+              caption: m.caption,
               sourceName: m.media_assets.source_name,
               rationale: m.rationale,
               chosenBy: m.chosen_by,

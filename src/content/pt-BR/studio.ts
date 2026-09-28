@@ -9,6 +9,12 @@ export const STUDIO_TEXT = {
     "Redação, Control Center e Governança ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
   loading: "Carregando",
   backToSite: "Ver o portal",
+  errorTitle: "Não foi possível carregar esta tela do Estúdio",
+  errorText:
+    "O banco não respondeu agora. Nada do que você salvou antes se perdeu. Tente de novo em instantes.",
+  errorCode: (digest: string) => `Código do erro: ${digest}`,
+  retry: "Tentar de novo",
+  backToNewsroom: "Voltar para a redação",
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -105,6 +111,7 @@ export const QUEUE_TEXT = {
   notAuto: "Só matérias publicadas automaticamente podem ser despublicadas por aqui.",
   notPublished: "A matéria não está publicada.",
   notDraft: "Só rascunhos ou matérias com ajuste pedido voltam para revisão.",
+  assigneeInvalid: "Escolha alguém da redação (edição, reportagem ou revisão).",
   forbidden: "Seu papel não permite esta ação nesta matéria.",
   genericError: "Não foi possível concluir. Tente de novo.",
   bulkLabel: "Ações em lote",
@@ -153,6 +160,25 @@ export const QUEUE_TEXT = {
   loading: "Carregando a fila",
 } as const;
 
+export const IMAGE_TEXT = {
+  title: "Imagem da matéria",
+  none: "A matéria ainda não tem imagem.",
+  alt: "Texto alternativo",
+  altHint: "Descreva o que a imagem mostra para quem usa leitor de tela. Até 250 caracteres.",
+  decorative: "Imagem decorativa (não acrescenta informação; texto alternativo fica vazio)",
+  caption: "Legenda (opcional)",
+  captionHint: "Aparece junto da imagem. Até 300 caracteres.",
+  save: "Salvar texto da imagem",
+  saved: "Texto da imagem salvo",
+  count: (n: number, max: number) => `${n} de ${max} caracteres`,
+  altRequired: "Escreva o texto alternativo ou marque a imagem como decorativa",
+  altTooLong: (max: number) => `O texto alternativo passa de ${max} caracteres`,
+  captionTooLong: (max: number) => `A legenda passa de ${max} caracteres`,
+  missing: "Sem texto alternativo",
+  decorativeShort: "Decorativa",
+  forArticle: (title: string) => `Texto da imagem em "${title}"`,
+} as const;
+
 export const CHECKLIST_TEXT = {
   title: "Checklist de publicação",
   complete: "Checklist completo",
@@ -165,6 +191,7 @@ export const CHECKLIST_TEXT = {
     images: "Crédito e texto alternativo das imagens",
     seo: "SEO: título e descrição",
     suggestions: "Sugestões de IA resolvidas",
+    aiFallback: "Texto reescrito pela redação (rascunho sem IA)",
   },
   reason: {
     titleDek: "Falta título ou linha fina",
@@ -177,6 +204,7 @@ export const CHECKLIST_TEXT = {
     seoDescriptionLong: (max: number) => `Descrição de SEO passa de ${max} caracteres`,
     suggestions: (n: number) =>
       n === 1 ? "Há 1 sugestão de IA sem decisão" : `Há ${n} sugestões de IA sem decisão`,
+    aiFallback: "Rascunho sem IA: reescreva o texto das fontes antes de publicar",
   },
   ok: "ok",
   missing: "pendente",
@@ -193,6 +221,10 @@ export const EDITOR_TEXT = {
   publishedNeedsMode:
     "Matéria publicada: use o modo Atualização ou Correção para mudar o texto público.",
   suggestionDecided: "Esta sugestão já foi decidida.",
+  formerStaff: "Ex-integrante da redação",
+  aiMarkForged: "Trecho marcado como sugestão de IA só entra pelo botão Aceitar.",
+  unscheduled: (v: number) =>
+    `Rascunho salvo · versão ${v}. O agendamento foi cancelado: revise e agende de novo.`,
   saved: (v: number) => `Rascunho salvo · versão ${v}`,
   save: "Salvar rascunho",
   saving: "Salvando…",
@@ -333,6 +365,9 @@ export const REVIEW_TEXT = {
   notReviewable: "Este item já saiu da fila de revisão.",
   cannotReprocess: "Só matéria do pipeline sem edição humana pode ser reprocessada.",
   sourcesInvalid: "Uma das fontes não existe mais.",
+  reprocessPublic:
+    "Matéria publicada ou agendada não volta ao pipeline. Use Despublicar ou Atualização.",
+  sourcesPublic: "Fontes de matéria publicada mudam só pelo modo Atualização.",
   sourcesTitle: "Origem e fontes relacionadas",
   forbidden: "Seu papel não permite esta ação nesta matéria.",
   genericError: "Não foi possível concluir. Tente de novo.",
@@ -390,12 +425,16 @@ export const PUBLISH_TEXT = {
   tooFar: "Agende para no máximo 90 dias",
   blocked: (why: string) => `Publicação indisponível: ${why}`,
   alreadyPublic: "A matéria já está publicada. Use Atualização ou Correção.",
+  conflict:
+    "A matéria mudou depois que você abriu. Nada foi publicado: recarregue e revise a versão atual.",
+  checklistChanged: "O checklist mudou. Recarregue a matéria e confira os itens pendentes.",
 } as const;
 
 export const CORRECTIONS_TEXT = {
   title: "Correções e direito de resposta",
   intro: "Pedidos de correção e de direito de resposta, com prazo de 24 h.",
   caption: "Fila de correções",
+  reportMismatch: "A denúncia vinculada não é desta matéria.",
   col: {
     article: "Matéria",
     kind: "Tipo",
@@ -530,6 +569,15 @@ export const MEDIA_TEXT = {
   replaceWith: "Nova imagem",
   replaced: "Imagem trocada",
   replaceInvalid: "Escolha uma imagem aprovada e com licença válida.",
+  approveBlocked:
+    "Imagem bloqueada não volta ao portal. Se o bloqueio foi engano, cadastre a imagem de novo.",
+  approveExpired: "Licença vencida: renove a licença antes de aprovar.",
+  takedown: "Remover a pedido do veículo",
+  takedownReason: "Pedido do veículo",
+  takedownHint: "Ex.: e-mail do veículo de 28/09 pedindo a remoção. A cópia é apagada.",
+  takedownAll: "Remover todas as reproduções deste veículo (opt-out)",
+  takedownDone: "Reprodução removida: cópia apagada e matérias atualizadas",
+  takedownOnlyReproduction: "Remoção a pedido vale só para reprodução de veículo.",
   notFound: "Imagem não encontrada",
   back: "Voltar para a biblioteca",
   licensesTitle: "Direitos e licenças",
@@ -620,9 +668,6 @@ export const MODERATION_TEXT = {
   alreadyDecided: "Esta sugestão já foi decidida.",
   invalidPayload: "A sugestão está incompleta.",
   invalidDate: "Data ou hora inválida",
-  rejectedSubject: "Sua sugestão de evento no CityNews",
-  rejectedBody: (title: string, reason: string) =>
-    `Obrigado por sugerir "${title}". Desta vez não vamos publicar o evento na agenda. Motivo: ${reason}`,
   reportsTitle: "Denúncias de leitores",
   reportsIntro: "Informação errada, link quebrado, imagem e direito de resposta. Prazo de 24 h.",
   reportsCaption: "Denúncias abertas",
@@ -650,7 +695,6 @@ export const MODERATION_TEXT = {
   send: "Enviar resposta",
   answered: "Denúncia respondida e retirada da fila",
   alreadyAnswered: "Esta denúncia já foi respondida.",
-  responseSubject: "Resposta do CityNews à sua mensagem",
   openCorrection: "Abrir correção",
   correctionOpened: "Pedido de correção aberto",
   unknownContent: "Conteúdo não encontrado",
