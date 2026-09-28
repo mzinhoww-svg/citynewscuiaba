@@ -25,6 +25,7 @@ import { RawEntrySchema } from "@/lib/pipeline/types";
 import { vectorLiteral } from "@/lib/pipeline/vector";
 import { err } from "@/lib/result";
 import { parseRuleRow } from "@/lib/rules/load";
+import type { StatusReason } from "@/lib/sources/types";
 import type { DbClient } from "./client";
 import type { Json } from "./types";
 
@@ -45,27 +46,96 @@ function check(op: string, error: { message: string } | null): void {
   if (error) throw new Error(`pipeline-store: ${op}: ${error.message}`);
 }
 
-/** `ingest_runs` e `sources` para o tick (service role). */
+/** `stats.fetch_enqueued` gravado = os fetch da janela já foram enfileirados. */
+function hasFetchEnqueued(stats: Json | undefined): boolean {
+  return typeof stats === "object" && stats !== null && !Array.isArray(stats)
+    ? "fetch_enqueued" in stats
+    : false;
+}
+
+/** Padrão de `app_settings` quando a chave some ou sai da grade (a grade vale no banco também). */
+const FALLBACK_DEFAULT_FREQUENCY = 30;
+const FALLBACK_FAST_LANE_MAX = 10;
+
+/** `consumption.robots.crawlDelaySec` (§6.2), ou `null` se ausente ou ilegível. */
+export function crawlDelayOf(consumption: Json | undefined): number | null {
+  const parsed = z
+    .object({ robots: z.object({ crawlDelaySec: z.number().nonnegative().nullable() }) })
+    .safeParse(consumption);
+  return parsed.success ? parsed.data.robots.crawlDelaySec : null;
+}
+
+/** `ingest_runs` e `sources` para os ticks (service role). */
 export function createRunStore(db: DbClient): RunStore {
+  const started = (op: string, data: { run_id: string; created: boolean; stats: Json } | null) => {
+    if (!data) throw new Error(`pipeline-store: ${op} sem retorno`);
+    return {
+      runId: data.run_id,
+      created: data.created,
+      fetchEnqueued: hasFetchEnqueued(data.stats),
+    };
+  };
+  const setting = async (key: string, schema: z.ZodType<number>, fallback: number) => {
+    const { data, error } = await db
+      .from("app_settings")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+    check(`app_settings(${key})`, error);
+    const parsed = schema.safeParse(data?.value);
+    return parsed.success ? parsed.data : fallback;
+  };
+  const lastOf = async (trigger: "cron" | "fast") => {
+    const { data, error } = await db
+      .from("ingest_runs")
+      .select("started_at")
+      .eq("trigger", trigger)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    check(`lastStartedAt(${trigger})`, error);
+    return data?.started_at ?? null;
+  };
+
   return {
     async startRun(windowStart) {
       const { data, error } = await db
         .rpc("start_ingest_run", { p_window: windowStart.toISOString() })
         .single();
       check("startRun", error);
-      if (!data) throw new Error("pipeline-store: startRun sem retorno");
-      const stats = data.stats;
-      const fetchEnqueued =
-        typeof stats === "object" && stats !== null && !Array.isArray(stats)
-          ? "fetch_enqueued" in stats
-          : false;
-      return { runId: data.run_id, created: data.created, fetchEnqueued };
+      return started("startRun", data);
     },
 
-    async markFetchEnqueued(runId, count) {
+    async startFastRun(windowStart) {
+      const { data, error } = await db
+        .rpc("start_fast_run", { p_window: windowStart.toISOString() })
+        .single();
+      check("startFastRun", error);
+      return started("startFastRun", data);
+    },
+
+    async startManualRun(sourceId) {
+      const { data, error } = await db.rpc("start_manual_run", { p_source: sourceId }).single();
+      check("startManualRun", error);
+      return { runId: started("startManualRun", data).runId };
+    },
+
+    async markFetchEnqueued(runId, count, extra = {}) {
+      const { data: current, error: readError } = await db
+        .from("ingest_runs")
+        .select("stats")
+        .eq("id", runId)
+        .maybeSingle();
+      check("markFetchEnqueued(read)", readError);
+      const base =
+        typeof current?.stats === "object" &&
+        current.stats !== null &&
+        !Array.isArray(current.stats)
+          ? current.stats
+          : {};
       const { error } = await db
         .from("ingest_runs")
-        .update({ stats: { fetch_enqueued: count } })
+        .update({ stats: { ...base, ...toJsonObject(extra), fetch_enqueued: count } })
         .eq("id", runId);
       check("markFetchEnqueued", error);
     },
@@ -74,6 +144,7 @@ export function createRunStore(db: DbClient): RunStore {
       const { data, error } = await db
         .from("ingest_runs")
         .select("id")
+        .eq("trigger", "cron")
         .eq("status", "running")
         .lt("window_start", windowStart.toISOString())
         .order("window_start", { ascending: false })
@@ -83,34 +154,79 @@ export function createRunStore(db: DbClient): RunStore {
       return data?.id ?? null;
     },
 
-    async lastStartedAt() {
-      const { data, error } = await db
-        .from("ingest_runs")
-        .select("started_at")
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      check("lastStartedAt", error);
-      return data?.started_at ?? null;
-    },
+    lastStartedAt: () => lastOf("cron"),
+    lastFastStartedAt: () => lastOf("fast"),
+
+    defaultFrequency: () =>
+      setting(
+        "sources.default_frequency_minutes",
+        z
+          .number()
+          .int()
+          .min(30)
+          .max(1440)
+          .refine((v) => v % 30 === 0),
+        FALLBACK_DEFAULT_FREQUENCY,
+      ),
+
+    fastLaneMax: () =>
+      setting("sources.fast_lane_max", z.number().int().min(0).max(20), FALLBACK_FAST_LANE_MAX),
 
     async activeSources() {
       const { data, error } = await db
         .from("sources")
-        .select("slug, frequency_minutes, last_fetched_at")
-        .eq("status", "active")
+        .select(
+          "id, slug, status, priority, editorial_score, frequency_minutes, terms_min_interval_minutes, rate_limit_per_hour, consumption, last_fetched_at",
+        )
+        .in("status", ["active", "degraded"])
+        .is("archived_at", null)
         .order("priority", { ascending: true })
+        .order("editorial_score", { ascending: false })
         .order("slug", { ascending: true });
       check("activeSources", error);
       return (data ?? []).map((s) => ({
+        id: s.id,
         slug: s.slug,
-        // `frequency_minutes` aceita `null` desde a migration 0011 (painel de fontes, D-F14):
-        // `null` = padrão global. FS-T5 troca este `30` fixo pela leitura de
-        // `app_settings.sources.default_frequency_minutes` e por `dueSources`/via rápida (D-F17).
-        frequencyMinutes: s.frequency_minutes ?? 30,
+        status: s.status,
+        priority: s.priority,
+        editorialScore: s.editorial_score,
+        // `null` = padrão global (D-F14): resolvido por `dueSources` com `defaultFrequency()`.
+        frequencyMinutes: s.frequency_minutes,
+        crawlDelaySec: crawlDelayOf(s.consumption),
+        termsMinIntervalMinutes: s.terms_min_interval_minutes,
+        rateLimitPerHour: s.rate_limit_per_hour,
         lastFetchedAt: s.last_fetched_at,
       }));
     },
+  };
+}
+
+/** `peek_rate_limit`: consulta a cota de `crawler:<slug>` na hora sem consumir (tick rápido). */
+export function createRateLimitPeek(db: DbClient) {
+  return async (bucket: string, limitPerHour: number): Promise<boolean> => {
+    const i = bucket.indexOf(":");
+    const { data, error } = await db.rpc("peek_rate_limit", {
+      p_bucket: i > 0 ? bucket.slice(0, i) : bucket,
+      p_key_hash: i > 0 ? bucket.slice(i + 1) : "-",
+      p_limit: limitPerHour,
+      p_window_seconds: 3600,
+    });
+    check("peekRateLimit", error);
+    return data === true;
+  };
+}
+
+/** `hit_rate_limit` genérico (bucket, chave, limite, janela): "Coletar agora" e afins. */
+export function createRateLimitHit(db: DbClient) {
+  return async (bucket: string, key: string, limit: number, windowSec: number) => {
+    const { data, error } = await db.rpc("hit_rate_limit", {
+      p_bucket: bucket,
+      p_key_hash: key,
+      p_limit: limit,
+      p_window_seconds: windowSec,
+    });
+    check("hitRateLimit", error);
+    return data === true;
   };
 }
 
@@ -146,7 +262,20 @@ const RawPayloadSchema = z.object({
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
 const SOURCE_COLUMNS =
-  "id, slug, name, base_url, kind, feed_url, status, rate_limit_per_hour, locality, etag, last_modified";
+  "id, slug, name, base_url, kind, feed_url, status, status_reason, consecutive_failures, rate_limit_per_hour, locality, etag, last_modified, consumption";
+
+const STATUS_REASONS = [
+  "pending_activation",
+  "manual",
+  "auto_failures",
+  "robots",
+  "opt_out",
+  "legal",
+  "quality",
+  "other",
+] as const;
+const toStatusReason = (v: string | null): StatusReason | null =>
+  (STATUS_REASONS as readonly string[]).includes(v ?? "") ? (v as StatusReason) : null;
 
 interface SourceRow {
   id: string;
@@ -156,10 +285,13 @@ interface SourceRow {
   kind: SourceRecord["kind"];
   feed_url: string | null;
   status: SourceRecord["status"];
+  status_reason: string | null;
+  consecutive_failures: number;
   rate_limit_per_hour: number;
   locality: string;
   etag: string | null;
   last_modified: string | null;
+  consumption: Json;
 }
 
 const toSource = (r: SourceRow): SourceRecord => ({
@@ -170,10 +302,13 @@ const toSource = (r: SourceRow): SourceRecord => ({
   kind: r.kind,
   feedUrl: r.feed_url,
   status: r.status,
+  statusReason: toStatusReason(r.status_reason),
+  consecutiveFailures: r.consecutive_failures,
   rateLimitPerHour: r.rate_limit_per_hour,
   locality: r.locality,
   etag: r.etag,
   lastModified: r.last_modified,
+  consumption: r.consumption,
 });
 
 /** Banco das etapas de Coleta (service role). */
@@ -217,6 +352,68 @@ export function createIngestRepo(db: DbClient): IngestRepo {
         p_window_seconds: 3600,
       });
       check("hitRateLimit", error);
+      return data === true;
+    },
+
+    async runTrigger(runId) {
+      const { data, error } = await db
+        .from("ingest_runs")
+        .select("trigger")
+        .eq("id", runId)
+        .maybeSingle();
+      check("runTrigger", error);
+      const t = data?.trigger;
+      return t === "cron" || t === "fast" || t === "manual" ? t : null;
+    },
+
+    async claimFetch(sourceId, runId, since) {
+      const { data, error } = await db.rpc("claim_source_fetch", {
+        p_source: sourceId,
+        p_run: runId,
+        p_since: since.toISOString(),
+      });
+      check("claimFetch", error);
+      return data === true;
+    },
+
+    async recordFetch(sourceId, outcome, latencyMs, itemsNew, fetchError) {
+      const { error } = await db.rpc("record_source_fetch", {
+        p_source: sourceId,
+        p_outcome: outcome,
+        // `null` = sem amostra de latência (itens novos do normalize).
+        p_latency_ms: latencyMs as number,
+        p_items_new: itemsNew,
+        p_error: (fetchError === null ? null : fetchError.slice(0, 2000)) as string,
+      });
+      check("recordFetch", error);
+    },
+
+    async applySourceState(id, patch) {
+      const row = {
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.statusReason !== undefined ? { status_reason: patch.statusReason } : {}),
+        ...(patch.consecutiveFailures !== undefined
+          ? { consecutive_failures: patch.consecutiveFailures }
+          : {}),
+      };
+      if (Object.keys(row).length === 0) return;
+      // Só fonte ainda coletável: uma pausa, bloqueio ou arquivamento humano no meio da coleta
+      // vence (o pipeline nunca reativa o que uma pessoa parou).
+      const { error } = await db
+        .from("sources")
+        .update(row)
+        .eq("id", id)
+        .in("status", ["active", "degraded"])
+        .is("archived_at", null);
+      check("applySourceState", error);
+    },
+
+    async notifyOnce(n, windowSec) {
+      const { data, error } = await db.rpc("notify_once", {
+        p: toJson(n),
+        p_window_sec: windowSec,
+      });
+      check("notifyOnce", error);
       return data === true;
     },
 

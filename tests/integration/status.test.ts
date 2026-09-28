@@ -55,6 +55,12 @@ describe("/api/ingest/status", () => {
       ageMinutes: expect.any(Number),
       late: expect.any(Boolean),
       pending: expect.objectContaining({ total: expect.any(Number) }),
+      fast: {
+        lastStartedAt: null,
+        ageMinutes: null,
+        late: false,
+        sources: 0,
+      },
     });
   });
 });

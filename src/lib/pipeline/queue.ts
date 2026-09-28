@@ -29,7 +29,7 @@ export function createQueue(db: DbClient, opts: { namespace?: string } = {}): Qu
     async enqueue(queue, msg, o = {}) {
       const { data, error } = await db.rpc("queue_enqueue", {
         p_queue: name(queue),
-        p_dedupe_key: dedupeKey(msg),
+        p_dedupe_key: o.dedupeKey ?? dedupeKey(msg),
         p_message: msg,
         p_delay_sec: Math.max(0, Math.floor(o.delaySec ?? 0)),
       });
@@ -100,6 +100,20 @@ export function createQueue(db: DbClient, opts: { namespace?: string } = {}): Qu
     },
 
     async pending(queue, filter = {}) {
+      if (filter.itemRef !== undefined) {
+        // `queue_pending` (0004) não filtra por item: o tick rápido (`previous_pending`, §7.8)
+        // conta direto em `jobs` (service role), com a mesma semântica.
+        let q = db
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("queue", name(queue))
+          .eq("message->>itemRef", filter.itemRef);
+        if (filter.runId !== undefined) q = q.eq("message->>runId", filter.runId);
+        if (filter.steps !== undefined) q = q.in("message->>step", [...filter.steps]);
+        const { count, error } = await q;
+        check("pending", error);
+        return count ?? 0;
+      }
       const { data, error } = await db.rpc("queue_pending", {
         p_queue: name(queue),
         ...(filter.runId !== undefined ? { p_run_id: filter.runId } : {}),

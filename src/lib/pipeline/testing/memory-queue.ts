@@ -23,7 +23,7 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
 
   const queue: Queue = {
     async enqueue(q, msg, o = {}) {
-      const key = dedupeKey(msg);
+      const key = o.dedupeKey ?? dedupeKey(msg);
       if (rows.some((r) => r.queue === q && r.key === key)) return false;
       rows.push({
         id: ++seq,
@@ -74,6 +74,7 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
         (r) =>
           r.queue === q &&
           (filter.runId === undefined || r.msg.runId === filter.runId) &&
+          (filter.itemRef === undefined || r.msg.itemRef === filter.itemRef) &&
           (filter.steps === undefined || filter.steps.includes(r.msg.step)),
       ).length;
     },

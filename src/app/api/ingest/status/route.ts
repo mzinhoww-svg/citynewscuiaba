@@ -6,8 +6,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Estado do ciclo para o watchdog (`.github/workflows/cron-watchdog.yml`): último início, atraso
- * (> 45 min) e mensagens na fila. Exige o segredo de cron como as demais rotas de worker.
+ * Estado do ciclo para o watchdog (`.github/workflows/cron-watchdog.yml`): último início de run
+ * `cron`, atraso (> 45 min), mensagens na fila e o bloco `fast` da via rápida (último run `fast`,
+ * atraso > 15 min só com fonte rápida ativa). Exige o segredo de cron como as demais rotas de worker.
  */
 export async function GET(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))

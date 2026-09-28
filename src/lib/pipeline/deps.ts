@@ -9,13 +9,17 @@ import {
   createIngestRepo,
   createMediaRepo,
   createPublishRepo,
+  createRateLimitHit,
+  createRateLimitPeek,
   createRulesSource,
   createRunStore,
   createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
 import { analyzeImage } from "@/lib/media/analyze";
 import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
+import type { CollectNowDeps } from "./collect-now";
 import type { DrainDeps } from "./drain";
+import type { FastTickDeps } from "./fast-tick";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
 import { systemResolve } from "./net";
@@ -96,6 +100,29 @@ export function defaultTickDeps(): TickDeps & { secret: string | undefined } {
     runs: createRunStore(createServiceClient()),
     now: () => new Date(),
     secret: process.env.CRON_SECRET,
+  };
+}
+
+export function defaultFastTickDeps(): FastTickDeps & { secret: string | undefined } {
+  const db = createServiceClient();
+  return {
+    queue: pipelineQueue(),
+    runs: createRunStore(db),
+    peekRateLimit: createRateLimitPeek(db),
+    now: () => new Date(),
+    secret: process.env.CRON_SECRET,
+  };
+}
+
+/** "Coletar agora" (FS-T6 chama da Server Action, depois de `requireRole("source.manage")`). */
+export function defaultCollectNowDeps(actor: string): CollectNowDeps {
+  const db = createServiceClient();
+  return {
+    runs: createRunStore(db),
+    queue: pipelineQueue(),
+    repo: createIngestRepo(db),
+    hitRateLimit: createRateLimitHit(db),
+    actor,
   };
 }
 

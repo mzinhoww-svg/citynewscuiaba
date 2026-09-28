@@ -1,12 +1,20 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
-import { fetchAggregated } from "./aggregated";
+import { toAggregatedView } from "./aggregated";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
 import { many, readPublic } from "./run";
 import { fetchActiveTopics } from "./topics";
-import type { ArticleSummary, CollectionView, HomeData, QueryError, SourceView } from "./types";
+import type { Database } from "@/lib/db/types";
+import type {
+  AggregatedView,
+  ArticleSummary,
+  CollectionView,
+  HomeData,
+  QueryError,
+  SourceView,
+} from "./types";
 
 /** Blocos de editoria da home (docs/screens.md P01). */
 export const HOME_SECTION_BLOCKS = ["politica", "economia", "cultura"] as const;
@@ -33,6 +41,55 @@ export async function fetchCollections(db: DbClient, limit: number): Promise<Col
     description: c.description,
     itemCount: c.collection_items[0]?.count ?? 0,
   }));
+}
+
+export type PanoramaRow = Pick<
+  Database["public"]["Views"]["public_aggregated"]["Row"],
+  | "id"
+  | "original_title"
+  | "canonical_url"
+  | "source_name"
+  | "source_slug"
+  | "published_at"
+  | "summary"
+  | "section_slug"
+  | "topic_id"
+  | "source_editorial_score"
+>;
+
+/** Score editorial sem valor conta como o padrão da coluna (3). */
+const scoreOf = (r: PanoramaRow): number => r.source_editorial_score ?? 3;
+
+/**
+ * "Veja também em outros portais" (D-F9): fonte com score editorial 1 fica de fora (continua
+ * coletada e na cobertura do assunto); recência primeiro, score editorial desempata; no máximo um
+ * item por veículo. O ranking de recomendação (`src/lib/ranking`) não muda.
+ */
+export function panoramaForHome(rows: readonly PanoramaRow[], limit: number): AggregatedView[] {
+  const ordered = rows
+    .filter((r) => scoreOf(r) > 1)
+    .map((r, i) => ({ r, i, t: Date.parse(r.published_at ?? "") || 0 }))
+    .sort((a, b) => b.t - a.t || scoreOf(b.r) - scoreOf(a.r) || a.i - b.i)
+    .map(({ r }) => toAggregatedView(r))
+    .filter((v): v is AggregatedView => v !== null);
+  const seen = new Set<string>();
+  return ordered.filter((v) => !seen.has(v.sourceSlug) && seen.add(v.sourceSlug)).slice(0, limit);
+}
+
+const PANORAMA_COLUMNS =
+  "id, original_title, canonical_url, source_name, source_slug, published_at, summary, section_slug, topic_id, source_editorial_score";
+
+async function fetchHomeAggregated(db: DbClient, limit: number): Promise<AggregatedView[]> {
+  const rows = await db
+    .from("public_aggregated")
+    .select(PANORAMA_COLUMNS)
+    .not("published_at", "is", null)
+    .or("source_editorial_score.is.null,source_editorial_score.gt.1")
+    .order("published_at", { ascending: false })
+    .order("source_editorial_score", { ascending: false, nullsFirst: false })
+    .limit(limit * 6)
+    .then(many);
+  return panoramaForHome(rows, limit);
 }
 
 async function fetchFeaturedSources(db: DbClient, limit: number): Promise<SourceView[]> {
@@ -88,7 +145,7 @@ export async function getHomeData(
         fetchCollections(db, 4),
         fetchEvents(db, { limit: 3 }, now),
         fetchFeaturedSources(db, 8),
-        fetchAggregated(db, { limit: 4, onePerSource: true }),
+        fetchHomeAggregated(db, 4),
       ]);
       const articles = await summarize(db, rows);
       const editorial = articles.filter((a) => !a.sponsored);
