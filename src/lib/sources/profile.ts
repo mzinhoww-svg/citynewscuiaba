@@ -186,11 +186,22 @@ function isOfficialHost(host: string): boolean {
  * Sugestões por regra fixa (nunca IA): nome e slug a partir do que a descoberta já trouxe,
  * confiabilidade e camada a partir do domínio (D-F11), limite de taxa padrão. Confiabilidade
  * `primary` é mudança crítica (§ regras globais): nasce marcada `needsApproval`.
+ * `robots.crawlDelaySec` (da descoberta, FS-T6) vira teto do limite por hora (§7.1.3.1):
+ * `floor(3600 / Crawl-delay)`, nunca abaixo de 1 nem acima do padrão.
  */
-export function ruleSuggestions(preview: SourcePreview, url: URL): RuleSuggestions {
+export function ruleSuggestions(
+  preview: SourcePreview,
+  url: URL,
+  robots?: { crawlDelaySec: number | null },
+): RuleSuggestions {
   const host = hostKey(url);
   const name = preview.siteName?.trim() || host;
   const official = isOfficialHost(host);
+  const delay = robots?.crawlDelaySec ?? null;
+  const rateLimitPerHour =
+    delay !== null && delay > 0
+      ? Math.max(1, Math.min(DEFAULT_RATE_LIMIT_PER_HOUR, Math.floor(3600 / delay)))
+      : DEFAULT_RATE_LIMIT_PER_HOUR;
 
   return {
     name: { value: name, origin: "regra" },
@@ -202,6 +213,6 @@ export function ruleSuggestions(preview: SourcePreview, url: URL): RuleSuggestio
       needsApproval: official,
     },
     layer: { value: official ? 1 : 2, origin: "regra" },
-    rateLimitPerHour: { value: DEFAULT_RATE_LIMIT_PER_HOUR, origin: "regra" },
+    rateLimitPerHour: { value: rateLimitPerHour, origin: "regra" },
   };
 }

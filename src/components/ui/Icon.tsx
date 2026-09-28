@@ -1,4 +1,8 @@
 import {
+  Archive,
+  Ban,
+  CirclePause,
+  Star,
   ArrowLeft,
   Navigation,
   Accessibility,
@@ -72,6 +76,10 @@ import type { CSSProperties } from "react";
 import { cx } from "../cx";
 
 const ICONS = {
+  archive: Archive,
+  ban: Ban,
+  "circle-pause": CirclePause,
+  star: Star,
   "arrow-up": ArrowUp,
   history: History,
   list: List,

@@ -242,4 +242,17 @@ describe("ruleSuggestions", () => {
       expect(r.layer.value).toBe(2);
     }
   });
+
+  it("Crawl-delay do robots.txt limita o limite por hora sugerido (FS-T6)", () => {
+    const preview = previewWith(3);
+    const url = new URL("https://folhadocerrado.example/");
+    expect(ruleSuggestions(preview, url).rateLimitPerHour.value).toBe(20);
+    expect(ruleSuggestions(preview, url, { crawlDelaySec: null }).rateLimitPerHour.value).toBe(20);
+    // 3600 s / 600 s = 6 requisições por hora, no máximo.
+    expect(ruleSuggestions(preview, url, { crawlDelaySec: 600 }).rateLimitPerHour.value).toBe(6);
+    // Crawl-delay curto não sobe o padrão.
+    expect(ruleSuggestions(preview, url, { crawlDelaySec: 5 }).rateLimitPerHour.value).toBe(20);
+    // Crawl-delay maior que 1 h ainda permite 1 requisição por hora.
+    expect(ruleSuggestions(preview, url, { crawlDelaySec: 7200 }).rateLimitPerHour.value).toBe(1);
+  });
 });

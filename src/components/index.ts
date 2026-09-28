@@ -159,3 +159,9 @@ export {
   type StudioShellProps,
   type StudioUser,
 } from "./studio/StudioShell";
+
+/* studio · painel de fontes (FS-T6) */
+export { EditorialScore, type EditorialScoreProps } from "./studio/sources/EditorialScore";
+export { FrequencyLabel, type FrequencyLabelProps } from "./studio/sources/FrequencyLabel";
+export { HealthBadge, type HealthBadgeProps } from "./studio/sources/HealthBadge";
+export { SourceStatusBadge, type SourceStatusBadgeProps } from "./studio/sources/SourceStatusBadge";

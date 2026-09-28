@@ -2469,6 +2469,10 @@ export type Database = {
         Args: { p_ctx?: Json; p_id: string; p_ip_hash?: string; p_patch: Json; p_version: number };
         Returns: number;
       };
+      source_discovery_link: {
+        Args: { p_accepted?: string[]; p_id: string; p_source: string };
+        Returns: boolean;
+      };
       source_discovery_save: { Args: { p: Json; p_ctx?: Json }; Returns: string };
       source_operational_columns: { Args: Record<PropertyKey, never>; Returns: string[] };
       source_reliability_rank: {
