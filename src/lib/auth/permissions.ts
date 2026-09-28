@@ -2,6 +2,7 @@
  * Matriz de permissões do Estúdio e do Control Center (docs/architecture.md §6).
  * Espelhada nas políticas RLS de supabase/migrations/0002_rls.sql. Função pura, sem framework.
  */
+import { internalPath } from "./safe-path";
 
 export const ROLES = [
   "admin",
@@ -135,9 +136,7 @@ export type AccessDecision = { ok: true } | { ok: false; redirectTo: string };
 const DEFAULT_NEXT = "/estudio";
 
 function safeNext(next: string | undefined): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\"))
-    return DEFAULT_NEXT;
-  return next;
+  return internalPath(next) ?? DEFAULT_NEXT;
 }
 
 export function loginRedirect(next?: string, reason?: "sem-permissao"): string {

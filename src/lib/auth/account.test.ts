@@ -70,4 +70,16 @@ describe("formulários de conta", () => {
     expect(safeNext(undefined)).toBe("/perfil");
     expect(safeNext("/entrar")).toBe("/perfil");
   });
+  it("next recusa controle, barra invertida e formas codificadas (open redirect)", () => {
+    for (const bad of [
+      "/\t/evil.com",
+      "/\n/evil.com",
+      "/\r/evil.com",
+      "/%09/evil.com",
+      "/%5C/evil.com",
+    ])
+      expect(safeNext(bad)).toBe("/perfil");
+    expect(safeNext("/%09/entrar")).toBe("/perfil");
+    expect(safeNext("/a/../entrar")).toBe("/perfil");
+  });
 });
