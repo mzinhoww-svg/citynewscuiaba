@@ -31,11 +31,10 @@ export function buildPreview(
     return 0;
   });
   const items = candidates.slice(0, MAX_ITEMS);
-  const baseUrl = d.tried[0]?.url ?? d.feedUrl ?? "";
-  const termsLinks = d.html ? findTermsLinks(d.html, baseUrl) : [];
+  const termsLinks = d.html ? findTermsLinks(d.html, d.baseUrl) : [];
 
   return {
-    finalUrl: d.feedUrl ?? baseUrl,
+    finalUrl: d.feedUrl ?? d.baseUrl,
     siteName: meta.siteName,
     description: meta.description,
     strategy: d.strategy,

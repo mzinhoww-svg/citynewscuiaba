@@ -35,6 +35,7 @@ function discoveryWith(rawEntries: RawEntry[]): Discovery {
     tried: [{ url: "https://folhadocerrado.example/", outcome: "página sem feed anunciado" }],
     robots: { allowed: true, crawlDelaySec: null },
     html: null,
+    baseUrl: "https://folhadocerrado.example/",
   };
 }
 

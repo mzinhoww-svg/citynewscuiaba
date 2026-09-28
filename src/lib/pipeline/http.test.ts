@@ -50,7 +50,11 @@ describe("coletor HTTP", () => {
       "https://interno.example/feed",
       opts,
     );
-    expect(r1).toEqual({ kind: "network_error", message: expect.stringMatching(/192\.168/) });
+    expect(r1).toEqual({
+      kind: "network_error",
+      message: expect.stringMatching(/192\.168/),
+      blocked: true,
+    });
     const r2 = await crawlGet(
       { repo, http, resolve, userAgent: DEFAULT_USER_AGENT },
       "https://b.example/feed",

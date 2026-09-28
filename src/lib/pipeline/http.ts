@@ -32,7 +32,12 @@ export type CrawlResponse =
     }
   | { kind: "not_modified" }
   | { kind: "http_error"; status: number }
-  | { kind: "network_error"; message: string }
+  /**
+   * `blocked` distingue, sem depender do texto da mensagem, uma recusa de política (esquema, host,
+   * DNS proibido ou `onHop`) de uma falha de rede de verdade (timeout, conexão recusada). Opcional
+   * e aditivo: quem já lia só `message` continua funcionando sem mudança.
+   */
+  | { kind: "network_error"; message: string; blocked?: boolean }
   | { kind: "too_large" }
   | { kind: "rate_limited" };
 
@@ -52,6 +57,13 @@ export async function crawlGet(
     lastModified?: string | null;
     accept?: string;
     signal?: AbortSignal;
+    /**
+     * Chamado antes de cada salto real (o pedido inicial e cada redirecionamento seguido), na
+     * ordem. Devolver um motivo interrompe a cadeia ali, sem chegar a fazer aquele salto (e sem
+     * contar para o limite por hora); devolver `null` deixa seguir. Opcional: quem não passa
+     * `onHop` tem o comportamento de sempre, um pedido por chamada de `crawlGet`.
+     */
+    onHop?: (url: URL) => string | null;
   },
 ): Promise<CrawlResponse> {
   let parsed: URL;
@@ -61,7 +73,7 @@ export async function crawlGet(
     return { kind: "network_error", message: `URL inválida: ${url}` };
   }
   const problem = await urlProblem(parsed, deps.resolve);
-  if (problem) return { kind: "network_error", message: problem };
+  if (problem) return { kind: "network_error", message: problem, blocked: true };
   if (!(await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour)))
     return { kind: "rate_limited" };
 
@@ -74,14 +86,30 @@ export async function crawlGet(
   if (opts.etag) headers["If-None-Match"] = opts.etag;
   if (opts.lastModified) headers["If-Modified-Since"] = opts.lastModified;
 
+  // O primeiro salto já foi contado por `onHop` (o segundo membro do `??`, abaixo); os saltos
+  // seguintes (redirecionamentos) só existem se `onHop` deixar `safeGet` segui-los.
+  let hops = 0;
   const res = await safeGet(deps, url, {
     headers,
     signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
     maxBytes: MAX_DOCUMENT_BYTES,
+    allowUrl: opts.onHop
+      ? (u) => {
+          const reason = opts.onHop!(u);
+          if (reason === null) hops++;
+          return reason;
+        }
+      : undefined,
   });
+  // Acerta o limite por hora pelos saltos de verdade (spec §7.1.3): o primeiro já foi contado
+  // acima; cada redirecionamento seguido consome mais uma cota da mesma janela. Só quando o
+  // chamador pediu `onHop` — sem ele, o comportamento é o de sempre (uma cota por chamada).
+  if (opts.onHop && hops > 1) {
+    for (let i = 1; i < hops; i++) await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour);
+  }
   switch (res.kind) {
     case "blocked":
-      return { kind: "network_error", message: res.reason };
+      return { kind: "network_error", message: res.reason, blocked: true };
     case "network_error":
       return res;
     case "too_large":
@@ -116,7 +144,12 @@ export type RobotsVerdict =
 export async function checkRobots(
   deps: CrawlDeps,
   url: string,
-  opts: { bucket: string; limitPerHour: number; signal?: AbortSignal },
+  opts: {
+    bucket: string;
+    limitPerHour: number;
+    signal?: AbortSignal;
+    onHop?: (url: URL) => string | null;
+  },
 ): Promise<RobotsVerdict> {
   const target = new URL(url);
   const robotsUrl = `${target.protocol}//${target.host}/robots.txt`;

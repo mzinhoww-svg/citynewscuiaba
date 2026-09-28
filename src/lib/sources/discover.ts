@@ -1,19 +1,25 @@
 /**
- * Descoberta por link (spec §7.1 passos 3-6): a partir da URL colada, decide como a fonte será
- * consumida. Ordem: o próprio link (se já for feed) → autodiscovery (RSS, Atom, JSON Feed) na
- * página inicial → `Sitemap:` do `robots.txt` → caminhos conhecidos → página (artigo ou lista,
- * quando `selectors` for informado). Nunca `fetch` direto: tudo passa por `crawlGet`/`checkRobots`
- * (SSRF em `pipeline/net.ts`), no máximo `opts.maxRequests` requisições (padrão 8), bucket
- * `discover:<host>` a 20/h.
+ * Descoberta por link (spec §7.1.3): a partir da URL colada, decide como a fonte será consumida.
+ * Ordem: o próprio link (se já for feed) → autodiscovery (RSS/Atom) na página inicial → `Sitemap:`
+ * do `robots.txt` → JSON Feed anunciado na página → os caminhos conhecidos → página (artigo ou
+ * lista, quando `selectors` for informado). Nunca `fetch` direto: tudo passa por
+ * `crawlGet`/`checkRobots` (SSRF em `pipeline/net.ts`), no máximo `opts.maxRequests` requisições
+ * reais (padrão 8, cada salto de redirecionamento contado), bucket `discover:<host>` a 20/h.
+ * Candidato descoberto em HTML ou `robots.txt` (autodiscovery, `Sitemap:`) só é seguido quando é do
+ * mesmo site da URL colada, em `http`/`https` e porta padrão — nunca aponta o robô para outro host.
  */
+import { isIP } from "node:net";
 import { parseHTML } from "linkedom";
 import { err, ok, type Result } from "@/lib/result";
+import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { discoverFeed, isAllowedByRobots } from "@/lib/pipeline/crawl";
 import { checkRobots, crawlGet, type CrawlDeps } from "@/lib/pipeline/http";
+import { isForbiddenAddress, isForbiddenHost, type ResolveHost } from "@/lib/pipeline/net";
 import type { DocumentFormat, SourceKind } from "@/lib/pipeline/ports";
 import { detectFormat, extractEntries, extractFromPage } from "@/lib/pipeline/steps/extract";
 import type { RawEntry } from "@/lib/pipeline/types";
 import { extractPageList } from "./page-list";
+import { hostKey } from "./url";
 import type { ConsumptionStrategy, PageSelectors } from "./types";
 
 export type DiscoverError =
@@ -29,14 +35,20 @@ export interface Discovery {
   kind: SourceKind;
   feedUrl: string | null;
   entries: RawEntry[];
-  /** Um item por candidato tentado, na ordem, com o motivo em pt-BR. */
+  /** Um item por candidato tentado (ou descartado), na ordem, com o motivo em pt-BR. */
   tried: { url: string; outcome: string }[];
   robots: { allowed: boolean; crawlDelaySec: number | null };
   html: string | null;
+  /** A URL colada, normalizada como string: base para checar "mesmo site" nos candidatos. */
+  baseUrl: string;
 }
 
 const DEFAULT_MAX_REQUESTS = 8;
 const DISCOVER_LIMIT_PER_HOUR = 20;
+const SITE_NAME_MAX = 120;
+const DESCRIPTION_MAX = 300;
+/** Só nosso: nunca aparece numa mensagem real de `net.ts`, então dá para comparar por igualdade. */
+const BUDGET_SENTINEL = "__citynews_discover_budget_exceeded__";
 
 /** Ordem dos caminhos conhecidos quando não há autodiscovery nem `Sitemap:` no `robots.txt`. */
 export const WELL_KNOWN_PATHS = [
@@ -47,10 +59,6 @@ export const WELL_KNOWN_PATHS = [
   "/sitemap-news.xml",
   "/news-sitemap.xml",
 ] as const;
-
-/** Mensagens que `urlProblem`/`safeGet` produzem para bloqueio de política (SSRF), nunca falha de rede comum. */
-const SSRF_BLOCKED =
-  /não permitid|resolve para endere[cç]o n[aã]o permitido|redirecionamentos|redirecionamento inv[aá]lido|credenciais|DNS falhou|DNS sem endere[cç]o/i;
 
 function strategyFor(
   format: DocumentFormat,
@@ -70,16 +78,25 @@ function strategyFor(
   }
 }
 
-/** `link rel=alternate type=application/feed+json|application/json` na página inicial. */
+/**
+ * `link rel=alternate` de JSON Feed. `application/feed+json` sempre conta; `application/json`
+ * só quando o `href` ou o `title` fala de feed — do contrário qualquer API JSON anunciada (o
+ * `wp-json` do WordPress, por exemplo) seria confundida com um feed.
+ */
 function jsonFeedLinkFromHtml(html: string, baseUrl: string): string | null {
   const { document } = parseHTML(`<!doctype html><html><head></head><body>${html}</body></html>`);
   for (const link of document.querySelectorAll("link[href]")) {
     const rel = (link.getAttribute("rel") ?? "").toLowerCase().split(/\s+/);
-    const type = (link.getAttribute("type") ?? "").trim().toLowerCase();
     if (!rel.includes("alternate")) continue;
-    if (type !== "application/feed+json" && type !== "application/json") continue;
+    const type = (link.getAttribute("type") ?? "").trim().toLowerCase();
+    const href = link.getAttribute("href") ?? "";
+    const title = (link.getAttribute("title") ?? "").toLowerCase();
+    const looksLikeFeed = /feed/i.test(href) || /feed/i.test(title);
+    if (type !== "application/feed+json" && !(type === "application/json" && looksLikeFeed)) {
+      continue;
+    }
     try {
-      const url = new URL(link.getAttribute("href")!, baseUrl);
+      const url = new URL(href, baseUrl);
       if (url.protocol === "http:" || url.protocol === "https:") return url.toString();
     } catch {
       /* href inválido: ignora */
@@ -101,14 +118,21 @@ function sitemapFromRobots(robotsTxt: string | null, baseUrl: string): string | 
   }
 }
 
-/** `Crawl-delay` do grupo do nosso robô, ou do `*` na falta dele; `null` sem diretiva. */
+/**
+ * `Crawl-delay` (RFC 9309, grupos): o grupo do nosso robô vence; na falta dele, o `*`. Várias
+ * linhas `User-agent` seguidas (sem regra entre elas) formam um grupo só — mesma semântica de
+ * `isAllowedByRobots` em `pipeline/crawl.ts`.
+ */
 export function crawlDelayFromRobots(robotsTxt: string | null, userAgent: string): number | null {
   if (!robotsTxt) return null;
   const token = (/^[A-Za-z0-9_-]+/.exec(userAgent.trim())?.[0] ?? "").toLowerCase();
-  let agents: string[] = [];
-  let freshGroup = true;
-  let mine: number | null = null;
-  let wildcard: number | null = null;
+  interface Group {
+    agents: string[];
+    delay: number | null;
+  }
+  const groups: Group[] = [];
+  let current: Group | null = null;
+  let lastWasAgent = false;
   for (const raw of robotsTxt.split(/\r\n|\r|\n/)) {
     const line = raw.replace(/#.*$/, "").trim();
     const m = /^([A-Za-z-]+)\s*:\s*(.*)$/.exec(line);
@@ -116,34 +140,66 @@ export function crawlDelayFromRobots(robotsTxt: string | null, userAgent: string
     const key = m[1]!.toLowerCase();
     const value = m[2]!.trim();
     if (key === "user-agent") {
-      if (freshGroup) agents = [];
-      agents.push(value.toLowerCase());
-      freshGroup = true;
-    } else if (key === "crawl-delay") {
-      const n = Number(value);
-      if (Number.isFinite(n)) {
-        if (agents.includes(token)) mine = n;
-        if (agents.includes("*")) wildcard = n;
+      if (!current || !lastWasAgent) {
+        current = { agents: [], delay: null };
+        groups.push(current);
       }
-      freshGroup = false;
+      current.agents.push(value.toLowerCase());
+      lastWasAgent = true;
+    } else if (key === "crawl-delay" && current) {
+      const n = Number(value);
+      if (Number.isFinite(n)) current.delay = n;
+      lastWasAgent = false;
     } else {
-      freshGroup = false;
+      lastWasAgent = false;
     }
   }
-  return mine ?? wildcard;
+  const mine = groups.find((g) => g.agents.includes(token) && g.delay !== null);
+  if (mine) return mine.delay;
+  const wildcard = groups.find((g) => g.agents.includes("*") && g.delay !== null);
+  return wildcard ? wildcard.delay : null;
+}
+
+/**
+ * Endereço proibido (achado 1): esquema errado, credenciais, host bloqueado por nome, ou DNS que
+ * resolve para IP privado/reservado. Uma falha de DNS (fora do ar, não existe) **não** conta como
+ * proibida — é só uma falha de rede comum, sem indício de má intenção.
+ */
+export async function isForbiddenTarget(url: URL, resolve: ResolveHost): Promise<boolean> {
+  if (url.protocol !== "http:" && url.protocol !== "https:") return true;
+  if (url.username || url.password) return true;
+  if (isForbiddenHost(url.hostname)) return true;
+  const bare = url.hostname.replace(/^\[|\]$/g, "");
+  if (isIP(bare) !== 0) return false; // IP literal público: já passou por `isForbiddenHost`.
+  let addresses: string[];
+  try {
+    addresses = await resolve(url.hostname);
+  } catch {
+    return false;
+  }
+  if (addresses.length === 0) return false;
+  return addresses.some(isForbiddenAddress);
+}
+
+/** Mesmo site da URL colada (mesmo registrável, ignorando `www.`), `http`/`https`, porta padrão. */
+function sameSite(candidate: URL, base: URL): boolean {
+  if (candidate.protocol !== "http:" && candidate.protocol !== "https:") return false;
+  if (candidate.port !== "") return false;
+  return hostKey(candidate) === hostKey(base);
 }
 
 type Attempt =
   | { kind: "feed"; strategy: ConsumptionStrategy; sourceKind: SourceKind; entries: RawEntry[] }
   | { kind: "html" }
   | { kind: "forbidden" }
+  | { kind: "budget" }
   | { kind: "rate_limited" }
-  | { kind: "miss" };
+  | { kind: "miss"; network: boolean };
 
 /**
- * Descoberta a partir da URL colada. Falha só em `forbidden_host`, `robots_disallowed`,
- * `robots_unavailable` ou `rate_limited`; do contrário devolve o que encontrou, com `tried`
- * contando o caminho de cada candidato.
+ * Descoberta a partir da URL colada. Só falha com `forbidden_host`, `robots_disallowed`,
+ * `robots_unavailable`, `rate_limited` ou `unreachable`; do contrário devolve o que encontrou, com
+ * `tried` contando o caminho de cada candidato (inclusive os pulados).
  */
 export async function discoverConsumption(
   deps: CrawlDeps,
@@ -151,70 +207,92 @@ export async function discoverConsumption(
   opts?: { maxRequests?: number; selectors?: PageSelectors },
 ): Promise<Result<Discovery, DiscoverError>> {
   const maxRequests = opts?.maxRequests ?? DEFAULT_MAX_REQUESTS;
+  const target = url.toString();
+
+  // Achado 1: antes de tocar em robots.txt, checa o próprio host (e o DNS) da URL colada.
+  if (await isForbiddenTarget(url, deps.resolve)) return err("forbidden_host");
+
+  let requestsUsed = 0;
+  const tried: { url: string; outcome: string }[] = [];
+  const onHop = (): string | null => {
+    if (requestsUsed >= maxRequests) return BUDGET_SENTINEL;
+    requestsUsed++;
+    return null;
+  };
   const limits = {
     bucket: `discover:${url.hostname.toLowerCase()}`,
     limitPerHour: DISCOVER_LIMIT_PER_HOUR,
+    onHop,
   };
 
-  const robots = await checkRobots(deps, url.toString(), limits);
+  const robots = await checkRobots(deps, target, limits);
   if (robots.kind === "rate_limited") return err("rate_limited");
   if (robots.kind === "unavailable") return err("robots_unavailable");
   if (robots.kind === "disallowed") return err("robots_disallowed");
   const robotsTxt = robots.robotsTxt;
 
-  const allowed = (target: string): boolean => {
+  const allowed = (candidate: string): boolean => {
     if (!robotsTxt) return true;
-    const u = new URL(target);
+    const u = new URL(candidate);
     return isAllowedByRobots(robotsTxt, deps.userAgent, `${u.pathname}${u.search}`);
   };
 
-  let requestsUsed = 1; // robots.txt
-  const tried: { url: string; outcome: string }[] = [];
-  /** Primeiro HTML válido encontrado (a página em si): base do fallback `page_article`/`page_list`. */
   let home: { url: string; html: string } | null = null;
+  let budgetNoted = false;
 
-  const attempt = async (target: string): Promise<Attempt> => {
-    if (!allowed(target)) {
-      tried.push({ url: target, outcome: "robots.txt não permite este caminho" });
-      return { kind: "miss" };
+  const attempt = async (candidate: string): Promise<Attempt> => {
+    if (!allowed(candidate)) {
+      tried.push({ url: candidate, outcome: "robots.txt não permite este caminho" });
+      return { kind: "miss", network: false };
     }
-    if (requestsUsed >= maxRequests) return { kind: "miss" };
-    requestsUsed++;
-    const res = await crawlGet(deps, target, limits);
+    if (requestsUsed >= maxRequests) {
+      tried.push({ url: candidate, outcome: "orçamento de requisições esgotado" });
+      return { kind: "budget" };
+    }
+    const res = await crawlGet(deps, candidate, limits);
     switch (res.kind) {
       case "rate_limited":
-        tried.push({ url: target, outcome: "limite de requisições por hora atingido" });
+        tried.push({ url: candidate, outcome: "limite de requisições por hora atingido" });
         return { kind: "rate_limited" };
       case "http_error":
-        tried.push({ url: target, outcome: `HTTP ${res.status}` });
-        return { kind: "miss" };
-      case "network_error":
-        tried.push({ url: target, outcome: `falha de rede: ${res.message}` });
-        return SSRF_BLOCKED.test(res.message) ? { kind: "forbidden" } : { kind: "miss" };
+        tried.push({ url: candidate, outcome: `HTTP ${res.status}` });
+        return { kind: "miss", network: false };
+      case "network_error": {
+        if (res.message === BUDGET_SENTINEL) {
+          tried.push({ url: candidate, outcome: "orçamento de requisições esgotado" });
+          return { kind: "budget" };
+        }
+        if (res.blocked) {
+          tried.push({ url: candidate, outcome: "endereço não permitido" });
+          return { kind: "forbidden" };
+        }
+        tried.push({ url: candidate, outcome: "não respondeu" });
+        return { kind: "miss", network: true };
+      }
       case "too_large":
-        tried.push({ url: target, outcome: "documento grande demais" });
-        return { kind: "miss" };
+        tried.push({ url: candidate, outcome: "documento grande demais" });
+        return { kind: "miss", network: false };
       case "not_modified":
-        tried.push({ url: target, outcome: "sem conteúdo novo" });
-        return { kind: "miss" };
+        tried.push({ url: candidate, outcome: "sem conteúdo novo" });
+        return { kind: "miss", network: false };
       case "ok": {
         const format = detectFormat(res.body);
         if (!format) {
-          tried.push({ url: target, outcome: "formato não reconhecido" });
-          return { kind: "miss" };
+          tried.push({ url: candidate, outcome: "formato não reconhecido" });
+          return { kind: "miss", network: false };
         }
         if (format === "html") {
-          if (!home) home = { url: target, html: res.body };
-          tried.push({ url: target, outcome: "página sem feed anunciado" });
+          if (!home) home = { url: candidate, html: res.body };
+          tried.push({ url: candidate, outcome: "página sem feed anunciado" });
           return { kind: "html" };
         }
         const mapped = strategyFor(format)!;
-        const entries = extractEntries(res.body, format, target);
+        const entries = extractEntries(res.body, format, candidate);
         if (entries.length === 0) {
-          tried.push({ url: target, outcome: "nenhum item extraído" });
-          return { kind: "miss" };
+          tried.push({ url: candidate, outcome: "nenhum item extraído" });
+          return { kind: "miss", network: false };
         }
-        tried.push({ url: target, outcome: "ok" });
+        tried.push({ url: candidate, outcome: "ok" });
         return { kind: "feed", strategy: mapped.strategy, sourceKind: mapped.kind, entries };
       }
     }
@@ -228,49 +306,90 @@ export async function discoverConsumption(
     tried,
     robots: { allowed: true, crawlDelaySec: crawlDelayFromRobots(robotsTxt, deps.userAgent) },
     html: home?.html ?? null,
+    baseUrl: target,
   });
 
-  const target = url.toString();
+  const noteBudgetOnce = (candidateUrl: string): void => {
+    if (budgetNoted) return;
+    budgetNoted = true;
+    tried.push({ url: candidateUrl, outcome: "orçamento de requisições esgotado" });
+  };
+
+  /** `null` se pulou (fora do site, URL inválida, orçamento esgotado); senão o de `attempt`. */
+  const attemptSameSite = async (candidateUrl: string): Promise<Attempt | null> => {
+    if (requestsUsed >= maxRequests) {
+      noteBudgetOnce(candidateUrl);
+      return null;
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(candidateUrl);
+    } catch {
+      tried.push({ url: candidateUrl, outcome: "URL inválida" });
+      return null;
+    }
+    if (!sameSite(parsed, url)) {
+      tried.push({ url: candidateUrl, outcome: "outro domínio" });
+      return null;
+    }
+    return attempt(candidateUrl);
+  };
+
+  // 1. O próprio link colado, se já for feed (ou sitemap, ou página).
   const first = await attempt(target);
   if (first.kind === "rate_limited") return err("rate_limited");
   if (first.kind === "forbidden") return err("forbidden_host");
   if (first.kind === "feed") return ok(finish(target, first));
-  if (first.kind === "miss" && !home) {
-    // Nem feed nem página: link não respondeu de forma utilizável logo de cara.
-    const wasNetworkFailure = tried.at(-1)?.outcome.startsWith("falha de rede");
-    if (wasNetworkFailure) return err("unreachable");
-  }
+  if (first.kind === "miss" && first.network && !home) return err("unreachable");
 
-  const pageAfterFeedSearch = home as { url: string; html: string } | null;
-  if (pageAfterFeedSearch) {
-    const jsonLink = jsonFeedLinkFromHtml(pageAfterFeedSearch.html, pageAfterFeedSearch.url);
-    const found = discoverFeed(pageAfterFeedSearch.url, pageAfterFeedSearch.html);
-    const link = jsonLink ?? found?.url ?? null;
-    if (link) {
-      const r = await attempt(link);
-      if (r.kind === "rate_limited") return err("rate_limited");
-      if (r.kind === "forbidden") return err("forbidden_host");
-      if (r.kind === "feed") return ok(finish(link, r));
+  const capturedHome = home as { url: string; html: string } | null;
+
+  // 2. Autodiscovery na página (RSS/Atom/RDF, ou o `Sitemap:` que a própria página anuncia).
+  if (capturedHome) {
+    const found = discoverFeed(capturedHome.url, capturedHome.html);
+    if (found) {
+      const r = await attemptSameSite(found.url);
+      if (r?.kind === "rate_limited") return err("rate_limited");
+      if (r?.kind === "forbidden") return err("forbidden_host");
+      if (r?.kind === "feed") return ok(finish(found.url, r));
     }
   }
 
+  // 3. `Sitemap:` do robots.txt.
   const sitemapUrl = sitemapFromRobots(robotsTxt, target);
   if (sitemapUrl) {
-    const r = await attempt(sitemapUrl);
-    if (r.kind === "rate_limited") return err("rate_limited");
-    if (r.kind === "forbidden") return err("forbidden_host");
-    if (r.kind === "feed") return ok(finish(sitemapUrl, r));
+    const r = await attemptSameSite(sitemapUrl);
+    if (r?.kind === "rate_limited") return err("rate_limited");
+    if (r?.kind === "forbidden") return err("forbidden_host");
+    if (r?.kind === "feed") return ok(finish(sitemapUrl, r));
   }
 
+  // 4. JSON Feed anunciado na página.
+  if (capturedHome) {
+    const jsonLink = jsonFeedLinkFromHtml(capturedHome.html, capturedHome.url);
+    if (jsonLink) {
+      const r = await attemptSameSite(jsonLink);
+      if (r?.kind === "rate_limited") return err("rate_limited");
+      if (r?.kind === "forbidden") return err("forbidden_host");
+      if (r?.kind === "feed") return ok(finish(jsonLink, r));
+    }
+  }
+
+  // 5. Caminhos conhecidos (sempre na mesma origem: não precisa checar site).
   const origin = new URL(target).origin;
   for (const path of WELL_KNOWN_PATHS) {
     const candidate = `${origin}${path}`;
+    if (requestsUsed >= maxRequests) {
+      noteBudgetOnce(candidate);
+      break;
+    }
     const r = await attempt(candidate);
     if (r.kind === "rate_limited") return err("rate_limited");
     if (r.kind === "forbidden") return err("forbidden_host");
     if (r.kind === "feed") return ok(finish(candidate, r));
   }
 
+  // 6. Página (artigo, ou lista quando `selectors` foi informado): reaproveita o HTML já baixado.
   const pageForFallback = home as { url: string; html: string } | null;
   if (pageForFallback) {
     if (opts?.selectors) {
@@ -284,6 +403,7 @@ export async function discoverConsumption(
           tried,
           robots: { allowed: true, crawlDelaySec: crawlDelayFromRobots(robotsTxt, deps.userAgent) },
           html: pageForFallback.html,
+          baseUrl: target,
         });
       }
     }
@@ -296,22 +416,32 @@ export async function discoverConsumption(
       tried,
       robots: { allowed: true, crawlDelaySec: crawlDelayFromRobots(robotsTxt, deps.userAgent) },
       html: pageForFallback.html,
+      baseUrl: target,
     });
   }
 
   return err("nothing_found");
 }
 
-/** Nome e descrição do site (título, `og:site_name`, meta descrição) para a prévia. */
+/**
+ * Nome e descrição do site (título, `og:site_name`, meta descrição) para a prévia. Texto externo
+ * (achado 7): sempre por `sanitizeExternalText`, cortado no tamanho e descartado (`null`, não
+ * relatado) se carregar um padrão de instrução.
+ */
 export function siteMeta(html: string): { siteName: string | null; description: string | null } {
   const { document } = parseHTML(html);
-  const meta = (selector: string): string =>
+  const metaContent = (selector: string): string =>
     document.querySelector(selector)?.getAttribute("content")?.trim() ?? "";
-  const siteName =
-    meta('meta[property="og:site_name"]') ||
+  const rawName =
+    metaContent('meta[property="og:site_name"]') ||
     document.querySelector("title")?.textContent?.trim() ||
     "";
-  const description =
-    meta('meta[name="description"]') || meta('meta[property="og:description"]') || "";
-  return { siteName: siteName || null, description: description || null };
+  const rawDescription =
+    metaContent('meta[name="description"]') || metaContent('meta[property="og:description"]') || "";
+  const name = sanitizeExternalText(rawName, SITE_NAME_MAX);
+  const description = sanitizeExternalText(rawDescription, DESCRIPTION_MAX);
+  return {
+    siteName: name.text && !name.injection ? name.text : null,
+    description: description.text && !description.injection ? description.text : null,
+  };
 }
