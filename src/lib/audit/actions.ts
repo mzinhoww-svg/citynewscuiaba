@@ -28,6 +28,9 @@ export const AUDIT_ACTIONS = [
   "media.takedown.request",
   "report.respond",
   "media.image_text",
+  "approval.request",
+  "approval.approve",
+  "approval.reject",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

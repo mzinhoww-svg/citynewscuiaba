@@ -248,3 +248,4 @@ export {
 export { LicenseActions, type LicenseActionsProps } from "./studio/LicenseActions";
 export { SubmissionReview, type SubmissionReviewProps } from "./studio/SubmissionReview";
 export { ReportResponder, type ReportResponderProps } from "./studio/ReportResponder";
+export { ApprovalBanner, type ApprovalBannerProps } from "./studio/ApprovalBanner";

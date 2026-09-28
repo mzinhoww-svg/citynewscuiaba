@@ -1,9 +1,12 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
+import { canSeeApprovals } from "@/lib/approvals/kinds";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
 
 interface Entry extends StudioNavItem {
   /** Ação exigida para ver o item; ausente = qualquer papel do Estúdio. */
   action?: Action;
+  /** Regra própria de visibilidade (quando nenhuma ação da matriz descreve o acesso). */
+  visible?: (roles: RoleGrant[]) => boolean;
 }
 
 const GROUPS: { label: string; items: Entry[] }[] = [
@@ -45,6 +48,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control", label: "Visão geral", icon: "gauge", action: "metrics.view" },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
+      {
+        href: "/estudio/control/aprovacoes",
+        label: "Aprovações",
+        icon: "file-check",
+        visible: canSeeApprovals,
+      },
       { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },
     ],
   },
@@ -68,6 +77,7 @@ export function studioNav(roles: RoleGrant[]): StudioNavGroup[] {
     label: group.label,
     items: group.items
       .filter((it) => it.action === undefined || canAccess(roles, it.action))
+      .filter((it) => it.visible === undefined || it.visible(roles))
       .map(({ href, label, icon, exact }) => ({ href, label, icon, exact })),
   })).filter((group) => group.items.length > 0);
 }

@@ -14,3 +14,10 @@ it("admin vê Governança e não vê a fila editorial", () => {
   expect(items).toContain("Usuários");
   expect(items).not.toContain("Fila de matérias");
 });
+
+it("Aprovações aparece para quem pede ou decide mudança crítica, não para analista", () => {
+  expect(labels([{ role: "operador_ia", sections: [] }])).toContain("Aprovações");
+  expect(labels([{ role: "editor_chefe", sections: [] }])).toContain("Aprovações");
+  expect(labels([{ role: "analista", sections: [] }])).not.toContain("Aprovações");
+  expect(labels([{ role: "jornalista", sections: [] }])).not.toContain("Aprovações");
+});

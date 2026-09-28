@@ -2436,6 +2436,20 @@ export type Database = {
         }[];
       };
       anonymize_old_events: { Args: { p_days?: number }; Returns: number };
+      approval_apply: { Args: { p_kind: string; p_target_ref: string }; Returns: string };
+      approval_decide: { Args: { p_decision: string; p_id: string }; Returns: string };
+      approval_kind_roles: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          approvers: Database["public"]["Enums"]["app_role"][];
+          kind: string;
+          requesters: Database["public"]["Enums"]["app_role"][];
+        }[];
+      };
+      approval_request: {
+        Args: { p_justification: string; p_kind: string; p_target_ref: string };
+        Returns: string;
+      };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
