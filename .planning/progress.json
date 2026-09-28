@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-28T02:43:37.463Z",
+  "updatedAt": "2026-09-28T03:45:35.990Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -526,73 +526,73 @@
           "id": "P4-T1",
           "title": "Guardas e auditoria do Estúdio",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "2e106af",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T2",
           "title": "Newsroom e fila",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "e0cd145",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T3",
           "title": "Revisão de item autônomo e editor",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "8fb68c5",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T4",
           "title": "Versões e histórico",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "d1ffb4c",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T5",
           "title": "Publicação e agendamento",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "a679c36",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T6",
           "title": "Calendário, correções e direito de resposta",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "432c325",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T7",
           "title": "Mídia, licenças, aprovação e geração",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "9af347c",
+          "notes": "verify verde; e2e 722"
         },
         {
           "id": "P4-T8",
           "title": "Sugestões de evento e denúncias",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "b046423",
+          "notes": "verify verde; e2e 722"
         }
       ]
     },
