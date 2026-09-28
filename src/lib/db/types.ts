@@ -1298,27 +1298,21 @@ export type Database = {
           delete_requested_at: string | null;
           display_name: string;
           id: string;
-          migrated_from_anon: string | null;
           neighborhood: string | null;
-          preferences: NonNullable<Json>;
         };
         Insert: {
           created_at?: string;
           delete_requested_at?: string | null;
           display_name: string;
           id: string;
-          migrated_from_anon?: string | null;
           neighborhood?: string | null;
-          preferences?: NonNullable<Json>;
         };
         Update: {
           created_at?: string;
           delete_requested_at?: string | null;
           display_name?: string;
           id?: string;
-          migrated_from_anon?: string | null;
           neighborhood?: string | null;
-          preferences?: NonNullable<Json>;
         };
         Relationships: [];
       };
@@ -1430,6 +1424,42 @@ export type Database = {
           to_email?: string;
         };
         Relationships: [];
+      };
+      reader_preferences: {
+        Row: {
+          migrated_from_anon: string | null;
+          preferences: NonNullable<Json>;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          migrated_from_anon?: string | null;
+          preferences?: NonNullable<Json>;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          migrated_from_anon?: string | null;
+          preferences?: NonNullable<Json>;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "reader_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "reader_preferences_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       rec_weights: {
         Row: {

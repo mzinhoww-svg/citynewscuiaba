@@ -45,12 +45,10 @@ describe("conta do leitor", () => {
   it("leitor cria o próprio perfil, grava preferências e seguidas; não mexe no perfil alheio", async () => {
     const p = await reader.from("profiles").insert({ id: userId, display_name: "Leitora" });
     expect(p.error).toBeNull();
-    const prefs = await reader
-      .from("profiles")
-      .update({
-        preferences: { interests: [{ key: "Cidade", evidence: "3 leituras", weak: false }] },
-      })
-      .eq("id", userId);
+    const prefs = await reader.from("reader_preferences").upsert({
+      user_id: userId,
+      preferences: { interests: [{ key: "Cidade", evidence: "3 leituras", weak: false }] },
+    });
     expect(prefs.error).toBeNull();
     const f = await reader
       .from("follows")
