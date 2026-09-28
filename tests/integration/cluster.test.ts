@@ -4,8 +4,15 @@ import { afterAll, describe, expect, it } from "vitest";
 import { hashEmbedding } from "@/lib/ai/hash-embedding";
 import { createServiceClient } from "@/lib/db/client";
 import { createClusterRepo } from "@/lib/db/pipeline-store";
-import { createClusterStep } from "@/lib/pipeline/steps/cluster";
-import { createDedupeStep } from "@/lib/pipeline/steps/dedupe";
+import { hamming, simhash64 } from "@/lib/pipeline/simhash";
+import { CLUSTER_MIN_COSINE, createClusterStep } from "@/lib/pipeline/steps/cluster";
+import {
+  DEDUPE_MAX_HAMMING,
+  DEDUPE_MIN_COSINE,
+  createDedupeStep,
+} from "@/lib/pipeline/steps/dedupe";
+import { textTokens } from "@/lib/pipeline/text-features";
+import { cosine } from "@/lib/pipeline/vector";
 
 const FOLHA = "c5000000-0000-4000-8000-000000000001";
 const MT_AGORA = "c5000000-0000-4000-8000-000000000003";
@@ -28,6 +35,32 @@ async function insertItem(sourceId: string, title: string): Promise<string> {
   return data.id;
 }
 
+const titles = (tag: string) => ({
+  a: `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita duas faixas da avenida`,
+  b: `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita duas faixas da Avenida`,
+  c: `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita pistas`,
+  d: `Festival ${tag} de siriri e cururu volta à Orla do Porto`,
+});
+
+/**
+ * Marcador único da execução, escolhido para não mudar a geometria do embedding falso.
+ * O embedding de hash (1536 posições) põe cada token numa posição com sinal; um marcador
+ * aleatório que cai na posição de outra palavra do título desloca o cosseno de a × c de 0,840
+ * para 0,816 (abaixo de 0,82) em ~0,4% dos UUIDs, e c abria um assunto próprio. Aqui o marcador
+ * só vale se for ortogonal a todas as outras palavras e se a × c não virar duplicado por simhash.
+ */
+function pickTag(): string {
+  const words = [...new Set(Object.values(titles("")).flatMap((t) => textTokens(t)))];
+  for (;;) {
+    const tag = randomUUID().slice(0, 8);
+    const v = hashEmbedding(tag);
+    if (words.some((w) => cosine(v, hashEmbedding(w)) !== 0)) continue;
+    const t = titles(tag);
+    if (hamming(simhash64(t.a), simhash64(t.c)) <= DEDUPE_MAX_HAMMING) continue;
+    return tag;
+  }
+}
+
 afterAll(async () => {
   const { data } = await db.from("collected_items").select("topic_id").in("id", created);
   const topics = [...new Set((data ?? []).map((r) => r.topic_id).filter((t) => t !== null))];
@@ -38,10 +71,15 @@ afterAll(async () => {
 
 describe("dedupe e cluster com banco real", () => {
   it("duplicado, mesmo assunto, assunto novo e centróide médio", async () => {
-    const tag = randomUUID().slice(0, 8);
+    const tag = pickTag();
+    const t = titles(tag);
+    // Pré-condição do cenário: c é do mesmo assunto de a sem ser duplicado dele.
+    const cosAC = cosine(hashEmbedding(t.a), hashEmbedding(t.c));
+    expect(cosAC).toBeGreaterThanOrEqual(CLUSTER_MIN_COSINE);
+    expect(cosAC).toBeLessThan(DEDUPE_MIN_COSINE);
     const deps = {
       repo: createClusterRepo(db),
-      embed: async (t: string) => ({ ok: true as const, value: hashEmbedding(t) }),
+      embed: async (text: string) => ({ ok: true as const, value: hashEmbedding(text) }),
       now: () => new Date(),
     };
     const dedupe = createDedupeStep(deps);
@@ -53,19 +91,10 @@ describe("dedupe e cluster com banco real", () => {
       return d;
     };
 
-    const a = await insertItem(
-      FOLHA,
-      `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita duas faixas da avenida`,
-    );
-    const b = await insertItem(
-      MT_AGORA,
-      `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita duas faixas da Avenida`,
-    );
-    const c = await insertItem(
-      MT_AGORA,
-      `Viaduto ${tag} da Miguel Sutil entra em nova fase e interdita pistas`,
-    );
-    const d = await insertItem(FOLHA, `Festival ${tag} de siriri e cururu volta à Orla do Porto`);
+    const a = await insertItem(FOLHA, t.a);
+    const b = await insertItem(MT_AGORA, t.b);
+    const c = await insertItem(MT_AGORA, t.c);
+    const d = await insertItem(FOLHA, t.d);
     for (const id of [a, b, c, d]) expect((await run(id)).ok).toBe(true);
     // Reexecução é idempotente.
     expect((await run(a)).ok).toBe(true);
