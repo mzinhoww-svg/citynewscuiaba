@@ -98,6 +98,8 @@ export async function runTick({ queue, runs, now }: TickDeps): Promise<TickResul
       });
       if (added) enqueued++;
     }
+    // Atômico e só se ainda não marcado: um tick concorrente que perdeu a corrida (enfileirou 0 por
+    // causa do dedupe da fila) não sobrescreve as estatísticas do vencedor.
     await runs.markFetchEnqueued(run.runId, enqueued);
   }
   return {

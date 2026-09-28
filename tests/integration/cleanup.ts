@@ -122,6 +122,11 @@ export async function purgePipeline(db: DbClient, t: PipelineTrash): Promise<voi
     const sourceIds = (ids ?? []).map((r) => r.id);
     if (sourceIds.length)
       check(
+        "source_fetch_outcomes",
+        (await db.from("source_fetch_outcomes").delete().in("source_id", sourceIds)).error,
+      );
+    if (sourceIds.length)
+      check(
         "source_health_daily",
         (await db.from("source_health_daily").delete().in("source_id", sourceIds)).error,
       );

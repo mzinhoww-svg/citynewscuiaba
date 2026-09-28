@@ -96,7 +96,10 @@ export function createQueue(db: DbClient, opts: { namespace?: string } = {}): Qu
         p_max_reads: Math.max(1, Math.floor(maxReads)),
       });
       check("moveExhausted", error);
-      return data ?? 0;
+      return (data ?? []).map((row) => {
+        const parsed = parsePipelineMessage(row.message);
+        return { msg: parsed.ok ? parsed.value : null, error: row.error };
+      });
     },
 
     async pending(queue, filter = {}) {

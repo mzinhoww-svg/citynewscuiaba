@@ -11,6 +11,13 @@ export interface CollectNowDeps {
   repo: Pick<IngestRepo, "sourceById">;
   /** `hit_rate_limit` (compartilhado entre instâncias, A-028): conta e diz se ainda cabe. */
   hitRateLimit: (bucket: string, key: string, limit: number, windowSec: number) => Promise<boolean>;
+  /** `peek_rate_limit`: diz se ainda cabe, sem consumir. */
+  peekRateLimit: (
+    bucket: string,
+    key: string,
+    limit: number,
+    windowSec: number,
+  ) => Promise<boolean>;
   /** Pessoa que pediu (id do Estúdio): chave do limite por pessoa. */
   actor: string;
 }
@@ -32,11 +39,15 @@ export async function collectNow(
   if (!source) return err("not_found");
   if (source.status !== "active" && source.status !== "degraded") return err("not_active");
 
-  // Pessoa antes da fonte: um pedido recusado pelo limite da pessoa não gasta a vaga de 5 min.
+  // Fonte primeiro, só consultando: fonte no limite de 5 min não gasta a cota de 20/h da pessoa
+  // (fix round 1, #8). Depois consome a da pessoa e, por fim, a da fonte. Numa corrida entre duas
+  // pessoas na mesma fonte, a perdedora ainda gasta um pedido da própria cota (aceitável).
+  const s = COLLECT_NOW_SOURCE_LIMIT;
   const a = COLLECT_NOW_ACTOR_LIMIT;
+  if (!(await deps.peekRateLimit(s.bucket, source.id, s.limit, s.windowSec)))
+    return err("rate_limited");
   if (!(await deps.hitRateLimit(a.bucket, deps.actor, a.limit, a.windowSec)))
     return err("rate_limited");
-  const s = COLLECT_NOW_SOURCE_LIMIT;
   if (!(await deps.hitRateLimit(s.bucket, source.id, s.limit, s.windowSec)))
     return err("rate_limited");
 

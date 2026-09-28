@@ -83,6 +83,8 @@ export async function runFastTick({
     if (added) enqueued++;
     else skipped.push({ slug: source.slug, reason: "previous_pending" });
   }
+  // Atômico e só se ainda não marcado: o tick que perdeu a corrida (pg_cron e watchdog juntos) não
+  // troca as estatísticas do vencedor por `fetch_enqueued: 0` e `previous_pending` falsos.
   await runs.markFetchEnqueued(run.runId, enqueued, { skipped });
   return { ...base, enqueued, skipped };
 }

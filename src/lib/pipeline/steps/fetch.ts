@@ -76,54 +76,32 @@ export async function runFetch(
   if (source.status !== "active" && source.status !== "degraded")
     return { outcome: "skipped", result: ok([]) };
 
-  const final = msg.attempt >= MAX_ATTEMPTS;
+  // Tentativa cortada pelo prazo do drain nunca é final: o drain a devolve à fila sem contar
+  // tentativa (`queue_release`), e ela volta com o mesmo `attempt` (fix round 1, #1).
+  const isFinal = () => msg.attempt >= MAX_ATTEMPTS && !ctx?.signal?.aborted;
   const clock = deps.monotonic ?? (() => performance.now());
   let started: number | null = null;
   const latency = () => (started === null ? null : Math.max(0, Math.round(clock() - started)));
 
-  /** Falha: transitória antes da última tentativa só reagenda; o resto conta uma vez. */
+  /** Falha: transitória antes da última tentativa só reagenda; o resto conta uma vez por run. */
   const failure = async (error: StepError): Promise<FetchRun> => {
-    if (error.retryable && !final) return { outcome: "retry", result: err(error) };
-    await deps.repo.recordFetch(source.id, "failed", latency(), 0, error.message);
-    const patch = afterFetch(
-      {
-        status: source.status,
-        statusReason: source.statusReason,
-        consecutiveFailures: source.consecutiveFailures,
-        archivedAt: null,
-      },
-      "failed",
-    );
-    if (patch) {
-      await deps.repo.applySourceState(source.id, patch);
-      if (patch.status === "paused")
-        await deps.repo.notifyOnce(
-          {
-            kind: "source_auto_paused",
-            channel: "control_center",
-            severity: "warn",
-            objectRef: `source:${source.id}`,
-            dedupeKey: `source_auto_paused:${source.id}`,
-            title: `Fonte ${source.name} pausada após 3 falhas seguidas: ${error.message}`,
-            body: `A fonte ${source.name} (${source.slug}) falhou em ${patch.consecutiveFailures ?? 3} coletas seguidas e foi pausada automaticamente. Último erro: ${error.message}. Retome pelo painel de fontes depois de corrigir.`,
-          },
-          AUTO_PAUSE_DEDUPE_SEC,
-        );
-    }
+    if (error.retryable && !isFinal()) return { outcome: "retry", result: err(error) };
+    await countFinalFailure(deps.repo, source, msg.runId, error.message, latency());
     return { outcome: "failed", result: err(error) };
   };
+
+  // Trava antes de qualquer contabilidade: dois ticks na mesma janela contam uma vez (#2).
+  const trigger = (await deps.repo.runTrigger(msg.runId)) ?? "cron";
+  if (trigger !== "manual") {
+    const claimed = await deps.repo.claimFetch(source.id, msg.runId, fastWindowStart(deps.now()));
+    if (!claimed) return { outcome: "already_fetched", result: ok([]) };
+  }
 
   const url = collectUrl(source);
   if (!url) {
     const reason = "fonte sem feed descoberto: rode activateSource";
     await deps.repo.updateSource(source.id, { lastError: reason });
     return failure(stepError.invalid(reason));
-  }
-
-  const trigger = (await deps.repo.runTrigger(msg.runId)) ?? "cron";
-  if (trigger !== "manual") {
-    const claimed = await deps.repo.claimFetch(source.id, msg.runId, fastWindowStart(deps.now()));
-    if (!claimed) return { outcome: "already_fetched", result: ok([]) };
   }
 
   const limits = {
@@ -156,7 +134,7 @@ export async function runFetch(
       return { outcome: "rate_limited", result: ok([]) };
     case "not_modified":
       await deps.repo.updateSource(source.id, { lastFetchedAt: fetchedAt, lastError: null });
-      await deps.repo.recordFetch(source.id, "not_modified", latency(), 0, null);
+      await deps.repo.recordFetchOnce(source.id, msg.runId, "not_modified", latency(), null);
       return { outcome: "not_modified", result: ok([]) };
     case "network_error":
       return failure(stepError.transient(res.message));
@@ -166,7 +144,7 @@ export async function runFetch(
     case "http_error": {
       const reason = `HTTP ${res.status} em ${url}`;
       if (res.status === 429 || res.status >= 500) {
-        if (final) await deps.repo.updateSource(source.id, { lastError: reason });
+        if (isFinal()) await deps.repo.updateSource(source.id, { lastError: reason });
         return failure(stepError.transient(reason));
       }
       await deps.repo.updateSource(source.id, { lastError: reason });
@@ -191,12 +169,14 @@ export async function runFetch(
       // a nova tentativa baixa o documento de novo em vez de receber 304.
       await deps.repo.updateSource(source.id, { lastFetchedAt: fetchedAt, lastError: null });
       // Itens novos entram na saúde pelo normalize (`items`), quando se sabe o que é novo.
-      await deps.repo.recordFetch(source.id, "ok", ms, 0, null);
+      // Uma vez por (fonte, run): a nova tentativa depois de falha ao enfileirar o validate baixa
+      // de novo, mas não conta outro "ok" (#7).
+      const first = await deps.repo.recordFetchOnce(source.id, msg.runId, "ok", ms, null);
       const alreadyHealthy =
         source.status === "active" &&
         source.statusReason === null &&
         source.consecutiveFailures === 0;
-      if (!alreadyHealthy) {
+      if (first && !alreadyHealthy) {
         const patch = afterFetch(
           {
             status: source.status,
@@ -211,6 +191,59 @@ export async function runFetch(
       return { outcome: "ok", result: ok([nextMessage(msg, "validate", `raw:${rawId}`)]) };
     }
   }
+}
+
+/**
+ * Falha final de uma coleta (D-F18): saúde e `afterFetch` uma vez por (fonte, run); a 3ª falha
+ * seguida pausa com `auto_failures` e notifica o Control Center.
+ */
+async function countFinalFailure(
+  repo: IngestRepo,
+  source: SourceRecord,
+  runId: string,
+  message: string,
+  latencyMs: number | null,
+): Promise<void> {
+  if (!(await repo.recordFetchOnce(source.id, runId, "failed", latencyMs, message))) return;
+  const patch = afterFetch(
+    {
+      status: source.status,
+      statusReason: source.statusReason,
+      consecutiveFailures: source.consecutiveFailures,
+      archivedAt: null,
+    },
+    "failed",
+  );
+  if (!patch) return;
+  await repo.applySourceState(source.id, patch);
+  if (patch.status === "paused")
+    await repo.notifyOnce(
+      {
+        kind: "source_auto_paused",
+        channel: "control_center",
+        severity: "warn",
+        objectRef: `source:${source.id}`,
+        dedupeKey: `source_auto_paused:${source.id}`,
+        title: `Fonte ${source.name} pausada após 3 falhas seguidas: ${message}`,
+        body: `A fonte ${source.name} (${source.slug}) falhou em ${patch.consecutiveFailures ?? 3} coletas seguidas e foi pausada automaticamente. Último erro: ${message}. Retome pelo painel de fontes depois de corrigir.`,
+      },
+      AUTO_PAUSE_DEDUPE_SEC,
+    );
+}
+
+/**
+ * `onExhausted` do drain (#6): um `fetch` que a varredura moveu para a quarentena sem passar pela
+ * etapa (worker caiu ou estourou a visibilidade na última tentativa) conta a falha final pelo
+ * mesmo caminho, uma vez por (fonte, run). Outras etapas e fontes fora de `active`/`degraded` são
+ * ignoradas.
+ */
+export function createExhaustedFetchHandler(deps: Pick<IngestDeps, "repo">) {
+  return async (msg: PipelineMessage, error: string): Promise<void> => {
+    if (msg.step !== "fetch") return;
+    const source = await deps.repo.sourceBySlug(msg.itemRef.replace(/^source:/, ""));
+    if (!source || (source.status !== "active" && source.status !== "degraded")) return;
+    await countFinalFailure(deps.repo, source, msg.runId, error, null);
+  };
 }
 
 export function createFetchStep(deps: IngestDeps): StepHandler {

@@ -1616,6 +1616,42 @@ export type Database = {
           },
         ];
       };
+      source_fetch_outcomes: {
+        Row: {
+          outcome: string;
+          recorded_at: string;
+          run_id: string;
+          source_id: string;
+        };
+        Insert: {
+          outcome: string;
+          recorded_at?: string;
+          run_id: string;
+          source_id: string;
+        };
+        Update: {
+          outcome?: string;
+          recorded_at?: string;
+          run_id?: string;
+          source_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_fetch_outcomes_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "source_fetch_outcomes_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       source_health_daily: {
         Row: {
           day: string;
@@ -2259,6 +2295,10 @@ export type Database = {
       index_article: { Args: { p_embedding?: string; p_id: string }; Returns: undefined };
       is_staff: { Args: { uid: string }; Returns: boolean };
       lock_fast_lane_max: { Args: Record<PropertyKey, never>; Returns: number };
+      mark_fetch_enqueued: {
+        Args: { p_count: number; p_extra?: Json; p_run: string };
+        Returns: boolean;
+      };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
       media_insert_asset: { Args: { p: Json }; Returns: string };
       media_phash_neighbors: {
@@ -2311,7 +2351,13 @@ export type Database = {
         Args: { p_delay_sec: number; p_error: string; p_msg_id: number; p_queue: string };
         Returns: undefined;
       };
-      queue_move_exhausted: { Args: { p_max_reads: number; p_queue: string }; Returns: number };
+      queue_move_exhausted: {
+        Args: { p_max_reads: number; p_queue: string };
+        Returns: {
+          error: string;
+          message: Json;
+        }[];
+      };
       queue_pending: {
         Args: { p_queue: string; p_run_id?: string; p_steps?: string[] };
         Returns: number;
@@ -2332,13 +2378,24 @@ export type Database = {
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       record_source_fetch: {
         Args: {
-          p_error: string;
-          p_items_new: number;
-          p_latency_ms: number;
+          p_error?: string;
+          p_items_new?: number;
+          p_latency_ms?: number;
           p_outcome: string;
           p_source: string;
         };
         Returns: undefined;
+      };
+      record_source_fetch_once: {
+        Args: {
+          p_error?: string;
+          p_items_new?: number;
+          p_latency_ms?: number;
+          p_outcome: string;
+          p_run: string;
+          p_source: string;
+        };
+        Returns: boolean;
       };
       refresh_source_stats_daily: { Args: { p_day?: string }; Returns: number };
       require_source_critical_approval: {

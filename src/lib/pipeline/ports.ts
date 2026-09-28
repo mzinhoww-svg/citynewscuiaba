@@ -37,12 +37,20 @@ export interface Queue {
   /** Devolve uma mensagem lida e não processada; não conta como tentativa. */
   release(queue: QueueName, msgId: number): Promise<void>;
   quarantine(queue: QueueName, item: Pick<QueuedMessage, "msgId">, error: string): Promise<void>;
-  /** Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis. */
-  moveExhausted(queue: QueueName, maxReads: number): Promise<number>;
+  /**
+   * Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis e as
+   * devolve (`msg = null` se a mensagem guardada for inválida).
+   */
+  moveExhausted(queue: QueueName, maxReads: number): Promise<ExhaustedMessage[]>;
   pending(
     queue: QueueName,
     filter?: { runId?: string; steps?: readonly StepName[]; itemRef?: string },
   ): Promise<number>;
+}
+
+export interface ExhaustedMessage {
+  msg: PipelineMessage | null;
+  error: string;
 }
 
 export type EventLevel = "info" | "warn" | "error" | "security";
@@ -94,8 +102,16 @@ export interface RunStore {
   startFastRun(windowStart: Date): Promise<StartedRun>;
   /** Run `manual` ("Coletar agora", D-F21): sempre novo, nunca reaproveita a janela. */
   startManualRun(sourceId: string): Promise<{ runId: string }>;
-  /** Grava `stats.fetch_enqueued` (e detalhes, como `skipped` do tick rápido). */
-  markFetchEnqueued(runId: string, count: number, extra?: Record<string, unknown>): Promise<void>;
+  /**
+   * Grava `stats.fetch_enqueued` (e detalhes, como `skipped` do tick rápido) mesclando nas
+   * estatísticas existentes, numa só instrução e só se ainda não estiver marcado: `false` = outro
+   * tick concorrente já marcou (nada é sobrescrito).
+   */
+  markFetchEnqueued(
+    runId: string,
+    count: number,
+    extra?: Record<string, unknown>,
+  ): Promise<boolean>;
   /** Run `cron` anterior ainda aberto (status `running`), se houver. */
   previousOpenRun(windowStart: Date): Promise<string | null>;
   /**
@@ -219,7 +235,19 @@ export interface IngestRepo {
    * da janela de 10 min), ou se a última foi deste mesmo run (nova tentativa).
    */
   claimFetch(sourceId: string, runId: string, since: Date): Promise<boolean>;
-  /** `record_source_fetch`: saúde diária da fonte (fuso de Cuiabá). */
+  /**
+   * Resultado final de uma coleta (`ok`, `not_modified`, `failed`) na saúde diária, uma vez por
+   * (fonte, run) (`record_source_fetch_once`): `false` = já contado neste run, e o chamador não
+   * aplica `afterFetch` de novo.
+   */
+  recordFetchOnce(
+    sourceId: string,
+    runId: string,
+    outcome: Exclude<SourceFetchRecord, "items">,
+    latencyMs: number | null,
+    error: string | null,
+  ): Promise<boolean>;
+  /** `record_source_fetch`: soma na saúde diária sem dedupe (itens novos do normalize). */
   recordFetch(
     sourceId: string,
     outcome: SourceFetchRecord,

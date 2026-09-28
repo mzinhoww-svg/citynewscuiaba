@@ -90,11 +90,12 @@ export function createMemoryRunStore(input: DueSourceInput[] | MemoryRunStoreOpt
       return { runId: create("manual", `manual-${seq + 1}`, { source: sourceId }).runId };
     },
     async markFetchEnqueued(runId, count, extra = {}) {
-      for (const r of runs)
-        if (r.runId === runId) {
-          r.fetchEnqueued = true;
-          r.stats = { ...r.stats, fetch_enqueued: count, ...extra };
-        }
+      // Mesma semântica de `mark_fetch_enqueued`: só marca se ainda não estiver marcado.
+      const r = runs.find((x) => x.runId === runId);
+      if (!r || "fetch_enqueued" in r.stats) return false;
+      r.fetchEnqueued = true;
+      r.stats = { ...r.stats, ...extra, fetch_enqueued: count };
+      return true;
     },
     async previousOpenRun(windowStart) {
       const before = runs

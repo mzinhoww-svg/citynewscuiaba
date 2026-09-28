@@ -7,10 +7,11 @@ import {
   createEventSink,
   createIngestRepo,
   createRateLimitHit,
+  createRateLimitPeekKey,
   createRunStore,
 } from "@/lib/db/pipeline-store";
 import { collectNow } from "@/lib/pipeline/collect-now";
-import { runFetch } from "@/lib/pipeline/steps/fetch";
+import { createExhaustedFetchHandler, runFetch } from "@/lib/pipeline/steps/fetch";
 import { tryCanonicalUrl } from "@/lib/pipeline/canonical-url";
 import { drain } from "@/lib/pipeline/drain";
 import { createQueue } from "@/lib/pipeline/queue";
@@ -191,14 +192,12 @@ describe("fetch respeita o painel no banco real (FS-T5)", () => {
       .in("run_id", [cron.runId, fast.runId]);
     expect(raws!.map((r) => r.run_id)).toEqual([cron.runId]);
 
-    // Nova tentativa do mesmo run passa pela trava; o `fetch` registra a saúde uma vez por coleta.
-    expect((await runFetch({ ...msg(cron.runId), attempt: 2 }, deps)).outcome).not.toBe(
-      "already_fetched",
-    );
+    // Nova tentativa do mesmo run passa pela trava, mas a saúde conta uma vez por (fonte, run).
+    expect((await runFetch({ ...msg(cron.runId), attempt: 2 }, deps)).outcome).toBe("ok");
     const after = await healthOf(db, folha!.id);
-    expect(after.fetch_ok - before.fetch_ok).toBe(2);
+    expect(after.fetch_ok - before.fetch_ok).toBe(1);
     expect(after.fetch_failed - before.fetch_failed).toBe(0);
-    expect(after.latency_samples - before.latency_samples).toBe(2);
+    expect(after.latency_samples - before.latency_samples).toBe(1);
     const { data: src } = await db
       .from("sources")
       .select("consecutive_failures, status")
@@ -310,6 +309,7 @@ describe("fetch respeita o painel no banco real (FS-T5)", () => {
       queue,
       repo: createIngestRepo(db),
       hitRateLimit: createRateLimitHit(db),
+      peekRateLimit: createRateLimitPeekKey(db),
       actor,
     };
     const r = await collectNow(folha!.id, deps);
@@ -335,5 +335,61 @@ describe("fetch respeita o painel no banco real (FS-T5)", () => {
       "fetch:source:folha-do-cerrado",
       `fetch:source:folha-do-cerrado:manual:${r.value.runId}`,
     ]);
+  });
+
+  it("fix round 1: mark_fetch_enqueued é atômico e fetch esgotado conta a falha uma vez", async () => {
+    const db = createServiceClient();
+    const runs = createRunStore(db);
+    const { data: folha } = await db
+      .from("sources")
+      .select("id")
+      .eq("slug", "folha-do-cerrado")
+      .single();
+    const { runId } = await runs.startManualRun(folha!.id);
+    trash.runIds.add(runId);
+    const marks = await Promise.all([
+      runs.markFetchEnqueued(runId, 1, { a: 1 }),
+      runs.markFetchEnqueued(runId, 0, { a: 2 }),
+    ]);
+    expect(marks.filter(Boolean)).toHaveLength(1);
+    const { data: run } = await db.from("ingest_runs").select("stats").eq("id", runId).single();
+    expect(run!.stats).toMatchObject({ source: folha!.id, fetch_enqueued: marks[0] ? 1 : 0 });
+
+    // Mensagem de fetch esgotada: a varredura devolve a mensagem e o drain conta a falha final.
+    const namespace = `t-${randomUUID().slice(0, 8)}`;
+    trash.namespaces.add(namespace);
+    const queue = createQueue(db, { namespace });
+    const m = { runId, step: "fetch" as const, itemRef: "source:folha-do-cerrado", attempt: 1 };
+    await queue.enqueue("pipeline", m);
+    for (let i = 0; i < 4; i++) await queue.readBatch("pipeline", 1, 0);
+    const { data: before } = await db
+      .from("sources")
+      .select("consecutive_failures")
+      .eq("id", folha!.id)
+      .single();
+    const r = await drain({
+      queue,
+      runStep: createRunStep({}),
+      events: createEventSink(db),
+      now: () => Date.now(),
+      queues: ["pipeline"],
+      onExhausted: createExhaustedFetchHandler({ repo: createIngestRepo(db) }),
+    });
+    expect(r.exhausted).toBe(1);
+    // De novo (queda entre a contagem e a quarentena): não conta outra vez.
+    await createExhaustedFetchHandler({ repo: createIngestRepo(db) })(m, "de novo");
+    const { data: after } = await db
+      .from("sources")
+      .select("consecutive_failures, status")
+      .eq("id", folha!.id)
+      .single();
+    expect(after!.consecutive_failures).toBe(before!.consecutive_failures + 1);
+    expect(after!.status).toBe("degraded");
+    const { data: outcomes } = await db
+      .from("source_fetch_outcomes")
+      .select("outcome")
+      .eq("source_id", folha!.id)
+      .eq("run_id", runId);
+    expect(outcomes).toEqual([{ outcome: "failed" }]);
   });
 });

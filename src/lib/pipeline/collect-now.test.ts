@@ -35,7 +35,16 @@ function setup(sources: SourceRecord[] = [folha], actor = "helena") {
     hits.set(k, n);
     return n <= limit;
   };
-  const deps = (who = actor): CollectNowDeps => ({ runs, queue, repo, hitRateLimit, actor: who });
+  const peekRateLimit = async (bucket: string, key: string, limit: number) =>
+    (hits.get(`${bucket}:${key}`) ?? 0) < limit;
+  const deps = (who = actor): CollectNowDeps => ({
+    runs,
+    queue,
+    repo,
+    hitRateLimit,
+    peekRateLimit,
+    actor: who,
+  });
   return { queue, runs, deps, limits };
 }
 
@@ -94,5 +103,14 @@ describe("Coletar agora (D-F21, §7.4)", () => {
     for (let i = 0; i < 20; i++) expect((await collectNow(`src-${i}`, deps())).ok).toBe(true);
     expect(await collectNow("src-20", deps())).toEqual({ ok: false, error: "rate_limited" });
     expect((await collectNow("src-20", deps("outra-pessoa"))).ok).toBe(true);
+  });
+
+  it("fonte no limite de 5 min não gasta a cota da pessoa (fix round 1, #8)", async () => {
+    const { deps, limits } = setup();
+    expect((await collectNow(FOLHA_ID, deps())).ok).toBe(true);
+    const before = limits.length;
+    for (let i = 0; i < 25; i++)
+      expect(await collectNow(FOLHA_ID, deps())).toEqual({ ok: false, error: "rate_limited" });
+    expect(limits.slice(before).filter(([b]) => b === "collect_now_actor")).toEqual([]);
   });
 });

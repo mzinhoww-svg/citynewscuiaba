@@ -121,23 +121,15 @@ export function createRunStore(db: DbClient): RunStore {
     },
 
     async markFetchEnqueued(runId, count, extra = {}) {
-      const { data: current, error: readError } = await db
-        .from("ingest_runs")
-        .select("stats")
-        .eq("id", runId)
-        .maybeSingle();
-      check("markFetchEnqueued(read)", readError);
-      const base =
-        typeof current?.stats === "object" &&
-        current.stats !== null &&
-        !Array.isArray(current.stats)
-          ? current.stats
-          : {};
-      const { error } = await db
-        .from("ingest_runs")
-        .update({ stats: { ...base, ...toJsonObject(extra), fetch_enqueued: count } })
-        .eq("id", runId);
+      // Uma instrução só (`mark_fetch_enqueued`): mescla o jsonb no banco e só marca se ainda não
+      // estiver marcado, então o tick que perdeu a corrida não sobrescreve nada.
+      const { data, error } = await db.rpc("mark_fetch_enqueued", {
+        p_run: runId,
+        p_count: count,
+        p_extra: toJsonObject(extra),
+      });
       check("markFetchEnqueued", error);
+      return data === true;
     },
 
     async previousOpenRun(windowStart) {
@@ -210,6 +202,20 @@ export function createRateLimitPeek(db: DbClient) {
       p_key_hash: i > 0 ? bucket.slice(i + 1) : "-",
       p_limit: limitPerHour,
       p_window_seconds: 3600,
+    });
+    check("peekRateLimit", error);
+    return data === true;
+  };
+}
+
+/** `peek_rate_limit` genérico (bucket, chave, limite, janela): consulta sem consumir. */
+export function createRateLimitPeekKey(db: DbClient) {
+  return async (bucket: string, key: string, limit: number, windowSec: number) => {
+    const { data, error } = await db.rpc("peek_rate_limit", {
+      p_bucket: bucket,
+      p_key_hash: key,
+      p_limit: limit,
+      p_window_seconds: windowSec,
     });
     check("peekRateLimit", error);
     return data === true;
@@ -376,14 +382,26 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       return data === true;
     },
 
+    async recordFetchOnce(sourceId, runId, outcome, latencyMs, fetchError) {
+      const { data, error } = await db.rpc("record_source_fetch_once", {
+        p_source: sourceId,
+        p_run: runId,
+        p_outcome: outcome,
+        // Parâmetros opcionais (`default null` em 0012): ausente = sem amostra ou sem erro.
+        ...(latencyMs !== null ? { p_latency_ms: latencyMs } : {}),
+        ...(fetchError !== null ? { p_error: fetchError.slice(0, 2000) } : {}),
+      });
+      check("recordFetchOnce", error);
+      return data === true;
+    },
+
     async recordFetch(sourceId, outcome, latencyMs, itemsNew, fetchError) {
       const { error } = await db.rpc("record_source_fetch", {
         p_source: sourceId,
         p_outcome: outcome,
-        // `null` = sem amostra de latência (itens novos do normalize).
-        p_latency_ms: latencyMs as number,
         p_items_new: itemsNew,
-        p_error: (fetchError === null ? null : fetchError.slice(0, 2000)) as string,
+        ...(latencyMs !== null ? { p_latency_ms: latencyMs } : {}),
+        ...(fetchError !== null ? { p_error: fetchError.slice(0, 2000) } : {}),
       });
       check("recordFetch", error);
     },

@@ -132,6 +132,21 @@ describe("tick rápido (via rápida, spec §7.8)", () => {
   });
 });
 
+describe("tick rápido concorrente (fix round 1, #3/#4)", () => {
+  it("dois ticks na mesma janela: o perdedor não sobrescreve as estatísticas do vencedor", async () => {
+    const queue = createMemoryQueue();
+    const runs = createMemoryRunStore({ sources: [src("rapida", { frequencyMinutes: 10 })] });
+    const now = at("2026-09-27T14:10:00Z");
+    await Promise.all([
+      runFastTick({ queue, runs, peekRateLimit: allow, now }),
+      runFastTick({ queue, runs, peekRateLimit: allow, now }),
+    ]);
+    expect(queue.messages()).toHaveLength(1);
+    expect(runs.created).toHaveLength(1);
+    expect(runs.created[0]!.stats).toEqual({ fetch_enqueued: 1, skipped: [] });
+  });
+});
+
 describe("handleFastTick", () => {
   const req = (secret?: string) =>
     new Request("http://localhost/api/ingest/fast-tick", {

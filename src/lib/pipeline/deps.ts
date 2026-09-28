@@ -11,6 +11,7 @@ import {
   createPublishRepo,
   createRateLimitHit,
   createRateLimitPeek,
+  createRateLimitPeekKey,
   createRulesSource,
   createRunStore,
   createUnderstandRepo,
@@ -25,6 +26,7 @@ import { crawlerUserAgent } from "./http";
 import { systemResolve } from "./net";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
+import { createExhaustedFetchHandler } from "./steps/fetch";
 import {
   createClusterHandlers,
   createIngestHandlers,
@@ -122,6 +124,7 @@ export function defaultCollectNowDeps(actor: string): CollectNowDeps {
     queue: pipelineQueue(),
     repo: createIngestRepo(db),
     hitRateLimit: createRateLimitHit(db),
+    peekRateLimit: createRateLimitPeekKey(db),
     actor,
   };
 }
@@ -131,6 +134,8 @@ export function defaultDrainDeps(): DrainDeps & { secret: string | undefined } {
     queue: pipelineQueue(),
     runStep: createRunStep(productionHandlers()),
     events: createEventSink(createServiceClient()),
+    // `fetch` esgotado varrido para a quarentena conta a falha final da fonte (D-F18).
+    onExhausted: createExhaustedFetchHandler({ repo: createIngestRepo(createServiceClient()) }),
     now: () => Date.now(),
     secret: process.env.CRON_SECRET,
   };

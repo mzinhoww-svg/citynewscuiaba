@@ -42,6 +42,8 @@ export function createMemoryIngestRepo(sources: SourceRecord[], opts: MemoryInge
     error: string | null;
   }[] = [];
   const notifications: NotificationInput[] = [];
+  /** (fonte, run) com resultado final já contado (`source_fetch_outcomes`). */
+  const recorded = new Set<string>();
   let seq = 0;
 
   const repo: IngestRepo = {
@@ -77,6 +79,13 @@ export function createMemoryIngestRepo(sources: SourceRecord[], opts: MemoryInge
       if (!free) return false;
       s.lastFetchStartedAt = sinceIso;
       s.lastFetchRunId = runId;
+      return true;
+    },
+    async recordFetchOnce(sourceId, runId, outcome, latencyMs, error) {
+      const key = `${sourceId}:${runId}`;
+      if (recorded.has(key)) return false;
+      recorded.add(key);
+      health.push({ sourceId, outcome, latencyMs, itemsNew: 0, error });
       return true;
     },
     async recordFetch(sourceId, outcome, latencyMs, itemsNew, error) {

@@ -7,7 +7,7 @@ import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-htt
 import { createMemoryIngestRepo } from "../testing/memory-ingest-repo";
 import { createMemoryQueue } from "../testing/memory-queue";
 import { createIngestHandlers } from ".";
-import { runFetch } from "./fetch";
+import { createExhaustedFetchHandler, runFetch } from "./fetch";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { RunTrigger } from "../ports";
@@ -619,5 +619,82 @@ describe("fetch respeita o painel (FS-T5)", () => {
       t.repo.collected().every((c) => c.canonicalUrl.startsWith("https://mtagora.example/")),
     ).toBe(true);
     expect(t.repo.health().filter((h) => h.outcome === "items")).toHaveLength(3);
+  });
+
+  describe("fix round 1", () => {
+    it("tentativa final cortada pelo prazo do drain não é final: conta uma falha só (#1)", async () => {
+      const t = rig(folha, {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: { status: 500 },
+      });
+      const aborted = AbortSignal.abort();
+      const cut = await runFetch(t.msg("r1", 4), t.deps("2026-09-27T14:00:05Z"), {
+        signal: aborted,
+      });
+      expect(cut.outcome).toBe("retry");
+      expect(t.repo.health()).toEqual([]);
+      expect(t.state()).toMatchObject({ status: "active", consecutiveFailures: 0 });
+      const again = await runFetch(t.msg("r1", 4), t.deps("2026-09-27T14:01:05Z"));
+      expect(again.outcome).toBe("failed");
+      expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+      expect(t.repo.health().map((h) => h.outcome)).toEqual(["failed"]);
+    });
+
+    it("fonte sem feed: dois ticks na mesma janela contam uma falha (#2)", async () => {
+      const t = rig({ ...folha, feedUrl: null }, {}, { "cron-1": "cron", "fast-1": "fast" });
+      expect((await runFetch(t.msg("cron-1"), t.deps("2026-09-27T14:30:05Z"))).outcome).toBe(
+        "failed",
+      );
+      expect((await runFetch(t.msg("fast-1"), t.deps("2026-09-27T14:30:40Z"))).outcome).toBe(
+        "already_fetched",
+      );
+      expect(t.state().consecutiveFailures).toBe(1);
+      expect(t.repo.health()).toHaveLength(1);
+    });
+
+    it("nova tentativa do mesmo run depois de um ok registra a saúde uma vez (#7)", async () => {
+      const t = rig(
+        { ...folha, status: "degraded", consecutiveFailures: 2 },
+        {
+          "https://folhadocerrado.example/robots.txt": robots404,
+          [FEED]: ok200,
+        },
+      );
+      expect((await runFetch(t.msg("r1", 1), t.deps("2026-09-27T14:00:05Z"))).outcome).toBe("ok");
+      expect((await runFetch(t.msg("r1", 2), t.deps("2026-09-27T14:01:05Z"))).outcome).toBe("ok");
+      expect(t.repo.health().map((h) => h.outcome)).toEqual(["ok"]);
+      expect(t.state()).toMatchObject({ status: "active", consecutiveFailures: 0 });
+    });
+
+    it("fetch esgotado varrido pelo drain conta a falha final uma vez (#6)", async () => {
+      const t = rig(folha, {});
+      const queue = createMemoryQueue();
+      const m = t.msg("r1");
+      await queue.enqueue("pipeline", m);
+      queue.setReadCount("pipeline", "fetch:source:folha-do-cerrado", 4);
+      const onExhausted = createExhaustedFetchHandler(t.deps("2026-09-27T14:00:05Z"));
+      const r = await drain({
+        queue,
+        runStep: createRunStep({}),
+        events: { record: async () => {} },
+        now: () => 0,
+        queues: ["pipeline"],
+        onExhausted,
+      });
+      expect(r.exhausted).toBe(1);
+      expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+      expect(t.repo.health()).toEqual([
+        expect.objectContaining({
+          outcome: "failed",
+          error: "tentativas esgotadas sem confirmação",
+        }),
+      ]);
+      // Já contada neste run (queda entre a contagem e a quarentena): não conta de novo.
+      await onExhausted(m, "tentativas esgotadas sem confirmação");
+      expect(t.state().consecutiveFailures).toBe(1);
+      // Outras etapas esgotadas não mexem na fonte.
+      await onExhausted({ ...m, step: "validate", itemRef: "raw:x" }, "x");
+      expect(t.repo.health()).toHaveLength(1);
+    });
   });
 });

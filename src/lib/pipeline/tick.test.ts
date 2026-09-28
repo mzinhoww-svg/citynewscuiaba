@@ -144,4 +144,23 @@ describe("tick", () => {
       await runTick({ queue: createMemoryQueue(), runs: later, now: at("2026-09-27T15:00:00Z") }),
     ).toMatchObject({ enqueued: 1 });
   });
+
+  it("dois ticks concorrentes: o perdedor não sobrescreve fetch_enqueued (fix round 1, #3/#4)", async () => {
+    const queue = createMemoryQueue();
+    const runs = createMemoryRunStore([src("a"), src("b")]);
+    await Promise.all([
+      runTick({ queue, runs, now: () => NOW }),
+      runTick({ queue, runs, now: () => NOW }),
+    ]);
+    expect(runs.created).toHaveLength(1);
+    expect(runs.created[0]!.stats).toEqual({ fetch_enqueued: 2 });
+  });
+
+  it("markFetchEnqueued só marca uma vez e preserva estatísticas anteriores", async () => {
+    const runs = createMemoryRunStore([]);
+    const { runId } = await runs.startManualRun("src-a");
+    expect(await runs.markFetchEnqueued(runId, 1, { a: 1 })).toBe(true);
+    expect(await runs.markFetchEnqueued(runId, 0, { a: 2 })).toBe(false);
+    expect(runs.run(runId)!.stats).toEqual({ source: "src-a", a: 1, fetch_enqueued: 1 });
+  });
 });

@@ -66,8 +66,9 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
     },
     async moveExhausted(q, max) {
       const out = rows.filter((r) => r.queue === q && r.readCt >= max && r.visibleAt <= clock());
-      for (const r of out) queue.quarantine(q, { msgId: r.id }, "tentativas esgotadas");
-      return out.length;
+      const error = "tentativas esgotadas sem confirmação";
+      for (const r of out) await queue.quarantine(q, { msgId: r.id }, error);
+      return out.map((r) => ({ msg: r.msg, error }));
     },
     async pending(q, filter = {}) {
       return rows.filter(
