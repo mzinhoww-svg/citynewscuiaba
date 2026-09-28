@@ -403,3 +403,32 @@
     font: var(--type-body);
   }
 }
+
+/* Estúdio · editor (P4-T3): marcas de origem no texto e estados do Tiptap. */
+@layer components {
+  .cn-mark-ai {
+    background: var(--cn-ia-soft);
+    border-bottom: 2px dashed var(--text-ai);
+  }
+  .cn-mark-human {
+    border-bottom: 2px solid var(--text-service);
+  }
+  .cn-prose {
+    &:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: var(--focus-offset);
+    }
+    & p + p,
+    & p + h2,
+    & h2 + p,
+    & h3 + p {
+      margin-top: 0.75em;
+    }
+    & h2 {
+      font: var(--type-section);
+    }
+    & h3 {
+      font: var(--type-headline-sm);
+    }
+  }
+}

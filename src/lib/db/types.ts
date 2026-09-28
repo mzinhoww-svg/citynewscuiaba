@@ -236,6 +236,7 @@ export type Database = {
       };
       article_media: {
         Row: {
+          alt: string | null;
           article_id: string;
           chosen_at: string;
           chosen_by: string;
@@ -243,6 +244,7 @@ export type Database = {
           rationale: string;
         };
         Insert: {
+          alt?: string | null;
           article_id: string;
           chosen_at?: string;
           chosen_by: string;
@@ -250,6 +252,7 @@ export type Database = {
           rationale: string;
         };
         Update: {
+          alt?: string | null;
           article_id?: string;
           chosen_at?: string;
           chosen_by?: string;
@@ -330,6 +333,77 @@ export type Database = {
           },
         ];
       };
+      article_suggestions: {
+        Row: {
+          agent_id: string;
+          article_id: string;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          field: string;
+          id: string;
+          prompt_version: number | null;
+          rationale: string | null;
+          status: string;
+          value: string;
+        };
+        Insert: {
+          agent_id: string;
+          article_id: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          field: string;
+          id?: string;
+          prompt_version?: number | null;
+          rationale?: string | null;
+          status?: string;
+          value: string;
+        };
+        Update: {
+          agent_id?: string;
+          article_id?: string;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          field?: string;
+          id?: string;
+          prompt_version?: number | null;
+          rationale?: string | null;
+          status?: string;
+          value?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "article_suggestions_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_suggestions_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_suggestions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_suggestions_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       article_versions: {
         Row: {
           article_id: string;
@@ -395,6 +469,7 @@ export type Database = {
           dek: string;
           due_at: string | null;
           embedding: string | null;
+          field_origins: NonNullable<Json>;
           gone_reason: string | null;
           id: string;
           kind: Database["public"]["Enums"]["content_kind"];
@@ -405,9 +480,12 @@ export type Database = {
           rules_version: number | null;
           scheduled_for: string | null;
           section_slug: string;
+          seo_description: string | null;
+          seo_title: string | null;
           slug: string;
           sponsored: boolean;
           status: Database["public"]["Enums"]["article_status"];
+          tags: string[];
           title: string;
           topic_id: string | null;
           tsv: unknown;
@@ -427,6 +505,7 @@ export type Database = {
           dek: string;
           due_at?: string | null;
           embedding?: string | null;
+          field_origins?: NonNullable<Json>;
           gone_reason?: string | null;
           id?: string;
           kind: Database["public"]["Enums"]["content_kind"];
@@ -437,9 +516,12 @@ export type Database = {
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug: string;
+          seo_description?: string | null;
+          seo_title?: string | null;
           slug: string;
           sponsored?: boolean;
           status?: Database["public"]["Enums"]["article_status"];
+          tags?: string[];
           title: string;
           topic_id?: string | null;
           tsv?: unknown;
@@ -459,6 +541,7 @@ export type Database = {
           dek?: string;
           due_at?: string | null;
           embedding?: string | null;
+          field_origins?: NonNullable<Json>;
           gone_reason?: string | null;
           id?: string;
           kind?: Database["public"]["Enums"]["content_kind"];
@@ -469,9 +552,12 @@ export type Database = {
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug?: string;
+          seo_description?: string | null;
+          seo_title?: string | null;
           slug?: string;
           sponsored?: boolean;
           status?: Database["public"]["Enums"]["article_status"];
+          tags?: string[];
           title?: string;
           topic_id?: string | null;
           tsv?: unknown;
@@ -2339,6 +2425,17 @@ export type Database = {
           name: string;
           roles: Database["public"]["Enums"]["app_role"][];
         }[];
+      };
+      studio_request_reprocess: { Args: { p_article: string }; Returns: number };
+      studio_save_draft: {
+        Args: {
+          p_base: number;
+          p_change_kind?: string;
+          p_id: string;
+          p_patch: Json;
+          p_public_note?: string;
+        };
+        Returns: Json;
       };
       topic_candidates: {
         Args: { p_id: string; p_limit: number; p_since: string };

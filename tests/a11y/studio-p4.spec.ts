@@ -11,6 +11,8 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/fila", as: "marina" },
   { path: "/estudio/fila?aba=exceptions", as: "marina" },
   { path: "/estudio/fila?aba=mine", as: "rafael" },
+  { path: "/estudio/fila/c2000000-0000-4000-8000-000000000020", as: "marina" },
+  { path: "/estudio/materias/c2000000-0000-4000-8000-000000000023", as: "juliana" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];

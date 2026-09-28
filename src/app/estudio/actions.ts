@@ -1,7 +1,16 @@
 "use server";
 
-import { QUEUE_TEXT } from "@/content/pt-BR/studio";
+import { EDITOR_TEXT, QUEUE_TEXT, REVIEW_TEXT } from "@/content/pt-BR/studio";
 import type { StudioResult } from "@/lib/studio/action";
+import { publishArticle } from "@/lib/studio/publish";
+import { rejectItem, reprocessItem, requestChanges, updateSources } from "@/lib/studio/review";
+import {
+  acceptSuggestion,
+  rejectSuggestion,
+  saveDraft,
+  type ConflictData,
+  type SaveInput,
+} from "@/lib/studio/save";
 import {
   assign,
   requestReview,
@@ -67,4 +76,71 @@ export async function unpublishManyAction(input: {
 }): Promise<ActionReply> {
   if (!input.reason.trim()) return { ok: false, message: QUEUE_TEXT.reasonRequired };
   return batchReply(await unpublishAutoBatch(input), QUEUE_TEXT.unpublishedMany);
+}
+
+export type SaveReply =
+  | { ok: true; message: string; version: number }
+  | { ok: false; message: string; conflict?: ConflictData };
+
+export async function saveDraftAction(input: {
+  id: string;
+  baseVersion: number;
+  doc: unknown;
+}): Promise<SaveReply> {
+  const r = await saveDraft(input as SaveInput);
+  if (r.ok)
+    return { ok: true, message: EDITOR_TEXT.saved(r.value.version), version: r.value.version };
+  if (r.error === "conflict")
+    return {
+      ok: false,
+      message: r.message ?? EDITOR_TEXT.conflict,
+      conflict: r.data as ConflictData,
+    };
+  return { ok: false, message: reply(r, "").message };
+}
+
+export async function acceptSuggestionAction(input: {
+  id: string;
+  articleId: string;
+  baseVersion: number;
+}): Promise<ActionReply> {
+  const r = await acceptSuggestion(input);
+  if (!r.ok && r.error === "conflict") return { ok: false, message: EDITOR_TEXT.conflict };
+  return reply(r, EDITOR_TEXT.applied);
+}
+
+export async function rejectSuggestionAction(input: {
+  id: string;
+  articleId: string;
+}): Promise<ActionReply> {
+  return reply(await rejectSuggestion(input), EDITOR_TEXT.discarded);
+}
+
+export async function updateSourcesAction(input: {
+  id: string;
+  sources: { itemId: string; role: "primary" | "secondary" | "context"; confirmed: boolean }[];
+}): Promise<ActionReply> {
+  return reply(await updateSources(input), EDITOR_TEXT.sourcesSaved);
+}
+
+export async function approveAction(input: { id: string }): Promise<ActionReply> {
+  return reply(await publishArticle({ id: input.id, when: "now" }), REVIEW_TEXT.approved);
+}
+
+export async function rejectItemAction(input: {
+  id: string;
+  reason: string;
+}): Promise<ActionReply> {
+  return reply(await rejectItem(input), REVIEW_TEXT.rejected);
+}
+
+export async function requestChangesAction(input: {
+  id: string;
+  reason: string;
+}): Promise<ActionReply> {
+  return reply(await requestChanges(input), REVIEW_TEXT.changesRequested);
+}
+
+export async function reprocessAction(input: { id: string }): Promise<ActionReply> {
+  return reply(await reprocessItem(input), REVIEW_TEXT.reprocessed);
 }

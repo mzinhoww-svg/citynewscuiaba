@@ -566,3 +566,17 @@ join (values ('estudio-onibus-noturnos-cpa-centro', 'image_required', 'publish_n
              ('estudio-furto-de-fios-em-escolas', 'never_auto', 'hold'),
              ('estudio-feiras-livres-camara', 'ai_unavailable', 'review')) r(slug, rule, recommended)
   on r.slug = a.slug;
+
+-- P4-T3 · sugestões de IA abertas (só entram na matéria com clique humano).
+insert into article_suggestions (article_id, field, value, rationale, agent_id, prompt_version) values
+ ('c2000000-0000-4000-8000-000000000023', 'title',
+  'Praça do CPA 2 está sem iluminação há dois meses, dizem moradores',
+  'Título mais específico: bairro e tempo sem luz.', 'write', 2),
+ ('c2000000-0000-4000-8000-000000000023', 'seo_description',
+  'Moradores do CPA 2 dizem que a praça central está sem luz há dois meses e cobram a prefeitura.',
+  'Descrição de SEO dentro de 160 caracteres.', 'write', 2),
+ ('c2000000-0000-4000-8000-000000000020', 'title',
+  'Ônibus noturnos entre CPA e Centro vão rodar até meia-noite',
+  'Verbo no início e o dado principal no título.', 'write', 1);
+update articles set tags = '{iluminação,praça}', neighborhoods = '{cpa}' where id = 'c2000000-0000-4000-8000-000000000023';
+update articles set tags = '{ônibus,transporte}', neighborhoods = '{cpa,centro-norte}' where id = 'c2000000-0000-4000-8000-000000000020';
