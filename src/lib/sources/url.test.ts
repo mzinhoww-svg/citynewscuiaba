@@ -31,6 +31,24 @@ describe("normalizePastedUrl", () => {
       ok(new URL("https://folhadocerrado.example/cidades")),
     );
   });
+
+  it("host IDN vira punycode (aceito, não é host proibido)", () => {
+    expect(normalizePastedUrl("https://notícias.example/")).toEqual(
+      ok(new URL("https://xn--notcias-9ya.example/")),
+    );
+  });
+
+  it("espaço no início e no fim é ignorado", () => {
+    expect(normalizePastedUrl("  https://folhadocerrado.example/cidades  ")).toEqual(
+      ok(new URL("https://folhadocerrado.example/cidades")),
+    );
+  });
+
+  it("espaço embutido no caminho não quebra a normalização (vira %20)", () => {
+    expect(normalizePastedUrl("https://folhadocerrado.example/mato grosso")).toEqual(
+      ok(new URL("https://folhadocerrado.example/mato%20grosso")),
+    );
+  });
 });
 
 describe("hostKey", () => {

@@ -2,7 +2,8 @@
  * Ciclo de vida da fonte (spec §7.3, D-F18, D-F19). As transições espelham `guard_source_changes`
  * em `supabase/migrations/0011_source_admin.sql`: paused→{active,blocked}; active→{degraded,paused,
  * blocked}; degraded→{active,paused,blocked}; blocked→{paused}. `archivedAt` é ortogonal ao status
- * (arquivar exige `paused`/`blocked`; restaurar volta para o status que já tinha).
+ * (arquivar exige `paused`/`blocked`; restaurar sempre volta para `paused` com `status_reason =
+ * "manual"`, igual a `source_admin_status` em 0011, nunca para o status que a fonte tinha).
  */
 import { err, ok, type Result } from "@/lib/result";
 import type { SourceState, StatusReason } from "./types";
@@ -24,9 +25,15 @@ export function requiresApproval(action: SourceAction): boolean {
   return action.type === "unblock";
 }
 
+/**
+ * Pura: `now` é contexto explícito (só usado por `archive`, para gravar `archivedAt`), nunca lido
+ * de dentro da função — mesmo padrão de `now: Date` explícito de `frequency.ts` (achado da revisão
+ * FS-T2, "Important" #2).
+ */
 export function transition(
   state: SourceState,
   action: SourceAction,
+  now: Date,
 ): Result<Partial<SourceState>, TransitionError> {
   if (state.archivedAt !== null && action.type !== "restore") {
     return err("archived");
@@ -46,7 +53,9 @@ export function transition(
     }
 
     case "block": {
-      if (state.status === "blocked") return err("invalid_transition");
+      // Bloquear uma fonte já bloqueada é no-op no banco (guard_source_changes/source_admin_status
+      // só checam archived_at para "block"); achado "Minor" #3 da revisão FS-T2.
+      if (state.status === "blocked") return ok({});
       if (!action.reason) return err("reason_required");
       return ok({ status: "blocked", statusReason: action.reason });
     }
@@ -59,12 +68,14 @@ export function transition(
     case "archive": {
       if (state.status !== "paused" && state.status !== "blocked") return err("must_pause_first");
       if (!action.reason) return err("reason_required");
-      return ok({ archivedAt: new Date().toISOString() });
+      return ok({ archivedAt: now.toISOString() });
     }
 
     case "restore": {
+      // Sempre volta para paused/manual (D-F19, source_admin_status em 0011), nunca para o status
+      // que a fonte tinha antes de arquivar (achado "Important" #1 da revisão FS-T2).
       if (state.archivedAt === null) return err("invalid_transition");
-      return ok({ archivedAt: null });
+      return ok({ archivedAt: null, status: "paused", statusReason: "manual" });
     }
   }
 }

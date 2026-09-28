@@ -2,21 +2,30 @@ import { err } from "@/lib/result";
 import { afterFetch, requiresApproval, transition } from "./status";
 import type { SourceState } from "./types";
 
+const NOW = new Date("2026-09-27T14:00:00Z");
+
 function st(status: SourceState["status"], overrides: Partial<SourceState> = {}): SourceState {
   return { status, statusReason: null, consecutiveFailures: 0, archivedAt: null, ...overrides };
 }
 
 describe("transition", () => {
   it("arquivar exige pausa antes", () => {
-    expect(transition(st("active"), { type: "archive", reason: "duplicada" })).toEqual(
+    expect(transition(st("active"), { type: "archive", reason: "duplicada" }, NOW)).toEqual(
       err("must_pause_first"),
     );
   });
 
   it("bloquear sem motivo falha", () => {
-    expect(transition(st("active"), { type: "block", reason: "" as never })).toEqual(
+    expect(transition(st("active"), { type: "block", reason: "" as never }, NOW)).toEqual(
       err("reason_required"),
     );
+  });
+
+  it("bloquear uma fonte já bloqueada é no-op, igual ao banco", () => {
+    expect(transition(st("blocked"), { type: "block", reason: "legal" }, NOW)).toEqual({
+      ok: true,
+      value: {},
+    });
   });
 
   it("desbloquear exige aprovação; pausar não", () => {
@@ -26,13 +35,13 @@ describe("transition", () => {
 
   it("qualquer ação numa fonte arquivada falha, menos restaurar", () => {
     const archived = st("paused", { archivedAt: "2026-09-27T00:00:00.000Z" });
-    expect(transition(archived, { type: "activate" })).toEqual(err("archived"));
-    expect(transition(archived, { type: "restore" }).ok).toBe(true);
+    expect(transition(archived, { type: "activate" }, NOW)).toEqual(err("archived"));
+    expect(transition(archived, { type: "restore" }, NOW).ok).toBe(true);
   });
 
   it("ativar só a partir de pausada", () => {
-    expect(transition(st("active"), { type: "activate" })).toEqual(err("invalid_transition"));
-    const result = transition(st("paused"), { type: "activate" });
+    expect(transition(st("active"), { type: "activate" }, NOW)).toEqual(err("invalid_transition"));
+    const result = transition(st("paused"), { type: "activate" }, NOW);
     expect(result).toEqual({
       ok: true,
       value: { status: "active", statusReason: null, consecutiveFailures: 0 },
@@ -40,9 +49,24 @@ describe("transition", () => {
   });
 
   it("desbloquear volta para pausada", () => {
-    expect(transition(st("blocked"), { type: "unblock" })).toEqual({
+    expect(transition(st("blocked"), { type: "unblock" }, NOW)).toEqual({
       ok: true,
       value: { status: "paused", statusReason: "manual" },
+    });
+  });
+
+  it("arquivar grava archivedAt = now (pura: now vem de fora, nunca de Date.now())", () => {
+    expect(transition(st("paused"), { type: "archive", reason: "duplicada" }, NOW)).toEqual({
+      ok: true,
+      value: { archivedAt: "2026-09-27T14:00:00.000Z" },
+    });
+  });
+
+  it("restaurar sempre volta para paused/manual, nunca para o status anterior", () => {
+    const archivedFromBlocked = st("blocked", { archivedAt: "2026-09-27T00:00:00.000Z" });
+    expect(transition(archivedFromBlocked, { type: "restore" }, NOW)).toEqual({
+      ok: true,
+      value: { archivedAt: null, status: "paused", statusReason: "manual" },
     });
   });
 });
