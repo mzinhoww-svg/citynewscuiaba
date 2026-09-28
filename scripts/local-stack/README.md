@@ -8,6 +8,7 @@ Usada quando o container não tem Docker nem Supabase CLI. Emula o suficiente do
 | Postgres 16 + pgvector + pg_cron | 54322 | apt (`postgresql-16`, `postgresql-16-pgvector`, `postgresql-16-cron`) |
 | PostgREST 12 | 54330 | binário oficial |
 | Supabase Auth (GoTrue) | 54331 | binário oficial `supabase/auth` |
+| Caixa de saída SMTP | 2500 | `smtp-sink.mjs` (grava em `.local/mail/*.eml`; nada é enviado) |
 
 ```bash
 bash scripts/local-stack/setup.sh   # baixa binários em .local/bin (uma vez)

@@ -21,6 +21,8 @@ export interface ButtonProps {
   href?: string;
   /** Estado alternável (Seguir/Seguindo, Salvar). */
   pressed?: boolean;
+  /** Botão de envio com outra Server Action no mesmo formulário (ex.: "Receber link por e-mail"). */
+  formAction?: (formData: FormData) => void | Promise<void>;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   children?: ReactNode;
   "aria-label"?: string;
@@ -71,6 +73,7 @@ export function Button({
   type = "button",
   href,
   pressed,
+  formAction,
   onClick,
   children,
   className,
@@ -113,6 +116,7 @@ export function Button({
       type={type}
       disabled={disabled}
       onClick={onClick}
+      formAction={formAction}
       aria-pressed={pressed}
       aria-label={ariaLabel}
       className={classes}

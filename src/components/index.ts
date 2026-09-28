@@ -71,6 +71,13 @@ export {
   type SearchResultItemProps,
 } from "./editorial/SearchResults";
 export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
+export { AccountShell, type AccountShellProps } from "./editorial/AccountShell";
+export { SignInForm, type SignInFormProps } from "./editorial/SignInForm";
+export { SignUpForm, type SignUpFormProps } from "./editorial/SignUpForm";
+export { EmailLinkForm, type EmailLinkFormProps } from "./editorial/EmailLinkForm";
+export { NewPasswordForm, type NewPasswordFormProps } from "./editorial/NewPasswordForm";
+export { ConfirmEmail, type ConfirmEmailProps } from "./editorial/ConfirmEmail";
+export { MigrateLocal, type MigrateLocalProps } from "./editorial/MigrateLocal";
 export {
   GoneState,
   NotFoundState,

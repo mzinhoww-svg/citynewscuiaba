@@ -38,3 +38,148 @@ export const FIRST_VISIT_TEXT = {
         : `${n} fontes seguidas neste navegador.`,
   close: "Fechar",
 } as const;
+
+/** Partes comuns das telas de conta. */
+export const ACCOUNT_TEXT = {
+  email: "E-mail",
+  emailPlaceholder: "Digite seu e-mail",
+  emailError: "Confira o e-mail. Exemplo: ana@exemplo.com",
+  password: "Senha",
+  continueWithout: "Continuar sem login",
+  optionalNote: "A conta é opcional: ler, buscar, ver a agenda e seguir fontes funcionam sem ela.",
+  unavailable: "Não conseguimos falar com o serviço de contas agora. Tente de novo em instantes.",
+  or: "ou",
+} as const;
+
+/** C02 · Entrar. */
+export const SIGN_IN_TEXT = {
+  metaTitle: "Entrar · CityNews Cuiabá",
+  title: "Entrar na conta",
+  intro: "Entre para manter suas fontes e notícias salvas em qualquer dispositivo.",
+  passwordPlaceholder: "Digite sua senha",
+  passwordError: "Digite sua senha.",
+  forgot: "Esqueci a senha",
+  submit: "Entrar",
+  busy: "Entrando…",
+  wrong: "E-mail ou senha incorretos",
+  remaining: (n: number) =>
+    n === 1
+      ? "Resta 1 tentativa antes do bloqueio de 15 minutos."
+      : `Restam ${n} tentativas antes do bloqueio de 15 minutos.`,
+  locked: (time: string) =>
+    `Muitas tentativas. Por segurança, o acesso com senha fica bloqueado até ${time}. Você pode entrar por link no e-mail ou redefinir a senha.`,
+  notConfirmed: "Confirme seu e-mail antes de entrar.",
+  resendConfirm: "Reenviar confirmação",
+  magicTitle: "Entrar sem senha",
+  magicIntro: "Enviamos um link de acesso para o seu e-mail.",
+  magicSubmit: "Receber link por e-mail",
+  magicSent: (email: string) =>
+    `Se houver conta com ${email}, enviamos um link para entrar. Ele vale por 1 hora.`,
+  google: "Entrar com Google",
+  googleOff:
+    "Entrar com Google ainda não está disponível. Use e-mail e senha ou o link por e-mail.",
+  noAccount: "Ainda não tem conta?",
+  create: "Criar conta",
+  noPermission:
+    "Esta conta não tem acesso ao Estúdio. Entre com outra conta ou volte para o portal.",
+} as const;
+
+/** C03 · Criar conta. */
+export const SIGN_UP_TEXT = {
+  metaTitle: "Criar conta · CityNews Cuiabá",
+  title: "Criar conta",
+  intro: "Só pedimos o necessário. Suas fontes e salvos passam a valer em qualquer dispositivo.",
+  name: "Nome de exibição",
+  namePlaceholder: "Como você quer ser chamado",
+  nameError: "Digite um nome de exibição (até 80 caracteres).",
+  passwordPlaceholder: "Crie uma senha",
+  passwordHint: "Pelo menos 8 caracteres. Misture letras, números e símbolos.",
+  passwordError: "A senha precisa ter pelo menos 8 caracteres.",
+  terms: "Li e aceito os Termos de uso e a Política de privacidade",
+  termsLink: "Ler os termos",
+  privacyLink: "Ler a política de privacidade",
+  termsError: "Para criar a conta, aceite os termos.",
+  newsletter: "Quero receber a newsletter Cuiabá em 5 minutos (opcional)",
+  submit: "Criar conta",
+  busy: "Criando conta…",
+  exists: "Já existe uma conta com este e-mail. Entre ou recupere a senha.",
+  checkEmail: (email: string) =>
+    `Enviamos um link de confirmação para ${email}. Abra o e-mail para ativar a conta.`,
+  resend: "Não recebeu? Reenviar link",
+  recover: "Recuperar senha",
+  hasAccount: "Já tem conta?",
+  signIn: "Entrar",
+} as const;
+
+/** C04 · Recuperar e redefinir senha. */
+export const RECOVER_TEXT = {
+  metaTitle: "Recuperar senha · CityNews Cuiabá",
+  title: "Recuperar senha",
+  intro: "Digite o e-mail da conta. Enviamos um link para criar uma nova senha.",
+  submit: "Enviar link",
+  busy: "Enviando…",
+  sent: "Se houver conta com este e-mail, enviamos um link",
+  sentDetail: "Confira a caixa de entrada e o spam. O link vale por 1 hora.",
+  back: "Voltar para entrar",
+  resetMetaTitle: "Nova senha · CityNews Cuiabá",
+  resetTitle: "Criar nova senha",
+  resetIntro: "Escolha uma senha nova para a sua conta.",
+  newPassword: "Nova senha",
+  confirm: "Confirme a nova senha",
+  confirmError: "As senhas não são iguais.",
+  resetSubmit: "Salvar nova senha",
+  resetBusy: "Salvando…",
+  resetExpired: "Este link expirou ou já foi usado.",
+  resetExpiredDetail: "Peça um novo link para redefinir a senha.",
+  askAgain: "Pedir novo link",
+  done: "Senha alterada. Você já está na sua conta.",
+} as const;
+
+/** C05 · Confirmar e-mail. */
+export const CONFIRM_TEXT = {
+  metaTitle: "Confirmar e-mail · CityNews Cuiabá",
+  title: "Confirmar e-mail",
+  pending: "Toque no botão para confirmar o seu e-mail.",
+  submit: "Confirmar meu e-mail",
+  busy: "Confirmando…",
+  success: "E-mail confirmado",
+  successDetail: "Sua conta está ativa.",
+  continue: "Continuar",
+  expired: "Este link expirou ou já foi usado",
+  expiredDetail: "Digite seu e-mail para receber um novo link de confirmação.",
+  already: "Este e-mail já está confirmado",
+  alreadyDetail: "Você já pode entrar na conta.",
+  check: "Confirme seu e-mail",
+  checkDetail: "Abra o link que enviamos para ativar a conta. Pode levar alguns minutos.",
+  resend: "Reenviar link",
+  resent: "Se houver cadastro pendente com este e-mail, enviamos um novo link.",
+  signIn: "Entrar",
+} as const;
+
+/** C06 · Migrar dados deste navegador para a conta. */
+export const MIGRATE_TEXT = {
+  metaTitle: "Levar seus dados para a conta · CityNews Cuiabá",
+  title: "Levar o que está neste navegador para a sua conta?",
+  intro:
+    "Escolha o que levar. O que já estiver na conta fica como está e nada é duplicado. Neste navegador, tudo continua guardado.",
+  loading: "Lendo o que está guardado neste navegador",
+  entering: "Entrando…",
+  legend: "O que levar",
+  options: {
+    follows: "Fontes, temas e alertas que você segue",
+    saved: "Matérias salvas e coleções",
+    interests: "Interesses e fontes ocultadas",
+    history: "Histórico de leitura dos últimos 30 dias",
+    conversations: "Conversas com a IA",
+  },
+  count: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
+  noConversations: "Nenhuma conversa guardada neste navegador.",
+  submit: "Levar selecionados",
+  busy: "Sincronizando…",
+  fresh: "Começar do zero",
+  freshNote: "Começar do zero não apaga nada deste navegador.",
+  done: "Pronto",
+  continue: "Continuar",
+  error: "Não conseguimos sincronizar agora. Nada foi perdido: tente de novo.",
+  retry: "Tentar de novo",
+} as const;

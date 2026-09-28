@@ -12,6 +12,7 @@ REST_PORT=$((54330 + OFFSET))
 AUTH_PORT=$((54331 + OFFSET))
 PROXY_PORT=$((54321 + OFFSET))
 APP_PORT=$((3000 + OFFSET))
+SMTP_PORT=$((2500 + OFFSET))
 JWT_SECRET="super-secret-jwt-token-with-at-least-32-characters-long"
 DB_URL="postgresql://postgres:postgres@127.0.0.1:$PGPORT/postgres"
 POSTGREST_VERSION=12.2.3

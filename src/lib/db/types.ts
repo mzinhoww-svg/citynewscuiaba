@@ -1299,6 +1299,7 @@ export type Database = {
           id: string;
           migrated_from_anon: string | null;
           neighborhood: string | null;
+          preferences: NonNullable<Json>;
         };
         Insert: {
           created_at?: string;
@@ -1306,6 +1307,7 @@ export type Database = {
           id: string;
           migrated_from_anon?: string | null;
           neighborhood?: string | null;
+          preferences?: NonNullable<Json>;
         };
         Update: {
           created_at?: string;
@@ -1313,6 +1315,7 @@ export type Database = {
           id?: string;
           migrated_from_anon?: string | null;
           neighborhood?: string | null;
+          preferences?: NonNullable<Json>;
         };
         Relationships: [];
       };

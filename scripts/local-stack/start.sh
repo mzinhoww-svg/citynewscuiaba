@@ -47,6 +47,10 @@ wait_port() {
   return 1
 }
 
+# Caixa de saída local (link mágico, recuperação e confirmação ficam em .local/mail)
+start_bg smtp node "$HERE/smtp-sink.mjs" $SMTP_PORT "$LOCAL/mail"
+wait_port $SMTP_PORT
+
 # Auth: roda as próprias migrations no schema auth
 cd "$LOCAL/auth"
 start_bg auth env \
@@ -56,8 +60,11 @@ start_bg auth env \
   GOTRUE_SITE_URL="http://localhost:$APP_PORT" GOTRUE_URI_ALLOW_LIST="http://localhost:$APP_PORT/**,http://127.0.0.1:$APP_PORT/**" \
   GOTRUE_JWT_SECRET="$JWT_SECRET" GOTRUE_JWT_EXP=3600 GOTRUE_JWT_AUD=authenticated GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated \
   GOTRUE_JWT_ADMIN_ROLES=service_role GOTRUE_DISABLE_SIGNUP=false GOTRUE_EXTERNAL_EMAIL_ENABLED=true \
-  GOTRUE_MAILER_AUTOCONFIRM=true GOTRUE_SMTP_ADMIN_EMAIL=admin@citynews.local GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=2500 \
-  GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify GOTRUE_RATE_LIMIT_EMAIL_SENT=1000 GOTRUE_LOG_LEVEL=warn \
+  GOTRUE_MAILER_AUTOCONFIRM=true GOTRUE_SMTP_ADMIN_EMAIL=admin@citynews.local GOTRUE_SMTP_HOST=127.0.0.1 GOTRUE_SMTP_PORT=$SMTP_PORT GOTRUE_SMTP_SENDER_NAME=CityNews \
+  GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify GOTRUE_MAILER_URLPATHS_MAGIC_LINK=/auth/v1/verify \
+  GOTRUE_MAILER_URLPATHS_RECOVERY=/auth/v1/verify GOTRUE_MAILER_URLPATHS_INVITE=/auth/v1/verify GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE=/auth/v1/verify \
+  GOTRUE_MAILER_SUBJECTS_MAGIC_LINK="Seu link para entrar no CityNews" GOTRUE_MAILER_SUBJECTS_RECOVERY="Redefina sua senha do CityNews" \
+  GOTRUE_MAILER_SUBJECTS_CONFIRMATION="Confirme seu e-mail no CityNews" GOTRUE_RATE_LIMIT_EMAIL_SENT=1000 GOTRUE_LOG_LEVEL=warn \
   "$BIN/auth"
 cd "$ROOT"
 wait_port $AUTH_PORT
