@@ -48,6 +48,7 @@ export const ACCOUNT_TEXT = {
   continueWithout: "Continuar sem login",
   optionalNote: "A conta é opcional: ler, buscar, ver a agenda e seguir fontes funcionam sem ela.",
   unavailable: "Não conseguimos falar com o serviço de contas agora. Tente de novo em instantes.",
+  rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
   or: "ou",
 } as const;
 

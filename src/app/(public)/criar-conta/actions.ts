@@ -30,7 +30,7 @@ export async function signUpAction(_prev: SignUpState, form: FormData): Promise<
   if (!parsed.ok) return { status: "invalid", fields: parsed.error };
   const { name, email, password, newsletter } = parsed.value;
   const next = safeNext(String(form.get("next") ?? ""));
-  if (!(await allowEmailLink())) return { status: "unavailable" };
+  if (!(await allowEmailLink())) return { status: "rate_limited" };
 
   const db = await readerClient();
   if (!db) return { status: "unavailable" };

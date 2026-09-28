@@ -97,6 +97,29 @@ describe("envelope (tracking-plan §1)", () => {
       }).success,
     ).toBe(true));
 
+  it('só métricas: servidor exige sessão "-" e referência nula (gate P2, M1)', () => {
+    expect(
+      EventEnvelope.safeParse({
+        ...validEvent,
+        session: { ...validEvent.session, id: "sessao-persistente-123" },
+      }).success,
+    ).toBe(false);
+    expect(
+      EventEnvelope.safeParse({
+        ...validEvent,
+        session: { ...validEvent.session, referrer: "https://busca.example" },
+      }).success,
+    ).toBe(false);
+    expect(
+      EventEnvelope.safeParse({
+        ...validEvent,
+        anonId: ANON,
+        session: { ...validEvent.session, id: "s1", referrer: "https://busca.example" },
+        consent: { version: "v1", metrics: true, personalization: true },
+      }).success,
+    ).toBe(true);
+  });
+
   it("rejeita evento sem nenhum consentimento", () =>
     expect(
       EventEnvelope.safeParse({

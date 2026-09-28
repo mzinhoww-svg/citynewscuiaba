@@ -181,6 +181,9 @@ export function SignUpForm({ action, next }: SignUpFormProps) {
         {state.status === "unavailable" && (
           <InlineAlert tone="error" title={A.unavailable} role="alert" />
         )}
+        {state.status === "rate_limited" && (
+          <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
+        )}
       </div>
 
       <Button type="submit" fullWidth disabled={pending}>
