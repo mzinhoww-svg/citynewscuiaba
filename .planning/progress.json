@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-27T21:32:28.260Z",
+  "updatedAt": "2026-09-28T00:01:34.242Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -455,28 +455,28 @@
           "id": "P2-T7",
           "title": "Tela Fontes em destaque",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "d089b3c",
+          "notes": "verify verde 1098 testes; e2e 520"
         },
         {
           "id": "P2-T8",
           "title": "Página da fonte e Panorama",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "6e9e971",
+          "notes": "verify verde 1098 testes; e2e 520"
         },
         {
           "id": "P2-T9",
           "title": "Favoritos, Alertas e Newsletter",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "9f83ed9",
+          "notes": "verify verde 1098 testes; e2e 520"
         },
         {
           "id": "P2-T10",
