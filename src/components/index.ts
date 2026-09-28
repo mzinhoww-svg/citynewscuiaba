@@ -169,13 +169,22 @@ export { SourceStatusBadge, type SourceStatusBadgeProps } from "./studio/sources
 /* studio · painel de fontes, lista O03 (FS-T7) */
 export { BulkActionsBar, type BulkActionsBarProps } from "./studio/sources/BulkActionsBar";
 export {
+  BulkFrequencyDialog,
+  type BulkFrequencyDialogProps,
+} from "./studio/sources/BulkFrequencyDialog";
+export {
   CollectionSettingsDialog,
   type CollectionSettingsDialogProps,
 } from "./studio/sources/CollectionSettingsDialog";
+export {
+  FastLaneSkippedNotice,
+  type FastLaneSkippedNoticeProps,
+} from "./studio/sources/FastLaneSkippedNotice";
 export {
   SourceApprovalsNotice,
   type SourceApprovalsNoticeProps,
 } from "./studio/sources/SourceApprovalsNotice";
 export { SourceFilters, type SourceFiltersProps } from "./studio/sources/SourceFilters";
+export { SourceRowMenu, type SourceRowMenuProps } from "./studio/sources/SourceRowMenu";
 export { SourceRowMobile, type SourceRowMobileProps } from "./studio/sources/SourceRowMobile";
 export { SourcesTable, type SourcesTableProps } from "./studio/sources/SourcesTable";

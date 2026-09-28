@@ -24,6 +24,8 @@ export interface ButtonProps {
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   children?: ReactNode;
   "aria-label"?: string;
+  /** Só quando outro elemento precisa apontar para este botão (ex.: âncora "#id"). */
+  id?: string;
   className?: string;
   style?: CSSProperties;
 }
@@ -73,6 +75,7 @@ export function Button({
   pressed,
   onClick,
   children,
+  id,
   className,
   style,
   "aria-label": ariaLabel,
@@ -103,13 +106,14 @@ export function Button({
 
   if (href && !disabled) {
     return (
-      <Link href={href} className={classes} style={style} aria-label={ariaLabel}>
+      <Link id={id} href={href} className={classes} style={style} aria-label={ariaLabel}>
         {content}
       </Link>
     );
   }
   return (
     <button
+      id={id}
       type={type}
       disabled={disabled}
       onClick={onClick}

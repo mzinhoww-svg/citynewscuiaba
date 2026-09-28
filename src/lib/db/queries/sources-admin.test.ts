@@ -1,5 +1,6 @@
 import {
   displayStatusOf,
+  fastLaneFullSkips,
   filterAndSort,
   healthOf,
   parseSourceFilters,
@@ -171,5 +172,42 @@ describe("filterAndSort", () => {
     expect(
       filterAndSort(rows, parseSourceFilters(new URLSearchParams("pendente=1"))).rows[0]?.id,
     ).toBe("id-2");
+  });
+});
+
+describe("fastLaneFullSkips", () => {
+  it("só o motivo fast_lane_full, uma linha por fonte (o run mais recente)", () => {
+    const skips = fastLaneFullSkips([
+      {
+        id: "run-1",
+        started_at: "2026-09-27T14:00:00Z",
+        stats: {
+          skipped: [
+            { slug: "mt-agora", reason: "fast_lane_full" },
+            { slug: "folha-do-cerrado", reason: "previous_pending" },
+          ],
+        },
+      },
+      {
+        id: "run-2",
+        started_at: "2026-09-27T14:10:00Z",
+        stats: { skipped: [{ slug: "mt-agora", reason: "fast_lane_full" }] },
+      },
+    ]);
+    expect(skips).toEqual([{ slug: "mt-agora", runId: "run-2", at: "2026-09-27T14:10:00Z" }]);
+  });
+
+  it("sem skipped ou sem motivo fast_lane_full: lista vazia", () => {
+    expect(fastLaneFullSkips([])).toEqual([]);
+    expect(
+      fastLaneFullSkips([
+        { id: "run-1", started_at: "2026-09-27T14:00:00Z", stats: {} },
+        {
+          id: "run-2",
+          started_at: "2026-09-27T14:00:00Z",
+          stats: { skipped: [{ slug: "x", reason: "rate_limited" }] },
+        },
+      ]),
+    ).toEqual([]);
   });
 });

@@ -36,8 +36,14 @@ vi.mock("@/lib/db/client", async (importOriginal) => {
 
 const { createServiceClient } = await import("@/lib/db/client");
 const actions = await import("@/app/estudio/control/fontes/actions");
-const { pendingSourceApprovals, listSources, parseSourceFilters, sourceDetail, sourceHistory } =
-  await import("@/lib/db/queries/sources-admin");
+const {
+  pendingSourceApprovals,
+  listSources,
+  parseSourceFilters,
+  sourceDetail,
+  sourceHistory,
+  fastLaneSkippedSources,
+} = await import("@/lib/db/queries/sources-admin");
 const { clockTime } = await import("@/content/pt-BR/sources-admin");
 const {
   updateSourceAction,
@@ -578,5 +584,49 @@ describe("coleta, análise e histórico", () => {
       (r) => r.action === "source.update" && r.changes.some((c) => c.field === "editorial_score"),
     );
     expect(update?.actor.name).toBe("Helena Costa");
+  });
+});
+
+describe("aviso de fontes puladas pela via rápida (fast_lane_full)", () => {
+  it("só mostra quem foi pulada por falta de vaga nos últimos 30 min", async () => {
+    const mt = await rowBySlug("mt-agora");
+    const now = new Date();
+
+    const recent = await svc
+      .from("ingest_runs")
+      .insert({
+        window_start: now.toISOString(),
+        trigger: "fast",
+        started_at: now.toISOString(),
+        stats: {
+          skipped: [
+            { slug: mt.slug, reason: "fast_lane_full" },
+            { slug: "folha-do-cerrado", reason: "previous_pending" },
+          ],
+        },
+      })
+      .select("id")
+      .single();
+    expect(recent.error).toBeNull();
+    runIds.push(recent.data!.id);
+
+    const old = new Date(now.getTime() - 40 * 60_000);
+    const stale = await svc
+      .from("ingest_runs")
+      .insert({
+        window_start: old.toISOString(),
+        trigger: "fast",
+        started_at: old.toISOString(),
+        stats: { skipped: [{ slug: "diario-da-baixada", reason: "fast_lane_full" }] },
+      })
+      .select("id")
+      .single();
+    expect(stale.error).toBeNull();
+    runIds.push(stale.data!.id);
+
+    const r = await asUser(HELENA, () => fastLaneSkippedSources(now));
+    if (!r.ok) throw new Error("fastLaneSkippedSources");
+    expect(r.value.map((s) => s.slug)).toEqual([mt.slug]);
+    expect(r.value[0]?.name).toBe("MT Agora");
   });
 });

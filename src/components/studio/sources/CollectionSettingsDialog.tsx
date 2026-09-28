@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { formatMinutes, SOURCES_LIST_TEXT as T } from "@/content/pt-BR/sources-admin";
+import { normalFrequencyOptions, SOURCES_LIST_TEXT as T } from "@/content/pt-BR/sources-admin";
 import {
   setDefaultFrequencyAction,
   setFastLaneMaxAction,
@@ -18,7 +18,7 @@ export interface CollectionSettingsDialogProps {
   className?: string;
 }
 
-const NORMAL_GRID = Array.from({ length: 48 }, (_, i) => (i + 1) * 30);
+const NORMAL_OPTIONS = normalFrequencyOptions();
 
 /**
  * Configurações da coleta (spec §7.7, O03): padrão global de frequência (só a grade de 30 min a
@@ -42,7 +42,13 @@ export function CollectionSettingsDialog({
 
   return (
     <div className={className}>
-      <Button size="md" variant="outline" icon="sliders-horizontal" onClick={() => setOpen(true)}>
+      <Button
+        id="config-coleta-trigger"
+        size="md"
+        variant="outline"
+        icon="sliders-horizontal"
+        onClick={() => setOpen(true)}
+      >
         {T.settings.trigger}
       </Button>
       <Dialog open={open} title={T.settings.title} onClose={() => setOpen(false)}>
@@ -57,7 +63,7 @@ export function CollectionSettingsDialog({
             name="value"
             label={T.settings.defaultFrequencyLabel}
             defaultValue={String(defaultFrequency)}
-            options={NORMAL_GRID.map((m) => ({ value: String(m), label: formatMinutes(m) }))}
+            options={NORMAL_OPTIONS}
             error={freqMsg && !freqMsg.ok ? freqMsg.message : undefined}
           />
           <Button type="submit" size="sm" variant="secondary" disabled={freqPending}>

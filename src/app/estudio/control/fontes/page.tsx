@@ -4,6 +4,7 @@ import {
   Button,
   CollectionSettingsDialog,
   EmptyState,
+  FastLaneSkippedNotice,
   Icon,
   SourceApprovalsNotice,
   SourceFilters,
@@ -11,6 +12,7 @@ import {
 } from "@/components";
 import { SOURCES_LIST_TEXT as T, SOURCE_STATUS_TEXT } from "@/content/pt-BR/sources-admin";
 import {
+  fastLaneSkippedSources,
   listSources,
   parseSourceFilters,
   pendingSourceApprovals,
@@ -55,11 +57,13 @@ export default async function SourcesListPage({ searchParams }: Props) {
   const usp = toURLSearchParams(await searchParams);
   const filters = parseSourceFilters(usp);
 
-  const [sourcesResult, approvalsResult] = await Promise.all([
+  const [sourcesResult, approvalsResult, fastSkippedResult] = await Promise.all([
     listSources(filters),
     pendingSourceApprovals(),
+    fastLaneSkippedSources(),
   ]);
   const pendingTotal = approvalsResult.ok ? approvalsResult.value.length : 0;
+  const fastSkippedNames = fastSkippedResult.ok ? fastSkippedResult.value.map((s) => s.name) : [];
 
   return (
     <section className="flex flex-col gap-6">
@@ -98,6 +102,7 @@ export default async function SourcesListPage({ searchParams }: Props) {
           </ul>
         )}
         <SourceApprovalsNotice count={pendingTotal} href={`${BASE}?pendente=1`} />
+        <FastLaneSkippedNotice names={fastSkippedNames} />
       </header>
 
       <SourceFilters filters={filters} basePath={BASE} />
@@ -131,6 +136,8 @@ export default async function SourcesListPage({ searchParams }: Props) {
             dir={filters.dir}
             basePath={BASE}
             query={queryOf(usp)}
+            defaultFrequencyMinutes={sourcesResult.value.defaultFrequency}
+            fastLane={sourcesResult.value.fastLane}
           />
           <Pagination
             page={filters.page}

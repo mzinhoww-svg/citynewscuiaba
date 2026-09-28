@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import {
   clockTime,
-  formatMinutes,
   fullDateTime,
   FREQUENCY_TEXT,
   LAYER_TEXT,
@@ -16,15 +15,16 @@ import {
   bulkSourcesAction,
   collectNowAction,
   sourceStatusAction,
+  type ActionState,
 } from "@/app/estudio/control/fontes/actions";
 import type { SourceListRow, SourceSort } from "@/lib/db/queries/sources-admin";
-import { FAST_FREQUENCIES } from "@/lib/sources";
 import { cx } from "../../cx";
 import { Icon } from "../../ui/Icon";
-import { BulkActionsBar, type FrequencyOption } from "./BulkActionsBar";
+import { BulkActionsBar } from "./BulkActionsBar";
 import { EditorialScore } from "./EditorialScore";
 import { FrequencyLabel } from "./FrequencyLabel";
 import { HealthBadge } from "./HealthBadge";
+import { SourceRowMenu } from "./SourceRowMenu";
 import { SourceRowMobile } from "./SourceRowMobile";
 import { SourceStatusBadge } from "./SourceStatusBadge";
 
@@ -36,6 +36,8 @@ export interface SourcesTableProps {
   basePath?: string;
   /** Filtros atuais além de ordenação e página, para preservar na troca de coluna. */
   query?: Record<string, string>;
+  defaultFrequencyMinutes?: number;
+  fastLane?: { max: number; used: number };
   className?: string;
 }
 
@@ -54,22 +56,26 @@ function sortHref(
   return `${basePath}?${params.toString()}`;
 }
 
-const BULK_FREQUENCIES: FrequencyOption[] = [
-  { value: "padrao", label: "Padrão global" },
-  ...[...FAST_FREQUENCIES, 30, 60, 120, 240, 360, 720, 1440].map((m) => ({
-    value: String(m),
-    label: (FAST_FREQUENCIES as readonly number[]).includes(m)
-      ? `${formatMinutes(m)} · via rápida`
-      : formatMinutes(m),
-  })),
-];
+/** Colunas secundárias (não fazem falta a 1280 px, spec §8): somem antes de 1440 px. */
+const SECONDARY_CELL = "hidden wide:table-cell p-3 type-meta text-strong";
+const UNDO_MS = 10_000;
+
+interface Announcement {
+  message: string;
+  undo?: () => void;
+}
 
 /**
- * Tabela ordenável da lista de fontes (spec §8, O03): seleção, ordenação por `aria-sort`, ações
- * por linha e barra de lote. Em 360 px vira lista de cartões (`SourceRowMobile`), sem tabela.
+ * Tabela ordenável da lista de fontes (spec §8, O03): seleção, ordenação por `aria-sort`, menu de
+ * ações por linha e barra de lote. Em 360 px vira lista de cartões (`SourceRowMobile`), sem
+ * tabela. A 1280 px (Fonte, Status, Score, Frequência, Saúde, Próxima coleta, Ações), Camada e
+ * Localidade viram texto secundário sob o nome da fonte, e Prioridade/Última coleta/Erros 24 h só
+ * aparecem a partir de 1440 px — a tabela nunca provoca rolagem horizontal da página no desktop de
+ * referência (achado da revisão FS-T7 fix round 1).
  *
  * ```tsx
- * <SourcesTable rows={rows} sort="score" dir="desc" />
+ * <SourcesTable rows={rows} sort="score" dir="desc" defaultFrequencyMinutes={30}
+ *   fastLane={{ max: 10, used: 0 }} />
  * ```
  */
 export function SourcesTable({
@@ -78,11 +84,14 @@ export function SourcesTable({
   dir = "desc",
   basePath = "/estudio/control/fontes",
   query = {},
+  defaultFrequencyMinutes = 30,
+  fastLane = { max: 10, used: 0 },
   className,
 }: SourcesTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [announcement, setAnnouncement] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [pending, startTransition] = useTransition();
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -101,17 +110,43 @@ export function SourcesTable({
 
   const selectedIds = useMemo(() => [...selected], [selected]);
 
-  function runBulk(action: "pause" | "activate" | "frequency", frequencyMinutes?: number | null) {
+  /** Anuncia o resultado (`role="status"`) e, quando houver, oferece "Desfazer" por 10 s. */
+  function announce(message: string, undo?: () => void) {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setAnnouncement({ message, undo });
+    undoTimer.current = setTimeout(() => setAnnouncement(null), UNDO_MS);
+  }
+
+  /**
+   * Pausar/retomar uma fonte. O Desfazer reaplica a ação oposta pelo lote de uma fonte só
+   * (`bulkSourcesAction`, sem versão): desfazer uma pausa não passa de novo pelo teste de
+   * conexão do "Retomar" — a fonte estava íntegra segundos atrás — enquanto o clique direto em
+   * "Retomar" continua exigindo a ativação completa (spec §7.3).
+   */
+  function applyStatus(id: string, version: number, action: "pause" | "resume") {
     const form = new FormData();
-    for (const id of selectedIds) form.append("ids", id);
+    form.set("id", id);
+    form.set("version", String(version));
     form.set("action", action);
-    if (action === "frequency")
-      form.set("frequencyMinutes", frequencyMinutes === null ? "padrao" : String(frequencyMinutes));
+    startTransition(async () => {
+      const r: ActionState = await sourceStatusAction(form);
+      if (!r.ok) return announce(r.message);
+      announce(r.message, () => undoSingle(id, action === "pause" ? "activate" : "pause"));
+    });
+  }
+
+  function undoSingle(id: string, action: "pause" | "activate") {
+    const form = new FormData();
+    form.set("ids", id);
+    form.set("action", action);
     startTransition(async () => {
       const r = await bulkSourcesAction(form);
-      setAnnouncement(r.message);
-      if (r.ok) setSelected(new Set());
+      announce(r.message);
     });
+  }
+
+  function runPauseResume(row: SourceListRow) {
+    applyStatus(row.id, row.version, row.displayStatus === "paused" ? "resume" : "pause");
   }
 
   function runCollectNow(id: string) {
@@ -119,18 +154,49 @@ export function SourcesTable({
     form.set("id", id);
     startTransition(async () => {
       const r = await collectNowAction(form);
-      setAnnouncement(r.message);
+      announce(r.message);
     });
   }
 
-  function runPauseResume(row: SourceListRow) {
+  /** Lote (pausar/ativar/frequência); pausar e ativar em lote também ganham "Desfazer". */
+  function runBulk(
+    action: "pause" | "activate" | "frequency",
+    frequencyMinutes?: number | null,
+    reason?: string,
+  ) {
+    const ids = selectedIds;
     const form = new FormData();
-    form.set("id", row.id);
-    form.set("version", String(row.version));
-    form.set("action", row.displayStatus === "paused" ? "resume" : "pause");
+    for (const id of ids) form.append("ids", id);
+    form.set("action", action);
+    if (action === "frequency")
+      form.set(
+        "frequencyMinutes",
+        frequencyMinutes === null || frequencyMinutes === undefined
+          ? "padrao"
+          : String(frequencyMinutes),
+      );
+    if (reason) form.set("reason", reason);
     startTransition(async () => {
-      const r = await sourceStatusAction(form);
-      setAnnouncement(r.message);
+      const r = await bulkSourcesAction(form);
+      if (!r.ok) return announce(r.message);
+      setSelected(new Set());
+      const data = r.data as { items?: { id: string; outcome: string }[] } | undefined;
+      const doneIds = (data?.items ?? []).filter((i) => i.outcome === "done").map((i) => i.id);
+      const undo =
+        (action === "pause" || action === "activate") && doneIds.length > 0
+          ? () => runBulkUndo(action === "pause" ? "activate" : "pause", doneIds)
+          : undefined;
+      announce(r.message, undo);
+    });
+  }
+
+  function runBulkUndo(action: "pause" | "activate", ids: string[]) {
+    const form = new FormData();
+    for (const id of ids) form.append("ids", id);
+    form.set("action", action);
+    startTransition(async () => {
+      const r = await bulkSourcesAction(form);
+      announce(r.message);
     });
   }
 
@@ -138,13 +204,32 @@ export function SourcesTable({
 
   return (
     <div className={cx("flex flex-col gap-4", className)}>
-      <p role="status" aria-live="polite" className="sr-only">
-        {announcement}
-      </p>
+      {announcement && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed inset-x-0 bottom-4 z-toast mx-auto flex w-fit max-w-[calc(100%-2rem)] items-center gap-4 rounded-lg bg-inverse px-5 py-3 text-on-inverse shadow-dialog"
+        >
+          <span className="type-body">{announcement.message}</span>
+          {announcement.undo && (
+            <button
+              type="button"
+              onClick={() => {
+                announcement.undo?.();
+                setAnnouncement(null);
+              }}
+              className="type-body font-semibold text-on-inverse underline underline-offset-4"
+            >
+              {T.toast.undo}
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* Desktop: tabela (>= md) */}
+      {/* Desktop: tabela (>= md), com Camada/Localidade no cabeçalho da fonte a partir de 1280 px
+          e Prioridade/Última coleta/Erros 24 h só a partir de 1440 px (achado da revisão). */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-max border-collapse text-left">
+        <table className="w-full min-w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-line-section">
               <th scope="col" className="p-3">
@@ -167,12 +252,6 @@ export function SourcesTable({
               <th scope="col" className="p-3 type-meta text-meta">
                 {T.columns.status}
               </th>
-              <th scope="col" className="p-3 type-meta text-meta">
-                {T.columns.layer}
-              </th>
-              <th scope="col" className="p-3 type-meta text-meta">
-                {T.columns.locality}
-              </th>
               <SortableHeader
                 col="score"
                 label={T.columns.score}
@@ -181,7 +260,7 @@ export function SourcesTable({
                 basePath={basePath}
                 query={query}
               />
-              <th scope="col" className="p-3 type-meta text-meta">
+              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
                 {T.columns.priority}
               </th>
               <th scope="col" className="p-3 type-meta text-meta">
@@ -195,22 +274,17 @@ export function SourcesTable({
                 basePath={basePath}
                 query={query}
               />
-              <SortableHeader
-                col="last"
-                label={T.columns.lastFetch}
-                sort={sort}
-                dir={dir}
-                basePath={basePath}
-                query={query}
-              />
+              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
+                {T.columns.lastFetch}
+              </th>
               <th scope="col" className="p-3 type-meta text-meta">
                 {T.columns.nextFetch}
               </th>
-              <th scope="col" className="p-3 type-meta text-meta">
+              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
                 {T.columns.errors}
               </th>
               <th scope="col" className="p-3 type-meta text-meta">
-                {T.columns.actions}
+                <span className="sr-only">{T.columns.actions}</span>
               </th>
             </tr>
           </thead>
@@ -220,6 +294,12 @@ export function SourcesTable({
                 row.displayStatus === "active" || row.displayStatus === "degraded";
               const canPause = row.displayStatus === "active" || row.displayStatus === "degraded";
               const canResume = row.displayStatus === "paused";
+              const secondary = [
+                row.layer ? LAYER_TEXT[row.layer] : null,
+                LOCALITY_TEXT[row.locality] ?? row.locality,
+              ]
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <tr key={row.id} className="border-b border-line-subtle align-top">
                   <td className="p-3">
@@ -238,21 +318,18 @@ export function SourcesTable({
                     >
                       {row.name}
                     </Link>
-                    <p className="type-meta text-meta">{row.domain}</p>
+                    <p className="type-meta text-meta">
+                      {row.domain}
+                      {secondary ? ` · ${secondary}` : ""}
+                    </p>
                   </td>
                   <td className="p-3">
                     <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
                   </td>
-                  <td className="p-3 type-meta text-strong">
-                    {row.layer ? LAYER_TEXT[row.layer] : "—"}
-                  </td>
-                  <td className="p-3 type-meta text-strong">
-                    {LOCALITY_TEXT[row.locality] ?? row.locality}
-                  </td>
                   <td className="p-3">
                     <EditorialScore score={row.editorialScore} />
                   </td>
-                  <td className="p-3 type-meta text-strong">{PRIORITY_TEXT[row.priority]}</td>
+                  <td className={SECONDARY_CELL}>{PRIORITY_TEXT[row.priority]}</td>
                   <td className="p-3">
                     <FrequencyLabel
                       frequencyMinutes={row.frequencyMinutes}
@@ -262,46 +339,24 @@ export function SourcesTable({
                   <td className="p-3">
                     <HealthBadge score={row.operationalScore} label={row.health} />
                   </td>
-                  <td className="p-3 type-meta text-strong">
+                  <td className={SECONDARY_CELL}>
                     {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
                   </td>
                   <td className="p-3 type-meta text-strong">
                     {row.nextCollectionAt ? clockTime(row.nextCollectionAt) : FREQUENCY_TEXT.noNext}
                   </td>
-                  <td className="p-3 type-meta text-strong">{row.errors24h}</td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {canCollectNow && (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => runCollectNow(row.id)}
-                          aria-label={`${T.rowActions.collectNow} · ${row.name}`}
-                          className="hit-area inline-flex items-center gap-1 rounded-pill border border-line-control px-2.5 type-meta text-strong disabled:opacity-60"
-                        >
-                          <Icon name="refresh-cw" size={14} />
-                          {T.rowActions.collectNow}
-                        </button>
-                      )}
-                      {(canPause || canResume) && (
-                        <button
-                          type="button"
-                          disabled={pending}
-                          onClick={() => runPauseResume(row)}
-                          aria-label={`${canResume ? T.rowActions.resume : T.rowActions.pause} · ${row.name}`}
-                          className="hit-area inline-flex items-center gap-1 rounded-pill border border-line-control px-2.5 type-meta text-strong disabled:opacity-60"
-                        >
-                          <Icon name="circle-pause" size={14} />
-                          {canResume ? T.rowActions.resume : T.rowActions.pause}
-                        </button>
-                      )}
-                      <Link
-                        href={hrefFor(row.id)}
-                        className="hit-area inline-flex items-center gap-1 rounded-pill border border-line-control px-2.5 type-meta text-strong no-underline"
-                      >
-                        {T.rowActions.open}
-                      </Link>
-                    </div>
+                  <td className={SECONDARY_CELL}>{row.errors24h}</td>
+                  <td className="p-3 text-right">
+                    <SourceRowMenu
+                      name={row.name}
+                      href={hrefFor(row.id)}
+                      canCollectNow={canCollectNow}
+                      canPause={canPause}
+                      canResume={canResume}
+                      busy={pending}
+                      onCollectNow={() => runCollectNow(row.id)}
+                      onPauseResume={() => runPauseResume(row)}
+                    />
                   </td>
                 </tr>
               );
@@ -329,11 +384,12 @@ export function SourcesTable({
       <BulkActionsBar
         count={selected.size}
         busy={pending}
+        defaultFrequencyMinutes={defaultFrequencyMinutes}
+        fastLane={fastLane}
         onPause={() => runBulk("pause")}
         onActivate={() => runBulk("activate")}
-        onApplyFrequency={(minutes) => runBulk("frequency", minutes)}
+        onApplyFrequency={(minutes, reason) => runBulk("frequency", minutes, reason)}
         onClear={() => setSelected(new Set())}
-        frequencyOptions={BULK_FREQUENCIES}
       />
     </div>
   );

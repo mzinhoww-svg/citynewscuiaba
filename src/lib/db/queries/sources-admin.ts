@@ -939,3 +939,72 @@ export async function pendingSourceApprovals(): Promise<
 > {
   return readAdmin((c) => pendingRows(c.db));
 }
+
+// ---------------------------------------------------------------------------
+// Fontes puladas pela via rápida por falta de vaga (spec §8, aviso do cabeçalho O03)
+// ---------------------------------------------------------------------------
+
+export interface FastLaneSkip {
+  slug: string;
+  runId: string;
+  /** `started_at` do run mais recente que pulou esta fonte por `fast_lane_full`. */
+  at: string;
+}
+
+/**
+ * De runs `fast` recentes, a fonte (uma linha por `slug`, a mais recente) pulada por
+ * `fast_lane_full` — nunca `previous_pending` nem `rate_limited`, que não são falta de vaga.
+ */
+export function fastLaneFullSkips(
+  runs: readonly { id: string; started_at: string; stats: unknown }[],
+): FastLaneSkip[] {
+  const bySlug = new Map<string, FastLaneSkip>();
+  for (const r of runs) {
+    const stats = (r.stats ?? {}) as { skipped?: { slug: string; reason: string }[] };
+    for (const s of stats.skipped ?? []) {
+      if (s.reason !== "fast_lane_full") continue;
+      const prev = bySlug.get(s.slug);
+      if (!prev || r.started_at > prev.at)
+        bySlug.set(s.slug, { slug: s.slug, runId: r.id, at: r.started_at });
+    }
+  }
+  return [...bySlug.values()];
+}
+
+export interface FastLaneSkippedSource {
+  slug: string;
+  name: string;
+  at: string;
+}
+
+/** Fontes rápidas puladas por `fast_lane_full` nos últimos 30 min (spec §8, banner do cabeçalho). */
+export async function fastLaneSkippedSources(
+  now: Date = new Date(),
+): Promise<Result<FastLaneSkippedSource[], QueryError>> {
+  return readAdmin(async (c) => {
+    const since = new Date(now.getTime() - 30 * 60_000).toISOString();
+    const runs = many(
+      await c
+        .svc()
+        .from("ingest_runs")
+        .select("id, started_at, stats")
+        .eq("trigger", "fast")
+        .gte("started_at", since)
+        .order("started_at", { ascending: false })
+        .limit(20),
+    );
+    const skips = fastLaneFullSkips(runs);
+    if (skips.length === 0) return [];
+    const sources = many(
+      await c.db
+        .from("sources")
+        .select("slug, name, display_name")
+        .in(
+          "slug",
+          skips.map((s) => s.slug),
+        ),
+    );
+    const nameOf = new Map(sources.map((s) => [s.slug, s.display_name ?? s.name]));
+    return skips.map((s) => ({ slug: s.slug, name: nameOf.get(s.slug) ?? s.slug, at: s.at }));
+  });
+}

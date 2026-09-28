@@ -2,13 +2,14 @@
  * Textos do painel de fontes (spec docs/superpowers/specs/2026-09-27-painel-de-fontes.md §7–§9):
  * rótulos de status, motivos, camadas, políticas, mensagens das ações e de erro.
  */
-import type {
-  HealthLabel,
-  ImagePolicy,
-  Reliability,
-  RepublishPolicy,
-  SourceStatus,
-  StatusReason,
+import {
+  FAST_FREQUENCIES,
+  type HealthLabel,
+  type ImagePolicy,
+  type Reliability,
+  type RepublishPolicy,
+  type SourceStatus,
+  type StatusReason,
 } from "@/lib/sources";
 
 /** Status exibido: os quatro do banco, mais "pausada automaticamente" e "arquivada". */
@@ -111,6 +112,27 @@ export function formatMinutes(minutes: number): string {
   const m = minutes % 60;
   return m === 0 ? `${h} h` : `${h} h ${m}`;
 }
+
+export interface FrequencyOption {
+  value: string;
+  label: string;
+}
+
+/** Grade do ciclo normal (múltiplos de 30 min, de 30 min a 24 h — mesma grade do banco, D-F14). */
+export const NORMAL_FREQUENCY_GRID: readonly number[] = Array.from(
+  { length: 48 },
+  (_, i) => (i + 1) * 30,
+);
+
+/**
+ * Opções de frequência para `<select>`, com o rótulo único de `formatMinutes` (achado da revisão
+ * FS-T7 fix round 1: `CollectionSettingsDialog` e a lista tinham cada uma a sua própria grade).
+ */
+export const normalFrequencyOptions = (): FrequencyOption[] =>
+  NORMAL_FREQUENCY_GRID.map((m) => ({ value: String(m), label: formatMinutes(m) }));
+
+export const fastFrequencyOptions = (): FrequencyOption[] =>
+  FAST_FREQUENCIES.map((m) => ({ value: String(m), label: formatMinutes(m) }));
 
 export const FREQUENCY_TEXT = {
   default: "padrão",
@@ -343,12 +365,29 @@ export const SOURCES_LIST_TEXT = {
     clear: "Limpar seleção",
     pause: "Pausar",
     activate: "Ativar",
-    frequencyLabel: "Frequência",
-    apply: "Aplicar",
+    frequencyButton: "Mudar frequência",
     pauseDialogTitle: (n: number) => `Pausar ${n} ${listPlural(n, "fonte", "fontes")}?`,
     pauseDialogBody: "As fontes selecionadas param de ser coletadas até você retomá-las.",
     pauseDialogConfirm: (n: number) => `Pausar ${n} ${listPlural(n, "fonte", "fontes")}`,
     cancel: "Cancelar",
+  },
+  /** Diálogo de frequência em lote (wireframe Lote.dc.html, spec §7.6). */
+  bulkFrequency: {
+    title: (n: number) => `Mudar frequência de ${n} ${listPlural(n, "fonte", "fontes")}`,
+    legend: "Nova frequência",
+    followDefault: (label: string) => `Seguir o padrão global (${label})`,
+    fastLane: "Via rápida:",
+    fastLaneSelectLabel: "Intervalo da via rápida",
+    normalCycle: "Ciclo normal:",
+    normalSelectLabel: "Intervalo do ciclo normal",
+    predicted: (n: number, label: string) =>
+      `Resultado previsto: ${n} ${listPlural(n, "fonte passa", "fontes passam")} a ${label}.`,
+    predictedIgnored: (n: number) =>
+      ` ${n} ${listPlural(n, "seria ignorada", "seriam ignoradas")}: via rápida cheia.`,
+    reasonLabel: "Motivo (vai para a auditoria)",
+    reasonRequired: "Explique o motivo desta mudança em lote.",
+    cancel: "Cancelar",
+    confirm: (n: number) => `Aplicar às ${n} ${listPlural(n, "fonte", "fontes")}`,
   },
   empty: {
     noneTitle: "Nenhuma fonte cadastrada ainda.",
@@ -376,5 +415,15 @@ export const SOURCES_LIST_TEXT = {
     one: "1 mudança aguarda segunda aprovação.",
     many: (n: number) => `${n} mudanças aguardam segunda aprovação.`,
     review: "Revisar",
+  },
+  /** Aviso de fontes rápidas puladas por falta de vaga (spec §8, cabeçalho O03). */
+  fastLaneSkipped: {
+    titleOne: (name: string) => `${name} não coletou pela via rápida nos últimos 30 min: sem vaga.`,
+    title: (names: string) =>
+      `${names} não coletaram pela via rápida nos últimos 30 min: sem vaga.`,
+    settingsLink: "Configurações da coleta",
+  },
+  toast: {
+    undo: "Desfazer",
   },
 } as const;

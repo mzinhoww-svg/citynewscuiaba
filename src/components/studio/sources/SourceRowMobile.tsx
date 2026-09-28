@@ -2,9 +2,9 @@ import Link from "next/link";
 import { fullDateTime, SOURCES_LIST_TEXT as T, scoreText } from "@/content/pt-BR/sources-admin";
 import type { SourceListRow } from "@/lib/db/queries/sources-admin";
 import { cx } from "../../cx";
-import { Icon } from "../../ui/Icon";
 import { FrequencyLabel } from "./FrequencyLabel";
 import { HealthBadge } from "./HealthBadge";
+import { SourceRowMenu } from "./SourceRowMenu";
 import { SourceStatusBadge } from "./SourceStatusBadge";
 
 export interface SourceRowMobileProps {
@@ -56,6 +56,16 @@ export function SourceRowMobile({
           </Link>
           <p className="type-meta text-meta">{row.domain}</p>
         </div>
+        <SourceRowMenu
+          name={row.name}
+          href={href}
+          canCollectNow={canCollectNow}
+          canPause={canPause}
+          canResume={canResume}
+          busy={busy}
+          onCollectNow={onCollectNow}
+          onPauseResume={onPauseResume}
+        />
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
@@ -67,38 +77,6 @@ export function SourceRowMobile({
         effective={row.effective}
         nextCollectionAt={row.nextCollectionAt}
       />
-      <div className="flex flex-wrap items-center gap-2">
-        {canCollectNow && (
-          <button
-            type="button"
-            onClick={onCollectNow}
-            disabled={busy}
-            aria-label={`${T.rowActions.collectNow} · ${row.name}`}
-            className="hit-area inline-flex items-center gap-1.5 rounded-pill border border-line-control px-3 type-meta text-strong disabled:opacity-60"
-          >
-            <Icon name="refresh-cw" size={16} />
-            <span aria-hidden="true">{T.rowActions.collectNow}</span>
-          </button>
-        )}
-        {(canPause || canResume) && (
-          <button
-            type="button"
-            onClick={onPauseResume}
-            disabled={busy}
-            aria-label={`${canResume ? T.rowActions.resume : T.rowActions.pause} · ${row.name}`}
-            className="hit-area inline-flex items-center gap-1.5 rounded-pill border border-line-control px-3 type-meta text-strong disabled:opacity-60"
-          >
-            <Icon name="circle-pause" size={16} />
-            <span aria-hidden="true">{canResume ? T.rowActions.resume : T.rowActions.pause}</span>
-          </button>
-        )}
-        <Link
-          href={href}
-          className="hit-area inline-flex items-center gap-1.5 rounded-pill border border-line-control px-3 type-meta text-strong no-underline"
-        >
-          {T.rowActions.open}
-        </Link>
-      </div>
       <p className="type-meta text-meta">
         {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
       </p>

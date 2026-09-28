@@ -68,6 +68,85 @@ test("configurações da coleta: padrão sem opções rápidas; vagas da via rá
   await expect(dialog.getByText("Via rápida: 0 de 5")).toBeVisible();
 });
 
+test("menu de ações por fonte: abre, mostra os itens e Esc devolve o foco ao gatilho", async ({
+  page,
+}) => {
+  await loginAs(page.context(), "helena");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(`${URL}?status=ativa`);
+  const trigger = page.getByRole("button", { name: "Ações de Placar MT" });
+  await trigger.click();
+  const menu = page.getByRole("menu", { name: "Ações de Placar MT" });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "Coletar agora" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "Pausar" })).toBeVisible();
+  await expect(menu.getByRole("menuitem", { name: "Abrir" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
+test("pausar pelo menu mostra Desfazer; desfazer retoma de novo", async ({ page }, testInfo) => {
+  // Muda o estado de "Placar MT" no banco compartilhado: roda uma única vez.
+  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
+  await loginAs(page.context(), "diego");
+  await page.goto(`${URL}?status=ativa`);
+  await page.getByRole("button", { name: "Ações de Placar MT" }).click();
+  await page.getByRole("menuitem", { name: "Pausar" }).click();
+  const toast = page.getByRole("status");
+  await expect(toast).toContainText("Fonte pausada");
+  await toast.getByRole("button", { name: "Desfazer" }).click();
+  // Desfazer usa o lote de uma fonte só (sem repetir o teste de conexão do "Retomar" direto).
+  await expect(toast).toContainText("1 ativada");
+});
+
+test("frequência em lote: rádios por via, resultado previsto e motivo obrigatório", async ({
+  page,
+}, testInfo) => {
+  // Muda a frequência de fontes reais no banco compartilhado: roda uma única vez.
+  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
+  await loginAs(page.context(), "diego");
+  await page.goto(`${URL}?status=ativa`);
+  await page.getByRole("checkbox", { name: "Selecionar Diário da Baixada" }).check();
+  await page.getByRole("checkbox", { name: "Selecionar Cena Cuiabana" }).check();
+  await page.getByRole("button", { name: "Mudar frequência" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("radio", { name: /Seguir o padrão global/ })).toBeChecked();
+  await expect(dialog.getByText(/Resultado previsto: 2/)).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
+  await expect(dialog.getByText("Explique o motivo desta mudança em lote.")).toBeVisible();
+
+  await dialog.getByRole("radio", { name: /Ciclo normal/ }).check();
+  await dialog.getByLabel("Intervalo do ciclo normal").selectOption({ label: "1 h" });
+  await expect(dialog.getByText("Resultado previsto: 2 fontes passam a 1 h.")).toBeVisible();
+  await dialog.getByLabel("Motivo (vai para a auditoria)").fill("Reduzir carga no fim de semana");
+  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
+
+  await expect(page.getByRole("status")).toContainText("com a frequência nova");
+});
+
+test("1280 px: colunas-chave cabem sem rolagem horizontal; secundárias ficam ocultas", async ({
+  page,
+}) => {
+  await loginAs(page.context(), "helena");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto(URL);
+  await expect(page.getByRole("heading", { level: 1, name: "Fontes" })).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+  );
+  expect(overflow).toBe(false);
+  for (const name of ["Fonte", "Status", "Score", "Frequência", "Saúde", "Próxima coleta"]) {
+    await expect(page.getByRole("columnheader", { name })).toBeVisible();
+  }
+  // Camada, Localidade, Prioridade, Última coleta e Erros 24 h só a partir de 1440 px.
+  await expect(page.getByRole("columnheader", { name: "Prioridade" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Última coleta" })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Erros 24 h" })).toHaveCount(0);
+});
+
 test("360 px vira lista sem rolagem horizontal", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await loginAs(page.context(), "helena");

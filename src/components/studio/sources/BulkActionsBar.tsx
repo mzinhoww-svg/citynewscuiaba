@@ -1,50 +1,49 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import { SOURCES_LIST_TEXT as T } from "@/content/pt-BR/sources-admin";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
-
-export interface FrequencyOption {
-  value: string;
-  label: string;
-}
+import { BulkFrequencyDialog } from "./BulkFrequencyDialog";
 
 export interface BulkActionsBarProps {
   /** Fontes selecionadas na página atual. */
   count: number;
   busy?: boolean;
+  defaultFrequencyMinutes: number;
+  fastLane: { max: number; used: number };
   onPause: () => void;
   onActivate: () => void;
-  onApplyFrequency: (minutes: number | null) => void;
+  onApplyFrequency: (minutes: number | null, reason: string) => void;
   onClear: () => void;
-  frequencyOptions: readonly FrequencyOption[];
   className?: string;
 }
 
 /**
  * Barra de ações em lote (spec §8, O03): aparece com a seleção, anuncia a contagem
- * (`aria-live="polite"`) e confirma a pausa antes de aplicar (até 50 fontes, §7.6).
+ * (`aria-live="polite"`) e confirma a pausa antes de aplicar (até 50 fontes, §7.6). A mudança de
+ * frequência abre `BulkFrequencyDialog` (wireframe `Lote.dc.html`), não um `<select>` solto
+ * (achado da revisão FS-T7 fix round 1).
  *
  * ```tsx
- * <BulkActionsBar count={2} onPause={pause} onActivate={activate} onApplyFrequency={setFreq}
- *   onClear={clear} frequencyOptions={options} />
+ * <BulkActionsBar count={2} defaultFrequencyMinutes={30} fastLane={{ max: 10, used: 0 }}
+ *   onPause={pause} onActivate={activate} onApplyFrequency={setFreq} onClear={clear} />
  * ```
  */
 export function BulkActionsBar({
   count,
   busy = false,
+  defaultFrequencyMinutes,
+  fastLane,
   onPause,
   onActivate,
   onApplyFrequency,
   onClear,
-  frequencyOptions,
   className,
 }: BulkActionsBarProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [freq, setFreq] = useState("");
-  const selectId = useId();
+  const [freqOpen, setFreqOpen] = useState(false);
 
   if (count === 0) return null;
 
@@ -59,35 +58,14 @@ export function BulkActionsBar({
         {T.bulk.selected(count)}
       </p>
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => setFreqOpen(true)}>
+          {T.bulk.frequencyButton}
+        </Button>
         <Button size="sm" variant="outline" disabled={busy} onClick={() => setConfirmOpen(true)}>
           {T.bulk.pause}
         </Button>
         <Button size="sm" variant="outline" disabled={busy} onClick={onActivate}>
           {T.bulk.activate}
-        </Button>
-        <label htmlFor={selectId} className="sr-only">
-          {T.bulk.frequencyLabel}
-        </label>
-        <select
-          id={selectId}
-          value={freq}
-          onChange={(e) => setFreq(e.target.value)}
-          className="border-control h-tap rounded-lg bg-input px-3 type-meta text-strong"
-        >
-          <option value="">{T.bulk.frequencyLabel}</option>
-          {frequencyOptions.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={busy || freq === ""}
-          onClick={() => onApplyFrequency(freq === "padrao" ? null : Number(freq))}
-        >
-          {T.bulk.apply}
         </Button>
         <Button size="sm" variant="text" disabled={busy} onClick={onClear}>
           {T.bulk.clear}
@@ -117,6 +95,18 @@ export function BulkActionsBar({
       >
         {T.bulk.pauseDialogBody}
       </Dialog>
+      <BulkFrequencyDialog
+        open={freqOpen}
+        count={count}
+        defaultFrequencyMinutes={defaultFrequencyMinutes}
+        fastLane={fastLane}
+        busy={busy}
+        onCancel={() => setFreqOpen(false)}
+        onApply={(minutes, reason) => {
+          setFreqOpen(false);
+          onApplyFrequency(minutes, reason);
+        }}
+      />
     </div>
   );
 }
