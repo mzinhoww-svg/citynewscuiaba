@@ -41,10 +41,15 @@ type ArticleRow = Pick<
   | "sponsored"
   | "published_at"
   | "updated_at"
+  | "seo_title"
+  | "seo_description"
 >;
 
 export const ARTICLE_COLUMNS =
-  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at";
+  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description";
+
+/** Destinos escolhidos na publicação (E06): a home e a editoria só listam o que foi para elas. */
+export type PublicDestination = "home" | "section";
 
 export const PUBLIC_STATUSES = ["published", "updated"] as const;
 
@@ -131,7 +136,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       ? db
           .from("article_media")
           .select(
-            "article_id, media_assets(id, kind, storage_path, origin_url, license, credit, status)",
+            "article_id, alt, media_assets(id, kind, storage_path, origin_url, license, credit, status)",
           )
           .in("article_id", ids)
           .then(many)
@@ -161,7 +166,8 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
     images.set(m.article_id, {
       // Bucket privado (ADR-009): a rota própria valida aprovação e flag e assina a URL.
       src: mediaHref(asset.id),
-      alt: "",
+      // Texto alternativo escrito na redação (o checklist exige); sem ele, imagem decorativa.
+      alt: m.alt?.trim() ?? "",
       kind,
       credit:
         kind === "reproduction"
@@ -241,15 +247,18 @@ export async function summarize(db: DbClient, rows: ArticleRow[]): Promise<Artic
   return rows.map((r) => toSummary(r, h));
 }
 
-/** Matérias públicas mais recentes (base da home e das listas). */
-export async function fetchRecentArticles(db: DbClient, limit: number): Promise<ArticleRow[]> {
-  return db
+/** Matérias públicas mais recentes (base da home e das listas), opcionalmente de um destino. */
+export async function fetchRecentArticles(
+  db: DbClient,
+  limit: number,
+  destination?: PublicDestination,
+): Promise<ArticleRow[]> {
+  let q = db
     .from("articles")
     .select(ARTICLE_COLUMNS)
-    .in("status", [...PUBLIC_STATUSES])
-    .order("published_at", { ascending: false })
-    .limit(limit)
-    .then(many);
+    .in("status", [...PUBLIC_STATUSES]);
+  if (destination) q = q.contains("publish_destinations", [destination]);
+  return q.order("published_at", { ascending: false }).limit(limit).then(many);
 }
 
 const ROLE_ORDER = { primary: 0, secondary: 1, context: 2 } as const;
@@ -413,6 +422,8 @@ export async function getArticleBySlug(
       authorIsPerson: summary.byline !== BYLINE.newsroom,
       topic: topic ? { slug: topic.slug, title: topic.title, state: topic.state } : null,
       related,
+      seoTitle: row.seo_title?.trim() || null,
+      seoDescription: row.seo_description?.trim() || null,
     };
     return view;
   }, slugCache);

@@ -83,7 +83,7 @@ export async function getHomeData(
   return readPublic(
     async (db) => {
       const [rows, topics, collections, events, sources, aggregated] = await Promise.all([
-        fetchRecentArticles(db, 60),
+        fetchRecentArticles(db, 60, "home"),
         fetchActiveTopics(db, 3),
         fetchCollections(db, 4),
         fetchEvents(db, { limit: 3 }, now),

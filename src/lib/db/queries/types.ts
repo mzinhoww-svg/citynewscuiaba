@@ -84,6 +84,9 @@ export interface ArticleView extends ArticleSummary {
   topic: TopicRef | null;
   /** Mesmo assunto primeiro, depois 2 da editoria. */
   related: ArticleSummary[];
+  /** Título e descrição de SEO do Estúdio (metadados da página); `null` usa título e linha fina. */
+  seoTitle: string | null;
+  seoDescription: string | null;
 }
 
 /** Uma versão publicada no histórico público (P04). */

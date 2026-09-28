@@ -7,6 +7,9 @@ import { ARTICLE_COLUMNS, PUBLIC_STATUSES, summarize } from "./articles";
 import { many, readPublic } from "./run";
 import type { ArticleSummary, QueryError, SectionRef } from "./types";
 
+/** Editoria lista só o que foi publicado com o destino "editoria" (E06). */
+const SECTION_DESTINATION = "section";
+
 export type { SectionFilters } from "@/lib/filters/section";
 
 export const SECTION_PAGE_SIZE = 12;
@@ -72,6 +75,7 @@ function filtered(db: DbClient, slugs: string[], f: Filters, now: Date) {
     .from("articles")
     .select(ARTICLE_COLUMNS, { count: "exact" })
     .in("status", [...PUBLIC_STATUSES])
+    .contains("publish_destinations", [SECTION_DESTINATION])
     .in("section_slug", slugs);
   if (f.origin === "original" || f.origin === "normalized") q = q.eq("kind", f.origin);
   if (f.neighborhood) q = q.contains("neighborhoods", [f.neighborhood]);
@@ -93,6 +97,7 @@ async function mostReadIn(db: DbClient, slugs: string[]): Promise<ArticleSummary
           .in("id", ids)
           .in("section_slug", slugs)
           .in("status", [...PUBLIC_STATUSES])
+          .contains("publish_destinations", [SECTION_DESTINATION])
           .then(many)
       : Promise.resolve([]),
     db
@@ -100,6 +105,7 @@ async function mostReadIn(db: DbClient, slugs: string[]): Promise<ArticleSummary
       .select(ARTICLE_COLUMNS)
       .in("section_slug", slugs)
       .in("status", [...PUBLIC_STATUSES])
+      .contains("publish_destinations", [SECTION_DESTINATION])
       .eq("sponsored", false)
       .order("published_at", { ascending: false })
       .limit(MOST_READ_COUNT)
@@ -187,6 +193,7 @@ export async function countSectionSince(
       .from("articles")
       .select("id", { count: "exact", head: true })
       .in("status", [...PUBLIC_STATUSES])
+      .contains("publish_destinations", [SECTION_DESTINATION])
       .in("section_slug", scope.slugs)
       .gt("published_at", sinceIso);
     if (filters.origin === "original" || filters.origin === "normalized") {
