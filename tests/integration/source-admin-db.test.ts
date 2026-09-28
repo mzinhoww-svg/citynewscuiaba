@@ -9,6 +9,7 @@ import { createServiceClient, type DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 
 const SEED_PASSWORD = "citynews-local-123";
+const HELENA = "c1000000-0000-4000-8000-000000000001"; // admin
 const MARINA = "c1000000-0000-4000-8000-000000000002"; // editor_chefe
 const DIEGO = "c1000000-0000-4000-8000-000000000007"; // operador_ia
 
@@ -38,6 +39,7 @@ function as(email: string): Promise<DbClient> {
 const helena = () => as("helena.costa@citynews.local");
 const marina = () => as("marina.arruda@citynews.local");
 const diego = () => as("diego.prado@citynews.local");
+const thiago = () => as("thiago.moraes@citynews.local"); // analista, sem source.manage
 
 /** R1: converte `{ error }` do supabase-js em exceção, para `rejects.toThrow()` funcionar. */
 async function rpc(name: string, args?: Record<string, unknown>) {
@@ -215,7 +217,9 @@ describe("claim_source_fetch: uma coleta por janela (D-F29, Review Focus 6)", ()
     const id = (await sourceBySlug("folha-do-cerrado")).id;
     const cronRun = randomUUID();
     const fastRun = randomUUID();
-    const since = "2026-09-27T14:30:00Z";
+    // Início da janela atual de 10 min (em vez de uma data fixa no passado): testa a semântica
+    // "já coletou nesta janela", não só "já coletou algum dia".
+    const since = new Date(Math.floor(Date.now() / 600_000) * 600_000).toISOString();
 
     expect(await rpc("claim_source_fetch", { p_source: id, p_run: cronRun, p_since: since })).toBe(
       true,
@@ -226,6 +230,481 @@ describe("claim_source_fetch: uma coleta por janela (D-F29, Review Focus 6)", ()
     expect(await rpc("claim_source_fetch", { p_source: id, p_run: cronRun, p_since: since })).toBe(
       true,
     );
+  });
+
+  it("não altera a versão otimista (Finding 2): claim é bookkeeping operacional", async () => {
+    const before = await sourceBySlug("folha-do-cerrado");
+    await rpc("claim_source_fetch", {
+      p_source: before.id,
+      p_run: randomUUID(),
+      p_since: new Date(Date.now() - 60_000).toISOString(),
+    });
+    expect((await sourceBySlug("folha-do-cerrado")).version).toBe(before.version);
+  });
+});
+
+describe("criação de fonte: duas pessoas vale desde o create (Finding 1, Review Focus 2)", () => {
+  it("Diego não cria fonte já com os quatro campos críticos afrouxados", async () => {
+    await expect(
+      rpcAs(diego(), "source_admin_create", {
+        p: {
+          slug: `fonte-critica-${randomUUID().slice(0, 8)}`,
+          name: "Fonte crítica",
+          baseUrl: "https://fonte-critica.example",
+          kind: "rss",
+          locality: "cuiaba",
+          imagePolicy: "reproduction",
+          reliability: "primary",
+          mayBeSoleSource: true,
+          republishPolicy: "summary_2_sentences",
+        },
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/aprovação/);
+  });
+
+  it("SQL direto com campo crítico afrouxado no insert também é recusado", async () => {
+    const d = await diego();
+    await expect(
+      d
+        .from("sources")
+        .insert({
+          slug: `fonte-critica-sql-${randomUUID().slice(0, 8)}`,
+          name: "Fonte crítica SQL",
+          base_url: "https://fonte-critica-sql.example",
+          kind: "rss",
+          locality: "cuiaba",
+          reliability: "primary",
+        })
+        .then(throwOnError),
+    ).rejects.toThrow(/aprovação/);
+  });
+
+  it("criação com o padrão restrito funciona (paused, pending_activation)", async () => {
+    const id = (await rpcAs(diego(), "source_admin_create", {
+      p: {
+        slug: `fonte-ok-${randomUUID().slice(0, 8)}`,
+        name: "Fonte OK",
+        baseUrl: "https://fonte-ok.example",
+        kind: "rss",
+        locality: "cuiaba",
+      },
+      p_ctx: {},
+    })) as string;
+    createdSourceIds.push(id);
+    const row = await asService.from("sources").select("*").eq("id", id).single();
+    expect(row.data).toMatchObject({
+      status: "paused",
+      status_reason: "pending_activation",
+      image_policy: "none",
+      republish_policy: "link_only",
+      reliability: "standard",
+      may_be_sole_source: false,
+      version: 1,
+    });
+  });
+});
+
+describe("versão só sobe com mudança de conteúdo (Finding 2, D-F23)", () => {
+  it("bookkeeping de coleta (last_fetched_at, etag, consecutive_failures) não bumpa a versão", async () => {
+    const before = await sourceBySlug("folha-do-cerrado");
+    await asService
+      .from("sources")
+      .update({
+        last_fetched_at: new Date().toISOString(),
+        etag: "etag-teste",
+        last_modified: "seg, 27 set 2026 10:00:00 GMT",
+        last_error: "erro transitório",
+        consecutive_failures: 1,
+      })
+      .eq("id", before.id);
+    expect((await sourceBySlug("folha-do-cerrado")).version).toBe(before.version);
+  });
+
+  it("mudar um campo de configuração bumpa a versão em 1", async () => {
+    const before = await sourceBySlug("mt-agora");
+    await rpcAs(helena(), "source_admin_update", {
+      p_id: before.id,
+      p_version: before.version,
+      p_patch: { priority: before.priority === 1 ? 2 : 1 },
+      p_ctx: {},
+    });
+    expect((await sourceBySlug("mt-agora")).version).toBe(before.version + 1);
+  });
+});
+
+describe("app_settings e source_discoveries: escrita só por RPC (Finding 3)", () => {
+  it("update direto em app_settings é recusado; app_setting_set como pessoa logada funciona e audita com ip_hash", async () => {
+    const h = await helena();
+    await expect(
+      h
+        .from("app_settings")
+        .update({ value: 20 })
+        .eq("key", "sources.fast_lane_max")
+        .then(throwOnError),
+    ).rejects.toThrow(/permission denied/);
+
+    await rpcAs(helena(), "app_setting_set", {
+      p_key: "sources.fast_lane_max",
+      p_value: 7,
+      p_ctx: { reason: "ajuste de teste" },
+      p_ip_hash: "ip-hash-settings-teste",
+    });
+    const setting = await asService
+      .from("app_settings")
+      .select("value")
+      .eq("key", "sources.fast_lane_max")
+      .single();
+    expect(setting.data?.value).toBe(7);
+
+    const rows = await asService
+      .from("audit_log")
+      .select("*")
+      .eq("action", "settings.update")
+      .eq("object_ref", "setting:sources.fast_lane_max")
+      .gt("at", testStart)
+      .order("id", { ascending: false })
+      .limit(1);
+    expect(rows.data?.[0]).toMatchObject({ ip_hash: "ip-hash-settings-teste" });
+    expect(rows.data?.[0]?.details).toMatchObject({ reason: "ajuste de teste" });
+
+    await rpcAs(helena(), "app_setting_set", {
+      p_key: "sources.fast_lane_max",
+      p_value: 10,
+      p_ctx: {},
+    });
+  });
+
+  it("analista sem source.manage: app_setting_set recusa com mensagem própria", async () => {
+    await expect(
+      rpcAs(thiago(), "app_setting_set", {
+        p_key: "sources.fast_lane_max",
+        p_value: 5,
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/sem permissão/);
+  });
+
+  it("insert direto em source_discoveries é recusado; source_discovery_save funciona", async () => {
+    const h = await helena();
+    await expect(
+      h
+        .from("source_discoveries")
+        .insert({ input_url: "https://teste.example", created_by: HELENA })
+        .then(throwOnError),
+    ).rejects.toThrow(/permission denied/);
+
+    const id = (await rpcAs(helena(), "source_discovery_save", {
+      p: { inputUrl: "https://teste.example/secao" },
+      p_ctx: {},
+    })) as string;
+    expect(id).toBeTruthy();
+    await asService.from("source_discoveries").delete().eq("id", id);
+  });
+});
+
+describe("erro de permissão é distinto de conflito de versão (achado da revisão)", () => {
+  it("analista sem source.manage recebe mensagem própria em source_admin_update", async () => {
+    const s = await sourceBySlug("mt-agora");
+    await expect(
+      rpcAs(thiago(), "source_admin_update", {
+        p_id: s.id,
+        p_version: s.version,
+        p_patch: { priority: 1 },
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/sem permissão/);
+  });
+
+  it("chave desconhecida no patch é um erro, não ignorada em silêncio (camelCase não é mais aceito)", async () => {
+    const s = await sourceBySlug("mt-agora");
+    await expect(
+      rpcAs(helena(), "source_admin_update", {
+        p_id: s.id,
+        p_version: s.version,
+        p_patch: { rateLimitPerHour: 10 },
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/campo desconhecido/);
+  });
+});
+
+describe("arquivar via SQL direto libera a vaga da via rápida (Finding 4, §7.8.2)", () => {
+  it("archived_at setado direto zera frequency_minutes < 30", async () => {
+    const created = await asService
+      .from("sources")
+      .insert({
+        slug: `fonte-rapida-${randomUUID().slice(0, 8)}`,
+        name: "Fonte rápida de teste",
+        base_url: "https://fonte-rapida.example",
+        kind: "rss",
+        locality: "cuiaba",
+        status: "paused",
+        frequency_minutes: 10,
+      })
+      .select()
+      .single();
+    expect(created.error).toBeNull();
+    const id = created.data!.id;
+    createdSourceIds.push(id);
+    expect(created.data!.frequency_minutes).toBe(10);
+
+    const archived = await asService
+      .from("sources")
+      .update({ archived_at: new Date().toISOString(), archive_reason: "teste" })
+      .eq("id", id)
+      .select()
+      .single();
+    expect(archived.error).toBeNull();
+    expect(archived.data!.frequency_minutes).toBeNull();
+  });
+});
+
+describe("transições de status inválidas são recusadas no trigger (Finding 5, §6.4)", () => {
+  it("blocked → active direto é recusado (só blocked → paused, via desbloquear)", async () => {
+    const created = await asService
+      .from("sources")
+      .insert({
+        slug: `fonte-bloqueada-${randomUUID().slice(0, 8)}`,
+        name: "Fonte bloqueada de teste",
+        base_url: "https://fonte-bloqueada.example",
+        kind: "rss",
+        locality: "cuiaba",
+        status: "blocked",
+      })
+      .select()
+      .single();
+    expect(created.error).toBeNull();
+    const id = created.data!.id;
+    createdSourceIds.push(id);
+
+    await expect(
+      asService.from("sources").update({ status: "active" }).eq("id", id).then(throwOnError),
+    ).rejects.toThrow(/transição de status/);
+  });
+
+  it("ativar (paused → active) exige termos revisados; 'activate' é sinônimo de 'resume'", async () => {
+    const created = await asService
+      .from("sources")
+      .insert({
+        slug: `fonte-sem-termos-${randomUUID().slice(0, 8)}`,
+        name: "Fonte sem termos",
+        base_url: "https://fonte-sem-termos.example",
+        kind: "rss",
+        locality: "cuiaba",
+        status: "paused",
+      })
+      .select()
+      .single();
+    expect(created.error).toBeNull();
+    const id = created.data!.id;
+    const slug = created.data!.slug;
+    createdSourceIds.push(id);
+
+    await expect(
+      rpc("source_admin_status", {
+        p_id: id,
+        p_version: created.data!.version,
+        p_action: "resume",
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/termos/);
+
+    await asService
+      .from("sources")
+      .update({ terms_reviewed_at: new Date().toISOString() })
+      .eq("id", id);
+    const withTerms = await sourceBySlug(slug);
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: withTerms.version,
+      p_action: "activate",
+      p_ctx: {},
+    });
+    expect((await sourceBySlug(slug)).status).toBe("active");
+  });
+});
+
+describe("ciclo de vida completo: bulk, pause/resume/block/unblock/restore", () => {
+  it("pausa em lote, retoma, bloqueia e desbloqueia (crítico) uma fonte de teste", async () => {
+    const created = await asService
+      .from("sources")
+      .insert({
+        slug: `fonte-ciclo-${randomUUID().slice(0, 8)}`,
+        name: "Fonte do ciclo de vida",
+        base_url: "https://fonte-ciclo.example",
+        kind: "rss",
+        locality: "cuiaba",
+        status: "active",
+        terms_reviewed_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+    expect(created.error).toBeNull();
+    const id = created.data!.id;
+    const slug = created.data!.slug;
+    createdSourceIds.push(id);
+
+    const bulkResult = await rpc("source_admin_bulk", {
+      p_ids: [id],
+      p_action: "pause",
+      p_value: {},
+      p_ctx: {},
+    });
+    expect(bulkResult).toEqual([{ id, ok: true }]);
+    expect((await sourceBySlug(slug)).status).toBe("paused");
+
+    const paused = await sourceBySlug(slug);
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: paused.version,
+      p_action: "resume",
+      p_ctx: {},
+    });
+    expect((await sourceBySlug(slug)).status).toBe("active");
+
+    const active = await sourceBySlug(slug);
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: active.version,
+      p_action: "block",
+      p_reason: "quality",
+      p_ctx: {},
+    });
+    const blocked = await sourceBySlug(slug);
+    expect(blocked.status).toBe("blocked");
+
+    await expect(
+      rpcAs(helena(), "source_admin_status", {
+        p_id: id,
+        p_version: blocked.version,
+        p_action: "unblock",
+        p_ctx: {},
+      }),
+    ).rejects.toThrow(/aprovação/);
+
+    const h = await helena();
+    const approvalRow = await h
+      .from("approvals")
+      .insert({
+        kind: "source.critical",
+        target_ref: `source:${id}:status=paused`,
+        requested_by: HELENA,
+        justification: "Motivo resolvido com o veículo",
+      })
+      .select()
+      .single();
+    expect(approvalRow.error).toBeNull();
+    createdApprovalIds.push(approvalRow.data!.id);
+    const m = await marina();
+    await m
+      .from("approvals")
+      .update({ status: "approved", approved_by: MARINA })
+      .eq("id", approvalRow.data!.id);
+
+    await rpcAs(helena(), "source_admin_status", {
+      p_id: id,
+      p_version: blocked.version,
+      p_action: "unblock",
+      p_ctx: {},
+    });
+    expect((await sourceBySlug(slug)).status).toBe("paused");
+  });
+
+  it("restaurar uma fonte arquivada volta para paused", async () => {
+    const created = await asService
+      .from("sources")
+      .insert({
+        slug: `fonte-restaurar-${randomUUID().slice(0, 8)}`,
+        name: "Fonte a restaurar",
+        base_url: "https://fonte-restaurar.example",
+        kind: "rss",
+        locality: "cuiaba",
+        status: "paused",
+        archived_at: new Date().toISOString(),
+        archive_reason: "teste",
+      })
+      .select()
+      .single();
+    expect(created.error).toBeNull();
+    const id = created.data!.id;
+    const slug = created.data!.slug;
+    createdSourceIds.push(id);
+
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: created.data!.version,
+      p_action: "restore",
+      p_ctx: {},
+    });
+    const restored = await sourceBySlug(slug);
+    expect(restored).toMatchObject({
+      archived_at: null,
+      status: "paused",
+      status_reason: "manual",
+    });
+  });
+});
+
+describe("peek_rate_limit e record_source_fetch (só service_role)", () => {
+  it("peek_rate_limit não consome cota e respeita o limite já usado", async () => {
+    const bucket = `teste-fs-t1-${randomUUID().slice(0, 8)}`;
+    const keyHash = "hash-teste";
+    expect(
+      await rpc("peek_rate_limit", {
+        p_bucket: bucket,
+        p_key_hash: keyHash,
+        p_limit: 1,
+        p_window_seconds: 60,
+      }),
+    ).toBe(true);
+    await asService.rpc("hit_rate_limit", {
+      p_bucket: bucket,
+      p_key_hash: keyHash,
+      p_limit: 1,
+      p_window_seconds: 60,
+    });
+    expect(
+      await rpc("peek_rate_limit", {
+        p_bucket: bucket,
+        p_key_hash: keyHash,
+        p_limit: 1,
+        p_window_seconds: 60,
+      }),
+    ).toBe(false);
+    await asService.from("rate_limits").delete().eq("bucket", bucket);
+  });
+
+  it("record_source_fetch soma o dia de forma idempotente", async () => {
+    const id = (await sourceBySlug("mt-agora")).id;
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Cuiaba" }).format(new Date());
+    await rpc("record_source_fetch", {
+      p_source: id,
+      p_outcome: "ok",
+      p_latency_ms: 120,
+      p_items_new: 2,
+      p_error: null,
+    });
+    await rpc("record_source_fetch", {
+      p_source: id,
+      p_outcome: "failed",
+      p_latency_ms: null,
+      p_items_new: 0,
+      p_error: "timeout",
+    });
+    const row = await asService
+      .from("source_health_daily")
+      .select("*")
+      .eq("day", day)
+      .eq("source_id", id)
+      .single();
+    expect(row.data).toMatchObject({
+      fetch_ok: 1,
+      fetch_failed: 1,
+      items_new: 2,
+      last_error: "timeout",
+    });
+    await asService.from("source_health_daily").delete().eq("day", day).eq("source_id", id);
   });
 });
 
@@ -399,17 +878,37 @@ describe("ciclo de vida: arquivar e delete revogado (D-F19)", () => {
 describe("runs cron/manual/fast: índices únicos independentes (D-F21, D-F29, Review Focus 2 e 6)", () => {
   it("run manual não conflita com o run da janela; o tick duplo (cron e fast) continua único", async () => {
     const window = "2026-09-27T14:30:00Z";
+    const manualBefore = await countRuns({ trigger: "manual" });
     await rpc("start_ingest_run", { p_window: window });
     await rpc("start_ingest_run", { p_window: window });
-    await rpc("start_manual_run", { p_source: (await sourceBySlug("folha-do-cerrado")).id });
+    const manualRun = (await rpc("start_manual_run", {
+      p_source: (await sourceBySlug("folha-do-cerrado")).id,
+    })) as { run_id: string }[];
     await rpc("start_fast_run", { p_window: window });
     await rpc("start_fast_run", { p_window: window });
 
     expect(await countRuns({ trigger: "cron", window })).toBe(1);
     expect(await countRuns({ trigger: "fast", window })).toBe(1);
-    expect(await countRuns({ trigger: "manual" })).toBeGreaterThanOrEqual(1);
+    // Delta em vez de valor absoluto: o banco é compartilhado com o resto da suíte de integração.
+    expect(await countRuns({ trigger: "manual" })).toBe(manualBefore + 1);
 
     await asService.from("ingest_runs").delete().eq("window_start", window);
+    await asService.from("ingest_runs").delete().eq("id", manualRun[0]!.run_id);
+  });
+});
+
+describe("ip_hash chega ao audit_log (Finding 6)", () => {
+  it("source_admin_update grava ip_hash quando informado", async () => {
+    const s = await sourceBySlug("mt-agora");
+    await rpcAs(helena(), "source_admin_update", {
+      p_id: s.id,
+      p_version: s.version,
+      p_patch: { priority: s.priority === 1 ? 2 : 1 },
+      p_ctx: { reason: "teste ip_hash" },
+      p_ip_hash: "ip-hash-fonte-teste",
+    });
+    const rows = await auditFor(`source:${s.id}`);
+    expect(rows[rows.length - 1]).toMatchObject({ ip_hash: "ip-hash-fonte-teste" });
   });
 });
 

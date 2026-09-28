@@ -106,13 +106,12 @@ create table source_discoveries (
   prompt_version int,
   accepted_fields text[] not null default '{}'
 );
+-- Escrita só por RPC (`source_discovery_save`, security definer, §7): RLS aqui é só leitura.
 alter table source_discoveries enable row level security;
 revoke all on source_discoveries from anon;
-revoke update, delete on source_discoveries from authenticated;
+revoke insert, update, delete on source_discoveries from authenticated;
 create policy source_discoveries_read on source_discoveries for select to authenticated
   using (has_any_role((select auth.uid()), '{admin,editor_chefe,operador_ia}'));
-create policy source_discoveries_insert on source_discoveries for insert to authenticated
-  with check (has_any_role((select auth.uid()), '{admin,editor_chefe,operador_ia}') and created_by = (select auth.uid()));
 
 create table app_settings (
   key text primary key,
@@ -124,12 +123,13 @@ insert into app_settings (key, value) values
   ('sources.default_frequency_minutes', '30'),
   ('sources.fast_lane_max', '10')
 on conflict (key) do nothing;
+-- Escrita só por RPC (`app_setting_set`, security definer): RLS aqui é só leitura, senão uma
+-- mudança direta por REST não gera `settings.update` em `audit_log` (achado da revisão FS-T1).
 alter table app_settings enable row level security;
 revoke all on app_settings from anon;
-revoke delete on app_settings from authenticated;
-create policy app_settings_manage on app_settings for all to authenticated
-  using (has_any_role((select auth.uid()), '{admin,editor_chefe,operador_ia}'))
-  with check (has_any_role((select auth.uid()), '{admin,editor_chefe,operador_ia}'));
+revoke insert, update, delete on app_settings from authenticated;
+create policy app_settings_read on app_settings for select to authenticated
+  using (has_any_role((select auth.uid()), '{admin,editor_chefe,operador_ia}'));
 
 -- Grade de cada chave: vale para qualquer caminho (RPC ou update direto).
 create or replace function public.guard_app_settings()
@@ -157,6 +157,28 @@ end
 $$;
 create trigger app_settings_guard before insert or update on app_settings
   for each row execute function public.guard_app_settings();
+
+-- Lê e trava a linha de `sources.fast_lane_max` para a checagem de vaga da via rápida
+-- (`guard_source_changes`). `security definer` porque a RLS de `app_settings` agora só permite
+-- leitura para `authenticated` (achado da revisão FS-T1 item #2/#3): `select ... for update`
+-- exige privilégio de UPDATE na tabela, que a pessoa comum não tem mais. O lock tomado aqui vale
+-- até o fim da transação de quem chamou (não é preso à função), então ainda serializa duas
+-- marcações simultâneas (Review Focus 6).
+create or replace function public.lock_fast_lane_max()
+returns int
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v int;
+begin
+  select coalesce((value #>> '{}')::int, 10) into v from app_settings where key = 'sources.fast_lane_max' for update;
+  return coalesce(v, 10);
+end
+$$;
+revoke execute on function public.lock_fast_lane_max() from public, anon;
+grant execute on function public.lock_fast_lane_max() to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 4. `ingest_runs`: via rápida (D-F21, D-F28, D-F29, §6.4)
@@ -243,11 +265,12 @@ end
 $$;
 
 -- Consulta a cota de `rate_limits` (0003) sem consumir: o tick rápido pula fonte sem cota.
+-- Só `service_role` executa (grant abaixo), que já ignora RLS: sem `security definer`
+-- (privilégio extra desnecessário, achado da revisão FS-T1).
 create or replace function public.peek_rate_limit(p_bucket text, p_key_hash text, p_limit int, p_window_seconds int)
 returns boolean
 language sql
 stable
-security definer
 set search_path = public
 as $$
   select coalesce(
@@ -259,13 +282,13 @@ as $$
   );
 $$;
 
--- Saúde diária por fonte (idempotente: soma no dia em fuso de Cuiabá).
+-- Saúde diária por fonte (idempotente: soma no dia em fuso de Cuiabá). Só `service_role`
+-- executa; sem `security definer` (mesmo motivo de `peek_rate_limit`).
 create or replace function public.record_source_fetch(
   p_source uuid, p_outcome text, p_latency_ms int, p_items_new int, p_error text
 )
 returns void
 language plpgsql
-security definer
 set search_path = public
 as $$
 declare
@@ -310,6 +333,7 @@ create or replace function public.image_policy_rank(p image_policy)
 returns int
 language sql
 immutable
+set search_path = public
 as $$
   select case p
     when 'none' then 1 when 'licensed_only' then 2 when 'with_agreement' then 3 when 'reproduction' then 4
@@ -320,6 +344,7 @@ create or replace function public.source_reliability_rank(p source_reliability)
 returns int
 language sql
 immutable
+set search_path = public
 as $$
   select case p when 'low' then 1 when 'standard' then 2 when 'verified' then 3 when 'primary' then 4 end
 $$;
@@ -374,6 +399,38 @@ begin
 end
 $$;
 
+-- Colunas de bookkeeping/pipeline que nunca contam como "mudança de conteúdo": nem para a
+-- auditoria (D-F22), nem para o bump de versão otimista (D-F23, achado da revisão FS-T1 — sem
+-- isto, cada `fetch` da via rápida a cada 10 min invalidava a versão de quem tinha o painel aberto).
+create or replace function public.source_operational_columns()
+returns text[]
+language sql
+immutable
+set search_path = public
+as $$
+  select array[
+    'id', 'slug', 'created_at', 'created_by', 'updated_at', 'version',
+    'last_fetched_at', 'last_error', 'etag', 'last_modified', 'consecutive_failures',
+    'last_fetch_started_at', 'last_fetch_run_id', 'status_changed_at', 'status_changed_by'
+  ]
+$$;
+
+-- Recusa com uma mensagem própria (nunca "conflito de versão") quando quem chama não tem
+-- `source.manage` — só faz sentido em `security invoker`, onde `current_user` é o papel real da
+-- requisição (achado da revisão FS-T1, item "separate error for permission denied").
+create or replace function public.require_source_manage()
+returns void
+language plpgsql
+stable
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated') and not has_any_role(auth.uid(), '{admin,editor_chefe,operador_ia}') then
+    raise exception 'sem permissão para gerenciar fontes (source.manage)' using errcode = '42501';
+  end if;
+end
+$$;
+
 create or replace function public.guard_source_changes()
 returns trigger
 language plpgsql
@@ -385,6 +442,8 @@ declare
   v_count int;
   v_approval uuid;
   v_last_approval uuid;
+  v_op text[] := public.source_operational_columns();
+  v_content_changed boolean;
 begin
   if tg_op = 'INSERT' then
     new.version := coalesce(new.version, 1);
@@ -397,6 +456,17 @@ begin
       if new.frequency_minutes is not null and new.frequency_minutes < 30 then
         perform public.two_person_error('Fonte nova não pode nascer na via rápida.');
       end if;
+      -- Duas pessoas vale também na criação (D-F3/D-F5, Review Focus 2): sem isto, uma pessoa
+      -- só cria já com os quatro campos críticos afrouxados e ativa sem segunda aprovação. Nasce
+      -- sempre no padrão restrito; quem quiser mais do que isso pede pelo fluxo de atualização,
+      -- que já exige aprovação de outra pessoa.
+      if new.image_policy <> 'none' or new.republish_policy <> 'link_only'
+         or new.reliability in ('verified', 'primary') or new.may_be_sole_source then
+        perform public.two_person_error(
+          'Fonte nova só nasce com direitos restritos (imagem nenhuma, só link, confiabilidade '
+          || 'padrão, sem fonte única); mudanças críticas exigem aprovação de outra pessoa depois de criada.'
+        );
+      end if;
     end if;
     return new;
   end if;
@@ -408,6 +478,30 @@ begin
     raise exception 'fonte arquivada só aceita restaurar' using errcode = '42501';
   end if;
 
+  -- Arquivar uma fonte da via rápida libera a vaga (§7.8.2): vale para qualquer caminho, direto
+  -- no trigger (achado da revisão FS-T1; antes só `source_admin_status` fazia isto).
+  if old.archived_at is null and new.archived_at is not null
+     and new.frequency_minutes is not null and new.frequency_minutes < 30 then
+    new.frequency_minutes := null;
+  end if;
+
+  -- Transições de status válidas (spec §6.4/§7.3), para qualquer caminho. Ativar (paused →
+  -- active) exige termos revisados; o resto (robots.txt, testConnection) é checado pela aplicação
+  -- antes de chamar a RPC, o banco não tem como testar conexão.
+  if new.status is distinct from old.status then
+    if not (
+      (old.status = 'paused' and new.status in ('active', 'blocked'))
+      or (old.status = 'active' and new.status in ('degraded', 'paused', 'blocked'))
+      or (old.status = 'degraded' and new.status in ('active', 'paused', 'blocked'))
+      or (old.status = 'blocked' and new.status = 'paused')
+    ) then
+      raise exception 'transição de status % → % não é permitida', old.status, new.status using errcode = '42501';
+    end if;
+    if old.status = 'paused' and new.status = 'active' and new.terms_reviewed_at is null then
+      raise exception 'Ativar exige termos de uso revisados.' using errcode = '42501';
+    end if;
+  end if;
+
   -- Via rápida (D-F28): entrar (de null/≥30 para <30) exige active/degraded e vaga; trocar entre
   -- 10, 15 e 20 não ocupa vaga nova. `for update` na linha de app_settings serializa duas
   -- marcações simultâneas (Review Focus 6).
@@ -417,8 +511,7 @@ begin
     if new.status not in ('active', 'degraded') or new.archived_at is not null then
       raise exception 'Ative a fonte antes de colocá-la na via rápida.' using errcode = '42501';
     end if;
-    perform 1 from app_settings where key = 'sources.fast_lane_max' for update;
-    select coalesce((value #>> '{}')::int, 10) into v_fast_max from app_settings where key = 'sources.fast_lane_max';
+    v_fast_max := public.lock_fast_lane_max();
     select count(*) into v_count from sources
      where archived_at is null and frequency_minutes is not null and frequency_minutes < 30 and id <> new.id;
     if v_count >= v_fast_max then
@@ -461,11 +554,17 @@ begin
     end if;
   end if;
 
-  new.version := old.version + 1;
-  new.updated_at := now();
-  if new.status is distinct from old.status then
-    new.status_changed_at := now();
-    new.status_changed_by := uid;
+  -- Versão otimista e `updated_at` só sobem quando algo que a tela mostra realmente mudou
+  -- (achado da revisão FS-T1): um `claim_source_fetch` ou uma atualização só de
+  -- `last_fetched_at`/`etag`/contadores nunca deve invalidar a versão de quem está editando.
+  v_content_changed := (to_jsonb(new) - v_op) is distinct from (to_jsonb(old) - v_op);
+  if v_content_changed then
+    new.version := old.version + 1;
+    new.updated_at := now();
+    if new.status is distinct from old.status then
+      new.status_changed_at := now();
+      new.status_changed_by := uid;
+    end if;
   end if;
   return new;
 end
@@ -485,18 +584,15 @@ as $$
 declare
   v_ctx jsonb := coalesce(nullif(current_setting('citynews.audit_ctx', true), '')::jsonb, '{}'::jsonb);
   v_actor text := coalesce(auth.uid()::text, 'sistema');
-  v_blacklist text[] := array[
-    'id', 'slug', 'created_at', 'created_by', 'updated_at', 'version',
-    'last_fetched_at', 'last_error', 'etag', 'last_modified', 'consecutive_failures',
-    'last_fetch_started_at', 'last_fetch_run_id', 'status_changed_at', 'status_changed_by'
-  ];
+  v_ip_hash text := nullif(current_setting('citynews.audit_ip_hash', true), '');
+  v_blacklist text[] := public.source_operational_columns();
   v_changes jsonb;
   v_action text;
 begin
   if tg_op = 'INSERT' then
-    insert into audit_log (actor, action, object_ref, details)
+    insert into audit_log (actor, action, object_ref, details, ip_hash)
     values (v_actor, 'source.create', 'source:' || new.id,
-            jsonb_build_object('reason', v_ctx->>'reason', 'batchId', v_ctx->>'batchId'));
+            jsonb_build_object('reason', v_ctx->>'reason', 'batchId', v_ctx->>'batchId'), v_ip_hash);
     return new;
   end if;
 
@@ -520,10 +616,11 @@ begin
     v_action := 'source.update';
   end if;
 
-  insert into audit_log (actor, action, object_ref, details)
+  insert into audit_log (actor, action, object_ref, details, ip_hash)
   values (v_actor, v_action, 'source:' || new.id,
           jsonb_build_object('changes', v_changes, 'reason', v_ctx->>'reason',
-                              'batchId', v_ctx->>'batchId', 'approvalId', v_ctx->>'approvalId'));
+                              'batchId', v_ctx->>'batchId', 'approvalId', v_ctx->>'approvalId'),
+          v_ip_hash);
   return new;
 end
 $$;
@@ -534,18 +631,22 @@ create trigger sources_audit after insert or update on sources
 revoke execute on function
   public.image_policy_rank(image_policy), public.source_reliability_rank(source_reliability),
   public.consume_source_critical_approval(text), public.require_source_critical_approval(uuid, text, text),
-  public.guard_source_changes(), public.audit_source_changes(), public.guard_app_settings()
+  public.guard_source_changes(), public.audit_source_changes(), public.guard_app_settings(),
+  public.source_operational_columns(), public.require_source_manage()
   from public, anon;
 grant execute on function
-  public.image_policy_rank(image_policy), public.source_reliability_rank(source_reliability)
+  public.image_policy_rank(image_policy), public.source_reliability_rank(source_reliability),
+  public.source_operational_columns(), public.require_source_manage()
   to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 7. RPCs `security invoker` do painel (§6.4, §7)
 -- ---------------------------------------------------------------------------
 
--- Cadastro por link (§7.1): nasce sempre `paused`/`pending_activation`, nunca na via rápida.
-create or replace function public.source_admin_create(p jsonb, p_ctx jsonb default '{}'::jsonb)
+-- Cadastro por link (§7.1): nasce sempre `paused`/`pending_activation`, nunca na via rápida, e
+-- sempre no padrão restrito para campos críticos (`guard_source_changes`, achado da revisão FS-T1
+-- item #1); quem quiser mais afrouxado pede pelo `source_admin_update`, que já exige aprovação.
+create or replace function public.source_admin_create(p jsonb, p_ctx jsonb default '{}'::jsonb, p_ip_hash text default null)
 returns uuid
 language plpgsql
 security invoker
@@ -554,7 +655,9 @@ as $$
 declare
   v_id uuid;
 begin
+  perform public.require_source_manage();
   perform set_config('citynews.audit_ctx', coalesce(p_ctx, '{}'::jsonb)::text, true);
+  perform set_config('citynews.audit_ip_hash', coalesce(p_ip_hash, ''), true);
   insert into sources (
     slug, name, base_url, kind, feed_url, categories, locality, reliability,
     image_policy, republish_policy, may_be_sole_source, status, status_reason,
@@ -583,7 +686,11 @@ end
 $$;
 
 -- Edição (§7.2): versão otimista (D-F23); campos críticos passam pelo trigger `guard_source_changes`.
-create or replace function public.source_admin_update(p_id uuid, p_version int, p_patch jsonb, p_ctx jsonb default '{}'::jsonb)
+-- Contrato do patch: só snake_case (nomes de coluna), chave desconhecida é erro (achado da revisão
+-- FS-T1 — antes uma chave com grafia errada era ignorada em silêncio).
+create or replace function public.source_admin_update(
+  p_id uuid, p_version int, p_patch jsonb, p_ctx jsonb default '{}'::jsonb, p_ip_hash text default null
+)
 returns int
 language plpgsql
 security invoker
@@ -592,75 +699,85 @@ as $$
 declare
   v_current int;
   v_new_version int;
+  v_allowed text[] := array[
+    'name', 'display_name', 'logo_path', 'owner_id', 'layer', 'categories', 'locality',
+    'reliability', 'image_policy', 'republish_policy', 'may_be_sole_source', 'agreement_until',
+    'agreement_note', 'terms_url', 'terms_reviewed_at', 'terms_reviewed_by', 'terms_min_interval_minutes',
+    'frequency_minutes', 'rate_limit_per_hour', 'priority', 'editorial_score', 'rec_pinned',
+    'rec_local_highlight', 'rec_excluded', 'consumption'
+  ];
+  v_unknown text;
 begin
+  perform public.require_source_manage();
+  select k into v_unknown from jsonb_object_keys(coalesce(p_patch, '{}'::jsonb)) k
+   where k <> all (v_allowed) limit 1;
+  if v_unknown is not null then
+    raise exception 'campo desconhecido no patch: %', v_unknown using errcode = '22023';
+  end if;
+
   select version into v_current from sources where id = p_id;
   if v_current is null then
     raise exception 'fonte % não encontrada', p_id using errcode = 'P0002';
   end if;
   if v_current <> p_version then
-    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue';
+    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue' using errcode = 'PT409';
   end if;
 
   perform set_config('citynews.audit_ctx', coalesce(p_ctx, '{}'::jsonb)::text, true);
+  perform set_config('citynews.audit_ip_hash', coalesce(p_ip_hash, ''), true);
 
   update sources s set
     name = coalesce(p_patch->>'name', s.name),
-    display_name = case when p_patch ? 'displayName' then nullif(p_patch->>'displayName', '') else s.display_name end,
-    logo_path = case when p_patch ? 'logoPath' then nullif(p_patch->>'logoPath', '') else s.logo_path end,
-    owner_id = case when p_patch ? 'ownerId' then nullif(p_patch->>'ownerId', '')::uuid else s.owner_id end,
+    display_name = case when p_patch ? 'display_name' then nullif(p_patch->>'display_name', '') else s.display_name end,
+    logo_path = case when p_patch ? 'logo_path' then nullif(p_patch->>'logo_path', '') else s.logo_path end,
+    owner_id = case when p_patch ? 'owner_id' then nullif(p_patch->>'owner_id', '')::uuid else s.owner_id end,
     layer = case when p_patch ? 'layer' then nullif(p_patch->>'layer', '')::smallint else s.layer end,
     categories = case when p_patch ? 'categories'
       then coalesce((select array_agg(x) from jsonb_array_elements_text(p_patch->'categories') x), '{}')
       else s.categories end,
     locality = coalesce(p_patch->>'locality', s.locality),
     reliability = case when p_patch ? 'reliability' then (p_patch->>'reliability')::source_reliability else s.reliability end,
-    image_policy = case
-      when p_patch ? 'imagePolicy' then (p_patch->>'imagePolicy')::image_policy
-      when p_patch ? 'image_policy' then (p_patch->>'image_policy')::image_policy
-      else s.image_policy end,
+    image_policy = case when p_patch ? 'image_policy' then (p_patch->>'image_policy')::image_policy else s.image_policy end,
     republish_policy = case
-      when p_patch ? 'republishPolicy' then (p_patch->>'republishPolicy')::republish_policy
       when p_patch ? 'republish_policy' then (p_patch->>'republish_policy')::republish_policy
       else s.republish_policy end,
     may_be_sole_source = case
-      when p_patch ? 'mayBeSoleSource' then (p_patch->>'mayBeSoleSource')::boolean
       when p_patch ? 'may_be_sole_source' then (p_patch->>'may_be_sole_source')::boolean
       else s.may_be_sole_source end,
-    agreement_until = case when p_patch ? 'agreementUntil' then nullif(p_patch->>'agreementUntil', '')::date else s.agreement_until end,
-    agreement_note = case when p_patch ? 'agreementNote' then p_patch->>'agreementNote' else s.agreement_note end,
-    terms_url = case when p_patch ? 'termsUrl' then p_patch->>'termsUrl' else s.terms_url end,
-    terms_reviewed_at = case when p_patch ? 'termsReviewedAt' then nullif(p_patch->>'termsReviewedAt', '')::timestamptz else s.terms_reviewed_at end,
-    terms_reviewed_by = case when p_patch ? 'termsReviewedBy' then nullif(p_patch->>'termsReviewedBy', '')::uuid else s.terms_reviewed_by end,
+    agreement_until = case when p_patch ? 'agreement_until' then nullif(p_patch->>'agreement_until', '')::date else s.agreement_until end,
+    agreement_note = case when p_patch ? 'agreement_note' then p_patch->>'agreement_note' else s.agreement_note end,
+    terms_url = case when p_patch ? 'terms_url' then p_patch->>'terms_url' else s.terms_url end,
+    terms_reviewed_at = case when p_patch ? 'terms_reviewed_at' then nullif(p_patch->>'terms_reviewed_at', '')::timestamptz else s.terms_reviewed_at end,
+    terms_reviewed_by = case when p_patch ? 'terms_reviewed_by' then nullif(p_patch->>'terms_reviewed_by', '')::uuid else s.terms_reviewed_by end,
     terms_min_interval_minutes = case
-      when p_patch ? 'termsMinIntervalMinutes' then nullif(p_patch->>'termsMinIntervalMinutes', '')::int
+      when p_patch ? 'terms_min_interval_minutes' then nullif(p_patch->>'terms_min_interval_minutes', '')::int
       else s.terms_min_interval_minutes end,
     frequency_minutes = case
-      when p_patch ? 'frequencyMinutes' or p_patch ? 'frequency_minutes'
-      then nullif(coalesce(p_patch->>'frequencyMinutes', p_patch->>'frequency_minutes'), '')::int
+      when p_patch ? 'frequency_minutes' then nullif(p_patch->>'frequency_minutes', '')::int
       else s.frequency_minutes end,
-    rate_limit_per_hour = case when p_patch ? 'rateLimitPerHour' then (p_patch->>'rateLimitPerHour')::int else s.rate_limit_per_hour end,
+    rate_limit_per_hour = case when p_patch ? 'rate_limit_per_hour' then (p_patch->>'rate_limit_per_hour')::int else s.rate_limit_per_hour end,
     priority = case when p_patch ? 'priority' then (p_patch->>'priority')::smallint else s.priority end,
-    editorial_score = case
-      when p_patch ? 'editorialScore' then (p_patch->>'editorialScore')::smallint
-      when p_patch ? 'editorial_score' then (p_patch->>'editorial_score')::smallint
-      else s.editorial_score end,
-    rec_pinned = case when p_patch ? 'recPinned' then (p_patch->>'recPinned')::boolean else s.rec_pinned end,
-    rec_local_highlight = case when p_patch ? 'recLocalHighlight' then (p_patch->>'recLocalHighlight')::boolean else s.rec_local_highlight end,
-    rec_excluded = case when p_patch ? 'recExcluded' then (p_patch->>'recExcluded')::boolean else s.rec_excluded end,
+    editorial_score = case when p_patch ? 'editorial_score' then (p_patch->>'editorial_score')::smallint else s.editorial_score end,
+    rec_pinned = case when p_patch ? 'rec_pinned' then (p_patch->>'rec_pinned')::boolean else s.rec_pinned end,
+    rec_local_highlight = case when p_patch ? 'rec_local_highlight' then (p_patch->>'rec_local_highlight')::boolean else s.rec_local_highlight end,
+    rec_excluded = case when p_patch ? 'rec_excluded' then (p_patch->>'rec_excluded')::boolean else s.rec_excluded end,
     consumption = case when p_patch ? 'consumption' then p_patch->'consumption' else s.consumption end
   where s.id = p_id and s.version = p_version
   returning s.version into v_new_version;
 
   if v_new_version is null then
-    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue';
+    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue' using errcode = 'PT409';
   end if;
   return v_new_version;
 end
 $$;
 
--- Ciclo de vida (§7.3): ativar, pausar, retomar, bloquear, arquivar, restaurar.
+-- Ciclo de vida (§7.3): ativar, pausar, retomar, bloquear, arquivar, restaurar. `activate` é
+-- sinônimo de `resume` (mesma transição paused → active; a tela usa os dois rótulos conforme o
+-- fluxo — fonte nova vs. fonte que só estava pausada).
 create or replace function public.source_admin_status(
-  p_id uuid, p_version int, p_action text, p_reason text default null, p_ctx jsonb default '{}'::jsonb
+  p_id uuid, p_version int, p_action text, p_reason text default null,
+  p_ctx jsonb default '{}'::jsonb, p_ip_hash text default null
 )
 returns int
 language plpgsql
@@ -671,15 +788,21 @@ declare
   v_row sources%rowtype;
   v_new_version int;
 begin
+  perform public.require_source_manage();
+  if p_action = 'activate' then
+    p_action := 'resume';
+  end if;
+
   select * into v_row from sources where id = p_id;
   if not found then
     raise exception 'fonte % não encontrada', p_id using errcode = 'P0002';
   end if;
   if v_row.version <> p_version then
-    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue';
+    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue' using errcode = 'PT409';
   end if;
 
   perform set_config('citynews.audit_ctx', coalesce(p_ctx, '{}'::jsonb)::text, true);
+  perform set_config('citynews.audit_ip_hash', coalesce(p_ip_hash, ''), true);
 
   if p_action = 'archive' then
     if v_row.status not in ('paused', 'blocked') then
@@ -733,7 +856,7 @@ begin
   end if;
 
   if v_new_version is null then
-    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue';
+    raise exception 'conflito de versão: esta fonte foi alterada por outra pessoa; recarregue' using errcode = 'PT409';
   end if;
   return v_new_version;
 end
@@ -742,7 +865,9 @@ $$;
 -- Ações em lote (§7.6): até 50 fontes, resultado por fonte, um batchId liga a auditoria.
 -- FS-T1 cobre o contrato de banco (isolamento por linha, versão, batchId); a elegibilidade fina de
 -- "ativar em lote" e os motivos de "ignorada" da tela ficam com o Server Action (FS-T6/FS-T7).
-create or replace function public.source_admin_bulk(p_ids uuid[], p_action text, p_value jsonb, p_ctx jsonb default '{}'::jsonb)
+create or replace function public.source_admin_bulk(
+  p_ids uuid[], p_action text, p_value jsonb, p_ctx jsonb default '{}'::jsonb, p_ip_hash text default null
+)
 returns jsonb
 language plpgsql
 security invoker
@@ -754,6 +879,8 @@ declare
   v_result jsonb := '[]'::jsonb;
   v_batch_ctx jsonb := jsonb_set(coalesce(p_ctx, '{}'::jsonb), '{batchId}', to_jsonb(gen_random_uuid()::text), true);
 begin
+  perform public.require_source_manage();
+  perform set_config('citynews.audit_ip_hash', coalesce(p_ip_hash, ''), true);
   foreach v_id in array coalesce(p_ids, '{}'::uuid[])
   loop
     begin
@@ -790,16 +917,26 @@ begin
 end
 $$;
 
--- Padrão global e vagas da via rápida (§7.7); audita como `settings.update`.
-create or replace function public.app_setting_set(p_key text, p_value jsonb, p_ctx jsonb default '{}'::jsonb)
+-- Padrão global e vagas da via rápida (§7.7); audita como `settings.update`. `security definer`
+-- porque a RLS de `app_settings` agora é só leitura (achado da revisão FS-T1 item #2): dentro de
+-- um `security definer` `current_user` vira o dono da função, então o controle de papel usa
+-- `auth.role()` (lê o mesmo GUC de `auth.uid()`, não muda com o `security definer`), não
+-- `current_user`.
+create or replace function public.app_setting_set(
+  p_key text, p_value jsonb, p_ctx jsonb default '{}'::jsonb, p_ip_hash text default null
+)
 returns void
 language plpgsql
-security invoker
+security definer
 set search_path = public
 as $$
 declare
   v_old jsonb;
 begin
+  if coalesce(auth.role(), 'authenticated') in ('anon', 'authenticated')
+     and not has_any_role(auth.uid(), '{admin,editor_chefe,operador_ia}') then
+    raise exception 'sem permissão para gerenciar fontes (source.manage)' using errcode = '42501';
+  end if;
   if p_key not in ('sources.default_frequency_minutes', 'sources.fast_lane_max') then
     raise exception 'chave % não suportada', p_key using errcode = '22023';
   end if;
@@ -807,21 +944,50 @@ begin
   insert into app_settings (key, value, updated_by, updated_at)
   values (p_key, p_value, auth.uid(), now())
   on conflict (key) do update set value = excluded.value, updated_by = excluded.updated_by, updated_at = excluded.updated_at;
-  insert into audit_log (actor, action, object_ref, details)
+  insert into audit_log (actor, action, object_ref, details, ip_hash)
   values (coalesce(auth.uid()::text, 'sistema'), 'settings.update', 'setting:' || p_key,
-          jsonb_build_object('from', v_old, 'to', p_value, 'reason', coalesce(p_ctx, '{}'::jsonb)->>'reason'));
+          jsonb_build_object('from', v_old, 'to', p_value, 'reason', coalesce(p_ctx, '{}'::jsonb)->>'reason'),
+          p_ip_hash);
+end
+$$;
+
+-- Registro da análise por link (§7.1, §6.3): mesma razão de `security definer` que `app_setting_set`.
+-- FS-T3 chama para gravar prévia e sugestão; `source_id` fica `null` até a fonte ser criada.
+create or replace function public.source_discovery_save(p jsonb, p_ctx jsonb default '{}'::jsonb)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid;
+  v_uid uuid := auth.uid();
+begin
+  if coalesce(auth.role(), 'authenticated') in ('anon', 'authenticated')
+     and not has_any_role(v_uid, '{admin,editor_chefe,operador_ia}') then
+    raise exception 'sem permissão para gerenciar fontes (source.manage)' using errcode = '42501';
+  end if;
+  insert into source_discoveries (input_url, final_url, source_id, created_by, preview, suggestion, prompt_version, accepted_fields)
+  values (
+    p->>'inputUrl', p->>'finalUrl', nullif(p->>'sourceId', '')::uuid, v_uid,
+    coalesce(p->'preview', '[]'::jsonb), coalesce(p->'suggestion', '{}'::jsonb),
+    nullif(p->>'promptVersion', '')::int,
+    coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(p->'acceptedFields', '[]'::jsonb)) x), '{}')
+  )
+  returning id into v_id;
+  return v_id;
 end
 $$;
 
 revoke execute on function
-  public.source_admin_create(jsonb, jsonb), public.source_admin_update(uuid, int, jsonb, jsonb),
-  public.source_admin_status(uuid, int, text, text, jsonb), public.source_admin_bulk(uuid[], text, jsonb, jsonb),
-  public.app_setting_set(text, jsonb, jsonb)
+  public.source_admin_create(jsonb, jsonb, text), public.source_admin_update(uuid, int, jsonb, jsonb, text),
+  public.source_admin_status(uuid, int, text, text, jsonb, text), public.source_admin_bulk(uuid[], text, jsonb, jsonb, text),
+  public.app_setting_set(text, jsonb, jsonb, text), public.source_discovery_save(jsonb, jsonb)
   from public, anon;
 grant execute on function
-  public.source_admin_create(jsonb, jsonb), public.source_admin_update(uuid, int, jsonb, jsonb),
-  public.source_admin_status(uuid, int, text, text, jsonb), public.source_admin_bulk(uuid[], text, jsonb, jsonb),
-  public.app_setting_set(text, jsonb, jsonb)
+  public.source_admin_create(jsonb, jsonb, text), public.source_admin_update(uuid, int, jsonb, jsonb, text),
+  public.source_admin_status(uuid, int, text, text, jsonb, text), public.source_admin_bulk(uuid[], text, jsonb, jsonb, text),
+  public.app_setting_set(text, jsonb, jsonb, text), public.source_discovery_save(jsonb, jsonb)
   to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------

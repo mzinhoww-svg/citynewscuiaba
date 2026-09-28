@@ -2194,7 +2194,10 @@ export type Database = {
         }[];
       };
       anonymize_old_events: { Args: { p_days?: number }; Returns: number };
-      app_setting_set: { Args: { p_ctx?: Json; p_key: string; p_value: Json }; Returns: undefined };
+      app_setting_set: {
+        Args: { p_ctx?: Json; p_ip_hash?: string; p_key: string; p_value: Json };
+        Returns: undefined;
+      };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
@@ -2255,6 +2258,7 @@ export type Database = {
       };
       index_article: { Args: { p_embedding?: string; p_id: string }; Returns: undefined };
       is_staff: { Args: { uid: string }; Returns: boolean };
+      lock_fast_lane_max: { Args: Record<PropertyKey, never>; Returns: number };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
       media_insert_asset: { Args: { p: Json }; Returns: string };
       media_phash_neighbors: {
@@ -2341,6 +2345,7 @@ export type Database = {
         Args: { p_field: string; p_id: string; p_value: string };
         Returns: string;
       };
+      require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;
@@ -2382,24 +2387,33 @@ export type Database = {
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       source_admin_bulk: {
-        Args: { p_action: string; p_ctx?: Json; p_ids: string[]; p_value: Json };
+        Args: {
+          p_action: string;
+          p_ctx?: Json;
+          p_ids: string[];
+          p_ip_hash?: string;
+          p_value: Json;
+        };
         Returns: Json;
       };
-      source_admin_create: { Args: { p: Json; p_ctx?: Json }; Returns: string };
+      source_admin_create: { Args: { p: Json; p_ctx?: Json; p_ip_hash?: string }; Returns: string };
       source_admin_status: {
         Args: {
           p_action: string;
           p_ctx?: Json;
           p_id: string;
+          p_ip_hash?: string;
           p_reason?: string;
           p_version: number;
         };
         Returns: number;
       };
       source_admin_update: {
-        Args: { p_ctx?: Json; p_id: string; p_patch: Json; p_version: number };
+        Args: { p_ctx?: Json; p_id: string; p_ip_hash?: string; p_patch: Json; p_version: number };
         Returns: number;
       };
+      source_discovery_save: { Args: { p: Json; p_ctx?: Json }; Returns: string };
+      source_operational_columns: { Args: Record<PropertyKey, never>; Returns: string[] };
       source_reliability_rank: {
         Args: { p: Database["public"]["Enums"]["source_reliability"] };
         Returns: number;
