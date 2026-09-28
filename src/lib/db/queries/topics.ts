@@ -175,3 +175,11 @@ export async function listTopics(
     return withCounts(db, await q.then(many));
   });
 }
+
+/** Título público de um assunto (RLS de leitura pública); `null` se não existe ou é interno. */
+export async function getTopicTitle(slug: string): Promise<Result<string | null, QueryError>> {
+  return readPublic(async (db) => {
+    const row = await db.from("topics").select("title").eq("slug", slug).maybeSingle().then(one);
+    return row?.title ?? null;
+  });
+}

@@ -88,6 +88,40 @@ export function hasLocalData(local: AnonProfile): boolean {
   );
 }
 
+/**
+ * O que sai do navegador na migração: só os grupos marcados (gate P2, I3). O resto vai vazio.
+ * - buscas nunca vão; o e-mail dos alertas também não (o alerta da conta usa o e-mail da conta);
+ * - `anonId` e histórico só com "Histórico" marcado (o texto da caixa avisa do vínculo).
+ * `createdAt` vai fixo para não carregar a data de criação do perfil local.
+ */
+export function migrationPayload(local: AnonProfile, choice: MigrationChoice): AnonProfile {
+  return {
+    anonId: choice.history ? local.anonId : null,
+    createdAt: "1970-01-01T00:00:00.000Z",
+    follows: choice.follows ? local.follows.map(({ kind, id, at }) => ({ kind, id, at })) : [],
+    alerts: choice.follows
+      ? local.alerts
+          .filter((a) => a.status === "active")
+          .map((a) => ({
+            id: a.id,
+            kind: a.kind,
+            target: a.target,
+            label: a.label,
+            frequency: a.frequency,
+            channel: a.channel,
+            status: a.status,
+            at: a.at,
+          }))
+      : [],
+    saved: choice.saved ? local.saved.map(({ ref, at, progress }) => ({ ref, at, progress })) : [],
+    collections: choice.saved ? local.collections : [],
+    interests: choice.interests ? local.interests : [],
+    hidden: choice.interests ? local.hidden : [],
+    history: choice.history ? local.history : [],
+    searches: [],
+  };
+}
+
 const alertKey = (a: { kind: string; target: string; channel: string }) =>
   `${a.kind}|${a.target}|${a.channel}`;
 

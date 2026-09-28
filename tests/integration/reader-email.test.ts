@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { afterAll, describe, expect, it } from "vitest";
+import { createEmailAlert } from "@/lib/alerts/email";
 import { createServiceClient } from "@/lib/db/client";
 import { listAlertItems } from "@/lib/db/queries";
 import {
@@ -11,6 +12,10 @@ import {
   saveNewsletterLists,
   setNewsletterPrefs,
 } from "@/lib/db/writes";
+import { signedLink } from "@/lib/newsletter/server";
+import { subscribeNewsletter } from "@/lib/newsletter/subscribe";
+import { verifyNewsletterToken } from "@/lib/newsletter/token";
+import { ok } from "@/lib/result";
 
 /* Newsletter, fila de e-mails para leitores (0012_reader_email) e alertas por e-mail (P2-T9). */
 const db = createServiceClient();
@@ -50,7 +55,13 @@ describe("newsletter sem conta", () => {
   });
 
   it("fila de e-mails: grava queued e não repete em 10 min", async () => {
-    const mail = { kind: "newsletter_confirm" as const, to: email, subject: "s", body: "b" };
+    const mail = {
+      kind: "newsletter_confirm" as const,
+      to: email,
+      subject: "s",
+      body: "b",
+      ref: "lists:diaria",
+    };
     value(await queueReaderEmail(mail));
     value(await queueReaderEmail(mail));
     const { data } = await db.from("reader_emails").select("status").eq("to_email", email);
@@ -77,6 +88,112 @@ describe("alerta por e-mail", () => {
     expect(value(await confirmEmailAlerts(email, [id]))).toBe(1);
     const { data } = await db.from("alerts").select("active, channel").eq("id", id).single();
     expect(data).toEqual({ active: true, channel: "email" });
+  });
+});
+
+describe("dedupe por alvo (gate P2, I4)", () => {
+  const two = `${tag}-dois@exemplo.com`;
+  afterAll(async () => {
+    await db.from("reader_emails").delete().eq("to_email", two);
+    await db.from("alerts").delete().eq("owner_ref", `email:${two}`);
+    await db.from("newsletter_subscriptions").delete().eq("email", two);
+  });
+  const token = (body: string) => decodeURIComponent(/token=([^&\s]+)/.exec(body)?.[1] ?? "");
+
+  it("dois alertas em 10 min: cada um recebe o próprio link e os dois são confirmados", async () => {
+    const deps = {
+      allow: async () => ok(true),
+      save: saveEmailAlert,
+      queue: queueReaderEmail,
+      link: (e: string, id: string) =>
+        signedLink("alert", "/alertas/confirmar", e, [`alert:${id}`]),
+      resolveLabel: async (kind: string) => (kind === "bairro" ? "CPA" : "Todas as urgentes"),
+    };
+    for (const a of [
+      { kind: "bairro", target: "cpa" },
+      { kind: "urgentes", target: "todos" },
+    ])
+      expect((await createEmailAlert({ ...a, email: two, frequency: "daily" }, deps)).status).toBe(
+        "pending",
+      );
+    const { data: mails } = await db
+      .from("reader_emails")
+      .select("body")
+      .eq("to_email", two)
+      .eq("kind", "alert_confirm");
+    expect(mails).toHaveLength(2);
+    let confirmed = 0;
+    for (const m of mails ?? []) {
+      const v = verifyNewsletterToken(token(m.body), "alert");
+      if (!v.ok) throw new Error(v.error);
+      const ids = v.value.lists.map((l) => l.slice("alert:".length));
+      confirmed += value(await confirmEmailAlerts(v.value.email, ids));
+    }
+    expect(confirmed).toBe(2);
+    const { data: alerts } = await db
+      .from("alerts")
+      .select("active")
+      .eq("owner_ref", `email:${two}`);
+    expect(alerts?.every((a) => a.active)).toBe(true);
+  });
+
+  it("duas listas em 10 min: cada uma recebe a própria confirmação", async () => {
+    const deps = {
+      allow: async () => ok(true),
+      save: saveNewsletterLists,
+      queue: queueReaderEmail,
+      link: (e: string, lists: string[]) =>
+        signedLink("newsletter", "/newsletter/preferencias", e, lists, "&confirmar=1"),
+    };
+    for (const list of ["diaria", "agenda-fds"]) {
+      const f = new FormData();
+      f.set("email", two);
+      f.append("lists", list);
+      expect((await subscribeNewsletter(f, deps)).status).toBe("success");
+    }
+    const { data } = await db
+      .from("reader_emails")
+      .select("id")
+      .eq("to_email", two)
+      .eq("kind", "newsletter_confirm");
+    expect(data).toHaveLength(2);
+  });
+});
+
+describe("retenção da fila e de alertas não confirmados (gate P2, M5)", () => {
+  const old = `${tag}-velho@exemplo.com`;
+  afterAll(async () => {
+    await db.from("reader_emails").delete().eq("to_email", old);
+    await db.from("alerts").delete().eq("owner_ref", `email:${old}`);
+  });
+
+  it("apaga fila com mais de 30 dias e alerta por e-mail nunca confirmado depois de 7", async () => {
+    const d40 = new Date(Date.now() - 40 * 86_400_000).toISOString();
+    const d8 = new Date(Date.now() - 8 * 86_400_000).toISOString();
+    const now = new Date().toISOString();
+    const m = await db.from("reader_emails").insert([
+      { kind: "alert_confirm", to_email: old, subject: "s", body: "b", ref: "a", created_at: d40 },
+      { kind: "alert_confirm", to_email: old, subject: "s", body: "b", ref: "b", created_at: now },
+    ]);
+    const base = {
+      owner_ref: `email:${old}`,
+      target_kind: "bairro",
+      frequency: "daily",
+      channel: "email",
+    };
+    expect(m.error).toBeNull();
+    const a = await db.from("alerts").insert([
+      { ...base, target_id: "cpa", active: false, created_at: d8 },
+      { ...base, target_id: "centro-norte", active: true, created_at: d8 },
+      { ...base, target_id: "boa-esperanca", active: false, created_at: now },
+    ]);
+    expect(a.error).toBeNull();
+    const r = await db.rpc("purge_reader_emails", { p_days: 30 });
+    expect(r.error).toBeNull();
+    const mails = await db.from("reader_emails").select("ref").eq("to_email", old);
+    expect(mails.data).toEqual([{ ref: "b" }]);
+    const alerts = await db.from("alerts").select("target_id").eq("owner_ref", `email:${old}`);
+    expect(alerts.data?.map((a) => a.target_id).sort()).toEqual(["boa-esperanca", "centro-norte"]);
   });
 });
 

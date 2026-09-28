@@ -146,7 +146,7 @@ function asPreferences(v: Json | undefined): Preferences {
 /**
  * Grava o plano da migração na conta, sem duplicar (a chave primária de seguidas e salvos
  * também protege contra dois cliques). Interesses, ocultações e histórico escolhidos vão para
- * `profiles.preferences`, somados ao que a conta já tinha.
+ * `reader_preferences` (só o leitor lê, 0020), somados ao que a conta já tinha.
  */
 export async function applyMigration(
   db: DbClient,
@@ -214,10 +214,11 @@ export async function applyMigration(
     }
   }
 
+  if (plan.interests.length === 0 && plan.hidden.length === 0 && plan.history === 0) return;
   const { data: profile, error: pe } = await db
-    .from("profiles")
+    .from("reader_preferences")
     .select("preferences")
-    .eq("id", owner)
+    .eq("user_id", owner)
     .maybeSingle();
   if (pe) throw new Error(pe.message);
   const prev = asPreferences(profile?.preferences);
@@ -238,13 +239,15 @@ export async function applyMigration(
   const preferences = { ...prev, interests, hidden, history } as unknown as {
     [key: string]: Json;
   };
-  const { error: ue } = await db
-    .from("profiles")
-    .update({
+  const { error: ue } = await db.from("reader_preferences").upsert(
+    {
+      user_id: owner,
       preferences,
+      updated_at: new Date().toISOString(),
       ...(local.anonId && plan.history > 0 ? { migrated_from_anon: local.anonId } : {}),
-    })
-    .eq("id", owner);
+    },
+    { onConflict: "user_id" },
+  );
   if (ue) throw new Error(ue.message);
 }
 
@@ -270,14 +273,27 @@ export async function readAccountProfile(db: DbClient, userId: string) {
     : null;
 }
 
+type Row = Record<string, Json>;
+/** Resultado de `export_email_data` (0021). */
+export interface EmailData {
+  newsletter: Row[];
+  alerts: Row[];
+  emails: Row[];
+}
+
 /** Cópia dos dados da conta (P20, LGPD): tudo o que é do leitor, sem dados de outras pessoas. */
 export async function exportAccount(db: DbClient, user: User) {
   const owner = user.id;
-  const [profile, follows, saved, alerts, collections] = await Promise.all([
+  const [profile, prefs, follows, saved, alerts, collections, byEmail] = await Promise.all([
     db
       .from("profiles")
-      .select("display_name, neighborhood, created_at, preferences, delete_requested_at")
+      .select("display_name, neighborhood, created_at, delete_requested_at")
       .eq("id", owner)
+      .maybeSingle(),
+    db
+      .from("reader_preferences")
+      .select("preferences, migrated_from_anon, updated_at")
+      .eq("user_id", owner)
       .maybeSingle(),
     db.from("follows").select("target_kind, target_id, created_at").eq("owner_ref", owner),
     db.from("saved_items").select("content_ref, progress, created_at").eq("owner_ref", owner),
@@ -290,16 +306,20 @@ export async function exportAccount(db: DbClient, user: User) {
       .select("title, description, collection_items(content_ref, position)")
       .eq("owner_ref", owner)
       .eq("is_editorial", false),
+    // Guardado pelo e-mail da conta (newsletter, alertas por e-mail, fila): gate P2, I5.
+    db.rpc("export_email_data"),
   ]);
-  for (const r of [profile, follows, saved, alerts, collections])
+  for (const r of [profile, prefs, follows, saved, alerts, collections, byEmail])
     if (r.error) throw new Error(r.error.message);
   return {
     exportedAt: new Date().toISOString(),
     account: { email: user.email, createdAt: user.created_at, lastSignInAt: user.last_sign_in_at },
     profile: profile.data,
+    preferences: prefs.data,
     follows: follows.data,
     saved: saved.data,
     alerts: alerts.data,
     collections: collections.data,
+    byEmail: byEmail.data as EmailData | null,
   };
 }

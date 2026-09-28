@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MIGRATION_CHOICE,
   migrationCounts,
+  migrationPayload,
   migrationSummary,
   planMigration,
 } from "./migrate";
@@ -143,5 +144,100 @@ describe("migração do perfil local para a conta (C06)", () => {
       }),
     );
     expect(c).toEqual({ follows: 2, saved: 1, interests: 1, history: 0, conversations: 0 });
+  });
+});
+
+describe("payload mínimo da migração (gate P2, I3)", () => {
+  const ANON = "0b8c6a1e-2f3d-4a5b-8c7d-9e0f1a2b3c4d";
+  const full = localWith(["fc"], ["a1"], {
+    anonId: ANON,
+    history: [{ ref: "a9", at: AT, seconds: 30, scrollPct: 50, section: "Cidade" }],
+    searches: ["remédio para diabetes", "endereço da minha ex"],
+    interests: [{ key: "Cidade", evidence: "3 leituras", weak: false }],
+    hidden: [{ sourceSlug: "db", reason: "not_interested", at: AT }],
+    collections: [{ id: "c1", name: "Pra ler", at: AT, items: ["a1"] }],
+    alerts: [
+      {
+        id: "al1",
+        kind: "urgentes",
+        target: "urgentes",
+        label: "Urgentes",
+        frequency: "immediate",
+        channel: "email",
+        status: "active",
+        email: "pessoa@exemplo.com",
+        at: AT,
+      },
+    ],
+  });
+  const none = {
+    follows: false,
+    saved: false,
+    interests: false,
+    history: false,
+    conversations: false,
+  };
+
+  it("nada marcado: nada pessoal sai do navegador", () => {
+    const body = JSON.stringify(migrationPayload(full, none));
+    for (const leak of [
+      ANON,
+      "a9",
+      "remédio",
+      "minha ex",
+      "Cidade",
+      "pessoa@",
+      "fc",
+      "a1",
+      "Pra ler",
+      "db",
+    ])
+      expect(body).not.toContain(leak);
+  });
+
+  it("buscas e e-mail dos alertas nunca vão, nem com tudo marcado", () => {
+    const all = { follows: true, saved: true, interests: true, history: true, conversations: true };
+    const body = JSON.stringify(migrationPayload(full, all));
+    expect(body).not.toContain("remédio");
+    expect(body).not.toContain("pessoa@exemplo.com");
+    expect(body).toContain("al1");
+  });
+
+  it("id anônimo e histórico só com Histórico marcado", () => {
+    const off = migrationPayload(full, { ...DEFAULT_MIGRATION_CHOICE, history: false });
+    expect(off.anonId).toBeNull();
+    expect(off.history).toEqual([]);
+    const on = migrationPayload(full, { ...DEFAULT_MIGRATION_CHOICE, history: true });
+    expect(on.anonId).toBe(ANON);
+    expect(on.history).toHaveLength(1);
+  });
+
+  it("cada caixa leva só o seu grupo", () => {
+    const f = migrationPayload(full, { ...none, follows: true });
+    expect(f.follows).toHaveLength(1);
+    expect(f.alerts).toHaveLength(1);
+    expect(f.saved).toEqual([]);
+    expect(f.collections).toEqual([]);
+    expect(f.interests).toEqual([]);
+    expect(f.hidden).toEqual([]);
+    const s = migrationPayload(full, { ...none, saved: true });
+    expect(s.saved).toHaveLength(1);
+    expect(s.collections).toHaveLength(1);
+    expect(s.follows).toEqual([]);
+    expect(s.alerts).toEqual([]);
+    const i = migrationPayload(full, { ...none, interests: true });
+    expect(i.interests).toHaveLength(1);
+    expect(i.hidden).toHaveLength(1);
+  });
+
+  it("o plano feito do payload é o mesmo que o do perfil inteiro (sem o e-mail do alerta)", () => {
+    const remote = { follows: [], saved: [] };
+    for (const c of [DEFAULT_MIGRATION_CHOICE, { ...DEFAULT_MIGRATION_CHOICE, history: true }]) {
+      const whole = planMigration(full, remote, c);
+      expect(planMigration(migrationPayload(full, c), remote, c)).toEqual({
+        ...whole,
+        alerts: whole.alerts.map((a) => ({ ...a, email: undefined })),
+      });
+    }
   });
 });

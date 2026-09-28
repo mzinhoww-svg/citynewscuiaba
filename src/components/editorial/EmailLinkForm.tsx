@@ -67,8 +67,11 @@ export function EmailLinkForm({
             {sentDetail && <p>{sentDetail}</p>}
           </InlineAlert>
         )}
-        {(state.status === "unavailable" || state.status === "rate_limited") && (
+        {state.status === "unavailable" && (
           <InlineAlert tone="error" title={A.unavailable} role="alert" />
+        )}
+        {state.status === "rate_limited" && (
+          <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
         )}
       </div>
       <Button type="submit" fullWidth disabled={pending}>

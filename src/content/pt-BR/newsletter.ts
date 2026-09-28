@@ -50,6 +50,10 @@ export const NEWSLETTER_PREFS = {
   metaTitle: "Preferências da newsletter · CityNews Cuiabá",
   title: "Suas newsletters",
   confirmed: "Inscrição confirmada. Obrigado!",
+  confirmAsk: "Falta confirmar",
+  confirmAskText:
+    "Toque no botão para confirmar a inscrição. Se não foi você que pediu, feche esta página: nada será enviado.",
+  confirmButton: "Confirmar inscrição",
   intro: (email: string) => `Preferências de ${email}. Marque o que quer continuar recebendo.`,
   save: "Salvar preferências",
   saved: "Preferências salvas.",

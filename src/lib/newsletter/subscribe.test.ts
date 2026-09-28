@@ -55,7 +55,19 @@ it("sem lista escolhida vale a diária (formulário da home); grava normalizado 
       kind: "newsletter_confirm",
       to: "ana@exemplo.com",
       body: expect.stringContaining("&confirmar=1"),
+      ref: "lists:diaria",
     }),
+  );
+});
+
+it("dedupe por lista: outra lista gera outra referência (gate P2, I4)", async () => {
+  const d = deps();
+  await subscribeNewsletter(
+    form({ email: "a@exemplo.com", lists: ["politica-semana", "agenda-fds"] }),
+    d,
+  );
+  expect(d.queue).toHaveBeenCalledWith(
+    expect.objectContaining({ ref: "lists:agenda-fds,politica-semana" }),
   );
 });
 

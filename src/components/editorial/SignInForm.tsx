@@ -111,7 +111,7 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
             <InlineAlert tone="success" title={T.magicSent(magic.email)} />
           )}
           {magic.status === "rate_limited" && (
-            <InlineAlert tone="warn" title={A.unavailable} role="alert" />
+            <InlineAlert tone="warn" title={A.rateLimited} role="alert" />
           )}
         </div>
 

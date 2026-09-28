@@ -139,5 +139,7 @@ describe("resolveAccess", () => {
   it("next externo é descartado", () => {
     expect(loginRedirect("//malicioso.example")).toBe("/entrar?next=%2Festudio");
     expect(loginRedirect("https://malicioso.example")).toBe("/entrar?next=%2Festudio");
+    expect(loginRedirect("/\t/malicioso.example")).toBe("/entrar?next=%2Festudio");
+    expect(loginRedirect("/%09/malicioso.example")).toBe("/entrar?next=%2Festudio");
   });
 });

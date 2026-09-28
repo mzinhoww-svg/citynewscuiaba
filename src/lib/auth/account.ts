@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { err, ok, type Result } from "@/lib/result";
 import { MIN_PASSWORD } from "./password";
+import { internalPath } from "./safe-path";
 
 /**
  * Regras puras da conta opcional (docs/screens.md C02 a C04). Sem banco e sem Supabase: as
@@ -98,9 +99,9 @@ const AUTH_PAGES = [
  * nunca de volta para as telas de conta. Padrão: `/perfil`.
  */
 export function safeNext(next: string | null | undefined, fallback = "/perfil"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\"))
-    return fallback;
-  const path = next.split(/[?#]/)[0] ?? "";
+  const safe = internalPath(next);
+  if (!safe) return fallback;
+  const path = safe.split(/[?#]/)[0] ?? "";
   if (AUTH_PAGES.some((p) => path === p || path.startsWith(`${p}/`))) return fallback;
-  return next;
+  return safe;
 }

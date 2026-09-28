@@ -4,7 +4,7 @@ import { ok } from "@/lib/result";
 import { siteUrl } from "@/lib/seo/jsonld";
 import { clientRateKey } from "@/lib/security/rate-limit";
 import type { SubscribeDeps } from "./subscribe";
-import { signNewsletterToken, newsletterSecret } from "./token";
+import { signNewsletterToken, newsletterSecret, type LinkPurpose } from "./token";
 
 /** Links de confirmação e preferências valem 7 dias. */
 export const LINK_TTL_SEC = 7 * 24 * 3600;
@@ -14,6 +14,7 @@ const HOUR = 3600;
 
 /** Link assinado absoluto para o e-mail (ou `null` sem segredo em produção). */
 export function signedLink(
+  purpose: LinkPurpose,
   path: string,
   email: string,
   lists: string[],
@@ -21,7 +22,7 @@ export function signedLink(
 ): string | null {
   const secret = newsletterSecret();
   if (!secret) return null;
-  const token = signNewsletterToken(email, lists, LINK_TTL_SEC, secret);
+  const token = signNewsletterToken(purpose, email, lists, LINK_TTL_SEC, secret);
   return `${siteUrl()}${path}?token=${encodeURIComponent(token)}${extra}`;
 }
 
@@ -34,6 +35,12 @@ export function subscribeDeps(headers: Headers, bucket = "newsletter"): Subscrib
     save: saveNewsletterLists,
     queue: queueReaderEmail,
     link: (email, lists, confirm) =>
-      signedLink("/newsletter/preferencias", email, lists, confirm ? "&confirmar=1" : ""),
+      signedLink(
+        "newsletter",
+        "/newsletter/preferencias",
+        email,
+        lists,
+        confirm ? "&confirmar=1" : "",
+      ),
   };
 }

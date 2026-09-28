@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
+import { loadEnvConfig } from "@next/env";
 import { expect, test, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { skipInvite } from "./invite";
 import { forwardedFor } from "./own-ip";
 
@@ -7,6 +9,7 @@ import { forwardedFor } from "./own-ip";
  * Favoritos (P17) e Alertas (P18), P2-T9: tudo sem conta, guardado neste navegador. O convite
  * de login (P2-T10) aparece uma vez por gatilho: aqui ele é recusado com "Agora não".
  */
+loadEnvConfig(process.cwd());
 const ARTICLE = "/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const TITLE = "Prefeitura detalha novo plano de ônibus entre CPA e Centro";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -159,6 +162,7 @@ test("alerta de navegador com permissão fica ativo neste aparelho", async ({
 });
 
 test("alerta por e-mail fica pendente até a confirmação", async ({ page }) => {
+  const email = `alerta-${Date.now()}@exemplo.com`;
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto("/alertas");
   await ready(page);
@@ -167,13 +171,40 @@ test("alerta por e-mail fica pendente até a confirmação", async ({ page }) =>
   await page.getByRole("textbox", { name: "E-mail" }).fill("nao-e-email");
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Confira o e-mail digitado/)).toBeVisible();
-  await page.getByRole("textbox", { name: "E-mail" }).fill(`alerta-${Date.now()}@exemplo.com`);
+  await page.getByRole("textbox", { name: "E-mail" }).fill(email);
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Enviamos um link de confirmação/)).toBeVisible();
   await skipInvite(page);
   await expect(page.getByText(/E-mail não confirmado: enviamos um link para/)).toBeVisible();
   await page.goto("/alertas/confirmar?token=lixo");
   await expect(page.getByRole("heading", { name: "Este link não é válido" })).toBeVisible();
+
+  // O link da fila (B-005) só confirma com o toque no botão (gate P2, I6).
+  const db = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  );
+  const { data: mail } = await db
+    .from("reader_emails")
+    .select("body")
+    .eq("to_email", email)
+    .eq("kind", "alert_confirm")
+    .single();
+  expect(mail?.body).toContain('"Urgentes: Todas as notícias urgentes"');
+  const link = /https?:\/\/\S+/.exec(mail?.body ?? "")?.[0] ?? "";
+  const path = new URL(link).pathname + new URL(link).search;
+  const active = async () =>
+    (await db.from("alerts").select("active").eq("owner_ref", `email:${email}`).single()).data
+      ?.active;
+  await page.goto(path);
+  await expect(page.getByRole("heading", { name: "Confirme seu alerta" })).toBeVisible();
+  expect(await active()).toBe(false);
+  await page.getByRole("button", { name: "Confirmar alerta" }).click();
+  await expect(page.getByRole("heading", { name: "Alerta por e-mail confirmado" })).toBeVisible();
+  expect(await active()).toBe(true);
+  await db.from("alerts").delete().eq("owner_ref", `email:${email}`);
+  await db.from("reader_emails").delete().eq("to_email", email);
 });
 
 for (const path of ["/favoritos", "/alertas"]) {

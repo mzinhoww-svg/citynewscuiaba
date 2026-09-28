@@ -54,6 +54,10 @@ export const ALERTS_TEXT = {
     n === 1 ? `1 novidade: ${label}` : `${n} novidades: ${label}`,
   testTitle: "Alertas do CityNews ativados",
   testBody: "É assim que os avisos aparecem neste navegador.",
+  confirmAskTitle: "Confirme seu alerta",
+  confirmAskText: (email: string) =>
+    `Toque no botão para começar a receber este alerta em ${email}. Se não foi você que pediu, feche esta página: nada será enviado.`,
+  confirmButton: "Confirmar alerta",
   confirmTitle: "Alerta por e-mail confirmado",
   confirmText: "Pronto: você recebe os avisos neste e-mail quando o envio começar.",
   confirmExpired: "Este link expirou",

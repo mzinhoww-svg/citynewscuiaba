@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
-import { confirmEmailAlerts } from "@/lib/db/writes";
 import { verifyNewsletterToken } from "@/lib/newsletter/token";
+import { confirmAlertAction } from "./actions";
 
-/** Confirmação de alerta por e-mail (P18): link assinado, sem conta e fora do índice. */
+/**
+ * Confirmação de alerta por e-mail (P18): link assinado, sem conta e fora do índice. Abrir o
+ * link só mostra o botão; a confirmação é a Server Action (gate P2, I6).
+ */
 export const metadata: Metadata = {
   title: T.confirmTitle,
   robots: { index: false, follow: false },
@@ -12,44 +15,60 @@ export const metadata: Metadata = {
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const RESULTS = {
+  confirmado: { title: T.confirmTitle, text: T.confirmText, tone: "empty" },
+  expirado: { title: T.confirmExpired, text: T.confirmExpiredText, tone: "error" },
+  invalido: { title: T.confirmInvalid, text: T.confirmInvalidText, tone: "error" },
+  erro: { title: T.confirmError, text: T.confirmErrorText, tone: "error" },
+} as const;
 
 export default async function ConfirmAlertRoute({ searchParams }: Props) {
   const sp = await searchParams;
-  const v = verifyNewsletterToken(typeof sp.token === "string" ? sp.token : "");
-  let title: string = T.confirmTitle;
-  let text: string = T.confirmText;
-  let tone: "empty" | "error" = "empty";
-  if (!v.ok) {
-    title = v.error === "expired" ? T.confirmExpired : T.confirmInvalid;
-    text = v.error === "expired" ? T.confirmExpiredText : T.confirmInvalidText;
-    tone = "error";
-  } else {
-    const ids = v.value.lists.flatMap((l) =>
-      l.startsWith("alert:") && UUID.test(l.slice(6)) ? [l.slice(6)] : [],
-    );
-    const r = ids.length ? await confirmEmailAlerts(v.value.email, ids) : null;
-    if (!r?.ok || r.value === 0) {
-      title = r?.ok === false ? T.confirmError : T.confirmInvalid;
-      text = r?.ok === false ? T.confirmErrorText : T.confirmInvalidText;
-      tone = "error";
-    }
+  const token = typeof sp.token === "string" ? sp.token : "";
+  const estado = typeof sp.estado === "string" ? sp.estado : "";
+  const back = (
+    <Button href="/alertas" size="md" variant="outline">
+      {T.backToAlerts}
+    </Button>
+  );
+
+  let result: (typeof RESULTS)[keyof typeof RESULTS] | null =
+    estado in RESULTS ? RESULTS[estado as keyof typeof RESULTS] : null;
+  let email = "";
+  if (!result) {
+    const v = verifyNewsletterToken(token, "alert");
+    if (v.ok) email = v.value.email;
+    else result = v.error === "expired" ? RESULTS.expirado : RESULTS.invalido;
   }
+
   return (
     <div className="mx-auto w-full max-w-read px-gutter py-10">
-      <EmptyState
-        as="h1"
-        tone={tone}
-        icon={tone === "empty" ? "check" : undefined}
-        title={title}
-        actions={
-          <Button href="/alertas" size="md" variant="outline">
-            {T.backToAlerts}
-          </Button>
-        }
-      >
-        {text && <p>{text}</p>}
-      </EmptyState>
+      {result ? (
+        <EmptyState
+          as="h1"
+          tone={result.tone}
+          icon={result.tone === "empty" ? "check" : undefined}
+          title={result.title}
+          actions={back}
+        >
+          <p>{result.text}</p>
+        </EmptyState>
+      ) : (
+        <form action={confirmAlertAction}>
+          <input type="hidden" name="token" value={token} />
+          <EmptyState
+            as="h1"
+            title={T.confirmAskTitle}
+            actions={
+              <Button type="submit" size="md">
+                {T.confirmButton}
+              </Button>
+            }
+          >
+            <p>{T.confirmAskText(email)}</p>
+          </EmptyState>
+        </form>
+      )}
     </div>
   );
 }
