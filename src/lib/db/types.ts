@@ -103,7 +103,7 @@ export type Database = {
           created_at: string;
           created_by: string;
           id: string;
-          metrics: Json;
+          metrics: NonNullable<Json>;
           prompt_version: number;
           provider: string;
         };
@@ -113,7 +113,7 @@ export type Database = {
           created_at?: string;
           created_by: string;
           id?: string;
-          metrics: Json;
+          metrics: NonNullable<Json>;
           prompt_version: number;
           provider: string;
         };
@@ -123,7 +123,7 @@ export type Database = {
           created_at?: string;
           created_by?: string;
           id?: string;
-          metrics?: Json;
+          metrics?: NonNullable<Json>;
           prompt_version?: number;
           provider?: string;
         };
