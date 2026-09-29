@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T06:25:41.794Z",
+  "updatedAt": "2026-09-29T06:30:20.404Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -665,10 +665,10 @@
           "id": "P5-T7",
           "title": "Recomendação: painel, pesos, campanhas e A/B",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "3f8c095",
+          "notes": "Painel O17 (diversidade, concentração, pesos com soma, campanhas, A/B, Por que esta recomendação) e O18; migration 0034; 79 testes de ranking, 5 de integração, 5 e2e, a11y 10 rotas/temas; DP-3 fora"
         },
         {
           "id": "P5-T8",
