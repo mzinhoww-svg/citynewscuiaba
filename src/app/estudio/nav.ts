@@ -1,5 +1,6 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
+import { ADMIN_NAV } from "./admin/nav";
 
 interface Entry extends StudioNavItem {
   /** Ação exigida para ver o item; ausente = qualquer papel do Estúdio. */
@@ -123,21 +124,7 @@ const GROUPS: { label: string; items: Entry[] }[] = [
   },
   {
     label: "Governança",
-    items: [
-      { href: "/estudio/admin/usuarios", label: "Usuários", icon: "users", action: "users.manage" },
-      {
-        href: "/estudio/admin/auditoria",
-        label: "Auditoria",
-        icon: "shield",
-        action: "audit.view",
-      },
-      {
-        href: "/estudio/admin/contingencia",
-        label: "Contingência",
-        icon: "triangle-alert",
-        action: "users.manage",
-      },
-    ],
+    items: ADMIN_NAV,
   },
 ];
 

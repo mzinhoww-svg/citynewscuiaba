@@ -13,6 +13,7 @@ export type ApprovalTarget =
   | { kind: "source"; sourceId: string; field: string; value: string }
   | { kind: "prompt"; agentId: string; version: number }
   | { kind: "rec"; version: string }
+  | { kind: "user"; userId: string }
   | { kind: "other"; ref: string };
 
 const RULES = /^rules:(\d+)$/;
@@ -20,11 +21,17 @@ const FLAG = /^flag:([a-z_]+)=(true|false)$/;
 const SOURCE = /^source:([0-9a-f-]{36}):([a-z_]+)=(.*)$/i;
 const PROMPT = /^prompt:([a-z_]+):(\d+)$/;
 const REC = /^rec:([a-z0-9][a-z0-9.-]{0,60})$/;
+const USER = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const rulesTarget = (version: number): string => `rules:${version}`;
 export const flagTarget = (key: string, value: boolean): string => `flag:${key}=${value}`;
 /** Versão de `rec_weights` proposta (P5-T7); `rec_weights_activate` (0037) consome o pedido. */
 export const recTarget = (version: string): string => `rec:${version}`;
+/**
+ * Papel de admin (`role.admin`): o alvo é o próprio uuid da pessoa, sem prefixo, porque
+ * `consume_role_admin_approval(target)` (0002) compara `target_ref = target::text`.
+ */
+export const userTarget = (userId: string): string => userId;
 
 export function parseApprovalTarget(ref: string): ApprovalTarget {
   const r = RULES.exec(ref);
@@ -37,6 +44,7 @@ export function parseApprovalTarget(ref: string): ApprovalTarget {
   if (p) return { kind: "prompt", agentId: p[1]!, version: Number(p[2]) };
   const w = REC.exec(ref);
   if (w) return { kind: "rec", version: w[1]! };
+  if (USER.test(ref)) return { kind: "user", userId: ref };
   return { kind: "other", ref };
 }
 
@@ -65,6 +73,7 @@ export const APPLIED_HERE: ReadonlySet<CriticalKind> = new Set<CriticalKind>([
 export function approvalHref(kind: CriticalKind, target: ApprovalTarget): string {
   if (kind === "source.critical" && target.kind === "source")
     return `/estudio/control/fontes/${target.sourceId}`;
+  if (kind === "role.admin") return "/estudio/admin/usuarios";
   return "/estudio/control/aprovacoes";
 }
 

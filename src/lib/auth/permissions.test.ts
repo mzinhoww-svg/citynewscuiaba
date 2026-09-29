@@ -52,6 +52,7 @@ describe("matriz (docs/architecture.md §6)", () => {
     "users.manage": ["admin"],
     "metrics.view": ["admin", "editor_chefe", "operador_ia", "analista", "leitura"],
     "audit.view": ["admin", "editor_chefe", "operador_ia", "leitura"],
+    "site.manage": ["admin", "editor_chefe"],
   };
   const bySection: Action[] = [
     "article.edit",

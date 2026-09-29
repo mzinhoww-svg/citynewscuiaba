@@ -403,3 +403,21 @@ export {
   type ExperimentFormProps,
 } from "./studio/RecForms";
 export { AbTestCard, type AbTestCardProps } from "./studio/AbTestCard";
+
+// Administração (P5-T8)
+export {
+  AdminStatus,
+  AdminTable,
+  CheckList,
+  type AdminReply,
+  type CheckOption,
+} from "./studio/admin/AdminStatus";
+export { StaffTable, type StaffTableProps } from "./studio/admin/StaffTable";
+export { TeamsEditor, type TeamsEditorProps } from "./studio/admin/TeamsEditor";
+export { TaxonomyPanel, type TaxonomyPanelProps } from "./studio/admin/TaxonomyPanel";
+export { HomeModulesEditor, type HomeModulesEditorProps } from "./studio/admin/HomeModulesEditor";
+export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
+export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
+export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
+export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
+export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";

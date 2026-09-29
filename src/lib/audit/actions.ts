@@ -78,6 +78,24 @@ export const AUDIT_ACTIONS = [
   "rec.experiment.end",
   "rec.experiment.promote",
   "rec.explain",
+  // Administração (P5-T8, 0038)
+  "user.invite",
+  "user.role.grant",
+  "user.role.revoke",
+  "team.save",
+  "team.delete",
+  "taxonomy.save",
+  "taxonomy.merge",
+  "home.save",
+  "home.publish",
+  // Administração (P5-T9, 0039)
+  "ads.campaign.save",
+  "ads.campaign.delete",
+  "seo.redirect.save",
+  "seo.redirect.delete",
+  "audit.export",
+  "privacy.request.save",
+  "security.key.rotate",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

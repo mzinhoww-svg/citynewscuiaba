@@ -174,3 +174,64 @@ test("A15 · contingência e diálogo de confirmação", async ({ page }) => {
     .fill("modo");
   await shot(page, "a15-contingencia-dialogo", false);
 });
+
+test("A01–A06 · administração: painel, usuários, papéis, equipes, taxonomia e home", async ({
+  page,
+}) => {
+  await loginAs(page, "helena", "/estudio/admin");
+  await expect(page.getByRole("heading", { level: 1, name: "Administração" })).toBeVisible();
+  await shot(page, "a01-admin");
+  await page.goto("/estudio/admin/usuarios");
+  await expect(page.getByRole("table", { name: "Pessoas da equipe" })).toBeVisible();
+  await shot(page, "a02-usuarios");
+  await page.getByRole("button", { name: "Convidar pessoa" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await shot(page, "a02-usuarios-convite", false);
+  await page.goto("/estudio/admin/papeis");
+  await expect(page.getByRole("table", { name: "Matriz de permissões por papel" })).toBeVisible();
+  await shot(page, "a03-papeis");
+  await page.goto("/estudio/admin/equipes");
+  await expect(page.getByRole("heading", { level: 1, name: "Equipes" })).toBeVisible();
+  await shot(page, "a04-equipes");
+  await page.goto("/estudio/admin/taxonomia");
+  await expect(page.getByRole("table", { name: "Tags em uso" })).toBeVisible();
+  await shot(page, "a05-taxonomia");
+  await page.goto("/estudio/admin/home");
+  await expect(page.getByRole("list", { name: "Módulos da home" })).toBeVisible();
+  await shot(page, "a06-home");
+});
+
+test("A07–A14 · publicidade, SEO, auditoria, segurança, governança, integrações e configurações", async ({
+  page,
+}) => {
+  await loginAs(page, "helena", "/estudio/admin/publicidade");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Publicidade e patrocinados" }),
+  ).toBeVisible();
+  await shot(page, "a07-publicidade");
+  await page.getByRole("button", { name: "Nova campanha" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByRole("dialog").getByLabel("Anunciante").fill("Padaria do Porto");
+  await page.getByRole("dialog").getByLabel("Título da peça").fill("Pão quente às 6h");
+  await shot(page, "a07-publicidade-campanha", false);
+  await page.goto("/estudio/admin/seo");
+  await expect(page.getByRole("heading", { level: 1, name: "SEO" })).toBeVisible();
+  await shot(page, "a08-seo");
+  await page.goto("/estudio/admin/auditoria");
+  await expect(page.getByRole("table", { name: "Registros de auditoria" })).toBeVisible();
+  await shot(page, "a10-auditoria");
+  await page.goto("/estudio/admin/seguranca");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Segurança e privacidade" }),
+  ).toBeVisible();
+  await shot(page, "a11-seguranca");
+  await page.goto("/estudio/admin/governanca");
+  await expect(page.getByRole("heading", { level: 1, name: "Governança editorial" })).toBeVisible();
+  await shot(page, "a12-governanca");
+  await page.goto("/estudio/admin/integracoes");
+  await expect(page.getByRole("table", { name: "Integrações" })).toBeVisible();
+  await shot(page, "a13-integracoes");
+  await page.goto("/estudio/admin/configuracoes");
+  await expect(page.getByRole("heading", { level: 1, name: "Configurações" })).toBeVisible();
+  await shot(page, "a14-configuracoes");
+});

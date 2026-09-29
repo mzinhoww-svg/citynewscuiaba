@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AiSummaryBlock,
   ArticleCard,
@@ -31,6 +31,7 @@ import { ARTICLE, CARD, SECTION_PAGE } from "@/content/pt-BR/portal";
 import { SITE } from "@/content/pt-BR/site";
 import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
+import { findRedirect } from "@/lib/db/queries/redirects";
 import { formatDateTime } from "@/lib/format/date";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
 import { reportProblemAction } from "./actions";
@@ -389,6 +390,11 @@ export default async function ArticleRoute({ params }: Props) {
         </EmptyState>
       </div>
     );
+  }
+  if (!result.value || "gone" in result.value) {
+    // Endereço antigo com redirecionamento cadastrado (A08) vai para o destino.
+    const r = await findRedirect(`/materia/${slug}`);
+    if (r) redirect(r.toPath, r.kind === 301 ? RedirectType.replace : RedirectType.push);
   }
   if (!result.value) notFound();
   // O status 410 vem do proxy (src/proxy.ts); a página mostra o motivo (P25, Review Focus 2).

@@ -41,6 +41,8 @@ export function targetText(target: ApprovalTarget): string {
       return `prompt v${target.version} de ${AGENT_NAME[target.agentId] ?? target.agentId}`;
     case "rec":
       return `pesos de recomendação ${target.version}`;
+    case "user":
+      return `papel de administração para a conta ${target.userId.slice(0, 8)}`;
     case "other":
       return target.ref;
   }
