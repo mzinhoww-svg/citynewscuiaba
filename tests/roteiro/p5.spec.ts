@@ -127,6 +127,28 @@ test("O05 · regras de autonomia com simulação", async ({ page }) => {
   await shot(page, "o05-regras-simulacao");
 });
 
+test("O10/O11/O12/O15 · agentes, modelos, prompts e playground (P5-T5)", async ({ page }) => {
+  await loginAs(page, "diego", "/estudio/control/agentes");
+  await expect(page.getByRole("table", { name: /Agentes de IA/ })).toBeVisible();
+  await shot(page, "o10-agentes");
+  await page.goto("/estudio/control/modelos");
+  await expect(page.getByRole("table", { name: /Modelos de IA/ })).toBeVisible();
+  await shot(page, "o11-modelos");
+  await page.goto("/estudio/control/prompts/answer");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Prompts de Busca com IA" }),
+  ).toBeVisible();
+  await shot(page, "o12-prompts");
+  await page.goto("/estudio/control/testes");
+  await page.getByLabel("Agente").selectOption("classify");
+  await page
+    .getByLabel("Dados de teste (item colado)")
+    .fill("<p>Mutirão de vagas de emprego no Ginásio Aecim Tocantins, em Cuiabá.</p>");
+  await page.getByRole("button", { name: "Rodar" }).click();
+  await expect(page.getByRole("region", { name: "Resultado" })).toBeVisible();
+  await shot(page, "o15-playground");
+});
+
 test("A15 · contingência e diálogo de confirmação", async ({ page }) => {
   await loginAs(page, "helena", "/estudio/admin/contingencia");
   await expect(page.getByRole("heading", { level: 1, name: "Contingência" })).toBeVisible();

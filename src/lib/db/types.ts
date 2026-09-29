@@ -2994,6 +2994,8 @@ export type Database = {
         }[];
       };
       pipeline_media_context: { Args: { p_article: string }; Returns: Json };
+      prompt_publish: { Args: { p_approval: string }; Returns: Json };
+      prompt_rollback: { Args: { p_agent: string; p_to: number }; Returns: Json };
       public_article_gone: { Args: { p_slug: string }; Returns: string };
       public_most_read: {
         Args: { p_hours?: number; p_limit?: number };
