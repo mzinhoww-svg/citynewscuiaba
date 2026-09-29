@@ -360,3 +360,19 @@ export {
   type HomeModulesEditorProps,
   type HomeSaveReply,
 } from "./studio/HomeModulesEditor";
+
+/* administração (P5-T9) */
+export { AdminNotice, type AdminNoticeProps } from "./studio/AdminNotice";
+export { AdminField, AdminBlock, FIELD_CLASS, type AdminFieldProps } from "./studio/AdminFields";
+export {
+  AdminSettingsForm,
+  type AdminSettingsFormProps,
+  type SettingsFormField,
+} from "./studio/AdminSettingsForm";
+export { AuditPanel, type AuditFilterValues, type AuditPanelProps } from "./studio/AuditPanel";
+export { AdsPanel, type AdsPanelProps } from "./studio/AdsPanel";
+export { NotifyPanel, type NotifyPanelProps } from "./studio/NotifyPanel";
+export { SecurityPanel, type SecurityPanelProps } from "./studio/SecurityPanel";
+export { IntegrationsTable } from "./studio/IntegrationsTable";
+export { EditorialGovernance } from "./studio/EditorialGovernance";
+export { SeoPanel, type SeoPanelProps } from "./studio/SeoPanel";

@@ -1,6 +1,7 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
 import { canReadAiOps } from "@/lib/ai/access";
 import { canSeeApprovals } from "@/lib/approvals/kinds";
+import { canAccessArea } from "@/lib/admin/access";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
 
 interface Entry extends StudioNavItem {
@@ -155,6 +156,48 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         label: "Auditoria",
         icon: "shield",
         action: "audit.view",
+      },
+      {
+        href: "/estudio/admin/publicidade",
+        label: "Publicidade",
+        icon: "percent",
+        visible: (roles) => canAccessArea(roles, "publicidade"),
+      },
+      {
+        href: "/estudio/admin/seo",
+        label: "SEO",
+        icon: "search",
+        visible: (roles) => canAccessArea(roles, "seo"),
+      },
+      {
+        href: "/estudio/admin/notificacoes",
+        label: "Notificações",
+        icon: "bell",
+        visible: (roles) => canAccessArea(roles, "notificacoes"),
+      },
+      {
+        href: "/estudio/admin/seguranca",
+        label: "Segurança",
+        icon: "lock",
+        visible: (roles) => canAccessArea(roles, "seguranca"),
+      },
+      {
+        href: "/estudio/admin/governanca",
+        label: "Governança editorial",
+        icon: "scale",
+        visible: (roles) => canAccessArea(roles, "governanca"),
+      },
+      {
+        href: "/estudio/admin/integracoes",
+        label: "Integrações",
+        icon: "link",
+        visible: (roles) => canAccessArea(roles, "integracoes"),
+      },
+      {
+        href: "/estudio/admin/configuracoes",
+        label: "Configurações",
+        icon: "settings",
+        visible: (roles) => canAccessArea(roles, "configuracoes"),
       },
     ],
   },

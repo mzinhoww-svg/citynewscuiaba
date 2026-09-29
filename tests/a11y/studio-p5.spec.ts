@@ -44,6 +44,19 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/avaliacoes", as: "marina" },
   { path: "/estudio/control/custos", as: "diego" },
   { path: "/estudio/control/governanca", as: "marina" },
+  // Administração (P5-T9): publicidade, SEO, notificações, auditoria, segurança, governança, integrações e configurações.
+  { path: "/estudio/admin/publicidade", as: "marina" },
+  { path: "/estudio/admin/publicidade", as: "helena" },
+  { path: "/estudio/admin/seo", as: "marina" },
+  { path: "/estudio/admin/notificacoes", as: "otavio" },
+  { path: "/estudio/admin/auditoria", as: "marina" },
+  { path: "/estudio/admin/auditoria", as: "helena" },
+  { path: "/estudio/admin/auditoria?acao=zzz-sem-resultado", as: "marina" },
+  { path: "/estudio/admin/seguranca", as: "helena" },
+  { path: "/estudio/admin/seguranca", as: "marina" },
+  { path: "/estudio/admin/governanca", as: "diego" },
+  { path: "/estudio/admin/integracoes", as: "diego" },
+  { path: "/estudio/admin/configuracoes", as: "helena" },
   // Administração (P5-T8): painel, usuários (com convite pendente), papéis, equipes, taxonomia e home.
   { path: "/estudio/admin", as: "helena" },
   { path: "/estudio/admin/usuarios", as: "helena" },
@@ -246,6 +259,48 @@ test.afterAll(async () => {
   await db.from("rec_experiments").delete().eq("id", REC_TEST);
   await db.from("rec_weights").delete().eq("version", "rec-v1.700");
   if (recAnons.length) await db.from("events").delete().in("anon_id", recAnons);
+});
+
+// Administração (P5-T9): uma campanha e um pedido de push urgente pendente para as tabelas com linhas.
+const adsCampaigns: string[] = [];
+let pushApprovalId: string | null = null;
+test.beforeAll(async () => {
+  const db = service();
+  const c = await db
+    .from("sponsored_campaigns")
+    .insert({
+      advertiser: "A11y Anunciante Fictício",
+      starts_on: "2026-09-01",
+      ends_on: "2026-12-31",
+      allowed_sections: ["cidade", "economia"],
+      creative: {
+        headline: "Peça de teste de acessibilidade",
+        url: "https://anunciante.example/a11y",
+      },
+    })
+    .select("id")
+    .single();
+  if (c.error) throw c.error;
+  adsCampaigns.push(c.data.id);
+  const art = await db.from("articles").select("id").eq("status", "published").limit(1).single();
+  if (art.error) throw art.error;
+  const p = await db
+    .from("approvals")
+    .insert({
+      kind: "push.urgent",
+      target_ref: art.data.id,
+      requested_by: STAFF.otavio.id,
+      justification: "Pedido do teste de acessibilidade (push)",
+    })
+    .select("id")
+    .single();
+  if (p.error) throw p.error;
+  pushApprovalId = p.data.id;
+});
+test.afterAll(async () => {
+  const db = service();
+  if (adsCampaigns.length) await db.from("sponsored_campaigns").delete().in("id", adsCampaigns);
+  if (pushApprovalId) await db.from("approvals").delete().eq("id", pushApprovalId);
 });
 
 // Administração (P5-T8): dados para as telas cheias (convite pendente, equipe, tags duplicadas).

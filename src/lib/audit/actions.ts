@@ -42,6 +42,12 @@ export const AUDIT_ACTIONS = [
   "prompt.rollback",
   "prompt.playground",
   "agent.toggle",
+  "ads.campaign.save",
+  "ads.campaign.toggle",
+  "ads.flag.toggle",
+  "push.send",
+  "settings.update",
+  "security.clear_login_blocks",
   // Administração de usuários, equipes, taxonomia e home (P5-T8; migration 0035, admin_audit_actions).
   "taxonomy.manage",
   "home.manage",
