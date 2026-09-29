@@ -3025,6 +3025,22 @@ export type Database = {
         Args: { p_ctx?: Json; p_id: string; p_patch: Json; p_version: number };
         Returns: number;
       };
+      source_critical_parts: {
+        Args: { p_ref: string };
+        Returns: {
+          field: string;
+          source_id: string;
+          val: string;
+        }[];
+      };
+      source_critical_widens: {
+        Args: {
+          p_cur: Database["public"]["Tables"]["sources"]["Row"];
+          p_field: string;
+          p_val: string;
+        };
+        Returns: boolean;
+      };
       source_fast_lane_used: { Args: { p_except: string }; Returns: number };
       source_ignored_keys: { Args: Record<PropertyKey, never>; Returns: string[] };
       source_image_rank: {

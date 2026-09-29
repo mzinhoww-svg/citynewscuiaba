@@ -16,7 +16,7 @@ const grant = (role: Parameters<typeof canRequestApproval>[0][number]["role"]) =
 ];
 
 describe("tipos de mudança crítica", () => {
-  it("são os sete da spec §8 (mais o push urgente)", () => {
+  it("são os sete da spec §8, o push urgente e a mudança crítica de fonte", () => {
     expect([...CRITICAL_KINDS].sort()).toEqual(
       [
         "force_review.disable",
@@ -26,6 +26,7 @@ describe("tipos de mudança crítica", () => {
         "role.admin",
         "rules.activate",
         "safety.disable",
+        "source.critical",
       ].sort(),
     );
     expect(isCriticalKind("rules.activate")).toBe(true);

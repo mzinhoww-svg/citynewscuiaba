@@ -44,6 +44,8 @@ export const APPROVAL_ERROR_TEXT = {
   forbidden: "Seu papel não permite decidir este pedido.",
   not_pending: "Este pedido não está mais pendente. Atualize a página.",
   invalid: "Pedido inválido: escreva a justificativa e confira o alvo.",
+  stale:
+    "O alvo mudou e esta aprovação não tem mais efeito. Recuse o pedido e peça de novo, se ainda for preciso.",
 } as const;
 
 export const APPROVAL_KIND_LABEL: Record<CriticalKind, string> = {
@@ -54,6 +56,7 @@ export const APPROVAL_KIND_LABEL: Record<CriticalKind, string> = {
   "rec.weights": "Ativar pesos de recomendação",
   "role.admin": "Conceder papel de administração",
   "push.urgent": "Enviar push urgente",
+  "source.critical": "Ampliar direitos de uma fonte",
 };
 
 /** Alvo por extenso, a partir do tipo e da referência. */
@@ -71,6 +74,10 @@ export function approvalTargetLabel(kind: CriticalKind, ref: string): string {
       return `Prompt ${ref.slice(0, 8)}`;
     case "push.urgent":
       return `Matéria ${ref.slice(0, 8)}`;
+    case "source.critical": {
+      const m = /^source:([0-9a-f-]{36}):([a-z_]+)=(.+)$/i.exec(ref);
+      return m ? `Fonte ${m[1]?.slice(0, 8)}, ${m[2]} = ${m[3]}` : `Fonte ${ref.slice(0, 8)}`;
+    }
   }
 }
 
@@ -78,6 +85,7 @@ export function approvalTargetLabel(kind: CriticalKind, ref: string): string {
 export const APPROVAL_EFFECT_TEXT = {
   activate: "Ao aprovar, a versão entra em vigor na hora e a anterior sai.",
   authorize: "Ao aprovar, a ação fica liberada para ser feita uma vez.",
+  apply: "Ao aprovar, a mudança é aplicada na fonte na hora.",
 } as const;
 
 export const APPROVAL_STATUS_LABEL: Record<string, string> = {

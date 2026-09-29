@@ -17,7 +17,7 @@ export * from "./kinds";
  */
 
 export type RequestError = "invalid" | "forbidden";
-export type DecideError = "self_approval" | "forbidden" | "not_pending";
+export type DecideError = "self_approval" | "forbidden" | "not_pending" | "stale";
 
 /** Falha com texto para a pessoa (pt-BR). */
 export type ApprovalFail<E extends string> = { ok: false; error: E; message: string };
@@ -81,6 +81,8 @@ async function decide(
   });
   if (error) {
     if (error.code === "42501") return fail("forbidden");
+    // P0002: o alvo mudou desde o pedido (a decisão inteira foi desfeita no banco).
+    if (error.code === "P0002") return fail("stale");
     throw new Error(`approvals: ${error.message}`);
   }
   switch (data) {
@@ -109,4 +111,45 @@ export function approve({ id }: { id: string }) {
 /** Recusa o pedido `id` (mesmas regras de `approve`; o alvo não muda). Decisão final. */
 export function reject({ id }: { id: string }) {
   return decide(id, "rejected");
+}
+
+/** Pedido pendente de aprovação (lista curta para telas que mostram "aguarda segunda pessoa"). */
+export interface PendingApproval {
+  id: string;
+  kind: CriticalKind;
+  targetRef: string;
+  justification: string;
+  requestedBy: string;
+  createdAt: string;
+}
+
+/**
+ * Pedidos pendentes cujo alvo começa com `targetPrefix` (ex.: `source:<id>:`), do mais antigo ao
+ * mais novo. Lê com a sessão da pessoa (RLS: só a equipe vê `approvals`).
+ */
+export async function pendingApprovals(targetPrefix: string): Promise<PendingApproval[]> {
+  const ctx = await studioContext();
+  const escaped = targetPrefix.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data, error } = await ctx.db
+    .from("approvals")
+    .select("id, kind, target_ref, justification, requested_by, created_at")
+    .eq("status", "pending")
+    .like("target_ref", `${escaped}%`)
+    .order("created_at", { ascending: true })
+    .limit(100);
+  if (error) throw new Error(`approvals: ${error.message}`);
+  return (data ?? []).flatMap((r) =>
+    isCriticalKind(r.kind)
+      ? [
+          {
+            id: r.id,
+            kind: r.kind,
+            targetRef: r.target_ref,
+            justification: r.justification,
+            requestedBy: r.requested_by,
+            createdAt: r.created_at,
+          },
+        ]
+      : [],
+  );
 }

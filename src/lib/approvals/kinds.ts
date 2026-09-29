@@ -13,6 +13,7 @@ export const CRITICAL_KINDS = [
   "safety.disable",
   "force_review.disable",
   "push.urgent",
+  "source.critical",
 ] as const;
 export type CriticalKind = (typeof CRITICAL_KINDS)[number];
 
@@ -45,6 +46,11 @@ export const APPROVAL_KIND_ROLES: Record<
     request: ["admin", "editor_chefe", "editor"],
     decide: ["admin", "editor_chefe"],
   },
+  // Ação `source.approve_critical` (permissions.ts): admin e editor-chefe decidem.
+  "source.critical": {
+    request: ["admin", "editor_chefe", "operador_ia"],
+    decide: ["admin", "editor_chefe"],
+  },
 };
 
 /**
@@ -53,8 +59,10 @@ export const APPROVAL_KIND_ROLES: Record<
  *   transação (regras e pesos).
  * - `authorize`: a aprovação fica registrada e é consumida pela ação do alvo (conceder admin no
  *   user_roles; publicar prompt em P5-T5; enviar push urgente em P5-T9).
+ * - `apply`: a mudança pedida é aplicada no alvo na mesma transação e a aprovação vira `applied`
+ *   (mudança crítica de fonte, painel de fontes FS-T6).
  */
-export type ApprovalEffect = "activate" | "authorize";
+export type ApprovalEffect = "activate" | "authorize" | "apply";
 
 const EFFECT: Record<CriticalKind, ApprovalEffect> = {
   "rules.activate": "activate",
@@ -64,6 +72,7 @@ const EFFECT: Record<CriticalKind, ApprovalEffect> = {
   "role.admin": "authorize",
   "prompt.publish": "authorize",
   "push.urgent": "authorize",
+  "source.critical": "apply",
 };
 
 export function approvalEffect(kind: CriticalKind): ApprovalEffect {
@@ -72,10 +81,13 @@ export function approvalEffect(kind: CriticalKind): ApprovalEffect {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RULE_VERSION = /^[1-9][0-9]{0,9}$/;
+const SOURCE_CRITICAL =
+  /^source:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:(?:image_policy=(?:licensed_only|with_agreement|reproduction)|republish_policy=summary_2_sentences|reliability=(?:verified|primary)|may_be_sole_source=true|status=paused)$/i;
 
 /**
  * Formato do alvo por tipo: versão numérica de `rules`; versão em texto de `rec_weights`; uuid
- * da pessoa (role.admin), do prompt (prompt.publish) ou da matéria (push.urgent).
+ * da pessoa (role.admin), do prompt (prompt.publish) ou da matéria (push.urgent);
+ * `source:<uuid>:<campo>=<valor>` da lista de mudanças críticas de fonte (source.critical).
  */
 export function targetRefValid(kind: CriticalKind, ref: string): boolean {
   switch (kind) {
@@ -85,6 +97,8 @@ export function targetRefValid(kind: CriticalKind, ref: string): boolean {
       return RULE_VERSION.test(ref);
     case "rec.weights":
       return ref.trim() !== "" && ref.length <= 100;
+    case "source.critical":
+      return SOURCE_CRITICAL.test(ref);
     default:
       return UUID.test(ref);
   }
