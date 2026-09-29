@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { CONTROL_TEXT as T } from "@/content/pt-BR/control";
+import { collectNow, type CollectNowDeps } from "@/lib/pipeline/collect-now";
 import type { Queue } from "@/lib/pipeline/ports";
 import {
   REPROCESS_STEPS,
@@ -23,6 +24,8 @@ interface PipelinePorts {
   queue: Queue;
   reprocessRepo: ReprocessRepo;
   runNowRepo: RunNowRepo;
+  /** "Executar agora" de uma fonte = "Coletar agora" do painel (mesma implementação, R8). */
+  collectNowDeps: CollectNowDeps;
 }
 
 let testPorts: ((actorId: string) => PipelinePorts) | null = null;
@@ -34,17 +37,23 @@ export function setControlPortsForTests(f: ((actorId: string) => PipelinePorts) 
 
 async function ports(actorId: string, now: () => Date): Promise<PipelinePorts> {
   if (testPorts) return testPorts(actorId);
-  const [{ createServiceClient }, { createReprocessRepo, createRunNowRepo }, { pipelineQueue }] =
-    await Promise.all([
-      import("@/lib/db/client"),
-      import("@/lib/db/control-store"),
-      import("@/lib/pipeline/queue"),
-    ]);
+  const [
+    { createServiceClient },
+    { createReprocessRepo, createRunNowRepo },
+    { pipelineQueue },
+    { defaultCollectNowDeps },
+  ] = await Promise.all([
+    import("@/lib/db/client"),
+    import("@/lib/db/control-store"),
+    import("@/lib/pipeline/queue"),
+    import("@/lib/pipeline/deps"),
+  ]);
   const db = createServiceClient();
   return {
     queue: pipelineQueue(),
     reprocessRepo: createReprocessRepo(db, { actorId, now }),
     runNowRepo: createRunNowRepo(db),
+    collectNowDeps: defaultCollectNowDeps(actorId),
   };
 }
 
@@ -57,21 +66,29 @@ export const runNowCommand = studioAction(
   noScope,
   async (i: z.infer<typeof RunNowInput>, ctx) => {
     const p = await ports(ctx.userId, ctx.now);
+    if (i.sourceId) {
+      // Uma fonte: a coleta manual do painel (`start_manual_run`, chave de fila própria, limites
+      // de 1/5 min por fonte e 20/h por pessoa). Uma implementação só para os dois botões.
+      const r = await collectNow(i.sourceId, p.collectNowDeps);
+      if (!r.ok) {
+        if (r.error === "not_found")
+          throw new StudioFailure("not_found", T.overview.runNowNotFound);
+        throw new StudioFailure(
+          "conflict",
+          r.error === "not_active" ? T.overview.runNowInactive : T.overview.runNowRateLimited,
+        );
+      }
+      ctx.setObjectRef(`run:${r.value.runId}`);
+      ctx.detail({ enqueued: 1, sourceId: i.sourceId, collectNow: true });
+      return { runId: r.value.runId, windowStart: ctx.now().toISOString(), enqueued: 1 };
+    }
     const r = await runNow(
       { queue: p.queue, repo: p.runNowRepo, now: ctx.now },
-      { requestedBy: ctx.userId, ...(i.sourceId ? { sourceId: i.sourceId } : {}) },
+      { requestedBy: ctx.userId },
     );
-    if (!r.ok) {
-      const msg =
-        r.error === "collecting"
-          ? T.overview.runNowCollecting
-          : r.error === "source_inactive"
-            ? T.overview.runNowInactive
-            : T.overview.runNowNotFound;
-      throw new StudioFailure(r.error === "not_found" ? "not_found" : "conflict", msg);
-    }
+    if (!r.ok) throw new StudioFailure("conflict", T.overview.runNowCollecting);
     ctx.setObjectRef(`run:${r.value.runId}`);
-    ctx.detail({ enqueued: r.value.enqueued, sourceId: i.sourceId ?? null });
+    ctx.detail({ enqueued: r.value.enqueued, sourceId: null });
     return r.value;
   },
   { schema: RunNowInput, auditAs: "pipeline.run_now", objectRef: () => "run:" },

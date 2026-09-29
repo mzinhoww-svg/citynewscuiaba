@@ -14,12 +14,6 @@ function repo(over: Partial<RunNowRepo> = {}) {
       { id: "s1", slug: "folha-do-cerrado" },
       { id: "s2", slug: "mt-agora" },
     ],
-    source: async (id) =>
-      id === "s1"
-        ? { id: "s1", slug: "folha-do-cerrado", status: "active" }
-        : id === "s3"
-          ? { id: "s3", slug: "portal-varzea", status: "paused" }
-          : null,
     ...over,
   };
   return r;
@@ -56,22 +50,6 @@ describe("runNow", () => {
       ["run-manual", "fetch", "source:folha-do-cerrado"],
       ["run-manual", "fetch", "source:mt-agora"],
     ]);
-  });
-
-  it("só uma fonte quando pedida, e recusa fonte pausada ou inexistente", async () => {
-    const q = createMemoryQueue();
-    const now = at("2026-09-28T13:07:09Z");
-    const one = await runNow(
-      { queue: q, repo: repo(), now },
-      { requestedBy: "u1", sourceId: "s1" },
-    );
-    expect(one.ok && one.value.enqueued).toBe(1);
-    expect(
-      await runNow({ queue: q, repo: repo(), now }, { requestedBy: "u1", sourceId: "s3" }),
-    ).toEqual({ ok: false, error: "source_inactive" });
-    expect(
-      await runNow({ queue: q, repo: repo(), now }, { requestedBy: "u1", sourceId: "x" }),
-    ).toEqual({ ok: false, error: "not_found" });
   });
 
   it("não começa enquanto o ciclo anterior ainda estiver coletando", async () => {

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// P5-T3: pausa automática de fonte e leituras do Control Center (migration 0027).
+// P5-T3: leituras do Control Center (migration 0027) sobre o estado do painel de fontes (R8).
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { AUDIT_ACTIONS } from "@/lib/audit/actions";
@@ -11,35 +11,22 @@ const trash = pipelineTrash();
 trash.itemRefLike.add(`source:${slug}`);
 let sourceId = "";
 
-async function fail(message = "HTTP 503 em https://exemplo.test/feed") {
-  const { error } = await service.from("pipeline_events").insert({
-    step: "fetch",
-    item_ref: `source:${slug}`,
-    level: "error",
-    message,
-    details: { attempt: 1 },
-  });
-  if (error) throw error;
-}
-
-async function state() {
-  const { data, error } = await service
-    .from("sources")
-    .select("status, auto_paused_at, fetch_reset_at, last_error")
-    .eq("id", sourceId)
-    .single();
-  if (error) throw error;
-  return data;
-}
-
 afterAll(async () => {
   await purgePipeline(service, trash);
-  await service.from("notifications").delete().eq("object_ref", `source:${slug}`);
   if (sourceId) await service.from("sources").delete().eq("id", sourceId);
 });
 
-describe("pausa automática por 3 falhas seguidas", () => {
-  it("pausa na 3ª falha, avisa o Control Center e reativar zera a contagem", async () => {
+describe("pausa automática: vale a do painel de fontes (R8)", () => {
+  it("a 0027 não cria trigger nem coluna própria de pausa automática", async () => {
+    const cols = await service.from("sources").select("auto_paused_at").limit(1);
+    expect(cols.error?.code).toBe("42703");
+    const reset = await service.from("sources").select("fetch_reset_at").limit(1);
+    expect(reset.error?.code).toBe("42703");
+    const fn = await service.rpc("source_consecutive_failures" as never, {} as never);
+    expect(fn.error?.code).toBe("PGRST202");
+  });
+
+  it("a saúde das fontes lê status, motivo e falhas seguidas do painel", async () => {
     const { data, error } = await service
       .from("sources")
       .insert({
@@ -50,50 +37,59 @@ describe("pausa automática por 3 falhas seguidas", () => {
         feed_url: "https://exemplo.test/feed",
         locality: "cuiaba",
         status: "active",
+        // Retomar (paused → active) exige termos revisados (painel, 0011).
+        terms_reviewed_at: new Date().toISOString(),
       })
       .select("id")
       .single();
     if (error) throw error;
     sourceId = data.id;
 
-    await fail();
-    await fail();
-    expect((await state()).status).toBe("active");
-    await fail("connect ECONNREFUSED 203.0.113.9:443");
-    const paused = await state();
-    expect(paused.status).toBe("paused");
-    expect(paused.auto_paused_at).not.toBeNull();
-    expect(paused.last_error).toMatch(/Pausada automaticamente depois de 3 falhas seguidas/);
-    const { data: notes } = await service
-      .from("notifications")
-      .select("kind, channel")
-      .eq("object_ref", `source:${slug}`);
-    expect(notes).toEqual([{ kind: "source_auto_paused", channel: "control_center" }]);
-
-    const { data: health } = await service.rpc("control_source_health");
-    const row = health?.find((h) => h.slug === slug);
-    expect(row).toMatchObject({ status: "paused", consecutive_failures: 3 });
-    expect(row?.auto_paused_at).not.toBeNull();
-
-    await service.from("sources").update({ status: "active" }).eq("id", sourceId);
-    const again = await state();
-    expect(again.auto_paused_at).toBeNull();
-    expect(again.fetch_reset_at).not.toBeNull();
-    await fail();
-    expect((await state()).status).toBe("active");
-  });
-
-  it("evento de seed não pausa", async () => {
-    await service.from("sources").update({ status: "active" }).eq("id", sourceId);
-    for (let i = 0; i < 3; i++)
-      await service.from("pipeline_events").insert({
+    // Erros de coleta ficam nos eventos (errors_24h); o estado é o que `afterFetch` grava.
+    for (let i = 0; i < 3; i++) {
+      const { error: e } = await service.from("pipeline_events").insert({
         step: "fetch",
         item_ref: `source:${slug}`,
         level: "error",
-        message: "seed",
-        details: { seed: true },
+        message: "HTTP 503 em https://exemplo.test/feed",
+        details: { attempt: i + 1 },
       });
-    expect((await state()).status).toBe("active");
+      if (e) throw e;
+    }
+    const { error: up } = await service
+      .from("sources")
+      .update({
+        status: "paused",
+        status_reason: "auto_failures",
+        consecutive_failures: 3,
+        last_error: "HTTP 503 em https://exemplo.test/feed",
+      })
+      .eq("id", sourceId);
+    if (up) throw up;
+
+    const { data: health, error: he } = await service.rpc("control_source_health");
+    expect(he).toBeNull();
+    const row = health?.find((h) => h.slug === slug);
+    expect(row).toMatchObject({
+      status: "paused",
+      status_reason: "auto_failures",
+      consecutive_failures: 3,
+      errors_24h: 3,
+      last_error: "HTTP 503 em https://exemplo.test/feed",
+    });
+
+    // Retomar pelo painel zera a contagem; a saúde acompanha.
+    const { error: back } = await service
+      .from("sources")
+      .update({ status: "active", status_reason: null, consecutive_failures: 0 })
+      .eq("id", sourceId);
+    if (back) throw back;
+    const { data: again } = await service.rpc("control_source_health");
+    expect(again?.find((h) => h.slug === slug)).toMatchObject({
+      status: "active",
+      status_reason: null,
+      consecutive_failures: 0,
+    });
   });
 });
 
@@ -122,6 +118,9 @@ describe("leituras do Control Center por papel", () => {
       "pipeline.reprocess",
       "pipeline.quarantine.discard",
       "logs.export",
+      "ai.eval.run",
+      "ai.eval.case",
+      "source.collect_now",
     ]) {
       expect(AUDIT_ACTIONS).toContain(a);
       expect(data).toContain(a);

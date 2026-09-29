@@ -132,23 +132,5 @@ $$;
 revoke execute on function public.ai_cost_daily(timestamptz), public.ai_knowledge_bases() from public, anon;
 grant execute on function public.ai_cost_daily(timestamptz), public.ai_knowledge_bases() to authenticated, service_role;
 
--- Auditoria: avaliação e casos de regressão (src/lib/audit/actions.ts).
-create or replace function public.studio_audit_actions()
-returns text[]
-language sql
-immutable
-set search_path = public
-as $$
-  select array[
-    'article.edit', 'article.publish', 'article.unpublish_auto', 'correction.manage', 'media.approve',
-    'source.manage', 'rules.propose', 'rules.approve', 'prompt.publish', 'rec.weights', 'reports.moderate',
-    'users.manage', 'metrics.view', 'audit.view',
-    'article.assign', 'article.reject', 'article.reprocess', 'article.request_changes', 'article.request_review',
-    'article.save', 'article.sources', 'article.suggestion.accept', 'article.suggestion.reject', 'article.update',
-    'correction.open', 'correction.publish', 'event.approve', 'event.reject', 'media.block', 'media.generate',
-    'media.license.block', 'media.license.renew', 'media.replace', 'media.takedown.request', 'report.respond',
-    'media.image_text',
-    'pipeline.run_now', 'pipeline.reprocess', 'pipeline.quarantine.discard', 'logs.export',
-    'ai.eval.run', 'ai.eval.case'
-  ]::text[]
-$$;
+-- Auditoria: `ai.eval.run` e `ai.eval.case` entram em `studio_audit_actions()` na 0034 (união com
+-- as ações do painel de fontes, 0033).

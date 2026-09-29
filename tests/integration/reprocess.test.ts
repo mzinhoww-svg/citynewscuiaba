@@ -218,11 +218,11 @@ describe("reprocess (banco)", () => {
 });
 
 describe("Executar agora (banco)", () => {
-  it("cria run fora da janela com window_start próprio", async () => {
+  it("cria run fora da janela com window_start próprio e coleta as fontes ativas", async () => {
     const at = new Date(Date.UTC(2002, 5, 1, 12, 7, 9, 321));
     const r = await runNow(
       { queue, repo: createRunNowRepo(service), now: () => at },
-      { requestedBy: SEED_USERS.diego.id, sourceId: FOLHA },
+      { requestedBy: SEED_USERS.diego.id },
     );
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -235,6 +235,11 @@ describe("Executar agora (banco)", () => {
     expect(new Date(data!.window_start).toISOString()).toBe(at.toISOString());
     expect(new Date(data!.window_start).getTime()).not.toBe(windowStart(at).getTime());
     expect(data!.stats).toMatchObject({ manual: true, requested_by: SEED_USERS.diego.id });
-    expect(r.value.enqueued).toBe(1);
+    const { count } = await service
+      .from("sources")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["active", "degraded"]);
+    expect(r.value.enqueued).toBe(count);
+    expect(r.value.enqueued).toBeGreaterThan(0);
   });
 });

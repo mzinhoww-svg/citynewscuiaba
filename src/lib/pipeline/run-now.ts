@@ -4,18 +4,21 @@ import { COLLECTION_STEPS } from "./types";
 import { WINDOW_MINUTES } from "./window";
 
 /**
- * "Executar agora" (O01): um ciclo fora da janela de 30 min, com `window_start` próprio (o
- * instante do pedido), marcado como manual. Enfileira a coleta de todas as fontes ativas, sem
- * esperar a frequência de cada uma, ou de uma fonte só. Como o tick, não começa enquanto o
- * ciclo mais recente ainda tiver etapas de Coleta na fila (spec §6.2).
+ * "Executar agora" (O01), todas as fontes: um ciclo fora da janela de 30 min, com `window_start`
+ * próprio (o instante do pedido), marcado como manual. Enfileira a coleta de todas as fontes
+ * ativas (e com falhas, como o tick), sem esperar a frequência de cada uma. Como o tick, não
+ * começa enquanto o ciclo mais recente ainda tiver etapas de Coleta na fila (spec §6.2).
+ *
+ * "Executar agora" de uma fonte só é a coleta manual do painel de fontes (`collectNow`,
+ * `src/lib/pipeline/collect-now.ts`): mesma implementação, mesmos limites (R8/A-064).
  */
 
 export interface RunNowRepo {
   /** Run mais recente (por início), se houver. */
   latestRunId(): Promise<string | null>;
   createManualRun(windowStart: Date, stats: Record<string, unknown>): Promise<string>;
+  /** Fontes que o tick coletaria: `active` e `degraded`. */
   activeSources(): Promise<{ id: string; slug: string }[]>;
-  source(id: string): Promise<{ id: string; slug: string; status: string } | null>;
 }
 
 export interface RunNowDeps {
@@ -24,7 +27,7 @@ export interface RunNowDeps {
   now: () => Date;
 }
 
-export type RunNowError = "collecting" | "not_found" | "source_inactive";
+export type RunNowError = "collecting";
 
 /** O instante do pedido; no limite exato de uma janela, 1 ms depois (não disputa o run do cron). */
 export function manualWindowStart(at: Date): Date {
@@ -34,15 +37,9 @@ export function manualWindowStart(at: Date): Date {
 
 export async function runNow(
   deps: RunNowDeps,
-  input: { requestedBy: string; sourceId?: string },
+  input: { requestedBy: string },
 ): Promise<Result<{ runId: string; windowStart: string; enqueued: number }, RunNowError>> {
-  let sources: { id: string; slug: string }[];
-  if (input.sourceId) {
-    const s = await deps.repo.source(input.sourceId);
-    if (!s) return err("not_found");
-    if (s.status !== "active") return err("source_inactive");
-    sources = [s];
-  } else sources = await deps.repo.activeSources();
+  const sources = await deps.repo.activeSources();
 
   const latest = await deps.repo.latestRunId();
   if (latest) {
@@ -57,7 +54,6 @@ export async function runNow(
   const runId = await deps.repo.createManualRun(windowStart, {
     manual: true,
     requested_by: input.requestedBy,
-    ...(input.sourceId ? { source_id: input.sourceId } : {}),
     fetch_enqueued: sources.length,
   });
   let enqueued = 0;

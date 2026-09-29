@@ -2,8 +2,9 @@ import { randomUUID } from "node:crypto";
 import { service, tag } from "./studio";
 
 /*
- * Dados próprios dos testes do Control Center (P5-T3): uma fonte pausada automaticamente (3
- * falhas seguidas), uma fonte ativa, um ciclo com eventos por etapa e uma falha em quarentena.
+ * Dados próprios dos testes do Control Center (P5-T3): uma fonte pausada automaticamente (o estado
+ * que `afterFetch` grava na 3ª falha seguida, R8), uma fonte ativa, um ciclo com eventos por etapa
+ * e uma falha em quarentena.
  * Cada chamada usa um marcador único (desktop e mobile rodam em paralelo) e `cleanup` apaga tudo.
  */
 export interface ControlFixture {
@@ -44,6 +45,8 @@ export async function controlFixture(): Promise<ControlFixture> {
           feed_url: `https://${slug}.example/feed`,
           locality: "cuiaba",
           status: "active",
+          // Retomar (paused → active) exige termos revisados (painel, 0011).
+          terms_reviewed_at: new Date().toISOString(),
         })
         .select("id")
         .single(),
@@ -53,16 +56,29 @@ export async function controlFixture(): Promise<ControlFixture> {
   const failing = await source("falha", "Fonte instável");
   const healthy = await source("ok", "Fonte estável");
 
+  const failMessage = `HTTP 503 em https://${failing.slug}.example/feed`;
   for (let i = 0; i < 3; i++)
     check(
       await db.from("pipeline_events").insert({
         step: "fetch",
         item_ref: `source:${failing.slug}`,
         level: "error",
-        message: `HTTP 503 em https://${failing.slug}.example/feed`,
+        message: failMessage,
         details: { attempt: i + 1 },
       }),
     );
+  // Pausa automática do painel de fontes (D-F18): `status`, `status_reason` e contagem na linha.
+  check(
+    await db
+      .from("sources")
+      .update({
+        status: "paused",
+        status_reason: "auto_failures",
+        consecutive_failures: 3,
+        last_error: failMessage,
+      })
+      .eq("id", failing.id),
+  );
 
   const runId = randomUUID();
   const itemId = randomUUID();
@@ -129,10 +145,12 @@ export async function controlFixture(): Promise<ControlFixture> {
     eventMessage,
     async cleanup() {
       const runs = must(
-        await db.from("ingest_runs").select("id").contains("stats", { source_id: healthy.id }),
+        await db.from("ingest_runs").select("id").contains("stats", { source: healthy.id }),
       ).map((r) => r.id);
       await db.from("jobs").delete().like("dedupe_key", `%${itemId}%`);
-      await db.from("jobs").delete().like("dedupe_key", `%e2e-ctl-%-${mark}`);
+      // Inclui a coleta manual (`fetch:source:<slug>:manual:<runId>`): job órfão de um run
+      // apagado faria o drain de outro teste falhar na FK de `pipeline_events.run_id`.
+      await db.from("jobs").delete().like("dedupe_key", `%e2e-ctl-%-${mark}%`);
       await db.from("pipeline_quarantine").delete().eq("id", q.id);
       await db.rpc("purge_pipeline_events", {
         p_run_ids: [runId, ...runs],

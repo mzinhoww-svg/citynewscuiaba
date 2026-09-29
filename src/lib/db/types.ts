@@ -981,6 +981,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      eval_cases: {
+        Row: {
+          active: boolean;
+          agent_id: string;
+          body: NonNullable<Json>;
+          case_key: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+        };
+        Insert: {
+          active?: boolean;
+          agent_id: string;
+          body: NonNullable<Json>;
+          case_key: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Update: {
+          active?: boolean;
+          agent_id?: string;
+          body?: NonNullable<Json>;
+          case_key?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eval_cases_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eval_cases_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      eval_runs: {
+        Row: {
+          agent_id: string;
+          cases: number;
+          created_at: string;
+          created_by: string | null;
+          gate_failures: string[];
+          id: string;
+          metrics: NonNullable<Json>;
+          model_id: string | null;
+          prompt_version: number | null;
+          provider: string;
+          results: NonNullable<Json>;
+          trigger: string;
+        };
+        Insert: {
+          agent_id: string;
+          cases: number;
+          created_at?: string;
+          created_by?: string | null;
+          gate_failures?: string[];
+          id?: string;
+          metrics: NonNullable<Json>;
+          model_id?: string | null;
+          prompt_version?: number | null;
+          provider: string;
+          results?: NonNullable<Json>;
+          trigger?: string;
+        };
+        Update: {
+          agent_id?: string;
+          cases?: number;
+          created_at?: string;
+          created_by?: string | null;
+          gate_failures?: string[];
+          id?: string;
+          metrics?: NonNullable<Json>;
+          model_id?: string | null;
+          prompt_version?: number | null;
+          provider?: string;
+          results?: NonNullable<Json>;
+          trigger?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "eval_runs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "eval_runs_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_listings: {
         Row: {
           accessibility: string | null;
@@ -2657,6 +2762,31 @@ export type Database = {
       };
     };
     Functions: {
+      ai_cost_daily: {
+        Args: { p_since: string };
+        Returns: {
+          agent_id: string;
+          avg_latency_ms: number;
+          calls: number;
+          cost_brl: number;
+          day: string;
+          errors: number;
+          fallbacks: number;
+          model_id: string;
+          tokens_in: number;
+          tokens_out: number;
+        }[];
+      };
+      ai_knowledge_bases: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          base: string;
+          embedded: number;
+          indexed: number;
+          total: number;
+          updated_at: string;
+        }[];
+      };
       ai_spend_since: {
         Args: { p_since: string };
         Returns: {
@@ -2686,6 +2816,100 @@ export type Database = {
       };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
+      control_can_operate: { Args: { uid: string }; Returns: boolean };
+      control_can_view: { Args: { uid: string }; Returns: boolean };
+      control_guard_view: { Args: Record<PropertyKey, never>; Returns: undefined };
+      control_logs: {
+        Args: {
+          p_before?: number;
+          p_item?: string;
+          p_level?: string;
+          p_limit?: number;
+          p_q?: string;
+          p_run?: string;
+          p_since?: string;
+          p_source?: string;
+          p_steps?: string[];
+        };
+        Returns: {
+          at: string;
+          details: Json;
+          id: number;
+          item_ref: string;
+          level: string;
+          message: string;
+          run_id: string;
+          step: string;
+        }[];
+      };
+      control_queue_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          in_flight: number;
+          oldest_at: string;
+          queue: string;
+          ready: number;
+          retrying: number;
+          step: string;
+        }[];
+      };
+      control_retrying_jobs: {
+        Args: { p_limit?: number };
+        Returns: {
+          enqueued_at: string;
+          id: number;
+          item_ref: string;
+          last_error: string;
+          queue: string;
+          read_ct: number;
+          run_ref: string;
+          step: string;
+          visible_at: string;
+        }[];
+      };
+      control_run_steps: {
+        Args: { p_run_ids: string[] };
+        Returns: {
+          error: number;
+          first_at: string;
+          last_at: string;
+          ok: number;
+          run_id: string;
+          security: number;
+          step: string;
+          warn: number;
+        }[];
+      };
+      control_run_totals: {
+        Args: { p_run_ids: string[] };
+        Returns: {
+          ai_calls: number;
+          cost_brl: number;
+          pending: number;
+          quarantined: number;
+          run_id: string;
+        }[];
+      };
+      control_source_health: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          consecutive_failures: number;
+          errors_24h: number;
+          frequency_minutes: number;
+          id: string;
+          items_24h: number;
+          kind: string;
+          last_error: string;
+          last_fetched_at: string;
+          name: string;
+          ok_30d: number;
+          reliability: string;
+          slug: string;
+          status: string;
+          status_reason: string;
+          total_30d: number;
+        }[];
+      };
       create_topic_for_item: {
         Args: { p_id: string; p_now: string; p_slug: string; p_title: string };
         Returns: string;

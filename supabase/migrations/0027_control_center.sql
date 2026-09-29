@@ -1,98 +1,15 @@
 -- P5-T3 · Control Center: visão geral, tempo real, falhas, execuções e logs.
 --
--- 1. Pausa automática de fonte (architecture §10, "fonte com 3 falhas seguidas"): 3 coletas
---    seguidas com falha (eventos `fetch` de nível warn/error/security depois do último sucesso e
---    da última reativação) pausam a fonte ativa, gravam `auto_paused_at` e avisam o Control
---    Center. Reativar a fonte (status volta a `active`) zera a contagem. Eventos de seed
---    (`details.seed`) não pausam nada.
+-- 1. Pausa automática de fonte: é do Painel de Fontes (Ruling R8, A-065). O `fetch` aplica
+--    `afterFetch` (D-F18): 1ª e 2ª falha seguida → `degraded`, 3ª → `status = 'paused'` com
+--    `status_reason = 'auto_failures'`, `consecutive_failures` na própria linha (0011) e aviso
+--    `source_auto_paused` via `notify_once`. Esta migration não cria trigger nem coluna para isso;
+--    o Control Center só lê esse estado.
 -- 2. Leituras agregadas do Control Center para quem tem `metrics.view` (fila, saúde das fontes,
 --    pendências e custo por ciclo) em funções que checam o papel: `jobs`, as views de saúde e
 --    `ai_calls` continuam fechados para leitura direta.
 -- 3. Busca de logs em `pipeline_events` com a RLS de quem lê (security invoker).
--- 4. Ações novas na lista fechada de auditoria.
-
--- ---------------------------------------------------------------------------
--- 1. Pausa automática
--- ---------------------------------------------------------------------------
-alter table sources add column if not exists auto_paused_at timestamptz;
-alter table sources add column if not exists fetch_reset_at timestamptz;
-
--- Falhas seguidas de coleta de uma fonte: depois do último sucesso e da última reativação.
-create or replace function public.source_consecutive_failures(p_slug text, p_reset timestamptz)
-returns int
-language sql
-stable
-set search_path = public
-as $$
-  with last_ok as (
-    select max(p.at) as at from pipeline_events p
-    where p.step = 'fetch' and p.item_ref = 'source:' || p_slug and p.level = 'info'
-      and p.at >= now() - interval '30 days'
-  )
-  select count(*)::int from pipeline_events p, last_ok
-  where p.step = 'fetch' and p.item_ref = 'source:' || p_slug and p.level <> 'info'
-    and p.at >= now() - interval '30 days'
-    and p.at > greatest(coalesce(last_ok.at, '-infinity'::timestamptz), coalesce(p_reset, '-infinity'::timestamptz))
-$$;
-revoke execute on function public.source_consecutive_failures(text, timestamptz) from public, anon, authenticated;
-
-create or replace function public.pipeline_events_auto_pause()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  s record;
-begin
-  if new.step <> 'fetch' or new.level = 'info' or new.item_ref is null
-     or new.item_ref not like 'source:%' or coalesce(new.details ? 'seed', false) then
-    return null;
-  end if;
-  select id, slug, name, status, fetch_reset_at into s from sources where slug = substr(new.item_ref, 8);
-  if not found or s.status <> 'active' then
-    return null;
-  end if;
-  if public.source_consecutive_failures(s.slug, s.fetch_reset_at) < 3 then
-    return null;
-  end if;
-  update sources
-     set status = 'paused', auto_paused_at = now(),
-         last_error = 'Pausada automaticamente depois de 3 falhas seguidas de coleta. Último erro: ' || left(new.message, 400)
-   where id = s.id and status = 'active';
-  perform notify_once(jsonb_build_object(
-    'kind', 'source_auto_paused', 'channel', 'control_center', 'severity', 'warn',
-    'objectRef', 'source:' || s.slug, 'dedupeKey', 'source_auto_paused:' || s.slug,
-    'title', 'Fonte pausada automaticamente: ' || s.name,
-    'body', '3 falhas seguidas de coleta. Último erro: ' || left(new.message, 400)), 600);
-  return null;
-end
-$$;
-revoke execute on function public.pipeline_events_auto_pause() from public, anon, authenticated;
-drop trigger if exists pipeline_events_auto_pause on pipeline_events;
-create trigger pipeline_events_auto_pause after insert on pipeline_events
-  for each row execute function public.pipeline_events_auto_pause();
-
--- Reativar (qualquer status → active) zera a contagem e tira a marca de pausa automática.
-create or replace function public.sources_fetch_reset()
-returns trigger
-language plpgsql
-set search_path = public
-as $$
-begin
-  if new.status = 'active' and old.status <> 'active' then
-    new.auto_paused_at := null;
-    new.fetch_reset_at := now();
-  elsif new.status <> 'paused' then
-    new.auto_paused_at := null;
-  end if;
-  return new;
-end
-$$;
-revoke execute on function public.sources_fetch_reset() from public, anon, authenticated;
-drop trigger if exists sources_fetch_reset on sources;
-create trigger sources_fetch_reset before update of status on sources
-  for each row execute function public.sources_fetch_reset();
+-- 4. Ações novas na lista fechada de auditoria: ficam na 0034 (união com as do painel, 0033).
 
 -- ---------------------------------------------------------------------------
 -- 2. Leituras agregadas (metrics.view: admin, editor_chefe, editor, operador_ia, analista, leitura)
@@ -131,11 +48,13 @@ begin
 end
 $$;
 
--- Saúde das fontes (O01, O03): coletas de 30 dias, falhas seguidas, erros e itens em 24 h.
+-- Saúde das fontes (O01, O03): estado do painel (`status`, `status_reason`, `consecutive_failures`,
+-- 0011), coletas de 30 dias de `source_health_daily` (`record_source_fetch`, 0011/0030), erros de
+-- coleta em 24 h dos eventos do pipeline e itens publicados em 24 h (`source_item_stats`).
 create or replace function public.control_source_health()
 returns table (
-  id uuid, slug text, name text, kind text, status text, reliability text, frequency_minutes int,
-  last_fetched_at timestamptz, last_error text, auto_paused_at timestamptz,
+  id uuid, slug text, name text, kind text, status text, status_reason text, reliability text,
+  frequency_minutes int, last_fetched_at timestamptz, last_error text,
   ok_30d int, total_30d int, consecutive_failures int, errors_24h int, items_24h int
 )
 language plpgsql
@@ -146,25 +65,31 @@ as $$
 begin
   perform public.control_guard_view();
   return query
-  with f as (
-    select substr(p.item_ref, 8) as slug, p.level, p.at
+  with h as (
+    select d.source_id,
+           sum(d.fetch_ok + d.fetch_not_modified)::int as ok,
+           sum(d.fetch_ok + d.fetch_not_modified + d.fetch_failed)::int as total
+    from source_health_daily d
+    where d.day >= (now() at time zone 'America/Cuiaba')::date - 30
+    group by d.source_id
+  ), e as (
+    select substr(p.item_ref, 8) as slug,
+           count(*)::int as errors_24h
     from pipeline_events p
-    where p.step = 'fetch' and p.item_ref like 'source:%' and p.at >= now() - interval '30 days'
-  ), agg as (
-    select f.slug,
-           count(*) filter (where f.level = 'info')::int as ok,
-           count(*)::int as total,
-           count(*) filter (where f.level <> 'info' and f.at >= now() - interval '24 hours')::int as errors_24h
-    from f group by f.slug
+    where p.step = 'fetch' and p.item_ref like 'source:%' and p.level <> 'info'
+      and p.at >= now() - interval '24 hours'
+    group by substr(p.item_ref, 8)
   )
-  select s.id, s.slug, coalesce(s.display_name, s.name), s.kind::text, s.status::text, s.reliability::text,
-         s.frequency_minutes, s.last_fetched_at, s.last_error, s.auto_paused_at,
-         coalesce(a.ok, 0), coalesce(a.total, 0),
-         public.source_consecutive_failures(s.slug, s.fetch_reset_at),
-         coalesce(a.errors_24h, 0), coalesce(i.items_24h, 0)
+  select s.id, s.slug, coalesce(s.display_name, s.name), s.kind::text, s.status::text, s.status_reason,
+         s.reliability::text, s.frequency_minutes, s.last_fetched_at, s.last_error,
+         coalesce(h.ok, 0), coalesce(h.total, 0),
+         s.consecutive_failures,
+         coalesce(e.errors_24h, 0), coalesce(i.items_24h, 0)
   from sources s
-  left join agg a on a.slug = s.slug
+  left join h on h.source_id = s.id
+  left join e on e.slug = s.slug
   left join source_item_stats i on i.source_id = s.id
+  where s.archived_at is null
   order by s.name;
 end
 $$;
@@ -313,24 +238,3 @@ grant execute on function public.control_can_view(uuid), public.control_can_oper
 create index if not exists pipeline_events_step_at_idx on pipeline_events (step, at desc);
 create index if not exists pipeline_quarantine_run_idx on pipeline_quarantine ((message ->> 'runId'));
 
--- ---------------------------------------------------------------------------
--- 4. Auditoria: ações do Control Center (src/lib/audit/actions.ts)
--- ---------------------------------------------------------------------------
-create or replace function public.studio_audit_actions()
-returns text[]
-language sql
-immutable
-set search_path = public
-as $$
-  select array[
-    'article.edit', 'article.publish', 'article.unpublish_auto', 'correction.manage', 'media.approve',
-    'source.manage', 'rules.propose', 'rules.approve', 'prompt.publish', 'rec.weights', 'reports.moderate',
-    'users.manage', 'metrics.view', 'audit.view',
-    'article.assign', 'article.reject', 'article.reprocess', 'article.request_changes', 'article.request_review',
-    'article.save', 'article.sources', 'article.suggestion.accept', 'article.suggestion.reject', 'article.update',
-    'correction.open', 'correction.publish', 'event.approve', 'event.reject', 'media.block', 'media.generate',
-    'media.license.block', 'media.license.renew', 'media.replace', 'media.takedown.request', 'report.respond',
-    'media.image_text',
-    'pipeline.run_now', 'pipeline.reprocess', 'pipeline.quarantine.discard', 'logs.export'
-  ]::text[]
-$$;

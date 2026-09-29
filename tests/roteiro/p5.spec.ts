@@ -30,7 +30,7 @@ test.afterAll(async () => {
 
 test("O01/O02 · visão geral e tempo real", async ({ page }) => {
   await loginAs(page, "diego", "/estudio/control");
-  await expect(page.getByText("Pausada (auto)").first()).toBeVisible();
+  await expect(page.getByText("Pausada automaticamente").first()).toBeVisible();
   await shot(page, "o01-visao-geral");
   await page.goto("/estudio/control/tempo-real");
   await expect(page.getByText(/Atualizado às/)).toBeVisible();

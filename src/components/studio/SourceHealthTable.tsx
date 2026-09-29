@@ -51,7 +51,7 @@ function value(r: SourceHealthItem, k: Key) {
 }
 
 /**
- * Saúde das fontes (O01): status (com "Pausada (auto)" para a pausa por 3 falhas seguidas),
+ * Saúde das fontes (O01): status (com "Pausada automaticamente" para a pausa por 3 falhas seguidas),
  * falhas seguidas, erros e itens em 24 h, sucesso de 30 dias e última coleta. Colunas
  * ordenáveis; o problema aparece com ícone e texto, nunca só com cor.
  */

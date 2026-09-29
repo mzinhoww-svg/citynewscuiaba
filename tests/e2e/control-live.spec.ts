@@ -3,7 +3,7 @@ import { controlFixture, type ControlFixture } from "./control";
 import { loginAs, service } from "./studio";
 
 /*
- * P5-T3 · Control Center: visão geral (fonte com 3 falhas = "Pausada (auto)"), tempo real por
+ * P5-T3 · Control Center: visão geral (fonte com 3 falhas = "Pausada automaticamente"), tempo real por
  * polling, falhas com reprocessamento, execuções com gráfico de fases e logs com exportação.
  */
 let fx: ControlFixture;
@@ -15,13 +15,15 @@ test.afterEach(async () => {
   await fx.cleanup();
 });
 
-test("visão geral: fonte com 3 falhas seguidas aparece como Pausada (auto)", async ({ page }) => {
+test("visão geral: fonte com 3 falhas seguidas aparece como Pausada automaticamente", async ({
+  page,
+}) => {
   await loginAs(page, "diego", "/estudio/control");
   await expect(page.getByRole("heading", { level: 1, name: "Visão geral" })).toBeVisible();
   const table = page.getByRole("table", { name: /Saúde das fontes/ });
   const row = table.getByRole("row").filter({ hasText: fx.failing.name });
-  await expect(row).toContainText("Pausada (auto)");
-  await expect(row).toContainText("Pausada automaticamente depois de 3 falhas seguidas");
+  await expect(row).toContainText("Pausada automaticamente");
+  await expect(row).toContainText(`HTTP 503 em https://${fx.failing.slug}.example/feed`);
   await expect(table.getByRole("row").filter({ hasText: fx.healthy.name })).toContainText("Ativa");
   await expect(page.getByText(/Fonte pausada automaticamente por 3 falhas seguidas/)).toBeVisible();
 
@@ -31,7 +33,7 @@ test("visão geral: fonte com 3 falhas seguidas aparece como Pausada (auto)", as
   await expect(header).toHaveAttribute("aria-sort", "ascending");
 });
 
-test("Executar agora cria um ciclo manual para a fonte escolhida", async ({ page }, info) => {
+test("Executar agora de uma fonte é a coleta manual do painel", async ({ page }, info) => {
   // Um ciclo por vez: só no desktop (o projeto mobile rodaria em paralelo contra o mesmo banco).
   test.skip(info.project.name !== "desktop", "ciclo manual só no projeto desktop");
   await loginAs(page, "diego", "/estudio/control");
@@ -42,10 +44,11 @@ test("Executar agora cria um ciclo manual para a fonte escolhida", async ({ page
   );
   const { data } = await service()
     .from("ingest_runs")
-    .select("window_start, stats")
-    .contains("stats", { source_id: fx.healthy.id });
+    .select("trigger, stats")
+    .contains("stats", { source: fx.healthy.id });
   expect(data).toHaveLength(1);
-  expect(data![0]!.stats).toMatchObject({ manual: true });
+  expect(data![0]!.trigger).toBe("manual");
+  expect(data![0]!.stats).toMatchObject({ fetch_enqueued: 1 });
 });
 
 test("tempo real: novo evento aparece sem recarregar a página", async ({ page }) => {

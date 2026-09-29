@@ -269,20 +269,11 @@ export function createRunNowRepo(db: DbClient): RunNowRepo {
       const { data, error } = await db
         .from("sources")
         .select("id, slug")
-        .eq("status", "active")
+        .in("status", ["active", "degraded"])
         .order("priority", { ascending: true })
         .order("slug", { ascending: true });
       check("activeSources", error);
       return data ?? [];
-    },
-    async source(id) {
-      const { data, error } = await db
-        .from("sources")
-        .select("id, slug, status")
-        .eq("id", id)
-        .maybeSingle();
-      check("source", error);
-      return data;
     },
   };
 }

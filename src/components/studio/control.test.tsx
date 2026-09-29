@@ -23,7 +23,7 @@ const source = (over: Partial<SourceHealthItem>): SourceHealthItem => ({
 });
 
 describe("SourceHealthTable", () => {
-  it("mostra Pausada (auto) com ícone e texto e ordena por falhas seguidas", () => {
+  it("mostra Pausada automaticamente com ícone e texto e ordena por falhas seguidas", () => {
     render(
       <SourceHealthTable
         rows={[
@@ -40,7 +40,7 @@ describe("SourceHealthTable", () => {
     );
     const rows = screen.getAllByRole("row").slice(1);
     expect(within(rows[0]!).getByRole("rowheader")).toHaveTextContent("Cena Cuiabana");
-    expect(rows[0]).toHaveTextContent("Pausada (auto)");
+    expect(rows[0]).toHaveTextContent("Pausada automaticamente");
     expect(rows[1]).toHaveTextContent("Ativa");
     const failures = screen.getByRole("columnheader", { name: /Falhas seguidas/ });
     expect(failures).toHaveAttribute("aria-sort", "descending");

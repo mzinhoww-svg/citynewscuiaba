@@ -134,12 +134,15 @@ export const CONTROL_TEXT = {
     runNow: "Executar agora",
     runNowSource: "Fonte",
     runNowAll: "Todas as fontes ativas",
-    runNowHint: "Cria um ciclo fora da janela e coleta as fontes ativas agora.",
+    runNowHint:
+      "Todas as fontes: cria um ciclo fora da janela. Uma fonte: a mesma coleta manual do painel de fontes (1 a cada 5 minutos por fonte).",
     runNowOk: (n: number) =>
       n === 1 ? "Ciclo iniciado: 1 coleta na fila." : `Ciclo iniciado: ${n} coletas na fila.`,
     runNowCollecting:
       "O ciclo anterior ainda está coletando. Tente de novo quando a Coleta terminar.",
     runNowInactive: "Esta fonte não está ativa. Ative a fonte antes de coletar.",
+    runNowRateLimited:
+      "Coleta manual limitada: uma vez a cada 5 minutos por fonte e 20 por hora por pessoa.",
     runNowNotFound: "Fonte não encontrada.",
     seeAll: "Ver todas as execuções",
     budgetOf: (b: string) => `de ${b}`,
@@ -162,7 +165,8 @@ export const CONTROL_TEXT = {
       success: "Sucesso 30 d",
       last: "Última coleta",
     },
-    autoPaused: "Pausada (auto)",
+    /** Mesmo texto do painel de fontes (`SOURCE_STATUS_TEXT.auto_paused`, R8). */
+    autoPaused: "Pausada automaticamente",
     never: "Nunca",
     empty: "Nenhuma fonte cadastrada.",
   },

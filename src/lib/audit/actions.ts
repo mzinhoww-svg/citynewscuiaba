@@ -22,7 +22,7 @@ export const SOURCE_ADMIN_AUDIT_ACTIONS = [
 
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
- * lista (`studio_audit_actions()`, migrations 0025/0026/0033); o teste de integração confere as
+ * lista (`studio_audit_actions()`, migrations 0025/0026/0033/0034); o teste de integração confere as
  * duas nos dois sentidos.
  */
 export const AUDIT_ACTIONS = [

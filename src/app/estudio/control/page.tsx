@@ -172,7 +172,10 @@ function Overview({
           <h2 id="executar" className="type-section text-strong">
             {O.runNow}
           </h2>
-          <RunNowForm sources={sources.filter((x) => x.status === "active")} run={runNowAction} />
+          <RunNowForm
+            sources={sources.filter((x) => x.status === "active" || x.status === "degraded")}
+            run={runNowAction}
+          />
         </section>
       )}
 

@@ -224,6 +224,8 @@ export interface SourceHealthRow {
   name: string;
   kind: string;
   status: string;
+  /** `sources.status_reason` (painel de fontes); `auto_failures` = pausa automática (R8). */
+  statusReason: string | null;
   autoPaused: boolean;
   reliability: string;
   lastFetchedAt: string | null;
@@ -259,7 +261,8 @@ export async function sourceHealth(db?: DbClient): Promise<SourceHealthRow[]> {
     name: r.name,
     kind: r.kind,
     status: r.status,
-    autoPaused: r.status === "paused" && r.auto_paused_at !== null,
+    statusReason: r.status_reason,
+    autoPaused: r.status === "paused" && r.status_reason === "auto_failures",
     reliability: r.reliability,
     lastFetchedAt: r.last_fetched_at,
     lastError: r.last_error,
