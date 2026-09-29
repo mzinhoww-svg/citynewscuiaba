@@ -2583,6 +2583,16 @@ export type Database = {
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       refresh_source_stats_daily: { Args: { p_day?: string }; Returns: number };
+      rules_approvals_complete: { Args: { p_version: number }; Returns: boolean };
+      rules_body_safe: { Args: { p_body: Json }; Returns: boolean };
+      rules_fold: { Args: { t: string }; Returns: string };
+      rules_force_review_off: { Args: { p_body: Json; p_force: boolean }; Returns: boolean };
+      rules_kinds_between: {
+        Args: { p_cur_body: Json; p_cur_force: boolean; p_next_body: Json; p_next_force: boolean };
+        Returns: string[];
+      };
+      rules_never_auto_categories: { Args: Record<PropertyKey, never>; Returns: string[] };
+      rules_required_kinds: { Args: { p_version: number }; Returns: string[] };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;

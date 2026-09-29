@@ -167,17 +167,42 @@ describe("regras (rules)", () => {
     expect(await ruleRow(v)).toMatchObject({ approved_by: null, active: false });
   });
 
-  it("caminho feliz: uma pessoa propõe, outra aprova e ativa; depois o corpo fica imutável", async () => {
+  it("aprovar ou ativar por UPDATE direto, sem pedido aprovado em approvals, é recusado", async () => {
+    const m = await marina();
+    const h = await helena();
+    const v = ruleVersion(7);
+    await propose(m, v, MARINA);
+    const approve = await h.from("rules").update({ approved_by: HELENA }).eq("version", v).select();
+    expect(approve.error).not.toBeNull();
+    const both = await h
+      .from("rules")
+      .update({ approved_by: HELENA, active: true })
+      .eq("version", v)
+      .select();
+    expect(both.error).not.toBeNull();
+    // Pedido de outro tipo, ainda pendente, também não libera.
+    const id = await requestApproval(m, MARINA, "rules.activate", String(v));
+    const pending = await h.from("rules").update({ approved_by: HELENA }).eq("version", v).select();
+    expect(pending.error).not.toBeNull();
+    expect(id).toBeTruthy();
+    expect(await ruleRow(v)).toMatchObject({ approved_by: null, active: false });
+  });
+
+  it("caminho feliz: uma pessoa propõe e pede, outra aprova (approval_decide) e a versão ativa; depois o corpo fica imutável", async () => {
     const m = await marina();
     const h = await helena();
     const v = ruleVersion(6);
     await propose(m, v, MARINA);
-    const approve = await h.from("rules").update({ approved_by: HELENA }).eq("version", v).select();
-    expect(approve.error).toBeNull();
-    expect(approve.data).toHaveLength(1);
-    const activate = await m.from("rules").update({ active: true }).eq("version", v).select();
-    expect(activate.error).toBeNull();
-    expect(activate.data).toHaveLength(1);
+    const req = await m.rpc("approval_request", {
+      p_kind: "rules.activate",
+      p_target_ref: String(v),
+      p_justification: "teste",
+    });
+    expect(req.error).toBeNull();
+    createdApprovals.push(req.data!);
+    const decide = await h.rpc("approval_decide", { p_id: req.data!, p_decision: "approved" });
+    expect(decide.error).toBeNull();
+    expect(decide.data).toBe("ok");
     const edit = await m.from("rules").update({ force_review: false }).eq("version", v).select();
     expect(edit.error).not.toBeNull();
     expect(await ruleRow(v)).toMatchObject({
@@ -187,6 +212,7 @@ describe("regras (rules)", () => {
       force_review: true,
     });
     await service.from("rules").update({ active: false }).eq("version", v);
+    await service.from("rules").update({ active: true }).eq("version", 1);
   });
 });
 
@@ -393,7 +419,7 @@ describe("pesos de recomendação (rec_weights)", () => {
     expect(r.error).not.toBeNull();
   });
 
-  it("caminho feliz: operador propõe, admin aprova e ativa", async () => {
+  it("caminho feliz: operador propõe e pede, admin aprova e os pesos ativam; UPDATE direto não", async () => {
     const d = await diego();
     const h = await helena();
     const v = weightsVersion(2);
@@ -402,14 +428,25 @@ describe("pesos de recomendação (rec_weights)", () => {
       .insert({ version: v, weights: WEIGHTS, proposed_by: DIEGO })
       .select();
     expect(ins.error).toBeNull();
-    const ok = await h
+    const direct = await h
       .from("rec_weights")
       .update({ approved_by: HELENA, active: true })
       .eq("version", v)
       .select();
-    expect(ok.error).toBeNull();
-    expect(ok.data).toHaveLength(1);
+    expect(direct.error).not.toBeNull();
+    const req = await d.rpc("approval_request", {
+      p_kind: "rec.weights",
+      p_target_ref: v,
+      p_justification: "teste",
+    });
+    expect(req.error).toBeNull();
+    createdApprovals.push(req.data!);
+    const decide = await h.rpc("approval_decide", { p_id: req.data!, p_decision: "approved" });
+    expect(decide.data).toBe("ok");
+    const row = await service.from("rec_weights").select("*").eq("version", v).single();
+    expect(row.data).toMatchObject({ approved_by: HELENA, active: true });
     await service.from("rec_weights").update({ active: false }).eq("version", v);
+    await service.from("rec_weights").update({ active: true }).eq("version", "rec-v1");
   });
 });
 

@@ -2,6 +2,7 @@ import { RULE_RATIONALE } from "@/content/pt-BR/rules";
 import { err, ok, type Result } from "@/lib/result";
 import { decidePublication, type Candidate, type Decision, type RuleSet } from "@/lib/rules";
 import { resolveRules } from "@/lib/rules/load";
+import { foldKey as fold, isNeverAutoCategory } from "@/lib/rules/safety";
 import type { DecisionContext } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import { inputHash } from "./understanding";
@@ -10,18 +11,8 @@ import type { PublishStepDeps } from "./write";
 const ARTICLE_REF = /^article:(\S+)$/;
 /** Etiquetas que marcam notícia urgente (breaking): nunca publica sozinha. */
 const BREAKING_TAGS = new Set(["urgente", "breaking", "breaking-news", "ultima-hora", "plantao"]);
-/** Categorias que nunca publicam sozinhas, qualquer que seja a regra (CLAUDE.md regra 8). */
-const NEVER_AUTO = new Set(["seguranca"]);
 
 export const articleIdFrom = (ref: string): string | null => ARTICLE_REF.exec(ref)?.[1] ?? null;
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-");
 
 export function isBreaking(ctx: Pick<DecisionContext, "urgent" | "tags">): boolean {
   return ctx.urgent || ctx.tags.some((t) => BREAKING_TAGS.has(fold(t)));
@@ -43,7 +34,7 @@ export function candidateOf(ctx: DecisionContext): Candidate {
 
 /** Pode publicar sem pessoa? Defesa em profundidade além de `decidePublication`. */
 export function neverAuto(ctx: DecisionContext): boolean {
-  return isBreaking(ctx) || ctx.sensitive || ctx.aiFallback || NEVER_AUTO.has(fold(ctx.category));
+  return isBreaking(ctx) || ctx.sensitive || ctx.aiFallback || isNeverAutoCategory(ctx.category);
 }
 
 const isPublish = (d: Decision) => d.route === "publish" || d.route === "publish_notify";

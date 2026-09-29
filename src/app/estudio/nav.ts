@@ -45,7 +45,13 @@ const GROUPS: { label: string; items: Entry[] }[] = [
   {
     label: "Control Center",
     items: [
-      { href: "/estudio/control", label: "Visão geral", icon: "gauge", action: "metrics.view" },
+      {
+        href: "/estudio/control",
+        label: "Visão geral",
+        icon: "gauge",
+        action: "metrics.view",
+        exact: true,
+      },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       {
