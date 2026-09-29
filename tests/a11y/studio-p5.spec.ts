@@ -8,8 +8,8 @@ import { loginAs, service, STAFF, type Staff } from "../e2e/studio";
  * quem pediu. Regras (P5-T2) vistas por quem propõe e por quem aprova, e de novo com a
  * simulação aberta (tabelas de destino e de campos alterados). Monitoramento (P5-T3): visão
  * geral, tempo real, falhas, execuções, detalhe do ciclo e logs, com um ciclo de teste que tem
- * falhas, uma fonte com 3 falhas seguidas e um item em quarentena. A Task 10 acrescenta as demais
- * rotas.
+ * falhas, uma fonte com 3 falhas seguidas e um item em quarentena. A lista de fontes (P5-T4/FS-T7) entra com três estados
+ * e com os diálogos de lote e de configurações abertos. A Task 10 acrescenta as demais rotas.
  */
 const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/aprovacoes", as: "marina" },
@@ -21,6 +21,10 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/falhas", as: "diego" },
   { path: "/estudio/control/execucoes", as: "marina" },
   { path: "/estudio/control/logs", as: "marina" },
+  // Lista de fontes (P5-T4/FS-T7): lista cheia, ordenada e filtrada, e vazio.
+  { path: "/estudio/control/fontes", as: "diego" },
+  { path: "/estudio/control/fontes?status=paused&ordem=score&dir=desc", as: "marina" },
+  { path: "/estudio/control/fontes?q=zzz-sem-resultado", as: "diego" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -126,6 +130,29 @@ for (const scheme of ["light", "dark"] as const) {
       await page.evaluate(() => document.fonts.ready);
       const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
+
+    test(`/estudio/control/fontes com lote e configurações abertos sem violações graves @a11y`, async ({
+      page,
+    }) => {
+      await loginAs(page, "diego");
+      await page.goto("/estudio/control/fontes");
+      await page
+        .getByRole("checkbox", { name: /^Selecionar / })
+        .first()
+        .check();
+      await page.getByRole("button", { name: "Frequência", exact: true }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      let r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      let bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+      await page.getByRole("dialog").getByRole("button", { name: "Cancelar" }).click();
+      await page.getByRole("button", { name: "Configurações da coleta" }).click();
+      await expect(page.getByRole("dialog").getByLabel("Frequência padrão")).toBeVisible();
+      r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
       expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
     });
 

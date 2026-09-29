@@ -259,3 +259,20 @@ export { MonitorKpis } from "./studio/MonitorKpis";
 export { PhaseChart, type PhaseChartProps } from "./studio/PhaseChart";
 export { RunNowButton } from "./studio/RunNowButton";
 export { SortHeader, type SortHeaderProps } from "./studio/SortHeader";
+
+/* painel de fontes: lista O03 (P5-T4/FS-T7) */
+export { SourcesTable, type SourcesTableProps } from "./studio/sources/SourcesTable";
+export { SourceFilters, type SourceFiltersProps } from "./studio/sources/SourceFilters";
+export {
+  SourceApprovalsNotice,
+  type SourceApprovalsNoticeProps,
+} from "./studio/sources/SourceApprovalsNotice";
+export {
+  CollectionSettingsDialog,
+  type CollectionSettingsDialogProps,
+} from "./studio/sources/CollectionSettingsDialog";
+export {
+  listHref as sourcesListHref,
+  clearedHref as sourcesClearedHref,
+  activeFilterCount as sourcesActiveFilterCount,
+} from "./studio/sources/list-url";
