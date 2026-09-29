@@ -8,6 +8,7 @@ import {
   createFlags,
   createIngestRepo,
   createMediaRepo,
+  createPeekRateLimit,
   createPublishRepo,
   createRulesSource,
   createRunStore,
@@ -29,6 +30,7 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import type { FastTickDeps } from "./fast-tick";
 import type { StatusDeps } from "./status";
 import type { TickDeps } from "./tick";
 
@@ -94,6 +96,17 @@ export function defaultTickDeps(): TickDeps & { secret: string | undefined } {
   return {
     queue: pipelineQueue(),
     runs: createRunStore(createServiceClient()),
+    now: () => new Date(),
+    secret: process.env.CRON_SECRET,
+  };
+}
+
+export function defaultFastTickDeps(): FastTickDeps & { secret: string | undefined } {
+  const db = createServiceClient();
+  return {
+    queue: pipelineQueue(),
+    runs: createRunStore(db),
+    peekRateLimit: createPeekRateLimit(db),
     now: () => new Date(),
     secret: process.env.CRON_SECRET,
   };

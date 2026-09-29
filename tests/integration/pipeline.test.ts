@@ -40,6 +40,7 @@ import {
   extractFromFeed,
   extractFromJsonFeed,
 } from "@/lib/pipeline/steps";
+import { dueSource } from "@/lib/pipeline/testing/due-source";
 import { createFakeHttp, type FakeRoute, fakeResolve } from "@/lib/pipeline/testing/fake-http";
 import { runTick } from "@/lib/pipeline/tick";
 import { unpublishAuto } from "@/lib/pipeline/unpublish";
@@ -213,13 +214,20 @@ async function runCycle(opts: {
     }),
   };
 
+  // Cada ciclo do teste coleta as mesmas fontes de novo: solta a trava de janela do ciclo anterior
+  // (`claim_source_fetch`, uma coleta por janela de 10 min).
+  const released = await db
+    .from("sources")
+    .update({ last_fetch_started_at: null, last_fetch_run_id: null })
+    .in("slug", [...SLUGS]);
+  if (released.error) throw new Error(released.error.message);
+
   // Tick: janela própria (ano 2001) e só as 3 fontes de fixture.
   const base = createRunStore(db);
   const runs: RunStore = {
     ...base,
     previousOpenRun: async () => null,
-    activeSources: async () =>
-      SLUGS.map((slug) => ({ slug, frequencyMinutes: 30, lastFetchedAt: null })),
+    activeSources: async () => SLUGS.map((slug) => dueSource(slug)),
   };
   const queue = createQueue(db, { namespace });
   const window = new Date(Date.UTC(2001, 0, 1) + randomInt(1, 2_000_000) * 30 * 60_000);

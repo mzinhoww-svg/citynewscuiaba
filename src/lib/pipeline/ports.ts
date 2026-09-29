@@ -4,6 +4,8 @@
  */
 import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
+import type { ConsumptionConfig } from "@/lib/sources/schema";
+import type { SourceState, StatusReason } from "@/lib/sources/types";
 import type { RuleSet } from "@/lib/rules";
 import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
@@ -30,9 +32,10 @@ export interface Queue {
   quarantine(queue: QueueName, item: Pick<QueuedMessage, "msgId">, error: string): Promise<void>;
   /** Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis. */
   moveExhausted(queue: QueueName, maxReads: number): Promise<number>;
+  /** `itemRef` casa a referência exata (usado pela via rápida: `source:<slug>`). */
   pending(
     queue: QueueName,
-    filter?: { runId?: string; steps?: readonly StepName[] },
+    filter?: { runId?: string; steps?: readonly StepName[]; itemRef?: string },
   ): Promise<number>;
 }
 
@@ -52,21 +55,60 @@ export interface EventSink {
   record(events: PipelineEvent[]): Promise<void>;
 }
 
+/** Fonte `active` ou `degraded` como o tick a enxerga. */
 export interface DueSource {
+  id: string;
   slug: string;
-  frequencyMinutes: number;
+  /** 1 Alta, 2 Normal, 3 Baixa. */
+  priority: number;
+  /** 1 a 5. */
+  editorialScore: number;
+  /** Escolhida no painel (10, 15, 20 ou de 30 a 1440); `null` = padrão de `app_settings`. */
+  frequencyMinutes: number | null;
+  /** `Crawl-delay` do robots.txt (segundos), lido de `consumption.robots`. */
+  crawlDelaySec: number | null;
+  termsMinIntervalMinutes: number | null;
+  rateLimitPerHour: number;
   lastFetchedAt: string | null;
+}
+
+export type RunTrigger = "cron" | "manual" | "fast";
+
+export interface RunStart {
+  runId: string;
+  created: boolean;
+  fetchEnqueued: boolean;
 }
 
 export interface RunStore {
   /** Um run por janela: a segunda chamada na mesma janela devolve o run existente. */
-  startRun(windowStart: Date): Promise<{ runId: string; created: boolean; fetchEnqueued: boolean }>;
-  markFetchEnqueued(runId: string, count: number): Promise<void>;
-  /** Run anterior ainda aberto (status `running`), se houver. */
+  startRun(windowStart: Date): Promise<RunStart>;
+  /** Run da via rápida (`trigger = 'fast'`, janela de 10 min), com o mesmo retorno de `startRun`. */
+  startFastRun(windowStart: Date): Promise<RunStart>;
+  /** Run manual de uma fonte ("Coletar agora"): não tem janela nem entra no ciclo normal. */
+  startManualRun(sourceId: string): Promise<string>;
+  markFetchEnqueued(
+    runId: string,
+    count: number,
+    extra?: { skipped?: { slug: string; reason: string }[] },
+  ): Promise<void>;
+  /** Run `cron` anterior ainda aberto (status `running`), se houver. */
   previousOpenRun(windowStart: Date): Promise<string | null>;
+  /**
+   * Fontes `active` e `degraded`, sem arquivadas, por `priority` asc, `editorial_score` desc e
+   * `slug`.
+   */
   activeSources(): Promise<DueSource[]>;
-  /** `started_at` do run mais recente (watchdog), ou `null` sem nenhum. */
+  /** `sources.default_frequency_minutes` de `app_settings` (30 a 1440, múltiplo de 30). */
+  defaultFrequency(): Promise<number>;
+  /** `sources.fast_lane_max` de `app_settings` (0 a 20). */
+  fastLaneMax(): Promise<number>;
+  /** `started_at` do run `cron` mais recente (watchdog), ou `null` sem nenhum. */
   lastStartedAt(): Promise<string | null>;
+  /** `started_at` do run `fast` mais recente, ou `null`. */
+  lastFastStartedAt(): Promise<string | null>;
+  /** `started_at` do run manual mais recente da fonte, ou `null`. */
+  lastManualRunAt(sourceId: string): Promise<string | null>;
 }
 
 /** Subconjunto de `fetch` usado pelo coletor (injetável: testes nunca acessam a rede). */
@@ -90,6 +132,11 @@ export interface SourceRecord {
   locality: string;
   etag: string | null;
   lastModified: string | null;
+  /** Falhas de coleta seguidas (por run, não por tentativa). Ausente = 0. */
+  consecutiveFailures?: number;
+  statusReason?: StatusReason | null;
+  /** Como a fonte é lida (`page_list` usa `consumption.page`). Ausente = pelo `kind`. */
+  consumption?: ConsumptionConfig | null;
 }
 
 export interface SourcePatch {
@@ -145,6 +192,25 @@ export interface CollectedInsert {
 
 /** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize). */
 export interface IngestRepo {
+  /** Como o run foi disparado; run desconhecido conta como `cron`. */
+  runTrigger(runId: string): Promise<RunTrigger>;
+  /**
+   * Trava da coleta (`claim_source_fetch`, D-F29): `true` se este run pode requisitar a fonte;
+   * `false` quando outro run já a coletou desde `since` (e o run não é o mesmo).
+   */
+  claimFetch(sourceId: string, runId: string, since: Date): Promise<boolean>;
+  /** Saúde do dia (`record_source_fetch`); nunca chamado para limite próprio. */
+  recordFetch(
+    sourceId: string,
+    outcome: "ok" | "not_modified" | "failed",
+    latencyMs: number,
+    itemsNew: number,
+    error: string | null,
+  ): Promise<void>;
+  /** Estado da fonte depois de uma coleta (`afterFetch`): status, motivo e falhas seguidas. */
+  applySourceState(id: string, patch: Partial<SourceState>): Promise<void>;
+  /** Uma notificação por chave e canal na janela (mesma regra do `PublishRepo`). */
+  notifyOnce(n: NotificationInput, windowSec: number): Promise<boolean>;
   sourceBySlug(slug: string): Promise<SourceRecord | null>;
   sourceById(id: string): Promise<SourceRecord | null>;
   updateSource(id: string, patch: SourcePatch): Promise<void>;

@@ -4,6 +4,7 @@ import { parseHTML } from "linkedom";
 import { z } from "zod";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { err, ok } from "@/lib/result";
+import { extractPageList } from "@/lib/sources/page-list";
 import { parseFeedDate } from "../parse-date";
 import type { DocumentFormat, IngestRepo } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
@@ -319,7 +320,14 @@ export function createExtractStep(deps: { repo: IngestRepo }): StepHandler {
     if (!raw) return err(stepError.notFound(`raw_item ${id} não encontrado`));
     const format = detectFormat(raw.payload.body);
     if (!format) return err(stepError.invalid("formato desconhecido"));
-    const entries = extractEntries(raw.payload.body, format, raw.payload.url).slice(0, MAX_ENTRIES);
+    // Fonte de página-lista (seção sem feed): itens pelos seletores da fonte, sem corpo.
+    const source = format === "html" ? await deps.repo.sourceById(raw.sourceId) : null;
+    const page =
+      source?.consumption?.strategy === "page_list" ? source.consumption.page : undefined;
+    const found = page
+      ? extractPageList(raw.payload.body, raw.payload.url, page)
+      : extractEntries(raw.payload.body, format, raw.payload.url);
+    const entries = found.slice(0, MAX_ENTRIES);
     await deps.repo.updateRawItem(id, { state: "extracted", entries });
     return ok(entries.map((_, i) => nextMessage(msg, "normalize", `raw:${id}#${i}`)));
   };

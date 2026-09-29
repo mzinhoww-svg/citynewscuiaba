@@ -1,12 +1,19 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
-import { fetchAggregated } from "./aggregated";
+import { toAggregatedView } from "./aggregated";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
 import { many, readPublic } from "./run";
 import { fetchActiveTopics } from "./topics";
-import type { ArticleSummary, CollectionView, HomeData, QueryError, SourceView } from "./types";
+import type {
+  AggregatedView,
+  ArticleSummary,
+  CollectionView,
+  HomeData,
+  QueryError,
+  SourceView,
+} from "./types";
 
 /** Blocos de editoria da home (docs/screens.md P01). */
 export const HOME_SECTION_BLOCKS = ["politica", "economia", "cultura"] as const;
@@ -16,6 +23,49 @@ export const HOME_REVALIDATE = 60;
 
 const NOW_COUNT = 6;
 const MOST_READ_COUNT = 5;
+
+/** Fontes de score editorial 1 não aparecem na home (só em Panorama e na página da fonte). */
+export const HOME_MIN_SOURCE_SCORE = 2;
+
+type HomeAggregatedRow = Parameters<typeof toAggregatedView>[0] & {
+  source_editorial_score: number | null;
+};
+
+/**
+ * "Veja também em outros portais": exclui fontes de score 1, um item por veículo, do mais
+ * recente para o mais antigo; empate de horário fica com a fonte de maior score.
+ * Espera as linhas da mais recente para a mais antiga.
+ */
+export function pickHomeAggregated(rows: HomeAggregatedRow[], limit: number): AggregatedView[] {
+  const seen = new Set<string>();
+  const picked: { view: AggregatedView; score: number }[] = [];
+  for (const row of rows) {
+    if ((row.source_editorial_score ?? HOME_MIN_SOURCE_SCORE) < HOME_MIN_SOURCE_SCORE) continue;
+    const view = toAggregatedView(row);
+    if (!view || seen.has(view.sourceSlug)) continue;
+    seen.add(view.sourceSlug);
+    picked.push({ view, score: row.source_editorial_score ?? 0 });
+  }
+  const time = (v: AggregatedView) => (v.publishedAt ? Date.parse(v.publishedAt) : 0);
+  return picked
+    .sort((a, b) => time(b.view) - time(a.view) || b.score - a.score)
+    .slice(0, limit)
+    .map((p) => p.view);
+}
+
+export async function fetchHomeAggregated(db: DbClient, limit: number): Promise<AggregatedView[]> {
+  const rows = await db
+    .from("public_aggregated")
+    .select(
+      "id, original_title, canonical_url, source_name, source_slug, published_at, summary, section_slug, topic_id, source_editorial_score",
+    )
+    .not("published_at", "is", null)
+    .or(`source_editorial_score.is.null,source_editorial_score.gte.${HOME_MIN_SOURCE_SCORE}`)
+    .order("published_at", { ascending: false })
+    .limit(limit * 6)
+    .then(many);
+  return pickHomeAggregated(rows, limit);
+}
 
 export async function fetchCollections(db: DbClient, limit: number): Promise<CollectionView[]> {
   const rows = await db
@@ -88,7 +138,7 @@ export async function getHomeData(
         fetchCollections(db, 4),
         fetchEvents(db, { limit: 3 }, now),
         fetchFeaturedSources(db, 8),
-        fetchAggregated(db, { limit: 4, onePerSource: true }),
+        fetchHomeAggregated(db, 4),
       ]);
       const articles = await summarize(db, rows);
       const editorial = articles.filter((a) => !a.sponsored);

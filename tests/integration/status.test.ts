@@ -54,6 +54,12 @@ describe("/api/ingest/status", () => {
       lastStartedAt: expect.any(String),
       ageMinutes: expect.any(Number),
       late: expect.any(Boolean),
+      fast: {
+        lastStartedAt: expect.toBeOneOf([expect.any(String), null]),
+        ageMinutes: expect.toBeOneOf([expect.any(Number), null]),
+        late: expect.any(Boolean),
+        sources: expect.any(Number),
+      },
       pending: expect.objectContaining({ total: expect.any(Number) }),
     });
   });

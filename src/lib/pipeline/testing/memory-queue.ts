@@ -16,6 +16,8 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
   let seq = 0;
   const rows: Row[] = [];
   const quarantine: { row: Row; error: string }[] = [];
+  /** Toda mensagem aceita por `enqueue`, na ordem (repetidas descartadas pelo dedupe não entram). */
+  const enqueued: PipelineMessage[] = [];
   const remove = (queue: QueueName, id: number) => {
     const i = rows.findIndex((r) => r.queue === queue && r.id === id);
     return i >= 0 ? rows.splice(i, 1)[0] : undefined;
@@ -25,6 +27,7 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
     async enqueue(q, msg, o = {}) {
       const key = dedupeKey(msg);
       if (rows.some((r) => r.queue === q && r.key === key)) return false;
+      enqueued.push(msg);
       rows.push({
         id: ++seq,
         queue: q,
@@ -74,12 +77,14 @@ export function createMemoryQueue(clock: () => number = () => Date.now()) {
         (r) =>
           r.queue === q &&
           (filter.runId === undefined || r.msg.runId === filter.runId) &&
+          (filter.itemRef === undefined || r.msg.itemRef === filter.itemRef) &&
           (filter.steps === undefined || filter.steps.includes(r.msg.step)),
       ).length;
     },
   };
 
   return Object.assign(queue, {
+    enqueued,
     messages: (q: QueueName = "pipeline") => rows.filter((r) => r.queue === q).map((r) => r.msg),
     quarantined: () => quarantine.map((x) => ({ msg: x.row.msg, error: x.error })),
     delays: () => rows.flatMap((r) => (r.lastDelaySec === undefined ? [] : [r.lastDelaySec])),

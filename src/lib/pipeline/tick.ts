@@ -1,20 +1,54 @@
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
+import { effectiveFrequency, isDue, laneOf } from "@/lib/sources/frequency";
 import type { DueSource, Queue, RunStore } from "./ports";
 import { COLLECTION_STEPS } from "./types";
 import { windowStart } from "./window";
 
-/** Tolerância para atraso do cron: uma fonte de 30 min coletada há 28 min já é devida. */
-const DUE_TOLERANCE_MS = 2 * 60_000;
+/**
+ * Fontes devidas na via pedida. Usa a frequência efetiva (escolhida ou padrão, elevada por
+ * `Crawl-delay` e pelo intervalo dos termos) e o vencimento por janela (D-F17): uma fonte de
+ * 30 min coletada às 14:07 vence no tick de 14:30. Ordem: prioridade, score editorial (maior
+ * primeiro), slug.
+ */
+export function dueSources(
+  sources: readonly DueSource[],
+  now: Date,
+  defaultMinutes: number,
+  lane: "normal" | "fast",
+): DueSource[] {
+  return sources
+    .filter((s) => {
+      const { minutes } = effectiveFrequency(s.frequencyMinutes, defaultMinutes, {
+        crawlDelaySec: s.crawlDelaySec,
+        termsMinIntervalMinutes: s.termsMinIntervalMinutes,
+      });
+      return (
+        laneOf(minutes) === lane &&
+        isDue({ lastFetchedAt: s.lastFetchedAt, frequencyMinutes: minutes }, now)
+      );
+    })
+    .sort(
+      (a, b) =>
+        a.priority - b.priority ||
+        b.editorialScore - a.editorialScore ||
+        (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0),
+    );
+}
 
-/** Fontes cuja frequência (mínimo 30 min) já venceu desde a última coleta. */
-export function dueSources(sources: readonly DueSource[], now: Date): DueSource[] {
-  return sources.filter((s) => {
-    if (!s.lastFetchedAt) return true;
-    const last = Date.parse(s.lastFetchedAt);
-    if (Number.isNaN(last)) return true;
-    const every = Math.max(30, s.frequencyMinutes) * 60_000;
-    return now.getTime() - last >= every - DUE_TOLERANCE_MS;
-  });
+/** Fontes que estão na via rápida pela frequência efetiva. */
+export function fastLaneSources(
+  sources: readonly DueSource[],
+  defaultMinutes: number,
+): DueSource[] {
+  return sources.filter(
+    (s) =>
+      laneOf(
+        effectiveFrequency(s.frequencyMinutes, defaultMinutes, {
+          crawlDelaySec: s.crawlDelaySec,
+          termsMinIntervalMinutes: s.termsMinIntervalMinutes,
+        }).minutes,
+      ) === "fast",
+  );
 }
 
 export interface TickDeps {
@@ -28,7 +62,7 @@ export type TickResult =
   | { status: "skipped"; reason: "previous_collecting"; runId: string; windowStart: string };
 
 /**
- * Etapa 1 (cron). Um run por janela de 30 min (`unique(window_start)`): pg_cron e watchdog
+ * Etapa 1 (cron). Um run `cron` por janela de 30 min (índice único parcial em `window_start`): pg_cron e watchdog
  * podem disparar juntos. O próximo ciclo não começa enquanto o anterior tiver etapas de Coleta
  * na fila (spec §6.2). Os fetch são enfileirados com chave `(fetch, fonte)`: repetir é inofensivo.
  */
@@ -55,7 +89,12 @@ export async function runTick({ queue, runs, now }: TickDeps): Promise<TickResul
   const run = await runs.startRun(window);
   let enqueued = 0;
   if (!run.fetchEnqueued) {
-    for (const source of dueSources(await runs.activeSources(), at)) {
+    const [sources, defaultMinutes] = await Promise.all([
+      runs.activeSources(),
+      runs.defaultFrequency(),
+    ]);
+    // Fontes da via rápida nunca entram no tick de 30 min (spec §7.8).
+    for (const source of dueSources(sources, at, defaultMinutes, "normal")) {
       const added = await queue.enqueue("pipeline", {
         runId: run.runId,
         step: "fetch",

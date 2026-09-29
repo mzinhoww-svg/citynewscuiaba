@@ -4,8 +4,10 @@ name: Cron watchdog
 # Este vigia roda a cada 15 min e cobre as falhas dos dois (P3-T9):
 # 1. consulta /api/ingest/status (último início do ciclo e mensagens na fila);
 # 2. dispara o tick se o último ingest_runs.started_at tiver mais de 45 min;
-# 3. chama /api/jobs/drain enquanto houver fila pendente — sem pg_net (pilha sem Vault, projeto
-#    novo) nada mais dispara o drain.
+# 3. dispara o tick rápido (/api/ingest/fast-tick) se houver fonte rápida ativa e o último run
+#    `fast` tiver mais de 15 min (o pg_cron o chama a cada 10 min);
+# 4. chama /api/jobs/drain enquanto houver fila pendente — sem pg_net (pilha sem Vault, projeto
+#    novo) nada mais dispara o drain (inclui a fila gerada pelo tick rápido).
 # Secrets ausentes: aviso e saída 0. Rotas ainda não publicadas (404): aviso, sem falhar.
 on:
   schedule:
@@ -31,6 +33,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MAX_AGE_MIN: "45"
+          FAST_MAX_AGE_MIN: "15"
           MAX_DRAINS: "4"
         run: |
           set -euo pipefail
@@ -59,13 +62,17 @@ jobs:
           }
 
           late="unknown"
+          fast_late="false"
+          fast_sources="0"
           pending="unknown"
           code=$(curl -sS -o "$body" -w '%{http_code}' --max-time 30 -H "$auth" "$app/api/ingest/status" || echo "000")
           case "$code" in
             200)
               late=$(jq -r '.late' "$body")
               pending=$(jq -r '.pending.total // 0' "$body")
-              echo "Status: último início $(jq -r '.lastStartedAt // "nenhum"' "$body"), atrasado=$late, fila=$pending."
+              fast_late=$(jq -r '.fast.late // false' "$body")
+              fast_sources=$(jq -r '.fast.sources // 0' "$body")
+              echo "Status: último início $(jq -r '.lastStartedAt // "nenhum"' "$body"), atrasado=$late, via rápida atrasada=$fast_late ($fast_sources fontes), fila=$pending."
               ;;
             401|403)
               echo "::error::/api/ingest/status recusou o CRON_SECRET (HTTP $code)."
@@ -73,13 +80,26 @@ jobs:
               ;;
             *)
               echo "::warning::/api/ingest/status devolveu HTTP $code; tentando a consulta direta ao Supabase."
-              if [ "$(rest "ingest_runs?select=started_at&order=started_at.desc&limit=1")" = "200" ]; then
+              if [ "$(rest "ingest_runs?select=started_at&trigger=eq.cron&order=started_at.desc&limit=1")" = "200" ]; then
                 last=$(jq -r '.[0].started_at // empty' "$body")
                 if [ -z "$last" ]; then
                   late="true"
                 else
                   age=$(( ($(date -u +%s) - $(date -u -d "$last" +%s)) / 60 ))
                   if [ "$age" -gt "$MAX_AGE_MIN" ]; then late="true"; else late="false"; fi
+                fi
+              fi
+              # Via rápida: fontes ativas com frequência < 30 min e o último run `fast`.
+              if [ "$(rest "sources?select=id&frequency_minutes=lt.30&archived_at=is.null&status=in.(active,degraded)&limit=1")" = "200" ]; then
+                fast_sources=$(jq 'length' "$body")
+              fi
+              if [ "$fast_sources" != "0" ] && [ "$(rest "ingest_runs?select=started_at&trigger=eq.fast&order=started_at.desc&limit=1")" = "200" ]; then
+                last=$(jq -r '.[0].started_at // empty' "$body")
+                if [ -z "$last" ]; then
+                  fast_late="true"
+                else
+                  age=$(( ($(date -u +%s) - $(date -u -d "$last" +%s)) / 60 ))
+                  if [ "$age" -gt "$FAST_MAX_AGE_MIN" ]; then fast_late="true"; else fast_late="false"; fi
                 fi
               fi
               if [ "$(rest "jobs?select=id&limit=1")" = "200" ]; then
@@ -104,6 +124,22 @@ jobs:
             esac
           else
             echo "Ciclo em dia."
+          fi
+
+          if [ "$fast_late" = "true" ] && [ "$fast_sources" != "0" ]; then
+            code=$(curl -sS -o "$body" -w '%{http_code}' -X POST --max-time 60 -H "$auth" "$app/api/ingest/fast-tick" || echo "000")
+            case "$code" in
+              2??)
+                echo "Tick rápido disparado pelo watchdog (HTTP $code): $(head -c 300 "$body")"
+                pending="unknown"
+                ;;
+              404) echo "::warning::/api/ingest/fast-tick ainda não existe (HTTP 404); nada a fazer." ;;
+              *)
+                echo "::error::Tick rápido devolveu HTTP $code"
+                head -c 500 "$body" || true
+                exit 1
+                ;;
+            esac
           fi
 
           if [ "$pending" = "0" ]; then

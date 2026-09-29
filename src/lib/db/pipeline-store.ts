@@ -6,6 +6,7 @@ import type {
   FlagKey,
   Flags,
   IngestRepo,
+  DueSource,
   MediaAssetRecord,
   MediaContext,
   MediaRepo,
@@ -24,6 +25,8 @@ import { toSigned64, toUnsigned64 } from "@/lib/pipeline/simhash";
 import { RawEntrySchema } from "@/lib/pipeline/types";
 import { vectorLiteral } from "@/lib/pipeline/vector";
 import { err } from "@/lib/result";
+import { consumptionSchema, type ConsumptionConfig } from "@/lib/sources/schema";
+import type { StatusReason } from "@/lib/sources/types";
 import { parseRuleRow } from "@/lib/rules/load";
 import type { DbClient } from "./client";
 import type { Json } from "./types";
@@ -45,27 +48,86 @@ function check(op: string, error: { message: string } | null): void {
   if (error) throw new Error(`pipeline-store: ${op}: ${error.message}`);
 }
 
+/** `sources.default_frequency_minutes`: 30 a 1440 em múltiplos de 30; fora disso, 30. */
+export function parseDefaultFrequency(value: unknown): number {
+  return typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 30 &&
+    value <= 1440 &&
+    value % 30 === 0
+    ? value
+    : 30;
+}
+
+/** `sources.fast_lane_max`: inteiro de 0 a 20; fora disso, 10. */
+export function parseFastLaneMax(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 20
+    ? value
+    : 10;
+}
+
+/** Padrões globais de coleta (`app_settings`), com os valores das sementes como reserva. */
+export async function readSourceSettings(
+  db: DbClient,
+): Promise<{ defaultFrequency: number; fastLaneMax: number }> {
+  const { data, error } = await db
+    .from("app_settings")
+    .select("key, value")
+    .in("key", ["sources.default_frequency_minutes", "sources.fast_lane_max"]);
+  check("readSourceSettings", error);
+  const value = (key: string): unknown => (data ?? []).find((r) => r.key === key)?.value;
+  return {
+    defaultFrequency: parseDefaultFrequency(value("sources.default_frequency_minutes")),
+    fastLaneMax: parseFastLaneMax(value("sources.fast_lane_max")),
+  };
+}
+
+/** `Crawl-delay` (segundos) guardado em `consumption.robots`, ou `null`. */
+export function crawlDelayOf(consumption: unknown): number | null {
+  const parsed = consumptionSchema.safeParse(consumption);
+  return parsed.success ? (parsed.data.robots?.crawlDelaySec ?? null) : null;
+}
+
 /** `ingest_runs` e `sources` para o tick (service role). */
 export function createRunStore(db: DbClient): RunStore {
+  const start = async (rpc: "start_ingest_run" | "start_fast_run", windowStart: Date) => {
+    const { data, error } = await db.rpc(rpc, { p_window: windowStart.toISOString() }).single();
+    check(rpc, error);
+    if (!data) throw new Error(`pipeline-store: ${rpc} sem retorno`);
+    const stats = data.stats;
+    const fetchEnqueued =
+      typeof stats === "object" && stats !== null && !Array.isArray(stats)
+        ? "fetch_enqueued" in stats
+        : false;
+    return { runId: data.run_id, created: data.created, fetchEnqueued };
+  };
+  const lastStarted = async (trigger: "cron" | "fast") => {
+    const { data, error } = await db
+      .from("ingest_runs")
+      .select("started_at")
+      .eq("trigger", trigger)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    check(`lastStartedAt(${trigger})`, error);
+    return data?.started_at ?? null;
+  };
+
   return {
-    async startRun(windowStart) {
-      const { data, error } = await db
-        .rpc("start_ingest_run", { p_window: windowStart.toISOString() })
-        .single();
-      check("startRun", error);
-      if (!data) throw new Error("pipeline-store: startRun sem retorno");
-      const stats = data.stats;
-      const fetchEnqueued =
-        typeof stats === "object" && stats !== null && !Array.isArray(stats)
-          ? "fetch_enqueued" in stats
-          : false;
-      return { runId: data.run_id, created: data.created, fetchEnqueued };
+    startRun: (windowStart) => start("start_ingest_run", windowStart),
+    startFastRun: (windowStart) => start("start_fast_run", windowStart),
+
+    async startManualRun(sourceId) {
+      const { data, error } = await db.rpc("start_manual_run", { p_source: sourceId });
+      check("startManualRun", error);
+      if (!data) throw new Error("pipeline-store: startManualRun sem retorno");
+      return data;
     },
 
-    async markFetchEnqueued(runId, count) {
+    async markFetchEnqueued(runId, count, extra) {
       const { error } = await db
         .from("ingest_runs")
-        .update({ stats: { fetch_enqueued: count } })
+        .update({ stats: toJsonObject({ fetch_enqueued: count, ...extra }) })
         .eq("id", runId);
       check("markFetchEnqueued", error);
     },
@@ -74,6 +136,7 @@ export function createRunStore(db: DbClient): RunStore {
       const { data, error } = await db
         .from("ingest_runs")
         .select("id")
+        .eq("trigger", "cron")
         .eq("status", "running")
         .lt("window_start", windowStart.toISOString())
         .order("window_start", { ascending: false })
@@ -83,31 +146,70 @@ export function createRunStore(db: DbClient): RunStore {
       return data?.id ?? null;
     },
 
-    async lastStartedAt() {
+    lastStartedAt: () => lastStarted("cron"),
+    lastFastStartedAt: () => lastStarted("fast"),
+
+    async lastManualRunAt(sourceId) {
       const { data, error } = await db
         .from("ingest_runs")
         .select("started_at")
+        .eq("trigger", "manual")
+        .eq("stats->>source", sourceId)
         .order("started_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      check("lastStartedAt", error);
+      check("lastManualRunAt", error);
       return data?.started_at ?? null;
     },
 
     async activeSources() {
       const { data, error } = await db
         .from("sources")
-        .select("slug, frequency_minutes, last_fetched_at")
-        .eq("status", "active")
+        .select(
+          "id, slug, priority, editorial_score, frequency_minutes, terms_min_interval_minutes, rate_limit_per_hour, last_fetched_at, consumption",
+        )
+        .in("status", ["active", "degraded"])
+        .is("archived_at", null)
         .order("priority", { ascending: true })
+        .order("editorial_score", { ascending: false })
         .order("slug", { ascending: true });
       check("activeSources", error);
-      return (data ?? []).map((s) => ({
+      return (data ?? []).map((s): DueSource => ({
+        id: s.id,
         slug: s.slug,
-        frequencyMinutes: s.frequency_minutes ?? 30, // null = padrão global (30 min até FS-T5 ler app_settings)
+        priority: s.priority,
+        editorialScore: s.editorial_score,
+        frequencyMinutes: s.frequency_minutes,
+        crawlDelaySec: crawlDelayOf(s.consumption),
+        termsMinIntervalMinutes: s.terms_min_interval_minutes,
+        rateLimitPerHour: s.rate_limit_per_hour,
         lastFetchedAt: s.last_fetched_at,
       }));
     },
+
+    async defaultFrequency() {
+      return (await readSourceSettings(db)).defaultFrequency;
+    },
+    async fastLaneMax() {
+      return (await readSourceSettings(db)).fastLaneMax;
+    },
+  };
+}
+
+/** Só consulta a cota (`peek_rate_limit`, sem consumir): `true` = ainda cabe uma requisição. */
+export function createPeekRateLimit(
+  db: DbClient,
+): (bucket: string, limitPerHour: number) => Promise<boolean> {
+  return async (bucket, limitPerHour) => {
+    const i = bucket.indexOf(":");
+    const { data, error } = await db.rpc("peek_rate_limit", {
+      p_bucket: i > 0 ? bucket.slice(0, i) : bucket,
+      p_key_hash: i > 0 ? bucket.slice(i + 1) : "-",
+      p_limit: limitPerHour,
+      p_window_seconds: 3600,
+    });
+    check("peekRateLimit", error);
+    return data === true;
   };
 }
 
@@ -143,7 +245,7 @@ const RawPayloadSchema = z.object({
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
 const SOURCE_COLUMNS =
-  "id, slug, name, base_url, kind, feed_url, status, rate_limit_per_hour, locality, etag, last_modified";
+  "id, slug, name, base_url, kind, feed_url, status, rate_limit_per_hour, locality, etag, last_modified, consecutive_failures, status_reason, consumption";
 
 interface SourceRow {
   id: string;
@@ -157,7 +259,29 @@ interface SourceRow {
   locality: string;
   etag: string | null;
   last_modified: string | null;
+  consecutive_failures: number;
+  status_reason: string | null;
+  consumption: unknown;
 }
+
+const STATUS_REASONS: readonly StatusReason[] = [
+  "pending_activation",
+  "manual",
+  "auto_failures",
+  "robots",
+  "opt_out",
+  "legal",
+  "quality",
+  "other",
+];
+
+const toStatusReason = (v: string | null): StatusReason | null =>
+  STATUS_REASONS.find((r) => r === v) ?? null;
+
+const toConsumption = (v: unknown): ConsumptionConfig | null => {
+  const parsed = consumptionSchema.safeParse(v);
+  return parsed.success ? parsed.data : null;
+};
 
 const toSource = (r: SourceRow): SourceRecord => ({
   id: r.id,
@@ -171,6 +295,9 @@ const toSource = (r: SourceRow): SourceRecord => ({
   locality: r.locality,
   etag: r.etag,
   lastModified: r.last_modified,
+  consecutiveFailures: r.consecutive_failures,
+  statusReason: toStatusReason(r.status_reason),
+  consumption: toConsumption(r.consumption),
 });
 
 /** Banco das etapas de Coleta (service role). */
@@ -186,6 +313,60 @@ export function createIngestRepo(db: DbClient): IngestRepo {
   };
 
   return {
+    async runTrigger(runId) {
+      const { data, error } = await db
+        .from("ingest_runs")
+        .select("trigger")
+        .eq("id", runId)
+        .maybeSingle();
+      check("runTrigger", error);
+      return data?.trigger === "manual" || data?.trigger === "fast" ? data.trigger : "cron";
+    },
+
+    async claimFetch(sourceId, runId, since) {
+      const { data, error } = await db.rpc("claim_source_fetch", {
+        p_source: sourceId,
+        p_run: runId,
+        p_since: since.toISOString(),
+      });
+      check("claimFetch", error);
+      return data === true;
+    },
+
+    async recordFetch(sourceId, outcome, latencyMs, itemsNew, errorText) {
+      const { error } = await db.rpc("record_source_fetch", {
+        p_source: sourceId,
+        p_outcome: outcome,
+        p_latency_ms: latencyMs,
+        p_items_new: itemsNew,
+        // O SQL só usa o texto quando o resultado é `failed`.
+        p_error: errorText ?? "",
+      });
+      check("recordFetch", error);
+    },
+
+    async applySourceState(id, patch) {
+      const row = {
+        ...(patch.status !== undefined ? { status: patch.status } : {}),
+        ...(patch.statusReason !== undefined ? { status_reason: patch.statusReason } : {}),
+        ...(patch.consecutiveFailures !== undefined
+          ? { consecutive_failures: patch.consecutiveFailures }
+          : {}),
+      };
+      if (Object.keys(row).length === 0) return;
+      const { error } = await db.from("sources").update(row).eq("id", id);
+      check("applySourceState", error);
+    },
+
+    async notifyOnce(n, windowSec) {
+      const { data, error } = await db.rpc("notify_once", {
+        p: toJson(n),
+        p_window_sec: windowSec,
+      });
+      check("notifyOnce", error);
+      return data === true;
+    },
+
     sourceBySlug: (slug) => source("slug", slug),
     sourceById: (id) => source("id", id),
 

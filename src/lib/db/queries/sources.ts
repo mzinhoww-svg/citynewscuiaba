@@ -1,5 +1,6 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
+import { crawlDelayOf, readSourceSettings } from "@/lib/db/pipeline-store";
 import {
   computeSignals,
   DEFAULT_REC_CONFIG,
@@ -9,6 +10,7 @@ import {
   type SourceRawInput,
 } from "@/lib/ranking";
 import type { Result } from "@/lib/result";
+import { effectiveFrequency } from "@/lib/sources/frequency";
 import { fetchAggregated } from "./aggregated";
 import { many, one, readPublic, readService } from "./run";
 import type { AggregatedView, QueryError, SourceEntry } from "./types";
@@ -238,16 +240,19 @@ export async function getSourceDetail(
   slug: string,
 ): Promise<Result<SourceDetail | null, QueryError>> {
   return readService(async (db) => {
-    const [all, meta, health] = await Promise.all([
+    const [all, meta, health, settings] = await Promise.all([
       fetchEntries(db, { window: "7d" }),
       db
         .from("sources")
-        .select("kind, frequency_minutes, republish_policy, image_policy, agreement_until")
+        .select(
+          "kind, frequency_minutes, terms_min_interval_minutes, consumption, republish_policy, image_policy, agreement_until",
+        )
         .eq("slug", slug)
         .in("status", [...VISIBLE_STATUSES])
         .maybeSingle()
         .then(one),
       db.from("source_fetch_health").select("ok, total").eq("slug", slug).maybeSingle().then(one),
+      readSourceSettings(db),
     ]);
     const entry = all.find((s) => s.slug === slug);
     if (!entry || !meta) return null;
@@ -256,7 +261,11 @@ export async function getSourceDetail(
     return {
       ...entry,
       kind: meta.kind,
-      frequencyMinutes: meta.frequency_minutes ?? 30, // null = padrão global (30 min até FS-T5)
+      // Frequência efetiva: `null` segue o padrão de `app_settings`; Crawl-delay e termos elevam.
+      frequencyMinutes: effectiveFrequency(meta.frequency_minutes, settings.defaultFrequency, {
+        crawlDelaySec: crawlDelayOf(meta.consumption),
+        termsMinIntervalMinutes: meta.terms_min_interval_minutes,
+      }).minutes,
       republishPolicy: meta.republish_policy,
       imagePolicy: meta.image_policy,
       agreementUntil: meta.agreement_until,

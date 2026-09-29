@@ -1,14 +1,17 @@
 // @vitest-environment node
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { POST as tickPOST } from "@/app/api/ingest/tick/route";
 import { POST as drainPOST } from "@/app/api/jobs/drain/route";
 import { createServiceClient } from "@/lib/db/client";
-import { createEventSink, createRunStore } from "@/lib/db/pipeline-store";
+import { createEventSink, createPeekRateLimit, createRunStore } from "@/lib/db/pipeline-store";
+import { runFastTick } from "@/lib/pipeline/fast-tick";
+import type { RunStore } from "@/lib/pipeline/ports";
+import { dueSource } from "@/lib/pipeline/testing/due-source";
 import { drain } from "@/lib/pipeline/drain";
 import { createQueue } from "@/lib/pipeline/queue";
 import { createRunStep, nextMessage, stepError } from "@/lib/pipeline/run-step";
-import { handleTick } from "@/lib/pipeline/tick";
+import { handleTick, runTick } from "@/lib/pipeline/tick";
 
 import { pipelineTrash, purgePipeline } from "./cleanup";
 
@@ -64,6 +67,71 @@ describe("tick idempotente", () => {
   it("segredo errado = 401", async () => {
     expect((await tickPOST(tickReq("errado"))).status).toBe(401);
     expect((await drainPOST(tickReq("errado"))).status).toBe(401);
+  });
+});
+
+describe("via rápida e runs manuais no banco real", () => {
+  const randomWindow = () => new Date(Date.UTC(2001, 0, 1) + randomInt(1, 2_000_000) * 30 * 60_000);
+
+  it("runs manual e fast não contam para o watchdog do ciclo normal", async () => {
+    const db = createServiceClient();
+    const runs = createRunStore(db);
+    const folha = await db.from("sources").select("id").eq("slug", "folha-do-cerrado").single();
+    const fast = await runs.startFastRun(randomWindow());
+    trash.runIds.add(fast.runId);
+    const manualId = await runs.startManualRun(folha.data!.id);
+    trash.runIds.add(manualId);
+    const rows = await db
+      .from("ingest_runs")
+      .select("id, started_at, trigger")
+      .in("id", [fast.runId, manualId]);
+    const startedAt = (id: string) => rows.data!.find((r) => r.id === id)!.started_at;
+    expect(rows.data!.map((r) => r.trigger).sort()).toEqual(["fast", "manual"]);
+    const cron = await runs.lastStartedAt();
+    expect(cron).not.toBe(startedAt(fast.runId));
+    expect(cron).not.toBe(startedAt(manualId));
+    expect(await runs.lastFastStartedAt()).not.toBeNull();
+    expect(await runs.lastManualRunAt(folha.data!.id)).toBe(startedAt(manualId));
+  });
+
+  it("tick normal e rápido na mesma janela no banco real: um run de cada, fonte rápida só no fast", async () => {
+    const db = createServiceClient();
+    const namespace = `t-${randomUUID().slice(0, 8)}`;
+    trash.namespaces.add(namespace);
+    const queue = createQueue(db, { namespace });
+    const base = createRunStore(db);
+    const runs: RunStore = {
+      ...base,
+      previousOpenRun: async () => null,
+      activeSources: async () => [
+        dueSource("rapida-int", { frequencyMinutes: 10 }),
+        dueSource("normal-int"),
+      ],
+    };
+    const window = randomWindow();
+    const now = () => window;
+    const normal = await runTick({ queue, runs, now });
+    const fast = await runFastTick({ queue, runs, peekRateLimit: createPeekRateLimit(db), now });
+    expect(normal).toMatchObject({ status: "started", enqueued: 1 });
+    expect(fast).toMatchObject({ status: "started", enqueued: 1 });
+    expect(
+      fast.status !== "idle" && normal.status !== "skipped" && fast.runId !== normal.runId,
+    ).toBe(true);
+    if (normal.status !== "skipped") trash.runIds.add(normal.runId);
+    if (fast.status !== "idle") trash.runIds.add(fast.runId);
+    const { data } = await db
+      .from("jobs")
+      .select("message")
+      .eq("queue", `${namespace}:pipeline`)
+      .order("id");
+    expect(data!.map((j) => (j.message as { itemRef: string }).itemRef).sort()).toEqual([
+      "source:normal-int",
+      "source:rapida-int",
+    ]);
+    // A mensagem da fonte rápida já está na fila: o próximo tick rápido a pula.
+    expect(
+      await queue.pending("pipeline", { itemRef: "source:rapida-int", steps: ["fetch"] }),
+    ).toBe(1);
   });
 });
 

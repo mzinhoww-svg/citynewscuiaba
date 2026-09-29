@@ -23,13 +23,18 @@ type SourceState = {
   last_modified: string | null;
   last_error: string | null;
   last_fetched_at: string | null;
+  /** Trava da coleta (`claim_source_fetch`): sem restaurar, a reexecução da suíte não coleta. */
+  last_fetch_started_at: string | null;
+  last_fetch_run_id: string | null;
 };
 
 /** Guarda o estado de coleta das fontes que a suíte vai buscar. */
 export async function rememberSources(db: DbClient, t: PipelineTrash, slugs: readonly string[]) {
   const { data, error } = await db
     .from("sources")
-    .select("slug, status, etag, last_modified, last_error, last_fetched_at")
+    .select(
+      "slug, status, etag, last_modified, last_error, last_fetched_at, last_fetch_started_at, last_fetch_run_id",
+    )
     .in("slug", [...slugs]);
   check("sources", error);
   t.sources.push(...(data ?? []));

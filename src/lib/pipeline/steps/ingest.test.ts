@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { readFixture } from "../../../../tests/fixtures/read";
 import { drain } from "../drain";
 import type { PipelineEvent, SourceRecord } from "../ports";
@@ -10,6 +12,8 @@ import { createIngestHandlers } from ".";
 
 const UA = "CityNewsBot/1.0 (+https://citynewscuiaba.vercel.app/sobre#robo)";
 const NOW = new Date("2026-09-27T18:45:00Z");
+/** Próximo ciclo (30 min depois): a trava de janela deixa coletar de novo. */
+const LATER = new Date("2026-09-27T19:15:00Z");
 
 const folha: SourceRecord = {
   id: "src-folha",
@@ -30,20 +34,28 @@ function setup(
   sources: SourceRecord[] = [folha],
 ) {
   const { http, calls } = createFakeHttp(routes);
-  const repo = createMemoryIngestRepo(sources);
+  // Relógio do teste: repo (trava da coleta) e etapas andam juntos.
+  let clock = NOW;
+  const repo = createMemoryIngestRepo(sources, { clock: () => clock });
   const queue = createMemoryQueue();
   const dedupe: string[] = [];
   const handlers: StepHandlers = {
-    ...createIngestHandlers({ repo, http, resolve: fakeResolve(), userAgent: UA, now: () => NOW }),
+    ...createIngestHandlers({
+      repo,
+      http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => clock,
+    }),
     dedupe: async (m) => {
       dedupe.push(m.itemRef);
       return { ok: true, value: [] };
     },
   };
   const events: PipelineEvent[] = [];
-  const run = async (slug = "folha-do-cerrado") => {
+  const run = async (slug = "folha-do-cerrado", runId = "run-1") => {
     await queue.enqueue("pipeline", {
-      runId: "run-1",
+      runId,
       step: "fetch",
       itemRef: `source:${slug}`,
       attempt: 1,
@@ -56,7 +68,8 @@ function setup(
       queues: ["pipeline"],
     });
   };
-  return { repo, queue, calls, dedupe, events, run };
+  const setNow = (d: Date) => void (clock = d);
+  return { repo, queue, calls, dedupe, events, run, setNow };
 }
 
 const feedRoute = (body: string, headers: Record<string, string> = {}): FakeRoute => ({
@@ -306,34 +319,8 @@ describe("coleta: fetch → validate → extract → normalize", () => {
     expect(t.dedupe).toHaveLength(23);
     // Os primeiros 20 itens avançaram (classificados); 3 ficaram parados no meio do caminho.
     for (const c of t.repo.collected().slice(0, 20)) t.repo.markAdvanced(c.id);
-    await t.queue.enqueue("pipeline", {
-      runId: "run-2",
-      step: "fetch",
-      itemRef: "source:folha-do-cerrado",
-      attempt: 1,
-    });
-    await drain({
-      queue: t.queue,
-      runStep: createRunStep({
-        ...createIngestHandlers({
-          repo: t.repo,
-          http: createFakeHttp({
-            "https://folhadocerrado.example/robots.txt": { status: 404 },
-            "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
-          }).http,
-          resolve: fakeResolve(),
-          userAgent: UA,
-          now: () => NOW,
-        }),
-        dedupe: async (m) => {
-          t.dedupe.push(m.itemRef);
-          return { ok: true, value: [] };
-        },
-      }),
-      events: { record: async () => {} },
-      now: () => 0,
-      queues: ["pipeline"],
-    });
+    t.setNow(LATER);
+    await t.run("folha-do-cerrado", "run-2");
     expect(t.repo.collected()).toHaveLength(23);
     const again = t.dedupe.slice(23);
     expect(again.sort()).toEqual(
@@ -351,32 +338,223 @@ describe("coleta: fetch → validate → extract → normalize", () => {
       "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
     });
     await t.run();
-    await t.queue.enqueue("pipeline", {
-      runId: "run-2",
-      step: "fetch",
-      itemRef: "source:folha-do-cerrado",
-      attempt: 1,
-    });
-    await drain({
-      queue: t.queue,
-      runStep: createRunStep({
-        ...createIngestHandlers({
-          repo: t.repo,
-          http: createFakeHttp({
-            "https://folhadocerrado.example/robots.txt": { status: 404 },
-            "https://folhadocerrado.example/feed": feedRoute(readFixture("folha-do-cerrado.xml")),
-          }).http,
-          resolve: fakeResolve(),
-          userAgent: UA,
-          now: () => NOW,
-        }),
-        dedupe: async () => ({ ok: true, value: [] }),
-      }),
-      events: { record: async () => {} },
-      now: () => 0,
-      queues: ["pipeline"],
-    });
+    t.setNow(LATER);
+    await t.run("folha-do-cerrado", "run-2");
     expect(t.repo.collected()).toHaveLength(23);
     expect(t.repo.raw()).toHaveLength(2);
+  });
+});
+
+describe("fetch respeita o painel de fontes", () => {
+  const ROBOTS = "https://folhadocerrado.example/robots.txt";
+  const FEED = "https://folhadocerrado.example/feed";
+  const okRoutes = {
+    [ROBOTS]: { status: 404 },
+    [FEED]: feedRoute(readFixture("folha-do-cerrado.xml"), { etag: '"v1"' }),
+  };
+  const down: Record<string, FakeRoute> = { [ROBOTS]: { status: 404 }, [FEED]: { status: 500 } };
+  const msg = (runId: string, attempt = 1, ref = "source:folha-do-cerrado"): PipelineMessage => ({
+    runId,
+    step: "fetch",
+    itemRef: ref,
+    attempt,
+  });
+
+  function build(
+    routes: Record<string, FakeRoute | ((h: Headers) => FakeRoute)>,
+    source: Partial<SourceRecord> = {},
+    runs: Record<string, "cron" | "manual" | "fast"> = {},
+  ) {
+    let clock = new Date("2026-09-27T14:30:05Z");
+    let ms = 0;
+    const { http, calls } = createFakeHttp(routes);
+    const repo = createMemoryIngestRepo([{ ...folha, ...source }], { runs, clock: () => clock });
+    const handlers = createIngestHandlers({
+      repo,
+      http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => clock,
+      nowMs: () => (ms += 40),
+    });
+    const fetchStep = handlers.fetch!;
+    const feedCalls = () => calls.filter((c) => c.url === FEED);
+    return {
+      repo,
+      calls,
+      fetchStep,
+      feedCalls,
+      setNow: (iso: string) => void (clock = new Date(iso)),
+    };
+  }
+
+  it("mesma fonte enfileirada pelo tick normal e pelo rápido na mesma meia hora: uma requisição (Review Focus 6)", async () => {
+    const t = build(okRoutes, { frequencyMinutes: 10 } as Partial<SourceRecord>, {
+      "cron-1430": "cron",
+      "fast-1430": "fast",
+    });
+    expect((await t.fetchStep(msg("cron-1430"))).ok).toBe(true);
+    t.setNow("2026-09-27T14:30:41Z");
+    const second = await t.fetchStep(msg("fast-1430"));
+    expect(second).toEqual({ ok: true, value: [] });
+    expect(t.feedCalls()).toHaveLength(1);
+    expect(t.repo.raw().map((r) => r.runId)).toEqual(["cron-1430"]);
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      consecutiveFailures: 0,
+      status: "active",
+    });
+    expect(t.repo.health()).toHaveLength(1);
+  });
+
+  it("retry do mesmo run passa pela trava; run manual não usa a trava", async () => {
+    const t = build(okRoutes, {}, { "cron-1": "cron", "man-1": "manual" });
+    await t.fetchStep(msg("cron-1", 1));
+    await t.fetchStep(msg("cron-1", 2));
+    expect(t.feedCalls()).toHaveLength(2);
+    t.setNow("2026-09-27T14:31:00Z");
+    await t.fetchStep(msg("man-1", 1, "source:folha-do-cerrado:manual:man-1"));
+    expect(t.feedCalls()).toHaveLength(3);
+    expect(t.repo.raw().map((r) => r.runId)).toEqual(["cron-1", "man-1"]);
+  });
+
+  it("via rápida manda If-None-Match e If-Modified-Since quando há ETag/Last-Modified; 304 não conta falha", async () => {
+    const t = build(
+      { [ROBOTS]: { status: 404 }, [FEED]: { status: 304 } },
+      { etag: '"v1"', lastModified: "Sun, 27 Sep 2026 14:00:00 GMT" },
+      { "fast-1": "fast" },
+    );
+    expect((await t.fetchStep(msg("fast-1"))).ok).toBe(true);
+    const h = t.feedCalls()[0]!.headers;
+    expect(h.get("if-none-match")).toBe('"v1"');
+    expect(h.get("if-modified-since")).toBe("Sun, 27 Sep 2026 14:00:00 GMT");
+    expect(t.repo.raw()).toHaveLength(0);
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      consecutiveFailures: 0,
+      status: "active",
+    });
+    expect(t.repo.health()[0]).toMatchObject({ outcome: "not_modified", error: null });
+  });
+
+  it("3 runs com falha pausam; retries do mesmo run contam uma vez (Review Focus 3)", async () => {
+    const t = build(down, {}, { r1: "cron", r2: "cron", r3: "cron" });
+    const starts = {
+      r1: "2026-09-27T14:30:00Z",
+      r2: "2026-09-27T15:00:00Z",
+      r3: "2026-09-27T15:30:00Z",
+    };
+    for (const run of ["r1", "r2", "r3"] as const) {
+      t.setNow(starts[run]);
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        const r = await t.fetchStep(msg(run, attempt));
+        expect(r.ok).toBe(false);
+        // Só a última tentativa do run conta.
+        if (attempt < 4)
+          expect(t.repo.source("folha-do-cerrado")!.consecutiveFailures).toBe(
+            run === "r1" ? 0 : run === "r2" ? 1 : 2,
+          );
+      }
+      expect(t.repo.source("folha-do-cerrado")!.status).toBe(run === "r3" ? "paused" : "degraded");
+    }
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      statusReason: "auto_failures",
+      consecutiveFailures: 3,
+    });
+    expect(t.repo.notifications()).toHaveLength(1);
+    expect(t.repo.notifications()[0]).toMatchObject({
+      channel: "control_center",
+      body: expect.stringContaining("Fonte Folha do Cerrado pausada após 3 falhas seguidas:"),
+    });
+    expect(t.repo.health().filter((h) => h.outcome === "failed")).toHaveLength(3);
+  });
+
+  it("fonte degraded continua sendo coletada; sucesso volta a active, zera e registra saúde com latência", async () => {
+    const t = build(okRoutes, { status: "degraded", consecutiveFailures: 2 }, { r1: "cron" });
+    expect((await t.fetchStep(msg("r1"))).ok).toBe(true);
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
+    const [h] = t.repo.health();
+    expect(h).toMatchObject({ outcome: "ok", sourceId: "src-folha", error: null });
+    expect(h!.latencyMs).toBeGreaterThan(0);
+  });
+
+  it("limite próprio não conta como falha nem entra na saúde", async () => {
+    const t = build(
+      okRoutes,
+      { rateLimitPerHour: 0, consecutiveFailures: 1, status: "degraded" },
+      { r1: "cron" },
+    );
+    expect((await t.fetchStep(msg("r1"))).ok).toBe(true);
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      consecutiveFailures: 1,
+      status: "degraded",
+    });
+    expect(t.repo.health()).toHaveLength(0);
+  });
+
+  it("4xx não recuperável conta na hora; fonte pausada não é coletada nem trava", async () => {
+    const t = build({ [ROBOTS]: { status: 404 }, [FEED]: { status: 404 } }, {}, { r1: "cron" });
+    expect((await t.fetchStep(msg("r1"))).ok).toBe(false);
+    expect(t.repo.source("folha-do-cerrado")).toMatchObject({
+      consecutiveFailures: 1,
+      status: "degraded",
+    });
+    const paused = build(okRoutes, { status: "paused" }, { r1: "cron" });
+    expect(await paused.fetchStep(msg("r1"))).toEqual({ ok: true, value: [] });
+    expect(paused.calls).toHaveLength(0);
+  });
+
+  it("page_list extrai com os seletores da fonte", async () => {
+    const t = build(
+      {
+        "https://mtagora.example/robots.txt": { status: 404 },
+        "https://mtagora.example/cidades": {
+          body: readFileSync(
+            join(process.cwd(), "tests/fixtures/sites/secao-mt-agora.html"),
+            "utf8",
+          ),
+          headers: { "content-type": "text/html; charset=utf-8" },
+        },
+      },
+      {
+        slug: "folha-do-cerrado",
+        kind: "page",
+        baseUrl: "https://mtagora.example",
+        feedUrl: "https://mtagora.example/cidades",
+        consumption: {
+          strategy: "page_list",
+          page: { item: "article.card", link: "a", title: "h2", date: "time" },
+        },
+      },
+      { r1: "cron" },
+    );
+    const fetched = await t.fetchStep(msg("r1"));
+    expect(fetched.ok).toBe(true);
+    const handlers = createIngestHandlers({
+      repo: t.repo,
+      http: createFakeHttp({}).http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => NOW,
+    });
+    const validate = await handlers.validate!({
+      runId: "r1",
+      step: "validate",
+      itemRef: "raw:raw-1",
+      attempt: 1,
+    });
+    expect(validate.ok).toBe(true);
+    const extract = await handlers.extract!({
+      runId: "r1",
+      step: "extract",
+      itemRef: "raw:raw-1",
+      attempt: 1,
+    });
+    expect(extract.ok && extract.value).toHaveLength(3);
+    expect(t.repo.raw()[0]!.entries?.map((e) => e.title)[0]).toBe(
+      "Obra na avenida fictícia muda o trânsito no centro",
+    );
   });
 });

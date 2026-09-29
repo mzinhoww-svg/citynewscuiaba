@@ -100,6 +100,19 @@ export function createQueue(db: DbClient, opts: { namespace?: string } = {}): Qu
     },
 
     async pending(queue, filter = {}) {
+      if (filter.itemRef !== undefined) {
+        // `queue_pending` não filtra por item: conta direto em `jobs` (via rápida, `previous_pending`).
+        let q = db
+          .from("jobs")
+          .select("id", { count: "exact", head: true })
+          .eq("queue", name(queue))
+          .eq("message->>itemRef", filter.itemRef);
+        if (filter.runId !== undefined) q = q.eq("message->>runId", filter.runId);
+        if (filter.steps !== undefined) q = q.in("message->>step", [...filter.steps]);
+        const { count, error } = await q;
+        check("pending", error);
+        return count ?? 0;
+      }
       const { data, error } = await db.rpc("queue_pending", {
         p_queue: name(queue),
         ...(filter.runId !== undefined ? { p_run_id: filter.runId } : {}),
