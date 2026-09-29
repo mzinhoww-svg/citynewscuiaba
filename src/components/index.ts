@@ -388,3 +388,18 @@ export {
   type PlaygroundProps,
   type PlaygroundReply,
 } from "./studio/Playground";
+export { WeightSliders, type RecReply, type WeightSlidersProps } from "./studio/WeightSliders";
+export {
+  WeightsHistory,
+  type WeightsHistoryItem,
+  type WeightsHistoryProps,
+} from "./studio/WeightsHistory";
+export { WhyThisDrawer, type WhyReply, type WhyThisDrawerProps } from "./studio/WhyThisDrawer";
+export { ShareChart, type ShareChartProps } from "./studio/ShareChart";
+export {
+  CampaignForm,
+  ExperimentForm,
+  type CampaignFormProps,
+  type ExperimentFormProps,
+} from "./studio/RecForms";
+export { AbTestCard, type AbTestCardProps } from "./studio/AbTestCard";

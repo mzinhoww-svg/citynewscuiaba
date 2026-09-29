@@ -39,6 +39,19 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "prompts", path: () => "/estudio/control/prompts/answer", as: "diego" },
   { name: "prompts agente inválido", path: () => "/estudio/control/prompts/nada", as: "diego" },
   { name: "playground", path: () => "/estudio/control/testes", as: "diego" },
+  // P5-T7
+  { name: "recomendação", path: () => "/estudio/control/recomendacao", as: "diego" },
+  { name: "recomendação só leitura", path: () => "/estudio/control/recomendacao", as: "thiago" },
+  {
+    name: "teste A/B",
+    path: () => `/estudio/control/recomendacao/testes/${fx.experimentId}`,
+    as: "diego",
+  },
+  {
+    name: "teste A/B inexistente",
+    path: () => "/estudio/control/recomendacao/testes/nada",
+    as: "diego",
+  },
 ];
 
 for (const scheme of ["light", "dark"] as const) {

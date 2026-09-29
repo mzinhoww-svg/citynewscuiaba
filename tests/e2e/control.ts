@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Database } from "@/lib/db/types";
 import { service, tag } from "./studio";
 
 /*
@@ -15,6 +16,8 @@ export interface ControlFixture {
   quarantineId: number;
   itemRef: string;
   eventMessage: string;
+  /** Teste A/B de pesos (P5-T7) entre rec-v1 e uma versão aprovada própria, com eventos rotulados. */
+  experimentId: string;
   cleanup: () => Promise<void>;
 }
 
@@ -135,6 +138,95 @@ export async function controlFixture(): Promise<ControlFixture> {
       .single(),
   );
 
+  // P5-T7: versão de pesos aprovada (inativa), teste A/B entre ela e rec-v1, e eventos com o
+  // rótulo de cada variante para as métricas do O18 (anon_id próprio, apagado no cleanup).
+  const weightsVersion = `rec-e2e-${mark}`;
+  check(
+    await db.from("rec_weights").insert({
+      version: weightsVersion,
+      weights: {
+        popularity: 0.3,
+        individual: 0.25,
+        recency: 0.15,
+        engagement: 0.1,
+        operational: 0.1,
+        diversity: 0.1,
+      },
+      proposed_by: "c1000000-0000-4000-8000-000000000007",
+      approved_by: "c1000000-0000-4000-8000-000000000001",
+    }),
+  );
+  const exp = must(
+    await db
+      .from("rec_experiments")
+      .insert({
+        name: `Teste ${mark}`,
+        variants: [
+          { name: "controle", weightsVersion: "rec-v1" },
+          { name: "variante-1", weightsVersion },
+        ],
+        split: [50, 50],
+        created_by: "c1000000-0000-4000-8000-000000000007",
+      })
+      .select("id")
+      .single(),
+  );
+  const expKey = exp.id.replace(/-/g, "").slice(0, 8);
+  const anonId = randomUUID();
+  const event = (
+    algo: string,
+    name: string,
+    props: Record<string, string | number | boolean>,
+    slug: string | null,
+  ): Database["public"]["Tables"]["events"]["Insert"] => ({
+    name,
+    anon_id: anonId,
+    at: new Date().toISOString(),
+    source_slug: slug,
+    session: { id: mark, page: "/fontes", referrer: null, device: "desktop" },
+    consent: { version: 1, metrics: true, personalization: true },
+    algo_version: algo,
+    props,
+  });
+  const v0 = `rec-v1+${expKey}:0`;
+  const v1 = `rec-v1+${expKey}:1`;
+  check(
+    await db
+      .from("events")
+      .insert([
+        ...Array.from({ length: 10 }, () =>
+          event(v0, "source_viewed", { surface: "fontes" }, null),
+        ),
+        ...Array.from({ length: 10 }, () =>
+          event(v1, "source_viewed", { surface: "fontes" }, null),
+        ),
+        event(
+          v0,
+          "recommendation_clicked",
+          { list: "recommended", reason: "local_popular", position: 1 },
+          "folha-do-cerrado",
+        ),
+        event(
+          v1,
+          "recommendation_clicked",
+          { list: "recommended", reason: "diversity", position: 2 },
+          "mt-agora",
+        ),
+        event(
+          v1,
+          "recommendation_clicked",
+          { list: "popular", reason: "regional_popular", position: 1 },
+          "diario-da-baixada",
+        ),
+        event(
+          v1,
+          "recommendation_dismissed",
+          { list: "recommended", reason: "diversity", dismissReason: "already_know" },
+          "mt-agora",
+        ),
+      ]),
+  );
+
   return {
     mark,
     failing,
@@ -143,7 +235,11 @@ export async function controlFixture(): Promise<ControlFixture> {
     quarantineId: q.id,
     itemRef: `item:${itemId}`,
     eventMessage,
+    experimentId: exp.id,
     async cleanup() {
+      await db.from("events").delete().eq("anon_id", anonId);
+      await db.from("rec_experiments").delete().eq("id", exp.id);
+      await db.from("rec_weights").delete().eq("version", weightsVersion);
       const runs = must(
         await db.from("ingest_runs").select("id").contains("stats", { source: healthy.id }),
       ).map((r) => r.id);

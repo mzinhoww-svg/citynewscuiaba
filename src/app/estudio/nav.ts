@@ -113,6 +113,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "shield",
         action: "metrics.view",
       },
+      {
+        href: "/estudio/control/recomendacao",
+        label: "Recomendação",
+        icon: "sliders-horizontal",
+        action: "metrics.view",
+      },
     ],
   },
   {

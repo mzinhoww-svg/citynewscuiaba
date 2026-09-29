@@ -1846,6 +1846,118 @@ export type Database = {
           },
         ];
       };
+      rec_campaigns: {
+        Row: {
+          audience: string;
+          created_at: string;
+          created_by: string | null;
+          ends_on: string;
+          id: string;
+          name: string;
+          quota: number;
+          source_ids: string[];
+          starts_on: string;
+        };
+        Insert: {
+          audience?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on: string;
+          id?: string;
+          name: string;
+          quota?: number;
+          source_ids: string[];
+          starts_on: string;
+        };
+        Update: {
+          audience?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string;
+          id?: string;
+          name?: string;
+          quota?: number;
+          source_ids?: string[];
+          starts_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rec_experiments: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          ended_at: string | null;
+          id: string;
+          name: string;
+          promoted_version: string | null;
+          split: number[];
+          started_at: string;
+          status: string;
+          variants: NonNullable<Json>;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          name: string;
+          promoted_version?: string | null;
+          split: number[];
+          started_at?: string;
+          status?: string;
+          variants: NonNullable<Json>;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          name?: string;
+          promoted_version?: string | null;
+          split?: number[];
+          started_at?: string;
+          status?: string;
+          variants?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_experiments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_experiments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_experiments_promoted_version_fkey";
+            columns: ["promoted_version"];
+            isOneToOne: false;
+            referencedRelation: "rec_weights";
+            referencedColumns: ["version"];
+          },
+        ];
+      };
       rec_weights: {
         Row: {
           active: boolean;
@@ -3053,6 +3165,29 @@ export type Database = {
         }[];
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      rec_events_summary: {
+        Args: { p_since: string };
+        Returns: {
+          account: boolean;
+          algo_version: string;
+          dismiss_reason: string;
+          list: string;
+          n: number;
+          name: string;
+          personalization: boolean;
+          reason: string;
+          source_slug: string;
+        }[];
+      };
+      rec_return_7d: {
+        Args: { p_since: string };
+        Returns: {
+          algo_version: string;
+          followed: number;
+          returned: number;
+        }[];
+      };
+      rec_weights_activate: { Args: { p_approval: string }; Returns: Json };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       record_source_fetch: {
         Args: {
