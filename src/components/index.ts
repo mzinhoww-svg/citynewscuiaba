@@ -339,6 +339,16 @@ export { SourceAuditTable, type SourceAuditTableProps } from "./studio/sources/S
 // Aprovações de mudança crítica (P5-T1)
 export { ApprovalBanner, type ApprovalBannerProps } from "./studio/ApprovalBanner";
 export { ApprovalInbox, type ApprovalInboxProps, type ApprovalReply } from "./studio/ApprovalInbox";
+
+// Regras de autonomia O05 (P5-T2)
+export { RuleMatrix, type RuleMatrixProps } from "./studio/RuleMatrix";
+export {
+  RuleProposalForm,
+  type ProposalReply,
+  type RuleProposalFormProps,
+  type RuleSetDraft,
+  type SimulationView,
+} from "./studio/RuleProposalForm";
 export { SourceConfigForm, type SourceConfigFormProps } from "./studio/sources/SourceConfigForm";
 export {
   SourceHeaderActions,

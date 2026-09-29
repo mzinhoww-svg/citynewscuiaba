@@ -116,3 +116,13 @@ test("Aprovações · caixa com pedido pendente (P5-T1)", async ({ page }) => {
     await db.from("rules").delete().eq("version", version);
   }
 });
+
+test("O05 · regras de autonomia com simulação", async ({ page }) => {
+  await loginAs(page, "diego", "/estudio/control/regras");
+  await expect(page.getByRole("heading", { level: 1, name: "Regras de autonomia" })).toBeVisible();
+  await shot(page, "o05-regras");
+  await page.getByRole("spinbutton", { name: "Mín. fontes de Cidade" }).fill("3");
+  await page.getByRole("button", { name: "Simular com os últimos 7 dias" }).click();
+  await expect(page.getByRole("region", { name: "Resultado da simulação" })).toBeVisible();
+  await shot(page, "o05-regras-simulacao");
+});
