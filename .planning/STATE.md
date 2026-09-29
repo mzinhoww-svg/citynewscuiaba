@@ -1,6 +1,6 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-09-28T23:00-04:00
+**Última atualização:** 2026-09-29 (produção em 0037; aguardando p5-admin T8/T9 e PWA)
 **Atualizado por:** Claude Code
 
 ## Fase e tarefa
