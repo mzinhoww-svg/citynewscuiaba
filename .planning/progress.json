@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T05:47:18.556Z",
+  "updatedAt": "2026-09-29T08:22:34.821Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -617,37 +617,37 @@
           "id": "P5-T1",
           "title": "Aprovações",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "a26daf2",
+          "notes": "verify verde 1740; e2e 874"
         },
         {
           "id": "P5-T2",
           "title": "Regras de autonomia",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "1c57d94",
+          "notes": "verify verde 1740; e2e 874"
         },
         {
           "id": "P5-T3",
           "title": "Visão geral, tempo real, falhas, execuções e logs",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "b40154e",
+          "notes": "integrado ao painel (R8)"
         },
         {
           "id": "P5-T4",
           "title": "Fontes (lista, cadastro, teste de conexão, recomendação)",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "88fc7a0",
+          "notes": "coberta pelo Painel de Fontes (FS-T1..T9)"
         },
         {
           "id": "P5-T5",
@@ -662,9 +662,9 @@
           "id": "P5-T6",
           "title": "Bases, avaliações, custos e governança da IA",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
+          "commit": "8e16648",
           "notes": ""
         },
         {
@@ -698,10 +698,10 @@
           "id": "P5-T10",
           "title": "Contingência",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "982afcb",
+          "notes": "verify verde 1740; e2e 874"
         }
       ]
     },
