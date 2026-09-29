@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-28T14:43:00.095Z",
+  "updatedAt": "2026-09-29T02:36:25.379Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -620,10 +620,10 @@
           "id": "P5-T2",
           "title": "Regras de autonomia",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "4e27197",
+          "notes": "Regras de autonomia: simulação 7 dias, proposta com aprovação dupla, 0028 (ativação só com approvals; tipos por diff; Segurança nunca automática)"
         },
         {
           "id": "P5-T3",
