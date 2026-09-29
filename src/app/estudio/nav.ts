@@ -74,6 +74,19 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       {
+        href: "/estudio/control/agentes",
+        label: "Agentes",
+        icon: "settings",
+        action: "prompt.publish",
+      },
+      {
+        href: "/estudio/control/modelos",
+        label: "Modelos",
+        icon: "gauge",
+        action: "prompt.publish",
+      },
+      { href: "/estudio/control/testes", label: "Testes", icon: "play", action: "prompt.publish" },
+      {
         href: "/estudio/control/aprovacoes",
         label: "Aprovações",
         icon: "file-check",

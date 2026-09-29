@@ -38,6 +38,10 @@ export const AUDIT_ACTIONS = [
   "source.collect_now",
   "source.approval_requested",
   "source.approval_applied",
+  "prompt.create",
+  "prompt.rollback",
+  "prompt.playground",
+  "agent.toggle",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

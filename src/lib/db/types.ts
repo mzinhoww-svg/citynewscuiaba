@@ -59,6 +59,7 @@ export type Database = {
           latency_ms: number | null;
           model_id: string;
           ok: boolean;
+          playground: boolean;
           prompt_version: number | null;
           tokens_in: number | null;
           tokens_out: number | null;
@@ -73,6 +74,7 @@ export type Database = {
           latency_ms?: number | null;
           model_id: string;
           ok: boolean;
+          playground?: boolean;
           prompt_version?: number | null;
           tokens_in?: number | null;
           tokens_out?: number | null;
@@ -87,6 +89,7 @@ export type Database = {
           latency_ms?: number | null;
           model_id?: string;
           ok?: boolean;
+          playground?: boolean;
           prompt_version?: number | null;
           tokens_in?: number | null;
           tokens_out?: number | null;
@@ -144,6 +147,7 @@ export type Database = {
           created_at: string;
           id: string;
           rationale: string;
+          rollback_of: number | null;
           status: string;
           version: number;
         };
@@ -155,6 +159,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           rationale: string;
+          rollback_of?: number | null;
           status?: string;
           version: number;
         };
@@ -166,6 +171,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           rationale?: string;
+          rollback_of?: number | null;
           status?: string;
           version?: number;
         };
@@ -2618,6 +2624,7 @@ export type Database = {
       };
     };
     Functions: {
+      ai_agent_set_prompt: { Args: { p_agent: string; p_version: number }; Returns: undefined };
       ai_spend_since: {
         Args: { p_since: string };
         Returns: {

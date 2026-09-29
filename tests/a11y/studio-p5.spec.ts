@@ -9,7 +9,7 @@ import { loginAs, service, STAFF, type Staff } from "../e2e/studio";
  * simulação aberta (tabelas de destino e de campos alterados). Monitoramento (P5-T3): visão
  * geral, tempo real, falhas, execuções, detalhe do ciclo e logs, com um ciclo de teste que tem
  * falhas, uma fonte com 3 falhas seguidas e um item em quarentena. A lista de fontes (P5-T4/FS-T7) entra com três estados
- * e com os diálogos de lote e de configurações abertos. A Task 10 acrescenta as demais rotas.
+ * e com os diálogos de lote e de configurações abertos. Agentes, modelos, prompts e playground (P5-T5) entram com histórico pendente e arquivado, comparação e resultado do teste. A Task 10 acrescenta as demais rotas.
  */
 const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/aprovacoes", as: "marina" },
@@ -25,6 +25,14 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/fontes", as: "diego" },
   { path: "/estudio/control/fontes?status=paused&ordem=score&dir=desc", as: "marina" },
   { path: "/estudio/control/fontes?q=zzz-sem-resultado", as: "diego" },
+  // Agentes, modelos, prompts e playground (P5-T5): quem opera, quem só aprova e quem só lê.
+  { path: "/estudio/control/agentes", as: "diego" },
+  { path: "/estudio/control/agentes", as: "marina" },
+  { path: "/estudio/control/modelos", as: "diego" },
+  { path: "/estudio/control/testes", as: "diego" },
+  { path: "/estudio/control/prompts/write", as: "diego" },
+  { path: "/estudio/control/prompts/write", as: "marina" },
+  { path: "/estudio/control/prompts/agente-inexistente", as: "diego" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -32,6 +40,7 @@ let approvalId: string | null = null;
 let runId: string | null = null;
 let sourceSlug: string | null = null;
 let quarantineId: number | null = null;
+const promptIds: string[] = [];
 
 test.beforeAll(async () => {
   const { data, error } = await service()
@@ -95,10 +104,55 @@ test.beforeAll(async () => {
     .single();
   if (q.error) throw q.error;
   quarantineId = q.data.id;
+
+  // Prompts (P5-T5): uma versão pendente e uma arquivada para o histórico (linhas com ações).
+  const top = await db
+    .from("ai_prompts")
+    .select("version")
+    .eq("agent_id", "write")
+    .order("version", { ascending: false })
+    .limit(1)
+    .single();
+  if (top.error) throw top.error;
+  const base = top.data.version;
+  const made = await db
+    .from("ai_prompts")
+    .insert([
+      {
+        agent_id: "write",
+        version: base + 1,
+        body: "Texto arquivado do teste de acessibilidade.",
+        rationale: "Versão arquivada do teste a11y P5-T5",
+        author_id: STAFF.diego.id,
+        status: "archived",
+      },
+      {
+        agent_id: "write",
+        version: base + 2,
+        body: "Texto pendente do teste de acessibilidade.",
+        rationale: "Versão pendente do teste a11y P5-T5",
+        author_id: STAFF.diego.id,
+        status: "pending",
+      },
+    ])
+    .select("id");
+  if (made.error) throw made.error;
+  promptIds.push(...made.data.map((r) => r.id));
+  const pend = await db.from("approvals").insert({
+    kind: "prompt.publish",
+    target_ref: made.data[1]!.id,
+    requested_by: STAFF.diego.id,
+    justification: "Pedido do teste de acessibilidade",
+  });
+  if (pend.error) throw pend.error;
 });
 test.afterAll(async () => {
   const db = service();
   if (approvalId) await db.from("approvals").delete().eq("id", approvalId);
+  if (promptIds.length > 0) {
+    await db.from("approvals").delete().eq("kind", "prompt.publish").in("target_ref", promptIds);
+    await db.from("ai_prompts").delete().in("id", promptIds);
+  }
   if (quarantineId) await db.from("pipeline_quarantine").delete().eq("id", quarantineId);
   if (runId) await db.rpc("purge_pipeline_events", { p_run_ids: [runId] });
   if (sourceSlug) await db.from("sources").delete().eq("slug", sourceSlug);
@@ -122,6 +176,34 @@ for (const scheme of ["light", "dark"] as const) {
         );
       });
     }
+
+    test(`/estudio/control/prompts/write com comparação sem violações graves @a11y`, async ({
+      page,
+    }) => {
+      await loginAs(page, "diego");
+      await page.goto("/estudio/control/prompts/write");
+      const compare = page.getByRole("link", { name: /Comparar a versão/ }).first();
+      await compare.click();
+      await expect(page.getByRole("heading", { name: /em relação à versão/ })).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
+
+    test(`/estudio/control/testes com resultado sem violações graves @a11y`, async ({ page }) => {
+      await loginAs(page, "diego");
+      await page.goto("/estudio/control/testes");
+      await page
+        .getByLabel("Item de teste")
+        .fill("Prefeitura anuncia mutirão de vacinação em Cuiabá.");
+      await page.getByRole("button", { name: "Rodar teste" }).click();
+      await expect(page.getByText("Saída válida no schema do agente.")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
 
     test(`/estudio/control/execucoes/[id] sem violações graves @a11y`, async ({ page }) => {
       await loginAs(page, "diego");

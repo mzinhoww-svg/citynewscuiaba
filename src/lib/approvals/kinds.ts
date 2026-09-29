@@ -58,7 +58,7 @@ export const APPROVAL_KIND_ROLES: Record<
  * - `activate`: a versão proposta recebe a assinatura de quem aprova e entra em vigor na mesma
  *   transação (regras e pesos).
  * - `authorize`: a aprovação fica registrada e é consumida pela ação do alvo (conceder admin no
- *   user_roles; publicar prompt em P5-T5; enviar push urgente em P5-T9).
+ *   user_roles; enviar push urgente em P5-T9).
  * - `apply`: a mudança pedida é aplicada no alvo na mesma transação e a aprovação vira `applied`
  *   (mudança crítica de fonte, painel de fontes FS-T6).
  */
@@ -70,7 +70,7 @@ const EFFECT: Record<CriticalKind, ApprovalEffect> = {
   "force_review.disable": "activate",
   "rec.weights": "activate",
   "role.admin": "authorize",
-  "prompt.publish": "authorize",
+  "prompt.publish": "activate",
   "push.urgent": "authorize",
   "source.critical": "apply",
 };

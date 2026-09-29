@@ -58,6 +58,8 @@ export interface AiCallRow {
   ok: boolean;
   fallback_used: boolean;
   error: string | null;
+  /** Chamada do playground do Control Center (conta no orçamento como qualquer outra). */
+  playground?: boolean;
 }
 
 /** Registro de agentes, flags, gastos e chamadas. */

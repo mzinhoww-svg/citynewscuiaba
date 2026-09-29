@@ -2,7 +2,13 @@ import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createAiStore } from "@/lib/db/ai-store";
 import { err, ok } from "@/lib/result";
-import { createCallAgent, createEmbedder, type CallAgent, type Embedder } from "./call-agent";
+import {
+  createCallAgent,
+  createEmbedder,
+  type AiDeps,
+  type CallAgent,
+  type Embedder,
+} from "./call-agent";
 import { createFakeProvider } from "./fake";
 import { createOpenRouterProvider, openRouterConfigFromEnv } from "./openrouter";
 import { resolveProviderKind, type ProviderKind } from "./registry";
@@ -21,19 +27,24 @@ export interface ProductionAi {
   promptVersion: (agentId: string) => Promise<number | null>;
 }
 
-/**
- * Camada de IA de produção (rotas de servidor do pipeline e da busca). Criada sob demanda: importar
- * este módulo não lê ambiente nem abre conexão. Sem `OPENROUTER_API_KEY`, provedor falso (A-018).
- */
-export function createProductionAi(): ProductionAi {
+/** Registro (service role) e provedor de produção; o playground usa as mesmas dependências. */
+export function productionAiDeps(): AiDeps {
   const providerKind = resolveProviderKind(process.env);
   const config = openRouterConfigFromEnv();
   const provider: ModelProvider =
     providerKind === "openrouter" && config
       ? createOpenRouterProvider(config)
       : createFakeProvider();
-  const store = createAiStore(createServiceClient());
-  const deps = { store, provider, now: () => new Date() };
+  return { store: createAiStore(createServiceClient()), provider, now: () => new Date() };
+}
+
+/**
+ * Camada de IA de produção (rotas de servidor do pipeline e da busca). Criada sob demanda: importar
+ * este módulo não lê ambiente nem abre conexão. Sem `OPENROUTER_API_KEY`, provedor falso (A-018).
+ */
+export function createProductionAi(): ProductionAi {
+  const deps = productionAiDeps();
+  const { store, provider } = deps;
   const embed = createEmbedder(deps);
   return {
     providerKind: provider.kind,

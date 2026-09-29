@@ -258,6 +258,20 @@ export { LiveMonitor, LIVE_POLL_MS, type LiveMonitorProps } from "./studio/LiveM
 export { MonitorKpis } from "./studio/MonitorKpis";
 export { PhaseChart, type PhaseChartProps } from "./studio/PhaseChart";
 export { RunNowButton } from "./studio/RunNowButton";
+export { AgentsTable, type AgentsTableProps, type AgentsTableRow } from "./studio/AgentsTable";
+export { ModelsTable, type ModelsTableProps, type ModelsTableRow } from "./studio/ModelsTable";
+export {
+  PromptEditor,
+  type PromptEditorProps,
+  type PromptEditorReply,
+} from "./studio/PromptEditor";
+export {
+  PlaygroundForm,
+  type PlaygroundAgentOption,
+  type PlaygroundFormProps,
+  type PlaygroundModelOption,
+  type PlaygroundReply,
+} from "./studio/PlaygroundForm";
 export { SortHeader, type SortHeaderProps } from "./studio/SortHeader";
 
 /* painel de fontes: lista O03 (P5-T4/FS-T7) */

@@ -114,7 +114,7 @@ describe("efeito da aprovação", () => {
     expect(approvalEffect("safety.disable")).toBe("activate");
     expect(approvalEffect("rec.weights")).toBe("activate");
     expect(approvalEffect("role.admin")).toBe("authorize");
-    expect(approvalEffect("prompt.publish")).toBe("authorize");
+    expect(approvalEffect("prompt.publish")).toBe("activate");
     expect(approvalEffect("push.urgent")).toBe("authorize");
   });
 });
