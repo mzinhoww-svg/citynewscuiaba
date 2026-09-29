@@ -364,3 +364,46 @@ export const PUSH_HISTORY_TEXT = {
     notFoundText: "O envio não existe ou você não tem acesso a ele.",
   },
 } as const;
+
+/** Funil do app (spec §10.6). */
+export const FUNNEL_TEXT = {
+  title: "Funil do app",
+  intro: "Do convite de instalação ao toque no aviso, em eventos de quem permite métricas.",
+  notice: "Contagens de eventos de quem permite métricas; não são pessoas.",
+  filters: {
+    period: "Período",
+    custom: "Personalizado",
+    from: "De",
+    to: "Até",
+    device: "Classe de aparelho",
+    browser: "Navegador",
+    all: "Todos",
+    apply: "Filtrar",
+  },
+  periods: { 7: "7 dias", 30: "30 dias", 90: "90 dias" },
+  devices: { mobile: "Celular", tablet: "Tablet", desktop: "Computador" },
+  browsers: {
+    chrome: "Chrome",
+    safari: "Safari",
+    firefox: "Firefox",
+    edge: "Edge",
+    samsung: "Samsung Internet",
+    other: "Outro",
+  },
+  chart: "Funil do app por etapa",
+  columns: { stage: "Etapa", n: "Eventos", pct: "% da anterior" },
+  empty: "Sem dados no período.",
+  emptyHint: "Amplie o período ou tire os filtros.",
+  side: {
+    outside: "Fora do convite",
+    outInstall: "Instalações pelo navegador",
+    outPermission: "Permissões dadas em Alertas",
+    denied: "Negadas",
+    deniedHint: "Permissões negadas no navegador.",
+    sentTotal: "Enviados no total",
+    sentTotalHint: "Todas as inscrições; a base do funil é só quem permite métricas.",
+    active: "Inscrições ativas por navegador",
+    activeNone: "Nenhuma inscrição ativa.",
+  },
+  none: "—",
+} as const;

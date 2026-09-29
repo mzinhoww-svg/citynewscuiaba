@@ -1773,6 +1773,30 @@ export type Database = {
           },
         ];
       };
+      push_funnel_daily: {
+        Row: {
+          browser: string;
+          day: string;
+          device_class: string;
+          n: number;
+          stage: string;
+        };
+        Insert: {
+          browser: string;
+          day: string;
+          device_class: string;
+          n?: number;
+          stage: string;
+        };
+        Update: {
+          browser?: string;
+          day?: string;
+          device_class?: string;
+          n?: number;
+          stage?: string;
+        };
+        Relationships: [];
+      };
       push_send_counters: {
         Row: {
           browser: string;
@@ -3451,6 +3475,13 @@ export type Database = {
         Returns: number;
       };
       purge_reader_emails: { Args: { p_days?: number }; Returns: number };
+      push_active_by_browser: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          browser: string;
+          n: number;
+        }[];
+      };
       push_approve: { Args: { p_send: string }; Returns: string };
       push_audience_estimate: { Args: { p_audience: Json; p_kind: string }; Returns: number };
       push_audit: {
@@ -3473,6 +3504,23 @@ export type Database = {
       push_dispatch_due: { Args: { p_now?: string }; Returns: Json };
       push_expire_requests: { Args: { p_now?: string }; Returns: number };
       push_finish_batch: { Args: { p_batch: number; p_send: string }; Returns: boolean };
+      push_funnel: {
+        Args: { p_browser?: string; p_device?: string; p_from: string; p_to: string };
+        Returns: {
+          n: number;
+          stage: string;
+        }[];
+      };
+      push_funnel_compute: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          browser: string;
+          device_class: string;
+          n: number;
+          stage: string;
+        }[];
+      };
+      push_funnel_refresh: { Args: { p_day: string }; Returns: number };
       push_local_day: { Args: { p_ts: string }; Returns: string };
       push_quiet_ends_at: { Args: { p_end: number; p_now: string }; Returns: string };
       push_receipt_hit: {
