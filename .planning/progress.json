@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T10:17:32.605Z",
+  "updatedAt": "2026-09-29T22:17:27.682Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -680,19 +680,19 @@
           "id": "P5-T8",
           "title": "Administração (usuários, papéis, equipes, taxonomia, home)",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "6facca5",
+          "notes": "merge p5-admin"
         },
         {
           "id": "P5-T9",
           "title": "Administração (publicidade, SEO, notificações, auditoria, segurança, governança, integrações, configurações)",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "6facca5",
+          "notes": "merge p5-admin"
         },
         {
           "id": "P5-T10",

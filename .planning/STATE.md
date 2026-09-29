@@ -1,6 +1,6 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-09-29 (produção em 0037; aguardando p5-admin T8/T9 e PWA)
+**Última atualização:** 2026-09-29 (produção em 0039; P5-T1..T10 prontas; PWA T1..T11 no branch pwa, faltam T12..T15)
 **Atualizado por:** Claude Code
 
 ## Fase e tarefa
