@@ -33,6 +33,8 @@ export const ACTIONS = [
   "users.manage",
   "metrics.view",
   "audit.view",
+  /** Administração do site (P5-T8/T9): taxonomia, home, publicidade, SEO e governança editorial. */
+  "site.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -83,6 +85,7 @@ export const PERMISSIONS: Matrix = {
     leitura: "all",
   },
   "audit.view": { admin: "all", editor_chefe: "all", operador_ia: "all", leitura: "all" },
+  "site.manage": { admin: "all", editor_chefe: "all" },
 };
 
 export function grantOf(role: Role, action: Action): Grant | undefined {

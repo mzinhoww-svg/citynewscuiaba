@@ -369,3 +369,16 @@ export { SourceRecForm, type SourceRecFormProps } from "./studio/sources/SourceR
 export { SourceRunsTable, type SourceRunsTableProps } from "./studio/sources/SourceRunsTable";
 export { SourceSectionNav, type SourceSectionNavProps } from "./studio/sources/SourceSectionNav";
 export { SuggestionField, type SuggestionFieldProps } from "./studio/sources/SuggestionField";
+
+// Administração (P5-T8)
+export {
+  AdminStatus,
+  AdminTable,
+  CheckList,
+  type AdminReply,
+  type CheckOption,
+} from "./studio/admin/AdminStatus";
+export { StaffTable, type StaffTableProps } from "./studio/admin/StaffTable";
+export { TeamsEditor, type TeamsEditorProps } from "./studio/admin/TeamsEditor";
+export { TaxonomyPanel, type TaxonomyPanelProps } from "./studio/admin/TaxonomyPanel";
+export { HomeModulesEditor, type HomeModulesEditorProps } from "./studio/admin/HomeModulesEditor";

@@ -11,14 +11,21 @@ export type ApprovalTarget =
   | { kind: "rules"; version: number }
   | { kind: "flag"; key: string; value: boolean }
   | { kind: "source"; sourceId: string; field: string; value: string }
+  | { kind: "user"; userId: string }
   | { kind: "other"; ref: string };
 
 const RULES = /^rules:(\d+)$/;
 const FLAG = /^flag:([a-z_]+)=(true|false)$/;
 const SOURCE = /^source:([0-9a-f-]{36}):([a-z_]+)=(.*)$/i;
+const USER = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const rulesTarget = (version: number): string => `rules:${version}`;
 export const flagTarget = (key: string, value: boolean): string => `flag:${key}=${value}`;
+/**
+ * Papel de admin (`role.admin`): o alvo é o próprio uuid da pessoa, sem prefixo, porque
+ * `consume_role_admin_approval(target)` (0002) compara `target_ref = target::text`.
+ */
+export const userTarget = (userId: string): string => userId;
 
 export function parseApprovalTarget(ref: string): ApprovalTarget {
   const r = RULES.exec(ref);
@@ -27,6 +34,7 @@ export function parseApprovalTarget(ref: string): ApprovalTarget {
   if (f) return { kind: "flag", key: f[1]!, value: f[2] === "true" };
   const s = SOURCE.exec(ref);
   if (s) return { kind: "source", sourceId: s[1]!, field: s[2]!, value: s[3]! };
+  if (USER.test(ref)) return { kind: "user", userId: ref };
   return { kind: "other", ref };
 }
 
@@ -55,5 +63,6 @@ export const APPLIED_HERE: ReadonlySet<CriticalKind> = new Set<CriticalKind>([
 export function approvalHref(kind: CriticalKind, target: ApprovalTarget): string {
   if (kind === "source.critical" && target.kind === "source")
     return `/estudio/control/fontes/${target.sourceId}`;
+  if (kind === "role.admin") return "/estudio/admin/usuarios";
   return "/estudio/control/aprovacoes";
 }

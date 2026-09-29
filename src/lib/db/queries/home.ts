@@ -1,4 +1,5 @@
 import "server-only";
+import { defaultHomeLayout, parseHomeLayout, type HomeModule } from "@/lib/admin/home-layout";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
@@ -132,6 +133,23 @@ export async function pickMostRead(
   return out;
 }
 
+/**
+ * Ordem publicada dos módulos da home (A06). Sem versão publicada (ou com o banco fora),
+ * vale a ordem padrão: a home nunca deixa de renderizar por causa do layout.
+ */
+export async function fetchPublishedHomeLayout(db: DbClient): Promise<HomeModule[]> {
+  try {
+    const { data } = await db
+      .from("home_layouts")
+      .select("modules")
+      .eq("status", "published")
+      .maybeSingle();
+    return data ? parseHomeLayout(data.modules) : defaultHomeLayout();
+  } catch {
+    return defaultHomeLayout();
+  }
+}
+
 /** Tudo o que a home precisa, em uma leitura (P01). */
 export async function getHomeData(
   now: Date = new Date(),
@@ -139,13 +157,14 @@ export async function getHomeData(
 ): Promise<Result<HomeData, QueryError>> {
   return readPublic(
     async (db) => {
-      const [rows, topics, collections, events, sources, aggregated] = await Promise.all([
+      const [rows, topics, collections, events, sources, aggregated, modules] = await Promise.all([
         fetchRecentArticles(db, 60, "home"),
         fetchActiveTopics(db, 3),
         fetchCollections(db, 4),
         fetchEvents(db, { limit: 3 }, now),
         fetchFeaturedSources(db, 8),
         fetchHomeAggregated(db, 4),
+        fetchPublishedHomeLayout(db),
       ]);
       const articles = await summarize(db, rows);
       const editorial = articles.filter((a) => !a.sponsored);
@@ -177,6 +196,7 @@ export async function getHomeData(
         sponsored: articles.find((a) => a.sponsored) ?? null,
         sources,
         aggregated,
+        modules,
       };
     },
     opts.cache ? { tags: ["home"], revalidate: HOME_REVALIDATE } : undefined,

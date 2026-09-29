@@ -36,6 +36,8 @@ export function targetText(target: ApprovalTarget): string {
       return `${FLAG_TEXT[target.key] ?? target.key} → ${target.value ? "ligada" : "desligada"}`;
     case "source":
       return `${CRITICAL_FIELD_TEXT[target.field] ?? target.field} → ${criticalValueText(target.field, target.value)}`;
+    case "user":
+      return `papel de administração para a conta ${target.userId.slice(0, 8)}`;
     case "other":
       return target.ref;
   }

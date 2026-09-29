@@ -32,6 +32,13 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "aprovações", path: () => "/estudio/control/aprovacoes", as: "marina" },
   { name: "regras", path: () => "/estudio/control/regras", as: "diego" },
   { name: "contingência", path: () => "/estudio/admin/contingencia", as: "helena" },
+  // Administração (P5-T8)
+  { name: "administração", path: () => "/estudio/admin", as: "helena" },
+  { name: "usuários", path: () => "/estudio/admin/usuarios", as: "helena" },
+  { name: "papéis", path: () => "/estudio/admin/papeis", as: "helena" },
+  { name: "equipes", path: () => "/estudio/admin/equipes", as: "helena" },
+  { name: "taxonomia", path: () => "/estudio/admin/taxonomia", as: "marina" },
+  { name: "home e módulos", path: () => "/estudio/admin/home", as: "marina" },
 ];
 
 for (const scheme of ["light", "dark"] as const) {

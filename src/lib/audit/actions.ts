@@ -64,6 +64,16 @@ export const AUDIT_ACTIONS = [
   // Contingência (P5-T10, 0035)
   "flag.set",
   "rules.rollback",
+  // Administração (P5-T8, 0038)
+  "user.invite",
+  "user.role.grant",
+  "user.role.revoke",
+  "team.save",
+  "team.delete",
+  "taxonomy.save",
+  "taxonomy.merge",
+  "home.save",
+  "home.publish",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
