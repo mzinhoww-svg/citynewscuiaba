@@ -21,3 +21,10 @@ it("Aprovações aparece para quem pede ou decide mudança crítica, não para a
   expect(labels([{ role: "analista", sections: [] }])).not.toContain("Aprovações");
   expect(labels([{ role: "jornalista", sections: [] }])).not.toContain("Aprovações");
 });
+
+it("monitoramento do Control Center aparece para quem vê métricas, não para jornalista", () => {
+  const monitor = ["Visão geral", "Tempo real", "Filas e falhas", "Execuções", "Logs"];
+  for (const role of ["admin", "editor_chefe", "operador_ia", "analista", "leitura"] as const)
+    expect(labels([{ role, sections: [] }])).toEqual(expect.arrayContaining(monitor));
+  expect(labels([{ role: "jornalista", sections: [] }])).not.toContain("Tempo real");
+});

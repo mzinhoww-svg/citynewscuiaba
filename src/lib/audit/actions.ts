@@ -31,6 +31,8 @@ export const AUDIT_ACTIONS = [
   "approval.request",
   "approval.approve",
   "approval.reject",
+  "pipeline.reprocess",
+  "pipeline.run_now",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

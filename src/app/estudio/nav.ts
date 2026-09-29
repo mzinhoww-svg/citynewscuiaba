@@ -52,6 +52,25 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "metrics.view",
         exact: true,
       },
+      {
+        href: "/estudio/control/tempo-real",
+        label: "Tempo real",
+        icon: "clock",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/falhas",
+        label: "Filas e falhas",
+        icon: "triangle-alert",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/execucoes",
+        label: "Execuções",
+        icon: "layers",
+        action: "metrics.view",
+      },
+      { href: "/estudio/control/logs", label: "Logs", icon: "search", action: "metrics.view" },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       {

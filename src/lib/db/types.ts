@@ -2462,6 +2462,101 @@ export type Database = {
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      control_can_view: { Args: Record<PropertyKey, never>; Returns: boolean };
+      control_overview: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          ai_calls_24h: number;
+          ai_failed_24h: number;
+          cost_24h_brl: number;
+          errors_1h: number;
+          events_1h: number;
+          security_24h: number;
+        }[];
+      };
+      control_quarantine: {
+        Args: { p_limit?: number };
+        Returns: {
+          error: string;
+          id: number;
+          item_ref: string;
+          quarantined_at: string;
+          queue: string;
+          read_ct: number;
+          run_id: string;
+          step: string;
+          total_open: number;
+        }[];
+      };
+      control_queue_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          max_reads: number;
+          oldest_at: string;
+          queue: string;
+          ready: number;
+          retrying: number;
+          step: string;
+          total: number;
+        }[];
+      };
+      control_retrying_jobs: {
+        Args: { p_limit?: number };
+        Returns: {
+          enqueued_at: string;
+          id: number;
+          item_ref: string;
+          last_error: string;
+          queue: string;
+          read_ct: number;
+          run_id: string;
+          step: string;
+          visible_at: string;
+        }[];
+      };
+      control_run_steps: {
+        Args: { p_run: string };
+        Returns: {
+          count: number;
+          first_at: string;
+          last_at: string;
+          level: string;
+          step: string;
+        }[];
+      };
+      control_runs: {
+        Args: { p_limit?: number; p_run?: string };
+        Returns: {
+          cost_brl: number;
+          errors: number;
+          events: number;
+          finished_at: string;
+          id: string;
+          last_event_at: string;
+          pending: number;
+          started_at: string;
+          stats: Json;
+          status: string;
+          warns: number;
+          window_start: string;
+        }[];
+      };
+      control_source_health: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          consecutive_failures: number;
+          fetch_ok: number;
+          fetch_total: number;
+          frequency_minutes: number;
+          items_24h: number;
+          kind: string;
+          last_error: string;
+          last_fetched_at: string;
+          name: string;
+          slug: string;
+          status: string;
+        }[];
+      };
       create_topic_for_item: {
         Args: { p_id: string; p_now: string; p_slug: string; p_title: string };
         Returns: string;
