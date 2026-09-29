@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T06:30:20.404Z",
+  "updatedAt": "2026-09-29T07:05:23.808Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -674,10 +674,10 @@
           "id": "P5-T8",
           "title": "Administração (usuários, papéis, equipes, taxonomia, home)",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "2d161e9",
+          "notes": "Usuários, convites, papéis (admin por aprovação), equipes, taxonomia e home; migration 0035; A-200..A-209"
         },
         {
           "id": "P5-T9",
