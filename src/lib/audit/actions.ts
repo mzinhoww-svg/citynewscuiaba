@@ -1,11 +1,33 @@
 import { ACTIONS } from "@/lib/auth/permissions";
 
 /**
+ * Ações do Painel de Fontes: triggers `audit_source_changes` e `app_setting_set` (migration 0011)
+ * e as Server Actions de `src/app/estudio/control/fontes/actions.ts`.
+ */
+export const SOURCE_ADMIN_AUDIT_ACTIONS = [
+  "source.create",
+  "source.update",
+  "source.status",
+  "source.archive",
+  "source.restore",
+  "source.analyze",
+  "source.test",
+  "source.collect_now",
+  "source.takedown_failed",
+  "source.approval_requested",
+  "source.approval_rejected",
+  "source.approval_applied",
+  "settings.update",
+] as const;
+
+/**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
- * lista (`studio_audit_actions()`, migration 0025); o teste de integração confere as duas.
+ * lista (`studio_audit_actions()`, migrations 0025/0026/0033); o teste de integração confere as
+ * duas nos dois sentidos.
  */
 export const AUDIT_ACTIONS = [
   ...ACTIONS,
+  ...SOURCE_ADMIN_AUDIT_ACTIONS,
   "article.assign",
   "article.reject",
   "article.reprocess",

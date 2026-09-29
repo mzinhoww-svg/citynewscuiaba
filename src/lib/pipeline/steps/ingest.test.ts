@@ -7,9 +7,15 @@ import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-htt
 import { createMemoryIngestRepo } from "../testing/memory-ingest-repo";
 import { createMemoryQueue } from "../testing/memory-queue";
 import { createIngestHandlers } from ".";
+import { createExhaustedFetchHandler, runFetch } from "./fetch";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import type { RunTrigger } from "../ports";
 
 const UA = "CityNewsBot/1.0 (+https://citynewscuiaba.vercel.app/sobre#robo)";
 const NOW = new Date("2026-09-27T18:45:00Z");
+/** Próximo ciclo: outra janela de 10 min, a trava de coleta dupla (D-F29) deixa o run novo coletar. */
+const LATER = new Date("2026-09-27T19:15:00Z");
 
 const folha: SourceRecord = {
   id: "src-folha",
@@ -19,10 +25,13 @@ const folha: SourceRecord = {
   kind: "rss",
   feedUrl: "https://folhadocerrado.example/feed",
   status: "active",
+  statusReason: null,
+  consecutiveFailures: 0,
   rateLimitPerHour: 60,
   locality: "cuiaba",
   etag: null,
   lastModified: null,
+  consumption: {},
 };
 
 function setup(
@@ -323,7 +332,7 @@ describe("coleta: fetch → validate → extract → normalize", () => {
           }).http,
           resolve: fakeResolve(),
           userAgent: UA,
-          now: () => NOW,
+          now: () => LATER,
         }),
         dedupe: async (m) => {
           t.dedupe.push(m.itemRef);
@@ -368,7 +377,7 @@ describe("coleta: fetch → validate → extract → normalize", () => {
           }).http,
           resolve: fakeResolve(),
           userAgent: UA,
-          now: () => NOW,
+          now: () => LATER,
         }),
         dedupe: async () => ({ ok: true, value: [] }),
       }),
@@ -378,5 +387,339 @@ describe("coleta: fetch → validate → extract → normalize", () => {
     });
     expect(t.repo.collected()).toHaveLength(23);
     expect(t.repo.raw()).toHaveLength(2);
+  });
+});
+
+describe("fetch respeita o painel (FS-T5)", () => {
+  const FEED = "https://folhadocerrado.example/feed";
+  const ok200 = feedRoute(readFixture("folha-do-cerrado.xml"));
+  const robots404: FakeRoute = { status: 404 };
+
+  function rig(
+    source: SourceRecord,
+    routes: Record<string, FakeRoute | ((h: Headers) => FakeRoute)>,
+    triggers: Record<string, RunTrigger> = {},
+  ) {
+    const { http, calls } = createFakeHttp(routes);
+    const repo = createMemoryIngestRepo([source], { triggers });
+    let ms = 0;
+    const deps = (now: string) => ({
+      repo,
+      http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => new Date(now),
+      // Relógio monotônico falso: cada leitura avança 7 ms (latência > 0 sem depender da máquina).
+      monotonic: () => (ms += 7),
+    });
+    const msg = (runId: string, attempt = 1): PipelineMessage => ({
+      runId,
+      step: "fetch",
+      itemRef: `source:${source.slug}`,
+      attempt,
+    });
+    const state = () => repo.source(source.slug)!;
+    const feedCalls = () => calls.filter((c) => c.url === FEED);
+    return { repo, calls, deps, msg, state, feedCalls };
+  }
+
+  it("mesma fonte enfileirada pelo tick normal e pelo rápido na mesma meia hora: uma requisição (Review Focus 6)", async () => {
+    const t = rig(
+      folha,
+      { "https://folhadocerrado.example/robots.txt": robots404, [FEED]: ok200 },
+      { "cron-1430": "cron", "fast-1430": "fast" },
+    );
+    const first = await runFetch(t.msg("cron-1430"), t.deps("2026-09-27T14:30:05Z"));
+    const second = await runFetch(t.msg("fast-1430"), t.deps("2026-09-27T14:30:41Z"));
+    expect(first.outcome).toBe("ok");
+    expect(second).toMatchObject({ outcome: "already_fetched", result: { ok: true, value: [] } });
+    expect(t.feedCalls()).toHaveLength(1);
+    expect(t.calls).toHaveLength(2);
+    expect(t.repo.raw().map((r) => r.runId)).toEqual(["cron-1430"]);
+    expect(t.state().consecutiveFailures).toBe(0);
+    expect(t.repo.health().map((h) => h.outcome)).toEqual(["ok"]);
+  });
+
+  it("retry do mesmo run passa pela trava; run manual não usa a trava", async () => {
+    let fail = true;
+    const t = rig(
+      folha,
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: () => (fail ? { status: 503 } : ok200),
+      },
+      { "cron-1": "cron", "manual-1": "manual" },
+    );
+    const a = await runFetch(t.msg("cron-1", 1), t.deps("2026-09-27T14:30:05Z"));
+    expect(a.outcome).toBe("retry");
+    fail = false;
+    const b = await runFetch(t.msg("cron-1", 2), t.deps("2026-09-27T14:31:05Z"));
+    expect(b.outcome).toBe("ok");
+    const c = await runFetch(t.msg("manual-1"), t.deps("2026-09-27T14:32:00Z"));
+    expect(c.outcome).toBe("ok");
+    expect(t.feedCalls()).toHaveLength(3);
+    expect(t.repo.raw().map((r) => r.runId)).toEqual(["cron-1", "manual-1"]);
+  });
+
+  it("via rápida manda If-None-Match e If-Modified-Since quando há ETag/Last-Modified; 304 não conta falha", async () => {
+    const t = rig(
+      {
+        ...folha,
+        status: "degraded",
+        consecutiveFailures: 1,
+        etag: '"v7"',
+        lastModified: "Sun, 27 Sep 2026 14:00:00 GMT",
+      },
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: (h) => (h.get("if-none-match") === '"v7"' ? { status: 304 } : ok200),
+      },
+      { "fast-1": "fast" },
+    );
+    const r = await runFetch(t.msg("fast-1"), t.deps("2026-09-27T14:10:02Z"));
+    expect(r.outcome).toBe("not_modified");
+    const call = t.feedCalls()[0]!;
+    expect(call.headers.get("if-none-match")).toBe('"v7"');
+    expect(call.headers.get("if-modified-since")).toBe("Sun, 27 Sep 2026 14:00:00 GMT");
+    // 304 é resposta da fonte: para o contador, sucesso (zera e volta a `active`; achado M-2 da
+    // revisão final, spec D-F18 "sucesso zera").
+    expect(t.state()).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
+    expect(t.repo.health()).toEqual([
+      expect.objectContaining({ outcome: "not_modified", error: null }),
+    ]);
+  });
+
+  it("304 em fonte saudável não muda estado; nova tentativa do mesmo run não conta de novo", async () => {
+    const t = rig(
+      { ...folha, etag: '"v7"' },
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: (h) => (h.get("if-none-match") === '"v7"' ? { status: 304 } : ok200),
+      },
+    );
+    const r1 = await runFetch(t.msg("r1"), t.deps("2026-09-27T14:00:05Z"));
+    const r2 = await runFetch(t.msg("r1", 2), t.deps("2026-09-27T14:01:05Z"));
+    expect([r1.outcome, r2.outcome]).toEqual(["not_modified", "not_modified"]);
+    expect(t.state()).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
+    expect(t.repo.health()).toHaveLength(1);
+  });
+
+  it("3 runs com falha pausam; retries do mesmo run contam uma vez (Review Focus 3)", async () => {
+    const t = rig(folha, {
+      "https://folhadocerrado.example/robots.txt": robots404,
+      [FEED]: { status: 500 },
+    });
+    const windows = ["2026-09-27T14:00:05Z", "2026-09-27T14:30:05Z", "2026-09-27T15:00:05Z"];
+    for (const [i, run] of ["r1", "r2", "r3"].entries()) {
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        const r = await runFetch(t.msg(run, attempt), t.deps(windows[i]!));
+        expect(r.outcome).toBe(attempt < 4 ? "retry" : "failed");
+      }
+      expect(t.state().status).toBe(run === "r3" ? "paused" : "degraded");
+    }
+    expect(t.state()).toMatchObject({ statusReason: "auto_failures", consecutiveFailures: 3 });
+    expect(t.repo.notifications()).toHaveLength(1);
+    expect(t.repo.notifications()[0]).toMatchObject({
+      channel: "control_center",
+      objectRef: "source:src-folha",
+      title: `Fonte Folha do Cerrado pausada após 3 falhas seguidas: HTTP 500 em ${FEED}`,
+    });
+    expect(t.repo.health().map((h) => h.outcome)).toEqual(["failed", "failed", "failed"]);
+    // Pausada: o próximo fetch nem requisita.
+    const after = await runFetch(t.msg("r4"), t.deps("2026-09-27T15:30:05Z"));
+    expect(after.outcome).toBe("skipped");
+    expect(t.feedCalls()).toHaveLength(12);
+  });
+
+  it("falha não transitória conta na primeira tentativa", async () => {
+    const t = rig(folha, {
+      "https://folhadocerrado.example/robots.txt": robots404,
+      [FEED]: { status: 404 },
+    });
+    const r = await runFetch(t.msg("r1"), t.deps("2026-09-27T14:00:05Z"));
+    expect(r).toMatchObject({ outcome: "failed", result: { ok: false } });
+    expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+  });
+
+  it("sucesso volta a active, zera e registra saúde com latência", async () => {
+    const t = rig(
+      { ...folha, status: "degraded", consecutiveFailures: 2 },
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: ok200,
+      },
+    );
+    const r = await runFetch(t.msg("r1"), t.deps("2026-09-27T14:00:05Z"));
+    expect(r.outcome).toBe("ok");
+    expect(t.state()).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
+    const [h] = t.repo.health();
+    expect(h).toMatchObject({ outcome: "ok", itemsNew: 0, error: null });
+    expect(h!.latencyMs).toBeGreaterThan(0);
+  });
+
+  it("304 e limite próprio não contam como falha", async () => {
+    const t = rig(
+      { ...folha, status: "degraded", consecutiveFailures: 2, rateLimitPerHour: 1 },
+      { "https://folhadocerrado.example/robots.txt": robots404, [FEED]: ok200 },
+    );
+    const r = await runFetch(t.msg("r1"), t.deps("2026-09-27T14:00:05Z"));
+    expect(r.outcome).toBe("rate_limited");
+    expect(t.feedCalls()).toHaveLength(0);
+    expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 2 });
+    expect(t.repo.health()).toEqual([]);
+  });
+
+  it("robots.txt fora do ar só conta na última tentativa", async () => {
+    const t = rig(folha, { "https://folhadocerrado.example/robots.txt": { status: 503 } });
+    for (let attempt = 1; attempt <= 4; attempt++)
+      await runFetch(t.msg("r1", attempt), t.deps("2026-09-27T14:00:05Z"));
+    expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+  });
+
+  it("pausa humana no meio da coleta não é desfeita pelo sucesso", async () => {
+    const t = rig(
+      { ...folha, status: "degraded", consecutiveFailures: 1 },
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: ok200,
+      },
+    );
+    const deps = t.deps("2026-09-27T14:00:05Z");
+    const pausing = {
+      ...deps,
+      repo: {
+        ...t.repo,
+        insertRawItem: async (raw: Parameters<typeof t.repo.insertRawItem>[0]) => {
+          await t.repo.updateSource(folha.id, { status: "paused" });
+          return t.repo.insertRawItem(raw);
+        },
+      },
+    };
+    expect((await runFetch(t.msg("r1"), pausing)).outcome).toBe("ok");
+    expect(t.state()).toMatchObject({ status: "paused", consecutiveFailures: 1 });
+  });
+
+  it("page_list extrai com os seletores da fonte", async () => {
+    const mtAgora: SourceRecord = {
+      ...folha,
+      id: "src-mt-agora",
+      slug: "mt-agora",
+      kind: "page",
+      baseUrl: "https://mtagora.example",
+      feedUrl: "https://mtagora.example/cidades",
+      consumption: {
+        strategy: "page_list",
+        pageSelectors: { item: "article.card", link: "a", title: "h2", date: "time" },
+      },
+    };
+    const t = setup(
+      {
+        "https://mtagora.example/robots.txt": { status: 404 },
+        "https://mtagora.example/cidades": {
+          body: readFileSync(
+            join(process.cwd(), "tests/fixtures/sites/secao-mt-agora.html"),
+            "utf8",
+          ),
+          headers: { "content-type": "text/html; charset=utf-8" },
+        },
+      },
+      [mtAgora],
+    );
+    await t.run("mt-agora");
+    expect(t.repo.raw()[0]!.entries).toHaveLength(3);
+    expect(t.repo.collected()).toHaveLength(3);
+    expect(
+      t.repo.collected().every((c) => c.canonicalUrl.startsWith("https://mtagora.example/")),
+    ).toBe(true);
+    expect(t.repo.health().filter((h) => h.outcome === "items")).toHaveLength(3);
+  });
+
+  describe("fix round 1", () => {
+    it("tentativa final cortada pelo prazo do drain não é final: conta uma falha só (#1)", async () => {
+      const t = rig(folha, {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: { status: 500 },
+      });
+      const aborted = AbortSignal.abort();
+      const cut = await runFetch(t.msg("r1", 4), t.deps("2026-09-27T14:00:05Z"), {
+        signal: aborted,
+      });
+      expect(cut.outcome).toBe("retry");
+      expect(t.repo.health()).toEqual([]);
+      expect(t.state()).toMatchObject({ status: "active", consecutiveFailures: 0 });
+      const again = await runFetch(t.msg("r1", 4), t.deps("2026-09-27T14:01:05Z"));
+      expect(again.outcome).toBe("failed");
+      expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+      expect(t.repo.health().map((h) => h.outcome)).toEqual(["failed"]);
+    });
+
+    it("fonte sem feed: dois ticks na mesma janela contam uma falha (#2)", async () => {
+      const t = rig({ ...folha, feedUrl: null }, {}, { "cron-1": "cron", "fast-1": "fast" });
+      expect((await runFetch(t.msg("cron-1"), t.deps("2026-09-27T14:30:05Z"))).outcome).toBe(
+        "failed",
+      );
+      expect((await runFetch(t.msg("fast-1"), t.deps("2026-09-27T14:30:40Z"))).outcome).toBe(
+        "already_fetched",
+      );
+      expect(t.state().consecutiveFailures).toBe(1);
+      expect(t.repo.health()).toHaveLength(1);
+    });
+
+    it("nova tentativa do mesmo run depois de um ok registra a saúde uma vez (#7)", async () => {
+      const t = rig(
+        { ...folha, status: "degraded", consecutiveFailures: 2 },
+        {
+          "https://folhadocerrado.example/robots.txt": robots404,
+          [FEED]: ok200,
+        },
+      );
+      expect((await runFetch(t.msg("r1", 1), t.deps("2026-09-27T14:00:05Z"))).outcome).toBe("ok");
+      expect((await runFetch(t.msg("r1", 2), t.deps("2026-09-27T14:01:05Z"))).outcome).toBe("ok");
+      expect(t.repo.health().map((h) => h.outcome)).toEqual(["ok"]);
+      expect(t.state()).toMatchObject({ status: "active", consecutiveFailures: 0 });
+    });
+
+    it("fetch esgotado varrido pelo drain conta a falha final uma vez (#6)", async () => {
+      const t = rig(folha, {});
+      const queue = createMemoryQueue();
+      const m = t.msg("r1");
+      await queue.enqueue("pipeline", m);
+      queue.setReadCount("pipeline", "fetch:source:folha-do-cerrado", 4);
+      const onExhausted = createExhaustedFetchHandler(t.deps("2026-09-27T14:00:05Z"));
+      const r = await drain({
+        queue,
+        runStep: createRunStep({}),
+        events: { record: async () => {} },
+        now: () => 0,
+        queues: ["pipeline"],
+        onExhausted,
+      });
+      expect(r.exhausted).toBe(1);
+      expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+      expect(t.repo.health()).toEqual([
+        expect.objectContaining({
+          outcome: "failed",
+          error: "tentativas esgotadas sem confirmação",
+        }),
+      ]);
+      // Já contada neste run (queda entre a contagem e a quarentena): não conta de novo.
+      await onExhausted(m, "tentativas esgotadas sem confirmação");
+      expect(t.state().consecutiveFailures).toBe(1);
+      // Outras etapas esgotadas não mexem na fonte.
+      await onExhausted({ ...m, step: "validate", itemRef: "raw:x" }, "x");
+      expect(t.repo.health()).toHaveLength(1);
+    });
   });
 });

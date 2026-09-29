@@ -134,6 +134,17 @@ const RESPONDERS: Record<string, Responder> = {
     prompt: "",
     alt: "",
   }),
+  // Resposta fixa que passa no schema estrito; com `estrutura` enviada, também sugere seletores.
+  source_profiler: (data) => ({
+    categories: ["cidade"],
+    locality: "cuiaba",
+    localityConfidence: 0.8,
+    qualityFlags: [],
+    pageSelectors: data.some((d) => d.id === "estrutura")
+      ? { item: "article.card", link: "a", title: "h2", date: "time" }
+      : null,
+    rationale: "Amostra fictícia.",
+  }),
 };
 
 const tokens = (s: string) => Math.max(1, Math.ceil(s.length / 4));

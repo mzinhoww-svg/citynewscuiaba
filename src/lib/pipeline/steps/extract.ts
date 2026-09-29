@@ -3,6 +3,9 @@ import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { parseHTML } from "linkedom";
 import { z } from "zod";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
+import { extractPageList } from "@/lib/sources/page-list";
+import { consumptionSchema, pageSelectorsSchema } from "@/lib/sources/schema";
+import type { PageSelectors } from "@/lib/sources/types";
 import { err, ok } from "@/lib/result";
 import { parseFeedDate } from "../parse-date";
 import type { DocumentFormat, IngestRepo } from "../ports";
@@ -311,6 +314,19 @@ export function extractEntries(body: string, format: DocumentFormat, url: string
   }
 }
 
+/**
+ * Seletores da estratégia `page_list` (spec §6.2) guardados em `sources.consumption`, ou `null`
+ * para qualquer outra estratégia. Aceita `pageSelectors` (`consumptionSchema`, FS-T2) e `page`
+ * (nome do exemplo da spec §6.2). Seletores inseguros são recusados por `extractPageList`.
+ */
+export function pageListSelectors(consumption: unknown): PageSelectors | null {
+  const parsed = consumptionSchema.safeParse(consumption);
+  if (!parsed.success || parsed.data.strategy !== "page_list") return null;
+  if (parsed.data.pageSelectors) return parsed.data.pageSelectors;
+  const page = pageSelectorsSchema.safeParse(get(consumption, "page"));
+  return page.success ? page.data : null;
+}
+
 /** Etapa 4: documento válido → itens (`raw_items.entries`), um `normalize` por item. */
 export function createExtractStep(deps: { repo: IngestRepo }): StepHandler {
   return async (msg) => {
@@ -319,7 +335,16 @@ export function createExtractStep(deps: { repo: IngestRepo }): StepHandler {
     if (!raw) return err(stepError.notFound(`raw_item ${id} não encontrado`));
     const format = detectFormat(raw.payload.body);
     if (!format) return err(stepError.invalid("formato desconhecido"));
-    const entries = extractEntries(raw.payload.body, format, raw.payload.url).slice(0, MAX_ENTRIES);
+    // Página de lista (`page_list`): seletores da fonte em vez da Readability (um item por página).
+    const selectors =
+      format === "html"
+        ? pageListSelectors((await deps.repo.sourceById(raw.sourceId))?.consumption)
+        : null;
+    const entries = (
+      selectors
+        ? extractPageList(raw.payload.body, raw.payload.url, selectors)
+        : extractEntries(raw.payload.body, format, raw.payload.url)
+    ).slice(0, MAX_ENTRIES);
     await deps.repo.updateRawItem(id, { state: "extracted", entries });
     return ok(entries.map((_, i) => nextMessage(msg, "normalize", `raw:${id}#${i}`)));
   };

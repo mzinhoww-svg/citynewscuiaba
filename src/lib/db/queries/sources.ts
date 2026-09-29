@@ -226,6 +226,7 @@ export async function getRecConfig(): Promise<RecConfig> {
 /** Página da fonte (P15): sinais do card e a ficha "Sobre esta fonte no CityNews". */
 export interface SourceDetail extends SourceEntry {
   kind: string;
+  /** Cadência efetiva: a da fonte ou, quando `null` (segue o padrão), a global (`app_settings`). */
   frequencyMinutes: number;
   republishPolicy: "link_only" | "summary_2_sentences";
   imagePolicy: "none" | "with_agreement" | "licensed_only" | "reproduction";
@@ -234,11 +235,19 @@ export interface SourceDetail extends SourceEntry {
   availability: number | null;
 }
 
+const FALLBACK_DEFAULT_FREQUENCY = 30;
+
+function defaultFrequency(value: unknown): number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 30
+    ? value
+    : FALLBACK_DEFAULT_FREQUENCY;
+}
+
 export async function getSourceDetail(
   slug: string,
 ): Promise<Result<SourceDetail | null, QueryError>> {
   return readService(async (db) => {
-    const [all, meta, health] = await Promise.all([
+    const [all, meta, health, defaults] = await Promise.all([
       fetchEntries(db, { window: "7d" }),
       db
         .from("sources")
@@ -248,6 +257,12 @@ export async function getSourceDetail(
         .maybeSingle()
         .then(one),
       db.from("source_fetch_health").select("ok, total").eq("slug", slug).maybeSingle().then(one),
+      db
+        .from("app_settings")
+        .select("value")
+        .eq("key", "sources.default_frequency_minutes")
+        .maybeSingle()
+        .then(one),
     ]);
     const entry = all.find((s) => s.slug === slug);
     if (!entry || !meta) return null;
@@ -256,7 +271,7 @@ export async function getSourceDetail(
     return {
       ...entry,
       kind: meta.kind,
-      frequencyMinutes: meta.frequency_minutes,
+      frequencyMinutes: meta.frequency_minutes ?? defaultFrequency(defaults?.value),
       republishPolicy: meta.republish_policy,
       imagePolicy: meta.image_policy,
       agreementUntil: meta.agreement_until,

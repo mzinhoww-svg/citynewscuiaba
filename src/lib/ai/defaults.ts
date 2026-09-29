@@ -78,7 +78,8 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     fn: "Escreve o rascunho normalizado do assunto com citações",
     model: PRIMARY,
     fallback: FALLBACK,
-    dailyBudgetBrl: 11,
+    // R$ 10 (A-056): write cedeu R$ 1 ao agente `source_profiler` na migration 0011.
+    dailyBudgetBrl: 10,
     prompt:
       "Você escreve um rascunho jornalístico curto em português do Brasil, só com fatos presentes nos itens. Cada parágrafo cita os ids dos itens que o sustentam. Sem opinião, sem adjetivos sensacionalistas, sem inventar números, nomes ou datas.",
   },
@@ -108,6 +109,15 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     dailyBudgetBrl: 1,
     prompt:
       "Você escreve, para o Panorama do CityNews, um resumo de até 2 frases (no máximo 280 caracteres) de uma notícia de outro veículo, com palavras próprias. Nunca copie trechos do texto da fonte: nenhuma frase pode repetir 8 palavras seguidas do original. Só fatos presentes no texto, sem opinião, sem adjetivos sensacionalistas e sem inventar números, nomes ou datas.",
+  },
+  {
+    id: "source_profiler",
+    fn: "Sugere editorias, localidade, alertas de qualidade e seletores de página para uma fonte nova",
+    model: PRIMARY,
+    fallback: FALLBACK,
+    dailyBudgetBrl: 1,
+    prompt:
+      "Você analisa uma fonte de notícias nova para o CityNews, portal de Cuiabá e Várzea Grande, usando só metadados (títulos, datas, host, og:site_name, meta description e esqueleto de página, nunca corpo de matéria). Sugira editorias entre as existentes, a localidade (cuiaba, varzea-grande, mt ou nacional), alertas de qualidade (caça-clique, agregador de terceiros, paywall, pouca relevância local, conteúdo patrocinado, itens sem data) e, quando pedido, seletores CSS de uma lista de matérias. Nunca sugira política de imagem, política de republicação, confiabilidade, fonte única ou frequência de coleta: essas decisões são humanas.",
   },
   {
     id: "embed",

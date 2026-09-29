@@ -45,6 +45,8 @@ export function createNormalizeStep(deps: { repo: IngestRepo }): StepHandler {
       imageUrl: entry.imageUrl,
       locality: source.locality,
     });
+    // Saúde da fonte (`source_health_daily.items_new`): só item de fato novo.
+    if (created) await deps.repo.recordFetch(raw.sourceId, "items", null, 1, null);
     // Item novo, ou que já existia e ainda não avançou (retomada depois de queda): segue.
     return ok(created || pending ? [nextMessage(msg, "dedupe", `item:${id}`)] : []);
   };

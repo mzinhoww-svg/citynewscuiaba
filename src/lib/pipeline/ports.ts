@@ -5,6 +5,7 @@
 import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
 import type { RuleSet } from "@/lib/rules";
+import type { StatusReason } from "@/lib/sources/types";
 import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
@@ -20,7 +21,15 @@ export interface QueuedMessage {
  */
 export interface Queue {
   /** `false` quando a mesma etapa do mesmo item já está na fila. */
-  enqueue(queue: QueueName, msg: PipelineMessage, opts?: { delaySec?: number }): Promise<boolean>;
+  /**
+   * `false` quando a mesma chave já está na fila. A chave padrão é `(etapa, item)` (`dedupeKey`);
+   * `opts.dedupeKey` troca a chave (run manual de "Coletar agora", D-F21).
+   */
+  enqueue(
+    queue: QueueName,
+    msg: PipelineMessage,
+    opts?: { delaySec?: number; dedupeKey?: string },
+  ): Promise<boolean>;
   readBatch(queue: QueueName, n: number, vtSec: number): Promise<QueuedMessage[]>;
   ack(queue: QueueName, msgId: number): Promise<void>;
   /** Reagenda para nova tentativa depois de `delaySec`. */
@@ -28,12 +37,20 @@ export interface Queue {
   /** Devolve uma mensagem lida e não processada; não conta como tentativa. */
   release(queue: QueueName, msgId: number): Promise<void>;
   quarantine(queue: QueueName, item: Pick<QueuedMessage, "msgId">, error: string): Promise<void>;
-  /** Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis. */
-  moveExhausted(queue: QueueName, maxReads: number): Promise<number>;
+  /**
+   * Move para a quarentena mensagens com `read_ct >= maxReads` que voltaram a ficar visíveis e as
+   * devolve (`msg = null` se a mensagem guardada for inválida).
+   */
+  moveExhausted(queue: QueueName, maxReads: number): Promise<ExhaustedMessage[]>;
   pending(
     queue: QueueName,
-    filter?: { runId?: string; steps?: readonly StepName[] },
+    filter?: { runId?: string; steps?: readonly StepName[]; itemRef?: string },
   ): Promise<number>;
+}
+
+export interface ExhaustedMessage {
+  msg: PipelineMessage | null;
+  error: string;
 }
 
 export type EventLevel = "info" | "warn" | "error" | "security";
@@ -52,21 +69,64 @@ export interface EventSink {
   record(events: PipelineEvent[]): Promise<void>;
 }
 
+/** Fonte coletável (`active` ou `degraded`, não arquivada) como os ticks a enxergam. */
 export interface DueSource {
+  id: string;
   slug: string;
-  frequencyMinutes: number;
+  status: SourceStatus;
+  /** 1 Alta, 2 Normal, 3 Baixa (D-F8). */
+  priority: number;
+  /** Score editorial 1–5 (D-F7): desempate da ordem de coleta (D-F9). */
+  editorialScore: number;
+  /** `null` = padrão global (`app_settings`, D-F14). */
+  frequencyMinutes: number | null;
+  /** `consumption.robots.crawlDelaySec` (eleva a frequência efetiva, §7.8). */
+  crawlDelaySec: number | null;
+  termsMinIntervalMinutes: number | null;
+  rateLimitPerHour: number;
   lastFetchedAt: string | null;
 }
 
+export type RunTrigger = "cron" | "fast" | "manual";
+
+export interface StartedRun {
+  runId: string;
+  created: boolean;
+  fetchEnqueued: boolean;
+}
+
 export interface RunStore {
-  /** Um run por janela: a segunda chamada na mesma janela devolve o run existente. */
-  startRun(windowStart: Date): Promise<{ runId: string; created: boolean; fetchEnqueued: boolean }>;
-  markFetchEnqueued(runId: string, count: number): Promise<void>;
-  /** Run anterior ainda aberto (status `running`), se houver. */
+  /** Run `cron` da janela de 30 min: a segunda chamada na mesma janela devolve o existente. */
+  startRun(windowStart: Date): Promise<StartedRun>;
+  /** Run `fast` da janela de 10 min (via rápida, §7.8); mesmo contrato de `startRun`. */
+  startFastRun(windowStart: Date): Promise<StartedRun>;
+  /** Run `manual` ("Coletar agora", D-F21): sempre novo, nunca reaproveita a janela. */
+  startManualRun(sourceId: string): Promise<{ runId: string }>;
+  /**
+   * Grava `stats.fetch_enqueued` (e detalhes, como `skipped` do tick rápido) mesclando nas
+   * estatísticas existentes, numa só instrução e só se ainda não estiver marcado: `false` = outro
+   * tick concorrente já marcou (nada é sobrescrito).
+   */
+  markFetchEnqueued(
+    runId: string,
+    count: number,
+    extra?: Record<string, unknown>,
+  ): Promise<boolean>;
+  /** Run `cron` anterior ainda aberto (status `running`), se houver. */
   previousOpenRun(windowStart: Date): Promise<string | null>;
+  /**
+   * Fontes `active` e `degraded`, sem arquivadas, na ordem de coleta: `priority` asc,
+   * `editorial_score` desc, `slug` (D-F9).
+   */
   activeSources(): Promise<DueSource[]>;
-  /** `started_at` do run mais recente (watchdog), ou `null` sem nenhum. */
+  /** `app_settings.sources.default_frequency_minutes` (padrão 30). */
+  defaultFrequency(): Promise<number>;
+  /** `app_settings.sources.fast_lane_max` (padrão 10). */
+  fastLaneMax(): Promise<number>;
+  /** `started_at` do run `cron` mais recente (watchdog), ou `null` sem nenhum. */
   lastStartedAt(): Promise<string | null>;
+  /** `started_at` do run `fast` mais recente, ou `null` sem nenhum. */
+  lastFastStartedAt(): Promise<string | null>;
 }
 
 /** Subconjunto de `fetch` usado pelo coletor (injetável: testes nunca acessam a rede). */
@@ -86,10 +146,15 @@ export interface SourceRecord {
   kind: SourceKind;
   feedUrl: string | null;
   status: SourceStatus;
+  /** `sources.status_reason` (pausa automática = `auto_failures`, D-F18). */
+  statusReason: StatusReason | null;
+  consecutiveFailures: number;
   rateLimitPerHour: number;
   locality: string;
   etag: string | null;
   lastModified: string | null;
+  /** `sources.consumption` como veio do banco (validado por `consumptionSchema` na leitura). */
+  consumption: unknown;
 }
 
 export interface SourcePatch {
@@ -101,6 +166,19 @@ export interface SourcePatch {
   lastModified?: string | null;
   lastFetchedAt?: string;
 }
+
+/** Estado de ciclo de vida gravado pelo `fetch` (`afterFetch`, D-F18). */
+export interface SourceStatePatch {
+  status?: SourceStatus;
+  statusReason?: StatusReason | null;
+  consecutiveFailures?: number;
+}
+
+/**
+ * Linha de `source_health_daily` (`record_source_fetch`): `ok`, `not_modified` e `failed` contam
+ * uma coleta; `items` só soma itens novos (etapa normalize).
+ */
+export type SourceFetchRecord = "ok" | "not_modified" | "failed" | "items";
 
 export type DocumentFormat = "rss" | "atom" | "rdf" | "sitemap" | "jsonfeed" | "html";
 
@@ -150,6 +228,40 @@ export interface IngestRepo {
   updateSource(id: string, patch: SourcePatch): Promise<void>;
   /** Conta uma requisição na janela de 1 h; `false` quando passou do limite. */
   hitRateLimit(bucket: string, limit: number): Promise<boolean>;
+  /** `ingest_runs.trigger` do run (`null` se o run não existe). */
+  runTrigger(runId: string): Promise<RunTrigger | null>;
+  /**
+   * `claim_source_fetch` (D-F29): `true` se nenhuma coleta da fonte começou desde `since` (início
+   * da janela de 10 min), ou se a última foi deste mesmo run (nova tentativa).
+   */
+  claimFetch(sourceId: string, runId: string, since: Date): Promise<boolean>;
+  /**
+   * Resultado final de uma coleta (`ok`, `not_modified`, `failed`) na saúde diária, uma vez por
+   * (fonte, run) (`record_source_fetch_once`): `false` = já contado neste run, e o chamador não
+   * aplica `afterFetch` de novo.
+   */
+  recordFetchOnce(
+    sourceId: string,
+    runId: string,
+    outcome: Exclude<SourceFetchRecord, "items">,
+    latencyMs: number | null,
+    error: string | null,
+  ): Promise<boolean>;
+  /** `record_source_fetch`: soma na saúde diária sem dedupe (itens novos do normalize). */
+  recordFetch(
+    sourceId: string,
+    outcome: SourceFetchRecord,
+    latencyMs: number | null,
+    itemsNew: number,
+    error: string | null,
+  ): Promise<void>;
+  /**
+   * Grava o estado de ciclo de vida só se a fonte ainda estiver `active`/`degraded` e não
+   * arquivada: uma pausa humana no meio da coleta nunca é desfeita pelo pipeline.
+   */
+  applySourceState(id: string, patch: SourceStatePatch): Promise<void>;
+  /** Notificação do Control Center com dedupe (`notify_once`). */
+  notifyOnce(n: NotificationInput, windowSec: number): Promise<boolean>;
   /** Idempotente por `(run, fonte)`: repetir devolve o mesmo id. */
   insertRawItem(raw: { runId: string; sourceId: string; payload: RawPayload }): Promise<string>;
   rawItem(id: string): Promise<RawItemRecord | null>;

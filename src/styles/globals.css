@@ -14,6 +14,10 @@
  */
 @theme {
   --color-*: initial;
+  /* Ponto de corte "mesa larga" (1440 px): colunas secundárias da lista de fontes (spec §8, O03),
+     achado da revisão FS-T7 fix round 1 — `min-[1440px]:` levava "px" para dentro do TSX e caía
+     na regra de aderência (R13); o breakpoint nomeado evita isso e documenta a intenção. */
+  --breakpoint-wide: 90rem;
 }
 
 /* Troca de tema instantânea (src/lib/theme/apply.ts): sem cores intermediárias animadas. */
