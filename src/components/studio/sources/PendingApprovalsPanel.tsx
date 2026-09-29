@@ -46,7 +46,9 @@ export function PendingApprovalsPanel({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ActionState | null>(null);
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
-  if (approvals.length === 0) return null;
+  // Depois de aprovar/recusar, `router.refresh()` esvazia a lista; o resultado continua visível
+  // (senão o `role="status"` some junto com o painel antes de a pessoa ler).
+  if (approvals.length === 0 && result === null) return null;
 
   const close = () => {
     setOpen(null);
@@ -78,40 +80,42 @@ export function PendingApprovalsPanel({
 
   return (
     <section aria-label={T.pending.title(approvals.length)} className={className}>
-      <div className="flex flex-col gap-2 rounded-lg border border-warn bg-atencao-soft px-4 py-3">
-        <p className="flex items-center gap-2 type-body font-semibold text-strong">
-          <Icon name="shield" size={18} className="text-warn" />
-          {T.pending.title(approvals.length)}
-        </p>
-        <ul className="flex flex-col gap-2">
-          {approvals.map((a) => (
-            <li
-              key={a.id}
-              className="flex flex-wrap items-center justify-between gap-2 type-body text-strong"
-            >
-              <span>
-                {T.pending.line(
-                  CRITICAL_FIELD_TEXT[a.field] ?? a.field,
-                  criticalValueText(a.field, a.value),
-                  a.requestedBy.name ?? T.pending.someone,
+      {approvals.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-lg border border-warn bg-atencao-soft px-4 py-3">
+          <p className="flex items-center gap-2 type-body font-semibold text-strong">
+            <Icon name="shield" size={18} className="text-warn" />
+            {T.pending.title(approvals.length)}
+          </p>
+          <ul className="flex flex-col gap-2">
+            {approvals.map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap items-center justify-between gap-2 type-body text-strong"
+              >
+                <span>
+                  {T.pending.line(
+                    CRITICAL_FIELD_TEXT[a.field] ?? a.field,
+                    criticalValueText(a.field, a.value),
+                    a.requestedBy.name ?? T.pending.someone,
+                  )}
+                </span>
+                {canApprove && (
+                  <Button
+                    size="sm"
+                    variant="outline-strong"
+                    onClick={(e) => {
+                      setTrigger(e.currentTarget);
+                      setOpen(a);
+                    }}
+                  >
+                    {T.pending.review}
+                  </Button>
                 )}
-              </span>
-              {canApprove && (
-                <Button
-                  size="sm"
-                  variant="outline-strong"
-                  onClick={(e) => {
-                    setTrigger(e.currentTarget);
-                    setOpen(a);
-                  }}
-                >
-                  {T.pending.review}
-                </Button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-3 empty:hidden">
         <ActionMessage result={result} />
       </div>

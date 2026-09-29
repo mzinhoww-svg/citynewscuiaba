@@ -229,6 +229,7 @@ export type Database = {
         Row: {
           approved_by: string | null;
           created_at: string;
+          decided_at: string | null;
           id: string;
           justification: string;
           kind: string;
@@ -239,6 +240,7 @@ export type Database = {
         Insert: {
           approved_by?: string | null;
           created_at?: string;
+          decided_at?: string | null;
           id?: string;
           justification: string;
           kind: string;
@@ -249,6 +251,7 @@ export type Database = {
         Update: {
           approved_by?: string | null;
           created_at?: string;
+          decided_at?: string | null;
           id?: string;
           justification?: string;
           kind?: string;

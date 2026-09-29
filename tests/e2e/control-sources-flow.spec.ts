@@ -9,6 +9,7 @@ import {
   ingestStatus,
   notificationsFor,
   resetFetchState,
+  serviceClient,
   sourceState,
 } from "./helpers/pipeline";
 import { loginAs, type StaffKey } from "./helpers/studio-login";
@@ -236,4 +237,103 @@ test("via rápida: Folha do Cerrado em 10 min; fast-tick cria um run fast, o dra
   await page.goto(`${BASE}/${SEED.folha}/itens`);
   await expect(page.getByText("Cesta básica recua 2,1% em setembro na capital")).toBeVisible();
   await axeClean(page);
+});
+
+/**
+ * Lista O03 com efeito colateral (antes em control-sources-list.spec.ts, achado M-7 da revisão
+ * final): pausar em lote e pelo menu, mudar frequência em lote e as vagas da via rápida mexem em
+ * fontes do seed que os specs públicos do P4 contam (`login-invite` conta as 11 fontes visíveis).
+ * Aqui rodam depois dos projetos desktop/mobile, em série, e o `afterAll` devolve o seed.
+ */
+const URL = BASE;
+const LIST_SEED = {
+  folha: SEED.folha,
+  diario: SEED.diario,
+  mtAgora: "c5000000-0000-4000-8000-000000000003",
+  cena: "c5000000-0000-4000-8000-000000000008",
+};
+
+test.afterAll(async () => {
+  const svc = serviceClient();
+  await svc
+    .from("sources")
+    .update({ status: "active", status_reason: null, consecutive_failures: 0 })
+    .in("id", [LIST_SEED.folha, LIST_SEED.mtAgora])
+    .eq("status", "paused");
+  await svc
+    .from("sources")
+    .update({ frequency_minutes: null })
+    .in("id", [LIST_SEED.diario, LIST_SEED.cena]);
+  await svc.rpc("app_setting_set", { p_key: "sources.fast_lane_max", p_value: 10 });
+});
+
+test("Diego filtra, ordena e pausa em lote", async ({ page }) => {
+  await loginAs(page.context(), "diego");
+  await page.goto(`${URL}?status=ativa&ordem=score`);
+  await expect(page.getByRole("heading", { level: 1, name: "Fontes" })).toBeVisible();
+
+  await page.getByRole("checkbox", { name: "Selecionar Folha do Cerrado" }).check();
+  await page.getByRole("checkbox", { name: "Selecionar MT Agora" }).check();
+  await expect(page.getByText("2 fontes selecionadas")).toBeVisible();
+
+  await page.getByRole("button", { name: "Pausar", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Pausar 2 fontes" }).click();
+  await expect(page.getByRole("status")).toContainText("2 pausadas");
+  await expect(page).toHaveURL(/status=ativa/);
+});
+
+test("configurações da coleta: padrão sem opções rápidas; vagas da via rápida com uso", async ({
+  page,
+}) => {
+  await loginAs(page.context(), "helena");
+  await page.goto(URL);
+  await page.getByRole("button", { name: "Configurações da coleta" }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText(/Via rápida: \d+ de 10/)).toBeVisible();
+  const select = dialog.getByLabel("Frequência padrão");
+  await expect(select.locator("option", { hasText: "10 min" })).toHaveCount(0);
+  await expect(select.locator("option", { hasText: "15 min" })).toHaveCount(0);
+  await expect(select.locator("option", { hasText: "20 min" })).toHaveCount(0);
+
+  await dialog.getByLabel("Vagas da via rápida").fill("5");
+  await dialog.getByRole("button", { name: "Salvar" }).nth(1).click();
+  await expect(dialog.getByText("Vagas da via rápida salvas")).toBeVisible();
+  await expect(dialog.getByText(/Via rápida: \d+ de 5/)).toBeVisible();
+});
+
+test("pausar pelo menu mostra Desfazer; desfazer retoma de novo", async ({ page }) => {
+  await loginAs(page.context(), "diego");
+  await page.goto(`${URL}?status=ativa`);
+  await page.getByRole("button", { name: "Ações de Placar MT" }).click();
+  await page.getByRole("menuitem", { name: "Pausar" }).click();
+  const toast = page.getByRole("status");
+  await expect(toast).toContainText("Fonte pausada");
+  await toast.getByRole("button", { name: "Desfazer" }).click();
+  // Desfazer usa o lote de uma fonte só (sem repetir o teste de conexão do "Retomar" direto).
+  await expect(toast).toContainText("1 ativada");
+});
+
+test("frequência em lote: rádios por via, resultado previsto e motivo obrigatório", async ({
+  page,
+}) => {
+  await loginAs(page.context(), "diego");
+  await page.goto(`${URL}?status=ativa`);
+  await page.getByRole("checkbox", { name: "Selecionar Diário da Baixada" }).check();
+  await page.getByRole("checkbox", { name: "Selecionar Cena Cuiabana" }).check();
+  await page.getByRole("button", { name: "Mudar frequência" }).click();
+
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("radio", { name: /Seguir o padrão global/ })).toBeChecked();
+  await expect(dialog.getByText(/Resultado previsto: 2/)).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
+  await expect(dialog.getByText("Explique o motivo desta mudança em lote.")).toBeVisible();
+
+  await dialog.getByRole("radio", { name: /Ciclo normal/ }).check();
+  await dialog.getByLabel("Intervalo do ciclo normal").selectOption({ label: "1 h" });
+  await expect(dialog.getByText("Resultado previsto: 2 fontes passam a 1 h.")).toBeVisible();
+  await dialog.getByLabel("Motivo (vai para a auditoria)").fill("Reduzir carga no fim de semana");
+  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
+
+  await expect(page.getByRole("status")).toContainText("com a frequência nova");
 });

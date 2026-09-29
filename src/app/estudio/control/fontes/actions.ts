@@ -550,8 +550,14 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
   const row = await sourceRow(ctx, target.sourceId);
   if (!row) return fail(T.notFound);
 
-  if (approval.status === "pending") {
-    // Obsoleto (§7.5.5): o campo mudou entre o pedido e a aprovação.
+  if (approval.status !== "pending" && approval.status !== "approved")
+    return fail(APPROVAL_ERROR_TEXT.not_pending);
+
+  {
+    // Obsoleto (§7.5.5): o campo mudou entre o pedido e a aprovação. Vale também para um pedido
+    // já aprovado cuja aplicação falhou (conflito, banco fora): sem esta checagem, ele ficava
+    // aplicável mesmo depois de o campo ter sido restringido de novo (achado I-4 da revisão final;
+    // o banco também deixa de consumir aprovação com mais de 24 h).
     const { data: asked } = await ctx.db
       .from("audit_log")
       .select("details")
@@ -569,7 +575,9 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       target.field === "status" ? "blocked" : from === undefined ? null : String(from);
     if (expected !== null && currentText(row, target.field) !== expected) {
       const reason = T.approval.obsoleteReason;
-      await approvals.reject({ id, reason });
+      // Decisão já tomada é final no banco (`guard_approvals`): um pedido aprovado obsoleto só
+      // deixa de ser aplicado (e expira em 24 h); o pendente é recusado de vez.
+      if (approval.status === "pending") await approvals.reject({ id, reason });
       await safeAudit(ctx, {
         actor: ctx.userId,
         action: "source.approval_rejected",
@@ -580,10 +588,10 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       refresh(target.sourceId);
       return fail(T.approval.obsolete);
     }
-    const r = await approvals.approve({ id });
-    if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
-  } else if (approval.status !== "approved") {
-    return fail(APPROVAL_ERROR_TEXT.not_pending);
+    if (approval.status === "pending") {
+      const r = await approvals.approve({ id });
+      if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
+    }
   }
 
   // Aplica com a aprovação: o trigger `guard_source_changes` consome (`applied`).

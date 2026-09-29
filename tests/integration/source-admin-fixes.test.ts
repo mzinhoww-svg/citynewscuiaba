@@ -516,6 +516,49 @@ describe("#6 auditoria complementar e pedido obsoleto", () => {
       await asUser(MARINA, () => decideApprovalAction(formFrom({ id: p.id, decision: "approve" }))),
     ).toMatchObject({ ok: false, message: expect.stringMatching(/obsoleto/) });
   });
+
+  it("pedido já aprovado (aplicação falhou) também fica obsoleto quando o campo mudou (I-4)", async () => {
+    const s = await rowBySlug("agro-em-pauta-mt");
+    // Valor diferente do "antes" do pedido (testes anteriores podem ter deixado `none`).
+    const changed = s.image_policy === "none" ? "with_agreement" : "none";
+    await asUser(DIEGO, () =>
+      updateSourceAction(
+        formFrom({
+          id: s.id,
+          version: s.version,
+          imagePolicy: "reproduction",
+          justification: "Acordo de reprodução",
+        }),
+      ),
+    );
+    const pending = await pendingSourceApprovals();
+    if (!pending.ok) throw new Error("pendentes");
+    const p = pending.value.find((x) => x.sourceId === s.id)!;
+    // Simula "aprovada, mas a aplicação falhou": decisão gravada direto, sem consumir.
+    const approved = await svc
+      .from("approvals")
+      .update({ status: "approved", approved_by: "c1000000-0000-4000-8000-000000000002" })
+      .eq("id", p.id)
+      .select("status, decided_at")
+      .single();
+    expect(approved.data).toMatchObject({ status: "approved" });
+    expect(approved.data?.decided_at).not.toBeNull();
+    // O campo mudou de novo no meio do caminho (pela service role: sem duas pessoas).
+    await svc.from("sources").update({ image_policy: changed }).eq("id", s.id);
+    expect(
+      await asUser(MARINA, () => decideApprovalAction(formFrom({ id: p.id, decision: "approve" }))),
+    ).toMatchObject({ ok: false, message: expect.stringMatching(/obsoleto/) });
+    expect((await rowBySlug("agro-em-pauta-mt")).image_policy).toBe(changed);
+    // Decisão é final no banco: continua `approved` (expira em 24 h), nunca `applied`.
+    expect(
+      (await svc.from("approvals").select("status").eq("id", p.id).single()).data?.status,
+    ).toBe("approved");
+    const rows = await auditRows(`source:${s.id}`);
+    expect(rows.at(-1)).toMatchObject({
+      action: "source.approval_rejected",
+      details: expect.objectContaining({ approvalId: p.id, obsolete: true }),
+    });
+  });
 });
 
 describe("#8 logotipo: sem arquivo órfão em conflito", () => {

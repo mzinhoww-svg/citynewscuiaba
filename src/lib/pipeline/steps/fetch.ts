@@ -132,10 +132,20 @@ export async function runFetch(
     case "rate_limited":
       await deps.repo.updateSource(source.id, { lastError: RATE_LIMITED });
       return { outcome: "rate_limited", result: ok([]) };
-    case "not_modified":
+    case "not_modified": {
       await deps.repo.updateSource(source.id, { lastFetchedAt: fetchedAt, lastError: null });
-      await deps.repo.recordFetchOnce(source.id, msg.runId, "not_modified", latency(), null);
+      const first = await deps.repo.recordFetchOnce(
+        source.id,
+        msg.runId,
+        "not_modified",
+        latency(),
+        null,
+      );
+      // A fonte respondeu: para o contador de falhas, 304 é sucesso (spec: "sucesso zera"). Sem
+      // isto, uma fonte `degraded` que só devolve 304 ficava "Com falhas" até um 200 (achado M-2).
+      if (first) await recoverIfUnhealthy(deps, source);
       return { outcome: "not_modified", result: ok([]) };
+    }
     case "network_error":
       return failure(stepError.transient(res.message));
     case "too_large":
@@ -172,25 +182,27 @@ export async function runFetch(
       // Uma vez por (fonte, run): a nova tentativa depois de falha ao enfileirar o validate baixa
       // de novo, mas não conta outro "ok" (#7).
       const first = await deps.repo.recordFetchOnce(source.id, msg.runId, "ok", ms, null);
-      const alreadyHealthy =
-        source.status === "active" &&
-        source.statusReason === null &&
-        source.consecutiveFailures === 0;
-      if (first && !alreadyHealthy) {
-        const patch = afterFetch(
-          {
-            status: source.status,
-            statusReason: source.statusReason,
-            consecutiveFailures: source.consecutiveFailures,
-            archivedAt: null,
-          },
-          "ok",
-        );
-        if (patch) await deps.repo.applySourceState(source.id, patch);
-      }
+      if (first) await recoverIfUnhealthy(deps, source);
       return { outcome: "ok", result: ok([nextMessage(msg, "validate", `raw:${rawId}`)]) };
     }
   }
+}
+
+/** Sucesso (200 ou 304) zera o contador e volta a `active` quando a fonte não estava saudável. */
+async function recoverIfUnhealthy(deps: IngestDeps, source: SourceRecord): Promise<void> {
+  const alreadyHealthy =
+    source.status === "active" && source.statusReason === null && source.consecutiveFailures === 0;
+  if (alreadyHealthy) return;
+  const patch = afterFetch(
+    {
+      status: source.status,
+      statusReason: source.statusReason,
+      consecutiveFailures: source.consecutiveFailures,
+      archivedAt: null,
+    },
+    "ok",
+  );
+  if (patch) await deps.repo.applySourceState(source.id, patch);
 }
 
 /**

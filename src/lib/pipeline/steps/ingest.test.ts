@@ -481,10 +481,35 @@ describe("fetch respeita o painel (FS-T5)", () => {
     const call = t.feedCalls()[0]!;
     expect(call.headers.get("if-none-match")).toBe('"v7"');
     expect(call.headers.get("if-modified-since")).toBe("Sun, 27 Sep 2026 14:00:00 GMT");
-    expect(t.state()).toMatchObject({ status: "degraded", consecutiveFailures: 1 });
+    // 304 é resposta da fonte: para o contador, sucesso (zera e volta a `active`; achado M-2 da
+    // revisão final, spec D-F18 "sucesso zera").
+    expect(t.state()).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
     expect(t.repo.health()).toEqual([
       expect.objectContaining({ outcome: "not_modified", error: null }),
     ]);
+  });
+
+  it("304 em fonte saudável não muda estado; nova tentativa do mesmo run não conta de novo", async () => {
+    const t = rig(
+      { ...folha, etag: '"v7"' },
+      {
+        "https://folhadocerrado.example/robots.txt": robots404,
+        [FEED]: (h) => (h.get("if-none-match") === '"v7"' ? { status: 304 } : ok200),
+      },
+    );
+    const r1 = await runFetch(t.msg("r1"), t.deps("2026-09-27T14:00:05Z"));
+    const r2 = await runFetch(t.msg("r1", 2), t.deps("2026-09-27T14:01:05Z"));
+    expect([r1.outcome, r2.outcome]).toEqual(["not_modified", "not_modified"]);
+    expect(t.state()).toMatchObject({
+      status: "active",
+      statusReason: null,
+      consecutiveFailures: 0,
+    });
+    expect(t.repo.health()).toHaveLength(1);
   });
 
   it("3 runs com falha pausam; retries do mesmo run contam uma vez (Review Focus 3)", async () => {

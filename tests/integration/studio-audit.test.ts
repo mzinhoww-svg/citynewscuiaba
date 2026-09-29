@@ -61,6 +61,16 @@ afterAll(async () => {
 });
 
 describe("studio_audit", () => {
+  it("a lista do banco (studio_audit_actions) e a do código (AUDIT_ACTIONS) são iguais", async () => {
+    // Nos dois sentidos: um nome novo no painel ou no Estúdio precisa entrar nas duas listas
+    // (migration 0033 + src/lib/audit/actions.ts), senão `studio_audit` recusa com 22023.
+    const r = await service.rpc("studio_audit_actions");
+    expect(r.error).toBeNull();
+    const db = [...(r.data ?? [])].sort();
+    const ts = [...AUDIT_ACTIONS].sort();
+    expect(db).toEqual(ts);
+  });
+
   it("equipe só grava ações conhecidas (as do Estúdio), nunca nome arbitrário", async () => {
     const db = await clientOf("otavio");
     const bad = await db.rpc("studio_audit", {

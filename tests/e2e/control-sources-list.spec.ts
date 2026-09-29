@@ -8,24 +8,6 @@ const REPORTS_DIR = "docs/reports/fontes";
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
 
-test("Diego filtra, ordena e pausa em lote", async ({ page }, testInfo) => {
-  // Muda o estado das fontes no banco compartilhado (não há como reativá-las sem rede para
-  // *.example): roda uma única vez para não colidir entre os projetos desktop/mobile.
-  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
-  await loginAs(page.context(), "diego");
-  await page.goto(`${URL}?status=ativa&ordem=score`);
-  await expect(page.getByRole("heading", { level: 1, name: "Fontes" })).toBeVisible();
-
-  await page.getByRole("checkbox", { name: "Selecionar Folha do Cerrado" }).check();
-  await page.getByRole("checkbox", { name: "Selecionar MT Agora" }).check();
-  await expect(page.getByText("2 fontes selecionadas")).toBeVisible();
-
-  await page.getByRole("button", { name: "Pausar", exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Pausar 2 fontes" }).click();
-  await expect(page.getByRole("status")).toContainText("2 pausadas");
-  await expect(page).toHaveURL(/status=ativa/);
-});
-
 test("analista não vê o menu nem entra", async ({ page }) => {
   await loginAs(page.context(), "thiago");
   await page.goto(URL);
@@ -47,27 +29,6 @@ test("próxima coleta e frequência padrão aparecem em texto", async ({ page })
   await expect(visible.first()).toBeVisible();
 });
 
-test("configurações da coleta: padrão sem opções rápidas; vagas da via rápida com uso", async ({
-  page,
-}, testInfo) => {
-  // Muda `app_settings` (compartilhado): roda uma única vez para não colidir entre os projetos.
-  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
-  await loginAs(page.context(), "helena");
-  await page.goto(URL);
-  await page.getByRole("button", { name: "Configurações da coleta" }).click();
-  const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("Via rápida: 0 de 10")).toBeVisible();
-  const select = dialog.getByLabel("Frequência padrão");
-  await expect(select.locator("option", { hasText: "10 min" })).toHaveCount(0);
-  await expect(select.locator("option", { hasText: "15 min" })).toHaveCount(0);
-  await expect(select.locator("option", { hasText: "20 min" })).toHaveCount(0);
-
-  await dialog.getByLabel("Vagas da via rápida").fill("5");
-  await dialog.getByRole("button", { name: "Salvar" }).nth(1).click();
-  await expect(dialog.getByText("Vagas da via rápida salvas")).toBeVisible();
-  await expect(dialog.getByText("Via rápida: 0 de 5")).toBeVisible();
-});
-
 test("menu de ações por fonte: abre, mostra os itens e Esc devolve o foco ao gatilho", async ({
   page,
 }) => {
@@ -84,47 +45,6 @@ test("menu de ações por fonte: abre, mostra os itens e Esc devolve o foco ao g
   await page.keyboard.press("Escape");
   await expect(menu).toBeHidden();
   await expect(trigger).toBeFocused();
-});
-
-test("pausar pelo menu mostra Desfazer; desfazer retoma de novo", async ({ page }, testInfo) => {
-  // Muda o estado de "Placar MT" no banco compartilhado: roda uma única vez.
-  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
-  await loginAs(page.context(), "diego");
-  await page.goto(`${URL}?status=ativa`);
-  await page.getByRole("button", { name: "Ações de Placar MT" }).click();
-  await page.getByRole("menuitem", { name: "Pausar" }).click();
-  const toast = page.getByRole("status");
-  await expect(toast).toContainText("Fonte pausada");
-  await toast.getByRole("button", { name: "Desfazer" }).click();
-  // Desfazer usa o lote de uma fonte só (sem repetir o teste de conexão do "Retomar" direto).
-  await expect(toast).toContainText("1 ativada");
-});
-
-test("frequência em lote: rádios por via, resultado previsto e motivo obrigatório", async ({
-  page,
-}, testInfo) => {
-  // Muda a frequência de fontes reais no banco compartilhado: roda uma única vez.
-  test.skip(testInfo.project.name !== "desktop", "efeito colateral só uma vez");
-  await loginAs(page.context(), "diego");
-  await page.goto(`${URL}?status=ativa`);
-  await page.getByRole("checkbox", { name: "Selecionar Diário da Baixada" }).check();
-  await page.getByRole("checkbox", { name: "Selecionar Cena Cuiabana" }).check();
-  await page.getByRole("button", { name: "Mudar frequência" }).click();
-
-  const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("radio", { name: /Seguir o padrão global/ })).toBeChecked();
-  await expect(dialog.getByText(/Resultado previsto: 2/)).toBeVisible();
-
-  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
-  await expect(dialog.getByText("Explique o motivo desta mudança em lote.")).toBeVisible();
-
-  await dialog.getByRole("radio", { name: /Ciclo normal/ }).check();
-  await dialog.getByLabel("Intervalo do ciclo normal").selectOption({ label: "1 h" });
-  await expect(dialog.getByText("Resultado previsto: 2 fontes passam a 1 h.")).toBeVisible();
-  await dialog.getByLabel("Motivo (vai para a auditoria)").fill("Reduzir carga no fim de semana");
-  await dialog.getByRole("button", { name: "Aplicar às 2 fontes" }).click();
-
-  await expect(page.getByRole("status")).toContainText("com a frequência nova");
 });
 
 test("1280 px: colunas-chave cabem sem rolagem horizontal; secundárias ficam ocultas", async ({
