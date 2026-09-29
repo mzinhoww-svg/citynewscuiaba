@@ -84,6 +84,24 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "metrics.view",
       },
       {
+        href: "/estudio/control/agentes",
+        label: "Agentes",
+        icon: "settings",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/modelos",
+        label: "Modelos",
+        icon: "layers",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/testes",
+        label: "Playground",
+        icon: "play",
+        action: "prompt.publish",
+      },
+      {
         href: "/estudio/control/avaliacoes",
         label: "Avaliações",
         icon: "flask-conical",
@@ -93,6 +111,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         href: "/estudio/control/governanca",
         label: "Governança da IA",
         icon: "shield",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/recomendacao",
+        label: "Recomendação",
+        icon: "sliders-horizontal",
         action: "metrics.view",
       },
     ],

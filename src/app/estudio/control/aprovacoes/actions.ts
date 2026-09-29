@@ -20,7 +20,7 @@ export async function decideApprovalAction(i: {
     if (r.value.applied === null) return { ok: true, message: T.rejected };
     return {
       ok: true,
-      message: r.value.applied ? T.approved : T.approvedNotApplied(T.applyError.unsupported!),
+      message: r.value.applied ? T.approved : T.approvedApplyElsewhere,
     };
   }
   return { ok: false, message: r.message ?? T.genericError };

@@ -1,6 +1,7 @@
 /** Textos das aprovações de mudança crítica (P5-T1): caixa de aprovações e faixa nas telas. */
 import type { CriticalKind } from "@/lib/approvals/approvals";
 import type { ApprovalTarget } from "@/lib/approvals/targets";
+import { AGENT_NAME } from "./ai-control";
 import { CRITICAL_FIELD_TEXT, criticalValueText } from "./sources-admin";
 
 export { APPROVAL_ERROR_TEXT } from "./sources-admin";
@@ -36,6 +37,10 @@ export function targetText(target: ApprovalTarget): string {
       return `${FLAG_TEXT[target.key] ?? target.key} → ${target.value ? "ligada" : "desligada"}`;
     case "source":
       return `${CRITICAL_FIELD_TEXT[target.field] ?? target.field} → ${criticalValueText(target.field, target.value)}`;
+    case "prompt":
+      return `prompt v${target.version} de ${AGENT_NAME[target.agentId] ?? target.agentId}`;
+    case "rec":
+      return `pesos de recomendação ${target.version}`;
     case "other":
       return target.ref;
   }
@@ -79,6 +84,8 @@ export const APPROVALS_TEXT = {
   waitOther: "A aprovação precisa ser de outra pessoa",
   noRole: "Seu papel não decide este tipo de pedido",
   approved: "Pedido aprovado e aplicado.",
+  approvedApplyElsewhere: "Pedido aprovado. Agora aplique na tela do alvo.",
+  applyAt: "Aplicar na tela",
   approvedNotApplied: (why: string) => `Pedido aprovado, mas não aplicado: ${why}`,
   rejected: "Pedido recusado.",
   applyError: {

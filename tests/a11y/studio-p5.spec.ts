@@ -32,6 +32,26 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "aprovações", path: () => "/estudio/control/aprovacoes", as: "marina" },
   { name: "regras", path: () => "/estudio/control/regras", as: "diego" },
   { name: "contingência", path: () => "/estudio/admin/contingencia", as: "helena" },
+  // P5-T5
+  { name: "agentes", path: () => "/estudio/control/agentes", as: "diego" },
+  { name: "agentes só leitura", path: () => "/estudio/control/agentes", as: "thiago" },
+  { name: "modelos", path: () => "/estudio/control/modelos", as: "helena" },
+  { name: "prompts", path: () => "/estudio/control/prompts/answer", as: "diego" },
+  { name: "prompts agente inválido", path: () => "/estudio/control/prompts/nada", as: "diego" },
+  { name: "playground", path: () => "/estudio/control/testes", as: "diego" },
+  // P5-T7
+  { name: "recomendação", path: () => "/estudio/control/recomendacao", as: "diego" },
+  { name: "recomendação só leitura", path: () => "/estudio/control/recomendacao", as: "thiago" },
+  {
+    name: "teste A/B",
+    path: () => `/estudio/control/recomendacao/testes/${fx.experimentId}`,
+    as: "diego",
+  },
+  {
+    name: "teste A/B inexistente",
+    path: () => "/estudio/control/recomendacao/testes/nada",
+    as: "diego",
+  },
 ];
 
 for (const scheme of ["light", "dark"] as const) {

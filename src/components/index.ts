@@ -369,3 +369,37 @@ export { SourceRecForm, type SourceRecFormProps } from "./studio/sources/SourceR
 export { SourceRunsTable, type SourceRunsTableProps } from "./studio/sources/SourceRunsTable";
 export { SourceSectionNav, type SourceSectionNavProps } from "./studio/sources/SourceSectionNav";
 export { SuggestionField, type SuggestionFieldProps } from "./studio/sources/SuggestionField";
+export {
+  AgentTable,
+  type AgentEditInput,
+  type AgentItem,
+  type AgentTableProps,
+} from "./studio/AgentTable";
+export { ModelTable, type ModelItem, type ModelTableProps } from "./studio/ModelTable";
+export {
+  PromptVersions,
+  type PromptReply,
+  type PromptVersionItem,
+  type PromptVersionsProps,
+} from "./studio/PromptVersions";
+export {
+  Playground,
+  type PlaygroundAgentOption,
+  type PlaygroundProps,
+  type PlaygroundReply,
+} from "./studio/Playground";
+export { WeightSliders, type RecReply, type WeightSlidersProps } from "./studio/WeightSliders";
+export {
+  WeightsHistory,
+  type WeightsHistoryItem,
+  type WeightsHistoryProps,
+} from "./studio/WeightsHistory";
+export { WhyThisDrawer, type WhyReply, type WhyThisDrawerProps } from "./studio/WhyThisDrawer";
+export { ShareChart, type ShareChartProps } from "./studio/ShareChart";
+export {
+  CampaignForm,
+  ExperimentForm,
+  type CampaignFormProps,
+  type ExperimentFormProps,
+} from "./studio/RecForms";
+export { AbTestCard, type AbTestCardProps } from "./studio/AbTestCard";

@@ -11,14 +11,20 @@ export type ApprovalTarget =
   | { kind: "rules"; version: number }
   | { kind: "flag"; key: string; value: boolean }
   | { kind: "source"; sourceId: string; field: string; value: string }
+  | { kind: "prompt"; agentId: string; version: number }
+  | { kind: "rec"; version: string }
   | { kind: "other"; ref: string };
 
 const RULES = /^rules:(\d+)$/;
 const FLAG = /^flag:([a-z_]+)=(true|false)$/;
 const SOURCE = /^source:([0-9a-f-]{36}):([a-z_]+)=(.*)$/i;
+const PROMPT = /^prompt:([a-z_]+):(\d+)$/;
+const REC = /^rec:([a-z0-9][a-z0-9.-]{0,60})$/;
 
 export const rulesTarget = (version: number): string => `rules:${version}`;
 export const flagTarget = (key: string, value: boolean): string => `flag:${key}=${value}`;
+/** Versão de `rec_weights` proposta (P5-T7); `rec_weights_activate` (0037) consome o pedido. */
+export const recTarget = (version: string): string => `rec:${version}`;
 
 export function parseApprovalTarget(ref: string): ApprovalTarget {
   const r = RULES.exec(ref);
@@ -27,6 +33,10 @@ export function parseApprovalTarget(ref: string): ApprovalTarget {
   if (f) return { kind: "flag", key: f[1]!, value: f[2] === "true" };
   const s = SOURCE.exec(ref);
   if (s) return { kind: "source", sourceId: s[1]!, field: s[2]!, value: s[3]! };
+  const p = PROMPT.exec(ref);
+  if (p) return { kind: "prompt", agentId: p[1]!, version: Number(p[2]) };
+  const w = REC.exec(ref);
+  if (w) return { kind: "rec", version: w[1]! };
   return { kind: "other", ref };
 }
 
@@ -56,4 +66,16 @@ export function approvalHref(kind: CriticalKind, target: ApprovalTarget): string
   if (kind === "source.critical" && target.kind === "source")
     return `/estudio/control/fontes/${target.sourceId}`;
   return "/estudio/control/aprovacoes";
+}
+
+/**
+ * Onde a aprovação registrada se aplica, para os tipos com consumidor próprio: o prompt se
+ * publica na tela do agente (`prompt_publish`, 0036) e os pesos se ativam no painel de
+ * recomendação (`rec_weights_activate`, 0037).
+ */
+export function applyHref(kind: CriticalKind, target: ApprovalTarget): string | null {
+  if (kind === "prompt.publish" && target.kind === "prompt")
+    return `/estudio/control/prompts/${target.agentId}`;
+  if (kind === "rec.weights" && target.kind === "rec") return "/estudio/control/recomendacao";
+  return null;
 }

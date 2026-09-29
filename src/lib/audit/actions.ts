@@ -64,6 +64,20 @@ export const AUDIT_ACTIONS = [
   // Contingência (P5-T10, 0035)
   "flag.set",
   "rules.rollback",
+  // Agentes, modelos, prompts e playground (P5-T5, 0036)
+  "prompt.create",
+  "prompt.request",
+  "prompt.rollback",
+  "ai.playground.run",
+  "ai.agent.update",
+  "ai.model.update",
+  // Recomendação (P5-T7, 0037)
+  "rec.weights.activate",
+  "rec.campaign.create",
+  "rec.experiment.create",
+  "rec.experiment.end",
+  "rec.experiment.promote",
+  "rec.explain",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

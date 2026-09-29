@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { APPROVALS_TEXT as T, KIND_TEXT, targetText } from "@/content/pt-BR/approvals";
 import type { ApprovalItem } from "@/lib/db/queries/approvals";
-import { approvalHref } from "@/lib/approvals/targets";
+import { applyHref, approvalHref } from "@/lib/approvals/targets";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
@@ -200,6 +200,17 @@ export function ApprovalInbox({
                     </td>
                     <td className="px-3 py-3 type-body text-body">
                       {T.status[a.status] ?? a.status}
+                      {a.status === "approved" && applyHref(a.kind, a.target) && (
+                        <>
+                          {" · "}
+                          <Link
+                            href={applyHref(a.kind, a.target) ?? "#"}
+                            className="text-link underline"
+                          >
+                            {T.applyAt}
+                          </Link>
+                        </>
+                      )}
                     </td>
                     <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
                       {formatDateTime(a.decidedAt ?? a.createdAt)}
