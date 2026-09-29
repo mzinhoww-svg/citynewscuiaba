@@ -126,9 +126,30 @@ const GROUPS: { label: string; items: Entry[] }[] = [
     ],
   },
   {
+    label: "Administração",
+    items: [
+      {
+        href: "/estudio/admin",
+        label: "Painel",
+        icon: "layout-dashboard",
+        action: "users.manage",
+        exact: true,
+      },
+      { href: "/estudio/admin/usuarios", label: "Usuários", icon: "users", action: "users.manage" },
+      { href: "/estudio/admin/papeis", label: "Papéis", icon: "shield", action: "users.manage" },
+      { href: "/estudio/admin/equipes", label: "Equipes", icon: "users", action: "users.manage" },
+      {
+        href: "/estudio/admin/taxonomia",
+        label: "Taxonomia",
+        icon: "layers",
+        action: "users.manage",
+      },
+      { href: "/estudio/admin/home", label: "Home", icon: "newspaper", action: "users.manage" },
+    ],
+  },
+  {
     label: "Governança",
     items: [
-      { href: "/estudio/admin/usuarios", label: "Usuários", icon: "users", action: "users.manage" },
       {
         href: "/estudio/admin/auditoria",
         label: "Auditoria",

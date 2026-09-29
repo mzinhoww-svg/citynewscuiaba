@@ -42,6 +42,27 @@ export const AUDIT_ACTIONS = [
   "prompt.rollback",
   "prompt.playground",
   "agent.toggle",
+  // Administração de usuários, equipes, taxonomia e home (P5-T8; migration 0035, admin_audit_actions).
+  "taxonomy.manage",
+  "home.manage",
+  "user.invite",
+  "user.invite_revoke",
+  "role.grant",
+  "role.revoke",
+  "role.sections",
+  "role.admin_request",
+  "team.save",
+  "team.delete",
+  "team.member_add",
+  "team.member_remove",
+  "tag.create",
+  "tag.rename",
+  "tag.merge",
+  "tag.delete",
+  "section.rename",
+  "section.create",
+  "home.save_draft",
+  "home.publish",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

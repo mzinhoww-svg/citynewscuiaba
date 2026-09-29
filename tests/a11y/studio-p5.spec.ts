@@ -44,6 +44,14 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/avaliacoes", as: "marina" },
   { path: "/estudio/control/custos", as: "diego" },
   { path: "/estudio/control/governanca", as: "marina" },
+  // Administração (P5-T8): painel, usuários (com convite pendente), papéis, equipes, taxonomia e home.
+  { path: "/estudio/admin", as: "helena" },
+  { path: "/estudio/admin/usuarios", as: "helena" },
+  { path: "/estudio/admin/papeis", as: "helena" },
+  { path: "/estudio/admin/equipes", as: "helena" },
+  { path: "/estudio/admin/taxonomia", as: "helena" },
+  { path: "/estudio/admin/home", as: "helena" },
+  { path: "/estudio/admin/usuarios?erro=forbidden", as: "helena" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -238,6 +246,47 @@ test.afterAll(async () => {
   await db.from("rec_experiments").delete().eq("id", REC_TEST);
   await db.from("rec_weights").delete().eq("version", "rec-v1.700");
   if (recAnons.length) await db.from("events").delete().in("anon_id", recAnons);
+});
+
+// Administração (P5-T8): dados para as telas cheias (convite pendente, equipe, tags duplicadas).
+const adminInviteEmail = `a11y-t8-${Date.now() % 1_000_000}@exemplo.test`;
+let adminTeamId: string | null = null;
+const adminTagIds: string[] = [];
+test.beforeAll(async () => {
+  const db = service();
+  const inv = await db.from("staff_invites").insert({
+    email: adminInviteEmail,
+    role: "jornalista",
+    invited_by: STAFF.helena.id,
+    token_hash: "0".repeat(64),
+    email_subject: "Convite de teste",
+    email_body: "Convite de teste de acessibilidade.",
+  });
+  if (inv.error) throw inv.error;
+  const team = await db
+    .from("teams")
+    .insert({ name: `Equipe a11y ${adminInviteEmail.slice(8, 14)}`, lead_id: STAFF.marina.id })
+    .select("id")
+    .single();
+  if (team.error) throw team.error;
+  adminTeamId = team.data.id;
+  await db.from("team_members").insert({ team_id: team.data.id, user_id: STAFF.otavio.id });
+  await db.from("tags").delete().in("slug", ["obras-a11y-t8", "obra-a11y-t8"]);
+  const tags = await db
+    .from("tags")
+    .insert([
+      { name: "Obras a11y", slug: "obras-a11y-t8" },
+      { name: "Obra a11y", slug: "obra-a11y-t8" },
+    ])
+    .select("id");
+  if (tags.error) throw tags.error;
+  adminTagIds.push(...tags.data.map((t) => t.id));
+});
+test.afterAll(async () => {
+  const db = service();
+  await db.from("staff_invites").delete().eq("email", adminInviteEmail);
+  if (adminTeamId) await db.from("teams").delete().eq("id", adminTeamId);
+  if (adminTagIds.length) await db.from("tags").delete().in("id", adminTagIds);
 });
 
 for (const scheme of ["light", "dark"] as const) {

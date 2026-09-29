@@ -28,3 +28,13 @@ it("monitoramento do Control Center aparece para quem vê métricas, não para j
     expect(labels([{ role, sections: [] }])).toEqual(expect.arrayContaining(monitor));
   expect(labels([{ role: "jornalista", sections: [] }])).not.toContain("Tempo real");
 });
+
+it("Administração (usuários, papéis, equipes, taxonomia, home) só para admin", () => {
+  const items = ["Painel", "Usuários", "Papéis", "Equipes", "Taxonomia", "Home"];
+  expect(labels([{ role: "admin", sections: [] }])).toEqual(expect.arrayContaining(items));
+  for (const role of ["editor_chefe", "editor", "operador_ia", "analista", "leitura"] as const)
+    expect(labels([{ role, sections: [] }])).not.toContain("Taxonomia");
+  expect(studioNav([{ role: "admin", sections: [] }]).map((g) => g.label)).toContain(
+    "Administração",
+  );
+});

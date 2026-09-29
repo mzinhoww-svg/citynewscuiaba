@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
+import { Fragment, type ReactNode } from "react";
 import {
   AggregatedSection,
   ArticleCard,
@@ -18,6 +19,8 @@ import {
 } from "@/components";
 import { HOME, HOME_SERVICES, NEWSLETTER } from "@/content/pt-BR/portal";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
+import { getPublishedHomeModules } from "@/lib/db/queries/home-layout";
+import { enabledKeys, type HomeModule, type HomeModuleKey } from "@/lib/home/modules";
 import { formatHour, formatLongDate } from "@/lib/format/date";
 import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -112,20 +115,12 @@ function eventMeta(e: EventView): string {
   return [formatHour(e.startsAt), e.venue, price].join(" · ");
 }
 
-function Home({ data }: { data: HomeData }) {
+function Home({ data, modules }: { data: HomeData; modules: readonly HomeModule[] }) {
   const { lead } = data;
   if (!lead) return <HomeFallback title={HOME.emptyTitle} text={HOME.emptyText} />;
-  return (
-    <>
-      {data.urgent && <UrgentBar article={data.urgent} />}
-      <DateStrip generatedAt={data.generatedAt} />
-      <div className={`${CONTAINER} flex flex-col gap-12 py-8 lg:gap-14 lg:py-10`}>
-        {/* Manchete + Agora: 100% CityNews na primeira dobra */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-10">
-          <ArticleCard variant="lead" as="h1" article={lead} />
-          <NowList items={data.now} />
-        </div>
-
+  const blocks: Record<HomeModuleKey, ReactNode> = {
+    topics: (
+      <>
         {data.topics.length > 0 && (
           <section aria-labelledby="home-topics" className="flex flex-col gap-5">
             <SectionHeader id="home-topics" title={HOME.topics} actionHref={HOME.topicsMore} />
@@ -138,7 +133,10 @@ function Home({ data }: { data: HomeData }) {
             </ul>
           </section>
         )}
-
+      </>
+    ),
+    collections: (
+      <>
         {data.collections.length > 0 && (
           <section aria-labelledby="home-collections" className="flex flex-col gap-5">
             <SectionHeader
@@ -155,7 +153,10 @@ function Home({ data }: { data: HomeData }) {
             </ul>
           </section>
         )}
-
+      </>
+    ),
+    nearby: (
+      <>
         <section
           aria-labelledby="home-nearby"
           className="flex flex-col items-start gap-3 border border-line-section p-5 sm:flex-row sm:items-center sm:justify-between"
@@ -170,7 +171,10 @@ function Home({ data }: { data: HomeData }) {
             {HOME.nearbyCta}
           </Button>
         </section>
-
+      </>
+    ),
+    agenda_services: (
+      <>
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-10">
           <section aria-labelledby="home-agenda" className="flex flex-col gap-4">
             <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
@@ -219,7 +223,10 @@ function Home({ data }: { data: HomeData }) {
             </ul>
           </section>
         </div>
-
+      </>
+    ),
+    sections: (
+      <>
         {data.sectionBlocks.length > 0 && (
           <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
             {data.sectionBlocks.map(({ section, articles }) => (
@@ -249,7 +256,10 @@ function Home({ data }: { data: HomeData }) {
             ))}
           </div>
         )}
-
+      </>
+    ),
+    most_read: (
+      <>
         {data.mostRead.length > 0 && (
           <section aria-labelledby="home-most-read" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
@@ -282,7 +292,10 @@ function Home({ data }: { data: HomeData }) {
             </ol>
           </section>
         )}
-
+      </>
+    ),
+    sources: (
+      <>
         {data.sources.length > 0 && (
           <section aria-labelledby="home-sources" className="flex flex-col gap-4">
             <SectionHeader id="home-sources" title={HOME.sources} actionHref={HOME.sourcesMore} />
@@ -295,22 +308,48 @@ function Home({ data }: { data: HomeData }) {
             </ul>
           </section>
         )}
-
+      </>
+    ),
+    aggregated: (
+      <>
         <AggregatedSection items={data.aggregated} />
-
+      </>
+    ),
+    newsletter: (
+      <>
         <NewsletterBlock />
+      </>
+    ),
+  };
+  return (
+    <>
+      {data.urgent && <UrgentBar article={data.urgent} />}
+      <DateStrip generatedAt={data.generatedAt} />
+      <div className={`${CONTAINER} flex flex-col gap-12 py-8 lg:gap-14 lg:py-10`}>
+        {/* Manchete + Agora: 100% CityNews na primeira dobra */}
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-10">
+          <ArticleCard variant="lead" as="h1" article={lead} />
+          <NowList items={data.now} />
+        </div>
+
+        {enabledKeys(modules).map((key) => (
+          <Fragment key={key}>{blocks[key]}</Fragment>
+        ))}
       </div>
     </>
   );
 }
 
 export default async function HomePage() {
-  const result = await getHomeData(new Date(), { cache: true });
+  const [result, modules] = await Promise.all([
+    getHomeData(new Date(), { cache: true }),
+    getPublishedHomeModules(),
+  ]);
   if (result.ok) {
     return (
       <>
         <SiteJsonLd />
-        <Home data={result.value} />
+        <Home data={result.value} modules={modules} />
       </>
     );
   }

@@ -478,6 +478,43 @@ export type Database = {
           },
         ];
       };
+      article_tags: {
+        Row: {
+          article_id: string;
+          tag_id: string;
+        };
+        Insert: {
+          article_id: string;
+          tag_id: string;
+        };
+        Update: {
+          article_id?: string;
+          tag_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "article_tags_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_tags_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "article_tags_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       article_versions: {
         Row: {
           article_id: string;
@@ -1272,6 +1309,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      home_layouts: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          modules: NonNullable<Json>;
+          published_at: string | null;
+          status: string;
+          version: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          modules: NonNullable<Json>;
+          published_at?: string | null;
+          status: string;
+          version: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          modules?: NonNullable<Json>;
+          published_at?: string | null;
+          status?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
       ingest_runs: {
         Row: {
           finished_at: string | null;
@@ -1603,6 +1670,55 @@ export type Database = {
           neighborhood?: string | null;
         };
         Relationships: [];
+      };
+      push_dispatches: {
+        Row: {
+          approval_id: string;
+          article_id: string;
+          created_at: string;
+          id: number;
+          sent_by: string;
+          status: string;
+        };
+        Insert: {
+          approval_id: string;
+          article_id: string;
+          created_at?: string;
+          id?: number;
+          sent_by: string;
+          status?: string;
+        };
+        Update: {
+          approval_id?: string;
+          article_id?: string;
+          created_at?: string;
+          id?: number;
+          sent_by?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_dispatches_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: true;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_dispatches_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_dispatches_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       rate_limits: {
         Row: {
@@ -2036,6 +2152,27 @@ export type Database = {
           },
         ];
       };
+      site_settings: {
+        Row: {
+          key: string;
+          updated_at: string;
+          updated_by: string | null;
+          value: string;
+        };
+        Insert: {
+          key: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value: string;
+        };
+        Update: {
+          key?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value?: string;
+        };
+        Relationships: [];
+      };
       source_discoveries: {
         Row: {
           accepted_fields: string[];
@@ -2353,30 +2490,99 @@ export type Database = {
       };
       sponsored_campaigns: {
         Row: {
+          active: boolean;
           advertiser: string;
           allowed_sections: string[];
+          created_at: string;
           creative: NonNullable<Json>;
           ends_on: string;
           id: string;
           starts_on: string;
+          updated_by: string | null;
         };
         Insert: {
+          active?: boolean;
           advertiser: string;
           allowed_sections: string[];
+          created_at?: string;
           creative: NonNullable<Json>;
           ends_on: string;
           id?: string;
           starts_on: string;
+          updated_by?: string | null;
         };
         Update: {
+          active?: boolean;
           advertiser?: string;
           allowed_sections?: string[];
+          created_at?: string;
           creative?: NonNullable<Json>;
           ends_on?: string;
           id?: string;
           starts_on?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
+      };
+      staff_invites: {
+        Row: {
+          created_at: string;
+          email: string;
+          email_body: string;
+          email_status: string;
+          email_subject: string;
+          expires_at: string;
+          id: string;
+          invited_by: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          sections: string[];
+          status: string;
+          token_hash: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          email_body: string;
+          email_status?: string;
+          email_subject: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          sections?: string[];
+          status?: string;
+          token_hash: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          email_body?: string;
+          email_status?: string;
+          email_subject?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
+          sections?: string[];
+          status?: string;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       studio_revalidations: {
         Row: {
@@ -2395,6 +2601,129 @@ export type Database = {
           tags?: string[];
         };
         Relationships: [];
+      };
+      tag_aliases: {
+        Row: {
+          slug: string;
+          tag_id: string;
+        };
+        Insert: {
+          slug: string;
+          tag_id: string;
+        };
+        Update: {
+          slug?: string;
+          tag_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "tag_aliases_tag_id_fkey";
+            columns: ["tag_id"];
+            isOneToOne: false;
+            referencedRelation: "tags";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tags: {
+        Row: {
+          created_at: string;
+          id: string;
+          name: string;
+          slug: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          name: string;
+          slug: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          name?: string;
+          slug?: string;
+        };
+        Relationships: [];
+      };
+      team_members: {
+        Row: {
+          added_at: string;
+          team_id: string;
+          user_id: string;
+        };
+        Insert: {
+          added_at?: string;
+          team_id: string;
+          user_id: string;
+        };
+        Update: {
+          added_at?: string;
+          team_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          created_at: string;
+          description: string | null;
+          id: string;
+          lead_id: string | null;
+          name: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          name: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          lead_id?: string | null;
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teams_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "teams_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       topics: {
         Row: {
@@ -2746,6 +3075,53 @@ export type Database = {
       };
     };
     Functions: {
+      admin_audit_actions: { Args: Record<PropertyKey, never>; Returns: string[] };
+      admin_clear_login_blocks: { Args: Record<PropertyKey, never>; Returns: number };
+      admin_invite_user: {
+        Args: {
+          p_body: string;
+          p_email: string;
+          p_role: Database["public"]["Enums"]["app_role"];
+          p_sections: string[];
+          p_subject: string;
+          p_token_hash: string;
+        };
+        Returns: string;
+      };
+      admin_revoke_invite: { Args: { p_id: string }; Returns: boolean };
+      admin_security_limits: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          bucket: string;
+          hits: number;
+          keys: number;
+          last_window: string;
+          max_hits: number;
+        }[];
+      };
+      admin_security_sessions: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          display_name: string;
+          last_active: string;
+          last_agent: string;
+          last_ip: string;
+          roles: string;
+          sessions: number;
+          user_id: string;
+        }[];
+      };
+      admin_user_directory: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          created_at: string;
+          email: string;
+          id: string;
+          last_sign_in_at: string;
+          name: string;
+          roles: Json;
+        }[];
+      };
       ai_agent_set_prompt: { Args: { p_agent: string; p_version: number }; Returns: undefined };
       ai_spend_since: {
         Args: { p_since: string };
@@ -2921,6 +3297,7 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      home_publish: { Args: { p_modules: Json }; Returns: number };
       index_article: { Args: { p_embedding?: string; p_id: string }; Returns: undefined };
       is_staff: { Args: { uid: string }; Returns: boolean };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
@@ -2931,6 +3308,7 @@ export type Database = {
           distance: number;
         }[];
       };
+      merge_tags: { Args: { p_from: string; p_into: string }; Returns: number };
       notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };
       peek_rate_limit: {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
@@ -2979,6 +3357,7 @@ export type Database = {
       };
       purge_reader_emails: { Args: { p_days?: number }; Returns: number };
       purge_source_discoveries: { Args: Record<PropertyKey, never>; Returns: number };
+      push_urgent_dispatch: { Args: { p_article: string }; Returns: string };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };

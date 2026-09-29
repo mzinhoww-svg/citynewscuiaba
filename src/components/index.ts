@@ -350,3 +350,13 @@ export { EvalRunButton, type EvalRunButtonProps } from "./studio/EvalRunButton";
 export { CostChart, type CostChartProps } from "./studio/CostChart";
 export { CostPanel, type CostPanelProps } from "./studio/CostPanel";
 export { GovernancePanel, type GovernancePanelProps } from "./studio/GovernancePanel";
+
+/* administração (P5-T8) */
+export { AdminTable, type AdminTableProps } from "./studio/AdminTable";
+export { AdminFlash, type AdminFlashProps } from "./studio/AdminFlash";
+export { AdminInput, type AdminInputProps } from "./studio/AdminInput";
+export {
+  HomeModulesEditor,
+  type HomeModulesEditorProps,
+  type HomeSaveReply,
+} from "./studio/HomeModulesEditor";
