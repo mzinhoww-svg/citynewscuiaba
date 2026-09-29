@@ -4,17 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SOURCE_ACTION_TEXT } from "@/content/pt-BR/sources-admin";
 import { COLLECTION_TAB_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
+import type { ActionFn, ActionState } from "@/lib/sources/action-state";
 import { Button } from "../../ui/Button";
-import type { WizardAction, WizardActionResult } from "./AddSourceWizard";
 import { ActionMessage } from "./fields";
 
 export interface CollectionActionsProps {
   sourceId: string;
   canCollectNow: boolean;
   /** `testConnectionAction` (FS-T6). */
-  testAction: WizardAction;
+  testAction: ActionFn;
   /** `collectNowAction` (FS-T6). */
-  collectNowAction: WizardAction;
+  collectNowAction: ActionFn;
   /** `/estudio/control/fontes/nova?url=…` (reabre as sugestões). */
   reanalyzeHref: string;
   className?: string;
@@ -38,7 +38,7 @@ export function CollectionActions({
 }: CollectionActionsProps) {
   const router = useRouter();
   const [busy, setBusy] = useState<"test" | "collect" | null>(null);
-  const [result, setResult] = useState<WizardActionResult | null>(null);
+  const [result, setResult] = useState<ActionState | null>(null);
   const [polls, setPolls] = useState(0);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function CollectionActions({
     form.set("id", sourceId);
     setBusy(kind);
     setResult(null);
-    let r: WizardActionResult;
+    let r: ActionState;
     try {
       r = await (kind === "test" ? testAction : collectNowAction)(form);
     } catch {

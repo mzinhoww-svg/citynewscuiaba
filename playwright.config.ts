@@ -15,6 +15,13 @@ const port = 3000 + offset;
  */
 const fixturesPort = port + 1;
 const FIXTURE_SPECS = "**/control-sources-detail.spec.ts";
+/**
+ * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para
+ * `desktop`/`mobile` (e `mobile-webkit` no CI) nunca lerem uma lista no meio de uma mutação,
+ * `fixtures` depende deles: roda sozinho, depois que os outros terminam (localmente, para rodar
+ * só o spec de fixtures sem as suítes dos outros projetos: `--no-deps`).
+ */
+const BROWSER_PROJECTS = ["desktop", "mobile", ...(isCI ? ["mobile-webkit"] : [])];
 
 export default defineConfig({
   testDir: "tests",
@@ -49,6 +56,7 @@ export default defineConfig({
       // Contra o servidor de fixtures (porta +1); os testes mudam o viewport quando precisam.
       name: "fixtures",
       testMatch: FIXTURE_SPECS,
+      dependencies: BROWSER_PROJECTS,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1280, height: 800 },

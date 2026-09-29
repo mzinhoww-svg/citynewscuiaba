@@ -57,6 +57,7 @@ import {
   type SourceConfig,
 } from "@/lib/sources";
 import { analyzeLink, type AnalyzeError, type AnalyzeResult } from "@/lib/sources/analyze";
+import { conflictState, type ActionState } from "@/lib/sources/action-state";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import { validateLogo } from "@/lib/sources/logo";
 import { testConnection } from "@/lib/sources/test-connection";
@@ -68,9 +69,7 @@ import {
   SOURCE_ACTION_TEXT as T,
 } from "@/content/pt-BR/sources-admin";
 
-export type ActionState =
-  | { ok: true; message: string; data?: unknown }
-  | { ok: false; message: string; fieldErrors?: Record<string, string> };
+export type { ActionState } from "@/lib/sources/action-state";
 
 const NEXT = "/estudio/control/fontes";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -176,7 +175,7 @@ async function conflictMessage(ctx: Ctx, id: string): Promise<string> {
 async function storeFailure(ctx: Ctx, id: string, e: StoreError): Promise<ActionState> {
   switch (e) {
     case "conflict":
-      return fail(await conflictMessage(ctx, id));
+      return conflictState(await conflictMessage(ctx, id));
     case "forbidden":
     case "needs_approval":
       return fail(T.forbidden);
@@ -448,7 +447,7 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
   const justification = text(form, "justification")?.trim() ?? "";
   if (critical.length > 0 && !justification)
     return fail(T.justificationRequired, { justification: T.justificationRequired });
-  if (row.version !== version) return fail(await conflictMessage(ctx, id));
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
 
   let newVersion = row.version;
   if (nonCritical.length > 0) {
@@ -707,7 +706,7 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
     return fail(T.invalid);
   const row = await sourceRow(ctx, id);
   if (!row) return fail(T.notFound);
-  if (row.version !== version) return fail(await conflictMessage(ctx, id));
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
   const reason = text(form, "reason")?.trim() ?? "";
 
   if (action === "unblock") {
@@ -807,7 +806,7 @@ export async function activateSourceAction(form: FormData): Promise<ActionState>
   let version = toInt(text(form, "version") ?? "");
   let row = await sourceRow(ctx, id);
   if (!row) return fail(T.notFound);
-  if (row.version !== version) return fail(await conflictMessage(ctx, id));
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
   if (row.status !== "paused" || row.archived_at) return fail(T.invalidTransition.activate);
 
   if (!row.terms_reviewed_at && toBool(text(form, "termsReviewed") ?? "")) {
@@ -997,7 +996,7 @@ export async function uploadLogoAction(form: FormData): Promise<ActionState> {
   const version = toInt(text(form, "version") ?? "");
   const row = await sourceRow(ctx, id);
   if (!row) return fail(T.notFound);
-  if (row.version !== version) return fail(await conflictMessage(ctx, id));
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
   const file = form.get("logo");
   if (!(file instanceof Blob) || file.size === 0)
     return fail(T.logo.missing, { logo: T.logo.missing });

@@ -198,20 +198,53 @@ describe("SourceAuditTable", () => {
     expect(csv).toContain("Marina Arruda");
   });
 
-  it("filtro por tipo é um formulário GET", async () => {
+  it("filtro por tipo é um formulário GET com só `tipo`; trocar o tipo não navega", async () => {
+    const href = window.location.href;
     render(
       <SourceAuditTable
         rows={[]}
         total={0}
         page={1}
-        basePath="/x"
+        basePath="/x/historico"
         filter="source.update"
         slug="fonte"
       />,
     );
-    expect(screen.getByLabelText("Tipo de alteração")).toHaveValue("source.update");
+    const select = screen.getByLabelText("Tipo de alteração");
+    const form = select.closest("form")!;
+    expect(form).toHaveAttribute("method", "get");
+    expect(form).toHaveAttribute("action", "/x/historico");
+    expect(select).toHaveAttribute("name", "tipo");
+    expect(select).toHaveValue("source.update");
+    // Mudar o tipo volta à página 1: o formulário não carrega `pagina`.
+    expect(form.querySelector("[name='pagina']")).toBeNull();
+    expect(within(form).getByRole("button", { name: "Filtrar" })).toHaveAttribute("type", "submit");
     expect(screen.getByText("Nenhuma alteração deste tipo.")).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Tipo de alteração"), "");
+    await userEvent.selectOptions(select, "");
+    expect(select).toHaveValue("");
+    expect(window.location.href).toBe(href);
+  });
+
+  it("paginação preserva o tipo e usa `pagina` só a partir da 2ª página", () => {
+    render(
+      <SourceAuditTable
+        rows={rows}
+        total={120}
+        page={2}
+        basePath="/x/historico"
+        filter="source.update"
+        slug="fonte"
+      />,
+    );
+    const nav = screen.getByRole("navigation", { name: "Paginação do histórico" });
+    expect(within(nav).getByRole("link", { name: "Página anterior" })).toHaveAttribute(
+      "href",
+      "/x/historico?tipo=source.update",
+    );
+    expect(within(nav).getByRole("link", { name: "Próxima página" })).toHaveAttribute(
+      "href",
+      "/x/historico?tipo=source.update&pagina=3",
+    );
   });
 });
 

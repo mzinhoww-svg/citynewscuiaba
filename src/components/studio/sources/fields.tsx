@@ -137,6 +137,58 @@ export function NativeSelect({
   );
 }
 
+/**
+ * Rótulo + `NativeSelect`: dica e erro informados uma vez só (o `FieldShell` renderiza os
+ * elementos; o `<select>` recebe o `aria-describedby` correspondente). `children` entra depois
+ * do controle e antes da dica (prévia da frequência).
+ */
+export function SelectField({
+  id,
+  name,
+  label,
+  value,
+  onChange,
+  options,
+  groups,
+  hint,
+  error,
+  aside,
+  disabled,
+  className,
+  children,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options?: readonly OptionLike[];
+  groups?: readonly OptionGroupLike[];
+  hint?: ReactNode;
+  error?: string | null;
+  aside?: ReactNode;
+  disabled?: boolean;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error} aside={aside} className={className}>
+      <NativeSelect
+        id={id}
+        name={name}
+        value={value}
+        onChange={onChange}
+        options={options}
+        groups={groups}
+        hint={hint}
+        error={error}
+        disabled={disabled}
+      />
+      {children}
+    </FieldShell>
+  );
+}
+
 /** Selo de campo crítico: ícone + texto, nunca só cor. */
 export function CriticalBadge({ children }: { children: ReactNode }) {
   return (

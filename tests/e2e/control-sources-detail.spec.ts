@@ -8,6 +8,13 @@ import { loginAs, type StaffKey } from "./helpers/studio-login";
  * `fixtures` do playwright.config.ts: `next dev` com CRAWLER_FIXTURES=1 e AI_PROVIDER=fake, sem
  * rede. Os testes mudam fontes do seed (Correio Mato-grossense, Agro em Pauta MT, Brasil Hoje,
  * Rádio Pantanal) e por isso rodam em série; `pnpm db:reset` devolve o estado inicial.
+ *
+ * Isolamento: o projeto `fixtures` declara `dependencies` nos projetos `desktop`/`mobile`
+ * (e `mobile-webkit` no CI), então este spec só começa depois que os outros terminaram — os
+ * três compartilham o mesmo banco, e uma mutação daqui (arquivar a Rádio Pantanal, mudar a
+ * frequência do Correio) não pode aparecer no meio da lista de fontes de outro projeto.
+ * Por causa disso, rodar só este arquivo puxa as suítes dos outros projetos antes; para uma
+ * rodada local só dele: `pnpm exec playwright test control-sources-detail --no-deps`.
  */
 test.describe.configure({ mode: "serial" });
 
@@ -110,9 +117,9 @@ test("frequência: 45 e 25 não são oferecidas; 10 põe na via rápida e a pró
   await expect(page.getByRole("status")).toContainText("Alterações salvas");
   await page.goto(`${BASE}/${SEED.correio}`);
   await expect(page.getByText("10 min · via rápida")).toBeVisible();
-  await expect(
-    page.getByText(/Via rápida: 1 de \d+/).or(page.getByText("Via rápida")),
-  ).toBeTruthy();
+  // A Configuração recarregada conta o Correio entre as vagas em uso.
+  await page.goto(`${BASE}/${SEED.correio}/configuracao`);
+  await expect(page.getByText(/^Via rápida: [1-9]\d* de \d+ vagas em uso\.$/)).toBeVisible();
 });
 
 test("fonte pausada vê as opções rápidas desabilitadas com o motivo", async ({ page, baseURL }) => {

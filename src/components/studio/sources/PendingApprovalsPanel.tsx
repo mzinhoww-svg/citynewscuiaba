@@ -8,10 +8,10 @@ import {
   SOURCE_ACTION_TEXT,
 } from "@/content/pt-BR/sources-admin";
 import { DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
+import type { ActionFn, ActionState } from "@/lib/sources/action-state";
 import type { PendingSourceApproval } from "@/lib/db/queries/sources-admin";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
-import type { WizardAction, WizardActionResult } from "./AddSourceWizard";
 import { ApproveChangeDialog } from "./ApproveChangeDialog";
 import { ActionMessage } from "./fields";
 
@@ -23,7 +23,7 @@ export interface PendingApprovalsPanelProps {
   /** `source.approve_critical` (admin e editor-chefe). */
   canApprove: boolean;
   /** `decideApprovalAction` (FS-T6). */
-  action: WizardAction;
+  action: ActionFn;
   className?: string;
 }
 
@@ -44,7 +44,7 @@ export function PendingApprovalsPanel({
   const [open, setOpen] = useState<PendingSourceApproval | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<WizardActionResult | null>(null);
+  const [result, setResult] = useState<ActionState | null>(null);
   const [trigger, setTrigger] = useState<HTMLElement | null>(null);
   if (approvals.length === 0) return null;
 
@@ -60,7 +60,7 @@ export function PendingApprovalsPanel({
     form.set("decision", decision);
     if (reason) form.set("reason", reason);
     setBusy(true);
-    let r: WizardActionResult;
+    let r: ActionState;
     try {
       r = await action(form);
     } catch {

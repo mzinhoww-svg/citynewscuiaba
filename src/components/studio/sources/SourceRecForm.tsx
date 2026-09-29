@@ -1,13 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { SOURCE_ACTION_TEXT } from "@/content/pt-BR/sources-admin";
 import { DETAIL_TEXT, LOGO_TEXT, REC_TAB_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
 import { SourceCard } from "../../editorial/SourceCard";
+import { isConflict, type ActionFn, type ActionState } from "@/lib/sources/action-state";
 import { Button } from "../../ui/Button";
-import type { WizardAction, WizardActionResult } from "./AddSourceWizard";
 import { ActionMessage, CheckboxField } from "./fields";
 
 export interface SourceRecFormProps {
@@ -26,11 +27,9 @@ export interface SourceRecFormProps {
     archived: boolean;
   };
   /** `updateSourceAction` (FS-T6): só os três campos de recomendação vão no envio. */
-  action: WizardAction;
+  action: ActionFn;
   rulesHref?: string;
 }
-
-const CONFLICT_MARK = "Recarregue";
 
 /**
  * Aba Recomendação (spec §7.2, §8): nome e logotipo exibidos (mudam na Configuração), fixar,
@@ -48,7 +47,7 @@ export function SourceRecForm({
   const [local, setLocal] = useState(source.recLocalHighlight);
   const [excluded, setExcluded] = useState(source.recExcluded);
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<WizardActionResult | null>(null);
+  const [result, setResult] = useState<ActionState | null>(null);
   const shownName = source.displayName ?? source.name;
 
   async function submit(e: FormEvent) {
@@ -61,7 +60,7 @@ export function SourceRecForm({
     form.set("recExcluded", excluded ? "true" : "false");
     setSaving(true);
     setResult(null);
-    let r: WizardActionResult;
+    let r: ActionState;
     try {
       r = await action(form);
     } catch {
@@ -72,7 +71,7 @@ export function SourceRecForm({
     const v = r.ok ? (r.data as { version?: number } | undefined)?.version : undefined;
     if (typeof v === "number") setVersion(v);
   }
-  const conflict = result && !result.ok && result.message.includes(CONFLICT_MARK);
+  const conflict = isConflict(result);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -134,9 +133,9 @@ export function SourceRecForm({
         </fieldset>
         <p className="type-meta text-meta">
           {T.explanation}{" "}
-          <a href={rulesHref} className="text-link underline-offset-4 hover:underline">
+          <Link href={rulesHref} className="text-link underline-offset-4 hover:underline">
             {T.rulesLink}
-          </a>
+          </Link>
         </p>
         <ActionMessage result={result}>
           {conflict && (

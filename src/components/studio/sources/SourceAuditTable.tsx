@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useId } from "react";
+import { useId, useState } from "react";
 import { CRITICAL_FIELD_TEXT, fullDateTime } from "@/content/pt-BR/sources-admin";
 import { HISTORY_TAB_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import type { HistoryRow } from "@/lib/db/queries/sources-admin";
@@ -99,7 +99,8 @@ export function historyCsv(rows: readonly HistoryRow[]): string {
 
 /**
  * Histórico da fonte (spec §8, `/historico`): quem, quando, o quê, antes → depois, motivo e
- * aprovação; filtro por tipo (formulário GET, funciona sem JS); "Exportar CSV" gera o arquivo no
+ * aprovação; filtro por tipo (formulário GET, funciona sem JS; mudar o tipo volta à página 1, a
+ * paginação preserva `tipo`); "Exportar CSV" gera o arquivo no
  * navegador a partir das linhas já lidas (IP mascarado para quem não é admin, decidido no servidor).
  */
 export function SourceAuditTable({
@@ -112,6 +113,8 @@ export function SourceAuditTable({
   className,
 }: SourceAuditTableProps) {
   const uid = useId().replace(/:/g, "");
+  // Só o envio do formulário (GET) navega: trocar o tipo não dispara nada por conta própria.
+  const [selected, setSelected] = useState(filter);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const hrefFor = (p: number) => {
     const params = new URLSearchParams();
@@ -144,10 +147,8 @@ export function SourceAuditTable({
           <NativeSelect
             id={`${uid}-tipo`}
             name="tipo"
-            value={filter}
-            onChange={(v) => {
-              window.location.assign(v ? `${basePath}?tipo=${encodeURIComponent(v)}` : basePath);
-            }}
+            value={selected}
+            onChange={setSelected}
             options={options}
           />
         </div>

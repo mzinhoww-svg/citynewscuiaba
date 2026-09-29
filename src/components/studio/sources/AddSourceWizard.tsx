@@ -2,55 +2,33 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
-import {
-  ANALYZE_TEXT,
-  formatMinutes,
-  RELIABILITY_TEXT,
-  scoreText,
-  SOURCE_ACTION_TEXT,
-} from "@/content/pt-BR/sources-admin";
-import {
-  FIELD_TEXT,
-  FREQUENCY_FIELD_TEXT,
-  triedOutcome,
-  WIZARD_TEXT,
-} from "@/content/pt-BR/sources-admin-detail";
-import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
+import { useId, useState, type FormEvent } from "react";
+import { SOURCE_ACTION_TEXT } from "@/content/pt-BR/sources-admin";
+import { triedOutcome, WIZARD_TEXT } from "@/content/pt-BR/sources-admin-detail";
+import type { ActionFn, ActionState } from "@/lib/sources/action-state";
 import type { AnalyzeResult, DuplicateFound, LinkAnalysis } from "@/lib/sources/analyze";
-import type { ImagePolicy, Reliability, RepublishPolicy } from "@/lib/sources/types";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { AnalysisProgress, type AnalysisPhase } from "./AnalysisProgress";
-import {
-  ActionMessage,
-  CheckboxField,
-  CONTROL_CLASS,
-  CriticalBadge,
-  FieldShell,
-  JustificationField,
-  NativeSelect,
-  TextInput,
-} from "./fields";
-import {
-  frequencyGroups,
-  IMAGE_POLICY_OPTIONS,
-  LAYER_OPTIONS,
-  LOCALITY_OPTIONS,
-  looseningFields,
-  PRIORITY_OPTIONS,
-  RELIABILITY_OPTIONS,
-  REPUBLISH_OPTIONS,
-} from "./form-options";
+import { CONTROL_CLASS } from "./fields";
+import { looseningFields } from "./form-options";
 import { SourcePreviewList } from "./SourcePreviewList";
-import { SuggestionField, suggestionText, type FieldSuggestion } from "./SuggestionField";
+import { suggestionText } from "./SuggestionField";
+import { AiPanel } from "./WizardAiPanel";
+import {
+  currentOf,
+  initialFields,
+  RESTRICTED,
+  suggestionsOf,
+  type WizardFields,
+} from "./wizard-fields";
+import { ReviewStep, SaveStep, TermsStep } from "./WizardReview";
+import { Steps, type WizardStep } from "./WizardSteps";
 
-/** Mesmo formato do `ActionState` das Server Actions do painel (FS-T6). */
-export type WizardActionResult =
-  | { ok: true; message: string; data?: unknown }
-  | { ok: false; message: string; fieldErrors?: Record<string, string> };
-export type WizardAction = (form: FormData) => Promise<WizardActionResult>;
+/** Mesmo `ActionState` das Server Actions do painel (FS-T6), aqui só com outro nome. */
+export type WizardActionResult = ActionState;
+export type WizardAction = ActionFn;
 
 export interface AddSourceWizardProps {
   /** `analyzeLinkAction` (FS-T6). */
@@ -62,172 +40,6 @@ export interface AddSourceWizardProps {
   defaultFrequency: number;
   basePath?: string;
   initialUrl?: string;
-}
-
-type Step = 1 | 2 | 3 | 4 | 5;
-
-interface Fields {
-  name: string;
-  displayName: string;
-  slug: string;
-  layer: string;
-  categories: string;
-  locality: string;
-  reliability: Reliability;
-  imagePolicy: ImagePolicy;
-  republishPolicy: RepublishPolicy;
-  maySoleSource: boolean;
-  frequency: string;
-  rateLimit: string;
-  score: string;
-  priority: string;
-  termsUrl: string;
-  termsMinInterval: string;
-  agreementUntil: string;
-  agreementNote: string;
-  termsReviewed: boolean;
-  justification: string;
-}
-
-/** Padrão restrito de toda fonte nova (D-F3): o que passar disso vira pedido de aprovação. */
-const RESTRICTED = {
-  imagePolicy: "none",
-  republishPolicy: "link_only",
-  reliability: "standard",
-  maySoleSource: false,
-} as const;
-
-function initialFields(a: LinkAnalysis): Fields {
-  return {
-    name: a.rules.name.value,
-    displayName: "",
-    slug: a.rules.slug.value,
-    layer: String(a.rules.layer.value),
-    categories: "",
-    locality: "mt",
-    reliability: "standard",
-    imagePolicy: "none",
-    republishPolicy: "link_only",
-    maySoleSource: false,
-    frequency: a.rules.frequency.value === null ? "padrao" : String(a.rules.frequency.value),
-    rateLimit: String(a.rules.rateLimitPerHour.value),
-    score: "3",
-    priority: "2",
-    termsUrl: a.termsLinks[0] ?? "",
-    termsMinInterval: "",
-    agreementUntil: "",
-    agreementNote: "",
-    termsReviewed: false,
-    justification: "",
-  };
-}
-
-/** Sugestões por campo (regra ou IA) no formato do `SuggestionField`. */
-function suggestionsOf(a: LinkAnalysis): Record<string, FieldSuggestion | null> {
-  const ai = a.aiStatus === "ok" ? a.ai : null;
-  return {
-    name: { value: a.rules.name.value, origin: "regra" },
-    slug: { value: a.rules.slug.value, origin: "regra" },
-    layer: { value: a.rules.layer.value, origin: "regra" },
-    frequencyMinutes: {
-      value: a.rules.frequency.value === null ? "padrao" : a.rules.frequency.value,
-      origin: "regra",
-    },
-    rateLimitPerHour: { value: a.rules.rateLimitPerHour.value, origin: "regra" },
-    reliability:
-      a.rules.reliability.value !== "standard"
-        ? { value: a.rules.reliability.value, origin: "regra" }
-        : null,
-    categories: ai && ai.categories.value.length > 0 ? { ...ai.categories } : null,
-    locality: ai ? { ...ai.locality } : null,
-  };
-}
-
-/** Valor atual de cada campo com sugestão (para `accepted_fields`). */
-function currentOf(f: Fields): Record<string, string> {
-  return {
-    name: f.name,
-    slug: f.slug,
-    layer: f.layer,
-    frequencyMinutes: f.frequency,
-    rateLimitPerHour: f.rateLimit,
-    reliability: f.reliability,
-    categories: f.categories,
-    locality: f.locality,
-  };
-}
-
-const STEP_KEYS = ["address", "analysis", "review", "terms", "save"] as const;
-
-function Steps({ current }: { current: Step }) {
-  return (
-    <ol
-      aria-label={WIZARD_TEXT.steps.label}
-      className="flex flex-wrap items-center gap-x-4 gap-y-2 type-meta"
-    >
-      {STEP_KEYS.map((key, i) => {
-        const n = (i + 1) as Step;
-        const done = n < current;
-        const isCurrent = n === current;
-        return (
-          <li
-            key={key}
-            aria-current={isCurrent ? "step" : undefined}
-            className={cx(
-              "flex items-center gap-2",
-              isCurrent ? "font-semibold text-strong" : done ? "text-service" : "text-meta",
-            )}
-          >
-            <span
-              aria-hidden="true"
-              className={cx(
-                "inline-flex size-6 items-center justify-center rounded-pill text-13",
-                isCurrent
-                  ? "bg-inverse text-on-inverse"
-                  : done
-                    ? "bg-cerrado-soft text-service"
-                    : "border border-line-control",
-              )}
-            >
-              {done ? <Icon name="check" size={14} /> : n}
-            </span>
-            {WIZARD_TEXT.steps[key]}
-            {done && <span className="sr-only"> ({WIZARD_TEXT.steps.done})</span>}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function Panel({
-  title,
-  id,
-  children,
-  onFocus,
-  className,
-}: {
-  title: string;
-  id: string;
-  children: ReactNode;
-  onFocus?: () => void;
-  className?: string;
-}) {
-  return (
-    <section
-      aria-labelledby={id}
-      onFocusCapture={onFocus}
-      className={cx(
-        "flex min-w-0 flex-col gap-4 rounded-lg border border-line-section bg-card-white p-4 sm:p-5",
-        className,
-      )}
-    >
-      <h2 id={id} className="type-section text-strong">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
 }
 
 /**
@@ -252,13 +64,13 @@ export function AddSourceWizard({
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<LinkAnalysis | null>(null);
   const [duplicate, setDuplicate] = useState<(DuplicateFound & { message: string }) | null>(null);
-  const [fields, setFields] = useState<Fields | null>(null);
+  const [fields, setFields] = useState<WizardFields | null>(null);
   const [focusStep, setFocusStep] = useState<3 | 4 | 5>(3);
   const [saving, setSaving] = useState(false);
   const [saveResult, setSaveResult] = useState<WizardActionResult | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const current: Step =
+  const current: WizardStep =
     phase === "analyzing"
       ? 2
       : phase === "done" && analysis
@@ -267,7 +79,7 @@ export function AddSourceWizard({
           ? 2
           : 1;
 
-  const set = <K extends keyof Fields>(key: K, value: Fields[K]) =>
+  const set = <K extends keyof WizardFields>(key: K, value: WizardFields[K]) =>
     setFields((f) => (f ? { ...f, [key]: value } : f));
 
   async function runAnalyze(e: FormEvent) {
@@ -378,15 +190,6 @@ export function AddSourceWizard({
   }
 
   const urlId = `${uid}-url`;
-  const categoryList = sections.map((s) => s.slug).join(", ");
-  const freq = frequencyGroups({
-    defaultMinutes: defaultFrequency,
-    showFast: false,
-    fastDisabledReason: null,
-  });
-  const criticalAside = (field: string) =>
-    loosened.includes(field) ? <CriticalBadge>{FIELD_TEXT.critical}</CriticalBadge> : null;
-
   const progressMessage = duplicate ? (
     <div className="flex flex-wrap items-center gap-3 type-body text-strong">
       <Icon name="circle-alert" size={18} className="text-warn" />
@@ -496,345 +299,35 @@ export function AddSourceWizard({
             <AiPanel analysis={analysis} titleId={`${uid}-ia`} />
           </div>
 
-          <Panel
-            title={WIZARD_TEXT.review.title}
-            id={`${uid}-revisao`}
+          <ReviewStep
+            uid={uid}
+            fields={fields}
+            set={set}
+            suggestions={suggestions}
+            fieldErrors={fieldErrors}
+            sections={sections}
+            defaultFrequency={defaultFrequency}
+            loosened={loosened}
             onFocus={() => setFocusStep(3)}
-          >
-            <p className="type-meta text-meta">{WIZARD_TEXT.review.hint}</p>
-            <FieldGroup title={WIZARD_TEXT.review.identification}>
-              <SuggestionField
-                id={`${uid}-name`}
-                name="name"
-                label={FIELD_TEXT.name}
-                value={fields.name}
-                onChange={(v) => set("name", v)}
-                suggestion={suggestions.name}
-                error={fieldErrors.name}
-              />
-              <SuggestionField
-                id={`${uid}-displayName`}
-                name="displayName"
-                label={FIELD_TEXT.displayName}
-                value={fields.displayName}
-                onChange={(v) => set("displayName", v)}
-                hint={FIELD_TEXT.displayNameHint}
-                error={fieldErrors.displayName}
-              />
-              <SuggestionField
-                id={`${uid}-slug`}
-                name="slug"
-                label={FIELD_TEXT.slug}
-                value={fields.slug}
-                onChange={(v) => set("slug", v)}
-                suggestion={suggestions.slug}
-                error={fieldErrors.slug}
-              />
-            </FieldGroup>
-            <FieldGroup title={WIZARD_TEXT.review.classification}>
-              <SuggestionField
-                id={`${uid}-layer`}
-                name="layer"
-                label={FIELD_TEXT.layer}
-                value={fields.layer}
-                onChange={(v) => set("layer", v)}
-                options={LAYER_OPTIONS}
-                suggestion={suggestions.layer}
-                formatSuggestion={(v) => LAYER_OPTIONS.find((o) => o.value === v)?.label ?? v}
-              />
-              <SuggestionField
-                id={`${uid}-categories`}
-                name="categories"
-                label={FIELD_TEXT.categories}
-                value={fields.categories}
-                onChange={(v) => set("categories", v)}
-                suggestion={suggestions.categories}
-                hint={FIELD_TEXT.categoriesHint(categoryList)}
-                error={fieldErrors.categories}
-              />
-              <SuggestionField
-                id={`${uid}-locality`}
-                name="locality"
-                label={FIELD_TEXT.locality}
-                value={fields.locality}
-                onChange={(v) => set("locality", v)}
-                options={LOCALITY_OPTIONS}
-                suggestion={suggestions.locality}
-                formatSuggestion={(v) => LOCALITY_TEXT[v] ?? v}
-              />
-              <SuggestionField
-                id={`${uid}-reliability`}
-                name="reliability"
-                label={FIELD_TEXT.reliability}
-                value={fields.reliability}
-                onChange={(v) => set("reliability", v as Reliability)}
-                options={RELIABILITY_OPTIONS}
-                suggestion={suggestions.reliability}
-                formatSuggestion={(v) => RELIABILITY_TEXT[v as Reliability] ?? v}
-                hint={FIELD_TEXT.criticalStatic}
-                aside={criticalAside("reliability")}
-              />
-            </FieldGroup>
-            <FieldGroup title={WIZARD_TEXT.review.rights}>
-              <FieldShell
-                id={`${uid}-imagePolicy`}
-                label={FIELD_TEXT.imagePolicy}
-                hint={FIELD_TEXT.criticalStatic}
-                aside={criticalAside("imagePolicy")}
-              >
-                <NativeSelect
-                  id={`${uid}-imagePolicy`}
-                  name="imagePolicy"
-                  value={fields.imagePolicy}
-                  onChange={(v) => set("imagePolicy", v as ImagePolicy)}
-                  options={IMAGE_POLICY_OPTIONS}
-                  hint={FIELD_TEXT.criticalStatic}
-                />
-              </FieldShell>
-              <FieldShell
-                id={`${uid}-republish`}
-                label={FIELD_TEXT.republishPolicy}
-                hint={FIELD_TEXT.criticalStatic}
-                aside={criticalAside("republishPolicy")}
-              >
-                <NativeSelect
-                  id={`${uid}-republish`}
-                  name="republishPolicy"
-                  value={fields.republishPolicy}
-                  onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
-                  options={REPUBLISH_OPTIONS}
-                  hint={FIELD_TEXT.criticalStatic}
-                />
-              </FieldShell>
-              <CheckboxField
-                id={`${uid}-sole`}
-                label={FIELD_TEXT.maySoleSource}
-                checked={fields.maySoleSource}
-                onChange={(v) => set("maySoleSource", v)}
-                hint={FIELD_TEXT.criticalStatic}
-                aside={criticalAside("maySoleSource")}
-              />
-              <TextInput
-                id={`${uid}-agreementUntil`}
-                label={FIELD_TEXT.agreementUntil}
-                type="date"
-                value={fields.agreementUntil}
-                onChange={(v) => set("agreementUntil", v)}
-              />
-              <TextInput
-                id={`${uid}-agreementNote`}
-                label={FIELD_TEXT.agreementNote}
-                value={fields.agreementNote}
-                onChange={(v) => set("agreementNote", v)}
-              />
-            </FieldGroup>
-            {needsJustification && (
-              <JustificationField
-                id={`${uid}-justification`}
-                value={fields.justification}
-                onChange={(v) => set("justification", v)}
-                error={fieldErrors.justification}
-              />
-            )}
-            <FieldGroup title={WIZARD_TEXT.review.collection}>
-              <SuggestionField
-                id={`${uid}-frequency`}
-                name="frequencyMinutes"
-                label={FREQUENCY_FIELD_TEXT.label}
-                value={fields.frequency}
-                onChange={(v) => set("frequency", v)}
-                options={freq.options}
-                groups={freq.groups}
-                suggestion={suggestions.frequencyMinutes}
-                formatSuggestion={(v) =>
-                  v === "padrao"
-                    ? FREQUENCY_FIELD_TEXT.defaultOption(formatMinutes(defaultFrequency))
-                    : formatMinutes(Number(v))
-                }
-                hint={FREQUENCY_FIELD_TEXT.newSource}
-                error={fieldErrors.frequencyMinutes}
-              />
-              <SuggestionField
-                id={`${uid}-rate`}
-                name="rateLimitPerHour"
-                label={FIELD_TEXT.rateLimit}
-                value={fields.rateLimit}
-                onChange={(v) => set("rateLimit", v)}
-                suggestion={suggestions.rateLimitPerHour}
-                inputMode="numeric"
-                hint={FIELD_TEXT.rateLimitHint}
-                error={fieldErrors.rateLimitPerHour}
-              />
-            </FieldGroup>
-            <FieldGroup title={WIZARD_TEXT.review.importance}>
-              <FieldShell id={`${uid}-score`} label={FIELD_TEXT.score} hint={FIELD_TEXT.scoreHint}>
-                <NativeSelect
-                  id={`${uid}-score`}
-                  name="editorialScore"
-                  value={fields.score}
-                  onChange={(v) => set("score", v)}
-                  options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: scoreText(n) }))}
-                  hint={FIELD_TEXT.scoreHint}
-                />
-              </FieldShell>
-              <FieldShell id={`${uid}-priority`} label={FIELD_TEXT.priority}>
-                <NativeSelect
-                  id={`${uid}-priority`}
-                  name="priority"
-                  value={fields.priority}
-                  onChange={(v) => set("priority", v)}
-                  options={PRIORITY_OPTIONS}
-                />
-              </FieldShell>
-            </FieldGroup>
-          </Panel>
-
-          <Panel
-            title={WIZARD_TEXT.terms.title}
-            id={`${uid}-termos`}
+          />
+          <TermsStep
+            uid={uid}
+            termsLinks={analysis.termsLinks}
+            fields={fields}
+            set={set}
+            fieldErrors={fieldErrors}
             onFocus={() => setFocusStep(4)}
-          >
-            <p className="flex items-start gap-2 type-body text-strong">
-              <Icon name="check" size={18} className="mt-0.5 shrink-0 text-service" />
-              {WIZARD_TEXT.terms.robotsOk}
-            </p>
-            {analysis.termsLinks.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                <p className="type-body text-strong">{WIZARD_TEXT.terms.found}</p>
-                <ul className="flex flex-col gap-1">
-                  {analysis.termsLinks.map((href) => (
-                    <li key={href}>
-                      <a
-                        href={href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="type-body break-all text-link underline-offset-4 hover:underline"
-                      >
-                        {href}
-                        <span className="sr-only"> {WIZARD_TEXT.preview.opensNewTab}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="type-body text-meta">{WIZARD_TEXT.terms.none}</p>
-            )}
-            <div className="grid gap-4 md:grid-cols-2">
-              <TextInput
-                id={`${uid}-termsUrl`}
-                label={FIELD_TEXT.termsUrl}
-                type="url"
-                value={fields.termsUrl}
-                onChange={(v) => set("termsUrl", v)}
-                error={fieldErrors.termsUrl}
-              />
-              <TextInput
-                id={`${uid}-termsMin`}
-                label={FIELD_TEXT.termsMinInterval}
-                inputMode="numeric"
-                value={fields.termsMinInterval}
-                onChange={(v) => set("termsMinInterval", v)}
-                hint={FIELD_TEXT.termsMinIntervalHint}
-                error={fieldErrors.termsMinIntervalMinutes}
-              />
-            </div>
-            <CheckboxField
-              id={`${uid}-termsReviewed`}
-              label={WIZARD_TEXT.terms.checkbox}
-              checked={fields.termsReviewed}
-              onChange={(v) => set("termsReviewed", v)}
-              hint={WIZARD_TEXT.terms.checkboxHint}
-            />
-          </Panel>
-
-          <Panel
-            title={WIZARD_TEXT.save.title}
-            id={`${uid}-salvar`}
+          />
+          <SaveStep
+            uid={uid}
+            saving={saving}
+            termsReviewed={fields.termsReviewed}
+            result={saveResult}
+            onSave={save}
             onFocus={() => setFocusStep(5)}
-          >
-            <p className="type-body text-meta">{WIZARD_TEXT.save.hint}</p>
-            <ActionMessage result={saveResult} />
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button size="md" onClick={() => save(false)} disabled={saving}>
-                {saving ? WIZARD_TEXT.save.saving : WIZARD_TEXT.save.paused}
-              </Button>
-              <Button
-                size="md"
-                variant="outline"
-                onClick={() => save(true)}
-                disabled={saving || !fields.termsReviewed}
-              >
-                {WIZARD_TEXT.save.activate}
-              </Button>
-            </div>
-          </Panel>
+          />
         </>
       )}
     </div>
-  );
-}
-
-function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <fieldset className="flex min-w-0 flex-col gap-4 border-0 p-0">
-      <legend className="mb-3 type-label text-16 font-semibold text-strong">{title}</legend>
-      <div className="grid gap-4 md:grid-cols-2">{children}</div>
-    </fieldset>
-  );
-}
-
-function AiPanel({ analysis, titleId }: { analysis: LinkAnalysis; titleId: string }) {
-  const ai = analysis.aiStatus === "ok" ? analysis.ai : null;
-  const notice =
-    analysis.aiStatus === "unavailable"
-      ? ANALYZE_TEXT.aiUnavailable
-      : analysis.aiStatus === "disabled"
-        ? WIZARD_TEXT.ai.disabled
-        : analysis.aiStatus === "insufficient_data"
-          ? WIZARD_TEXT.ai.insufficient
-          : null;
-  return (
-    <aside
-      aria-labelledby={titleId}
-      className="flex min-w-0 flex-col gap-3 rounded-lg border border-dashed border-ai bg-ia-soft p-4 sm:p-5"
-    >
-      <h2 id={titleId} className="type-section text-strong">
-        {WIZARD_TEXT.ai.title}
-      </h2>
-      {notice && <p className="type-body text-strong">{notice}</p>}
-      {ai && (
-        <>
-          <p className="type-meta text-strong">
-            {FIELD_TEXT.suggestion.ia}: {FIELD_TEXT.categories} e {FIELD_TEXT.locality} ficam nos
-            campos abaixo, com o botão “Usar sugestão”.
-          </p>
-          <div className="flex flex-col gap-1">
-            <p className="type-label text-16 text-strong">{WIZARD_TEXT.ai.qualityTitle}</p>
-            {ai.qualityFlags.value.length === 0 ? (
-              <p className="type-meta text-meta">{WIZARD_TEXT.ai.noQuality}</p>
-            ) : (
-              <ul className="flex flex-col gap-1">
-                {ai.qualityFlags.value.map((flag) => (
-                  <li key={flag} className="flex items-center gap-1.5 type-body text-strong">
-                    <Icon name="circle-alert" size={16} className="text-warn" />
-                    {WIZARD_TEXT.quality[flag] ?? flag}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {ai.rationale.value && (
-            <div className="flex flex-col gap-1">
-              <p className="type-label text-16 text-strong">{WIZARD_TEXT.ai.rationale}</p>
-              <p className="type-meta text-strong">{ai.rationale.value}</p>
-            </div>
-          )}
-          {analysis.selectorsValidated && (
-            <p className="type-meta text-strong">{WIZARD_TEXT.ai.selectorsOk}</p>
-          )}
-        </>
-      )}
-    </aside>
   );
 }

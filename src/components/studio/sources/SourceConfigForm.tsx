@@ -26,14 +26,13 @@ import type {
 } from "@/lib/sources/types";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
-import type { WizardAction, WizardActionResult } from "./AddSourceWizard";
+import { isConflict, type ActionFn, type ActionState } from "@/lib/sources/action-state";
 import {
   ActionMessage,
   CheckboxField,
   CriticalBadge,
-  FieldShell,
   JustificationField,
-  NativeSelect,
+  SelectField,
   TextInput,
 } from "./fields";
 import {
@@ -66,7 +65,7 @@ export interface SourceConfigFormProps {
   fastLane: { used: number; max: number };
   sections: readonly { slug: string; name: string }[];
   /** `updateSourceAction` (FS-T6). */
-  action: WizardAction;
+  action: ActionFn;
   /** Relógio da prévia de próxima coleta (testes). */
   now?: Date;
 }
@@ -127,7 +126,6 @@ const rightsOf = (v: Values): RightsFields => ({
 });
 
 const FAST_LANE_LIMIT = 30;
-const CONFLICT_MARK = "Recarregue";
 
 /**
  * Aba Configuração da fonte (spec §7.2): Identificação, Classificação, Direitos, Coleta e
@@ -152,7 +150,7 @@ export function SourceConfigForm({
   const [justification, setJustification] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<WizardActionResult | null>(null);
+  const [result, setResult] = useState<ActionState | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const readOnly = source.archived;
 
@@ -242,7 +240,7 @@ export function SourceConfigForm({
 
     setSaving(true);
     setResult(null);
-    let r: WizardActionResult;
+    let r: ActionState;
     try {
       r = await action(form);
     } catch {
@@ -269,7 +267,7 @@ export function SourceConfigForm({
     setReason("");
   }
 
-  const conflict = result && !result.ok && result.message.includes(CONFLICT_MARK);
+  const conflict = isConflict(result);
   const id = (k: string) => `${uid}-${k}`;
 
   return (
@@ -306,15 +304,14 @@ export function SourceConfigForm({
         </Section>
 
         <Section title={WIZARD_TEXT.review.classification}>
-          <FieldShell id={id("layer")} label={FIELD_TEXT.layer}>
-            <NativeSelect
-              id={id("layer")}
-              name="layer"
-              value={values.layer}
-              onChange={(v) => set("layer", v)}
-              options={[{ value: "", label: FIELD_TEXT.layerNone }, ...LAYER_OPTIONS]}
-            />
-          </FieldShell>
+          <SelectField
+            id={id("layer")}
+            label={FIELD_TEXT.layer}
+            name="layer"
+            value={values.layer}
+            onChange={(v) => set("layer", v)}
+            options={[{ value: "", label: FIELD_TEXT.layerNone }, ...LAYER_OPTIONS]}
+          />
           <TextInput
             id={id("categories")}
             label={FIELD_TEXT.categories}
@@ -323,63 +320,47 @@ export function SourceConfigForm({
             hint={FIELD_TEXT.categoriesHint(sections.map((s) => s.slug).join(", "))}
             error={errors.categories}
           />
-          <FieldShell id={id("locality")} label={FIELD_TEXT.locality}>
-            <NativeSelect
-              id={id("locality")}
-              name="locality"
-              value={values.locality}
-              onChange={(v) => set("locality", v)}
-              options={LOCALITY_OPTIONS}
-            />
-          </FieldShell>
-          <FieldShell
+          <SelectField
+            id={id("locality")}
+            label={FIELD_TEXT.locality}
+            name="locality"
+            value={values.locality}
+            onChange={(v) => set("locality", v)}
+            options={LOCALITY_OPTIONS}
+          />
+          <SelectField
             id={id("reliability")}
             label={FIELD_TEXT.reliability}
             hint={FIELD_TEXT.criticalStatic}
             aside={criticalAside("reliability")}
-          >
-            <NativeSelect
-              id={id("reliability")}
-              name="reliability"
-              value={values.reliability}
-              onChange={(v) => set("reliability", v as Reliability)}
-              options={RELIABILITY_OPTIONS}
-              hint={FIELD_TEXT.criticalStatic}
-            />
-          </FieldShell>
+            name="reliability"
+            value={values.reliability}
+            onChange={(v) => set("reliability", v as Reliability)}
+            options={RELIABILITY_OPTIONS}
+          />
         </Section>
 
         <Section title={WIZARD_TEXT.review.rights}>
-          <FieldShell
+          <SelectField
             id={id("imagePolicy")}
             label={FIELD_TEXT.imagePolicy}
             hint={FIELD_TEXT.criticalStatic}
             aside={criticalAside("imagePolicy")}
-          >
-            <NativeSelect
-              id={id("imagePolicy")}
-              name="imagePolicy"
-              value={values.imagePolicy}
-              onChange={(v) => set("imagePolicy", v as ImagePolicy)}
-              options={IMAGE_POLICY_OPTIONS}
-              hint={FIELD_TEXT.criticalStatic}
-            />
-          </FieldShell>
-          <FieldShell
+            name="imagePolicy"
+            value={values.imagePolicy}
+            onChange={(v) => set("imagePolicy", v as ImagePolicy)}
+            options={IMAGE_POLICY_OPTIONS}
+          />
+          <SelectField
             id={id("republish")}
             label={FIELD_TEXT.republishPolicy}
             hint={FIELD_TEXT.criticalStatic}
             aside={criticalAside("republishPolicy")}
-          >
-            <NativeSelect
-              id={id("republish")}
-              name="republishPolicy"
-              value={values.republishPolicy}
-              onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
-              options={REPUBLISH_OPTIONS}
-              hint={FIELD_TEXT.criticalStatic}
-            />
-          </FieldShell>
+            name="republishPolicy"
+            value={values.republishPolicy}
+            onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
+            options={REPUBLISH_OPTIONS}
+          />
           <CheckboxField
             id={id("sole")}
             label={FIELD_TEXT.maySoleSource}
@@ -425,15 +406,14 @@ export function SourceConfigForm({
         )}
 
         <Section title={WIZARD_TEXT.review.collection}>
-          <FieldShell id={id("strategy")} label={FIELD_TEXT.strategy}>
-            <NativeSelect
-              id={id("strategy")}
-              name="strategy"
-              value={values.strategy}
-              onChange={(v) => set("strategy", v as ConsumptionStrategy)}
-              options={STRATEGY_VALUES.map((s) => ({ value: s, label: STRATEGY_TEXT[s] }))}
-            />
-          </FieldShell>
+          <SelectField
+            id={id("strategy")}
+            label={FIELD_TEXT.strategy}
+            name="strategy"
+            value={values.strategy}
+            onChange={(v) => set("strategy", v as ConsumptionStrategy)}
+            options={STRATEGY_VALUES.map((s) => ({ value: s, label: STRATEGY_TEXT[s] }))}
+          />
           <TextInput
             id={id("feedUrl")}
             label={FIELD_TEXT.feedUrl}
@@ -452,23 +432,18 @@ export function SourceConfigForm({
               error={errors.pageSelectors}
             />
           )}
-          <FieldShell
+          <SelectField
             id={id("frequency")}
             label={FREQUENCY_FIELD_TEXT.label}
             hint={FREQUENCY_FIELD_TEXT.help}
             error={errors.frequencyMinutes}
             className="md:col-span-2"
+            name="frequencyMinutes"
+            value={values.frequency}
+            onChange={(v) => set("frequency", v)}
+            options={freq.options}
+            groups={freq.groups}
           >
-            <NativeSelect
-              id={id("frequency")}
-              name="frequencyMinutes"
-              value={values.frequency}
-              onChange={(v) => set("frequency", v)}
-              options={freq.options}
-              groups={freq.groups}
-              hint={FREQUENCY_FIELD_TEXT.help}
-              error={errors.frequencyMinutes}
-            />
             <div
               aria-live="polite"
               className="flex flex-col gap-1 rounded-md bg-section px-3 py-2 type-meta text-strong"
@@ -481,7 +456,7 @@ export function SourceConfigForm({
               </p>
               <p className="text-meta">{FREQUENCY_FIELD_TEXT.lane(fastLane.used, fastLane.max)}</p>
             </div>
-          </FieldShell>
+          </SelectField>
           <TextInput
             id={id("rate")}
             label={FIELD_TEXT.rateLimit}
@@ -530,15 +505,14 @@ export function SourceConfigForm({
             </div>
             <p className="type-meta text-meta">{FIELD_TEXT.scoreHint}</p>
           </fieldset>
-          <FieldShell id={id("priority")} label={FIELD_TEXT.priority}>
-            <NativeSelect
-              id={id("priority")}
-              name="priority"
-              value={values.priority}
-              onChange={(v) => set("priority", v)}
-              options={PRIORITY_OPTIONS}
-            />
-          </FieldShell>
+          <SelectField
+            id={id("priority")}
+            label={FIELD_TEXT.priority}
+            name="priority"
+            value={values.priority}
+            onChange={(v) => set("priority", v)}
+            options={PRIORITY_OPTIONS}
+          />
         </Section>
       </fieldset>
 

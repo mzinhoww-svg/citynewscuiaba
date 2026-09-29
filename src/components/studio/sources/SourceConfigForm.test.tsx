@@ -168,6 +168,7 @@ describe("SourceConfigForm", () => {
       {},
       vi.fn<WizardAction>(async () => ({
         ok: false,
+        code: "conflict",
         message:
           "Esta fonte foi alterada por Helena Costa às 14:32. Recarregue para ver a versão atual.",
       })),
@@ -178,6 +179,21 @@ describe("SourceConfigForm", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("alterada por Helena Costa");
     expect(within(alert).getByRole("button", { name: "Recarregar" })).toBeInTheDocument();
+  });
+
+  it("falha sem code=conflict não oferece Recarregar, mesmo que o texto fale em recarregar", async () => {
+    setup(
+      {},
+      vi.fn<WizardAction>(async () => ({
+        ok: false,
+        message: "Serviço indisponível. Recarregue e tente de novo.",
+      })),
+    );
+    await userEvent.clear(screen.getByLabelText("Nome exibido"));
+    await userEvent.type(screen.getByLabelText("Nome exibido"), "Várzea");
+    await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+    const alert = screen.getByRole("alert");
+    expect(within(alert).queryByRole("button", { name: "Recarregar" })).toBeNull();
   });
 
   it("arquivada abre em modo leitura", () => {

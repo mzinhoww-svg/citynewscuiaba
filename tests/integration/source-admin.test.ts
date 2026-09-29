@@ -319,8 +319,10 @@ describe("acesso e concorrência", () => {
     const r = await asUser(DIEGO, () =>
       updateSourceAction(formFrom({ id: s.id, version: s.version, editorialScore: 1 })),
     );
+    // `code: "conflict"` é o que a interface usa para oferecer "Recarregar" (não o texto).
     expect(r).toEqual({
       ok: false,
+      code: "conflict",
       message: `Esta fonte foi alterada por Helena Costa às ${clockTime(last.at)}. Recarregue para ver a versão atual.`,
     });
     expect((await detailBySlug("mt-agora")).editorialScore).toBe(5);

@@ -10,33 +10,14 @@ import {
   SourceSectionNav,
   SourceStatusBadge,
 } from "@/components";
-import { fullDateTime, STATUS_REASON_TEXT } from "@/content/pt-BR/sources-admin";
 import { DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { can } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";
-import type { SourceDetail } from "@/lib/db/queries/sources-admin";
 import { collectNowAction, decideApprovalAction, sourceStatusAction } from "../actions";
-import { BASE, detailPath, loadSource } from "./detail";
+import { BASE, detailPath, loadSource, statusLine } from "./detail";
 import NotFound from "./not-found";
 
 type Props = { children: ReactNode; params: Promise<{ id: string }> };
-
-/** Status com motivo em texto (spec §8: "Pausada automaticamente em 27/09 14:30 após 3 falhas"). */
-export function statusLine(d: SourceDetail): string {
-  const when = d.statusChangedAt ? fullDateTime(d.statusChangedAt) : null;
-  if (d.archivedAt) return T.status.archived(fullDateTime(d.archivedAt), d.archiveReason);
-  if (d.status === "active") return T.status.active;
-  if (d.status === "degraded") return T.status.degraded(d.consecutiveFailures);
-  if (d.status === "blocked")
-    return T.status.blocked(
-      d.statusReason ? STATUS_REASON_TEXT[d.statusReason] : STATUS_REASON_TEXT.other,
-    );
-  if (d.statusReason === "pending_activation") return T.status.pendingActivation;
-  if (d.statusReason === "auto_failures")
-    return when ? T.status.auto(when) : STATUS_REASON_TEXT.auto_failures;
-  if (d.statusReason === "robots") return T.status.robots;
-  return when ? T.status.manual(when, d.statusChangedBy?.name ?? null) : T.status.manualNoDate;
-}
 
 function domainOf(url: string): string {
   try {

@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { SOURCE_ACTION_TEXT } from "@/content/pt-BR/sources-admin";
 import { DETAIL_TEXT as T, DIALOG_TEXT } from "@/content/pt-BR/sources-admin-detail";
+import { isConflict, type ActionFn, type ActionState } from "@/lib/sources/action-state";
 import type { SourceStatus, StatusReason } from "@/lib/sources/types";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
-import type { WizardAction, WizardActionResult } from "./AddSourceWizard";
 import { BlockSourceDialog } from "./BlockSourceDialog";
 import { ConfirmByTypingDialog } from "./ConfirmByTypingDialog";
 import { ActionMessage, JustificationField } from "./fields";
@@ -22,14 +22,13 @@ export interface SourceHeaderActionsProps {
     archived: boolean;
   };
   /** `sourceStatusAction` (FS-T6). */
-  statusAction: WizardAction;
+  statusAction: ActionFn;
   /** `collectNowAction` (FS-T6). */
-  collectNowAction: WizardAction;
+  collectNowAction: ActionFn;
   className?: string;
 }
 
 type DialogKind = null | "block" | "archive" | "unblock";
-const CONFLICT_MARK = "Recarregue";
 
 /**
  * Ações principais do cabeçalho da fonte (spec §7.3, §7.4, §8): Coletar agora, Pausar/Retomar/
@@ -47,7 +46,7 @@ export function SourceHeaderActions({
   const router = useRouter();
   const [dialog, setDialog] = useState<DialogKind>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [result, setResult] = useState<WizardActionResult | null>(null);
+  const [result, setResult] = useState<ActionState | null>(null);
   const [dialogError, setDialogError] = useState<string | null>(null);
   const [justification, setJustification] = useState("");
   const [justificationError, setJustificationError] = useState<string | null>(null);
@@ -71,10 +70,10 @@ export function SourceHeaderActions({
     if (trigger) setTimeout(() => trigger.focus(), 0);
   };
 
-  async function run(label: string, action: WizardAction, form: FormData, inDialog = false) {
+  async function run(label: string, action: ActionFn, form: FormData, inDialog = false) {
     setBusy(label);
     if (!inDialog) setResult(null);
-    let r: WizardActionResult;
+    let r: ActionState;
     try {
       r = await action(form);
     } catch {
@@ -99,7 +98,7 @@ export function SourceHeaderActions({
     return form;
   };
 
-  const conflict = result && !result.ok && result.message.includes(CONFLICT_MARK);
+  const conflict = isConflict(result);
   const btn = (
     label: string,
     onClick: (e: { currentTarget: EventTarget | null }) => void,
