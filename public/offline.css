@@ -1,77 +1,266 @@
-/* Página offline (P25): estática, sem script, cores dos tokens (DESIGN.md §3). */
+/* CityNews · gerado por scripts/build-sw.mjs a partir de src/sw e src/offline-page. Não edite. */
+/* CityNews Cuiabá · tokens unificados (brand kit do Claude Design + refinamentos impeccable).
+   Fonte de verdade: DESIGN.md. Nomes seguem design-system/tokens/*.css; mudanças marcadas com [R].
+   Contrastes medidos em DESIGN.md §2. */
 :root {
-  color-scheme: light dark;
-  --tinta: #0f1b2d;
-  --nevoa: #f3f5f8;
-  --grafite: #4a4f57;
-  --urucum: #e8491d;
-  --foco: #e8491d;
+  color-scheme: light;
+
+  /* Paleta de marca */
+  --cn-tinta: #0f1b2d;
+  --cn-urucum: #e8491d;            /* O Ponto: ao vivo, marcador ativo, progresso. Pouca quantidade. */
+  --cn-urucum-texto: #b33a12;      /* links, eyebrows, rótulos pequenos (5,95:1) */
+  --cn-cerrado: #1e6b52;           /* guia, serviços, utilidade, sucesso */
+  --cn-branco: #ffffff;
+  --cn-grafite: #4a4f57;           /* metadados (8,24:1) */
+  --cn-papel: #f5f2ec;             /* [R] somente marca/impresso/social. Proibido como superfície de UI. */
+  --cn-nevoa: #f3f5f8;             /* [R] substitui Papel nas superfícies de UI: oklch(0.969 0.005 258) */
+  --cn-nevoa-2: #e9edf2;           /* [R] pressionado / fundo secundário sobre névoa */
+
+  /* Derivados */
+  --cn-tinta-80: #27324a;
+  --cn-tinta-60: #3b465c;
+  --cn-urucum-soft: #fce6dd;
+  --cn-cerrado-soft: #ddede6;
+  --cn-foto: #e4e8ee;              /* [R] placeholder de foto frio (era #E6E1D8) */
+  --cn-linha: #d5dbe3;             /* [R] divisória sobre névoa */
+  --cn-linha-branca: #e3e7ed;      /* [R] hairline sobre branco (era #ECEAE6) */
+  --cn-grafite-2: #5f646d;         /* [R] placeholder e desabilitado: 5,95:1 (era #767B84, 4,25:1) */
+  --cn-borda-controle: #7d8591;    /* [R] borda de campo e controle: 3,73:1 (WCAG 1.4.11) */
+  --cn-erro: #c4281c;
+  --cn-erro-soft: #fef3f2;
+  --cn-urgente: #ee5a2f;           /* [R] faixa URGENTE com texto Tinta (5,05:1) */
+  --cn-ia: #1f4e8c;                /* [R] origem IA, sempre com borda tracejada */
+  --cn-ia-soft: #eaf1fb;
+  --cn-atencao: #7a4f00;           /* [R] inferência, confiança média */
+  --cn-atencao-soft: #fff4db;
+  --cn-avatar-1: #33425a; --cn-avatar-2: #5b6470; --cn-avatar-3: #1e6b52;
+  --cn-avatar-4: #7a4f00; --cn-avatar-5: #8a3a1b; --cn-avatar-6: #6b3a5e;
+
+  /* Aliases semânticos (use estes nos componentes) */
+  --bg-page: var(--cn-branco);
+  --bg-section: var(--cn-nevoa);
+  --bg-inverse: var(--cn-tinta);
+  --surface-card: var(--cn-nevoa);
+  --surface-card-white: var(--cn-branco);
+  --surface-input: var(--cn-branco);           /* [R] campo branco com borda visível */
+  --surface-photo: var(--cn-foto);
+  --surface-overlay: rgb(15 27 45 / 0.48);
+  --surface-aggregated: var(--cn-nevoa);       /* Panorama de fontes */
+  --text-strong: var(--cn-tinta);
+  --text-body: var(--cn-tinta);
+  --text-meta: var(--cn-grafite);
+  --text-placeholder: var(--cn-grafite-2);
+  --text-inverse: var(--cn-branco);
+  --text-link: var(--cn-urucum-texto);
+  --text-eyebrow: var(--cn-urucum-texto);
+  --text-service: var(--cn-cerrado);
+  --text-danger: var(--cn-erro);
+  --text-ai: var(--cn-ia);
+  --text-warn: var(--cn-atencao);
+  --accent: var(--cn-urucum);
+  --accent-service: var(--cn-cerrado);
+  --action-primary: var(--cn-tinta);
+  --action-primary-pressed: var(--cn-tinta-80);
+  --action-secondary: var(--cn-nevoa);
+  --border-subtle: var(--cn-linha-branca);
+  --border-section: var(--cn-linha);
+  --border-control: var(--cn-borda-controle);
+  --border-strong: var(--cn-tinta);
+  --focus-ring: 3px solid var(--cn-urucum);    /* [R] sólido (era rgba .35) */
+  --focus-offset: 2px;
+
+  /* Tipografia (fontes locais via next/font/local; ver P0 Task 1) */
+  --font-sans: var(--font-schibsted), "Schibsted Grotesk", system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), "Source Serif 4", Georgia, serif;
+  --fw-regular: 400; --fw-medium: 500; --fw-semibold: 600; --fw-bold: 700; --fw-black: 800;
+  --fs-12: 0.75rem; --fs-13: 0.8125rem; --fs-14: 0.875rem; --fs-16: 1rem; --fs-18: 1.125rem;
+  --fs-20: 1.25rem; --fs-24: 1.5rem; --fs-28: 1.75rem; --fs-32: 2rem; --fs-40: 2.5rem; --fs-56: 3.5rem;
+  --lh-tight: 1.1; --lh-snug: 1.25; --lh-normal: 1.5; --lh-read: 1.65;
+  --ls-wordmark: -0.04em; --ls-display: -0.02em; --ls-normal: 0; --ls-eyebrow: 0.08em;
+  --type-display: 800 clamp(2rem, 1.5rem + 2.4vw, 3.5rem)/var(--lh-tight) var(--font-sans);
+  --type-screen-title: 700 var(--fs-24)/var(--lh-snug) var(--font-sans);
+  --type-nav-title: 600 var(--fs-16)/var(--lh-snug) var(--font-sans);
+  --type-section: 700 var(--fs-20)/var(--lh-snug) var(--font-sans);
+  --type-headline-xl: 600 clamp(1.75rem, 1.3rem + 1.9vw, 2.75rem)/1.12 var(--font-serif);
+  --type-headline: 600 clamp(1.25rem, 1.15rem + 0.4vw, 1.375rem)/var(--lh-snug) var(--font-serif);
+  --type-headline-sm: 600 var(--fs-16)/1.3 var(--font-serif);
+  --type-body-read: 400 clamp(1.125rem, 1.08rem + 0.25vw, 1.25rem)/var(--lh-read) var(--font-serif); /* [R] era 16px */
+  --type-body: 400 var(--fs-16)/var(--lh-normal) var(--font-sans);                                      /* [R] era 14px */
+  --type-label: 600 var(--fs-14)/1.2 var(--font-sans);
+  --type-button: 600 var(--fs-16)/1 var(--font-sans);
+  --type-meta: 500 var(--fs-13)/1.35 var(--font-sans);                                                  /* [R] era 12px/400 */
+  --type-eyebrow: 700 var(--fs-12)/1 var(--font-sans);
+  --measure-read: 68ch;
+
+  /* Espaço, layout e controles (medidas do brand kit) */
+  --sp-2: 2px; --sp-4: 4px; --sp-6: 6px; --sp-8: 8px; --sp-10: 10px; --sp-12: 12px; --sp-16: 16px;
+  --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-40: 40px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
+  --gutter: 24px; --container-max: 1200px;
+  --h-input: 52px; --h-button: 56px; --h-button-sm: 36px; --h-chip: 36px; --h-icon-btn: 48px; --h-tabbar: 64px;
+  --tap-min: 44px;
+
+  /* Raios: app suave, web editorial */
+  --r-0: 0; --r-xs: 4px; --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 20px; --r-2xl: 28px; --r-pill: 999px;
+
+  /* Elevação (sistema plano) */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgb(15 27 45 / 0.06);
+  --shadow-md: 0 8px 24px rgb(15 27 45 / 0.08);
+  --shadow-lg: 0 16px 40px rgb(15 27 45 / 0.14);
+  --blur-overlay: 8px;
+
+  /* Camadas [R] */
+  --z-base: 0; --z-sticky: 100; --z-dropdown: 200; --z-overlay: 300; --z-sheet: 400;
+  --z-modal: 500; --z-toast: 600; --z-tooltip: 700;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 320ms; --dur-stagger: 40ms;
 }
+
+@media (min-width: 1024px) { :root { --gutter: 40px; } }
+
+/* Modo escuro [R] (todos os pares de texto ≥ 7:1) */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-page: #0b1320; --bg-section: #121c2c; --surface-card: #121c2c; --surface-card-white: #0b1320;
+  --surface-input: #0b1320; --surface-photo: #1b2638; --surface-aggregated: #121c2c;
+  --text-strong: #e9edf3; --text-body: #e9edf3; --text-meta: #9aa6b8; --text-placeholder: #9aa6b8;
+  --text-inverse: #0b1320; --text-link: #f39a78; --text-eyebrow: #f39a78; --text-service: #6fc3a2;
+  --text-danger: #f28b82; --text-ai: #8fb4e8; --text-warn: #e7b85c;
+  --accent: #f06a43; --action-primary: #e9edf3; --action-primary-pressed: #c9d0da; --action-secondary: #121c2c;
+  --border-subtle: #243145; --border-section: #243145; --border-control: #6b778a; --border-strong: #e9edf3;
+  --cn-urgente: #f06a43; --cn-ia-soft: #111f35; --cn-cerrado-soft: #10261f; --cn-atencao-soft: #2a2110; --cn-erro-soft: #2c1413;
+  --focus-ring: 3px solid #f06a43;
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+:where(h1, h2, h3) { text-wrap: balance; }
+:where(p) { text-wrap: pretty; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Página "Sem conexão" (P25): só variáveis de src/styles/tokens.css (concatenado antes, G14). */
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  background: var(--nevoa);
-  color: var(--tinta);
-  font: 1rem/1.5 system-ui, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-body);
+  font: var(--type-body);
 }
 main {
   max-width: 40rem;
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: var(--sp-48) var(--gutter);
 }
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-weight: 800;
+  gap: var(--sp-8);
+  font: var(--type-label);
+  color: var(--text-strong);
 }
 .dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--urucum);
+  width: var(--sp-8);
+  height: var(--sp-8);
+  border-radius: var(--r-pill);
+  background: var(--accent);
 }
 h1 {
-  font-size: 1.5rem;
-  line-height: 1.2;
+  font: var(--type-screen-title);
+  color: var(--text-strong);
+  margin: var(--sp-16) 0 var(--sp-8);
+}
+h2 {
+  font: var(--type-section);
+  color: var(--text-strong);
+  margin: var(--sp-32) 0 var(--sp-8);
 }
 p {
-  color: var(--grafite);
+  color: var(--text-meta);
+  margin: 0 0 var(--sp-16);
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-section);
+}
+li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-12);
+  padding: var(--sp-12) 0;
+  border-bottom: 1px solid var(--border-section);
+}
+li a {
+  font: var(--type-headline-sm);
+  color: var(--text-strong);
+  text-decoration: none;
+  min-height: var(--sp-32);
+}
+li a:hover {
+  text-decoration: underline;
+}
+li small {
+  font: var(--type-meta);
+  color: var(--text-meta);
 }
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: var(--sp-12);
+  margin-top: var(--sp-32);
 }
+button,
 .actions a {
   display: inline-flex;
   align-items: center;
-  min-height: 2.75rem;
-  padding: 0 1.5rem;
-  border-radius: 999px;
-  background: var(--tinta);
-  color: #fff;
-  font-weight: 600;
+  justify-content: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-32);
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: var(--action-primary);
+  color: var(--text-inverse);
+  font: var(--type-button);
   text-decoration: none;
+  cursor: pointer;
 }
 .actions a.secondary {
   background: transparent;
-  color: var(--tinta);
-  border: 1px solid #7d8591;
+  color: var(--text-strong);
+  border-color: var(--border-control);
 }
-a:focus-visible {
-  outline: 3px solid var(--foco);
-  outline-offset: 2px;
+#online {
+  margin-top: var(--sp-16);
+  color: var(--text-service);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --tinta: #e8edf4;
-    --nevoa: #0f1b2d;
-    --grafite: #b9c1cc;
-  }
-  .actions a {
-    color: #0f1b2d;
+#online button {
+  margin-left: var(--sp-8);
+}
+:where(a, button):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
   }
 }

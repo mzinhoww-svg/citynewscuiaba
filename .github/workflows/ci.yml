@@ -72,6 +72,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+
+      - name: SW gerado confere
+        run: pnpm sw:build && git diff --exit-code public/sw.js public/offline.js public/offline.css
+
       - run: pnpm build
 
       # playwright.config.ts adiciona o projeto mobile-webkit quando CI=true.
