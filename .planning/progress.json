@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T08:22:34.821Z",
+  "updatedAt": "2026-09-29T10:17:32.605Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -653,10 +653,10 @@
           "id": "P5-T5",
           "title": "Agentes, modelos, prompts e playground",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "9e93cad",
+          "notes": "verify 1778; e2e 925"
         },
         {
           "id": "P5-T6",
@@ -671,10 +671,10 @@
           "id": "P5-T7",
           "title": "Recomendação: painel, pesos, campanhas e A/B",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "59f2ccc",
+          "notes": "verify 1778; e2e 925"
         },
         {
           "id": "P5-T8",
