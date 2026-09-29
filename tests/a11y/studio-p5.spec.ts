@@ -65,6 +65,8 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/admin/taxonomia", as: "helena" },
   { path: "/estudio/admin/home", as: "helena" },
   { path: "/estudio/admin/usuarios?erro=forbidden", as: "helena" },
+  // Contingência (P5-T10): botões ativos para admin.
+  { path: "/estudio/admin/contingencia", as: "helena" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
@@ -445,6 +447,20 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(
         page.getByRole("heading", { name: "O que muda em relação à versão em vigor" }),
       ).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
+
+    test(`/estudio/admin/contingencia com o diálogo de confirmação aberto sem violações graves @a11y`, async ({
+      page,
+    }) => {
+      await loginAs(page, "helena");
+      await page.goto("/estudio/admin/contingencia");
+      await page.getByRole("button", { name: /publicação automática/ }).click();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByLabel("Digite o nome da ação para confirmar")).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

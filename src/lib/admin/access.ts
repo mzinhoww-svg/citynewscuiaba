@@ -10,6 +10,7 @@ export const ADMIN_AREAS = [
   "governanca",
   "integracoes",
   "configuracoes",
+  "contingencia",
 ] as const;
 export type AdminArea = (typeof ADMIN_AREAS)[number];
 
@@ -23,6 +24,8 @@ const AREA_ROLES: Record<Exclude<AdminArea, "auditoria">, readonly Role[]> = {
   governanca: ["admin", "editor_chefe", "operador_ia"],
   integracoes: ["admin", "operador_ia"],
   configuracoes: ["admin", "editor_chefe"],
+  // Botões de emergência: só admin (a RLS de `feature_flags` também exige).
+  contingencia: ["admin"],
 };
 
 export function canAccessArea(roles: RoleGrant[], area: AdminArea): boolean {

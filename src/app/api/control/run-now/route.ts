@@ -8,7 +8,13 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "private, no-store" };
 const Body = z.object({ sourceId: z.string().uuid().optional() }).strict();
-const STATUS = { forbidden: 403, invalid: 400, not_found: 404, conflict: 409 } as const;
+const STATUS = {
+  forbidden: 403,
+  invalid: 400,
+  not_found: 404,
+  conflict: 409,
+  read_only: 423,
+} as const;
 
 /**
  * "Executar agora" (O01/O02). Autenticação por sessão e papel (`source.manage`), nunca pelo

@@ -64,7 +64,7 @@ export const ASK = {
     provider: "O serviço de IA falhou agora",
     rate_limited: (limit: number) => `Você atingiu o limite de ${limit} perguntas por hora`,
     unavailable: "A busca com IA está indisponível agora",
-    off: "A busca com IA está desligada no momento",
+    off: "A busca com IA está indisponível no momento",
   },
   errorText: {
     timeout: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",

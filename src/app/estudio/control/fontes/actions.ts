@@ -62,6 +62,7 @@ import { testConnection, type TestConnectionResult } from "@/lib/sources/test-co
 import type { SourceAction } from "@/lib/sources/status";
 import type { SourceConfig, StatusReason } from "@/lib/sources/types";
 import { hostKey, slugFromName } from "@/lib/sources/url";
+import { readOnlyNotice } from "@/lib/flags";
 import { validateLogo } from "@/lib/sources/logo";
 
 /*
@@ -96,6 +97,8 @@ interface Run {
 /** Guarda + dependências; erro inesperado vira mensagem genérica (o redirect da guarda passa). */
 async function run<D>(fn: (r: Run) => Promise<ActionState<D>>): Promise<ActionState<D>> {
   const { ctx, session } = await requireStudioRole("source.manage", { next: NEXT });
+  const blocked = await readOnlyNotice();
+  if (blocked) return failState(blocked);
   try {
     return await fn({
       ctx,

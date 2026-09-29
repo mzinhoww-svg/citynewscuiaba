@@ -1,5 +1,6 @@
 import type { IntegrationId, IntegrationState } from "@/lib/admin/integrations";
 import type { SettingKey } from "@/lib/admin/settings";
+import { READ_ONLY_MESSAGE } from "./contingency";
 
 /** Textos da Administração (P5-T9): publicidade, SEO, notificações, auditoria, segurança, governança, integrações e configurações. */
 export const ADMIN_OPS = {
@@ -26,6 +27,7 @@ export const ADMIN_OPS = {
     },
     erro: {
       forbidden: "Seu papel não permite esta ação.",
+      read_only: READ_ONLY_MESSAGE,
       invalid: "Confira os campos e tente de novo.",
       unavailable: "Não foi possível salvar agora. Nada foi alterado.",
       approval_required:

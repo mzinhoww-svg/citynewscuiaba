@@ -8,6 +8,7 @@ import { createSourceAdminStore, type AuditCtx } from "@/lib/db/source-admin-sto
 import type { Json } from "@/lib/db/types";
 import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
 import { idOf, textOf, versionOf } from "@/lib/sources/form";
+import { readOnlyNotice } from "@/lib/flags";
 import { requireStudioRole } from "@/lib/studio/guard";
 
 /*
@@ -45,6 +46,8 @@ async function auditCtx(): Promise<AuditCtx> {
 /** Salva o nome exibido e as marcas de recomendação da fonte (`id`, `version`, campos que vieram). */
 export async function updateRecommendationAction(form: FormData): Promise<State> {
   const { ctx } = await requireStudioRole("source.manage", { next: NEXT });
+  const blocked = await readOnlyNotice();
+  if (blocked) return fail(blocked);
   try {
     const id = idOf(form);
     const version = versionOf(form);

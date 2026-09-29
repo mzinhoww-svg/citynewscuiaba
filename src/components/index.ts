@@ -372,6 +372,11 @@ export {
 export { AuditPanel, type AuditFilterValues, type AuditPanelProps } from "./studio/AuditPanel";
 export { AdsPanel, type AdsPanelProps } from "./studio/AdsPanel";
 export { NotifyPanel, type NotifyPanelProps } from "./studio/NotifyPanel";
+export {
+  ContingencyPanel,
+  type ContingencyFlagRow,
+  type ContingencyPanelProps,
+} from "./studio/ContingencyPanel";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/SecurityPanel";
 export { IntegrationsTable } from "./studio/IntegrationsTable";
 export { EditorialGovernance } from "./studio/EditorialGovernance";

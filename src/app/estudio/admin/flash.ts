@@ -5,6 +5,7 @@ import {
   TEAMS_TEXT,
   USERS_TEXT,
 } from "@/content/pt-BR/admin";
+import { READ_ONLY_MESSAGE } from "@/content/pt-BR/contingency";
 import type { StudioFail } from "@/lib/studio/action";
 
 /*
@@ -17,6 +18,7 @@ const ERRORS: Record<string, string> = {
   invalid: ADMIN_TEXT.invalid,
   not_found: ADMIN_TEXT.notFound,
   conflict: ADMIN_TEXT.invalid,
+  read_only: READ_ONLY_MESSAGE,
   ...Object.fromEntries(
     [USERS_TEXT.errors, ROLES_TEXT.errors, TEAMS_TEXT.errors, TAXONOMY_TEXT.errors].flatMap((g) =>
       Object.values(g).map((text) => [`t:${text}`, text]),

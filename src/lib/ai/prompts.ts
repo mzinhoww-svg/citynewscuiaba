@@ -145,7 +145,13 @@ export const createPromptVersion = studioAction(
 );
 
 export type PromptFailError =
-  "forbidden" | "invalid" | "not_found" | "approval_required" | "self_approval" | "stale";
+  | "forbidden"
+  | "read_only"
+  | "invalid"
+  | "not_found"
+  | "approval_required"
+  | "self_approval"
+  | "stale";
 export type PromptFail = { ok: false; error: PromptFailError; message: string };
 export type PromptOk<V> = { ok: true; value: V };
 

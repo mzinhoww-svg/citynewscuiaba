@@ -194,6 +194,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         visible: (roles) => canAccessArea(roles, "integracoes"),
       },
       {
+        href: "/estudio/admin/contingencia",
+        label: "Contingência",
+        icon: "triangle-alert",
+        visible: (roles) => canAccessArea(roles, "contingencia"),
+      },
+      {
         href: "/estudio/admin/configuracoes",
         label: "Configurações",
         icon: "settings",

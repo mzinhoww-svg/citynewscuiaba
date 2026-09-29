@@ -69,6 +69,7 @@ export const AUDIT_ACTIONS = [
   "section.create",
   "home.save_draft",
   "home.publish",
+  "flag.set",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

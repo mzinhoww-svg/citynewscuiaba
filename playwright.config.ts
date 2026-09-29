@@ -12,6 +12,9 @@ const port = 3000 + offset;
 // A-156): a guarda não é afrouxada, essas specs rodam num `next dev` próprio (A-160).
 const fixturesPort = port + 500;
 const FIXTURE_SPECS = ["**/control-sources-detail.spec.ts", "**/control-sources-flow.spec.ts"];
+// Contingência (P5-T10) liga e desliga flags globais (modo leitura, IA, publicação automática): roda
+// sozinha, depois de tudo, no desktop; as specs com fixtures só começam quando ela termina.
+const GLOBAL_FLAG_SPECS = ["**/admin-contingency.spec.ts"];
 // Estas specs mexem na via rápida e nas cotas globais (`fast_lane_max`, "Via rápida: N de M" da
 // lista): rodam depois dos demais projetos para não disputar esses números com a spec da lista.
 const AFTER_MAIN = ["desktop", "mobile", ...(isCI ? ["mobile-webkit"] : [])];
@@ -32,12 +35,12 @@ export default defineConfig({
   projects: [
     {
       name: "desktop",
-      testIgnore: FIXTURE_SPECS,
+      testIgnore: [...FIXTURE_SPECS, ...GLOBAL_FLAG_SPECS],
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
     },
     {
       name: "mobile",
-      testIgnore: FIXTURE_SPECS,
+      testIgnore: [...FIXTURE_SPECS, ...GLOBAL_FLAG_SPECS],
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 390, height: 844 },
@@ -49,16 +52,22 @@ export default defineConfig({
       ? [
           {
             name: "mobile-webkit",
-            testIgnore: FIXTURE_SPECS,
+            testIgnore: [...FIXTURE_SPECS, ...GLOBAL_FLAG_SPECS],
             use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } },
           },
         ]
       : []),
+    {
+      name: "global-flags",
+      testMatch: GLOBAL_FLAG_SPECS,
+      dependencies: AFTER_MAIN,
+      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
+    },
     // Specs com fixtures: `next dev` em outra porta, CRAWLER_FIXTURES=1 e AI_PROVIDER=fake.
     {
       name: "fixtures-desktop",
       testMatch: FIXTURE_SPECS,
-      dependencies: AFTER_MAIN,
+      dependencies: [...AFTER_MAIN, "global-flags"],
       use: {
         ...devices["Desktop Chrome"],
         baseURL: `http://localhost:${fixturesPort}`,
@@ -68,7 +77,7 @@ export default defineConfig({
     {
       name: "fixtures-mobile",
       testMatch: FIXTURE_SPECS,
-      dependencies: AFTER_MAIN,
+      dependencies: [...AFTER_MAIN, "global-flags"],
       use: {
         ...devices["Desktop Chrome"],
         baseURL: `http://localhost:${fixturesPort}`,

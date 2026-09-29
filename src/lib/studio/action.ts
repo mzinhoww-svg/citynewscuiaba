@@ -3,13 +3,14 @@ import type { ZodType } from "zod";
 import { can, canAccess, type Action, type Scope } from "@/lib/auth/permissions";
 import { audit } from "@/lib/audit";
 import type { AuditAction } from "@/lib/audit/actions";
+import { readOnlyNotice } from "@/lib/flags";
 import { studioContext, type StudioContext } from "./context";
 
 /**
  * Erros tipados das Server Actions do Estúdio. `not_found` complementa o contrato do plano
  * (forbidden, conflict, invalid) para objeto inexistente ou invisível pela RLS.
  */
-export type StudioError = "forbidden" | "conflict" | "invalid" | "not_found";
+export type StudioError = "forbidden" | "conflict" | "invalid" | "not_found" | "read_only";
 
 export type StudioFail = {
   ok: false;
@@ -87,6 +88,10 @@ export function studioAction<I, O>(
     const ctx = await studioContext();
     const session = ctx.session;
     if (!session) return fail("forbidden");
+    // Modo leitura (contingência): o Estúdio não grava. Vem depois da sessão, antes de qualquer
+    // leitura do objeto, e não depende de cache.
+    const blocked = await readOnlyNotice();
+    if (blocked) return fail("read_only", blocked);
 
     let objectRef = options.objectRef?.(input) ?? defaultRef(action, input);
     const denied = async (scope: Scope | null) => {
