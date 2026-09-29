@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T07:05:23.808Z",
+  "updatedAt": "2026-09-29T07:09:15.870Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -683,10 +683,10 @@
           "id": "P5-T9",
           "title": "Administração (publicidade, SEO, notificações, auditoria, segurança, governança, integrações, configurações)",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "78b367f",
+          "notes": "Publicidade (placeSponsored 1:6), SEO, notificações (push.urgent), auditoria com CSV e IP mascarado, segurança, governança, integrações e configurações; migration 0036; 41 unit + 12 integração + 8 e2e + 48 a11y"
         },
         {
           "id": "P5-T10",
