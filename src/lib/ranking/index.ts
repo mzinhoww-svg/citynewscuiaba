@@ -32,3 +32,21 @@ export {
   type SourceStatsDay,
   type TrendDirection,
 } from "./signals";
+export { scoreBreakdown, type ScoreComponent } from "./breakdown";
+export { assignVariant, splitValid } from "./experiments";
+export {
+  compareToControl,
+  variantMetrics,
+  type ControlComparison,
+  type ReaderSourceRow,
+  type VariantMetrics,
+} from "./experiment-metrics";
+export {
+  CONCENTRATION_ALERT,
+  concentrationAlert,
+  concentrationTop3,
+  diversityIndex,
+  proportionTest,
+  sharesOf,
+  weightsValid,
+} from "./metrics";

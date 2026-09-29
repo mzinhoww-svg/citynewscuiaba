@@ -33,6 +33,11 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/prompts/write", as: "diego" },
   { path: "/estudio/control/prompts/write", as: "marina" },
   { path: "/estudio/control/prompts/agente-inexistente", as: "diego" },
+  // Recomendação (P5-T7): painel para quem propõe e para quem só lê; teste A/B e teste inexistente.
+  { path: "/estudio/control/recomendacao", as: "diego" },
+  { path: "/estudio/control/recomendacao", as: "otavio" },
+  { path: "/estudio/control/recomendacao/testes/a11y-rec-t7", as: "diego" },
+  { path: "/estudio/control/recomendacao/testes/nao-existe", as: "diego" },
   // Conhecimento, avaliações, custos e governança da IA (P5-T6).
   { path: "/estudio/control/conhecimento", as: "diego" },
   { path: "/estudio/control/avaliacoes", as: "diego" },
@@ -171,6 +176,70 @@ test.afterAll(async () => {
   if (runId) await db.from("ingest_runs").delete().eq("id", runId);
 });
 
+// Recomendação (P5-T7): um teste A/B em andamento, com eventos, para a tela de detalhe.
+const REC_TEST = "a11y-rec-t7";
+const recAnons: string[] = [];
+test.beforeAll(async () => {
+  const db = service();
+  await db.from("rec_experiments").delete().eq("id", REC_TEST);
+  const extra = "rec-v1.700";
+  await db.from("rec_weights").delete().eq("version", extra);
+  const w = {
+    popularity: 0.3,
+    individual: 0.2,
+    recency: 0.15,
+    engagement: 0.1,
+    operational: 0.1,
+    diversity: 0.15,
+  };
+  const v = await db.from("rec_weights").insert({
+    version: extra,
+    weights: w,
+    cap: 0.25,
+    discovery_every: 5,
+    proposed_by: STAFF.diego.id,
+  });
+  if (v.error && v.error.code !== "23505") throw v.error;
+  const e = await db.from("rec_experiments").insert({
+    id: REC_TEST,
+    name: "Teste de acessibilidade",
+    variants: [
+      { label: "Controle", weightsVersion: "rec-v1" },
+      { label: "B", weightsVersion: extra },
+    ],
+    split: [0.5, 0.5],
+    status: "running",
+    starts_at: new Date(Date.now() - 3_600_000).toISOString(),
+    created_by: STAFF.diego.id,
+  });
+  if (e.error && e.error.code !== "23505") throw e.error;
+  const rows = Array.from({ length: 12 }, (_, i) => {
+    const anon = crypto.randomUUID();
+    recAnons.push(anon);
+    return {
+      anon_id: anon,
+      name: i % 3 === 0 ? "recommendation_clicked" : "source_viewed",
+      at: new Date().toISOString(),
+      source_slug: "folha-do-cerrado",
+      session: { id: "s", page: "/fontes", referrer: null, device: "desktop" },
+      consent: { version: "1", metrics: true, personalization: true },
+      algo_version: "rec-v1",
+      props:
+        i % 3 === 0
+          ? { list: "recommended", reason: "trending", position: 1 }
+          : { surface: "fontes" },
+    };
+  });
+  const ev = await db.from("events").insert(rows);
+  if (ev.error) throw ev.error;
+});
+test.afterAll(async () => {
+  const db = service();
+  await db.from("rec_experiments").delete().eq("id", REC_TEST);
+  await db.from("rec_weights").delete().eq("version", "rec-v1.700");
+  if (recAnons.length) await db.from("events").delete().in("anon_id", recAnons);
+});
+
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`tema ${scheme}`, () => {
     test.use({ colorScheme: scheme });
@@ -272,6 +341,21 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(
         page.getByRole("heading", { name: "O que muda em relação à versão em vigor" }),
       ).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
+
+    test(`/estudio/control/recomendacao com "Por que esta recomendação" aberto sem violações graves @a11y`, async ({
+      page,
+    }) => {
+      await loginAs(page, "helena");
+      await page.goto("/estudio/control/recomendacao");
+      await page.getByText("Por que esta recomendação", { exact: true }).click();
+      await page.getByLabel("Id anônimo do leitor").fill(recAnons[0]!);
+      await page.getByRole("button", { name: "Explicar recomendações" }).click();
+      await expect(page.getByRole("heading", { name: /Recomendações para leitor-/ })).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

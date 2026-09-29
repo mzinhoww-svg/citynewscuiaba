@@ -274,6 +274,25 @@ export {
 } from "./studio/PlaygroundForm";
 export { SortHeader, type SortHeaderProps } from "./studio/SortHeader";
 
+/* recomendação: painel, pesos, campanhas e testes A/B (P5-T7) */
+export { ShareBars, type ShareBarsItem, type ShareBarsProps } from "./studio/ShareBars";
+export {
+  WeightSliders,
+  type WeightSlidersProps,
+  type WeightSlidersReply,
+} from "./studio/WeightSliders";
+export { AbTestCard, type AbTestCardProps } from "./studio/AbTestCard";
+export {
+  WhyThisDrawer,
+  type WhyReply,
+  type WhyResultView,
+  type WhyRowView,
+  type WhyThisDrawerProps,
+} from "./studio/WhyThisDrawer";
+export { CampaignForm, EndCampaignButton } from "./studio/CampaignForm";
+export { ExperimentForm } from "./studio/ExperimentForm";
+export { ExperimentControls } from "./studio/ExperimentControls";
+
 /* painel de fontes: lista O03 (P5-T4/FS-T7) */
 export { SourcesTable, type SourcesTableProps } from "./studio/sources/SourcesTable";
 export { SourceFilters, type SourceFiltersProps } from "./studio/sources/SourceFilters";

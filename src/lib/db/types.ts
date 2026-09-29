@@ -1785,6 +1785,87 @@ export type Database = {
           },
         ];
       };
+      rec_campaigns: {
+        Row: {
+          audience: string;
+          created_at: string;
+          created_by: string;
+          ended_at: string | null;
+          ends_on: string;
+          id: string;
+          name: string;
+          quota_pct: number;
+          source_slugs: string[];
+          starts_on: string;
+        };
+        Insert: {
+          audience?: string;
+          created_at?: string;
+          created_by: string;
+          ended_at?: string | null;
+          ends_on: string;
+          id?: string;
+          name: string;
+          quota_pct: number;
+          source_slugs: string[];
+          starts_on: string;
+        };
+        Update: {
+          audience?: string;
+          created_at?: string;
+          created_by?: string;
+          ended_at?: string | null;
+          ends_on?: string;
+          id?: string;
+          name?: string;
+          quota_pct?: number;
+          source_slugs?: string[];
+          starts_on?: string;
+        };
+        Relationships: [];
+      };
+      rec_experiments: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          ended_at: string | null;
+          hypothesis: string | null;
+          id: string;
+          name: string;
+          split: number[];
+          starts_at: string | null;
+          status: string;
+          variants: NonNullable<Json>;
+          winner: number | null;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          ended_at?: string | null;
+          hypothesis?: string | null;
+          id: string;
+          name: string;
+          split: number[];
+          starts_at?: string | null;
+          status?: string;
+          variants: NonNullable<Json>;
+          winner?: number | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          ended_at?: string | null;
+          hypothesis?: string | null;
+          id?: string;
+          name?: string;
+          split?: number[];
+          starts_at?: string | null;
+          status?: string;
+          variants?: NonNullable<Json>;
+          winner?: number | null;
+        };
+        Relationships: [];
+      };
       rec_weights: {
         Row: {
           active: boolean;
@@ -2925,6 +3006,20 @@ export type Database = {
         }[];
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      rec_panel_stats: { Args: { p_since: string }; Returns: Json };
+      rec_split_ok: { Args: { p_split: number[] }; Returns: boolean };
+      rec_variant_events: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          anon_id: string;
+          clicked: number;
+          dismissed: number;
+          first_at: string;
+          last_at: string;
+          source_slug: string;
+          viewed: number;
+        }[];
+      };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       record_source_fetch: {
         Args: {

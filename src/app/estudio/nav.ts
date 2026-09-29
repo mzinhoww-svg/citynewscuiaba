@@ -75,6 +75,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
       {
+        href: "/estudio/control/recomendacao",
+        label: "Recomendação",
+        icon: "trending-up",
+        action: "metrics.view",
+      },
+      {
         href: "/estudio/control/agentes",
         label: "Agentes",
         icon: "settings",
@@ -105,7 +111,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "check",
         visible: canReadAiOps,
       },
-      { href: "/estudio/control/custos", label: "Custos", icon: "percent", visible: canReadAiOps },
+      {
+        href: "/estudio/control/custos",
+        label: "Custos",
+        icon: "percent",
+        visible: canReadAiOps,
+      },
       {
         href: "/estudio/control/governanca",
         label: "Governança da IA",
