@@ -46,7 +46,7 @@ const detail = (id: string, sub = "") => `/estudio/control/fontes/${id}${sub}`;
 
 test("Helena cadastra a Voz do Coxipó a partir do link", async ({ page }, info) => {
   // O endereço fictício é único no cadastro: só um projeto (desktop) o cria por execução.
-  test.skip(info.project.name !== "desktop", "endereço fictício único no cadastro");
+  test.skip(!info.project.name.endsWith("desktop"), "endereço fictício único no cadastro");
   // Restos de execuções anteriores (a análise recusa endereço já cadastrado).
   await service().from("sources").delete().like("base_url", "https://vozdocoxipo.example%");
   await loginAs(page, "helena", "/estudio/control/fontes/nova");
@@ -210,7 +210,7 @@ test("360 px: detalhe e nova fonte sem rolagem horizontal da página", async ({ 
 
 for (const width of [360, 768, 1280]) {
   test(`@a11y nova fonte e detalhe em ${width}px sem violação séria`, async ({ page }, info) => {
-    test.skip(info.project.name !== "desktop", "larguras são definidas pelo teste");
+    test.skip(!info.project.name.endsWith("desktop"), "larguras são definidas pelo teste");
     const s = await makeSource("paused", "Fonte Axe");
     await page.setViewportSize({ width, height: 900 });
     await loginAs(page, "helena", "/estudio/control/fontes/nova");

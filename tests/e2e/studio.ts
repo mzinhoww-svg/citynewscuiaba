@@ -25,14 +25,21 @@ export const STAFF = {
 } as const;
 export type Staff = keyof typeof STAFF;
 
-/** Entra no Estúdio como um usuário de seed e espera o Newsroom. */
+/**
+ * Entra no Estúdio como um usuário de seed e espera a rota pedida. O login passa por
+ * `/entrar/migrar` (C06) antes de chegar em `next`: com `next dev` (specs com fixtures) a primeira
+ * visita a uma rota fria compila no caminho, então a espera é pelo estado (a URL final), com prazo
+ * folgado, e nunca por um tempo fixo.
+ */
 export async function loginAs(page: Page, who: Staff, next = "/estudio") {
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto(`/entrar?next=${encodeURIComponent(next)}`);
   await page.getByLabel("E-mail", { exact: true }).fill(STAFF[who].email);
   await page.getByLabel("Senha", { exact: true }).fill(SEED_PASSWORD);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${next.replace(/[?]/g, "\\?")}$`));
+  await expect(page).toHaveURL(new RegExp(`${next.replace(/[?]/g, "\\?")}$`), {
+    timeout: 60_000,
+  });
 }
 
 export function service() {

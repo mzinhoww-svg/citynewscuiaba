@@ -248,6 +248,18 @@ describe("via rápida (D-F28)", () => {
     expect((await sourceBySlug("folha-do-cerrado")).status).toBe("active");
   });
 
+  it("ativar ou retomar zera as falhas seguidas (0031)", async () => {
+    const s = await sourceBySlug("radio-pantanal"); // paused (seed)
+    await db
+      .from("sources")
+      .update({ status_reason: "auto_failures", consecutive_failures: 3 })
+      .eq("id", s.id);
+    await status("helena", await sourceBySlug("radio-pantanal"), "activate");
+    const after = await sourceBySlug("radio-pantanal");
+    expect(after).toMatchObject({ status: "active", status_reason: null, consecutive_failures: 0 });
+    await status("helena", after, "pause", "manual");
+  });
+
   it("marcações simultâneas não passam da vaga", async () => {
     await setting("sources.fast_lane_max", 1);
     const a = await sourceBySlug("diario-da-baixada");

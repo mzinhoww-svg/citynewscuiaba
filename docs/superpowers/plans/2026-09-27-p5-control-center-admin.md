@@ -30,6 +30,8 @@
 
 ### Task 1: Aprovações
 
+> **Nota (FS-T6):** `source.critical` já existe em `src/lib/approvals` (migration 0030, aprovação por outra pessoa imposta no banco).
+
 **Files:** Create `src/lib/approvals/index.ts`, `src/components/studio/ApprovalBanner.tsx` · Test `tests/integration/approvals.test.ts`
 
 **Interfaces:** Produces `requestApproval({ kind: CriticalKind; targetRef; justification }): Promise<Result<{ id }, "invalid">>`; `approve({ id }): Promise<Result<void, "self_approval" | "forbidden" | "not_pending">>`; `type CriticalKind = "rules.activate" | "prompt.publish" | "rec.weights" | "role.admin" | "safety.disable" | "force_review.disable" | "push.urgent"`.
@@ -56,6 +58,8 @@
 - [ ] **Step 5: Commit** `feat(control): monitoramento, falhas, execuções, logs e reprocessamento`
 
 ### Task 4: Fontes (lista, cadastro, teste de conexão, recomendação)
+
+> **Substituída pelo plano do painel de fontes (`2026-09-27-painel-de-fontes.md`, FS-T1…FS-T9). Concluída.** Coberta pelo Painel de Fontes, FS-T1…T8; verificação e relatório em FS-T9 (`docs/reports/painel-fontes.md`). Os passos abaixo ficam só como histórico.
 
 **Files:** Create `src/app/estudio/control/fontes/page.tsx`, `fontes/[id]/page.tsx`, `src/lib/sources/test-connection.ts` · Test `src/lib/sources/test-connection.test.ts`
 

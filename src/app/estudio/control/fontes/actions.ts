@@ -1,7 +1,7 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { APPROVAL_ERROR_TEXT } from "@/content/pt-BR/approvals";
 import {
@@ -130,6 +130,9 @@ function refresh(sourceId?: string): void {
     revalidatePath(`${NEXT}/aprovacoes`);
     revalidatePath("/estudio/control/aprovacoes");
     if (sourceId) revalidatePath(`${NEXT}/${sourceId}`);
+    // Score, bloqueio e política de imagem mudam o "Veja também" da home (cache de 60 s, tag `home`):
+    // um pedido de saída do veículo não pode esperar o cache vencer.
+    revalidateTag("home", { expire: 0 });
   } catch {
     /* fora de uma requisição (testes) */
   }

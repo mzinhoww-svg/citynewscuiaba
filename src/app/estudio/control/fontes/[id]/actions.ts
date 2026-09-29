@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { SOURCE_MESSAGES as M } from "@/content/pt-BR/sources-admin";
 import { REC } from "@/content/pt-BR/sources-admin-detail";
@@ -77,6 +77,7 @@ export async function updateRecommendationAction(form: FormData): Promise<State>
     try {
       revalidatePath(`${NEXT}/${id}`, "layout");
       revalidatePath(NEXT);
+      revalidateTag("home", { expire: 0 }); // o nome exibido também aparece no "Veja também"
     } catch {
       /* fora de uma requisição (testes) */
     }
