@@ -16,6 +16,8 @@ export const CRITICAL_KINDS = [
   "safety.disable",
   "force_review.disable",
   "push.urgent",
+  "push.highlight",
+  "push.resume",
   "source.critical",
 ] as const;
 export type CriticalKind = (typeof CRITICAL_KINDS)[number];

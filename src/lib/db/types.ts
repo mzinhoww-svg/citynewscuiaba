@@ -3451,6 +3451,14 @@ export type Database = {
         Returns: number;
       };
       purge_reader_emails: { Args: { p_days?: number }; Returns: number };
+      push_approve: { Args: { p_send: string }; Returns: string };
+      push_audience_estimate: { Args: { p_audience: Json; p_kind: string }; Returns: number };
+      push_audit: {
+        Args: { p_action: string; p_details?: Json; p_object: string };
+        Returns: undefined;
+      };
+      push_can: { Args: { p_action: string; p_section?: string; p_uid: string }; Returns: boolean };
+      push_cancel: { Args: { p_reason: string; p_send: string }; Returns: undefined };
       push_claim_due: { Args: { p_delivery: number; p_now: string }; Returns: string };
       push_delivery_result: {
         Args: {
@@ -3462,6 +3470,7 @@ export type Database = {
         };
         Returns: undefined;
       };
+      push_expire_requests: { Args: { p_now?: string }; Returns: number };
       push_local_day: { Args: { p_ts: string }; Returns: string };
       push_quiet_ends_at: { Args: { p_end: number; p_now: string }; Returns: string };
       push_receipt_hit: {
@@ -3474,6 +3483,8 @@ export type Database = {
         };
         Returns: boolean;
       };
+      push_reject: { Args: { p_reason: string; p_send: string }; Returns: undefined };
+      push_request: { Args: { p: Json }; Returns: string };
       push_reserve: {
         Args: { p_now?: string; p_send: string; p_sub: string };
         Returns: {
@@ -3481,9 +3492,14 @@ export type Database = {
           outcome: string;
         }[];
       };
+      push_resume_apply: { Args: { p_approval: string }; Returns: undefined };
+      push_resume_approve: { Args: { p_approval: string }; Returns: undefined };
+      push_resume_request: { Args: { p_reason: string }; Returns: string };
       push_retention: { Args: { p_now?: string }; Returns: Json };
       push_settings_int: { Args: { p_default: number; p_key: string }; Returns: number };
+      push_settings_pause: { Args: { p_reason: string }; Returns: undefined };
       push_targets_valid: { Args: { p: string[] }; Returns: boolean };
+      push_transition_ok: { Args: { p_from: string; p_to: string }; Returns: boolean };
       push_ttl_hours: { Args: { p_kind: string }; Returns: number };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {

@@ -31,6 +31,19 @@ it("aprovar mudança crítica de fonte: admin e editor-chefe, não operador", ()
   expect(can([{ role: "operador_ia", sections: [] }], "source.approve_critical")).toBe(false);
 });
 
+it("push: matriz da spec 2026-09-28 §10.1", () => {
+  expect(
+    can([{ role: "editor", sections: ["cidade"] }], "push.request", { section: "cidade" }),
+  ).toBe(true);
+  expect(
+    can([{ role: "editor", sections: ["cidade"] }], "push.request", { section: "esportes" }),
+  ).toBe(false);
+  expect(can([{ role: "editor", sections: ["cidade"] }], "push.approve")).toBe(false);
+  expect(canAccess([{ role: "analista", sections: [] }], "push.metrics")).toBe(true);
+  expect(canAccess([{ role: "analista", sections: [] }], "push.request")).toBe(false);
+  expect(canAccess([{ role: "editor", sections: [] }], "push.request")).toBe(false);
+});
+
 it("leitura não altera nada", () =>
   expect(can([{ role: "leitura", sections: [] }], "source.manage")).toBe(false));
 
@@ -52,6 +65,10 @@ describe("matriz (docs/architecture.md §6)", () => {
     "users.manage": ["admin"],
     "metrics.view": ["admin", "editor_chefe", "operador_ia", "analista", "leitura"],
     "audit.view": ["admin", "editor_chefe", "operador_ia", "leitura"],
+    "push.request": ["admin", "editor_chefe"],
+    "push.approve": ["admin", "editor_chefe"],
+    "push.settings": ["admin", "editor_chefe"],
+    "push.metrics": ["admin", "editor_chefe", "analista"],
   };
   const bySection: Action[] = [
     "article.edit",
@@ -60,6 +77,7 @@ describe("matriz (docs/architecture.md §6)", () => {
     "correction.manage",
     "media.approve",
     "metrics.view",
+    "push.request",
   ];
 
   for (const action of ACTIONS) {

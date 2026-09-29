@@ -21,6 +21,21 @@ export const SOURCE_ADMIN_AUDIT_ACTIONS = [
 ] as const;
 
 /**
+ * Ações do push (migration 0041): trigger `audit_push_changes`, pausa e retomada. As quatro
+ * permissões (`push.request`, `push.approve`, `push.settings`, `push.metrics`) vêm de ACTIONS.
+ */
+export const PUSH_AUDIT_ACTIONS = [
+  "push.reject",
+  "push.cancel",
+  "push.dispatch",
+  "push.finish",
+  "push.pause",
+  "push.expire",
+  "push.resume_requested",
+  "push.resume_applied",
+] as const;
+
+/**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
  * lista (`studio_audit_actions()`, migrations 0025/0026/0033/0034); o teste de integração confere as
  * duas nos dois sentidos.
@@ -56,6 +71,7 @@ export const AUDIT_ACTIONS = [
   "logs.export",
   "ai.eval.run",
   "ai.eval.case",
+  ...PUSH_AUDIT_ACTIONS,
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
