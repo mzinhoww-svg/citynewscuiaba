@@ -33,9 +33,16 @@ const ROUTES: { path: string; as: Staff }[] = [
   { path: "/estudio/control/prompts/write", as: "diego" },
   { path: "/estudio/control/prompts/write", as: "marina" },
   { path: "/estudio/control/prompts/agente-inexistente", as: "diego" },
+  // Conhecimento, avaliações, custos e governança da IA (P5-T6).
+  { path: "/estudio/control/conhecimento", as: "diego" },
+  { path: "/estudio/control/avaliacoes", as: "diego" },
+  { path: "/estudio/control/avaliacoes", as: "marina" },
+  { path: "/estudio/control/custos", as: "diego" },
+  { path: "/estudio/control/governanca", as: "marina" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
+const suiteStart = new Date().toISOString();
 let approvalId: string | null = null;
 let runId: string | null = null;
 let sourceSlug: string | null = null;
@@ -153,6 +160,11 @@ test.afterAll(async () => {
     await db.from("approvals").delete().eq("kind", "prompt.publish").in("target_ref", promptIds);
     await db.from("ai_prompts").delete().in("id", promptIds);
   }
+  await db
+    .from("ai_eval_runs")
+    .delete()
+    .eq("created_by", STAFF.marina.id)
+    .gte("created_at", suiteStart);
   if (quarantineId) await db.from("pipeline_quarantine").delete().eq("id", quarantineId);
   if (runId) await db.rpc("purge_pipeline_events", { p_run_ids: [runId] });
   if (sourceSlug) await db.from("sources").delete().eq("slug", sourceSlug);
@@ -199,6 +211,18 @@ for (const scheme of ["light", "dark"] as const) {
         .fill("Prefeitura anuncia mutirão de vacinação em Cuiabá.");
       await page.getByRole("button", { name: "Rodar teste" }).click();
       await expect(page.getByText("Saída válida no schema do agente.")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+      const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+      expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+    });
+
+    test(`/estudio/control/avaliacoes com execução no histórico sem violações graves @a11y`, async ({
+      page,
+    }) => {
+      await loginAs(page, "marina", "/estudio/control/avaliacoes");
+      await page.getByRole("button", { name: "Executar com o provedor falso" }).click();
+      await expect(page.getByRole("heading", { name: "Última execução" })).toBeVisible();
       await page.evaluate(() => document.fonts.ready);
       const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");

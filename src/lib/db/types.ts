@@ -96,6 +96,47 @@ export type Database = {
         };
         Relationships: [];
       };
+      ai_eval_runs: {
+        Row: {
+          agent_id: string;
+          case_count: number;
+          created_at: string;
+          created_by: string;
+          id: string;
+          metrics: Json;
+          prompt_version: number;
+          provider: string;
+        };
+        Insert: {
+          agent_id: string;
+          case_count: number;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          metrics: Json;
+          prompt_version: number;
+          provider: string;
+        };
+        Update: {
+          agent_id?: string;
+          case_count?: number;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          metrics?: Json;
+          prompt_version?: number;
+          provider?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_eval_runs_agent_id_fkey";
+            columns: ["agent_id"];
+            isOneToOne: false;
+            referencedRelation: "ai_agents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ai_models: {
         Row: {
           cost_per_1k_in: number | null;

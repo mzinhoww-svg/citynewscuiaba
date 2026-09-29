@@ -1,0 +1,39 @@
+name: Regressão da IA
+
+# Roda só quando o PR mexe na camada de IA ou nas migrations de IA. Sem segredos: o provedor é o
+# falso (AI_PROVIDER=fake) e os casos são fixtures fictícias (src/lib/ai/eval-cases.ts).
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/*ai*"
+      - "src/lib/ai/**"
+
+concurrency:
+  group: ai-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AI_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+
+      # A versão do pnpm vem de "packageManager" no package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Métricas de eval.ts sobre os casos de fixture e os limites de aceite (regression.test.ts).
+      - name: Regressão da IA
+        run: pnpm exec vitest run src/lib/ai/eval.test.ts src/lib/ai/regression.test.ts

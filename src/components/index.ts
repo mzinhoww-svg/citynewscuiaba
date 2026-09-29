@@ -315,3 +315,19 @@ export { SourceHealthPanel } from "./studio/sources/SourceHealthPanel";
 export { SourceRecForm } from "./studio/sources/SourceRecForm";
 export { SourceRunsTable } from "./studio/sources/SourceRunsTable";
 export { SourceSectionNav } from "./studio/sources/SourceSectionNav";
+
+/* Conhecimento, avaliações, custos e governança da IA (P5-T6) */
+export { AiOpsTable, type AiOpsTableProps } from "./studio/AiOpsTable";
+export { KnowledgePanel, type KnowledgePanelProps } from "./studio/KnowledgePanel";
+export {
+  EvalPanel,
+  withinLimits,
+  type EvalCaseView,
+  type EvalMetricsView,
+  type EvalPanelProps,
+  type EvalRunView,
+} from "./studio/EvalPanel";
+export { EvalRunButton, type EvalRunButtonProps } from "./studio/EvalRunButton";
+export { CostChart, type CostChartProps } from "./studio/CostChart";
+export { CostPanel, type CostPanelProps } from "./studio/CostPanel";
+export { GovernancePanel, type GovernancePanelProps } from "./studio/GovernancePanel";

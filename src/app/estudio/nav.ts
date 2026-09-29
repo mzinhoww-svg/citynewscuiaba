@@ -1,4 +1,5 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
+import { canReadAiOps } from "@/lib/ai/access";
 import { canSeeApprovals } from "@/lib/approvals/kinds";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
 
@@ -92,7 +93,25 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "file-check",
         visible: canSeeApprovals,
       },
-      { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },
+      {
+        href: "/estudio/control/conhecimento",
+        label: "Conhecimento",
+        icon: "layers",
+        visible: canReadAiOps,
+      },
+      {
+        href: "/estudio/control/avaliacoes",
+        label: "Avaliações",
+        icon: "check",
+        visible: canReadAiOps,
+      },
+      { href: "/estudio/control/custos", label: "Custos", icon: "percent", visible: canReadAiOps },
+      {
+        href: "/estudio/control/governanca",
+        label: "Governança da IA",
+        icon: "shield",
+        visible: canReadAiOps,
+      },
     ],
   },
   {
