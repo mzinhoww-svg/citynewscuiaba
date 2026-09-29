@@ -6,9 +6,9 @@
 ## Fase e tarefa
 
 - **Fase ativa:** P5 Control Center e administração
-- **Tarefa ativa:** P5-T1 Aprovações
-- **Próxima tarefa:** P5-T2 Regras de autonomia
-- **Progresso:** 54/70 tarefas · P0, P1, P2, P3, P4 concluídas
+- **Tarefa ativa:** P5-T5 Agentes, modelos, prompts e playground
+- **Próxima tarefa:** P5-T6 ∥ T7 ∥ T8 ∥ T9, depois T10 e gate
+- **Progresso:** 58/70 tarefas · P0 a P4 concluídas · P5 T1–T4 prontas
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -30,7 +30,7 @@
 ## Próxima ação imediata
 
 1. Container novo precisa de `pnpm install`, `pnpm db:start` e `pnpm db:reset` antes dos testes de integração.
-2. P5 na ordem T1 → T2 → T3 → T4 → T5 → (T6 ∥ T7 ∥ T8 ∥ T9) → T10. P5-T4 é executada pelo plano `docs/superpowers/plans/2026-09-27-painel-de-fontes.md` (substitui a T4; migration reservada `0011_source_admin.sql`).
+2. P5: T1–T4 prontas (T4 = painel de fontes, plano FS-T1..T9, migrations 0011/0030/0031). Falta T5 → (T6 ∥ T7 ∥ T8 ∥ T9) → T10 + gate. E2E com fixtures roda em `next dev` (projetos `fixtures-*`, A-160).
 3. Branch de trabalho desta sessão: `claude/optimistic-ramanujan-ckpt98`.
 
 ## Últimos checkpoints
