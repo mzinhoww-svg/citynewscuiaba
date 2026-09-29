@@ -6,7 +6,7 @@ import { createIngestRepo } from "@/lib/db/pipeline-store";
 import { crawlerUserAgent, type CrawlDeps } from "@/lib/pipeline/http";
 import { systemResolve } from "@/lib/pipeline/net";
 import type { HttpFetch, IngestRepo } from "@/lib/pipeline/ports";
-import { createFakeHttp, type FakeRoute } from "@/lib/pipeline/testing/fake-http";
+import { createFakeHttp, fakeResolve, type FakeRoute } from "@/lib/pipeline/testing/fake-http";
 
 type Env = Partial<Record<"NODE_ENV" | "CRAWLER_FIXTURES", string>>;
 
@@ -83,5 +83,10 @@ export function crawlDeps(
   const http: HttpFetch = fixturesEnabled(env)
     ? createFakeHttp(fixtureRoutes()).http
     : (url, init) => (overrides.fetch ?? fetch)(url, init);
-  return { repo, http, resolve: systemResolve, userAgent: crawlerUserAgent() };
+  return {
+    repo,
+    http, // Fixtures `*.example` não existem no DNS: com elas, o resolvedor falso (só fora de produção).
+    resolve: fixturesEnabled(env) ? fakeResolve() : systemResolve,
+    userAgent: crawlerUserAgent(),
+  };
 }

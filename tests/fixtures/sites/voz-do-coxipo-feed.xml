@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9): Voz do Coxipó não existe. 12 itens; a prévia mostra os 10 mais recentes. -->
+<rss version="2.0"><channel>
+<title>Voz do Coxipó</title>
+<link>https://vozdocoxipo.example/</link>
+<description>Jornal de bairro do Coxipó, em Cuiabá (fixture de teste)</description>
+<language>pt-BR</language>
+<item><title>Moradores do Coxipó pedem iluminação na Avenida Historiador Rubens de Mendonça</title><link>https://vozdocoxipo.example/bairro/materia-1</link><guid isPermaLink="false">vc-001</guid><pubDate>Sun, 27 Sep 2026 15:00:00 -0400</pubDate></item>
+<item><title>Escola do bairro abre matrículas para o ano letivo de 2027</title><link>https://vozdocoxipo.example/bairro/materia-2</link><guid isPermaLink="false">vc-002</guid><pubDate>Sun, 27 Sep 2026 12:00:00 -0400</pubDate></item>
+<item><title>Feira de sábado no Coxipó ganha novos horários</title><link>https://vozdocoxipo.example/bairro/materia-3</link><guid isPermaLink="false">vc-003</guid><pubDate>Sun, 27 Sep 2026 09:00:00 -0400</pubDate></item>
+<item><title>Associação de moradores promove mutirão de limpeza do córrego</title><link>https://vozdocoxipo.example/bairro/materia-4</link><guid isPermaLink="false">vc-004</guid><pubDate>Sat, 26 Sep 2026 17:00:00 -0400</pubDate></item>
+<item><title>Ônibus da linha do Coxipó passa a circular aos domingos</title><link>https://vozdocoxipo.example/bairro/materia-5</link><guid isPermaLink="false">vc-005</guid><pubDate>Sat, 26 Sep 2026 14:00:00 -0400</pubDate></item>
+<item><title>Posto de saúde do bairro amplia vacinação até as 19h</title><link>https://vozdocoxipo.example/bairro/materia-6</link><guid isPermaLink="false">vc-006</guid><pubDate>Sat, 26 Sep 2026 10:00:00 -0400</pubDate></item>
+<item><title>Campeonato de várzea do Coxipó começa neste fim de semana</title><link>https://vozdocoxipo.example/bairro/materia-7</link><guid isPermaLink="false">vc-007</guid><pubDate>Fri, 25 Sep 2026 16:00:00 -0400</pubDate></item>
+<item><title>Obra de drenagem interdita a rua principal por cinco dias</title><link>https://vozdocoxipo.example/bairro/materia-8</link><guid isPermaLink="false">vc-008</guid><pubDate>Fri, 25 Sep 2026 11:00:00 -0400</pubDate></item>
+<item><title>Biblioteca comunitária recebe doação de mil livros</title><link>https://vozdocoxipo.example/bairro/materia-9</link><guid isPermaLink="false">vc-009</guid><pubDate>Thu, 24 Sep 2026 15:00:00 -0400</pubDate></item>
+<item><title>Grupo de corrida se reúne todas as manhãs na praça central</title><link>https://vozdocoxipo.example/bairro/materia-10</link><guid isPermaLink="false">vc-010</guid><pubDate>Thu, 24 Sep 2026 08:00:00 -0400</pubDate></item>
+<item><title>Comerciantes discutem segurança na região do mercado</title><link>https://vozdocoxipo.example/bairro/materia-11</link><guid isPermaLink="false">vc-011</guid><pubDate>Wed, 23 Sep 2026 13:00:00 -0400</pubDate></item>
+<item><title>Clube de mães organiza bazar beneficente</title><link>https://vozdocoxipo.example/bairro/materia-12</link><guid isPermaLink="false">vc-012</guid><pubDate>Wed, 23 Sep 2026 09:00:00 -0400</pubDate></item>
+</channel></rss>

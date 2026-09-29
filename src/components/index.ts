@@ -276,3 +276,28 @@ export {
   clearedHref as sourcesClearedHref,
   activeFilterCount as sourcesActiveFilterCount,
 } from "./studio/sources/list-url";
+
+/* painel de fontes: nova fonte e detalhe (FS-T8) */
+export { SourceStatusBadge, type SourceStatusBadgeProps } from "./studio/sources/SourceStatusBadge";
+export { EditorialScore, type EditorialScoreProps } from "./studio/sources/EditorialScore";
+export { HealthBadge, type HealthBadgeProps } from "./studio/sources/HealthBadge";
+export { FrequencyLabel, type FrequencyLabelProps } from "./studio/sources/FrequencyLabel";
+export {
+  ActionMessage,
+  useFormAction,
+  type ActionResult,
+  type FormAction,
+} from "./studio/sources/detail-shared";
+export { AddSourceWizard, type AddSourceWizardProps } from "./studio/sources/AddSourceWizard";
+export {
+  ApproveChangeDialog,
+  type ApprovalRequestView,
+} from "./studio/sources/ApproveChangeDialog";
+export { BlockSourceDialog } from "./studio/sources/BlockSourceDialog";
+export { ConfirmByTypingDialog } from "./studio/sources/ConfirmByTypingDialog";
+export { SourceAuditTable } from "./studio/sources/SourceAuditTable";
+export { SourceConfigForm } from "./studio/sources/SourceConfigForm";
+export { SourceHealthPanel } from "./studio/sources/SourceHealthPanel";
+export { SourceRecForm } from "./studio/sources/SourceRecForm";
+export { SourceRunsTable } from "./studio/sources/SourceRunsTable";
+export { SourceSectionNav } from "./studio/sources/SourceSectionNav";
