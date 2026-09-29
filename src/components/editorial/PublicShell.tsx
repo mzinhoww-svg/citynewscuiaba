@@ -6,6 +6,7 @@ import { AlertWatcher } from "./AlertWatcher";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
 import { FirstVisitInvite } from "./FirstVisitInvite";
+import { InstallInviteSlot } from "./InstallInviteSlot";
 import { LoginInvite } from "./LoginInvite";
 import { OfflineNotice } from "./OfflineNotice";
 import { SwRegistrar } from "./SwRegistrar";
@@ -45,6 +46,7 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         <BottomNav />
         <FirstVisitInvite />
         <LoginInvite />
+        <InstallInviteSlot />
         <SwRegistrar />
       </div>
     </ConsentProvider>

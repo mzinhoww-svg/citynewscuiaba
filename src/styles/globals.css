@@ -344,6 +344,13 @@
  * Banner de consentimento aberto (ConsentBanner): a página ganha no fim o espaço do banner e
  * a rolagem por foco/âncora para acima dele, então ele nunca esconde conteúdo nem o foco.
  */
+/* Faixa de instalação (C07): a página ganha espaço no fim para a faixa não cobrir nada. */
+:root[data-invite-open] {
+  scroll-padding-bottom: calc(var(--cn-invite-h, 0px) + var(--tap-min));
+}
+:root[data-invite-open] body {
+  padding-bottom: var(--cn-invite-h, 0px);
+}
 :root[data-consent-open] {
   scroll-padding-bottom: calc(var(--cn-consent-h, 0px) + var(--tap-min));
 }

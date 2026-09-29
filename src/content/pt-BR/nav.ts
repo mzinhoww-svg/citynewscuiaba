@@ -45,6 +45,7 @@ export const FOOTER_NAV: readonly NavItem[] = [
   { id: "panorama", label: "Panorama de fontes", href: "/panorama" },
   { id: "newsletter", label: "Newsletters", href: "/newsletter" },
   { id: "alertas", label: "Alertas", href: "/alertas" },
+  { id: "app", label: "Baixar o app", href: "/app" },
   { id: "principios", label: "Princípios editoriais", href: "/principios-editoriais" },
   { id: "metodologia", label: "Metodologia", href: "/metodologia" },
   { id: "ia", label: "Como usamos IA", href: "/como-usamos-ia" },

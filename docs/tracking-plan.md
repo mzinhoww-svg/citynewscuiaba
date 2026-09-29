@@ -40,6 +40,16 @@ Regra de envio: sem `metrics` e sem `personalization` → nada é enviado. Só `
 | `login_completed` | sessão criada | `method`, `migrated` |
 | `login_skipped` | "Agora não" ou fechar | `trigger` |
 | `privacy_settings_updated` | salvar escolhas | `metrics`, `personalization` |
+| `install_prompt_shown` | faixa de instalação (C07) visível ≥ 1 s | `platform` (android, ios, desktop), `trigger` (visits, reads) |
+| `install_prompt_dismissed` | "Agora não" na faixa ou recusa no diálogo nativo | `platform`, `refusals` (1–3) |
+| `app_installed` | `appinstalled` ou 1ª abertura em `standalone` | `via` (prompt, ios_steps, browser, unknown) |
+| `notif_preprompt_shown` | pré-prompt de notificações (C09) visível ≥ 1 s | `trigger` (follow, alert, urgent_article) |
+| `notif_preprompt_dismissed` | "Agora não" em C09 | `trigger`, `refusals` (1–3) |
+| `notif_permission_granted` | permissão de notificação concedida | `trigger` (follow, alert, urgent_article, settings) |
+| `notif_permission_denied` | permissão negada | `trigger` |
+| `push_unsubscribed` | "Desativar avisos" em Alertas | `from` (settings) |
+
+Nos oito eventos do app (spec 2026-09-28 §9.1), `/api/events` acrescenta `props.browser` (família derivada do `User-Agent` no servidor: chrome, safari, firefox, edge, samsung, other); o `User-Agent` não é gravado. `push_sent`, `push_delivered` e `push_clicked` não são eventos: são contadores agregados em `push_sends`/`push_send_counters`, sem id de inscrição.
 
 Nunca registrar: texto de busca quando só métricas; conteúdo de conversas com IA fora da tabela própria; IP em claro; atributos sensíveis.
 

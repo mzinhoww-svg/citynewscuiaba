@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { useInviteSlot } from "@/lib/app/slot";
 import { useConsent, useConsentKnown } from "@/lib/consent/client";
 import type { ConsentChoice } from "@/lib/consent";
 import { Button } from "../ui/Button";
@@ -60,6 +61,8 @@ export function ConsentBanner() {
   const actions = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef(false);
   const open = known && !consent.decided;
+  // Um convite por vez (spec 2026-09-28 §7.1): o banner vem na frente de todos.
+  useInviteSlot("consent", open);
   useReserveSpace(regionRef, open);
 
   useEffect(() => {

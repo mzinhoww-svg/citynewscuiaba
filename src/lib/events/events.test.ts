@@ -74,7 +74,7 @@ describe("sinal fraco (spec §7.2)", () => {
 });
 
 describe("envelope (tracking-plan §1)", () => {
-  it("tem os 17 eventos do plano", () => expect(EVENT_NAMES).toHaveLength(17));
+  it("tem os 17 eventos do plano mais os 8 do app", () => expect(EVENT_NAMES).toHaveLength(25));
 
   it("aceita um evento válido", () =>
     expect(EventEnvelope.safeParse(validEvent).success).toBe(true));
@@ -251,5 +251,46 @@ describe("buildEvent (regra de envio)", () => {
     expect(e.session.referrer).toBe("https://busca.example");
     expect(e.algoVersion).toBe("rec-v1");
     expect(EventEnvelope.safeParse(e).success).toBe(true);
+  });
+});
+
+describe("eventos do app (spec 2026-09-28 §9.1)", () => {
+  const app = (name: string, props: Record<string, unknown>) => ({ ...validEvent, name, props });
+  it("8 eventos com props estritas; browser não vem do cliente", () => {
+    expect(parseEvent(JSON.stringify(app("app_installed", { via: "prompt" }))).ok).toBe(true);
+    expect(
+      parseEvent(JSON.stringify(app("app_installed", { via: "prompt", anonId: "x" }))).ok,
+    ).toBe(false);
+    expect(parseEvent(JSON.stringify(app("app_installed", { via: "loja" }))).ok).toBe(false);
+    expect(
+      parseEvent(
+        JSON.stringify(app("install_prompt_shown", { platform: "android", trigger: "visits" })),
+      ).ok,
+    ).toBe(true);
+    expect(
+      parseEvent(JSON.stringify(app("install_prompt_dismissed", { platform: "ios", refusals: 4 })))
+        .ok,
+    ).toBe(false);
+    expect(
+      parseEvent(JSON.stringify(app("notif_preprompt_shown", { trigger: "settings" }))).ok,
+    ).toBe(false);
+    expect(
+      parseEvent(JSON.stringify(app("notif_permission_granted", { trigger: "settings" }))).ok,
+    ).toBe(true);
+    expect(parseEvent(JSON.stringify(app("push_unsubscribed", { from: "settings" }))).ok).toBe(
+      true,
+    );
+    expect(
+      parseEvent(
+        JSON.stringify(
+          app("install_prompt_shown", {
+            platform: "android",
+            trigger: "visits",
+            browser: "chrome",
+          }),
+        ),
+      ).ok,
+    ).toBe(false);
+    expect(EVENT_NAMES).toHaveLength(25);
   });
 });
