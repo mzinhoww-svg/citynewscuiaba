@@ -26,7 +26,7 @@ import { audienceEstimate, pushSettings, searchArticles } from "@/lib/db/queries
 import type { Json } from "@/lib/db/types";
 import { hitRateLimit } from "@/lib/db/writes";
 import { PUSH_ACTIONS, pushKindsFor } from "@/lib/push/permissions";
-import { scheduleProblem } from "@/lib/push/rules";
+import { cuiabaLocalToIso, scheduleProblem } from "@/lib/push/rules";
 import { audienceSchema, pushRequestSchema } from "@/lib/push/schemas";
 import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
 import type { PushKind } from "@/lib/push/types";
@@ -107,14 +107,6 @@ const text = (form: FormData, key: string): string | undefined => {
 
 function storeFailure(e: PushAdminError): ActionState {
   return fail(T.errors[e]);
-}
-
-/** `datetime-local` digitado no fuso de Cuiabá (UTC−4, sem horário de verão) → ISO. */
-export function cuiabaLocalToIso(local: string): string | null {
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(local.trim());
-  if (!m) return null;
-  const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] ?? "00"}-04:00`;
-  return Number.isFinite(Date.parse(iso)) ? new Date(iso).toISOString() : null;
 }
 
 // ---------------------------------------------------------------------------

@@ -155,3 +155,14 @@ export function scheduleProblem(
   if (isQuiet(PLATFORM_QUIET, new Date(at))) return "quiet";
   return null;
 }
+
+/**
+ * `datetime-local` digitado no fuso de Cuiabá (UTC−4, sem horário de verão) → ISO em UTC;
+ * `null` quando o texto não é uma data válida.
+ */
+export function cuiabaLocalToIso(local: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(local.trim());
+  if (!m) return null;
+  const iso = `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6] ?? "00"}-04:00`;
+  return Number.isFinite(Date.parse(iso)) ? new Date(iso).toISOString() : null;
+}

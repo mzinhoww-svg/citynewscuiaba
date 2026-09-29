@@ -759,6 +759,43 @@ export async function pushSettings(): Promise<PushSettingsView> {
   return r.ok ? r.value : fallback;
 }
 
+/** Pedido de retomada pendente (`approvals` kind `push.resume`), se houver. */
+export interface PendingResume {
+  id: string;
+  requestedBy: PersonRef | null;
+  reason: string;
+  createdAt: string;
+}
+
+export async function pendingResume(): Promise<PendingResume | null> {
+  const r = await read(async (db) => {
+    const row = one<{
+      id: string;
+      requested_by: string;
+      justification: string;
+      created_at: string;
+    }>(
+      await db
+        .from("approvals")
+        .select("id, requested_by, justification, created_at")
+        .eq("kind", "push.resume")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    );
+    if (!row) return null;
+    const names = await namesOf(db, [row.requested_by]);
+    return {
+      id: row.id,
+      requestedBy: person(names, row.requested_by),
+      reason: row.justification,
+      createdAt: row.created_at,
+    };
+  });
+  return r.ok ? r.value : null;
+}
+
 /** Só os nomes das variáveis que faltam (nunca valores; D-P25). */
 export function vapidStatus(env: NodeJS.ProcessEnv = process.env): {
   ok: boolean;
