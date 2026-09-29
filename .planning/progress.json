@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T02:59:02.808Z",
+  "updatedAt": "2026-09-29T05:40:52.962Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -638,10 +638,10 @@
           "id": "P5-T4",
           "title": "Fontes (lista, cadastro, teste de conexão, recomendação)",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "4b212b4",
+          "notes": "Painel de fontes (plano FS-T1..T9)"
         },
         {
           "id": "P5-T5",
