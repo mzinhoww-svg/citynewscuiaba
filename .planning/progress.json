@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-28T14:36:21.930Z",
+  "updatedAt": "2026-09-29T05:47:18.556Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -783,5 +783,13 @@
         }
       ]
     }
-  ]
+  ],
+  "painelFontes": {
+    "status": "done",
+    "tasks": "FS-T1..FS-T9",
+    "merge": "9ca7d6d",
+    "fix": "841a029",
+    "report": "docs/reports/painel-fontes.md",
+    "date": "2026-09-28"
+  }
 }

@@ -1,6 +1,6 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-09-28T02:30-04:00
+**Última atualização:** 2026-09-28T23:00-04:00
 **Atualizado por:** Claude Code
 
 ## Fase e tarefa
@@ -8,17 +8,16 @@
 - **Fases prontas:** P0, P1, P3, P2, P4 (5/7).
 - **Fase ativa:** P5 Control Center e administração, com o Painel de Fontes (substitui P5-T4) em paralelo.
 - **Em andamento:**
-  - Painel de Fontes (worktree `../cn-fs`, branch `painel-fontes`, plano `docs/superpowers/plans/2026-09-27-painel-de-fontes.md`): FS-T1..T6 concluídas; FS-T7 em re-revisão; faltam FS-T8, FS-T9 e a revisão final. Ledger: `../cn-fs/.superpowers/sdd/2026-09-27-painel-de-fontes/progress.md`.
-  - P5 (worktree `../cn-p5`, branch `p5-control`): T3 e T6 prontas; T1, T2, T5, T7, T8, T9, T10 esperam o merge do painel (que cria `src/lib/approvals`). Conflito conhecido: 0027 do P5 duplica a pausa automática do painel — vale a do painel (ruling R8).
-  - Migrations do P4 (0015–0019, 0022–0026) sendo aplicadas em produção.
-  - PWA (pedido do dono em 28/09): brainstorming com partes 1 (instalação, offline, convites) aprovada e 2 (envio e A09) apresentada; spec a escrever (A-061).
-- **Progresso:** 54/70 tarefas do plano + painel 6/9.
+  - Painel de Fontes: FS-T1..T9 concluídas, revisadas e mescladas no branch de trabalho (`9ca7d6d`, correções `841a029`; relatório `docs/reports/painel-fontes.md`). Migrations 0011 → 0030 → 0031 → 0032 → 0033 sendo aplicadas em produção (A-065).
+  - P5 (worktree `../cn-p5`, branch `p5-control`): T3 e T6 prontas; falta integrar (0027 × painel: vale o painel, R8) e fazer T1, T2, T5 (coberta pelo painel), T7, T8, T9 (sem A09), T10; gate do P5.
+  - PWA: spec (`docs/superpowers/specs/2026-09-28-pwa-notificacoes-design.md`) e plano (`docs/superpowers/plans/2026-09-28-pwa-notificacoes.md`, PW-T1..T15) prontos; execução por subagentes agora que o painel entrou.
+- **Progresso:** 54/70 tarefas do plano + painel 9/9 + PWA 0/15.
 
 ## Próxima ação imediata
 
-1. FS-T7 aprovada → FS-T8 (nova fonte e detalhe) → FS-T9 (verificação) → revisão final → merge do painel no branch de trabalho; aplicar 0011 e 0030–0032 em produção.
-2. Merge de `p5-control` resolvendo 0027 × painel; P5-T1 (estende `src/lib/approvals`), T2, T5, T7, T8, T9 (sem A09, que vem do PWA), T10; gate do P5.
-3. Spec + plano do PWA; execução por subagentes.
+1. Conferir produção após as migrations do painel (cron, `/api/ingest/status`, `RATE_LIMIT_SALT`/`CRON_SECRET` na Vercel).
+2. Integrar `p5-control` ao branch de trabalho (R8) e concluir P5; gate do P5.
+3. Executar o plano do PWA (PW-T1..T15) com subagentes; gate.
 4. P6 e relatório final `docs/reports/final.md`.
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
