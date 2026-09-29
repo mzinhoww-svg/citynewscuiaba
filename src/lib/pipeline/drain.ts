@@ -2,7 +2,13 @@ import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import type { EventSink, PipelineEvent, Queue, QueuedMessage } from "./ports";
 import { MAX_ATTEMPTS, retryPolicy } from "./retry";
 import { stepError, type RunStep, type StepError } from "./run-step";
-import { QUEUE_NAMES, queueFor, type QueueName, type StepName } from "./types";
+import {
+  QUEUE_NAMES,
+  queueFor,
+  type PipelineMessage,
+  type QueueName,
+  type StepName,
+} from "./types";
 
 /** Igual ao `maxDuration` da rota /api/jobs/drain (limite do Vercel Hobby). */
 export const DRAIN_MAX_DURATION_SEC = 60;
@@ -47,6 +53,12 @@ export interface DrainDeps {
   /** Tempo mínimo por etapa (padrão `STEP_MIN_MS`). */
   minStepMs?: (step: StepName) => number;
   queues?: readonly QueueName[];
+  /**
+   * Chamado para cada mensagem que a varredura moveu para a quarentena sem passar pela etapa
+   * (tentativas esgotadas): o `fetch` conta a falha final da fonte (D-F18). Erro aqui não derruba
+   * o drain.
+   */
+  onExhausted?: (msg: PipelineMessage, error: string) => Promise<void>;
 }
 
 export interface DrainResult {
@@ -120,7 +132,24 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
   };
 
   try {
-    for (const name of queues) r.exhausted += await queue.moveExhausted(name, MAX_ATTEMPTS);
+    for (const name of queues) {
+      const moved = await queue.moveExhausted(name, MAX_ATTEMPTS);
+      r.exhausted += moved.length;
+      for (const { msg, error } of moved) {
+        if (!msg || !deps.onExhausted) continue;
+        try {
+          await deps.onExhausted(msg, error);
+        } catch (ex) {
+          await push({
+            runId: msg.runId,
+            step: msg.step,
+            itemRef: msg.itemRef,
+            level: "warn",
+            message: `falha ao contabilizar mensagem esgotada: ${ex instanceof Error ? ex.message : String(ex)}`,
+          });
+        }
+      }
+    }
 
     // Uma etapa pode enfileirar a próxima em outra fila (queueFor): repete a volta pelas filas
     // até nenhuma ter mensagem pronta ou o tempo acabar.

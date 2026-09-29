@@ -9,18 +9,25 @@ import {
   createIngestRepo,
   createMediaRepo,
   createPublishRepo,
+  createRateLimitHit,
+  createRateLimitPeek,
+  createRateLimitPeekKey,
   createRulesSource,
   createRunStore,
   createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
 import { analyzeImage } from "@/lib/media/analyze";
 import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
+import type { CollectNowDeps } from "./collect-now";
 import type { DrainDeps } from "./drain";
+import type { FastTickDeps } from "./fast-tick";
+import { crawlDeps } from "@/lib/sources/http-deps";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
 import { systemResolve } from "./net";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
+import { createExhaustedFetchHandler } from "./steps/fetch";
 import {
   createClusterHandlers,
   createIngestHandlers,
@@ -48,12 +55,13 @@ export function productionHandlers(): StepHandlers {
   const db = createServiceClient();
   const ai = createProductionAi();
   const flags = createFlags(db);
+  const ingestRepo = createIngestRepo(db);
   return {
+    // Coleta pelo mesmo `crawlDeps` do painel: `fetch` real em produção; com `CRAWLER_FIXTURES=1`
+    // fora de produção, as fixtures `*.example` (e2e do painel de fontes, FS-T9), sem rede.
     ...createIngestHandlers({
-      repo: createIngestRepo(db),
-      http,
-      resolve: systemResolve,
-      userAgent: crawlerUserAgent(),
+      ...crawlDeps({ repo: ingestRepo }),
+      repo: ingestRepo,
       now: () => new Date(),
     }),
     ...createClusterHandlers({
@@ -99,11 +107,37 @@ export function defaultTickDeps(): TickDeps & { secret: string | undefined } {
   };
 }
 
+export function defaultFastTickDeps(): FastTickDeps & { secret: string | undefined } {
+  const db = createServiceClient();
+  return {
+    queue: pipelineQueue(),
+    runs: createRunStore(db),
+    peekRateLimit: createRateLimitPeek(db),
+    now: () => new Date(),
+    secret: process.env.CRON_SECRET,
+  };
+}
+
+/** "Coletar agora" (FS-T6 chama da Server Action, depois de `requireRole("source.manage")`). */
+export function defaultCollectNowDeps(actor: string): CollectNowDeps {
+  const db = createServiceClient();
+  return {
+    runs: createRunStore(db),
+    queue: pipelineQueue(),
+    repo: createIngestRepo(db),
+    hitRateLimit: createRateLimitHit(db),
+    peekRateLimit: createRateLimitPeekKey(db),
+    actor,
+  };
+}
+
 export function defaultDrainDeps(): DrainDeps & { secret: string | undefined } {
   return {
     queue: pipelineQueue(),
     runStep: createRunStep(productionHandlers()),
     events: createEventSink(createServiceClient()),
+    // `fetch` esgotado varrido para a quarentena conta a falha final da fonte (D-F18).
+    onExhausted: createExhaustedFetchHandler({ repo: createIngestRepo(createServiceClient()) }),
     now: () => Date.now(),
     secret: process.env.CRON_SECRET,
   };

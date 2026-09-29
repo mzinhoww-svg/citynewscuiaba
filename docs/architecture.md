@@ -122,6 +122,7 @@ Schema inicial completo em `supabase/migrations/0001_init.sql`.
 | `correction.manage` | não | ✓ | editoria | não | ✓ | não | não | não | não |
 | `media.approve` | não | ✓ | editoria | não | ✓ | não | não | não | não |
 | `source.manage` | ✓ | ✓ | não | não | não | ✓ | não | não | não |
+| `source.approve_critical` | ✓ (2ª) | ✓ (2ª) | não | não | não | não | não | não | não |
 | `rules.propose` | ✓ | ✓ | não | não | não | ✓ | não | não | não |
 | `rules.approve` | ✓ | ✓ (2ª) | não | não | não | não | não | não | não |
 | `prompt.publish` | ✓ (2ª) | ✓ (2ª) | não | não | não | ✓ (1ª) | não | não | não |

@@ -1,0 +1,201 @@
+/**
+ * Aprovações de mudança crítica (spec mestre §8, plano P5-T1; painel de fontes D-F3/D-F4/D-F5).
+ * Quem pede nunca decide; decisão só em nome próprio, por papel com a segunda assinatura, e
+ * final. As mesmas regras valem no banco (`guard_approvals` e RLS `approvals_decide`, 0002); este
+ * módulo só traduz os resultados em `Result` com erros tipados. Nada aqui aplica a mudança: quem
+ * aplica é o dono do alvo (ex.: `source_admin_update`, que consome a aprovação no trigger).
+ */
+import type { DbClient } from "@/lib/db/client";
+import { err, ok, type Result } from "@/lib/result";
+
+export const CRITICAL_KINDS = [
+  "rules.activate",
+  "prompt.publish",
+  "rec.weights",
+  "role.admin",
+  "safety.disable",
+  "force_review.disable",
+  "push.urgent",
+  "source.critical",
+] as const;
+export type CriticalKind = (typeof CRITICAL_KINDS)[number];
+
+export type ApprovalStatus = "pending" | "approved" | "rejected" | "applied";
+
+export interface ApprovalRow {
+  id: string;
+  kind: string;
+  targetRef: string;
+  justification: string;
+  requestedBy: string;
+  approvedBy: string | null;
+  status: ApprovalStatus;
+  createdAt: string;
+}
+
+export type DecideOutcome = "ok" | "self" | "forbidden" | "not_pending";
+
+/** Acesso ao armazenamento das aprovações (Supabase na produção, memória nos testes). */
+export interface ApprovalsPort {
+  currentUser(): Promise<string | null>;
+  insert(row: {
+    kind: CriticalKind;
+    targetRef: string;
+    justification: string;
+    requestedBy: string;
+  }): Promise<{ id: string }>;
+  get(id: string): Promise<ApprovalRow | null>;
+  /** Decide um pedido ainda pendente, em nome de `by`. */
+  decide(id: string, status: "approved" | "rejected", by: string): Promise<DecideOutcome>;
+  listPending(targetPrefix: string): Promise<ApprovalRow[]>;
+}
+
+export type ApproveError = "self_approval" | "forbidden" | "not_pending";
+
+export interface Approvals {
+  requestApproval(input: {
+    kind: CriticalKind;
+    targetRef: string;
+    justification: string;
+  }): Promise<Result<{ id: string }, "invalid">>;
+  approve(input: { id: string }): Promise<Result<void, ApproveError>>;
+  reject(input: { id: string; reason: string }): Promise<Result<void, ApproveError | "invalid">>;
+  pending(targetPrefix: string): Promise<ApprovalRow[]>;
+}
+
+const isKind = (k: string): k is CriticalKind => (CRITICAL_KINDS as readonly string[]).includes(k);
+
+function toError(outcome: Exclude<DecideOutcome, "ok">): ApproveError {
+  if (outcome === "self") return "self_approval";
+  return outcome;
+}
+
+export function createApprovalsWith(port: ApprovalsPort): Approvals {
+  const decide = async (
+    id: string,
+    status: "approved" | "rejected",
+  ): Promise<Result<void, ApproveError>> => {
+    const me = await port.currentUser();
+    if (!me) return err("forbidden");
+    const row = await port.get(id);
+    if (!row) return err("not_pending");
+    // Autoaprovação primeiro: a mesma pessoa recebe a mensagem certa mesmo sem o papel.
+    if (row.requestedBy === me) return err("self_approval");
+    if (row.status !== "pending") return err("not_pending");
+    const outcome = await port.decide(id, status, me);
+    return outcome === "ok" ? ok(undefined) : err(toError(outcome));
+  };
+
+  return {
+    async requestApproval({ kind, targetRef, justification }) {
+      if (!isKind(kind) || !targetRef.trim() || !justification.trim()) return err("invalid");
+      const me = await port.currentUser();
+      if (!me) return err("invalid");
+      const { id } = await port.insert({
+        kind,
+        targetRef: targetRef.trim(),
+        justification: justification.trim(),
+        requestedBy: me,
+      });
+      return ok({ id });
+    },
+    approve: ({ id }) => decide(id, "approved"),
+    async reject({ id, reason }) {
+      if (!reason.trim()) return err("invalid");
+      return decide(id, "rejected");
+    },
+    pending: (prefix) => port.listPending(prefix),
+  };
+}
+
+type Row = {
+  id: string;
+  kind: string;
+  target_ref: string;
+  justification: string;
+  requested_by: string;
+  approved_by: string | null;
+  status: string;
+  created_at: string;
+};
+
+const COLUMNS =
+  "id, kind, target_ref, justification, requested_by, approved_by, status, created_at";
+
+function mapRow(r: Row): ApprovalRow {
+  return {
+    id: r.id,
+    kind: r.kind,
+    targetRef: r.target_ref,
+    justification: r.justification,
+    requestedBy: r.requested_by,
+    approvedBy: r.approved_by,
+    status: r.status as ApprovalStatus,
+    createdAt: r.created_at,
+  };
+}
+
+/** `%` e `_` literais no prefixo do `like`. */
+const escapeLike = (s: string): string => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+
+/** Porta sobre o cliente com a sessão da pessoa (RLS e `guard_approvals` valem). */
+export function supabaseApprovalsPort(db: DbClient): ApprovalsPort {
+  return {
+    async currentUser() {
+      const { data } = await db.auth.getUser();
+      return data.user?.id ?? null;
+    },
+    async insert(row) {
+      const { data, error } = await db
+        .from("approvals")
+        .insert({
+          kind: row.kind,
+          target_ref: row.targetRef,
+          justification: row.justification,
+          requested_by: row.requestedBy,
+        })
+        .select("id")
+        .single();
+      if (error || !data) throw new Error(`approvals: ${error?.message ?? "sem retorno"}`);
+      return { id: data.id };
+    },
+    async get(id) {
+      const { data, error } = await db.from("approvals").select(COLUMNS).eq("id", id).maybeSingle();
+      if (error) throw new Error(`approvals: ${error.message}`);
+      return data ? mapRow(data) : null;
+    },
+    async decide(id, status, by) {
+      const { data, error } = await db
+        .from("approvals")
+        .update({ status, approved_by: by })
+        .eq("id", id)
+        .eq("status", "pending")
+        .select("id");
+      if (error) {
+        if (/quem pede não decide/.test(error.message)) return "self";
+        if (/decisão já tomada/.test(error.message)) return "not_pending";
+        if (error.code === "42501") return "forbidden";
+        throw new Error(`approvals: ${error.message}`);
+      }
+      // 0 linhas: a RLS `approvals_decide` escondeu o pedido (papel sem segunda assinatura) ou
+      // outra pessoa decidiu no meio tempo.
+      if ((data ?? []).length > 0) return "ok";
+      const now = await this.get(id);
+      return now && now.status !== "pending" ? "not_pending" : "forbidden";
+    },
+    async listPending(prefix) {
+      const { data, error } = await db
+        .from("approvals")
+        .select(COLUMNS)
+        .eq("status", "pending")
+        .like("target_ref", `${escapeLike(prefix)}%`)
+        .order("created_at");
+      if (error) throw new Error(`approvals: ${error.message}`);
+      return (data ?? []).map(mapRow);
+    },
+  };
+}
+
+export function createApprovals(db: DbClient): Approvals {
+  return createApprovalsWith(supabaseApprovalsPort(db));
+}

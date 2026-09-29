@@ -25,6 +25,12 @@ it("jornalista edita só as próprias", () => {
   expect(can(r, "article.publish", { section: "cidade" })).toBe(false);
 });
 
+it("aprovar mudança crítica de fonte: admin e editor-chefe, não operador", () => {
+  expect(can([{ role: "editor_chefe", sections: [] }], "source.approve_critical")).toBe(true);
+  expect(can([{ role: "admin", sections: [] }], "source.approve_critical")).toBe(true);
+  expect(can([{ role: "operador_ia", sections: [] }], "source.approve_critical")).toBe(false);
+});
+
 it("leitura não altera nada", () =>
   expect(can([{ role: "leitura", sections: [] }], "source.manage")).toBe(false));
 
@@ -37,6 +43,7 @@ describe("matriz (docs/architecture.md §6)", () => {
     "correction.manage": ["editor_chefe", "revisor"],
     "media.approve": ["editor_chefe", "revisor"],
     "source.manage": ["admin", "editor_chefe", "operador_ia"],
+    "source.approve_critical": ["admin", "editor_chefe"],
     "rules.propose": ["admin", "editor_chefe", "operador_ia"],
     "rules.approve": ["admin", "editor_chefe"],
     "prompt.publish": ["admin", "editor_chefe", "operador_ia"],

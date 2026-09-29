@@ -6,26 +6,38 @@ import { DEFAULT_AGENTS, DEFAULT_MODELS } from "./defaults";
 import { GLOBAL_DAILY_BUDGET_BRL } from "./registry";
 import { AGENT_IDS } from "./types";
 
-const sql = readFileSync(join(process.cwd(), "supabase/migrations/0006_ai_seed.sql"), "utf8");
+const readSql = (name: string) =>
+  readFileSync(join(process.cwd(), "supabase/migrations", name), "utf8");
+
+// A-056: `write` cedeu R$ 1 ao novo agente `source_profiler`, seedado na migration 0011.
+const sql0006 = readSql("0006_ai_seed.sql");
+const sql0011 = readSql("0011_source_admin.sql");
+/** Compara ignorando como o SQL quebra linha entre os valores de um `insert`/`update`. */
+const norm = (s: string) => s.replace(/\s+/g, " ");
+const sqlAll = norm(`${sql0006}\n${sql0011}`);
 
 describe("registro padrão de IA", () => {
-  it("espelha a migration 0006 (modelos, agentes e prompts v1)", () => {
+  it("espelha as migrations 0006 + 0011 (modelos, agentes e prompts v1)", () => {
     for (const m of DEFAULT_MODELS) {
-      expect(sql).toContain(`'${m.id}'`);
-      expect(sql).toContain(String(m.costPer1kIn));
+      expect(sqlAll).toContain(`'${m.id}'`);
+      expect(sqlAll).toContain(String(m.costPer1kIn));
     }
     for (const a of DEFAULT_AGENTS) {
-      expect(sql).toContain(`('${a.id}', '${a.fn}', '${a.model}'`);
-      if (a.prompt) expect(sql).toContain(`('${a.id}', 1, '${a.prompt}'`);
+      expect(sqlAll).toContain(norm(`('${a.id}', '${a.fn}', '${a.model}'`));
+      if (a.prompt) expect(sqlAll).toContain(norm(`('${a.id}', 1, '${a.prompt}'`));
     }
+    // 0011 redistribui o teto global: `write` passa de R$ 11 para R$ 10 (A-056).
+    expect(sql0011).toContain("update ai_agents set daily_budget_brl = 10 where id = 'write';");
   });
 
-  it("todo agente de texto tem prompt e fallback; orçamentos somam o teto global", () => {
+  it("todo agente de texto tem prompt e fallback; orçamentos somam o teto global (write R$ 10 + source_profiler R$ 1, A-056)", () => {
     for (const id of AGENT_IDS) {
       const a = DEFAULT_AGENTS.find((x) => x.id === id);
       expect(a?.prompt, id).toBeTruthy();
       expect(a?.fallback, id).toBeTruthy();
     }
+    expect(DEFAULT_AGENTS.find((a) => a.id === "write")?.dailyBudgetBrl).toBe(10);
+    expect(DEFAULT_AGENTS.find((a) => a.id === "source_profiler")?.dailyBudgetBrl).toBe(1);
     expect(DEFAULT_AGENTS.reduce((s, a) => s + a.dailyBudgetBrl, 0)).toBe(GLOBAL_DAILY_BUDGET_BRL);
   });
 });

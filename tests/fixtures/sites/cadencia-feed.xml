@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fixture fictícia (painel de fontes, FS-T6): feed do Cadência MT, veículo inexistente. -->
+<rss version="2.0">
+  <channel>
+    <title>Cadência MT</title>
+    <link>https://cadencia.example/</link>
+    <item>
+      <title>Feira do Porto ganha horário estendido aos sábados</title>
+      <link>https://cadencia.example/cidade/feira-do-porto</link>
+      <pubDate>Sat, 26 Sep 2026 12:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Parque Mãe Bonifácia recebe nova trilha sinalizada</title>
+      <link>https://cadencia.example/cidade/trilha-mae-bonifacia</link>
+      <pubDate>Sat, 26 Sep 2026 09:00:00 GMT</pubDate>
+    </item>
+  </channel>
+</rss>

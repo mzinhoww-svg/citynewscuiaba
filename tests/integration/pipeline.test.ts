@@ -213,13 +213,30 @@ async function runCycle(opts: {
     }),
   };
 
+  // Cada ciclo do teste é uma janela de coleta nova: libera a trava de coleta dupla (D-F29, FS-T5),
+  // senão o segundo ciclo, no mesmo minuto real, terminaria `already_fetched`.
+  await db
+    .from("sources")
+    .update({ last_fetch_started_at: null, last_fetch_run_id: null })
+    .in("slug", [...SLUGS]);
   // Tick: janela própria (ano 2001) e só as 3 fontes de fixture.
   const base = createRunStore(db);
   const runs: RunStore = {
     ...base,
     previousOpenRun: async () => null,
     activeSources: async () =>
-      SLUGS.map((slug) => ({ slug, frequencyMinutes: 30, lastFetchedAt: null })),
+      SLUGS.map((slug) => ({
+        id: slug,
+        slug,
+        status: "active" as const,
+        priority: 2,
+        editorialScore: 3,
+        frequencyMinutes: 30,
+        crawlDelaySec: null,
+        termsMinIntervalMinutes: null,
+        rateLimitPerHour: 60,
+        lastFetchedAt: null,
+      })),
   };
   const queue = createQueue(db, { namespace });
   const window = new Date(Date.UTC(2001, 0, 1) + randomInt(1, 2_000_000) * 30 * 60_000);

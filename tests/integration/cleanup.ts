@@ -19,17 +19,23 @@ export interface PipelineTrash {
 type SourceState = {
   slug: string;
   status: "active" | "paused" | "degraded" | "blocked";
+  status_reason: string | null;
+  consecutive_failures: number;
   etag: string | null;
   last_modified: string | null;
   last_error: string | null;
   last_fetched_at: string | null;
+  last_fetch_started_at: string | null;
+  last_fetch_run_id: string | null;
 };
 
 /** Guarda o estado de coleta das fontes que a suíte vai buscar. */
 export async function rememberSources(db: DbClient, t: PipelineTrash, slugs: readonly string[]) {
   const { data, error } = await db
     .from("sources")
-    .select("slug, status, etag, last_modified, last_error, last_fetched_at")
+    .select(
+      "slug, status, status_reason, consecutive_failures, etag, last_modified, last_error, last_fetched_at, last_fetch_started_at, last_fetch_run_id",
+    )
     .in("slug", [...slugs]);
   check("sources", error);
   t.sources.push(...(data ?? []));
@@ -104,6 +110,27 @@ export async function purgePipeline(db: DbClient, t: PipelineTrash): Promise<voi
   if (raws.length) check("raw_items", (await db.from("raw_items").delete().in("id", raws)).error);
   if (runIds.length)
     check("ingest_runs", (await db.from("ingest_runs").delete().in("id", runIds)).error);
+  if (t.sources.length) {
+    // Saúde gravada pelo `fetch` (FS-T5): o seed não tem linhas em `source_health_daily`.
+    const { data: ids } = await db
+      .from("sources")
+      .select("id")
+      .in(
+        "slug",
+        t.sources.map((s) => s.slug),
+      );
+    const sourceIds = (ids ?? []).map((r) => r.id);
+    if (sourceIds.length)
+      check(
+        "source_fetch_outcomes",
+        (await db.from("source_fetch_outcomes").delete().in("source_id", sourceIds)).error,
+      );
+    if (sourceIds.length)
+      check(
+        "source_health_daily",
+        (await db.from("source_health_daily").delete().in("source_id", sourceIds)).error,
+      );
+  }
   for (const { slug, ...state } of t.sources)
     check("sources", (await db.from("sources").update(state).eq("slug", slug)).error);
   for (const r of t.rateLimits)

@@ -24,6 +24,7 @@ export const ACTIONS = [
   "correction.manage",
   "media.approve",
   "source.manage",
+  "source.approve_critical",
   "rules.propose",
   "rules.approve",
   "prompt.publish",
@@ -65,6 +66,8 @@ export const PERMISSIONS: Matrix = {
   "correction.manage": { editor_chefe: "all", editor: "section", revisor: "all" },
   "media.approve": { editor_chefe: "all", editor: "section", revisor: "all" },
   "source.manage": { admin: "all", editor_chefe: "all", operador_ia: "all" },
+  /** Segunda assinatura de mudança crítica de fonte (painel de fontes, D-F4). */
+  "source.approve_critical": { admin: "second", editor_chefe: "second" },
   "rules.propose": { admin: "all", editor_chefe: "all", operador_ia: "all" },
   "rules.approve": { admin: "all", editor_chefe: "second" },
   "prompt.publish": { admin: "second", editor_chefe: "second", operador_ia: "first" },

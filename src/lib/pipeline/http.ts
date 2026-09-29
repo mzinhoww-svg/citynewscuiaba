@@ -12,6 +12,31 @@ export function crawlerUserAgent(): string {
   return process.env.CRAWLER_USER_AGENT?.trim() || DEFAULT_USER_AGENT;
 }
 
+/**
+ * `net.ts` (intocado) devolve o mesmo formato "blocked"/"network_error" tanto para uma recusa de
+ * política (esquema, credenciais, host proibido, DNS que resolve para IP privado) quanto para uma
+ * falha de rede comum sobre a mesma checagem (DNS fora do ar, cadeia de redirecionamento longa
+ * demais, `Location` inválido). Como não editamos `net.ts`, a única forma de separar as duas sem
+ * inspecionar texto arbitrário é reconhecer o vocabulário fixo que `urlProblem`/`safeGet` usam para
+ * as recusas de política (fix round 2, achado N1/#5). Nunca casa texto vindo de conteúdo de
+ * terceiros: essas mensagens são só as que `net.ts` mesmo produz.
+ */
+const POLICY_BLOCK_PATTERNS: RegExp[] = [
+  /^esquema não permitido:/,
+  /^URL com credenciais não é permitida$/,
+  /^host não permitido:/,
+  // Ancorado à forma exata de `urlProblem` (net.ts): um `Location` de terceiro que repete a
+  // frase entra em "redirecionamento inválido: …" e não pode casar aqui (FS-T9).
+  /^host \S+ resolve para endereço não permitido/,
+];
+
+function isPolicyBlock(reason: string): boolean {
+  return POLICY_BLOCK_PATTERNS.some((re) => re.test(reason));
+}
+
+/** Só nosso: nunca aparece numa mensagem real de `net.ts`, então dá para comparar por igualdade. */
+const RATE_LIMIT_HOP_SENTINEL = "__citynews_http_rate_limited_hop__";
+
 export interface CrawlDeps {
   repo: Pick<IngestRepo, "hitRateLimit">;
   http: HttpFetch;
@@ -32,7 +57,15 @@ export type CrawlResponse =
     }
   | { kind: "not_modified" }
   | { kind: "http_error"; status: number }
-  | { kind: "network_error"; message: string }
+  /**
+   * `blocked` é `true` só para uma recusa de política: esquema errado, credenciais na URL, host
+   * proibido por nome, DNS que resolve para IP privado/reservado, ou o próprio `onHop` do chamador
+   * recusando o salto (ele existe exatamente para impor política extra, como "mesmo site"). DNS
+   * fora do ar, timeout, conexão recusada, cadeia de redirecionamento longa demais e `Location`
+   * inválido são falhas de rede comuns, nunca `blocked` (fix round 2, achado N1/#5) — quem precisa
+   * dessa distinção decide o que fazer com cada uma; quem só lê `message` não muda de comportamento.
+   */
+  | { kind: "network_error"; message: string; blocked?: boolean }
   | { kind: "too_large" }
   | { kind: "rate_limited" };
 
@@ -52,6 +85,13 @@ export async function crawlGet(
     lastModified?: string | null;
     accept?: string;
     signal?: AbortSignal;
+    /**
+     * Chamado antes de cada salto real (o pedido inicial e cada redirecionamento seguido), na
+     * ordem. Devolver um motivo interrompe a cadeia ali, sem chegar a fazer aquele salto (e sem
+     * contar para o limite por hora); devolver `null` deixa seguir. Opcional: quem não passa
+     * `onHop` tem o comportamento de sempre, um pedido por chamada de `crawlGet`.
+     */
+    onHop?: (url: URL) => string | null;
   },
 ): Promise<CrawlResponse> {
   let parsed: URL;
@@ -61,9 +101,7 @@ export async function crawlGet(
     return { kind: "network_error", message: `URL inválida: ${url}` };
   }
   const problem = await urlProblem(parsed, deps.resolve);
-  if (problem) return { kind: "network_error", message: problem };
-  if (!(await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour)))
-    return { kind: "rate_limited" };
+  if (problem) return { kind: "network_error", message: problem, blocked: isPolicyBlock(problem) };
 
   const headers: Record<string, string> = {
     "User-Agent": deps.userAgent,
@@ -74,15 +112,46 @@ export async function crawlGet(
   if (opts.etag) headers["If-None-Match"] = opts.etag;
   if (opts.lastModified) headers["If-Modified-Since"] = opts.lastModified;
 
-  const res = await safeGet(deps, url, {
+  // Sem `onHop`: comportamento de sempre, uma cota da hora por chamada, cobrada antes do pedido
+  // (compatibilidade com quem já usa `crawlGet`, spec de fix round 2 "keep existing behavior").
+  let http = deps.http;
+  let blockedByHook = false;
+  if (opts.onHop) {
+    // Com `onHop`: a cota é cobrada a cada salto de verdade (achado N3), imediatamente antes
+    // daquele pedido — nunca depois. `deps.http` só é chamado por `safeGet` quando `urlProblem` e
+    // `allowUrl` (que embrulha `onHop`, abaixo) já deixaram passar aquele salto; embrulhando
+    // `deps.http` em vez de `deps.repo.hitRateLimit` fora do loop, a cobrança acontece no mesmo
+    // lugar exato em que o pedido de verdade sairia, e nunca depois dele.
+    http = async (input, init) => {
+      if (!(await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour)))
+        throw new Error(RATE_LIMIT_HOP_SENTINEL);
+      return deps.http(input, init);
+    };
+  } else if (!(await deps.repo.hitRateLimit(opts.bucket, opts.limitPerHour))) {
+    return { kind: "rate_limited" };
+  }
+
+  const res = await safeGet({ http, resolve: deps.resolve }, url, {
     headers,
     signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
     maxBytes: MAX_DOCUMENT_BYTES,
+    allowUrl: opts.onHop
+      ? (u) => {
+          const reason = opts.onHop!(u);
+          if (reason !== null) blockedByHook = true;
+          return reason;
+        }
+      : undefined,
   });
   switch (res.kind) {
     case "blocked":
-      return { kind: "network_error", message: res.reason };
+      return {
+        kind: "network_error",
+        message: res.reason,
+        blocked: blockedByHook || isPolicyBlock(res.reason),
+      };
     case "network_error":
+      if (res.message === RATE_LIMIT_HOP_SENTINEL) return { kind: "rate_limited" };
       return res;
     case "too_large":
       return res;
@@ -116,7 +185,12 @@ export type RobotsVerdict =
 export async function checkRobots(
   deps: CrawlDeps,
   url: string,
-  opts: { bucket: string; limitPerHour: number; signal?: AbortSignal },
+  opts: {
+    bucket: string;
+    limitPerHour: number;
+    signal?: AbortSignal;
+    onHop?: (url: URL) => string | null;
+  },
 ): Promise<RobotsVerdict> {
   const target = new URL(url);
   const robotsUrl = `${target.protocol}//${target.host}/robots.txt`;
