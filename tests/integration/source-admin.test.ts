@@ -509,6 +509,57 @@ describe("estado, lote e opt-out", () => {
     ).toBe("blocked");
   });
 
+  it("M4b: takedown que falha no opt-out avisa, e repetir só refaz o takedown", async () => {
+    const s = await mkSource({ image_policy: "reproduction" });
+    const path = `test/${tag}-optout-falho.jpg`;
+    const asset = await db
+      .from("media_assets")
+      .insert({
+        kind: "reproduction",
+        storage_path: path,
+        license: "REPRODUÇÃO",
+        allowed_use: "reproduction",
+        status: "approved",
+        source_id: s.id,
+      })
+      .select("id")
+      .single();
+    mediaIds.push(asset.data!.id);
+    const flaky = createMemoryMediaStore();
+    let broken = true;
+    const store = {
+      ...flaky,
+      remove: async (p: string) => {
+        if (broken) throw new Error("storage indisponível");
+        return flaky.remove(p);
+      },
+    };
+    const withStore = { ...deps, mediaStore: store };
+    const run = (version: number) =>
+      asUser(
+        "helena",
+        () =>
+          runWithSourceDeps(withStore, () =>
+            sourceStatusAction(formFrom({ id: s.id, version, action: "block", reason: "opt_out" })),
+          ),
+        { now: () => new Date() },
+      );
+    const first = await run(s.version);
+    expect(first).toMatchObject({
+      ok: false,
+      message: expect.stringMatching(/não foram removidas|não foi removida/),
+    });
+    expect((await load(s.id)).status).toBe("blocked");
+    // A reprodução já saiu do portal (bloqueada); o arquivo ainda precisa sair.
+    broken = false;
+    const again = await run((await load(s.id)).version);
+    expect(again).toMatchObject({ ok: true, data: { removedImages: 1 } });
+    expect(
+      (await db.from("media_assets").select("status").eq("id", asset.data!.id).single()).data
+        ?.status,
+    ).toBe("blocked");
+  });
+
   it("excluir = arquivar: pausa antes, motivo obrigatório, itens ficam e dá para restaurar", async () => {
     const s = await mkSource();
     expect(

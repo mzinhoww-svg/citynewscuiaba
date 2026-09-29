@@ -286,7 +286,7 @@ describe("etapa de imagem (13 e 14)", () => {
       "c1000000-0000-4000-8000-000000000002",
       "Pedido do veículo por e-mail",
     );
-    expect(r).toEqual({ ok: true, value: { blocked: 1, articleIds: ["a1"] } });
+    expect(r).toEqual({ ok: true, value: { blocked: 1, articleIds: ["a1"], failed: 0 } });
     repo.setContext({
       articleId: "a3",
       topicId: "t3",

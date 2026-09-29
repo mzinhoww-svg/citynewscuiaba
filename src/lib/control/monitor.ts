@@ -203,6 +203,18 @@ export function maskIps(text: string): string {
     .replace(IPV6, (m) => `${m.split(":").filter(Boolean).slice(0, 2).join(":")}:x:x`);
 }
 
+/**
+ * O valor digitado num filtro parece um IP inteiro ou parcial (3º grupo do IPv4 em diante, ou IPv6 com 3 grupos; os 2 primeiros a tela já mostra). Quem não é
+ * admin não pode filtrar por IP: o filtro roda no texto cru e revelaria o IP que a tela mascara.
+ */
+export function looksLikeIp(value: string): boolean {
+  if ((value.match(/\d/g)?.length ?? 0) < 3) return false;
+  // A tela já mostra os dois primeiros grupos ("203.0.x.x", "2001:db8:x:x"): o oráculo começa no
+  // terceiro grupo, então só valem IPv4 com 3 grupos (o terceiro pode estar incompleto) e IPv6 com
+  // dois `:` entre grupos hex.
+  return /\d+\.\d+\.\d/.test(value) || /(^|[^0-9a-z])[0-9a-f]{1,4}:[0-9a-f]{0,4}:/i.test(value);
+}
+
 /** Só admin vê o IP inteiro (Global Constraints do P5). */
 export const maskIpsFor = (text: string, isAdmin: boolean): string =>
   isAdmin ? text : maskIps(text);

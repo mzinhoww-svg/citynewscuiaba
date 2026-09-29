@@ -64,7 +64,10 @@ export const sourceConfigSchema = z.object({
   maySoleSource: z.boolean(),
   agreementUntil: z.string().nullable(),
   agreementNote: z.string().max(500, "Use até 500 caracteres.").nullable(),
-  termsUrl: z.string().url("Informe um endereço válido.").max(2048).nullable(),
+  termsUrl: z
+    .url({ protocol: /^https?$/, message: "Informe um endereço http ou https válido." })
+    .max(2048)
+    .nullable(),
   termsMinIntervalMinutes: z.number().int().min(1).max(1440).nullable(),
   frequencyMinutes: frequencySchema,
   rateLimitPerHour: z
@@ -82,8 +85,14 @@ export const consumptionSchema = z.object({
   strategy: z.enum(["rss", "atom", "jsonfeed", "sitemap_news", "page_list", "page_article"], {
     message: "Estratégia de coleta desconhecida.",
   }),
-  feedUrl: z.string().url().nullable().optional(),
-  alternates: z.array(z.string().url()).max(10).optional(),
+  feedUrl: z
+    .url({ protocol: /^https?$/ })
+    .nullable()
+    .optional(),
+  alternates: z
+    .array(z.url({ protocol: /^https?$/ }))
+    .max(10)
+    .optional(),
   page: pageSelectorsSchema.optional(),
   discovery: z
     .object({

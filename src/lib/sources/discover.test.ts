@@ -183,6 +183,30 @@ describe("discoverConsumption", () => {
     expect(calls.some((c) => c.url.includes("169.254.169.254"))).toBe(false);
   });
 
+  it("M3: candidata em outro host (mesmo domínio) não é buscada com o robots da origem", async () => {
+    const { d, calls } = deps({
+      ...robotsOk("noticias.example"),
+      "https://noticias.example/": html(
+        '<html><head><link rel="alternate" type="application/rss+xml" href="https://feeds.noticias.example/rss"></head><body></body></html>',
+      ),
+    });
+    await discoverConsumption(d, new URL("https://noticias.example/"));
+    expect(calls.some((c) => c.url.startsWith("https://feeds.noticias.example"))).toBe(false);
+  });
+
+  it("B2-R2: o limite de descoberta é o mesmo com ou sem www e ponto final", async () => {
+    const buckets: string[] = [];
+    const { d } = deps({ ...robotsOk("noticias.example") });
+    d.repo = {
+      hitRateLimit: async (b) => {
+        buckets.push(b);
+        return true;
+      },
+    };
+    await discoverConsumption(d, new URL("https://WWW.Noticias.example./"));
+    expect(new Set(buckets)).toEqual(new Set(["discover:noticias.example"]));
+  });
+
   it("host que resolve para IP privado é recusado", async () => {
     const { http, calls } = createFakeHttp({});
     const d: CrawlDeps = {

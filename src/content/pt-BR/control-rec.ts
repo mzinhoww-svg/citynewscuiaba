@@ -251,7 +251,7 @@ export const REC_TEXT = {
   whyError: "Não foi possível calcular agora. Tente de novo.",
   whyResultTitle: (alias: string) => `Recomendações para ${alias}`,
   whyNoConsent:
-    "Este leitor não ligou a Personalização, ou não há eventos dele. O peso individual vale 0 e o score usa só sinais gerais, como para qualquer visitante anônimo.",
+    "O painel não mostra a afinidade individual: o CityNews não guarda o consentimento vigente do leitor no servidor (ao retirar a Personalização, os eventos novos deixam de trazer o id). O peso individual vale 0 e o score usa só sinais gerais, como para qualquer visitante anônimo.",
   whyConsent:
     "Este leitor ligou a Personalização: o componente individual entra no score, com o peso da versão em vigor.",
   whyVersion: (v: string) => `Versão de pesos: ${v}`,

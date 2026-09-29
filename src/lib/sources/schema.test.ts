@@ -83,3 +83,18 @@ describe("consumptionSchema e seletores", () => {
     ).toBe(false);
   });
 });
+
+describe("B4-R2: só http e https", () => {
+  it("termsUrl, feedUrl e alternates recusam outros esquemas", () => {
+    for (const bad of ["javascript:alert(1)", "ftp://x.example/a", "data:text/html,x"]) {
+      expect(sourceConfigSchema.safeParse({ ...valid, termsUrl: bad }).success).toBe(false);
+      expect(consumptionSchema.safeParse({ strategy: "rss", feedUrl: bad }).success).toBe(false);
+      expect(consumptionSchema.safeParse({ strategy: "rss", alternates: [bad] }).success).toBe(
+        false,
+      );
+    }
+    expect(
+      sourceConfigSchema.safeParse({ ...valid, termsUrl: "https://x.example/termos" }).success,
+    ).toBe(true);
+  });
+});

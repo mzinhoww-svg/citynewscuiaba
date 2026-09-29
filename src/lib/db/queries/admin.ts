@@ -3,6 +3,8 @@ import type { AuditRow } from "@/lib/admin/audit-csv";
 import type { IntegrationProbes } from "@/lib/admin/integrations";
 import { SETTING_KEYS, type SettingKey } from "@/lib/admin/settings";
 import type { SponsoredCampaign } from "@/lib/ads/rules";
+import { isAdminRole } from "@/lib/admin/access";
+import { looksLikeIp } from "@/lib/control/monitor";
 import { studioContext } from "@/lib/studio/context";
 
 /*
@@ -34,7 +36,13 @@ const like = (v: string) =>
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 async function auditQuery(filters: AuditFilters, from: number, to: number): Promise<AuditRow[]> {
-  const { db } = await studioContext();
+  const { db, session } = await studioContext();
+  // Filtro por IP (oráculo): a tela mascara o IP para quem não é admin, o filtro não pode revelá-lo.
+  if (
+    !isAdminRole(session?.roles ?? []) &&
+    [filters.actor, filters.object].some((v) => v && looksLikeIp(v))
+  )
+    return [];
   let q = db
     .from("audit_log")
     .select("id, at, actor, action, object_ref, details, ip_hash")

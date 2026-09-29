@@ -94,3 +94,38 @@ describe("coletor HTTP", () => {
   it("identificação padrão do robô", () =>
     expect(DEFAULT_USER_AGENT).toMatch(/^CityNewsBot\/1\.0/));
 });
+
+describe("M3: redirecionamento para outro host", () => {
+  it("crawlGet não segue redirecionamento para host diferente (robots do destino não foi lido)", async () => {
+    const { http, calls } = createFakeHttp({
+      "https://a.example/feed": {
+        status: 301,
+        headers: { location: "https://outro.example/feed" },
+      },
+      "https://outro.example/feed": { body: "<rss/>" },
+    });
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://a.example/feed",
+      opts,
+    );
+    expect(r).toEqual({ kind: "network_error", message: expect.stringMatching(/outro host/) });
+    expect(calls.map((c) => c.url)).toEqual(["https://a.example/feed"]);
+  });
+
+  it("aceita só a variação www. do mesmo host", async () => {
+    const { http } = createFakeHttp({
+      "https://a.example/feed": {
+        status: 301,
+        headers: { location: "https://www.a.example/feed" },
+      },
+      "https://www.a.example/feed": { body: "<rss/>" },
+    });
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://a.example/feed",
+      opts,
+    );
+    expect(r.kind).toBe("ok");
+  });
+});

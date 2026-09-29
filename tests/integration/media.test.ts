@@ -183,7 +183,7 @@ describe("imagem com banco real: política reproduction", () => {
       MARINA,
       `Pedido do veículo ${tag}`,
     );
-    expect(r).toEqual({ ok: true, value: { blocked: 1, articleIds: [ids.article] } });
+    expect(r).toEqual({ ok: true, value: { blocked: 1, articleIds: [ids.article], failed: 0 } });
     expect(tags).toEqual([`article:${ids.article}`]);
     expect(await visible()).toBe(0);
     const audit = await db

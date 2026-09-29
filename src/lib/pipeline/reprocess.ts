@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { createServiceClient, type DbClient } from "@/lib/db/client";
 import { isStepName } from "@/lib/control/monitor";
@@ -48,6 +49,10 @@ const RAW_STEPS: readonly StepName[] = ["validate", "extract", "normalize"];
 const ITEM_STEPS: readonly StepName[] = ["dedupe", "cluster", "classify", "locate"];
 
 const UUID = z.string().uuid();
+
+/** "Executar agora": 20 por hora por pessoa e 1 a cada 5 min por fonte. */
+const RUN_NOW_PER_PERSON_PER_HOUR = 20;
+const RUN_NOW_SOURCE_GAP_MS = 5 * 60_000;
 const REF = /^(?:source|raw|item|article|topic):\S{1,380}$/;
 
 const InputSchema = z.object({
@@ -323,6 +328,31 @@ const runNowAction = (deps: ReprocessDeps) =>
         );
       }
 
+      // Cota: 20/h por pessoa e, numa fonte só, 1 a cada 5 min (como "Coletar agora").
+      const person = createHash("sha256").update(ctx.userId).digest("hex").slice(0, 32);
+      const gate = await db.rpc("hit_rate_limit", {
+        p_bucket: "run_now",
+        p_key_hash: person,
+        p_limit: RUN_NOW_PER_PERSON_PER_HOUR,
+        p_window_seconds: 3600,
+      });
+      if (gate.error) throw new Error(`executar agora (limite): ${gate.error.message}`);
+      if (gate.data !== true)
+        throw new StudioFailure("invalid", "Limite de execuções por hora atingido; tente depois.");
+      if (input.sourceId) {
+        const last = await db
+          .from("ingest_runs")
+          .select("started_at")
+          .eq("trigger", "manual")
+          .eq("stats->>source", input.sourceId)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (last.error) throw new Error(`executar agora (fonte): ${last.error.message}`);
+        if (last.data && now.getTime() - Date.parse(last.data.started_at) < RUN_NOW_SOURCE_GAP_MS)
+          throw new StudioFailure("invalid", "Esta fonte foi executada há menos de 5 minutos.");
+      }
+
       // window_start próprio (milissegundo do clique): nunca colide com a janela de 30 min do tick.
       let at = now.getTime();
       if (at % (30 * 60_000) === 0) at += 1;
@@ -332,8 +362,11 @@ const runNowAction = (deps: ReprocessDeps) =>
           .from("ingest_runs")
           .insert({
             window_start: new Date(at).toISOString(),
+            // `manual`: o fetch não passa pela trava de janela e o watchdog não conta o run.
+            trigger: "manual",
             stats: {
               manual: true,
+              ...(input.sourceId ? { source: input.sourceId } : {}),
               requested_by: ctx.userId,
               ...(input.sourceId ? { source_id: input.sourceId } : {}),
             },
@@ -364,6 +397,7 @@ const runNowAction = (deps: ReprocessDeps) =>
             manual: true,
             requested_by: ctx.userId,
             fetch_enqueued: enqueued,
+            ...(input.sourceId ? { source: input.sourceId } : {}),
             ...(input.sourceId ? { source_id: input.sourceId } : {}),
           },
         })

@@ -147,6 +147,8 @@ export interface SourcePatch {
   etag?: string | null;
   lastModified?: string | null;
   lastFetchedAt?: string;
+  /** `consumption` inteiro (ex.: `robots.crawlDelaySec` atualizado quando o robots.txt muda). */
+  consumption?: ConsumptionConfig;
 }
 
 export type DocumentFormat = "rss" | "atom" | "rdf" | "sitemap" | "jsonfeed" | "html";
@@ -208,7 +210,15 @@ export interface IngestRepo {
     error: string | null,
   ): Promise<void>;
   /** Estado da fonte depois de uma coleta (`afterFetch`): status, motivo e falhas seguidas. */
-  applySourceState(id: string, patch: Partial<SourceState>): Promise<void>;
+  /**
+   * Compare-and-set: só aplica se a fonte ainda está com o status lido (`expectedStatus`) e ativa
+   * ou degradada, sem arquivo. `false` = nada mudou (bloqueio/pausa humana durante a coleta vence).
+   */
+  applySourceState(
+    id: string,
+    patch: Partial<SourceState>,
+    expectedStatus: SourceState["status"],
+  ): Promise<boolean>;
   /** Uma notificação por chave e canal na janela (mesma regra do `PublishRepo`). */
   notifyOnce(n: NotificationInput, windowSec: number): Promise<boolean>;
   sourceBySlug(slug: string): Promise<SourceRecord | null>;
@@ -487,7 +497,8 @@ export interface MediaRepo extends Pick<IngestRepo, "hitRateLimit"> {
   recordDecision(d: DecisionRecord): Promise<void>;
   asset(id: string): Promise<MediaAssetRecord | null>;
   /** Reproduções ativas (não bloqueadas) de uma fonte. */
-  reproductionsOfSource(sourceId: string): Promise<MediaAssetRecord[]>;
+  /** Reproduções da fonte; com `includeBlocked`, também as já bloqueadas (repetir o apagamento). */
+  reproductionsOfSource(sourceId: string, includeBlocked?: boolean): Promise<MediaAssetRecord[]>;
   /** Bloqueia o asset (sai do portal) e devolve as matérias que o usavam. */
   blockAsset(id: string, reason: string, at: Date): Promise<{ articleIds: string[] }>;
   audit(entry: {

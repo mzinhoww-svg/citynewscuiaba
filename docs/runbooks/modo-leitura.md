@@ -39,3 +39,4 @@ Se ninguém consegue abrir a tela (sessão de admin perdida), com acesso ao banc
 
 - A leitura da flag falha fechada: se o banco não responder, o Estúdio se comporta como em modo leitura (e a gravação também falharia).
 - Execuções do playground e de avaliações de IA (Control Center) não gravam matéria e não são bloqueadas.
+- A rota do tick (`/api/ingest/tick`) confere `read_only` antes de `publishDueScheduled`: em modo leitura as agendadas vencidas ficam pendentes e saem quando o modo é desligado. O job `citynews-publish-scheduled` do pg_cron chama `publish_due_scheduled()` direto no banco; nas tabelas de escrita da equipe vale o `guard_read_only` (migration 0038, frente A).

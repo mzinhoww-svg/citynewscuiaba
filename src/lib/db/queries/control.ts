@@ -3,6 +3,7 @@ import {
   AGENT_STEPS,
   deriveRunState,
   isStepName,
+  looksLikeIp,
   maskIpsFor,
   maskJson,
   sourceHealthState,
@@ -316,6 +317,9 @@ export async function queryLogs(
 ): Promise<{ rows: EventRow[]; hasMore: boolean }> {
   const { db } = await studioContext();
   const { admin } = await viewer();
+  // Filtro por IP (oráculo): quem não é admin só vê o IP mascarado, então não pode filtrar por ele.
+  if (!admin && [filters.q, filters.item, filters.source].some((v) => v && looksLikeIp(v)))
+    return { rows: [], hasMore: false };
   let q = db.from("pipeline_events").select(eventCols).order("id", { ascending });
   if (filters.run && UUID.test(filters.run)) q = q.eq("run_id", filters.run);
   if (filters.item?.trim()) q = q.ilike("item_ref", `%${like(filters.item.trim())}%`);

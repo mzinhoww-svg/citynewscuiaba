@@ -17,10 +17,12 @@ export interface TakedownDeps {
  */
 export async function takedownReproduction(
   deps: TakedownDeps,
-  target: { mediaId: string } | { sourceId: string },
+  target: { mediaId: string } | { sourceId: string; retry?: boolean },
   actor: string,
   reason: string,
-): Promise<Result<{ blocked: number; articleIds: string[] }, "reason_required" | "not_found">> {
+): Promise<
+  Result<{ blocked: number; articleIds: string[]; failed: number }, "reason_required" | "not_found">
+> {
   if (!reason.trim()) return err("reason_required");
   let assets: MediaAssetRecord[];
   if ("mediaId" in target) {
@@ -28,22 +30,34 @@ export async function takedownReproduction(
     if (!a) return err("not_found");
     assets = a.status === "blocked" ? [] : [a];
   } else {
-    assets = await deps.repo.reproductionsOfSource(target.sourceId);
+    // `retry`: repete um opt-out que falhou no meio; inclui as já bloqueadas para apagar o arquivo.
+    assets = await deps.repo.reproductionsOfSource(target.sourceId, target.retry === true);
   }
 
   const articleIds = new Set<string>();
+  let failed = 0;
+  // Uma falha em um asset não interrompe os demais: cada um é bloqueado (sai do portal) e depois
+  // tem o arquivo apagado; o que falhar é contado e pode ser repetido (`retry`).
   for (const a of assets) {
-    const { articleIds: used } = await deps.repo.blockAsset(a.id, reason.trim(), deps.now());
-    used.forEach((id) => articleIds.add(id));
-    await deps.store.remove(a.storagePath);
-    await deps.repo.audit({
-      actor,
-      action: "media.takedown",
-      objectRef: `media:${a.id}`,
-      details: { reason: reason.trim(), kind: a.kind, originUrl: a.originUrl, articles: used },
-    });
+    try {
+      if (a.status !== "blocked") {
+        const { articleIds: used } = await deps.repo.blockAsset(a.id, reason.trim(), deps.now());
+        used.forEach((id) => articleIds.add(id));
+        await deps.repo.audit({
+          actor,
+          action: "media.takedown",
+          objectRef: `media:${a.id}`,
+          details: { reason: reason.trim(), kind: a.kind, originUrl: a.originUrl, articles: used },
+        });
+      }
+      const removed = await deps.store.remove(a.storagePath);
+      if (!removed.ok) failed++;
+    } catch {
+      failed++;
+    }
   }
   const ids = [...articleIds];
   if (ids.length > 0) await deps.revalidate(ids.map((id) => `article:${id}`));
-  return ok({ blocked: assets.length, articleIds: ids });
+  // `blocked`: reproduções tratadas nesta chamada (bloqueadas agora ou só com o arquivo apagado).
+  return ok({ blocked: assets.length, articleIds: ids, failed });
 }

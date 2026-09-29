@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { CHECKLIST_TEXT, PUBLISH_TEXT } from "@/content/pt-BR/studio";
 import { createServiceClient } from "@/lib/db/client";
+import { getFlag } from "@/lib/flags";
 import { studioAction, StudioFailure } from "./action";
 import { checklist, type ChecklistKey } from "./checklist";
 import { loadDraftView } from "./draft-view";
@@ -106,6 +107,9 @@ export const publishArticle = studioAction(
  * em `studio_revalidations`; esta função e a rota /api/jobs/revalidate consomem essa fila.
  */
 export async function publishDueScheduled(revalidate: Revalidate): Promise<number> {
+  // Modo leitura (contingência): nada é publicado, nem agendada vencida; as pendências saem
+  // quando o modo é desligado. Flag lida sem cache; erro de leitura vale como ligado (falha fechada).
+  if (await getFlag("read_only", { fresh: true })) return 0;
   const db = createServiceClient();
   const { data, error } = await db.rpc("publish_due_scheduled");
   if (error) throw new Error(`agendadas: ${error.message}`);

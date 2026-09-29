@@ -345,7 +345,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       check("recordFetch", error);
     },
 
-    async applySourceState(id, patch) {
+    async applySourceState(id, patch, expectedStatus) {
       const row = {
         ...(patch.status !== undefined ? { status: patch.status } : {}),
         ...(patch.statusReason !== undefined ? { status_reason: patch.statusReason } : {}),
@@ -353,9 +353,18 @@ export function createIngestRepo(db: DbClient): IngestRepo {
           ? { consecutive_failures: patch.consecutiveFailures }
           : {}),
       };
-      if (Object.keys(row).length === 0) return;
-      const { error } = await db.from("sources").update(row).eq("id", id);
+      if (Object.keys(row).length === 0) return false;
+      // Compare-and-set: o service role isenta o guard do banco, então a condição fica aqui.
+      const { data, error } = await db
+        .from("sources")
+        .update(row)
+        .eq("id", id)
+        .eq("status", expectedStatus)
+        .in("status", ["active", "degraded"])
+        .is("archived_at", null)
+        .select("id");
       check("applySourceState", error);
+      return (data?.length ?? 0) > 0;
     },
 
     async notifyOnce(n, windowSec) {
@@ -379,6 +388,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
         ...(patch.etag !== undefined ? { etag: patch.etag } : {}),
         ...(patch.lastModified !== undefined ? { last_modified: patch.lastModified } : {}),
         ...(patch.lastFetchedAt !== undefined ? { last_fetched_at: patch.lastFetchedAt } : {}),
+        ...(patch.consumption !== undefined ? { consumption: toJson(patch.consumption) } : {}),
       };
       if (Object.keys(row).length === 0) return;
       const { error } = await db.from("sources").update(row).eq("id", id);
@@ -949,14 +959,14 @@ export function createMediaRepo(db: DbClient): MediaRepo {
       return data ? toAsset(data) : null;
     },
 
-    async reproductionsOfSource(sourceId) {
-      const { data, error } = await db
+    async reproductionsOfSource(sourceId, includeBlocked = false) {
+      let q = db
         .from("media_assets")
         .select(ASSET_COLUMNS)
         .eq("kind", "reproduction")
-        .eq("source_id", sourceId)
-        .neq("status", "blocked")
-        .returns<AssetRow[]>();
+        .eq("source_id", sourceId);
+      if (!includeBlocked) q = q.neq("status", "blocked");
+      const { data, error } = await q.returns<AssetRow[]>();
       check("reproductionsOfSource", error);
       return (data ?? []).map(toAsset);
     },

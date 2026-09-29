@@ -60,13 +60,15 @@ export function createMemoryIngestRepo(sources: SourceRecord[], opts: MemoryInge
     async recordFetch(sourceId, outcome, latencyMs, itemsNew, error) {
       health.push({ sourceId, outcome, latencyMs, itemsNew, error });
     },
-    async applySourceState(id, patch: Partial<SourceState>) {
+    async applySourceState(id, patch: Partial<SourceState>, expectedStatus) {
       const s = rows.find((x) => x.id === id);
-      if (!s) return;
+      if (!s || s.status !== expectedStatus) return false;
+      if (s.status !== "active" && s.status !== "degraded") return false;
       if (patch.status !== undefined) s.status = patch.status;
       if (patch.statusReason !== undefined) s.statusReason = patch.statusReason;
       if (patch.consecutiveFailures !== undefined)
         s.consecutiveFailures = patch.consecutiveFailures;
+      return true;
     },
     async notifyOnce(n) {
       if (notifications.some((x) => x.dedupeKey === n.dedupeKey && x.channel === n.channel))

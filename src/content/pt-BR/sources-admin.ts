@@ -163,6 +163,11 @@ export const SOURCE_MESSAGES = {
     n === 0
       ? "Fonte bloqueada por pedido da fonte. Não havia imagens reproduzidas."
       : `Fonte bloqueada por pedido da fonte. ${n} ${n === 1 ? "imagem reproduzida foi removida" : "imagens reproduzidas foram removidas"}.`,
+  /** `n` < 0: falha sem contagem (erro antes de listar as imagens). */
+  optOutIncomplete: (n: number) =>
+    n > 0
+      ? `Fonte bloqueada, mas ${n} ${n === 1 ? "imagem não foi removida" : "imagens não foram removidas"}; repita a ação.`
+      : "Fonte bloqueada, mas as imagens reproduzidas não foram removidas; repita a ação.",
   reasonRequired: "Informe o motivo.",
   mustPauseFirst: "Pause a fonte antes de excluir.",
   invalidTransition: "Esta ação não vale para o estado atual da fonte.",

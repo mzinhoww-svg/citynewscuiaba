@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { createServiceClient } from "@/lib/db/client";
 import { createIngestRepo } from "@/lib/db/pipeline-store";
 import { crawlerUserAgent, type CrawlDeps } from "@/lib/pipeline/http";
-import { systemResolve } from "@/lib/pipeline/net";
+import { pinnedHttp, systemResolve } from "@/lib/pipeline/net";
 import type { HttpFetch, IngestRepo } from "@/lib/pipeline/ports";
 import { createFakeHttp, fakeResolve, type FakeRoute } from "@/lib/pipeline/testing/fake-http";
 
@@ -82,7 +82,9 @@ export function crawlDeps(
   };
   const http: HttpFetch = fixturesEnabled(env)
     ? createFakeHttp(fixtureRoutes()).http
-    : (url, init) => (overrides.fetch ?? fetch)(url, init);
+    : overrides.fetch
+      ? (url, init) => overrides.fetch!(url, init)
+      : pinnedHttp(systemResolve);
   return {
     repo,
     http, // Fixtures `*.example` não existem no DNS: com elas, o resolvedor falso (só fora de produção).

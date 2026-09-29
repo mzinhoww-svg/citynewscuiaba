@@ -7,7 +7,7 @@ import type { RawEntry } from "@/lib/pipeline/types";
 import { err, ok, type Result } from "@/lib/result";
 import { extractPageList } from "./page-list";
 import type { ConsumptionStrategy, PageSelectors } from "./types";
-import { registrableHost } from "./url";
+import { hostKey } from "./url";
 
 export const MAX_DISCOVERY_REQUESTS = 8;
 export const DISCOVERY_LIMIT_PER_HOUR = 20;
@@ -161,10 +161,9 @@ export async function discoverConsumption(
 ): Promise<Result<Discovery, DiscoverError>> {
   const maxRequests = opts.maxRequests ?? MAX_DISCOVERY_REQUESTS;
   const limits = {
-    bucket: `discover:${url.hostname.toLowerCase()}`,
+    bucket: `discover:${hostKey(url)}`,
     limitPerHour: DISCOVERY_LIMIT_PER_HOUR,
   };
-  const site = registrableHost(url.hostname);
   let used = 0;
   const tried: Discovery["tried"] = [];
 
@@ -279,8 +278,9 @@ export async function discoverConsumption(
 
   for (const c of candidates) {
     if (c === url.toString() || c === pageUrl) continue;
-    if (registrableHost(new URL(c).hostname) !== site) {
-      tried.push({ url: c, outcome: "outro domínio: ignorado" });
+    // Outro host (mesmo subdomínio de terceiros incluído) teria robots próprio, não consultado.
+    if (hostKey(new URL(c)) !== hostKey(url)) {
+      tried.push({ url: c, outcome: "outro host: ignorado" });
       continue;
     }
     if (used >= maxRequests) break;

@@ -3,13 +3,15 @@
  * esquema, nome de host, resolução de DNS (todos os endereços) e faixa de IP antes do pedido. O
  * corpo é lido em streaming e cortado no limite, com ou sem `content-length`.
  *
- * Limite conhecido: o `fetch` do Node resolve o nome de novo ao conectar. Um DNS que troca de
- * resposta entre a checagem e a conexão (rebinding) ainda teria uma janela curta; a checagem
- * por salto e o `redirect: "manual"` fecham os caminhos comuns (redirecionamento para rede
- * interna, nome que resolve para IP privado, formas numéricas alternativas).
+ * Rebinding de DNS: `urlProblem` resolve o nome para checar, e o cliente resolveria de novo ao
+ * conectar. `pinnedHttp` (produção) fecha a janela: a conexão usa um `lookup` próprio que resolve,
+ * recusa qualquer endereço proibido e entrega ao socket só os endereços validados, então o IP
+ * checado no momento de conectar é o IP usado. `urlProblem` continua como checagem antecipada
+ * (mensagem clara e sem conexão) e para injeções de `HttpFetch` nos testes.
  */
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent, fetch as undiciFetch } from "undici";
 import type { HttpFetch } from "./ports";
 
 /** Todos os endereços (IPv4 e IPv6) de um nome. Injetável: testes nunca usam DNS real. */
@@ -19,6 +21,13 @@ export const systemResolve: ResolveHost = async (hostname) =>
   (await lookup(hostname, { all: true, verbatim: true })).map((a) => a.address);
 
 export const MAX_REDIRECTS = 3;
+
+/** Host sem `www.`, minúsculo e sem ponto final: chave de "mesmo host" (robots é por host). */
+export const hostOf = (hostname: string): string =>
+  hostname
+    .toLowerCase()
+    .replace(/\.$/, "")
+    .replace(/^www\./, "");
 
 // ---------------------------------------------------------------------------
 // Faixas proibidas
@@ -284,4 +293,54 @@ export async function safeGet(
 export function deadlineSignal(timeoutMs: number, signal?: AbortSignal): AbortSignal {
   const own = AbortSignal.timeout(timeoutMs);
   return signal ? AbortSignal.any([own, signal]) : own;
+}
+
+// ---------------------------------------------------------------------------
+// Conexão com o IP validado (rebinding de DNS)
+// ---------------------------------------------------------------------------
+type LookupCallback = (
+  err: Error | null,
+  address: string | { address: string; family: number }[],
+  family?: number,
+) => void;
+
+/**
+ * `lookup` para o socket: resolve pelo `resolve` dado, recusa se QUALQUER endereço for proibido e
+ * devolve só os endereços validados. Assinatura de `dns.lookup` (com e sem `all`).
+ */
+export function pinnedLookup(resolve: ResolveHost) {
+  return (hostname: string, options: { all?: boolean }, cb: LookupCallback): void => {
+    resolve(hostname).then(
+      (addresses) => {
+        const bad = addresses.find(isForbiddenAddress);
+        if (addresses.length === 0 || bad) {
+          cb(
+            new Error(`host ${hostname} resolve para endereço não permitido (${bad ?? "nenhum"})`),
+            [],
+          );
+          return;
+        }
+        const list = addresses.map((address) => ({ address, family: isIP(address) }));
+        if (options.all) cb(null, list);
+        else cb(null, list[0]!.address, list[0]!.family);
+      },
+      (e: unknown) => cb(e instanceof Error ? e : new Error(String(e)), []),
+    );
+  };
+}
+
+let sharedAgent: { resolve: ResolveHost; agent: Agent } | null = null;
+
+/** `HttpFetch` de produção: `fetch` cujo socket só conecta no endereço validado por `pinnedLookup`. */
+export function pinnedHttp(resolve: ResolveHost = systemResolve): HttpFetch {
+  if (!sharedAgent || sharedAgent.resolve !== resolve)
+    sharedAgent = {
+      resolve,
+      agent: new Agent({ connect: { lookup: pinnedLookup(resolve) } }),
+    };
+  const dispatcher = sharedAgent.agent;
+  return (url, init) =>
+    undiciFetch(url, { ...init, dispatcher } as Parameters<
+      typeof undiciFetch
+    >[1]) as unknown as Promise<Response>;
 }

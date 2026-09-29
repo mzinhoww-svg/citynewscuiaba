@@ -19,7 +19,7 @@ import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
 import type { DrainDeps } from "./drain";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
-import { systemResolve } from "./net";
+import { pinnedHttp, systemResolve } from "./net";
 import type { HttpFetch } from "./ports";
 import { createRunStep, type StepHandlers } from "./run-step";
 import {
@@ -46,7 +46,8 @@ export function productionMediaStore(db: ReturnType<typeof createServiceClient>)
 
 /** Handlers de produção por etapa. As etapas entram aqui conforme as tarefas do P3. */
 export function productionHandlers(): StepHandlers {
-  const http: HttpFetch = (url, init) => fetch(url, init);
+  // Conexão fixada no IP validado (rebinding de DNS): ver `pinnedHttp`.
+  const http: HttpFetch = pinnedHttp(systemResolve);
   const db = createServiceClient();
   const ai = createProductionAi();
   const flags = createFlags(db);

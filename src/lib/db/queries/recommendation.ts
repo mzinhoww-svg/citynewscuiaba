@@ -396,24 +396,16 @@ export interface WhyResult {
 }
 
 /**
- * Como o score de cada fonte se compõe para um leitor pseudonimizado. O consentimento vem do
- * último evento dele: sem Personalização (ou sem eventos), o id não entra na consulta de
- * sinais e o peso individual vale 0.
+ * Como o score de cada fonte se compõe para um leitor pseudonimizado. Não há registro de
+ * consentimento vigente que independa do `anon_id`: ao retirar a Personalização, os eventos novos
+ * passam a vir com `anon_id` nulo (`buildEvent`), então o último evento com aquele id continua
+ * dizendo "consentiu" mesmo depois da retirada (regra 7 do CLAUDE.md). Por isso o painel nunca lê
+ * o histórico individual: `personalization` é sempre `false`, o id não entra na consulta de
+ * sinais e o peso individual vale 0. `rec_variant_events` conta eventos anteriores à retirada.
  */
 export async function explainForAnon(anonId: string, now: Date = new Date()): Promise<WhyResult> {
-  const { db } = await studioContext();
-  const last = await db
-    .from("events")
-    .select("consent")
-    .eq("anon_id", anonId)
-    .order("received_at", { ascending: false })
-    .limit(1);
-  if (last.error) throw new Error(`recomendação (consentimento): ${last.error.message}`);
-  const consent = last.data?.[0]?.consent;
-  const personalization =
-    typeof consent === "object" && consent !== null && !Array.isArray(consent)
-      ? consent.personalization === true
-      : false;
+  await studioContext();
+  const personalization = false;
 
   const panel = await weightVersions();
   const active = panel.find((v) => v.active && v.weights);
@@ -429,7 +421,6 @@ export async function explainForAnon(anonId: string, now: Date = new Date()): Pr
   const signals = await getSourceSignals({
     window: "7d",
     now,
-    ...(personalization ? { anonId } : {}),
   });
   if (!signals.ok) throw new Error("recomendação: sinais indisponíveis");
   const bySlug = new Map(signals.value.map((s) => [s.slug, s]));

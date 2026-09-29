@@ -123,6 +123,29 @@ describe("coleta: fetch → validate → extract → normalize", () => {
     });
   });
 
+  it("B1-R2: grava o Crawl-delay novo quando o robots.txt muda", async () => {
+    const t = setup(
+      {
+        "https://folhadocerrado.example/robots.txt": { body: "User-agent: *\nCrawl-delay: 20" },
+        "https://folhadocerrado.example/feed": feedRoute("<rss/>"),
+      },
+      [
+        {
+          ...folha,
+          consumption: {
+            strategy: "rss",
+            robots: { checkedAt: "2026-01-01T00:00:00Z", allowed: true, crawlDelaySec: 5 },
+          },
+        },
+      ],
+    );
+    await t.run();
+    expect(t.repo.source("folha-do-cerrado")!.consumption?.robots).toMatchObject({
+      crawlDelaySec: 20,
+      checkedAt: NOW.toISOString(),
+    });
+  });
+
   it("coleta condicional: manda If-None-Match e If-Modified-Since; 304 não gera item", async () => {
     const t = setup(
       {

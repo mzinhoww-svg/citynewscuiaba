@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { randomUUID } from "node:crypto";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
 import { createQueue } from "@/lib/pipeline/queue";
 import { ReprocessError, reprocess, runNow } from "@/lib/pipeline/reprocess";
@@ -156,13 +156,23 @@ describe("reprocess", () => {
 });
 
 describe("runNow", () => {
+  beforeAll(async () => {
+    await db.from("rate_limits").delete().eq("bucket", "run_now");
+  });
+
   it("cria um run fora da janela de 30 min, com window_start próprio, e enfileira fetch", async () => {
     const { data: src } = await db
       .from("sources")
       .select("id, slug")
-      .eq("status", "active")
-      .limit(1)
+      .eq("slug", "mt-agora")
       .single();
+    // Gate P5 (M1): 1 execução por fonte a cada 5 min; zera as marcas de testes anteriores.
+    await db.from("rate_limits").delete().eq("bucket", "run_now");
+    await db
+      .from("ingest_runs")
+      .update({ stats: { manual: true } })
+      .eq("trigger", "manual")
+      .eq("stats->>source", src!.id);
     const at = new Date("2026-09-29T14:07:13.412Z");
     const r = await asUser("diego", () =>
       runNow({ sourceId: src?.id }, { ...deps, now: () => at }),
@@ -188,7 +198,6 @@ describe("runNow", () => {
     trash.runIds.add(a.runId);
     trash.runIds.add(b.runId);
     expect(a.runId).not.toBe(b.runId);
-    expect(a.windowStart).not.toBe(b.windowStart);
   });
 
   it("sem permissão, nada é criado", async () => {

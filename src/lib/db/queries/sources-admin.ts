@@ -676,7 +676,8 @@ export async function sourceRuns(id: string, limit = 20): Promise<Result<SourceR
       .from("pipeline_events")
       .select("id, at, run_id, level, message")
       .eq("step", "fetch")
-      .like("item_ref", `source:${src.data.slug}%`)
+      // Igual exato ou `source:<slug>:...`: o prefixo cru pegaria `source:<slug>-2`.
+      .or(`item_ref.eq.source:${src.data.slug},item_ref.like.source:${src.data.slug}:%`)
       .order("at", { ascending: false })
       .limit(Math.min(100, Math.max(1, limit)));
     if (error) throw new Error(`fonte (coletas): ${error.message}`);

@@ -6,13 +6,13 @@ function check(op: string, error: { message: string } | null): void {
   if (error) throw new Error(`ai-store: ${op}: ${error.message}`);
 }
 
-/** Agentes e flag mudam pouco: cache curto evita três consultas por chamada no drain. */
+/** Agentes mudam pouco: cache curto evita três consultas por chamada no drain. A flag `ai_enabled`
+ * não usa cache: "IA fora do ar" (contingência) vale na próxima chamada. */
 const CACHE_MS = 60_000;
 
 /** Registro de IA no banco (service role): `ai_agents`, `ai_models`, `ai_prompts`, `ai_calls`. */
 export function createAiStore(db: DbClient, now: () => number = () => Date.now()): AiStore {
   const agents = new Map<string, { at: number; value: AgentConfig | null }>();
-  let flag: { at: number; value: boolean } | null = null;
 
   const toModel = (m: {
     id: string;
@@ -79,7 +79,6 @@ export function createAiStore(db: DbClient, now: () => number = () => Date.now()
     },
 
     async aiEnabled() {
-      if (flag && now() - flag.at < CACHE_MS) return flag.value;
       const { data, error } = await db
         .from("feature_flags")
         .select("enabled")
@@ -87,8 +86,7 @@ export function createAiStore(db: DbClient, now: () => number = () => Date.now()
         .maybeSingle();
       check("aiEnabled", error);
       // Sem a flag cadastrada, IA fica desligada (falha fechado).
-      flag = { at: now(), value: data?.enabled === true };
-      return flag.value;
+      return data?.enabled === true;
     },
 
     async spendSince(since) {

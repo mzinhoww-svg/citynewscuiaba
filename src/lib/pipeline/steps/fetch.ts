@@ -1,4 +1,5 @@
 import { err, ok } from "@/lib/result";
+import { crawlDelayOf } from "@/lib/sources/discover";
 import { afterFetch } from "@/lib/sources/status";
 import { checkRobots, crawlGet, type CrawlDeps } from "../http";
 import type { IngestRepo, SourceRecord } from "../ports";
@@ -71,7 +72,9 @@ export function createFetchStep(deps: IngestDeps): StepHandler {
         outcome,
       );
       if (!patch) return;
-      await deps.repo.applySourceState(source.id, patch);
+      // Compare-and-set: se a fonte foi bloqueada ou pausada durante a coleta, nada é sobrescrito.
+      const applied = await deps.repo.applySourceState(source.id, patch, source.status);
+      if (!applied) return;
       if (patch.status === "paused" && patch.statusReason === "auto_failures") {
         await deps.repo.notifyOnce(
           {
@@ -122,6 +125,21 @@ export function createFetchStep(deps: IngestDeps): StepHandler {
       await settle("failed", robots.reason);
       return ok([]);
     }
+
+    // O Crawl-delay do robots.txt lido agora vale mais que o guardado na descoberta (B1-R2).
+    const knownDelay = source.consumption?.robots?.crawlDelaySec ?? null;
+    const currentDelay = crawlDelayOf(robots.robotsTxt, deps.userAgent);
+    if (source.consumption && currentDelay !== knownDelay)
+      await deps.repo.updateSource(source.id, {
+        consumption: {
+          ...source.consumption,
+          robots: {
+            checkedAt: deps.now().toISOString(),
+            allowed: true,
+            crawlDelaySec: currentDelay,
+          },
+        },
+      });
 
     // ETag e Last-Modified valem sempre (também na via rápida): 304 é sucesso barato.
     const res = await crawlGet(deps, url, {

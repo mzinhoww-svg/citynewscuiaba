@@ -100,10 +100,13 @@ export function createMemoryMediaRepo(opts: { rateLimit?: boolean } = {}) {
       const a = assets.find((x) => x.id === id);
       return a ? view(a) : null;
     },
-    async reproductionsOfSource(sourceId) {
+    async reproductionsOfSource(sourceId, includeBlocked = false) {
       return assets
         .filter(
-          (a) => a.kind === "reproduction" && a.sourceId === sourceId && a.status !== "blocked",
+          (a) =>
+            a.kind === "reproduction" &&
+            a.sourceId === sourceId &&
+            (includeBlocked || a.status !== "blocked"),
         )
         .map(view);
     },

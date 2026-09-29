@@ -1,6 +1,6 @@
 import type { HttpFetch, IngestRepo } from "./ports";
 import { isAllowedByRobots } from "./crawl";
-import { deadlineSignal, safeGet, urlProblem, type ResolveHost } from "./net";
+import { deadlineSignal, hostOf, safeGet, urlProblem, type ResolveHost } from "./net";
 
 export { isForbiddenHost } from "./net";
 
@@ -39,7 +39,7 @@ export type CrawlResponse =
 /**
  * GET identificado como `CityNewsBot`, com timeout de 10 s (ou o prazo do drain, o que vier
  * antes), no máximo 3 redirecionamentos revalidados, bloqueio de rede interna por nome e por DNS
- * (SSRF), corpo lido em streaming até 5 MB, limite por hora da fonte (`rate_limits`, bucket
+ * (SSRF; sem sair do host de origem, exceto `www.`), corpo lido em streaming até 5 MB, limite por hora da fonte (`rate_limits`, bucket
  * `crawler:<slug>`) e coleta condicional (ETag/Last-Modified).
  */
 export async function crawlGet(
@@ -78,6 +78,12 @@ export async function crawlGet(
     headers,
     signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
     maxBytes: MAX_DOCUMENT_BYTES,
+    // O robots.txt lido é o da origem: redirecionar para outro host levaria a coleta para um site
+    // cujo robots não foi consultado. Só a variação `www.` do mesmo host segue.
+    allowUrl: (u) =>
+      hostOf(u.hostname) === hostOf(parsed.hostname)
+        ? null
+        : `redirecionamento para outro host: ${u.hostname}`,
   });
   switch (res.kind) {
     case "blocked":

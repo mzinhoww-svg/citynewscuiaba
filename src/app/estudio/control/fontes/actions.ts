@@ -646,7 +646,14 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState<St
         : name === "archive"
           ? { type: "archive", reason }
           : ({ type: name } as SourceAction);
-    const t = transition(state, domain, r.deps.now());
+    // Repetição de um opt-out que falhou no takedown: a fonte já está bloqueada por opt_out, então
+    // só o takedown roda de novo (a transição block→block seria recusada).
+    const retryOptOut =
+      name === "block" &&
+      reason === "opt_out" &&
+      row.status === "blocked" &&
+      row.status_reason === "opt_out";
+    const t = retryOptOut ? { ok: true as const } : transition(state, domain, r.deps.now());
     if (!t.ok) {
       const text = {
         invalid_transition: M.invalidTransition,
@@ -674,32 +681,46 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState<St
     if (name === "block" && !(BLOCK_REASONS as readonly string[]).includes(reason))
       return failState(M.reasonRequired, { reason: M.reasonRequired });
 
-    const res = await r.store.setStatus(
-      id,
-      version,
-      name,
-      name === "pause" ? "manual" : reason || null,
-      await auditCtx(r, { reason: reason || null }),
-    );
+    const res = retryOptOut
+      ? ({ ok: true, value: { version: row.version } } as const)
+      : await r.store.setStatus(
+          id,
+          version,
+          name,
+          name === "pause" ? "manual" : reason || null,
+          await auditCtx(r, { reason: reason || null }),
+        );
     if (!res.ok) return storeFailState(res);
 
     let removed = 0;
+    let notRemoved = 0;
     if (name === "block" && reason === "opt_out") {
       const service = r.deps.service;
-      const take = await takedownReproduction(
-        {
-          repo: createMediaRepo(service),
-          store: r.deps.mediaStore ?? r.ctx.mediaStore ?? productionMediaStore(service),
-          revalidate: r.ctx.revalidate,
-          now: r.deps.now,
-        },
-        { sourceId: id },
-        r.userId,
-        "Pedido de remoção pela fonte (opt-out)",
-      );
-      if (take.ok) removed = take.value.blocked;
+      try {
+        const take = await takedownReproduction(
+          {
+            repo: createMediaRepo(service),
+            store: r.deps.mediaStore ?? r.ctx.mediaStore ?? productionMediaStore(service),
+            revalidate: r.ctx.revalidate,
+            now: r.deps.now,
+          },
+          { sourceId: id, retry: true },
+          r.userId,
+          "Pedido de remoção pela fonte (opt-out)",
+        );
+        if (take.ok) {
+          removed = take.value.blocked;
+          notRemoved = take.value.failed;
+        }
+      } catch {
+        notRemoved = -1;
+      }
     }
     refresh(id);
+    if (notRemoved !== 0) {
+      // A fonte já está bloqueada; repetir a ação refaz só a remoção das imagens (regra 11: 24 h).
+      return failState(M.optOutIncomplete(notRemoved));
+    }
     const message =
       name === "block" && reason === "opt_out"
         ? M.optOutDone(removed)

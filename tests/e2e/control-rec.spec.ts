@@ -259,8 +259,11 @@ test("Por que esta recomendação: apelido, componentes e peso individual 0 sem 
   expect(await page.content()).not.toContain(off);
   expect(page.url()).not.toContain(off);
 
+  const firstTitle = await page.getByText(/^Recomendações para leitor-/).textContent();
   await page.getByLabel("Id anônimo do leitor").fill(on);
   await page.getByRole("button", { name: "Explicar recomendações" }).click();
+  // O texto do aviso é o mesmo nos dois casos: espera pelo apelido do segundo leitor.
+  await expect(page.getByText(/^Recomendações para leitor-/)).not.toHaveText(firstTitle ?? "");
   await expect(page.getByText(/O painel não mostra a afinidade individual/)).toBeVisible();
   expect(await page.content()).not.toContain(on);
 
