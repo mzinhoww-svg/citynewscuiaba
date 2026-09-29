@@ -79,6 +79,9 @@ export { NewPasswordForm, type NewPasswordFormProps } from "./editorial/NewPassw
 export { ConfirmEmail, type ConfirmEmailProps } from "./editorial/ConfirmEmail";
 export { MigrateLocal, type MigrateLocalProps } from "./editorial/MigrateLocal";
 export { RecommendationControls } from "./editorial/RecommendationControls";
+export { ClearOfflineButton } from "./editorial/ClearOfflineButton";
+export { OfflineNotice, type OfflineNoticeProps } from "./editorial/OfflineNotice";
+export { SwRegistrar } from "./editorial/SwRegistrar";
 export { LocalProfileCard, type LocalProfileCardProps } from "./editorial/LocalProfileCard";
 export {
   DeleteAccount,

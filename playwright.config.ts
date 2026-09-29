@@ -2,6 +2,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 const isCI = Boolean(process.env.CI);
+// Chromium: deixa `context.route`/`setOffline` alcançarem o `fetch` do service worker (leitura
+// offline, spec 2026-09-28 §8; tests/e2e/offline.spec.ts). Precisa existir antes do navegador subir.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 // Worktrees em paralelo usam .local/offset para deslocar portas (scripts/local-stack/env.sh).
 const offset = existsSync(".local/offset")
   ? Number(readFileSync(".local/offset", "utf8").trim())

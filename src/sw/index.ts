@@ -355,6 +355,22 @@ self.addEventListener("fetch", (event) => {
   }
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(handleAsset(req).catch(() => Response.error()));
+    return;
+  }
+  // Shell (página Sem conexão, ícones, manifesto): cache primeiro, para funcionar sem rede.
+  if (
+    (SHELL_URLS as readonly string[]).includes(url.pathname) ||
+    url.pathname.startsWith("/icons/")
+  ) {
+    event.respondWith(
+      (async () => {
+        for (const name of [CACHES.shell, CACHES.salvos]) {
+          const hit = await (await caches.open(name)).match(url.pathname);
+          if (hit) return hit;
+        }
+        return fetch(req);
+      })().catch(() => Response.error()),
+    );
   }
 });
 

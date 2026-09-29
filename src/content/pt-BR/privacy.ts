@@ -92,3 +92,13 @@ export const RECS_PAGE_TEXT = {
   policyLink: "Ler a política de privacidade",
   loading: "Carregando suas escolhas",
 } as const;
+
+/** Leitura offline (spec 2026-09-28 §8.3): botão em /privacidade. */
+export const PRIVACY_OFFLINE_TEXT = {
+  title: "Leitura offline",
+  intro:
+    "Com internet, a página inicial, as editorias e as matérias que você abre ficam guardadas neste aparelho para leitura sem conexão (até 30 lidas e 20 salvas, cerca de 25 MB). Nada disso sai do navegador.",
+  clear: "Limpar leitura offline",
+  cleared: "Leitura offline apagada deste aparelho.",
+  nothing: "Nada para apagar neste aparelho.",
+} as const;

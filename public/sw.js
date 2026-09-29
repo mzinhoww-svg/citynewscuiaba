@@ -575,6 +575,18 @@
     }
     if (url.pathname.startsWith("/_next/static/")) {
       event.respondWith(handleAsset(req).catch(() => Response.error()));
+      return;
+    }
+    if (SHELL_URLS.includes(url.pathname) || url.pathname.startsWith("/icons/")) {
+      event.respondWith(
+        (async () => {
+          for (const name of [CACHES.shell, CACHES.salvos]) {
+            const hit = await (await caches.open(name)).match(url.pathname);
+            if (hit) return hit;
+          }
+          return fetch(req);
+        })().catch(() => Response.error())
+      );
     }
   });
   async function receipt(sendId, e) {

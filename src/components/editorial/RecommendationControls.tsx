@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import { ANON_TEXT, RECS_PAGE_TEXT as T } from "@/content/pt-BR/privacy";
 import { useAnonProfile } from "@/lib/anon/use-profile";
+import { clearOffline } from "@/lib/offline/sw";
 import { useConsent, useConsentKnown } from "@/lib/consent/client";
 import { Button } from "../ui/Button";
 import { InlineAlert } from "../ui/InlineAlert";
@@ -138,7 +139,12 @@ export function RecommendationControls() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() => void act((s) => s.clearHistory()).then(() => setStatus(T.cleared))}
+            onClick={() =>
+              // Apagar histórico local também limpa as cópias offline de lidas e páginas (§8.3).
+              void Promise.all([act((s) => s.clearHistory()), clearOffline()]).then(() =>
+                setStatus(T.cleared),
+              )
+            }
           >
             {T.clear}
           </Button>
