@@ -15,7 +15,8 @@
     "db:start": "bash scripts/local-stack/start.sh",
     "db:reset": "node scripts/db-reset.mjs",
     "db:types": "npx -y supabase@2.118.0 gen types typescript --db-url \"${SUPABASE_DB_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}\" --schema public > src/lib/db/types.ts && prettier --write src/lib/db/types.ts",
-    "db:seed:sources": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed_sources_real.sql"
+    "db:seed:sources": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed_sources_real.sql",
+    "push:keys": "web-push generate-vapid-keys --json"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.57",
@@ -26,6 +27,7 @@
     "@tiptap/react": "3.31.3",
     "@tiptap/starter-kit": "3.31.3",
     "ai": "^7.0.118",
+    "esbuild": "0.25.10",
     "fast-xml-parser": "^5.11.1",
     "idb-keyval": "^6.3.0",
     "linkedom": "^0.18.13",
@@ -35,6 +37,7 @@
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
     "sharp": "0.35.5",
+    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -49,6 +52,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "eslint-config-prettier": "^10.1.8",
