@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /privado
+
+Sitemap: https://portalvarzea.example/sitemap-noticias.xml
