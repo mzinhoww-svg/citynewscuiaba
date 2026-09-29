@@ -13,6 +13,8 @@ export interface DialogProps {
   onClose?: () => void;
   /** Mostra só a caixa, sem scrim nem modal (documentação e vitrine). */
   inline?: boolean;
+  /** Caixa larga (revisão com prévia), texto alinhado à esquerda. */
+  wide?: boolean;
   className?: string;
 }
 
@@ -33,6 +35,7 @@ export function Dialog({
   actions,
   onClose,
   inline = false,
+  wide = false,
   className,
 }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
@@ -50,7 +53,8 @@ export function Dialog({
   const box = (
     <div
       className={cx(
-        "relative w-full max-w-sm rounded-xl bg-card-white px-6 pt-12 pb-6 text-center shadow-dialog",
+        "relative w-full rounded-xl bg-card-white px-6 pt-12 pb-6 shadow-dialog",
+        wide ? "max-w-2xl text-left" : "max-w-sm text-center",
         inline && className,
       )}
     >
@@ -85,7 +89,8 @@ export function Dialog({
         if (e.target === e.currentTarget) onClose?.();
       }}
       className={cx(
-        "m-auto w-full max-w-sm bg-transparent p-8 backdrop:bg-overlay backdrop:backdrop-blur-scrim",
+        "m-auto w-full bg-transparent p-8 backdrop:bg-overlay backdrop:backdrop-blur-scrim",
+        wide ? "max-w-2xl" : "max-w-sm",
         "open:motion-safe:animate-fade-in",
         className,
       )}
