@@ -1,6 +1,7 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
 import { PUSH_ACTIONS } from "@/lib/push/permissions";
+import { ADMIN_NAV } from "./admin/nav";
 
 interface Entry extends StudioNavItem {
   /** Ação exigida para ver o item; ausente = qualquer papel do Estúdio. */
@@ -84,12 +85,36 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control/logs", label: "Logs", icon: "scroll-text", action: "audit.view" },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
+      {
+        href: "/estudio/control/aprovacoes",
+        label: "Aprovações",
+        icon: "file-check",
+        action: "rules.propose",
+      },
       { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },
       {
         href: "/estudio/control/conhecimento",
         label: "Bases de conhecimento",
         icon: "database",
         action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/agentes",
+        label: "Agentes",
+        icon: "settings",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/modelos",
+        label: "Modelos",
+        icon: "layers",
+        action: "metrics.view",
+      },
+      {
+        href: "/estudio/control/testes",
+        label: "Playground",
+        icon: "play",
+        action: "prompt.publish",
       },
       {
         href: "/estudio/control/avaliacoes",
@@ -103,36 +128,39 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "shield",
         action: "metrics.view",
       },
+      {
+        href: "/estudio/control/recomendacao",
+        label: "Recomendação",
+        icon: "sliders-horizontal",
+        action: "metrics.view",
+      },
     ],
   },
   {
     label: "Governança",
-    items: [
-      { href: "/estudio/admin/usuarios", label: "Usuários", icon: "users", action: "users.manage" },
-      {
-        href: "/estudio/admin/auditoria",
-        label: "Auditoria",
-        icon: "shield",
-        action: "audit.view",
-      },
-      {
-        href: PUSH_ADMIN_PATH,
-        label: "Notificações",
-        icon: "bell",
-        anyOf: PUSH_ACTIONS,
-        // Só métricas (analista): o item leva direto ao Funil do app.
-        hrefFor: (roles) =>
-          PUSH_ACTIONS.filter((a) => a !== "push.metrics").some((a) => canAccess(roles, a))
-            ? PUSH_ADMIN_PATH
-            : `${PUSH_ADMIN_PATH}/funil`,
-        labelFor: (roles, { pendingPush }) =>
-          pendingPush && pendingPush > 0 && canAccess(roles, "push.approve")
-            ? `Notificações (${pendingPush})`
-            : "Notificações",
-      },
-    ],
+    items: withNotifications(ADMIN_NAV, {
+      href: PUSH_ADMIN_PATH,
+      label: "Notificações",
+      icon: "bell",
+      anyOf: PUSH_ACTIONS,
+      // Só métricas (analista): o item leva direto ao Funil do app.
+      hrefFor: (roles) =>
+        PUSH_ACTIONS.filter((a) => a !== "push.metrics").some((a) => canAccess(roles, a))
+          ? PUSH_ADMIN_PATH
+          : `${PUSH_ADMIN_PATH}/funil`,
+      labelFor: (roles, { pendingPush }) =>
+        pendingPush && pendingPush > 0 && canAccess(roles, "push.approve")
+          ? `Notificações (${pendingPush})`
+          : "Notificações",
+    }),
   },
 ];
+
+/** A09 entra entre SEO e Auditoria (ordem do docs/screens.md §E). */
+function withNotifications(list: readonly Entry[], entry: Entry): Entry[] {
+  const at = list.findIndex((it) => it.href === "/estudio/admin/auditoria");
+  return at < 0 ? [...list, entry] : [...list.slice(0, at), entry, ...list.slice(at)];
+}
 
 function visible(it: Entry, roles: RoleGrant[]): boolean {
   if (it.anyOf) return it.anyOf.some((a) => canAccess(roles, a));

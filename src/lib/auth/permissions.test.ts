@@ -69,6 +69,7 @@ describe("matriz (docs/architecture.md §6)", () => {
     "push.approve": ["admin", "editor_chefe"],
     "push.settings": ["admin", "editor_chefe"],
     "push.metrics": ["admin", "editor_chefe", "analista"],
+    "site.manage": ["admin", "editor_chefe"],
   };
   const bySection: Action[] = [
     "article.edit",

@@ -174,6 +174,9 @@ test("excluir exige digitar o nome e mantém a fonte em Arquivadas; restaurar vo
 });
 
 test("mudança de política vira pedido e Marina aprova", async ({ page, browser, baseURL }) => {
+  // No projeto `fixtures` (`next dev`) a jornada compila detalhe, configuração e histórico e faz
+  // um segundo login: em base fria passa dos 30 s padrão (rodada final de P5-T5/T7).
+  test.setTimeout(90_000);
   await enter(page, "diego", baseURL);
   await page.goto(`${BASE}/${SEED.agro}/configuracao`);
   const policy = page.getByLabel("Política de imagem");

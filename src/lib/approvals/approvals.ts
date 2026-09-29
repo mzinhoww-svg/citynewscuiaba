@@ -8,6 +8,10 @@
 import type { DbClient } from "@/lib/db/client";
 import { err, ok, type Result } from "@/lib/result";
 
+/**
+ * Tipos de mudança crítica (spec §8). A mesma lista vale no banco (`approval_kinds()`, 0029);
+ * `push.highlight` e `push.resume` são do PWA (spec 2026-09-28, D-P08) e ficam reservados aqui.
+ */
 export const CRITICAL_KINDS = [
   "rules.activate",
   "prompt.publish",
@@ -19,6 +23,8 @@ export const CRITICAL_KINDS = [
   "push.highlight",
   "push.resume",
   "source.critical",
+  "push.highlight",
+  "push.resume",
 ] as const;
 export type CriticalKind = (typeof CRITICAL_KINDS)[number];
 
@@ -50,9 +56,23 @@ export interface ApprovalsPort {
   /** Decide um pedido ainda pendente, em nome de `by`. */
   decide(id: string, status: "approved" | "rejected", by: string): Promise<DecideOutcome>;
   listPending(targetPrefix: string): Promise<ApprovalRow[]>;
+  /**
+   * Aplica um pedido aprovado (regras, flags de segurança) e o marca `applied`. No banco é
+   * `approval_apply` (0029); só quem aprovou aplica, e só dentro de 24 h da decisão.
+   */
+  apply(id: string): Promise<ApplyOutcome>;
 }
 
+export type ApplyOutcome =
+  | { applied: true }
+  | {
+      applied: false;
+      reason:
+        "already_applied" | "not_approved" | "expired" | "forbidden" | "not_found" | "unsupported";
+    };
+
 export type ApproveError = "self_approval" | "forbidden" | "not_pending";
+export type ApplyError = Exclude<ApplyOutcome, { applied: true }>["reason"];
 
 export interface Approvals {
   requestApproval(input: {
@@ -63,6 +83,8 @@ export interface Approvals {
   approve(input: { id: string }): Promise<Result<void, ApproveError>>;
   reject(input: { id: string; reason: string }): Promise<Result<void, ApproveError | "invalid">>;
   pending(targetPrefix: string): Promise<ApprovalRow[]>;
+  /** Aprova e aplica de uma vez (a decisão fica registrada mesmo se a aplicação falhar). */
+  approveAndApply(input: { id: string }): Promise<Result<void, ApproveError | ApplyError>>;
 }
 
 const isKind = (k: string): k is CriticalKind => (CRITICAL_KINDS as readonly string[]).includes(k);
@@ -107,6 +129,17 @@ export function createApprovalsWith(port: ApprovalsPort): Approvals {
       return decide(id, "rejected");
     },
     pending: (prefix) => port.listPending(prefix),
+    async approveAndApply({ id }) {
+      const row = await port.get(id);
+      if (row?.status === "applied") return err("already_applied");
+      // Já aprovado e ainda não aplicado (ex.: a aplicação falhou antes): só aplica.
+      if (row?.status !== "approved") {
+        const r = await decide(id, "approved");
+        if (!r.ok) return r;
+      }
+      const applied = await port.apply(id);
+      return applied.applied ? ok(undefined) : err(applied.reason);
+    },
   };
 }
 
@@ -194,6 +227,20 @@ export function supabaseApprovalsPort(db: DbClient): ApprovalsPort {
         .order("created_at");
       if (error) throw new Error(`approvals: ${error.message}`);
       return (data ?? []).map(mapRow);
+    },
+    async apply(id) {
+      const { data, error } = await db.rpc("approval_apply", { p_id: id });
+      if (error) {
+        if (error.code === "P0002") return { applied: false, reason: "not_found" };
+        if (/expirou/.test(error.message)) return { applied: false, reason: "expired" };
+        if (/não aprovado/.test(error.message)) return { applied: false, reason: "not_approved" };
+        if (/não se aplica/.test(error.message)) return { applied: false, reason: "unsupported" };
+        if (error.code === "42501") return { applied: false, reason: "forbidden" };
+        throw new Error(`approvals: ${error.message}`);
+      }
+      const out = data as { applied?: boolean; reason?: string } | null;
+      if (out?.applied) return { applied: true };
+      return { applied: false, reason: "already_applied" };
     },
   };
 }

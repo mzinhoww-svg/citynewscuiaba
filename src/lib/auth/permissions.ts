@@ -37,6 +37,8 @@ export const ACTIONS = [
   "push.approve",
   "push.settings",
   "push.metrics",
+  /** Administração do site (P5-T8/T9): taxonomia, home, publicidade, SEO e governança editorial. */
+  "site.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -92,6 +94,7 @@ export const PERMISSIONS: Matrix = {
   "push.approve": { admin: "second", editor_chefe: "second" },
   "push.settings": { admin: "all", editor_chefe: "all" },
   "push.metrics": { admin: "all", editor_chefe: "all", analista: "all" },
+  "site.manage": { admin: "all", editor_chefe: "all" },
 };
 
 export function grantOf(role: Role, action: Action): Grant | undefined {

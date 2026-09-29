@@ -349,6 +349,28 @@ export {
   type PendingApprovalsPanelProps,
 } from "./studio/sources/PendingApprovalsPanel";
 export { SourceAuditTable, type SourceAuditTableProps } from "./studio/sources/SourceAuditTable";
+
+// Aprovações de mudança crítica (P5-T1)
+export { ApprovalBanner, type ApprovalBannerProps } from "./studio/ApprovalBanner";
+export { ApprovalInbox, type ApprovalInboxProps, type ApprovalReply } from "./studio/ApprovalInbox";
+
+// Contingência A15 (P5-T10)
+export {
+  ContingencyPanel,
+  type ContingencyCard,
+  type ContingencyPanelProps,
+  type ContingencyReply,
+} from "./studio/ContingencyPanel";
+
+// Regras de autonomia O05 (P5-T2)
+export { RuleMatrix, type RuleMatrixProps } from "./studio/RuleMatrix";
+export {
+  RuleProposalForm,
+  type ProposalReply,
+  type RuleProposalFormProps,
+  type RuleSetDraft,
+  type SimulationView,
+} from "./studio/RuleProposalForm";
 export { SourceConfigForm, type SourceConfigFormProps } from "./studio/sources/SourceConfigForm";
 export {
   SourceHeaderActions,
@@ -401,3 +423,55 @@ export {
   SelectField,
   TextInput,
 } from "./studio/sources/fields";
+export {
+  AgentTable,
+  type AgentEditInput,
+  type AgentItem,
+  type AgentTableProps,
+} from "./studio/AgentTable";
+export { ModelTable, type ModelItem, type ModelTableProps } from "./studio/ModelTable";
+export {
+  PromptVersions,
+  type PromptReply,
+  type PromptVersionItem,
+  type PromptVersionsProps,
+} from "./studio/PromptVersions";
+export {
+  Playground,
+  type PlaygroundAgentOption,
+  type PlaygroundProps,
+  type PlaygroundReply,
+} from "./studio/Playground";
+export { WeightSliders, type RecReply, type WeightSlidersProps } from "./studio/WeightSliders";
+export {
+  WeightsHistory,
+  type WeightsHistoryItem,
+  type WeightsHistoryProps,
+} from "./studio/WeightsHistory";
+export { WhyThisDrawer, type WhyReply, type WhyThisDrawerProps } from "./studio/WhyThisDrawer";
+export { ShareChart, type ShareChartProps } from "./studio/ShareChart";
+export {
+  CampaignForm,
+  ExperimentForm,
+  type CampaignFormProps,
+  type ExperimentFormProps,
+} from "./studio/RecForms";
+export { AbTestCard, type AbTestCardProps } from "./studio/AbTestCard";
+
+// Administração (P5-T8)
+export {
+  AdminStatus,
+  AdminTable,
+  CheckList,
+  type AdminReply,
+  type CheckOption,
+} from "./studio/admin/AdminStatus";
+export { StaffTable, type StaffTableProps } from "./studio/admin/StaffTable";
+export { TeamsEditor, type TeamsEditorProps } from "./studio/admin/TeamsEditor";
+export { TaxonomyPanel, type TaxonomyPanelProps } from "./studio/admin/TaxonomyPanel";
+export { HomeModulesEditor, type HomeModulesEditorProps } from "./studio/admin/HomeModulesEditor";
+export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
+export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
+export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
+export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
+export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";

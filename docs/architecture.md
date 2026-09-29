@@ -136,6 +136,7 @@ Schema inicial completo em `supabase/migrations/0001_init.sql`.
 | `push.approve` (Urgente, Destaque, retomar envios) | ✓ (2ª) | ✓ (2ª) | não | não | não | não | não | não | não |
 | `push.settings` (Configurações, pausar) | ✓ | ✓ | não | não | não | não | não | não | não |
 | `push.metrics` (Funil do app) | ✓ | ✓ | não | não | não | não | ✓ | não | não |
+| `site.manage` (taxonomia, home, publicidade, SEO, governança editorial) | ✓ | ✓ | não | não | não | não | não | não | não |
 
 Mudança crítica cria registro em `approvals` com `requested_by`; `approve` exige `approved_by <> requested_by`. A regra é imposta no banco (triggers de `supabase/migrations/0002_rls.sql`), não só na interface: proponente/solicitante/autor = `auth.uid()` e imutável; aprovação só em nome próprio e por outra pessoa; versão aprovada ou ativa é imutável (mudança = nova versão); só versão aprovada é ativada; conceder `admin` consome uma aprovação `role.admin` decidida por outra pessoa; ninguém concede papel a si mesmo. `postgres` e `service_role` (migrations, seed, pipeline) passam direto.
 

@@ -10,6 +10,7 @@ import {
 } from "@/lib/ranking";
 import type { Result } from "@/lib/result";
 import { fetchAggregated } from "./aggregated";
+import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";
 import { many, one, readPublic, readService } from "./run";
 import type { AggregatedView, QueryError, SourceEntry } from "./types";
 
@@ -221,6 +222,45 @@ export async function getRecConfig(): Promise<RecConfig> {
       .then(one),
   );
   return r.ok ? parseRecConfig(r.value) : DEFAULT_REC_CONFIG;
+}
+
+/**
+ * Configuração para um leitor dentro de um teste A/B em andamento (P5-T7): a variante é
+ * estável por `anonId` (`assignVariant`) e a versão vira o rótulo `<base>+<exp>:<variante>`
+ * gravado nos eventos. Sem experimento, sem `anonId` ou com versão inválida, a configuração
+ * ativa. Nunca falha.
+ */
+export async function getRecConfigFor(anonId: string | null): Promise<RecConfig> {
+  const base = await getRecConfig();
+  if (!anonId || !UUID.test(anonId)) return base;
+  const r = await readService(async (db) => {
+    const exp = await db
+      .from("rec_experiments")
+      .select("id, variants, split")
+      .eq("status", "running")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(one);
+    if (!exp || !Array.isArray(exp.variants)) return null;
+    const variant = assignVariant(anonId, { id: exp.id, split: exp.split });
+    const chosen = exp.variants[variant];
+    const version =
+      typeof chosen === "object" && chosen !== null && !Array.isArray(chosen)
+        ? String(chosen.weightsVersion ?? "")
+        : "";
+    if (!version) return null;
+    const row = await db
+      .from("rec_weights")
+      .select("version, weights, cap, discovery_every")
+      .eq("version", version)
+      .maybeSingle()
+      .then(one);
+    if (!row) return null;
+    const cfg = parseRecConfig(row);
+    return { ...cfg, version: experimentVersion(base.version, exp.id, variant) };
+  });
+  return r.ok && r.value ? r.value : base;
 }
 
 /** Página da fonte (P15): sinais do card e a ficha "Sobre esta fonte no CityNews". */

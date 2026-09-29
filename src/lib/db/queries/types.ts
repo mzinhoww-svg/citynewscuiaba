@@ -1,3 +1,4 @@
+import type { HomeModule } from "@/lib/admin/home-layout";
 import type { ConfidenceLevel } from "@/lib/confidence";
 import type { ImageKind, Label } from "@/lib/labels";
 import type { ComputedSignals } from "@/lib/ranking";
@@ -253,6 +254,8 @@ export interface HomeData {
   sponsored: ArticleSummary | null;
   sources: SourceView[];
   aggregated: AggregatedView[];
+  /** Ordem e ativação dos módulos abaixo da primeira dobra (A06, `home_layouts`). */
+  modules: HomeModule[];
 }
 
 /**

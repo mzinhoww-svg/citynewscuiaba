@@ -24,6 +24,21 @@ import { loginAs, type StaffKey } from "./helpers/studio-login";
  */
 test.describe.configure({ mode: "serial" });
 
+/**
+ * Aquece as rotas do painel no `next dev` (compila na primeira requisição): sem isto, a
+ * primeira navegação para `fontes/[id]` depois de "Salvar e ativar" estourava os 5 s do
+ * `toHaveURL` no CI. Sem sessão a página redireciona para /entrar, mas o módulo já compilou.
+ */
+test.beforeAll(async ({ request }) => {
+  for (const path of [
+    `${BASE}`,
+    `${BASE}/nova`,
+    `${BASE}/${SEED.folha}`,
+    `${BASE}/${SEED.folha}/historico`,
+  ])
+    await request.get(path, { maxRedirects: 0, failOnStatusCode: false }).catch(() => undefined);
+});
+
 const BASE = "/estudio/control/fontes";
 const SEED = {
   folha: "c5000000-0000-4000-8000-000000000001", // ativa, RSS (pausada em lote pelo spec da lista)
@@ -86,7 +101,12 @@ test("cadastrar pela seção sem feed, ativar, coletar agora, 3 falhas, pausa au
   // Ativar exige termos revisados (critério 10): sem a caixa, "Salvar e ativar" não ativa.
   await page.getByLabel("Li os termos de uso e a coleta é permitida").check();
   await page.getByRole("button", { name: "Salvar e ativar" }).click();
-  await expect(page).toHaveURL(/\/estudio\/control\/fontes\/[0-9a-f-]+\?cadastro=ativa$/);
+  // O servidor de fixtures é `next dev`: a Server Action (salvar + testar conexão + ativar) e a
+  // primeira compilação de `fontes/[id]` (quando o `beforeAll` não a aqueceu) passam dos 5 s
+  // padrão no CI. Só esta navegação espera mais.
+  await expect(page).toHaveURL(/\/estudio\/control\/fontes\/[0-9a-f-]+\?cadastro=ativa$/, {
+    timeout: 60_000,
+  });
   const id = /fontes\/([0-9a-f-]+)\?/.exec(page.url())![1]!;
   await expect(page.getByRole("heading", { level: 1, name: "Jornal da Chapada" })).toBeVisible();
   await expect(page.getByText("Ativa", { exact: true }).first()).toBeVisible();

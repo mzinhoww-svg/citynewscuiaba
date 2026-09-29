@@ -29,6 +29,45 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "bases de conhecimento", path: () => "/estudio/control/conhecimento", as: "thiago" },
   { name: "avaliações", path: () => "/estudio/control/avaliacoes", as: "diego" },
   { name: "governança", path: () => "/estudio/control/governanca", as: "thiago" },
+  { name: "aprovações", path: () => "/estudio/control/aprovacoes", as: "marina" },
+  { name: "regras", path: () => "/estudio/control/regras", as: "diego" },
+  { name: "contingência", path: () => "/estudio/admin/contingencia", as: "helena" },
+  // P5-T5
+  { name: "agentes", path: () => "/estudio/control/agentes", as: "diego" },
+  { name: "agentes só leitura", path: () => "/estudio/control/agentes", as: "thiago" },
+  { name: "modelos", path: () => "/estudio/control/modelos", as: "helena" },
+  { name: "prompts", path: () => "/estudio/control/prompts/answer", as: "diego" },
+  { name: "prompts agente inválido", path: () => "/estudio/control/prompts/nada", as: "diego" },
+  { name: "playground", path: () => "/estudio/control/testes", as: "diego" },
+  // P5-T7
+  { name: "recomendação", path: () => "/estudio/control/recomendacao", as: "diego" },
+  { name: "recomendação só leitura", path: () => "/estudio/control/recomendacao", as: "thiago" },
+  {
+    name: "teste A/B",
+    path: () => `/estudio/control/recomendacao/testes/${fx.experimentId}`,
+    as: "diego",
+  },
+  {
+    name: "teste A/B inexistente",
+    path: () => "/estudio/control/recomendacao/testes/nada",
+    as: "diego",
+  },
+  // Administração (P5-T8)
+  { name: "administração", path: () => "/estudio/admin", as: "helena" },
+  { name: "usuários", path: () => "/estudio/admin/usuarios", as: "helena" },
+  { name: "papéis", path: () => "/estudio/admin/papeis", as: "helena" },
+  { name: "equipes", path: () => "/estudio/admin/equipes", as: "helena" },
+  { name: "taxonomia", path: () => "/estudio/admin/taxonomia", as: "marina" },
+  { name: "home e módulos", path: () => "/estudio/admin/home", as: "marina" },
+  // Administração (P5-T9)
+  { name: "publicidade", path: () => "/estudio/admin/publicidade", as: "marina" },
+  { name: "seo", path: () => "/estudio/admin/seo", as: "marina" },
+  { name: "auditoria", path: () => "/estudio/admin/auditoria", as: "diego" },
+  { name: "auditoria vazia", path: () => "/estudio/admin/auditoria?acao=nada-xyz", as: "helena" },
+  { name: "segurança", path: () => "/estudio/admin/seguranca", as: "helena" },
+  { name: "governança editorial", path: () => "/estudio/admin/governanca", as: "marina" },
+  { name: "integrações", path: () => "/estudio/admin/integracoes", as: "helena" },
+  { name: "configurações", path: () => "/estudio/admin/configuracoes", as: "helena" },
 ];
 
 for (const scheme of ["light", "dark"] as const) {

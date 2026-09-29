@@ -71,6 +71,46 @@ export const AUDIT_ACTIONS = [
   "logs.export",
   "ai.eval.run",
   "ai.eval.case",
+  // Aprovações (P5-T1, 0029)
+  "approval.requested",
+  "approval.approved",
+  "approval.rejected",
+  "approval.applied",
+  // Contingência (P5-T10, 0035)
+  "flag.set",
+  "rules.rollback",
+  // Agentes, modelos, prompts e playground (P5-T5, 0036)
+  "prompt.create",
+  "prompt.request",
+  "prompt.rollback",
+  "ai.playground.run",
+  "ai.agent.update",
+  "ai.model.update",
+  // Recomendação (P5-T7, 0037)
+  "rec.weights.activate",
+  "rec.campaign.create",
+  "rec.experiment.create",
+  "rec.experiment.end",
+  "rec.experiment.promote",
+  "rec.explain",
+  // Administração (P5-T8, 0038)
+  "user.invite",
+  "user.role.grant",
+  "user.role.revoke",
+  "team.save",
+  "team.delete",
+  "taxonomy.save",
+  "taxonomy.merge",
+  "home.save",
+  "home.publish",
+  // Administração (P5-T9, 0039)
+  "ads.campaign.save",
+  "ads.campaign.delete",
+  "seo.redirect.save",
+  "seo.redirect.delete",
+  "audit.export",
+  "privacy.request.save",
+  "security.key.rotate",
   ...PUSH_AUDIT_ACTIONS,
 ] as const;
 

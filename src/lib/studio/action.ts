@@ -4,6 +4,7 @@ import { can, canAccess, type Action, type Scope } from "@/lib/auth/permissions"
 import { audit } from "@/lib/audit";
 import type { AuditAction } from "@/lib/audit/actions";
 import { studioContext, type StudioContext } from "./context";
+import { isReadOnly, READ_ONLY_MESSAGE } from "./read-only";
 
 /**
  * Erros tipados das Server Actions do Estúdio. `not_found` complementa o contrato do plano
@@ -50,6 +51,8 @@ export interface StudioActionOptions<I> {
   objectRef?: (input: I) => string;
   /** Nome na auditoria, quando difere da ação de permissão (ex.: article.save). */
   auditAs?: AuditAction;
+  /** Roda mesmo em modo leitura (só as ações de contingência, A15). */
+  allowReadOnly?: boolean;
 }
 
 function defaultRef(action: Action, input: unknown): string {
@@ -105,6 +108,8 @@ export function studioAction<I, O>(
     const scope = await scopeOf(input, ctx);
     if (scope === null) return fail("not_found");
     if (!can(session.roles, action, { ...scope, userId: session.userId })) return denied(scope);
+    if (!options.allowReadOnly && (await isReadOnly(ctx.db)))
+      return fail("conflict", READ_ONLY_MESSAGE);
 
     const details: Record<string, unknown> = {};
     try {

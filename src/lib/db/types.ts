@@ -1333,6 +1333,71 @@ export type Database = {
         };
         Relationships: [];
       };
+      home_layouts: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          modules: NonNullable<Json>;
+          note: string;
+          published_at: string | null;
+          published_by: string | null;
+          status: string;
+          version: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          modules: NonNullable<Json>;
+          note?: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          status?: string;
+          version: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          modules?: NonNullable<Json>;
+          note?: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          status?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "home_layouts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "home_layouts_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "home_layouts_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "home_layouts_published_by_fkey";
+            columns: ["published_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       ingest_runs: {
         Row: {
           finished_at: string | null;
@@ -1362,6 +1427,51 @@ export type Database = {
           window_start?: string;
         };
         Relationships: [];
+      };
+      integration_keys: {
+        Row: {
+          integration: string;
+          key: string;
+          label: string;
+          notes: string;
+          rotate_every_days: number;
+          rotated_at: string | null;
+          rotated_by: string | null;
+        };
+        Insert: {
+          integration: string;
+          key: string;
+          label: string;
+          notes?: string;
+          rotate_every_days?: number;
+          rotated_at?: string | null;
+          rotated_by?: string | null;
+        };
+        Update: {
+          integration?: string;
+          key?: string;
+          label?: string;
+          notes?: string;
+          rotate_every_days?: number;
+          rotated_at?: string | null;
+          rotated_by?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "integration_keys_rotated_by_fkey";
+            columns: ["rotated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "integration_keys_rotated_by_fkey";
+            columns: ["rotated_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       jobs: {
         Row: {
@@ -1640,6 +1750,101 @@ export type Database = {
           resolved_by?: string | null;
         };
         Relationships: [];
+      };
+      places: {
+        Row: {
+          active: boolean;
+          in_phrase: string;
+          kind: string;
+          name: string;
+          slug: string;
+          updated_at: string;
+        };
+        Insert: {
+          active?: boolean;
+          in_phrase: string;
+          kind: string;
+          name: string;
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          active?: boolean;
+          in_phrase?: string;
+          kind?: string;
+          name?: string;
+          slug?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      privacy_requests: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          due_at: string;
+          email: string;
+          id: string;
+          kind: string;
+          notes: string;
+          status: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          due_at?: string;
+          email: string;
+          id?: string;
+          kind: string;
+          notes?: string;
+          status?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          due_at?: string;
+          email?: string;
+          id?: string;
+          kind?: string;
+          notes?: string;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "privacy_requests_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "privacy_requests_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       profiles: {
         Row: {
@@ -2249,6 +2454,118 @@ export type Database = {
           },
         ];
       };
+      rec_campaigns: {
+        Row: {
+          audience: string;
+          created_at: string;
+          created_by: string | null;
+          ends_on: string;
+          id: string;
+          name: string;
+          quota: number;
+          source_ids: string[];
+          starts_on: string;
+        };
+        Insert: {
+          audience?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on: string;
+          id?: string;
+          name: string;
+          quota?: number;
+          source_ids: string[];
+          starts_on: string;
+        };
+        Update: {
+          audience?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_on?: string;
+          id?: string;
+          name?: string;
+          quota?: number;
+          source_ids?: string[];
+          starts_on?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      rec_experiments: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          ended_at: string | null;
+          id: string;
+          name: string;
+          promoted_version: string | null;
+          split: number[];
+          started_at: string;
+          status: string;
+          variants: NonNullable<Json>;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          name: string;
+          promoted_version?: string | null;
+          split: number[];
+          started_at?: string;
+          status?: string;
+          variants: NonNullable<Json>;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          name?: string;
+          promoted_version?: string | null;
+          split?: number[];
+          started_at?: string;
+          status?: string;
+          variants?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "rec_experiments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_experiments_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "rec_experiments_promoted_version_fkey";
+            columns: ["promoted_version"];
+            isOneToOne: false;
+            referencedRelation: "rec_weights";
+            referencedColumns: ["version"];
+          },
+        ];
+      };
       rec_weights: {
         Row: {
           active: boolean;
@@ -2281,6 +2598,51 @@ export type Database = {
           weights?: NonNullable<Json>;
         };
         Relationships: [];
+      };
+      redirects: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          from_path: string;
+          id: string;
+          kind: number;
+          reason: string;
+          to_path: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          from_path: string;
+          id?: string;
+          kind?: number;
+          reason?: string;
+          to_path: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          from_path?: string;
+          id?: string;
+          kind?: number;
+          reason?: string;
+          to_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "redirects_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "redirects_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       reports: {
         Row: {
@@ -2774,28 +3136,120 @@ export type Database = {
         Row: {
           advertiser: string;
           allowed_sections: string[];
+          created_by: string | null;
           creative: NonNullable<Json>;
+          deliveries: number;
           ends_on: string;
           id: string;
           starts_on: string;
+          status: string;
+          updated_at: string;
         };
         Insert: {
           advertiser: string;
           allowed_sections: string[];
+          created_by?: string | null;
           creative: NonNullable<Json>;
+          deliveries?: number;
           ends_on: string;
           id?: string;
           starts_on: string;
+          status?: string;
+          updated_at?: string;
         };
         Update: {
           advertiser?: string;
           allowed_sections?: string[];
+          created_by?: string | null;
           creative?: NonNullable<Json>;
+          deliveries?: number;
           ends_on?: string;
           id?: string;
           starts_on?: string;
+          status?: string;
+          updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "sponsored_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "sponsored_campaigns_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      staff_invites: {
+        Row: {
+          accepted_at: string | null;
+          created_at: string;
+          email: string;
+          expires_at: string;
+          id: string;
+          invited_by: string;
+          role: Database["public"]["Enums"]["app_role"];
+          sections: string[];
+          user_id: string;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          created_at?: string;
+          email: string;
+          expires_at?: string;
+          id?: string;
+          invited_by: string;
+          role: Database["public"]["Enums"]["app_role"];
+          sections?: string[];
+          user_id: string;
+        };
+        Update: {
+          accepted_at?: string | null;
+          created_at?: string;
+          email?: string;
+          expires_at?: string;
+          id?: string;
+          invited_by?: string;
+          role?: Database["public"]["Enums"]["app_role"];
+          sections?: string[];
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_invites_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_invites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "staff_invites_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       studio_revalidations: {
         Row: {
@@ -2814,6 +3268,94 @@ export type Database = {
           tags?: string[];
         };
         Relationships: [];
+      };
+      team_members: {
+        Row: {
+          added_at: string;
+          team_id: string;
+          user_id: string;
+        };
+        Insert: {
+          added_at?: string;
+          team_id: string;
+          user_id: string;
+        };
+        Update: {
+          added_at?: string;
+          team_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey";
+            columns: ["team_id"];
+            isOneToOne: false;
+            referencedRelation: "teams";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "team_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      teams: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          lead_id: string | null;
+          name: string;
+          sections: string[];
+          slug: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          lead_id?: string | null;
+          name: string;
+          sections?: string[];
+          slug: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          lead_id?: string | null;
+          name?: string;
+          sections?: string[];
+          slug?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "teams_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "teams_lead_id_fkey";
+            columns: ["lead_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       topics: {
         Row: {
@@ -3259,6 +3801,8 @@ export type Database = {
         Args: { p_ctx?: Json; p_ip_hash?: string; p_key: string; p_value: Json };
         Returns: undefined;
       };
+      approval_apply: { Args: { p_id: string }; Returns: Json };
+      approval_kinds: { Args: Record<PropertyKey, never>; Returns: string[] };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
@@ -3276,6 +3820,7 @@ export type Database = {
       };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
+      contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
       control_can_operate: { Args: { uid: string }; Returns: boolean };
       control_can_view: { Args: { uid: string }; Returns: boolean };
       control_guard_view: { Args: Record<PropertyKey, never>; Returns: undefined };
@@ -3409,6 +3954,7 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
         Returns: number;
@@ -3451,6 +3997,8 @@ export type Database = {
         }[];
       };
       pipeline_media_context: { Args: { p_article: string }; Returns: Json };
+      prompt_publish: { Args: { p_approval: string }; Returns: Json };
+      prompt_rollback: { Args: { p_agent: string; p_to: number }; Returns: Json };
       public_article_gone: { Args: { p_slug: string }; Returns: string };
       public_most_read: {
         Args: { p_hours?: number; p_limit?: number };
@@ -3584,6 +4132,29 @@ export type Database = {
         }[];
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      rec_events_summary: {
+        Args: { p_since: string };
+        Returns: {
+          account: boolean;
+          algo_version: string;
+          dismiss_reason: string;
+          list: string;
+          n: number;
+          name: string;
+          personalization: boolean;
+          reason: string;
+          source_slug: string;
+        }[];
+      };
+      rec_return_7d: {
+        Args: { p_since: string };
+        Returns: {
+          algo_version: string;
+          followed: number;
+          returned: number;
+        }[];
+      };
+      rec_weights_activate: { Args: { p_approval: string }; Returns: Json };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       record_source_fetch: {
         Args: {
@@ -3612,6 +4183,7 @@ export type Database = {
         Returns: string;
       };
       require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
+      rules_rollback: { Args: Record<PropertyKey, never>; Returns: Json };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;
@@ -3832,6 +4404,15 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: {
           tags: string[];
+        }[];
+      };
+      taxonomy_merge_tags: { Args: { p_from: string; p_into: string }; Returns: number };
+      taxonomy_tags: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          articles: number;
+          items: number;
+          tag: string;
         }[];
       };
       topic_candidates: {
