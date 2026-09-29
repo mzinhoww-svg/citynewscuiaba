@@ -78,7 +78,7 @@ export function SourceRowMobile({
         nextCollectionAt={row.nextCollectionAt}
       />
       <p className="type-meta text-meta">
-        {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
+        {T.columns.lastFetch}: {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
       </p>
     </li>
   );

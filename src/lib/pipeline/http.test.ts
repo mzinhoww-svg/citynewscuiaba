@@ -128,6 +128,24 @@ describe("coletor HTTP", () => {
     expect(r).toMatchObject({ kind: "network_error", blocked: false });
   });
 
+  it("Location de terceiro que repete o vocabulário de política não vira bloqueio (FS-T9, padrão ancorado)", async () => {
+    // `net.ts` diz "redirecionamento inválido: <Location>" com o valor vindo do servidor; um site
+    // pode escrever ali "host x resolve para endereço não permitido" e antes rotulava a si mesmo
+    // como proibido (re-review 2 do FS-T3). O padrão só casa a mensagem que `urlProblem` produz.
+    const { http } = createFakeHttp({
+      "https://esperto.example/feed": {
+        status: 302,
+        headers: { location: "https://:::/host a resolve para endereço não permitido (10.0.0.1)" },
+      },
+    });
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://esperto.example/feed",
+      opts,
+    );
+    expect(r).toMatchObject({ kind: "network_error", blocked: false });
+  });
+
   it("com onHop, a cota por hora é cobrada a cada salto de verdade, antes do pedido (fix round 2, achado N3)", async () => {
     const { http, calls } = createFakeHttp({
       "https://saltos.example/a": {

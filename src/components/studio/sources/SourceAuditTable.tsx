@@ -171,7 +171,8 @@ export function SourceAuditTable({
       {rows.length === 0 ? (
         <p className="type-body text-meta">{filter ? T.emptyFiltered : T.empty}</p>
       ) : (
-        <div className="overflow-x-auto">
+        // Região rolável com foco por teclado (axe scrollable-region-focusable, FS-T9).
+        <div className="overflow-x-auto" role="region" aria-label={T.title} tabIndex={0}>
           <table className="w-full min-w-3xl border-collapse type-body">
             <thead>
               <tr className="border-b border-line-section text-left type-meta text-meta">

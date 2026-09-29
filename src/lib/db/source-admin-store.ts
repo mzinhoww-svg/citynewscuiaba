@@ -217,6 +217,7 @@ interface BulkRow {
   feed_url: string | null;
   kind: string;
   terms_reviewed_at: string | null;
+  status_reason: string | null;
 }
 
 /**
@@ -255,7 +256,13 @@ export function planBulk(
     } else if (action === "activate") {
       if (r.status === "blocked") ignore(id, r.name, "blocked");
       else if (r.status !== "paused") ignore(id, r.name, "not_paused");
-      else if ((!r.feed_url && r.kind !== "page") || !r.terms_reviewed_at)
+      // Já passou por ativação = feed, termos revisados e nunca `pending_activation` (a ativação
+      // única roda robots, teste de conexão e Crawl-delay; o lote não repete isso, FS-T9).
+      else if (
+        (!r.feed_url && r.kind !== "page") ||
+        !r.terms_reviewed_at ||
+        r.status_reason === "pending_activation"
+      )
         ignore(id, r.name, "not_activated");
       else eligible.push(id);
     } else {
@@ -370,7 +377,7 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
       const { data: rows, error: readError } = await db
         .from("sources")
         .select(
-          "id, name, status, archived_at, frequency_minutes, feed_url, kind, terms_reviewed_at",
+          "id, name, status, archived_at, frequency_minutes, feed_url, kind, terms_reviewed_at, status_reason",
         )
         .in("id", ids);
       if (readError) return err(mapDbError(readError));

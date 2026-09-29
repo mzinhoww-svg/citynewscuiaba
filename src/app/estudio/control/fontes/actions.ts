@@ -159,6 +159,19 @@ function refresh(id?: string) {
   if (id) revalidatePath(`${NEXT}/${id}`, "layout");
 }
 
+/**
+ * O portal lê `public_sources`/`public_aggregated` pela cache da home (tag `home`, 60 s): status,
+ * score editorial, nome exibido e recomendação mudam o Panorama na hora, não no próximo minuto
+ * (spec §7.3, D-F9; FS-T9). Falha da cache nunca derruba a ação.
+ */
+async function refreshPortal() {
+  try {
+    await revalidateTags(["home"]);
+  } catch (e) {
+    console.error("painel de fontes: revalidação da home falhou", e);
+  }
+}
+
 async function sourceRow(ctx: Ctx, id: string) {
   if (!UUID.test(id)) return null;
   const { data } = await ctx.db.from("sources").select("*").eq("id", id).maybeSingle();
@@ -471,6 +484,7 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
         )
       : { pending: [], failed: [] };
   refresh(id);
+  if (nonCritical.length > 0) await refreshPortal();
   const message = criticalMessage(nonCritical.length > 0, outcome);
   const data = {
     version: newVersion,
@@ -796,6 +810,7 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
     message = T.status.blockOptOut(removed.value.blocked);
   }
   refresh(id);
+  await refreshPortal();
   return finish(ctx, message, { version: r.value.version });
 }
 
@@ -953,6 +968,7 @@ export async function bulkSourcesAction(form: FormData): Promise<ActionState> {
   );
   if (!r.ok) return fail(r.error === "forbidden" ? T.forbidden : T.unavailable);
   refresh();
+  await refreshPortal();
   const fast =
     frequencyMinutes !== null && (FAST_FREQUENCIES as readonly number[]).includes(frequencyMinutes);
   return finish(ctx, bulkMessage(action, fast, r.value.items), r.value);

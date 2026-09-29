@@ -116,6 +116,24 @@ describe("discoverConsumption", () => {
     expect(calls.length).toBe(8);
   });
 
+  it("candidato repetido (anunciado na página e caminho conhecido) é requisitado uma vez só (FS-T9)", async () => {
+    const home = `<!doctype html><html><head><title>Repetido</title>
+      <link rel="alternate" type="application/rss+xml" href="https://repetido.example/feed"></head>
+      <body><p>sem feed de verdade</p></body></html>`;
+    const { http, calls } = createFakeHttp({
+      ...robotsOk("repetido.example"),
+      "https://repetido.example/": html(home),
+      "https://repetido.example/feed": status(404),
+      "https://repetido.example/rss": xml(read("feeds/folha-do-cerrado.xml")),
+    });
+    const r = await discoverConsumption(deps(http), new URL("https://repetido.example/"));
+    expect(r).toMatchObject({ ok: true, value: { strategy: "rss" } });
+    expect(calls.filter((c) => c.url === "https://repetido.example/feed")).toHaveLength(1);
+    expect(
+      r.ok && r.value.tried.filter((t) => t.url === "https://repetido.example/feed"),
+    ).toHaveLength(1);
+  });
+
   it("robots que proíbe o caminho encerra sem baixar a página", async () => {
     const { http, calls } = createFakeHttp({
       "https://proibido.example/robots.txt": text(read("sites/proibido-robots.txt")),

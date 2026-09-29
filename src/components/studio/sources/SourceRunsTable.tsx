@@ -30,7 +30,13 @@ export function SourceRunsTable({ runs, className }: SourceRunsTableProps) {
   if (runs.length === 0)
     return <p className={cx("type-body text-meta", className)}>{T.runsEmpty}</p>;
   return (
-    <div className={cx("overflow-x-auto", className)}>
+    // Região rolável com foco por teclado (axe scrollable-region-focusable, FS-T9).
+    <div
+      className={cx("overflow-x-auto", className)}
+      role="region"
+      aria-label={T.runsTitle}
+      tabIndex={0}
+    >
       <table className="w-full min-w-md border-collapse type-body">
         <thead>
           <tr className="border-b border-line-section text-left type-meta text-meta">

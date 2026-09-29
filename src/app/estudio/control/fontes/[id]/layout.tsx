@@ -86,7 +86,8 @@ export default async function SourceDetailLayout({ children, params }: Props) {
           </p>
           <p className="flex flex-wrap items-center gap-2 type-body text-strong">
             <SourceStatusBadge status={d.displayStatus} />
-            <span>{statusLine(d)}</span>
+            {/* Fonte ativa: o selo já diz "Ativa"; a linha só acrescenta quando há motivo/data (FS-T9). */}
+            {statusLine(d) !== T.status.active && <span>{statusLine(d)}</span>}
           </p>
         </div>
         {d.archivedAt && (

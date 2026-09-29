@@ -81,6 +81,7 @@ describe("planBulk (§7.6)", () => {
     feed_url: `https://${id}.example/feed`,
     kind: "rss",
     terms_reviewed_at: "2026-08-01T12:00:00Z",
+    status_reason: null,
     ...over,
   });
 
@@ -123,6 +124,22 @@ describe("planBulk (§7.6)", () => {
     expect(eligible).toEqual(["a", "b", "c"]);
     expect(results.get("d")?.reason).toBe("not_active");
     expect(results.get("e")?.reason).toBe("fast_lane_full");
+  });
+
+  it("ativar em lote ignora quem nunca foi ativada (pending_activation), mesmo com feed e termos (FS-T9)", () => {
+    const { eligible, results } = planBulk(
+      ["a", "b", "c"],
+      [
+        row("a", { status: "paused", status_reason: "manual" }),
+        row("b", { status: "paused", status_reason: "pending_activation" }),
+        row("c", { status: "paused", status_reason: "auto_failures" }),
+      ],
+      "activate",
+      {},
+      { max: 10, used: 0 },
+    );
+    expect(eligible).toEqual(["a", "c"]);
+    expect(results.get("b")?.reason).toBe("not_activated");
   });
 
   it("ativar em lote só quem já passou por ativação (feed e termos)", () => {

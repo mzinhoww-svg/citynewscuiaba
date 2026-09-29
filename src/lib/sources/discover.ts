@@ -248,8 +248,12 @@ export async function discoverConsumption(
 
   let home: { url: string; html: string } | null = null;
   let budgetNoted = false;
+  /** Candidatos já requisitados: o mesmo caminho anunciado na página e na lista de caminhos conhecidos conta uma vez (FS-T9). */
+  const attempted = new Set<string>();
 
   const attempt = async (candidate: string): Promise<Attempt> => {
+    if (attempted.has(candidate)) return { kind: "miss", network: false };
+    attempted.add(candidate);
     if (!allowed(candidate)) {
       tried.push({ url: candidate, outcome: "robots.txt não permite este caminho" });
       return { kind: "miss", network: false };

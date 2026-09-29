@@ -14,7 +14,15 @@ const port = 3000 + offset;
  * jeito de a análise por link e o teste de conexão rodarem no e2e.
  */
 const fixturesPort = port + 1;
-const FIXTURE_SPECS = "**/control-sources-detail.spec.ts";
+/**
+ * Specs que precisam do servidor de fixtures: cadastro/detalhe (FS-T8), jornadas (FS-T9) e o
+ * roteiro exploratório do painel (`tests/roteiro/fontes.spec.ts`, só com CN_ROTEIRO=1).
+ */
+const FIXTURE_SPECS = [
+  "**/control-sources-detail.spec.ts",
+  "**/control-sources-flow.spec.ts",
+  "**/roteiro/fontes.spec.ts",
+];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para
  * `desktop`/`mobile` (e `mobile-webkit` no CI) nunca lerem uma lista no meio de uma mutação,

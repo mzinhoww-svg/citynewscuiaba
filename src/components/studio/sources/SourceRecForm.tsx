@@ -133,7 +133,7 @@ export function SourceRecForm({
         </fieldset>
         <p className="type-meta text-meta">
           {T.explanation}{" "}
-          <Link href={rulesHref} className="text-link underline-offset-4 hover:underline">
+          <Link href={rulesHref} className="text-link underline underline-offset-4">
             {T.rulesLink}
           </Link>
         </p>

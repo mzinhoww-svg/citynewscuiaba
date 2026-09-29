@@ -25,7 +25,9 @@ const POLICY_BLOCK_PATTERNS: RegExp[] = [
   /^esquema não permitido:/,
   /^URL com credenciais não é permitida$/,
   /^host não permitido:/,
-  /resolve para endereço não permitido/,
+  // Ancorado à forma exata de `urlProblem` (net.ts): um `Location` de terceiro que repete a
+  // frase entra em "redirecionamento inválido: …" e não pode casar aqui (FS-T9).
+  /^host \S+ resolve para endereço não permitido/,
 ];
 
 function isPolicyBlock(reason: string): boolean {

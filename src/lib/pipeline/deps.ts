@@ -21,6 +21,7 @@ import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
 import type { CollectNowDeps } from "./collect-now";
 import type { DrainDeps } from "./drain";
 import type { FastTickDeps } from "./fast-tick";
+import { crawlDeps } from "@/lib/sources/http-deps";
 import { pipelineQueue } from "./queue";
 import { crawlerUserAgent } from "./http";
 import { systemResolve } from "./net";
@@ -54,12 +55,13 @@ export function productionHandlers(): StepHandlers {
   const db = createServiceClient();
   const ai = createProductionAi();
   const flags = createFlags(db);
+  const ingestRepo = createIngestRepo(db);
   return {
+    // Coleta pelo mesmo `crawlDeps` do painel: `fetch` real em produção; com `CRAWLER_FIXTURES=1`
+    // fora de produção, as fixtures `*.example` (e2e do painel de fontes, FS-T9), sem rede.
     ...createIngestHandlers({
-      repo: createIngestRepo(db),
-      http,
-      resolve: systemResolve,
-      userAgent: crawlerUserAgent(),
+      ...crawlDeps({ repo: ingestRepo }),
+      repo: ingestRepo,
       now: () => new Date(),
     }),
     ...createClusterHandlers({

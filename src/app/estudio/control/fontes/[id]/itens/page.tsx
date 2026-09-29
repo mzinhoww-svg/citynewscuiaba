@@ -31,7 +31,12 @@ export default async function SourceItemsPage({ params }: Props) {
       ) : items.value.length === 0 ? (
         <p className="type-body text-meta">{T.empty}</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-line-section bg-card-white p-4">
+        <div
+          className="overflow-x-auto rounded-lg border border-line-section bg-card-white p-4"
+          role="region"
+          aria-label={T.title}
+          tabIndex={0}
+        >
           <table className="w-full min-w-2xl border-collapse type-body">
             <thead>
               <tr className="border-b border-line-section text-left type-meta text-meta">

@@ -227,8 +227,10 @@ export function SourcesTable({
       )}
 
       {/* Desktop: tabela (>= md), com Camada/Localidade no cabeçalho da fonte a partir de 1280 px
-          e Prioridade/Última coleta/Erros 24 h só a partir de 1440 px (achado da revisão). */}
-      <div className="hidden overflow-x-auto md:block">
+          e Prioridade/Última coleta/Erros 24 h só a partir de 1440 px (achado da revisão).
+          `relative`: o texto `sr-only` (posição absoluta) do cabeçalho de ações fica contido na
+          região rolável em vez de esticar a página em 768 px (FS-T9). */}
+      <div className="relative hidden overflow-x-auto md:block">
         <table className="w-full min-w-full border-collapse text-left">
           <thead>
             <tr className="border-b border-line-section">
