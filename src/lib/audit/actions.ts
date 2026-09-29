@@ -74,6 +74,14 @@ export const AUDIT_ACTIONS = [
   "taxonomy.merge",
   "home.save",
   "home.publish",
+  // Administração (P5-T9, 0039)
+  "ads.campaign.save",
+  "ads.campaign.delete",
+  "seo.redirect.save",
+  "seo.redirect.delete",
+  "audit.export",
+  "privacy.request.save",
+  "security.key.rotate",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -39,6 +39,15 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "equipes", path: () => "/estudio/admin/equipes", as: "helena" },
   { name: "taxonomia", path: () => "/estudio/admin/taxonomia", as: "marina" },
   { name: "home e módulos", path: () => "/estudio/admin/home", as: "marina" },
+  // Administração (P5-T9)
+  { name: "publicidade", path: () => "/estudio/admin/publicidade", as: "marina" },
+  { name: "seo", path: () => "/estudio/admin/seo", as: "marina" },
+  { name: "auditoria", path: () => "/estudio/admin/auditoria", as: "diego" },
+  { name: "auditoria vazia", path: () => "/estudio/admin/auditoria?acao=nada-xyz", as: "helena" },
+  { name: "segurança", path: () => "/estudio/admin/seguranca", as: "helena" },
+  { name: "governança editorial", path: () => "/estudio/admin/governanca", as: "marina" },
+  { name: "integrações", path: () => "/estudio/admin/integracoes", as: "helena" },
+  { name: "configurações", path: () => "/estudio/admin/configuracoes", as: "helena" },
 ];
 
 for (const scheme of ["light", "dark"] as const) {
