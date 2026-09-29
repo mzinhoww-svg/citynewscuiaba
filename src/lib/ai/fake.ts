@@ -128,6 +128,17 @@ const RESPONDERS: Record<string, Responder> = {
       summary: `Resumo do CityNews: a reportagem trata de ${list}. Detalhes no site do veículo.`,
     };
   },
+  // Perfil determinístico; com `estrutura` nos dados (página sem feed) sugere seletores.
+  source_profiler: (data) => ({
+    categories: ["cidade"],
+    locality: "cuiaba",
+    localityConfidence: 0.8,
+    qualityFlags: [],
+    pageSelectors: data.some((d) => d.id === "estrutura")
+      ? { item: "article.card", link: "a", title: "h2", date: "time" }
+      : null,
+    rationale: "Amostra fictícia.",
+  }),
   image: () => ({
     allowed: false,
     reason: "O provedor falso não gera imagens.",

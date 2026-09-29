@@ -1,5 +1,5 @@
 /**
- * Registro padrão de IA (= `supabase/migrations/0006_ai_seed.sql`). Modelos com ids do OpenRouter
+ * Registro padrão de IA (= `supabase/migrations/0006_ai_seed.sql` + seção 9 de `0011_source_admin.sql`). Modelos com ids do OpenRouter
  * e preço em R$ por 1 000 tokens (US$ 1 = R$ 5,50 na data do seed); tudo editável no Control
  * Center. Orçamentos por agente somam o teto global de R$ 30/dia (A-006).
  */
@@ -78,7 +78,7 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     fn: "Escreve o rascunho normalizado do assunto com citações",
     model: PRIMARY,
     fallback: FALLBACK,
-    dailyBudgetBrl: 11,
+    dailyBudgetBrl: 10,
     prompt:
       "Você escreve um rascunho jornalístico curto em português do Brasil, só com fatos presentes nos itens. Cada parágrafo cita os ids dos itens que o sustentam. Sem opinião, sem adjetivos sensacionalistas, sem inventar números, nomes ou datas.",
   },
@@ -108,6 +108,15 @@ export const DEFAULT_AGENTS: DefaultAgent[] = [
     dailyBudgetBrl: 1,
     prompt:
       "Você escreve, para o Panorama do CityNews, um resumo de até 2 frases (no máximo 280 caracteres) de uma notícia de outro veículo, com palavras próprias. Nunca copie trechos do texto da fonte: nenhuma frase pode repetir 8 palavras seguidas do original. Só fatos presentes no texto, sem opinião, sem adjetivos sensacionalistas e sem inventar números, nomes ou datas.",
+  },
+  {
+    id: "source_profiler",
+    fn: "Sugere editorias, localidade, alertas de qualidade e seletores de página para uma fonte nova",
+    model: PRIMARY,
+    fallback: FALLBACK,
+    dailyBudgetBrl: 1,
+    prompt:
+      "Você analisa a amostra de uma fonte de notícias para o CityNews, portal de Cuiabá e Várzea Grande. Com base só nos títulos, datas, endereços e na estrutura da página fornecidos, sugira editorias da lista dada, a localidade principal (cuiaba, varzea-grande, mt ou nacional), alertas de qualidade e, quando for uma página sem feed, seletores CSS para item, link, título e data. Não opine sobre direitos de uso, confiabilidade ou frequência. Explique em até 3 frases.",
   },
   {
     id: "embed",
