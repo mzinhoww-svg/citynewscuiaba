@@ -193,7 +193,7 @@ describe("regras (rules)", () => {
 describe("aprovações (approvals)", () => {
   it("admin não troca requested_by para aprovar o próprio pedido", async () => {
     const h = await helena();
-    const id = await requestApproval(h, HELENA, "rules.force_review_off", "rules:1");
+    const id = await requestApproval(h, HELENA, "force_review.disable", "rules:1");
     const swap = await h
       .from("approvals")
       .update({ requested_by: MARINA, approved_by: HELENA, status: "approved" })
@@ -233,7 +233,7 @@ describe("aprovações (approvals)", () => {
   it("caminho feliz: outra pessoa aprova, e a decisão fica final", async () => {
     const h = await helena();
     const m = await marina();
-    const id = await requestApproval(h, HELENA, "rules.force_review_off", "rules:1");
+    const id = await requestApproval(h, HELENA, "force_review.disable", "rules:1");
     const ok = await m
       .from("approvals")
       .update({ approved_by: MARINA, status: "approved" })

@@ -335,6 +335,10 @@ export {
   type PendingApprovalsPanelProps,
 } from "./studio/sources/PendingApprovalsPanel";
 export { SourceAuditTable, type SourceAuditTableProps } from "./studio/sources/SourceAuditTable";
+
+// Aprovações de mudança crítica (P5-T1)
+export { ApprovalBanner, type ApprovalBannerProps } from "./studio/ApprovalBanner";
+export { ApprovalInbox, type ApprovalInboxProps, type ApprovalReply } from "./studio/ApprovalInbox";
 export { SourceConfigForm, type SourceConfigFormProps } from "./studio/sources/SourceConfigForm";
 export {
   SourceHeaderActions,

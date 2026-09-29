@@ -56,6 +56,11 @@ export const AUDIT_ACTIONS = [
   "logs.export",
   "ai.eval.run",
   "ai.eval.case",
+  // Aprovações (P5-T1, 0029)
+  "approval.requested",
+  "approval.approved",
+  "approval.rejected",
+  "approval.applied",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

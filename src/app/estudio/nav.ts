@@ -70,6 +70,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
       { href: "/estudio/control/logs", label: "Logs", icon: "scroll-text", action: "audit.view" },
       { href: "/estudio/control/fontes", label: "Fontes", icon: "globe", action: "source.manage" },
       { href: "/estudio/control/regras", label: "Regras", icon: "scale", action: "rules.propose" },
+      {
+        href: "/estudio/control/aprovacoes",
+        label: "Aprovações",
+        icon: "file-check",
+        action: "rules.propose",
+      },
       { href: "/estudio/control/custos", label: "Custos", icon: "percent", action: "metrics.view" },
       {
         href: "/estudio/control/conhecimento",

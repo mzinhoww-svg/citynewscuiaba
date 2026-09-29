@@ -44,6 +44,16 @@ function memoryPort(approvers: string[] = [MARINA]) {
         (r) => r.status === "pending" && r.targetRef.startsWith(prefix),
       );
     },
+    async apply(id) {
+      const r = rows.get(id);
+      if (!r) return { applied: false, reason: "not_found" };
+      if (r.status === "applied") return { applied: false, reason: "already_applied" };
+      if (r.status !== "approved") return { applied: false, reason: "not_approved" };
+      if (r.approvedBy !== me) return { applied: false, reason: "forbidden" };
+      if (!r.targetRef.startsWith("rules:")) return { applied: false, reason: "unsupported" };
+      rows.set(id, { ...r, status: "applied" });
+      return { applied: true };
+    },
   };
   return {
     port,
@@ -160,8 +170,52 @@ describe("aprovações (duas pessoas)", () => {
     expect(await a.pending("source:")).toHaveLength(2);
   });
 
-  it("tipos de mudança crítica incluem source.critical", () => {
+  it("tipos de mudança crítica incluem source.critical e os reservados do PWA", () => {
     expect(CRITICAL_KINDS).toContain("source.critical");
     expect(CRITICAL_KINDS).toContain("role.admin");
+    for (const k of [
+      "rules.activate",
+      "prompt.publish",
+      "rec.weights",
+      "safety.disable",
+      "force_review.disable",
+      "push.urgent",
+      "push.highlight",
+      "push.resume",
+    ])
+      expect(CRITICAL_KINDS).toContain(k);
+  });
+
+  it("aprovar e aplicar: quem pediu é barrado; outra pessoa aprova e o alvo é aplicado", async () => {
+    const m = memoryPort();
+    const a = createApprovalsWith(m.port);
+    await a.requestApproval({ kind: "rules.activate", targetRef: "rules:7", justification: "j" });
+    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({
+      ok: false,
+      error: "self_approval",
+    });
+    expect(m.rows.get("ap-1")?.status).toBe("pending");
+    m.as(MARINA);
+    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({ ok: true, value: undefined });
+    expect(m.rows.get("ap-1")).toMatchObject({ status: "applied", approvedBy: MARINA });
+    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({
+      ok: false,
+      error: "already_applied",
+    });
+  });
+
+  it("aprovado sem aplicar (falha anterior) só aplica na segunda tentativa", async () => {
+    const m = memoryPort();
+    const a = createApprovalsWith(m.port);
+    await a.requestApproval({
+      kind: "prompt.publish",
+      targetRef: "prompt:x:2",
+      justification: "j",
+    });
+    m.as(MARINA);
+    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({ ok: false, error: "unsupported" });
+    expect(m.rows.get("ap-1")?.status).toBe("approved");
+    // Já decidido: não tenta decidir de novo (não seria `not_pending`), só aplicar.
+    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({ ok: false, error: "unsupported" });
   });
 });

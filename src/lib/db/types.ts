@@ -2799,6 +2799,8 @@ export type Database = {
         Args: { p_ctx?: Json; p_ip_hash?: string; p_key: string; p_value: Json };
         Returns: undefined;
       };
+      approval_apply: { Args: { p_id: string }; Returns: Json };
+      approval_kinds: { Args: Record<PropertyKey, never>; Returns: string[] };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
