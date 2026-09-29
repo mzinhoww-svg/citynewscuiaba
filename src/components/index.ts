@@ -188,3 +188,39 @@ export { SourceFilters, type SourceFiltersProps } from "./studio/sources/SourceF
 export { SourceRowMenu, type SourceRowMenuProps } from "./studio/sources/SourceRowMenu";
 export { SourceRowMobile, type SourceRowMobileProps } from "./studio/sources/SourceRowMobile";
 export { SourcesTable, type SourcesTableProps } from "./studio/sources/SourcesTable";
+
+// Painel de fontes · cadastro e detalhe O04 (FS-T8)
+export {
+  AddSourceWizard,
+  type AddSourceWizardProps,
+  type WizardAction,
+  type WizardActionResult,
+} from "./studio/sources/AddSourceWizard";
+export { AnalysisProgress, type AnalysisProgressProps } from "./studio/sources/AnalysisProgress";
+export {
+  ApproveChangeDialog,
+  type ApproveChangeDialogProps,
+} from "./studio/sources/ApproveChangeDialog";
+export { BlockSourceDialog, type BlockSourceDialogProps } from "./studio/sources/BlockSourceDialog";
+export { CollectionActions, type CollectionActionsProps } from "./studio/sources/CollectionActions";
+export {
+  ConfirmByTypingDialog,
+  type ConfirmByTypingDialogProps,
+} from "./studio/sources/ConfirmByTypingDialog";
+export {
+  PendingApprovalsPanel,
+  type PendingApprovalsPanelProps,
+} from "./studio/sources/PendingApprovalsPanel";
+export { SourceAuditTable, type SourceAuditTableProps } from "./studio/sources/SourceAuditTable";
+export { SourceConfigForm, type SourceConfigFormProps } from "./studio/sources/SourceConfigForm";
+export {
+  SourceHeaderActions,
+  type SourceHeaderActionsProps,
+} from "./studio/sources/SourceHeaderActions";
+export { SourceHealthPanel, type SourceHealthPanelProps } from "./studio/sources/SourceHealthPanel";
+export { SourceLogoForm, type SourceLogoFormProps } from "./studio/sources/SourceLogoForm";
+export { SourcePreviewList, type SourcePreviewListProps } from "./studio/sources/SourcePreviewList";
+export { SourceRecForm, type SourceRecFormProps } from "./studio/sources/SourceRecForm";
+export { SourceRunsTable, type SourceRunsTableProps } from "./studio/sources/SourceRunsTable";
+export { SourceSectionNav, type SourceSectionNavProps } from "./studio/sources/SourceSectionNav";
+export { SuggestionField, type SuggestionFieldProps } from "./studio/sources/SuggestionField";

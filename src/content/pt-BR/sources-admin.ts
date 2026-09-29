@@ -2,15 +2,17 @@
  * Textos do painel de fontes (spec docs/superpowers/specs/2026-09-27-painel-de-fontes.md §7–§9):
  * rótulos de status, motivos, camadas, políticas, mensagens das ações e de erro.
  */
-import {
-  FAST_FREQUENCIES,
-  type HealthLabel,
-  type ImagePolicy,
-  type Reliability,
-  type RepublishPolicy,
-  type SourceStatus,
-  type StatusReason,
-} from "@/lib/sources";
+// Só o schema e tipos: o barrel `@/lib/sources` puxa `url.ts` → `pipeline/net.ts` (node:dns), que
+// não pode entrar no bundle do navegador (este arquivo é lido por Client Components).
+import type { HealthLabel } from "@/lib/sources/health";
+import { FAST_FREQUENCIES } from "@/lib/sources/schema";
+import type {
+  ImagePolicy,
+  Reliability,
+  RepublishPolicy,
+  SourceStatus,
+  StatusReason,
+} from "@/lib/sources/types";
 
 /** Status exibido: os quatro do banco, mais "pausada automaticamente" e "arquivada". */
 export type DisplayStatus = SourceStatus | "auto_paused" | "archived";
