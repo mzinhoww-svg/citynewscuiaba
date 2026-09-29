@@ -234,7 +234,9 @@ test("aviso de aprovação pendente leva à fonte e às aprovações", async ({ 
       "href",
       "/estudio/control/aprovacoes",
     );
-    await expect(page.getByText("Mudança aguardando aprovação").locator("visible=true").first()).toBeVisible();
+    await expect(
+      page.getByText("Mudança aguardando aprovação").locator("visible=true").first(),
+    ).toBeVisible();
   } finally {
     await db.from("approvals").delete().eq("id", req.data.id);
   }
