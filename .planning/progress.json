@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T06:04:04.202Z",
+  "updatedAt": "2026-09-29T06:25:41.794Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -656,10 +656,10 @@
           "id": "P5-T6",
           "title": "Bases, avaliações, custos e governança da IA",
           "parallel": true,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "fb8f884",
+          "notes": "Regressão da IA (runRegression, 5 casos, workflow sem segredos), avaliações, custos, conhecimento e governança em /estudio/control; migration 0033 (ai_eval_runs). Orçamento por agente segue só leitura."
         },
         {
           "id": "P5-T7",
