@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T05:40:52.962Z",
+  "updatedAt": "2026-09-29T06:04:04.202Z",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -647,10 +647,10 @@
           "id": "P5-T5",
           "title": "Agentes, modelos, prompts e playground",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "52b6bc3",
+          "notes": "Agentes, modelos, prompts versionados (aprovar prompt.publish publica; rollback = nova versão aprovada) e playground por callAgent; migration 0032; A-170..A-177"
         },
         {
           "id": "P5-T6",
