@@ -61,6 +61,9 @@ export const AUDIT_ACTIONS = [
   "approval.approved",
   "approval.rejected",
   "approval.applied",
+  // Contingência (P5-T10, 0035)
+  "flag.set",
+  "rules.rollback",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

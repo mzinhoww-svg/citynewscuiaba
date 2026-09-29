@@ -107,6 +107,12 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "shield",
         action: "audit.view",
       },
+      {
+        href: "/estudio/admin/contingencia",
+        label: "Contingência",
+        icon: "triangle-alert",
+        action: "users.manage",
+      },
     ],
   },
 ];

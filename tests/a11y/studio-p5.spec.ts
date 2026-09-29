@@ -31,6 +31,7 @@ const ROUTES: { path: () => string; as: Staff; name: string }[] = [
   { name: "governança", path: () => "/estudio/control/governanca", as: "thiago" },
   { name: "aprovações", path: () => "/estudio/control/aprovacoes", as: "marina" },
   { name: "regras", path: () => "/estudio/control/regras", as: "diego" },
+  { name: "contingência", path: () => "/estudio/admin/contingencia", as: "helena" },
 ];
 
 for (const scheme of ["light", "dark"] as const) {

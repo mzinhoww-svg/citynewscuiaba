@@ -2818,6 +2818,7 @@ export type Database = {
       };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
+      contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
       control_can_operate: { Args: { uid: string }; Returns: boolean };
       control_can_view: { Args: { uid: string }; Returns: boolean };
       control_guard_view: { Args: Record<PropertyKey, never>; Returns: undefined };
@@ -3078,6 +3079,7 @@ export type Database = {
         Returns: string;
       };
       require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
+      rules_rollback: { Args: Record<PropertyKey, never>; Returns: Json };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;

@@ -340,6 +340,14 @@ export { SourceAuditTable, type SourceAuditTableProps } from "./studio/sources/S
 export { ApprovalBanner, type ApprovalBannerProps } from "./studio/ApprovalBanner";
 export { ApprovalInbox, type ApprovalInboxProps, type ApprovalReply } from "./studio/ApprovalInbox";
 
+// Contingência A15 (P5-T10)
+export {
+  ContingencyPanel,
+  type ContingencyCard,
+  type ContingencyPanelProps,
+  type ContingencyReply,
+} from "./studio/ContingencyPanel";
+
 // Regras de autonomia O05 (P5-T2)
 export { RuleMatrix, type RuleMatrixProps } from "./studio/RuleMatrix";
 export {

@@ -126,3 +126,16 @@ test("O05 · regras de autonomia com simulação", async ({ page }) => {
   await expect(page.getByRole("region", { name: "Resultado da simulação" })).toBeVisible();
   await shot(page, "o05-regras-simulacao");
 });
+
+test("A15 · contingência e diálogo de confirmação", async ({ page }) => {
+  await loginAs(page, "helena", "/estudio/admin/contingencia");
+  await expect(page.getByRole("heading", { level: 1, name: "Contingência" })).toBeVisible();
+  await shot(page, "a15-contingencia");
+  await page.getByRole("button", { name: "Ativar modo leitura" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page
+    .getByRole("dialog")
+    .getByLabel(/Digite MODO LEITURA/)
+    .fill("modo");
+  await shot(page, "a15-contingencia-dialogo", false);
+});

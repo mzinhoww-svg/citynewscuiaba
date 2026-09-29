@@ -11,6 +11,7 @@ import { audit } from "@/lib/audit";
 import { canAccess } from "@/lib/auth/permissions";
 import { type StudioResult } from "./action";
 import { studioContext } from "./context";
+import { isReadOnly, READ_ONLY_MESSAGE } from "./read-only";
 
 /*
  * Pedir e decidir aprovações de mudança crítica (P5-T1). O papel exigido depende do tipo
@@ -76,6 +77,7 @@ export async function decideApprovalCommand(
   const ctx = await studioContext();
   const session = ctx.session;
   if (!session) return fail("forbidden");
+  if (await isReadOnly(ctx.db)) return fail("conflict", READ_ONLY_MESSAGE);
   const port = supabaseApprovalsPort(ctx.db);
   const row = await port.get(i.id);
   if (!row) return fail("not_found", APPROVAL_ERROR_TEXT.not_pending);
