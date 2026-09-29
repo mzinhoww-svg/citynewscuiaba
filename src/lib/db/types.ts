@@ -3470,7 +3470,9 @@ export type Database = {
         };
         Returns: undefined;
       };
+      push_dispatch_due: { Args: { p_now?: string }; Returns: Json };
       push_expire_requests: { Args: { p_now?: string }; Returns: number };
+      push_finish_batch: { Args: { p_batch: number; p_send: string }; Returns: boolean };
       push_local_day: { Args: { p_ts: string }; Returns: string };
       push_quiet_ends_at: { Args: { p_end: number; p_now: string }; Returns: string };
       push_receipt_hit: {
@@ -3574,6 +3576,7 @@ export type Database = {
         }[];
       };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      schedule_push_cron: { Args: Record<PropertyKey, never>; Returns: string };
       scrub_field_origins: { Args: { p: Json; p_person?: string }; Returns: Json };
       search_did_you_mean: { Args: { p_q: string }; Returns: string };
       search_hybrid: {

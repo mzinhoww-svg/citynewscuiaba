@@ -25,6 +25,35 @@ describe("drain", () => {
     expect(DRAIN_BUDGET_RATIO).toBe(0.8);
   });
 
+  it("beforeDrain roda antes da leitura e erro nele não derruba o drain", async () => {
+    const queue = createMemoryQueue();
+    const order: string[] = [];
+    await queue.enqueue("notify", m("due:s1", "push_due"));
+    const runStep = createRunStep({
+      push_due: async () => {
+        order.push("step");
+        return { ok: true, value: [] };
+      },
+    });
+    const events = sink();
+    const r = await drain({
+      queue,
+      runStep,
+      events,
+      now: () => 0,
+      beforeDrain: async () => {
+        order.push("before");
+        throw new Error("dispatch fora do ar");
+      },
+    });
+    expect(order).toEqual(["before", "step"]);
+    expect(r).toMatchObject({ processed: 1, succeeded: 1 });
+    expect(events.events[0]).toMatchObject({
+      level: "warn",
+      message: expect.stringContaining("dispatch fora do ar"),
+    });
+  });
+
   it("executa, enfileira a próxima etapa e confirma", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("source:a"));

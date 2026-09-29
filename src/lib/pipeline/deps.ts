@@ -2,6 +2,9 @@ import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createProductionAi } from "@/lib/ai/server";
 import { createSupabaseMediaStore } from "@/lib/db/media-store";
+import { createPushSendStore } from "@/lib/db/push-send-store";
+import { pushSender } from "@/lib/push/deps";
+import { createPushSteps } from "@/lib/push/steps";
 import {
   createClusterRepo,
   createEventSink,
@@ -95,6 +98,20 @@ export function productionHandlers(): StepHandlers {
       revalidate: revalidateTags,
       now: () => new Date(),
     }),
+    // Push (spec 2026-09-28 §12): fila `notify`, sender por PUSH_PROVIDER (fake sem VAPID).
+    ...createPushSteps({
+      store: createPushSendStore(db),
+      sender: pushSender(),
+      now: () => new Date(),
+    }),
+  };
+}
+
+/** Pré-etapa do drain: despacho de envios aprovados, agendados e entregas adiadas (G7). */
+export function pushDispatchDue(db = createServiceClient()): () => Promise<void> {
+  return async () => {
+    const { error } = await db.rpc("push_dispatch_due", { p_now: new Date().toISOString() });
+    if (error) throw new Error(`push_dispatch_due: ${error.message}`);
   };
 }
 
@@ -138,6 +155,7 @@ export function defaultDrainDeps(): DrainDeps & { secret: string | undefined } {
     events: createEventSink(createServiceClient()),
     // `fetch` esgotado varrido para a quarentena conta a falha final da fonte (D-F18).
     onExhausted: createExhaustedFetchHandler({ repo: createIngestRepo(createServiceClient()) }),
+    beforeDrain: pushDispatchDue(),
     now: () => Date.now(),
     secret: process.env.CRON_SECRET,
   };
