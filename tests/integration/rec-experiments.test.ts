@@ -143,6 +143,23 @@ describe("testes A/B", () => {
     });
     versions.push(other);
 
+    // Gate P5 (B5): variante só com pesos aprovados por outra pessoa.
+    const unapproved = await asUser("diego", () =>
+      createExperiment({
+        name: "Pesos sem aprovação",
+        variants: [
+          { label: "A", weightsVersion: "rec-v1" },
+          { label: "B", weightsVersion: other },
+        ],
+        split: [0.5, 0.5],
+      }),
+    );
+    expect(unapproved).toMatchObject({ ok: false, error: "invalid" });
+    await service
+      .from("rec_weights")
+      .update({ approved_by: "c1000000-0000-4000-8000-000000000001" })
+      .eq("version", other);
+
     const badSplit = await asUser("diego", () =>
       createExperiment({
         name: "Teste inválido",
@@ -248,14 +265,18 @@ describe("testes A/B", () => {
     const promoted = await asUser("diego", () =>
       promoteWinner({ id, justification: "Diversidade subiu sem perder CTR" }),
     );
-    expect(promoted).toMatchObject({ ok: true, value: { version: other } });
+    expect(promoted.ok).toBe(true);
+    const copy = promoted.ok ? promoted.value.version : "";
+    expect(copy).toMatch(/^rec-v1\.\d+$/);
+    expect(copy).not.toBe(other);
+    versions.push(copy);
     const after = await service.from("rec_weights").select("version").eq("active", true).single();
     expect(after.data?.version).toBe(before.data?.version);
     const ap = await service
       .from("approvals")
       .select("status")
       .eq("kind", "rec.weights")
-      .eq("target_ref", other);
+      .eq("target_ref", copy);
     expect(ap.data?.map((x) => x.status)).toEqual(["pending"]);
   });
 });
@@ -330,7 +351,9 @@ describe("por que esta recomendação", () => {
     const a = await asUser("diego", () => explainForAnon(off));
     const b = await asUser("diego", () => explainForAnon(on));
     expect(a.personalization).toBe(false);
-    expect(b.personalization).toBe(true);
+    // M1-R3: o servidor não guarda o consentimento vigente (retirar não deixa rastro ligado ao id;
+    // os eventos novos vêm sem `anon_id`), então o último evento com consentimento antigo não vale.
+    expect(b.personalization).toBe(false);
     expect(a.alias).toMatch(/^leitor-[0-9a-f]{8}$/);
     expect(JSON.stringify(a)).not.toContain(off);
     for (const r of a.rows) {
@@ -339,8 +362,26 @@ describe("por que esta recomendação", () => {
       expect(ind.value).toBe(0);
     }
     for (const r of b.rows) {
-      expect(r.components.find((c) => c.key === "individual")!.weight).toBeGreaterThan(0);
+      const ind = r.components.find((c) => c.key === "individual")!;
+      expect(ind.weight).toBe(0);
+      expect(ind.value).toBe(0);
     }
+    // Leitor que retirou a Personalização: evento antigo com consentimento e nenhum evento novo
+    // com o id (vêm com `anon_id` nulo). Não pode mostrar afinidade individual.
+    const withdrawn = randomUUID();
+    anons.push(withdrawn);
+    await service.from("events").insert([
+      {
+        ...base,
+        at: new Date(Date.now() - 3_600_000).toISOString(),
+        anon_id: withdrawn,
+        consent: { version: "1", metrics: true, personalization: true },
+      },
+      { ...base, anon_id: null, consent: { version: "1", metrics: true, personalization: false } },
+    ]);
+    const w = await asUser("diego", () => explainForAnon(withdrawn));
+    expect(w.personalization).toBe(false);
+    for (const r of w.rows) expect(r.components.find((c) => c.key === "individual")!.value).toBe(0);
     const unknown = await asUser("diego", () => explainForAnon(randomUUID()));
     expect(unknown.personalization).toBe(false);
   });

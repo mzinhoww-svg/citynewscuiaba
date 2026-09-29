@@ -4,7 +4,7 @@ import { REC_TEXT as T } from "@/content/pt-BR/control-rec";
 import { requestApproval, normalizeJustification } from "@/lib/approvals";
 import { splitValid, weightsValid, WEIGHT_KEYS, type Weights } from "@/lib/ranking";
 import type { Json } from "@/lib/db/types";
-import { studioAction, StudioFailure, type StudioResult } from "./action";
+import { studioAction, StudioFailure, type ActionContext, type StudioResult } from "./action";
 
 /*
  * Mutações do painel de recomendação (P5-T7). Papel `rec.weights` (admin e operador_ia) e RLS
@@ -42,6 +42,34 @@ function nextVersion(existing: readonly string[], attempt: number): string {
   return `rec-v1.${max + 1 + attempt}`;
 }
 
+/** Insere uma versão proposta (sem aprovação) com a próxima `rec-v1.N`. */
+async function insertProposal(
+  ctx: Pick<ActionContext, "db" | "userId">,
+  weights: Weights,
+  cap: number,
+  discoveryEvery: number,
+): Promise<string> {
+  const all = await ctx.db.from("rec_weights").select("version");
+  if (all.error) throw new Error(`recomendação: ${all.error.message}`);
+  const existing = (all.data ?? []).map((r) => r.version);
+  let version = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    version = nextVersion(existing, attempt);
+    const { error } = await ctx.db.from("rec_weights").insert({
+      version,
+      weights: weights as unknown as NonNullable<Json>,
+      cap,
+      discovery_every: discoveryEvery,
+      proposed_by: ctx.userId,
+    });
+    if (!error) break;
+    if (error.code === "23505" && attempt < 2) continue;
+    if (error.code === "42501") throw new StudioFailure("forbidden", T.forbidden);
+    throw new Error(`recomendação: ${error.message}`);
+  }
+  return version;
+}
+
 export const proposeWeights: (
   input: ProposeWeightsInput,
 ) => Promise<StudioResult<{ version: string }>> = studioAction(
@@ -73,24 +101,7 @@ export const proposeWeights: (
     )
       throw new StudioFailure("invalid", T.unchanged);
 
-    const all = await ctx.db.from("rec_weights").select("version");
-    if (all.error) throw new Error(`recomendação: ${all.error.message}`);
-    const existing = (all.data ?? []).map((r) => r.version);
-    let version = "";
-    for (let attempt = 0; attempt < 3; attempt++) {
-      version = nextVersion(existing, attempt);
-      const { error } = await ctx.db.from("rec_weights").insert({
-        version,
-        weights: weights as unknown as NonNullable<Json>,
-        cap,
-        discovery_every: input.discoveryEvery,
-        proposed_by: ctx.userId,
-      });
-      if (!error) break;
-      if (error.code === "23505" && attempt < 2) continue;
-      if (error.code === "42501") throw new StudioFailure("forbidden", T.forbidden);
-      throw new Error(`recomendação: ${error.message}`);
-    }
+    const version = await insertProposal(ctx, weights, cap, input.discoveryEvery);
     ctx.setObjectRef(`rec_weights:${version}`);
     const r = await requestApproval({ kind: "rec.weights", targetRef: version, justification });
     if (!r.ok)
@@ -141,7 +152,11 @@ export const createExperiment: (
     const versions = input.variants.map((v) => v.weightsVersion);
     if (new Set(versions).size !== versions.length)
       throw new StudioFailure("invalid", T.testVariantsInvalid);
-    const known = await ctx.db.from("rec_weights").select("version").in("version", versions);
+    const known = await ctx.db
+      .from("rec_weights")
+      .select("version")
+      .in("version", versions)
+      .not("approved_by", "is", null);
     if (known.error) throw new Error(`recomendação: ${known.error.message}`);
     if ((known.data ?? []).length !== versions.length)
       throw new StudioFailure("invalid", T.testVariantsInvalid);
@@ -226,8 +241,9 @@ export const endExperiment: (input: {
 const PromoteInput = z.object({ id: IdInput.shape.id, justification: z.string().max(4000) });
 
 /**
- * Promove a vencedora: não muda nada em vigor; pede a aprovação `rec.weights` para a versão de
- * pesos da variante (o banco confere que é proposta da própria pessoa e ainda sem assinatura).
+ * Promove a vencedora: não muda nada em vigor; copia os pesos da variante numa nova proposta e
+ * pede a aprovação `rec.weights` dela (o banco confere que é proposta da própria pessoa e ainda
+ * sem assinatura).
  */
 export const promoteWinner: (input: {
   id: string;
@@ -256,15 +272,31 @@ export const promoteWinner: (input: {
         : null;
     if (cur.data.status !== "ended" || version === null)
       throw new StudioFailure("conflict", T.wrongState);
+    // Gate P5: versão aprovada não é reativada pelo pedido antigo (aprovação consumida). A
+    // promoção copia os pesos vencedores numa NOVA proposta e pede a aprovação dela.
+    const win2 = await ctx.db
+      .from("rec_weights")
+      .select("weights, cap, discovery_every, active")
+      .eq("version", version)
+      .maybeSingle();
+    if (win2.error) throw new Error(`recomendação: ${win2.error.message}`);
+    if (!win2.data) throw new StudioFailure("not_found");
+    if (win2.data.active) throw new StudioFailure("conflict", T.wrongState);
+    const copy = await insertProposal(
+      ctx,
+      win2.data.weights as unknown as Weights,
+      Number(win2.data.cap),
+      win2.data.discovery_every,
+    );
     const r = await requestApproval({
       kind: "rec.weights",
-      targetRef: version,
-      justification: `Promoção do teste ${id}: ${why}`,
+      targetRef: copy,
+      justification: `Promoção do teste ${id} (pesos ${version}): ${why}`,
     });
     if (!r.ok)
       throw new StudioFailure(r.error === "forbidden" ? "forbidden" : "invalid", r.message);
-    ctx.detail({ version, approval: r.value.id });
-    return { version };
+    ctx.detail({ version: copy, from: version, approval: r.value.id });
+    return { version: copy };
   },
   { schema: PromoteInput, objectRef: (i) => `rec_experiment:${i.id}` },
 );

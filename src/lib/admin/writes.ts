@@ -2,6 +2,7 @@ import "server-only";
 import { audit } from "@/lib/audit";
 import { requestApproval } from "@/lib/approvals";
 import { canToggleFlags, canWriteSettings } from "@/lib/admin/access";
+import { politicalSlugs } from "@/lib/ads/rules";
 import {
   campaignInputSchema,
   validateSettings,
@@ -49,6 +50,21 @@ export async function saveCampaign(input: unknown, id?: string): Promise<AdminRe
       message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
     };
   const c: CampaignInput = parsed.data;
+  // Editorias contra a tabela `sections`: slug desconhecido é recusado e Política (o slug, as
+  // subeditorias e a categoria de autonomia `politica`) nunca patrocina.
+  const known = await ctx.db.from("sections").select("slug, parent_slug, autonomy_category");
+  if (known.error) return UNAVAILABLE;
+  const refs = (known.data ?? []).map((s) => ({
+    slug: s.slug,
+    parentSlug: s.parent_slug,
+    autonomyCategory: s.autonomy_category,
+  }));
+  const bySlug = new Set(refs.map((s) => s.slug));
+  if (c.sections.some((s) => !bySlug.has(s)))
+    return { ok: false, code: "invalid", message: "Escolha só editorias que existem no portal." };
+  const political = politicalSlugs(refs);
+  if (c.sections.some((s) => political.has(s)))
+    return { ok: false, code: "invalid", message: "Patrocinado nunca aparece em Política." };
   const row = {
     advertiser: c.advertiser,
     starts_on: c.startsOn,

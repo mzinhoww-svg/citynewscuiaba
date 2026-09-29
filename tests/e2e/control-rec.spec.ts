@@ -143,6 +143,8 @@ test("teste A/B: criar, iniciar, ver métricas por variante e encerrar", async (
     cap: 0.25,
     discovery_every: 5,
     proposed_by: STAFF.diego.id,
+    // Gate P5: experimento só serve pesos já aprovados por outra pessoa.
+    approved_by: STAFF.helena.id,
   });
   versions.push(extra);
 
@@ -206,11 +208,19 @@ test("teste A/B: criar, iniciar, ver métricas por variante e encerrar", async (
   expect(done.data).toEqual({ status: "ended", winner: 1 });
   await page.getByLabel("Justificativa").fill("Diversidade subiu");
   await page.getByRole("button", { name: "Promover a vencedora" }).click();
+  // Gate P5: a promoção copia os pesos vencedores numa nova proposta e pede a aprovação dela.
   await expect(
     page
       .getByRole("status")
-      .filter({ hasText: `Pedido de aprovação enviado para os pesos ${extra}` }),
+      .filter({ hasText: /Pedido de aprovação enviado para os pesos rec-v1\.\d+/ }),
   ).toBeVisible();
+  const promo = await db
+    .from("approvals")
+    .select("target_ref")
+    .eq("kind", "rec.weights")
+    .like("justification", `%${extra}%`);
+  for (const a of promo.data ?? []) versions.push(a.target_ref);
+  expect(promo.data).toHaveLength(1);
 
   await page.goto("/estudio/control/recomendacao/testes/nao-existe");
   await expect(page.getByRole("heading", { level: 1, name: "Teste não encontrado" })).toBeVisible();
@@ -239,7 +249,7 @@ test("Por que esta recomendação: apelido, componentes e peso individual 0 sem 
   await page.getByText("Por que esta recomendação", { exact: true }).click();
   await page.getByLabel("Id anônimo do leitor").fill(off);
   await page.getByRole("button", { name: "Explicar recomendações" }).click();
-  await expect(page.getByText(/Este leitor não ligou a Personalização/)).toBeVisible();
+  await expect(page.getByText(/O painel não mostra a afinidade individual/)).toBeVisible();
   const t = page.getByRole("table", {
     name: /Componentes do score das fontes recomendadas para leitor-/,
   });
@@ -251,7 +261,7 @@ test("Por que esta recomendação: apelido, componentes e peso individual 0 sem 
 
   await page.getByLabel("Id anônimo do leitor").fill(on);
   await page.getByRole("button", { name: "Explicar recomendações" }).click();
-  await expect(page.getByText(/Este leitor ligou a Personalização/)).toBeVisible();
+  await expect(page.getByText(/O painel não mostra a afinidade individual/)).toBeVisible();
   expect(await page.content()).not.toContain(on);
 
   await page.getByLabel("Id anônimo do leitor").fill("isto-nao-e-um-id");

@@ -251,6 +251,32 @@ describe("publicidade", () => {
       creative: {},
     });
     expect(direct.error).not.toBeNull();
+
+    // Gate P5 (M2-R3): subeditoria de Política, categoria de autonomia política e slug que não existe.
+    const subSlug = `gate-sub-${run}`;
+    const catSlug = `gate-cat-${run}`;
+    await service.from("sections").insert([
+      { slug: subSlug, name: subSlug, parent_slug: "politica", autonomy_category: "cidade" },
+      { slug: catSlug, name: catSlug, parent_slug: null, autonomy_category: "politica" },
+    ]);
+    try {
+      for (const bad of [subSlug, catSlug, "secao-que-nao-existe"]) {
+        const r = await asUser("marina", () =>
+          saveCampaign({ ...input, sections: ["cidade", bad] }),
+        );
+        expect(r, bad).toMatchObject({ ok: false, code: "invalid" });
+      }
+      const dbSub = await service.from("sponsored_campaigns").insert({
+        advertiser: `X ${run}`,
+        starts_on: "2026-10-01",
+        ends_on: "2026-10-02",
+        allowed_sections: [subSlug],
+        creative: {},
+      });
+      expect(dbSub.error).not.toBeNull();
+    } finally {
+      await service.from("sections").delete().in("slug", [subSlug, catSlug]);
+    }
   });
 
   it("papel sem permissão não cria campanha; flag de patrocínio só o admin liga", async () => {

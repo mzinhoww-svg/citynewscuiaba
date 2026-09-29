@@ -3,6 +3,7 @@ import {
   campaignEligible,
   campaignStatus,
   placeSponsored,
+  politicalSlugs,
   SPONSORED_LABEL,
   SPONSORED_MIN_GAP,
   type Card,
@@ -125,5 +126,46 @@ describe("campaignStatus", () => {
     expect(campaignStatus(campaign, "2026-08-01")).toBe("scheduled");
     expect(campaignStatus(campaign, TODAY)).toBe("active");
     expect(campaignStatus({ ...campaign, active: false }, TODAY)).toBe("paused");
+  });
+});
+
+describe("Política em subeditorias e categorias (gate P5, M2-R3)", () => {
+  const sections = [
+    { slug: "politica", parentSlug: null, autonomyCategory: "politica" },
+    { slug: "eleicoes", parentSlug: "politica", autonomyCategory: "cidade" },
+    { slug: "eleicoes-mt", parentSlug: "eleicoes", autonomyCategory: "cidade" },
+    { slug: "camara", parentSlug: null, autonomyCategory: "politica" },
+    { slug: "cidade", parentSlug: null, autonomyCategory: "cidade" },
+    { slug: "mobilidade", parentSlug: "cidade", autonomyCategory: "cidade" },
+  ];
+  const political = politicalSlugs(sections);
+
+  it("trata como Política o slug, a categoria de autonomia e os descendentes em qualquer nível", () => {
+    expect([...political].sort()).toEqual(["camara", "eleicoes", "eleicoes-mt", "politica"]);
+    expect(political.has("mobilidade")).toBe(false);
+  });
+
+  it("campanha só com editorias políticas não é elegível", () => {
+    expect(
+      campaignEligible({ ...campaign, allowedSections: ["eleicoes", "camara"] }, TODAY, political),
+    ).toBe(false);
+    expect(
+      campaignEligible({ ...campaign, allowedSections: ["eleicoes", "cidade"] }, TODAY, political),
+    ).toBe(true);
+  });
+
+  it("nunca entra ao lado de card de subeditoria de Política nem de categoria política", () => {
+    const camp = { ...campaign, allowedSections: ["cidade", "eleicoes"] };
+    const sub = feed(12, { section: "cidade" });
+    sub[5] = card(5, { section: "eleicoes", parentSlug: "politica" });
+    expect(sponsoredOf(placeSponsored(sub, camp, TODAY, political))).toHaveLength(1);
+    const out = placeSponsored(sub, camp, TODAY, political);
+    const at = out.findIndex((c) => c.kind === "sponsored");
+    expect(out[at - 1]?.section).not.toBe("eleicoes");
+    expect(out[at + 1]?.section).not.toBe("eleicoes");
+    const cat = feed(12, { section: "cidade", category: "politica" });
+    expect(placeSponsored(cat, camp, TODAY, political)).toEqual(cat);
+    const byParent = feed(12, { section: "cidade", parentSlug: "politica" });
+    expect(placeSponsored(byParent, camp, TODAY)).toEqual(byParent);
   });
 });

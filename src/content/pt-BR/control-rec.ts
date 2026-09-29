@@ -177,7 +177,7 @@ export const REC_TEXT = {
   testCreate: "Criar teste",
   testCreated: "Teste criado como rascunho.",
   testNameRequired: "Dê um nome de 3 a 120 letras.",
-  testVariantsInvalid: "Escolha versões de pesos diferentes para as variantes.",
+  testVariantsInvalid: "Escolha versões de pesos aprovadas e diferentes para as variantes.",
   testSplitInvalid: "A divisão precisa somar 100%, com cada variante acima de 0%.",
   addVariant: "Adicionar variante",
   removeVariant: "Remover a última variante",

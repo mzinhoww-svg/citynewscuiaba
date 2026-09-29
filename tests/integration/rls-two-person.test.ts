@@ -20,6 +20,7 @@ const run = Date.now() % 1_000_000;
 const ruleVersion = (n: number) => 2_000_000 + run * 10 + n;
 const weightsVersion = (n: number) => `rec-test-${run}-${n}`;
 const agentId = `agente-teste-${run}`;
+const PUSH_TARGET = "c2000000-0000-4000-8000-000000000001";
 
 const sessions = new Map<string, Promise<DbClient>>();
 function as(email: string): Promise<DbClient> {
@@ -219,7 +220,7 @@ describe("regras (rules)", () => {
 describe("aprovações (approvals)", () => {
   it("admin não troca requested_by para aprovar o próprio pedido", async () => {
     const h = await helena();
-    const id = await requestApproval(h, HELENA, "rules.force_review_off", "rules:1");
+    const id = await requestApproval(h, HELENA, "push.urgent", PUSH_TARGET);
     const swap = await h
       .from("approvals")
       .update({ requested_by: MARINA, approved_by: HELENA, status: "approved" })
@@ -240,14 +241,19 @@ describe("aprovações (approvals)", () => {
     const h = await helena();
     const other = await h
       .from("approvals")
-      .insert({ kind: "x", target_ref: "y", requested_by: MARINA, justification: "t" })
+      .insert({
+        kind: "push.urgent",
+        target_ref: PUSH_TARGET,
+        requested_by: MARINA,
+        justification: "t",
+      })
       .select();
     expect(other.error).not.toBeNull();
     const decided = await h
       .from("approvals")
       .insert({
-        kind: "x",
-        target_ref: "y",
+        kind: "push.urgent",
+        target_ref: PUSH_TARGET,
         requested_by: HELENA,
         justification: "t",
         status: "approved",
@@ -259,7 +265,7 @@ describe("aprovações (approvals)", () => {
   it("caminho feliz: outra pessoa aprova, e a decisão fica final", async () => {
     const h = await helena();
     const m = await marina();
-    const id = await requestApproval(h, HELENA, "rules.force_review_off", "rules:1");
+    const id = await requestApproval(h, HELENA, "push.urgent", PUSH_TARGET);
     const ok = await m
       .from("approvals")
       .update({ approved_by: MARINA, status: "approved" })
@@ -361,6 +367,14 @@ describe("prompts (ai_prompts)", () => {
     const d = await diego();
     const m = await marina();
     const id = await draft(4);
+    // Gate P5 (M1): a assinatura só vale com pedido prompt.publish aprovado por esta pessoa.
+    const reqId = await requestApproval(d, DIEGO, "prompt.publish", id);
+    const decided = await m
+      .from("approvals")
+      .update({ approved_by: MARINA, status: "approved" })
+      .eq("id", reqId)
+      .select();
+    expect(decided.error).toBeNull();
     const sign = await m
       .from("ai_prompts")
       .update({ approved_by: [MARINA] })

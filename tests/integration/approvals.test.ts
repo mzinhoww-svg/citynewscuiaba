@@ -228,7 +228,7 @@ describe("approve", () => {
   it("aprovação válida ativa o alvo e audita as duas pessoas", async () => {
     const r = await asUser("marina", () => approve({ id }));
     expect(r).toEqual({ ok: true, value: undefined });
-    expect(await approvalRow(id)).toMatchObject({ status: "approved", approved_by: MARINA });
+    expect(await approvalRow(id)).toMatchObject({ status: "applied", approved_by: MARINA });
 
     const rule = await service.from("rules").select("*").eq("version", v).single();
     expect(rule.data).toMatchObject({ approved_by: MARINA, active: true, proposed_by: DIEGO });
@@ -260,7 +260,7 @@ describe("approve", () => {
       ok: false,
       error: "not_pending",
     });
-    expect(await approvalRow(id)).toMatchObject({ status: "approved", approved_by: MARINA });
+    expect(await approvalRow(id)).toMatchObject({ status: "applied", approved_by: MARINA });
   });
 
   it("id inexistente → not_pending", async () => {

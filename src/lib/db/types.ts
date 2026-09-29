@@ -275,6 +275,7 @@ export type Database = {
       approvals: {
         Row: {
           approved_by: string | null;
+          content_digest: string | null;
           created_at: string;
           id: string;
           justification: string;
@@ -285,6 +286,7 @@ export type Database = {
         };
         Insert: {
           approved_by?: string | null;
+          content_digest?: string | null;
           created_at?: string;
           id?: string;
           justification: string;
@@ -295,6 +297,7 @@ export type Database = {
         };
         Update: {
           approved_by?: string | null;
+          content_digest?: string | null;
           created_at?: string;
           id?: string;
           justification?: string;
@@ -3133,7 +3136,10 @@ export type Database = {
       anonymize_old_events: { Args: { p_days?: number }; Returns: number };
       app_setting_set: { Args: { p_ctx?: Json; p_key: string; p_value: Json }; Returns: undefined };
       approval_apply: { Args: { p_kind: string; p_target_ref: string }; Returns: string };
+      approval_consume: { Args: { p_kinds: string[]; p_target: string }; Returns: number };
+      approval_content_digest: { Args: { p_kind: string; p_target: string }; Returns: string };
       approval_decide: { Args: { p_decision: string; p_id: string }; Returns: string };
+      approval_digest_ok: { Args: { p_kinds: string[]; p_target: string }; Returns: boolean };
       approval_kind_roles: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -3385,6 +3391,7 @@ export type Database = {
         }[];
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
+      read_only_active: { Args: Record<PropertyKey, never>; Returns: boolean };
       rec_panel_stats: { Args: { p_since: string }; Returns: Json };
       rec_split_ok: { Args: { p_split: number[] }; Returns: boolean };
       rec_variant_events: {
