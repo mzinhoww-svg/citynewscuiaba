@@ -105,7 +105,8 @@ test.describe("primeira visita", () => {
 
     await panel.getByRole("button", { name: "Escolher fontes agora" }).click();
     await expect(panel.getByRole("heading", { name: "Locais" })).toBeVisible();
-    await expect(panel.getByRole("button", { name: /^Seguir / })).toHaveCount(12);
+    // 12 fontes no seed, mas a Rádio Pantanal está pausada (A-079): só fonte ativa aparece.
+    await expect(panel.getByRole("button", { name: /^Seguir / })).toHaveCount(11);
     await panel.getByRole("button", { name: "Seguir Folha do Cerrado" }).click();
     await expect(panel.getByRole("status")).toHaveText("1 fonte seguida neste navegador.");
     await panel.getByRole("button", { name: "Concluir" }).click();
