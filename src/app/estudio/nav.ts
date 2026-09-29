@@ -1,10 +1,24 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
+import { PUSH_ACTIONS } from "@/lib/push/permissions";
 
 interface Entry extends StudioNavItem {
   /** Ação exigida para ver o item; ausente = qualquer papel do Estúdio. */
   action?: Action;
+  /** Basta uma destas ações (A09: quem só tem `push.metrics` também entra). */
+  anyOf?: readonly Action[];
+  /** Destino conforme o papel (analista vai direto ao Funil do app, G11). */
+  hrefFor?: (roles: RoleGrant[]) => string;
+  /** Rótulo conforme o papel e o estado (pendentes de aprovação, G10). */
+  labelFor?: (roles: RoleGrant[], opts: StudioNavOptions) => string;
 }
+
+export interface StudioNavOptions {
+  /** Pedidos de push aguardando aprovação (só faz diferença para quem tem `push.approve`). */
+  pendingPush?: number;
+}
+
+export const PUSH_ADMIN_PATH = "/estudio/admin/notificacoes";
 
 const GROUPS: { label: string; items: Entry[] }[] = [
   {
@@ -101,16 +115,41 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         icon: "shield",
         action: "audit.view",
       },
+      {
+        href: PUSH_ADMIN_PATH,
+        label: "Notificações",
+        icon: "bell",
+        anyOf: PUSH_ACTIONS,
+        // Só métricas (analista): o item leva direto ao Funil do app.
+        hrefFor: (roles) =>
+          PUSH_ACTIONS.filter((a) => a !== "push.metrics").some((a) => canAccess(roles, a))
+            ? PUSH_ADMIN_PATH
+            : `${PUSH_ADMIN_PATH}/funil`,
+        labelFor: (roles, { pendingPush }) =>
+          pendingPush && pendingPush > 0 && canAccess(roles, "push.approve")
+            ? `Notificações (${pendingPush})`
+            : "Notificações",
+      },
     ],
   },
 ];
 
+function visible(it: Entry, roles: RoleGrant[]): boolean {
+  if (it.anyOf) return it.anyOf.some((a) => canAccess(roles, a));
+  return it.action === undefined || canAccess(roles, it.action);
+}
+
 /** Navegação lateral do Estúdio filtrada pelo papel (docs/screens.md, shell do Estúdio). */
-export function studioNav(roles: RoleGrant[]): StudioNavGroup[] {
+export function studioNav(roles: RoleGrant[], opts: StudioNavOptions = {}): StudioNavGroup[] {
   return GROUPS.map((group) => ({
     label: group.label,
     items: group.items
-      .filter((it) => it.action === undefined || canAccess(roles, it.action))
-      .map(({ href, label, icon, exact }) => ({ href, label, icon, exact })),
+      .filter((it) => visible(it, roles))
+      .map(({ href, label, icon, exact, hrefFor, labelFor }) => ({
+        href: hrefFor ? hrefFor(roles) : href,
+        label: labelFor ? labelFor(roles, opts) : label,
+        icon,
+        exact,
+      })),
   })).filter((group) => group.items.length > 0);
 }

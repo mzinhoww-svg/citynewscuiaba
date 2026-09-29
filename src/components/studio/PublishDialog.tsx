@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { PUBLISH_TEXT as T } from "@/content/pt-BR/studio";
@@ -9,9 +10,15 @@ import { OriginLabel } from "../editorial/OriginLabel";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { IconButton } from "../ui/IconButton";
-import type { ActionReply } from "./QueueTable";
 
 export type PublishDestination = "home" | "section" | "topic" | "newsletter";
+
+/** Resposta da publicação; `pushQueueHref` chega quando o pedido de push urgente foi criado. */
+export interface PublishReply {
+  ok: boolean;
+  message: string;
+  pushQueueHref?: string;
+}
 
 export interface PublishDialogProps {
   articleId: string;
@@ -21,20 +28,25 @@ export interface PublishDialogProps {
   hasTopic: boolean;
   /** Manchete atual da home, para o aviso de conflito. */
   headline?: string | null;
+  /** Pode pedir push urgente (admin ou editor-chefe, spec 2026-09-28 §10.7). */
+  canRequestUrgent?: boolean;
   publish: (i: {
     id: string;
     when: "now" | { at: string };
     destinations: PublishDestination[];
-  }) => Promise<ActionReply>;
+    /** Pedido de push urgente junto com a publicação (só com `canRequestUrgent`). */
+    push?: { justification: string };
+  }) => Promise<PublishReply>;
   className?: string;
 }
 
 const ALL: PublishDestination[] = ["home", "section", "topic", "newsletter"];
+const JUSTIFICATION_MAX = 300;
 
 /**
  * Publicação e agendamento (E06): resumo do checklist, rótulos finais, agora ou agendar (fuso de
- * Cuiabá), destinos, push indisponível (2 aprovações no Control Center) e aviso de manchete.
- * `<dialog>` nativo: foco preso, Esc fecha, camada superior sem z-index.
+ * Cuiabá), destinos, push urgente (cria o pedido em A09 para outra pessoa aprovar) e aviso de
+ * manchete. `<dialog>` nativo: foco preso, Esc fecha, camada superior sem z-index.
  */
 export function PublishDialog({
   articleId,
@@ -42,6 +54,7 @@ export function PublishDialog({
   labels,
   hasTopic,
   headline,
+  canRequestUrgent = false,
   publish,
   className,
 }: PublishDialogProps) {
@@ -52,8 +65,11 @@ export function PublishDialog({
   const [mode, setMode] = useState<"now" | "schedule">("now");
   const [at, setAt] = useState("");
   const [dest, setDest] = useState<Set<PublishDestination>>(new Set(["home", "section"]));
+  const [push, setPush] = useState(false);
+  const [justification, setJustification] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<ActionReply | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [status, setStatus] = useState<PublishReply | null>(null);
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -71,9 +87,15 @@ export function PublishDialog({
       return next;
     });
 
+  const wantsPush = canRequestUrgent && push && mode === "now";
+
   const confirm = () => {
     if (mode === "schedule" && !at) {
       setError(T.invalidDate);
+      return;
+    }
+    if (wantsPush && !justification.trim()) {
+      setFieldError(T.pushJustificationRequired);
       return;
     }
     start(async () => {
@@ -81,6 +103,7 @@ export function PublishDialog({
         id: articleId,
         when: mode === "now" ? "now" : { at },
         destinations: ALL.filter((d) => dest.has(d)),
+        ...(wantsPush ? { push: { justification: justification.trim() } } : {}),
       });
       if (r.ok) {
         setOpen(false);
@@ -112,6 +135,17 @@ export function PublishDialog({
       )}
       <p role="status" aria-live="polite" className="type-meta text-service">
         {status?.message}
+        {status?.pushQueueHref && (
+          <>
+            {" "}
+            <Link
+              href={status.pushQueueHref}
+              className="text-link underline-offset-4 hover:underline"
+            >
+              {T.pushQueueLink}
+            </Link>
+          </>
+        )}
       </p>
 
       <dialog
@@ -222,13 +256,67 @@ export function PublishDialog({
                 </label>
               );
             })}
-            <label className="flex min-h-tap items-center gap-3 type-body text-placeholder">
-              <input type="checkbox" disabled className="size-5" aria-describedby={`${uid}-push`} />
-              {T.push}
-            </label>
+            {(() => {
+              const pushDisabled = !canRequestUrgent || mode === "schedule";
+              return (
+                <label
+                  className={cx(
+                    "flex min-h-tap items-center gap-3 type-body",
+                    pushDisabled ? "text-placeholder" : "text-strong",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={push && !pushDisabled}
+                    disabled={pushDisabled}
+                    onChange={(e) => {
+                      setPush(e.target.checked);
+                      setFieldError(null);
+                    }}
+                    aria-describedby={`${uid}-push`}
+                    className="size-5 accent-(--action-primary)"
+                  />
+                  {T.push}
+                </label>
+              );
+            })()}
             <p id={`${uid}-push`} className="type-meta text-meta">
-              {T.pushNote}
+              {canRequestUrgent ? T.pushNote : T.pushUnavailable}
             </p>
+            {wantsPush && (
+              <div className="mt-2 flex flex-col gap-2">
+                <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
+                  {T.pushJustification}
+                </label>
+                <textarea
+                  id={`${uid}-just`}
+                  value={justification}
+                  aria-required
+                  maxLength={JUSTIFICATION_MAX}
+                  rows={3}
+                  onChange={(e) => {
+                    setJustification(e.target.value);
+                    setFieldError(null);
+                  }}
+                  aria-describedby={`${uid}-just-dica${fieldError ? ` ${uid}-just-erro` : ""}`}
+                  aria-invalid={fieldError ? true : undefined}
+                  className="border-control rounded-lg bg-input px-4 py-3 type-body text-strong"
+                />
+                <p id={`${uid}-just-dica`} className="type-meta text-meta">
+                  {T.pushJustificationHint} {justification.length}/{JUSTIFICATION_MAX}
+                </p>
+                {fieldError && (
+                  <p
+                    id={`${uid}-just-erro`}
+                    role="alert"
+                    className="flex items-start gap-1.5 type-meta text-danger"
+                  >
+                    <Icon name="circle-alert" size={16} className="mt-0.5 shrink-0" />
+                    {fieldError}
+                  </p>
+                )}
+              </div>
+            )}
           </fieldset>
 
           {headline && dest.has("home") && (

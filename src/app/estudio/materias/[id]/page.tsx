@@ -32,6 +32,7 @@ import {
   topicOptions,
 } from "@/lib/db/queries/studio-article";
 import { formatDateTime } from "@/lib/format/date";
+import { canRequestUrgent } from "@/lib/push/permissions";
 import { SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/studio/checklist";
 import type { EditorDoc } from "@/lib/studio/doc";
 import {
@@ -204,6 +205,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
               labels={articleLabels({ ...a, publishMode: "human" })}
               hasTopic={a.topic !== null}
               headline={headline}
+              canRequestUrgent={canRequestUrgent(session.roles)}
               publish={publishAction.bind(null, a.version)}
             />
           )}

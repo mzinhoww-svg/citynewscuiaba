@@ -30,8 +30,9 @@ test("agendamento para horário passado é recusado e futuro é aceito", async (
   await page.goto(`/estudio/materias/${id}`);
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Publicação e agendamento" });
-  await expect(dialog.getByText(/Push exige 2 aprovações/)).toBeVisible();
-  await expect(dialog.getByRole("checkbox", { name: "Push de urgente" })).toBeDisabled();
+  // Editora-chefe pode pedir push urgente; ele só sai com a aprovação de outra pessoa (A09).
+  await expect(dialog.getByText(/aprovação de outra pessoa/)).toBeVisible();
+  await expect(dialog.getByRole("checkbox", { name: "Push urgente" })).toBeEnabled();
   await dialog.getByRole("radio", { name: "Agendar" }).check();
   await dialog.getByLabel("Data e hora (fuso de Cuiabá)").fill("2020-01-01T08:00");
   await dialog.getByRole("button", { name: "Confirmar agendamento" }).click();
