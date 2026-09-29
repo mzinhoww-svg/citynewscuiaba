@@ -256,7 +256,7 @@ export async function getSourceDetail(
     return {
       ...entry,
       kind: meta.kind,
-      frequencyMinutes: meta.frequency_minutes,
+      frequencyMinutes: meta.frequency_minutes ?? 30, // null = padrão global (30 min até FS-T5)
       republishPolicy: meta.republish_policy,
       imagePolicy: meta.image_policy,
       agreementUntil: meta.agreement_until,

@@ -204,6 +204,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      app_settings: {
+        Row: {
+          key: string;
+          updated_at: string;
+          updated_by: string | null;
+          value: NonNullable<Json>;
+        };
+        Insert: {
+          key: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value: NonNullable<Json>;
+        };
+        Update: {
+          key?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          value?: NonNullable<Json>;
+        };
+        Relationships: [];
+      };
       approvals: {
         Row: {
           approved_by: string | null;
@@ -1211,6 +1232,7 @@ export type Database = {
           started_at: string;
           stats: NonNullable<Json>;
           status: string;
+          trigger: string;
           window_start: string;
         };
         Insert: {
@@ -1219,6 +1241,7 @@ export type Database = {
           started_at?: string;
           stats?: NonNullable<Json>;
           status?: string;
+          trigger?: string;
           window_start: string;
         };
         Update: {
@@ -1227,6 +1250,7 @@ export type Database = {
           started_at?: string;
           stats?: NonNullable<Json>;
           status?: string;
+          trigger?: string;
           window_start?: string;
         };
         Relationships: [];
@@ -1884,6 +1908,111 @@ export type Database = {
           },
         ];
       };
+      source_discoveries: {
+        Row: {
+          accepted_fields: string[];
+          created_at: string;
+          created_by: string | null;
+          final_url: string | null;
+          id: string;
+          input_url: string;
+          preview: NonNullable<Json>;
+          prompt_version: number | null;
+          source_id: string | null;
+          suggestion: NonNullable<Json>;
+        };
+        Insert: {
+          accepted_fields?: string[];
+          created_at?: string;
+          created_by?: string | null;
+          final_url?: string | null;
+          id?: string;
+          input_url: string;
+          preview?: NonNullable<Json>;
+          prompt_version?: number | null;
+          source_id?: string | null;
+          suggestion?: NonNullable<Json>;
+        };
+        Update: {
+          accepted_fields?: string[];
+          created_at?: string;
+          created_by?: string | null;
+          final_url?: string | null;
+          id?: string;
+          input_url?: string;
+          preview?: NonNullable<Json>;
+          prompt_version?: number | null;
+          source_id?: string | null;
+          suggestion?: NonNullable<Json>;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_discoveries_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "source_discoveries_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      source_health_daily: {
+        Row: {
+          day: string;
+          fetch_failed: number;
+          fetch_not_modified: number;
+          fetch_ok: number;
+          items_new: number;
+          last_error: string | null;
+          latency_ms_sum: number;
+          latency_samples: number;
+          source_id: string;
+        };
+        Insert: {
+          day: string;
+          fetch_failed?: number;
+          fetch_not_modified?: number;
+          fetch_ok?: number;
+          items_new?: number;
+          last_error?: string | null;
+          latency_ms_sum?: number;
+          latency_samples?: number;
+          source_id: string;
+        };
+        Update: {
+          day?: string;
+          fetch_failed?: number;
+          fetch_not_modified?: number;
+          fetch_ok?: number;
+          items_new?: number;
+          last_error?: string | null;
+          latency_ms_sum?: number;
+          latency_samples?: number;
+          source_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "source_health_daily_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "public_sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "source_health_daily_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       source_stats_daily: {
         Row: {
           avg_read_seconds: number | null;
@@ -1943,20 +2072,31 @@ export type Database = {
       };
       sources: {
         Row: {
+          agreement_note: string | null;
           agreement_until: string | null;
+          archive_reason: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
           base_url: string;
           categories: string[];
+          consecutive_failures: number;
+          consumption: NonNullable<Json>;
           created_at: string;
+          created_by: string | null;
           display_name: string | null;
+          editorial_score: number;
           etag: string | null;
           feed_url: string | null;
-          frequency_minutes: number;
+          frequency_minutes: number | null;
           id: string;
           image_policy: Database["public"]["Enums"]["image_policy"];
           kind: Database["public"]["Enums"]["source_kind"];
           last_error: string | null;
+          last_fetch_run_id: string | null;
+          last_fetch_started_at: string | null;
           last_fetched_at: string | null;
           last_modified: string | null;
+          layer: number | null;
           locality: string;
           logo_path: string | null;
           may_be_sole_source: boolean;
@@ -1971,22 +2111,42 @@ export type Database = {
           republish_policy: Database["public"]["Enums"]["republish_policy"];
           slug: string;
           status: Database["public"]["Enums"]["source_status"];
+          status_changed_at: string;
+          status_changed_by: string | null;
+          status_reason: string | null;
+          terms_min_interval_minutes: number | null;
+          terms_reviewed_at: string | null;
+          terms_reviewed_by: string | null;
+          terms_url: string | null;
+          updated_at: string;
+          version: number;
         };
         Insert: {
+          agreement_note?: string | null;
           agreement_until?: string | null;
+          archive_reason?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
           base_url: string;
           categories?: string[];
+          consecutive_failures?: number;
+          consumption?: NonNullable<Json>;
           created_at?: string;
+          created_by?: string | null;
           display_name?: string | null;
+          editorial_score?: number;
           etag?: string | null;
           feed_url?: string | null;
-          frequency_minutes?: number;
+          frequency_minutes?: number | null;
           id?: string;
           image_policy?: Database["public"]["Enums"]["image_policy"];
           kind: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
+          last_fetch_run_id?: string | null;
+          last_fetch_started_at?: string | null;
           last_fetched_at?: string | null;
           last_modified?: string | null;
+          layer?: number | null;
           locality: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;
@@ -2001,22 +2161,42 @@ export type Database = {
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug: string;
           status?: Database["public"]["Enums"]["source_status"];
+          status_changed_at?: string;
+          status_changed_by?: string | null;
+          status_reason?: string | null;
+          terms_min_interval_minutes?: number | null;
+          terms_reviewed_at?: string | null;
+          terms_reviewed_by?: string | null;
+          terms_url?: string | null;
+          updated_at?: string;
+          version?: number;
         };
         Update: {
+          agreement_note?: string | null;
           agreement_until?: string | null;
+          archive_reason?: string | null;
+          archived_at?: string | null;
+          archived_by?: string | null;
           base_url?: string;
           categories?: string[];
+          consecutive_failures?: number;
+          consumption?: NonNullable<Json>;
           created_at?: string;
+          created_by?: string | null;
           display_name?: string | null;
+          editorial_score?: number;
           etag?: string | null;
           feed_url?: string | null;
-          frequency_minutes?: number;
+          frequency_minutes?: number | null;
           id?: string;
           image_policy?: Database["public"]["Enums"]["image_policy"];
           kind?: Database["public"]["Enums"]["source_kind"];
           last_error?: string | null;
+          last_fetch_run_id?: string | null;
+          last_fetch_started_at?: string | null;
           last_fetched_at?: string | null;
           last_modified?: string | null;
+          layer?: number | null;
           locality?: string;
           logo_path?: string | null;
           may_be_sole_source?: boolean;
@@ -2031,6 +2211,15 @@ export type Database = {
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug?: string;
           status?: Database["public"]["Enums"]["source_status"];
+          status_changed_at?: string;
+          status_changed_by?: string | null;
+          status_reason?: string | null;
+          terms_min_interval_minutes?: number | null;
+          terms_reviewed_at?: string | null;
+          terms_reviewed_by?: string | null;
+          terms_url?: string | null;
+          updated_at?: string;
+          version?: number;
         };
         Relationships: [];
       };
@@ -2195,6 +2384,7 @@ export type Database = {
           original_title: string | null;
           published_at: string | null;
           section_slug: string | null;
+          source_editorial_score: number | null;
           source_id: string | null;
           source_name: string | null;
           source_slug: string | null;
@@ -2436,6 +2626,7 @@ export type Database = {
         }[];
       };
       anonymize_old_events: { Args: { p_days?: number }; Returns: number };
+      app_setting_set: { Args: { p_ctx?: Json; p_key: string; p_value: Json }; Returns: undefined };
       approval_apply: { Args: { p_kind: string; p_target_ref: string }; Returns: string };
       approval_decide: { Args: { p_decision: string; p_id: string }; Returns: string };
       approval_kind_roles: {
@@ -2461,7 +2652,12 @@ export type Database = {
       };
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
+      claim_source_fetch: {
+        Args: { p_run: string; p_since: string; p_source: string };
+        Returns: boolean;
+      };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      consume_source_critical_approval: { Args: { p_ref: string }; Returns: boolean };
       control_can_view: { Args: Record<PropertyKey, never>; Returns: boolean };
       control_overview: {
         Args: Record<PropertyKey, never>;
@@ -2607,6 +2803,10 @@ export type Database = {
         }[];
       };
       notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };
+      peek_rate_limit: {
+        Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
+        Returns: boolean;
+      };
       pgp_armor_headers: { Args: { "": string }; Returns: Record<string, unknown>[] };
       pipeline_decision_context: { Args: { p_article: string }; Returns: Json };
       pipeline_draft_context: { Args: { p_topic: string }; Returns: Json };
@@ -2649,6 +2849,7 @@ export type Database = {
         Returns: number;
       };
       purge_reader_emails: { Args: { p_days?: number }; Returns: number };
+      purge_source_discoveries: { Args: Record<PropertyKey, never>; Returns: number };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
@@ -2677,6 +2878,16 @@ export type Database = {
       };
       queue_release: { Args: { p_msg_id: number; p_queue: string }; Returns: undefined };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
+      record_source_fetch: {
+        Args: {
+          p_error: string;
+          p_items_new: number;
+          p_latency_ms: number;
+          p_outcome: string;
+          p_source: string;
+        };
+        Returns: undefined;
+      };
       refresh_source_stats_daily: { Args: { p_day?: string }; Returns: number };
       rules_approvals_complete: { Args: { p_version: number }; Returns: boolean };
       rules_body_safe: { Args: { p_body: Json }; Returns: boolean };
@@ -2729,6 +2940,110 @@ export type Database = {
       search_topic_is_public: { Args: { p_id: string }; Returns: boolean };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
+      source_admin_bulk: {
+        Args: { p_action: string; p_ctx?: Json; p_ids: string[]; p_value?: Json };
+        Returns: Json;
+      };
+      source_admin_check: { Args: Record<PropertyKey, never>; Returns: undefined };
+      source_admin_create: { Args: { p: Json; p_ctx?: Json }; Returns: string };
+      source_admin_ctx: { Args: { p_ctx: Json }; Returns: undefined };
+      source_admin_fields: { Args: { p_create: boolean }; Returns: string[] };
+      source_admin_load: {
+        Args: { p_id: string; p_version: number };
+        Returns: {
+          agreement_note: string | null;
+          agreement_until: string | null;
+          archive_reason: string | null;
+          archived_at: string | null;
+          archived_by: string | null;
+          base_url: string;
+          categories: string[];
+          consecutive_failures: number;
+          consumption: NonNullable<Json>;
+          created_at: string;
+          created_by: string | null;
+          display_name: string | null;
+          editorial_score: number;
+          etag: string | null;
+          feed_url: string | null;
+          frequency_minutes: number | null;
+          id: string;
+          image_policy: Database["public"]["Enums"]["image_policy"];
+          kind: Database["public"]["Enums"]["source_kind"];
+          last_error: string | null;
+          last_fetch_run_id: string | null;
+          last_fetch_started_at: string | null;
+          last_fetched_at: string | null;
+          last_modified: string | null;
+          layer: number | null;
+          locality: string;
+          logo_path: string | null;
+          may_be_sole_source: boolean;
+          name: string;
+          owner_id: string | null;
+          priority: number;
+          rate_limit_per_hour: number;
+          rec_excluded: boolean;
+          rec_local_highlight: boolean;
+          rec_pinned: boolean;
+          reliability: Database["public"]["Enums"]["source_reliability"];
+          republish_policy: Database["public"]["Enums"]["republish_policy"];
+          slug: string;
+          status: Database["public"]["Enums"]["source_status"];
+          status_changed_at: string;
+          status_changed_by: string | null;
+          status_reason: string | null;
+          terms_min_interval_minutes: number | null;
+          terms_reviewed_at: string | null;
+          terms_reviewed_by: string | null;
+          terms_url: string | null;
+          updated_at: string;
+          version: number;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "sources";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      source_admin_status: {
+        Args: {
+          p_action: string;
+          p_ctx?: Json;
+          p_id: string;
+          p_reason?: string;
+          p_version: number;
+        };
+        Returns: number;
+      };
+      source_admin_status_apply: {
+        Args: { p_action: string; p_id: string; p_reason: string };
+        Returns: undefined;
+      };
+      source_admin_update: {
+        Args: { p_ctx?: Json; p_id: string; p_patch: Json; p_version: number };
+        Returns: number;
+      };
+      source_fast_lane_used: { Args: { p_except: string }; Returns: number };
+      source_ignored_keys: { Args: Record<PropertyKey, never>; Returns: string[] };
+      source_image_rank: {
+        Args: { p: Database["public"]["Enums"]["image_policy"] };
+        Returns: number;
+      };
+      source_reliability_rank: {
+        Args: { p: Database["public"]["Enums"]["source_reliability"] };
+        Returns: number;
+      };
+      source_setting_int: { Args: { p_default: number; p_key: string }; Returns: number };
+      start_fast_run: {
+        Args: { p_window: string };
+        Returns: {
+          created: boolean;
+          run_id: string;
+          stats: Json;
+        }[];
+      };
       start_ingest_run: {
         Args: { p_window: string };
         Returns: {
@@ -2737,6 +3052,7 @@ export type Database = {
           stats: Json;
         }[];
       };
+      start_manual_run: { Args: { p_source: string }; Returns: string };
       studio_accept_suggestion: {
         Args: { p_article: string; p_base: number; p_suggestion: string };
         Returns: Json;

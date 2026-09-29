@@ -104,7 +104,7 @@ export function createRunStore(db: DbClient): RunStore {
       check("activeSources", error);
       return (data ?? []).map((s) => ({
         slug: s.slug,
-        frequencyMinutes: s.frequency_minutes,
+        frequencyMinutes: s.frequency_minutes ?? 30, // null = padrão global (30 min até FS-T5 ler app_settings)
         lastFetchedAt: s.last_fetched_at,
       }));
     },
