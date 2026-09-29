@@ -9,6 +9,7 @@ import { FirstVisitInvite } from "./FirstVisitInvite";
 import { InstallInviteSlot } from "./InstallInviteSlot";
 import { LoginInvite } from "./LoginInvite";
 import { OfflineNotice } from "./OfflineNotice";
+import { PushSync } from "./PushSync";
 import { SwRegistrar } from "./SwRegistrar";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -48,6 +49,7 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         <LoginInvite />
         <InstallInviteSlot />
         <SwRegistrar />
+        <PushSync />
       </div>
     </ConsentProvider>
   );

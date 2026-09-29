@@ -3,7 +3,7 @@
  * store `entries` (índice do cache) e store `meta` (`consent`, `push`). Tudo em `try/catch`:
  * sem IndexedDB (modo privado, cota) as leituras devolvem `null` e as escritas não fazem nada.
  */
-import type { BrowserFamily, DeviceClass } from "@/lib/push/types";
+import type { BrowserFamily, DeviceClass, PushPrefs, TargetKey } from "@/lib/push/types";
 import type { IndexEntry } from "./contract";
 
 export const DB_NAME = "cn-sw";
@@ -11,7 +11,8 @@ export const DB_VERSION = 1;
 
 export interface SwMeta {
   consent: { metrics: boolean; device: DeviceClass; browser: BrowserFamily };
-  push: { id: string; token: string; publicKey: string };
+  /** Credenciais da inscrição (G18) mais o que a página mostra em Alertas sem ir ao servidor. */
+  push: { id: string; token: string; publicKey: string; prefs?: PushPrefs; targets?: TargetKey[] };
 }
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;

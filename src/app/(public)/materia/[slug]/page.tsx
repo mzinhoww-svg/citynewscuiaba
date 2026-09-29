@@ -26,6 +26,7 @@ import {
   TopicStatus,
   UpdateNote,
   UpdatedWhileReading,
+  NotificationInviteSlot,
 } from "@/components";
 import { ARTICLE, CARD, SECTION_PAGE } from "@/content/pt-BR/portal";
 import { SITE } from "@/content/pt-BR/site";
@@ -254,6 +255,11 @@ function Article({ a }: { a: ArticleView }) {
               </div>
             )}
 
+            {a.urgent && (
+              <div className="max-w-read">
+                <NotificationInviteSlot trigger="urgent_article" immediate />
+              </div>
+            )}
             <div className="reading-body flex flex-col gap-5 text-body">
               {first &&
                 (first.type === "paragraph" ? (

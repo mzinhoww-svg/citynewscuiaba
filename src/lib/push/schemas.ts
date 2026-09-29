@@ -29,7 +29,7 @@ export const prefsSchema = z.strictObject({
   quietEnd,
   dailyLimit,
 });
-export type PushPrefs = z.infer<typeof prefsSchema>;
+export type { PushPrefs } from "./types";
 
 export const subscribeBodySchema = z.strictObject({
   endpoint,

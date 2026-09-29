@@ -37,6 +37,16 @@ export interface PushPayload {
   s: string;
 }
 
+/** Preferências do leitor (D-P17): tipo a tipo, silêncio só para mais, limite 1–3. */
+export interface PushPrefs {
+  follow: boolean;
+  urgent: boolean;
+  highlight: boolean;
+  quietStart: number;
+  quietEnd: number;
+  dailyLimit: 1 | 2 | 3;
+}
+
 export type SendStatus =
   | "pending_approval"
   | "scheduled"
