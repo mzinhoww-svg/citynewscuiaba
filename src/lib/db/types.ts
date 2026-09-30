@@ -237,6 +237,7 @@ export type Database = {
           requested_by: string;
           status: string;
           target_ref: string;
+          approval_assert_content: undefined | null;
         };
         Insert: {
           approved_by?: string | null;
@@ -3479,6 +3480,24 @@ export type Database = {
           ip_hash: string | null;
           object_ref: string | null;
         };
+        Insert: {
+          action?: string | null;
+          actor?: string | null;
+          at?: string | null;
+          details?: never;
+          id?: number | null;
+          ip_hash?: never;
+          object_ref?: string | null;
+        };
+        Update: {
+          action?: string | null;
+          actor?: string | null;
+          at?: string | null;
+          details?: never;
+          id?: number | null;
+          ip_hash?: never;
+          object_ref?: string | null;
+        };
         Relationships: [];
       };
       my_push_subscriptions: {
@@ -3820,7 +3839,12 @@ export type Database = {
         Returns: undefined;
       };
       approval_apply: { Args: { p_id: string }; Returns: Json };
+      approval_assert_content: {
+        Args: { a: Database["public"]["Tables"]["approvals"]["Row"] };
+        Returns: undefined;
+      };
       approval_kinds: { Args: Record<PropertyKey, never>; Returns: string[] };
+      approval_target_hash: { Args: { p_kind: string; p_target: string }; Returns: string };
       article_body_text: { Args: { p_body: Json }; Returns: string };
       article_is_public: { Args: { article: string }; Returns: boolean };
       article_owner: { Args: { article: string }; Returns: string };
@@ -3837,6 +3861,7 @@ export type Database = {
         Returns: boolean;
       };
       consume_role_admin_approval: { Args: { target: string }; Returns: boolean };
+      consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
       control_can_operate: { Args: { uid: string }; Returns: boolean };
@@ -3985,6 +4010,8 @@ export type Database = {
         Returns: boolean;
       };
       mark_item_duplicate: { Args: { p_id: string; p_original: string }; Returns: undefined };
+      mask_ips: { Args: { p: string }; Returns: string };
+      mask_ips_jsonb: { Args: { p: Json }; Returns: Json };
       media_insert_asset: { Args: { p: Json }; Returns: string };
       media_phash_neighbors: {
         Args: { p_exclude: string; p_max: number; p_phash: string };
@@ -4173,6 +4200,7 @@ export type Database = {
         }[];
       };
       rec_weights_activate: { Args: { p_approval: string }; Returns: Json };
+      rec_weights_valid: { Args: { p_cap: number; p_weights: Json }; Returns: boolean };
       recompute_topic_centroid: { Args: { p_now: string; p_topic: string }; Returns: undefined };
       record_source_fetch: {
         Args: {
@@ -4201,10 +4229,11 @@ export type Database = {
         Returns: string;
       };
       require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
+      rules_loosens: {
+        Args: { cur: Json; cur_fr: boolean; tgt: Json; tgt_fr: boolean };
+        Returns: boolean;
+      };
       rules_rollback: { Args: Record<PropertyKey, never>; Returns: Json };
-      security_retention_days: { Args: Record<PropertyKey, never>; Returns: number };
-      security_session_hours: { Args: Record<PropertyKey, never>; Returns: number };
-      staff_invites_sweep: { Args: Record<PropertyKey, never>; Returns: number };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;
@@ -4245,6 +4274,9 @@ export type Database = {
         }[];
       };
       search_topic_is_public: { Args: { p_id: string }; Returns: boolean };
+      security_retention_days: { Args: Record<PropertyKey, never>; Returns: number };
+      security_session_hours: { Args: Record<PropertyKey, never>; Returns: number };
+      sensitive_tag_match: { Args: { p_tag: string; p_term: string }; Returns: boolean };
       show_limit: { Args: Record<PropertyKey, never>; Returns: number };
       show_trgm: { Args: { "": string }; Returns: string[] };
       source_admin_bulk: {
@@ -4284,6 +4316,7 @@ export type Database = {
         Args: { p: Database["public"]["Enums"]["source_reliability"] };
         Returns: number;
       };
+      staff_invites_sweep: { Args: Record<PropertyKey, never>; Returns: number };
       start_fast_run: {
         Args: { p_window: string };
         Returns: {
@@ -4421,6 +4454,7 @@ export type Database = {
         Returns: Json;
       };
       studio_words: { Args: { p: string }; Returns: string[] };
+      tag_words: { Args: { p: string }; Returns: string[] };
       take_studio_revalidations: {
         Args: Record<PropertyKey, never>;
         Returns: {
