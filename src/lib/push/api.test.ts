@@ -25,6 +25,14 @@ const valid = {
   metricsConsent: false,
 };
 
+/** 200 alvos no tamanho máximo (86 caracteres cada), o pior caso legítimo do corpo. */
+function maxTargets(): string[] {
+  return Array.from(
+    { length: 200 },
+    (_, i) => `topic:${String(i).padStart(3, "0")}${"t".repeat(77)}`,
+  );
+}
+
 function memoryStore() {
   const rows = new Map<string, SubscriptionRow>();
   const receipts: unknown[] = [];
@@ -185,13 +193,33 @@ describe("POST /api/push/subscriptions", () => {
       (await handleSubscribe(post(valid, { origin: "https://evil.example" }), deps)).status,
     ).toBe(403);
     expect((await handleSubscribe(req("POST", valid, { origin: "" }), deps)).status).toBe(403);
+    // Teto de 32 KB na inscrição (PWA-14): 200 alvos cabem; o que passa disso é 413.
+    expect(
+      (
+        await handleSubscribe(
+          post({ ...valid, endpoint: `${FCM}max`, targets: maxTargets() }),
+          deps,
+        )
+      ).status,
+    ).toBe(201);
     expect(
       (
         await handleSubscribe(
           post({
             ...valid,
-            targets: Array.from({ length: 200 }, (_, i) => `topic:${"t".repeat(70)}${i}`),
+            endpoint: `${FCM}big`,
+            targets: maxTargets(),
+            padding: "x".repeat(33_000),
           }),
+          deps,
+        )
+      ).status,
+    ).toBe(413);
+    // Recibo segue em 4 KB.
+    expect(
+      (
+        await handleReceipt(
+          post({ s: SEND, e: "delivered", d: "mobile", b: "chrome", padding: "x".repeat(5000) }),
           deps,
         )
       ).status,
@@ -205,6 +233,20 @@ describe("POST /api/push/subscriptions", () => {
     );
     expect((await handleSubscribe(post(valid), { ...deps, enabled: false })).status).toBe(503);
     expect((await handleSubscribe(post(valid), { ...deps, salt: null })).status).toBe(503);
+  });
+
+  it("PATCH com 200 alvos passa; acima de 32 KB → 413 (PWA-14)", async () => {
+    const ctx = makeDeps();
+    const { id, token } = await (await handleSubscribe(post(valid), ctx.deps)).json();
+    const auth = { authorization: `Bearer ${token}` };
+    const ok = await handlePatch(req("PATCH", { targets: maxTargets() }, auth), id, ctx.deps);
+    expect(ok.status).toBe(200);
+    const big = await handlePatch(
+      req("PATCH", { targets: maxTargets(), padding: "x".repeat(33_000) }, auth),
+      id,
+      ctx.deps,
+    );
+    expect(big.status).toBe(413);
   });
 
   it("leitor com sessão fica ligado à inscrição", async () => {

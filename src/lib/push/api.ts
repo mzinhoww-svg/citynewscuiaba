@@ -20,6 +20,11 @@ import type { BrowserFamily, DeviceClass, Platform, TargetKey } from "./types";
 import { browserFamily, deviceClass, platformOf } from "./ua";
 
 export const MAX_BODY_BYTES = 4 * 1024;
+/**
+ * Inscrição e PATCH carregam até 200 alvos de até 87 caracteres (~18 KB): teto de 32 KB só
+ * nessas duas rotas (PWA-14); rotação e recibo seguem em 4 KB.
+ */
+export const MAX_TARGETS_BODY_BYTES = 32 * 1024;
 export const LIMITS = {
   subscribe: { bucket: "push-sub", limit: 10, windowSec: 3600 },
   patch: { bucket: "push-patch", limit: 60, windowSec: 3600 },
@@ -115,16 +120,17 @@ function originOk(req: Request, siteOrigin: string): boolean {
 
 async function readJson(
   req: Request,
+  maxBytes = MAX_BODY_BYTES,
 ): Promise<{ ok: true; value: unknown } | { ok: false; res: Response }> {
   const declared = Number(req.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES) return { ok: false, res: error(413, "grande demais") };
+  if (declared > maxBytes) return { ok: false, res: error(413, "grande demais") };
   let text: string;
   try {
     text = await req.text();
   } catch {
     return { ok: false, res: error(400, "corpo ilegível") };
   }
-  if (new TextEncoder().encode(text).length > MAX_BODY_BYTES)
+  if (new TextEncoder().encode(text).length > maxBytes)
     return { ok: false, res: error(413, "grande demais") };
   try {
     return { ok: true, value: JSON.parse(text) };
@@ -189,7 +195,7 @@ function publicView(row: SubscriptionRow) {
 export async function handleSubscribe(req: Request, deps: PushApiDeps): Promise<Response> {
   const g = await gate(req, deps, LIMITS.subscribe);
   if (!g.ok) return g.res;
-  const body = await readJson(req);
+  const body = await readJson(req, MAX_TARGETS_BODY_BYTES);
   if (!body.ok) return body.res;
   const parsed = subscribeBodySchema.safeParse(body.value);
   if (!parsed.success) return error(400, zodMessage(parsed.error));
@@ -241,7 +247,7 @@ export async function handlePatch(req: Request, id: string, deps: PushApiDeps): 
   if (!g.ok) return g.res;
   const row = await owned(req, id, deps);
   if (!row) return error(404, "inscrição não encontrada");
-  const body = await readJson(req);
+  const body = await readJson(req, MAX_TARGETS_BODY_BYTES);
   if (!body.ok) return body.res;
   const parsed = patchBodySchema.safeParse(body.value);
   if (!parsed.success) return error(400, zodMessage(parsed.error));
