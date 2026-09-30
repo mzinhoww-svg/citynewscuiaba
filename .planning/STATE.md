@@ -5,10 +5,10 @@
 
 ## Fase e tarefa
 
-- **Fase ativa:** P5 Control Center e administração
-- **Tarefa ativa:** P5-T5 Agentes, modelos, prompts e playground
-- **Próxima tarefa:** P5-T6 ∥ T7 ∥ T8 ∥ T9, depois T10 e gate
-- **Progresso:** 58/70 tarefas · P0 a P4 concluídas · P5 T1–T4 prontas
+- **Fase ativa:** P6 Endurecimento e lançamento
+- **Tarefa ativa:** P6-T1 Performance
+- **Próxima tarefa:** P6-T2 Acessibilidade completa → T3 Segurança → T4 Observabilidade → T5 Privacidade → T6 Polimento e verificação final
+- **Progresso:** 68/70 tarefas · P0 a P5 concluídas (tag `p5-done`) · falta só o P6
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
@@ -30,7 +30,7 @@
 ## Próxima ação imediata
 
 1. Container novo precisa de `pnpm install`, `pnpm db:start` e `pnpm db:reset` antes dos testes de integração.
-2. P5: T1–T4 prontas (T4 = painel de fontes, plano FS-T1..T9, migrations 0011/0030/0031). Falta T5 → (T6 ∥ T7 ∥ T8 ∥ T9) → T10 + gate. E2E com fixtures roda em `next dev` (projetos `fixtures-*`, A-160).
+2. P5 fechada (gate em 30/09: CI run 123 verde com WebKit). P6 pode começar; ver `docs/reports/P5.md` (limites conhecidos) e B-018 (JS da home 318 kB, meta 170 kB) e A-054 (avisos de `search_path` a corrigir em migration no P6).
 3. Branch de trabalho desta sessão: `claude/optimistic-ramanujan-ckpt98`.
 
 ## Últimos checkpoints
@@ -45,6 +45,7 @@
 | 2026-09-27 | P1/P3-GATE | 3c5a6b9 | correções A-051/A-053 mescladas |
 | 2026-09-28 | P2-GATE | 8c4782b | 1188 testes; e2e 620 |
 | 2026-09-28 | P4-GATE | 96a31b4 | 1272 testes; e2e 722 |
+| 2026-09-30 | P5-GATE | 0a8fc78 | 1851 testes; e2e Chromium 1048+32; CI verde com WebKit; 2 altos e 11 médios do gate corrigidos |
 
 ## Degradados abertos
 
