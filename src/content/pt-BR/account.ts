@@ -83,6 +83,8 @@ export const SIGN_IN_TEXT = {
   create: "Criar conta",
   noPermission:
     "Esta conta não tem acesso ao Estúdio. Entre com outra conta ou volte para o portal.",
+  sessionExpired:
+    "Sua sessão da equipe passou do tempo máximo definido pela administração. Entre de novo para continuar.",
 } as const;
 
 /** C03 · Criar conta. */
