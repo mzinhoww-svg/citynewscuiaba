@@ -42,7 +42,10 @@ async function rpc<F extends keyof Database["public"]["Functions"]>(
 }
 
 async function setArticle(id: string, patch: Record<string, unknown>) {
-  const { error } = await service.from("articles").update(patch).eq("id", id);
+  const { error } = await service
+    .from("articles")
+    .update(patch as never)
+    .eq("id", id);
   if (error) throw new Error(error.message);
 }
 async function article(status: string, extra: Record<string, unknown> = {}) {

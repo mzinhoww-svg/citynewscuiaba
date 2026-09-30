@@ -453,5 +453,4 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
     expect(data).toEqual([]);
     server.respond(`/${run}/iso-bad`, 201);
   });
-
 });
