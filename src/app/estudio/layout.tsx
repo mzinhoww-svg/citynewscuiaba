@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 export default async function StudioLayout({ children }: Readonly<{ children: ReactNode }>) {
   const session = await getSession();
   if (!session) redirect(loginRedirect("/estudio"));
-  if (session.roles.length === 0) redirect(loginRedirect("/estudio", "sem-permissao"));
+  if (session.roles.length === 0)
+    redirect(loginRedirect("/estudio", session.expired ? "sessao-expirada" : "sem-permissao"));
 
   // "Notificações (n)" para quem aprova pedidos de push (G10); a contagem nunca derruba a casca.
   const pendingPush = canAccess(session.roles, "push.approve") ? await pendingCount() : 0;

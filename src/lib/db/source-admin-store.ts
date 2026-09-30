@@ -492,12 +492,13 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
     /** Última mudança auditada da fonte (quem e quando), para a mensagem de conflito. */
     async lastChange(id: string): Promise<{ actorName: string | null; at: string } | null> {
       const { data } = await db
-        .from("audit_log")
+        .from("audit_log_view")
         .select("actor, at")
         .eq("object_ref", `source:${id}`)
         .like("action", "source.%")
         .order("id", { ascending: false })
         .limit(1)
+        .returns<{ actor: string; at: string }[]>()
         .maybeSingle();
       if (!data) return null;
       if (!/^[0-9a-f-]{36}$/i.test(data.actor)) return { actorName: null, at: data.at };

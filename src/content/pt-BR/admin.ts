@@ -62,10 +62,16 @@ export const ADMIN_TEXT = {
       adminApproved: "Aprovado: aplicar papel de administração",
       apply: "Aplicar",
       applied: "Papel de administração aplicado.",
+      revokeRequested:
+        "Retirar a administração também precisa de outra pessoa da administração: pedido aberto na caixa de aprovações. Depois de aprovado, use “Aplicar revogação”.",
+      revokePending: "Revogação de administração aguardando aprovação",
+      revokeApproved: "Revogação aprovada: aplicar",
+      revokeApply: "Aplicar revogação",
+      revokeApplied: "Papel de administração revogado.",
       self: "Ninguém altera os próprios papéis.",
       editorNeedsSection: "Editor precisa de pelo menos uma editoria.",
       justification: "Justificativa (para o pedido de administração)",
-      justificationRequired: "Explique por que esta pessoa precisa do papel de administração.",
+      justificationRequired: "Explique o motivo da mudança no papel de administração.",
     },
   },
   roles: {
@@ -166,6 +172,8 @@ export const ADMIN_TEXT = {
     merge: "Mesclar",
     merged: (from: string, into: string, n: number) =>
       `“${from}” mesclada em “${into}”: ${n} ${plural(n, "vínculo preservado", "vínculos preservados")}.`,
+    mergeSensitive: (from: string) =>
+      `“${from}” é tema sensível das regras de autonomia: mesclar em outra tag faria os itens deixarem de ir para revisão. Só é possível mesclar em outra tag também sensível.`,
     mergeManual: "Mesclar duas tags",
     mergeFrom: "Tag que some",
     mergeTo: "Tag que fica",

@@ -22,11 +22,7 @@ import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
 export interface SecurityPanelProps {
   data: SecurityOverview;
   now: string;
-  saveSettings: (i: {
-    require2fa: boolean;
-    sessionHours: number;
-    retentionDays: number;
-  }) => Promise<AdminReply>;
+  saveSettings: (i: { sessionHours: number; retentionDays: number }) => Promise<AdminReply>;
   savePrivacy: (i: {
     id?: string;
     kind?: PrivacyRequestRow["kind"];
@@ -52,7 +48,6 @@ export function SecurityPanel({
   const router = useRouter();
   const uid = useId().replace(/:/g, "");
   const [status, setStatus] = useState<AdminReply | null>(null);
-  const [require2fa, setRequire2fa] = useState(data.settings.require2fa);
   const [sessionHours, setSessionHours] = useState(String(data.settings.sessionHours));
   const [retentionDays, setRetentionDays] = useState(String(data.settings.retentionDays));
   const [open, setOpen] = useState(false);
@@ -66,12 +61,11 @@ export function SecurityPanel({
   };
   const nowMs = new Date(now).getTime();
   const dirty =
-    require2fa !== data.settings.require2fa ||
     Number(sessionHours) !== data.settings.sessionHours ||
     Number(retentionDays) !== data.settings.retentionDays;
   const numOk = (v: string, min: number, max: number) =>
     /^\d+$/.test(v) && Number(v) >= min && Number(v) <= max;
-  const valid = numOk(sessionHours, 1, 720) && numOk(retentionDays, 30, 3650);
+  const valid = numOk(sessionHours, 1, 720) && numOk(retentionDays, 30, 90);
 
   return (
     <div className="flex flex-col gap-10">
@@ -84,11 +78,16 @@ export function SecurityPanel({
         <h2 id={`${uid}-pol`} className="type-section text-strong">
           {S.settings}
         </h2>
-        <div className="flex items-center justify-between gap-3">
-          <span id={`${uid}-2fa`} className="type-body text-strong">
-            {S.require2fa}
-          </span>
-          <Toggle checked={require2fa} label={S.require2fa} onChange={setRequire2fa} />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-3">
+            <span id={`${uid}-2fa`} className="type-body text-strong">
+              {S.require2fa}
+            </span>
+            <Toggle checked={false} disabled label={S.require2fa} />
+          </div>
+          <p role="note" className="type-meta font-medium text-warn">
+            {S.require2faNotApplied}
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField
@@ -97,6 +96,7 @@ export function SecurityPanel({
             inputMode="numeric"
             value={sessionHours}
             onChange={(e) => setSessionHours(e.target.value)}
+            hint={S.sessionHoursHint}
             error={numOk(sessionHours, 1, 720) ? undefined : T.settings.invalid}
           />
           <TextField
@@ -105,7 +105,8 @@ export function SecurityPanel({
             inputMode="numeric"
             value={retentionDays}
             onChange={(e) => setRetentionDays(e.target.value)}
-            error={numOk(retentionDays, 30, 3650) ? undefined : T.settings.invalid}
+            hint={S.retentionDaysHint}
+            error={numOk(retentionDays, 30, 90) ? undefined : T.settings.invalid}
           />
         </div>
         <div>
@@ -116,7 +117,6 @@ export function SecurityPanel({
               start(async () =>
                 done(
                   await saveSettings({
-                    require2fa,
                     sessionHours: Number(sessionHours),
                     retentionDays: Number(retentionDays),
                   }),

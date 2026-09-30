@@ -13,6 +13,8 @@ export interface Redirect {
 export type RedirectError = "invalid_from" | "invalid_to" | "same" | "loop";
 
 const PATH = /^\/[^\s?#]*$/;
+/** Barra invertida (crua ou %5c) vira `//host` em navegadores: nunca em caminho de redirecionamento. */
+const BACKSLASH = /\\|%5c/i;
 
 export function normalizePath(p: string): string {
   const t = p.trim();
@@ -27,8 +29,14 @@ export function validateRedirect(
 ): Result<{ fromPath: string; toPath: string }, RedirectError> {
   const fromPath = normalizePath(input.fromPath);
   const toPath = normalizePath(input.toPath);
-  if (!PATH.test(fromPath) || fromPath.length > 300) return err("invalid_from");
-  if (!/^\/[^\s#]*$/.test(toPath) || toPath.length > 300 || toPath.startsWith("//"))
+  if (!PATH.test(fromPath) || fromPath.length > 300 || BACKSLASH.test(fromPath))
+    return err("invalid_from");
+  if (
+    !/^\/[^\s#]*$/.test(toPath) ||
+    toPath.length > 300 ||
+    toPath.startsWith("//") ||
+    BACKSLASH.test(toPath)
+  )
     return err("invalid_to");
   if (fromPath === toPath) return err("same");
   // Laço: o destino (ou a cadeia a partir dele) volta para a origem.

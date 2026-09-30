@@ -253,7 +253,7 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 - **Aceite:** `tests/e2e/a09-*.spec.ts`, `tests/a11y/pwa.spec.ts`, `docs/reports/pwa.md`.
 ### A10 · Auditoria · `/estudio/admin/auditoria` · Canvas (A04)
 ### A11 · Segurança e privacidade · `/estudio/admin/seguranca` · **Nova** (resumo no A04)
-- 2FA da equipe, sessões, retenção, pedidos LGPD (fila com prazo), revisão de acessos, chaves e rotação.
+- 2FA da equipe, sessões, retenção, pedidos LGPD (fila com prazo), revisão de acessos, chaves e rotação. Estado real (gate do P5, achado 2): **duração da sessão** vale (`getSession` tira o papel da sessão vencida e manda entrar de novo); **retenção** dos eventos individuais vale de 30 a 90 dias (teto da spec §10, lido pelo cron `events-retention`); **2FA** está rotulado "ainda não aplicado" (o Estúdio não tem cadastro de segundo fator; o banco recusa ligar a chave até existir).
 ### A12 · Governança editorial · `/estudio/admin/governanca` · Canvas (W01)
 ### A13 · Integrações · `/estudio/admin/integracoes` · Canvas (W02)
 ### A14 · Configurações · `/estudio/admin/configuracoes` · Canvas (W02)

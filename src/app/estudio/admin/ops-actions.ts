@@ -52,13 +52,12 @@ export async function deleteRedirectAction(i: { id: string }) {
   return reply(await deleteRedirectCommand(i), () => T.seo.dialog.removed);
 }
 
+/** O segundo fator ainda não é aplicado (chave fica desligada); só sessão e retenção valem. */
 export async function saveSecuritySettingsAction(i: {
-  require2fa: boolean;
   sessionHours: number;
   retentionDays: number;
 }) {
   const steps: [string, Json][] = [
-    ["security.require_2fa", i.require2fa],
     ["security.session_hours", i.sessionHours],
     ["security.retention_days", i.retentionDays],
   ];

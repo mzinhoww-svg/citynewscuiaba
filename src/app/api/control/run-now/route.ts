@@ -1,3 +1,4 @@
+import { sameOriginHost } from "@/lib/control/origin";
 import { runNowCommand } from "@/lib/studio/control";
 
 export const runtime = "nodejs";
@@ -14,7 +15,7 @@ const json = (body: unknown, status = 200) =>
 export async function POST(req: Request): Promise<Response> {
   const origin = req.headers.get("origin");
   const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  if (!origin || !host || new URL(origin).host !== host) return json({ error: "forbidden" }, 403);
+  if (!sameOriginHost(origin, host)) return json({ error: "forbidden" }, 403);
   let body: unknown = {};
   const text = await req.text();
   if (text.trim()) {

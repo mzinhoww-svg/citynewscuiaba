@@ -32,6 +32,11 @@ export const recTarget = (version: string): string => `rec:${version}`;
  * `consume_role_admin_approval(target)` (0002) compara `target_ref = target::text`.
  */
 export const userTarget = (userId: string): string => userId;
+/**
+ * Revogar o papel de admin (gate do P5, achado 5): mesmo tipo `role.admin`, alvo `revoke:<uuid>`,
+ * que `guard_user_roles_revoke` (0048) consome no DELETE de `user_roles`.
+ */
+export const adminRevokeTarget = (userId: string): string => `revoke:${userId}`;
 
 export function parseApprovalTarget(ref: string): ApprovalTarget {
   const r = RULES.exec(ref);

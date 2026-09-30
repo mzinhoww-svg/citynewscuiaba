@@ -11,6 +11,7 @@ import { fetchPublishedHomeLayout } from "@/lib/db/queries/home";
 import { publishHomeCommand, saveHomeDraftCommand } from "@/lib/studio/admin-home";
 import { mergeTagsCommand } from "@/lib/studio/admin-taxonomy";
 import {
+  applyAdminRevokeCommand,
   applyAdminRoleCommand,
   inviteUserCommand,
   setRolesCommand,
@@ -22,7 +23,15 @@ const mark = randomUUID().slice(0, 8);
 const invitedIds: string[] = [];
 const articleIds: string[] = [];
 
+let cleanupExtraAdmin = false;
+
 afterAll(async () => {
+  if (cleanupExtraAdmin)
+    await service
+      .from("user_roles")
+      .delete()
+      .eq("user_id", SEED_USERS.carlos.id)
+      .eq("role", "admin");
   for (const id of invitedIds) {
     await service.from("user_roles").delete().eq("user_id", id);
     await service.from("profiles").delete().eq("id", id);
@@ -33,7 +42,7 @@ afterAll(async () => {
     .from("approvals")
     .delete()
     .eq("kind", "role.admin")
-    .eq("target_ref", SEED_USERS.thiago.id);
+    .in("target_ref", [SEED_USERS.thiago.id, `revoke:${SEED_USERS.thiago.id}`]);
   if (articleIds.length) await service.from("articles").delete().in("id", articleIds);
   // Home: a v1 do seed volta a ser a única publicada.
   await service.from("home_layouts").delete().gt("version", 1);
@@ -150,16 +159,21 @@ describe("administração (banco real)", () => {
     const early = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
     expect(early).toMatchObject({ ok: false, error: "conflict" });
 
-    // Outra pessoa aprova (aqui o pedido é decidido em nome de Marina pelo seed do teste).
+    // Gate do P5 (achado 4): quem aprova `role.admin` precisa ser admin no banco. O seed tem uma
+    // só admin; Carlos vira admin de fixture para dar a segunda assinatura e volta ao papel dele.
+    await service
+      .from("user_roles")
+      .insert({ user_id: SEED_USERS.carlos.id, role: "admin", sections: [] });
+    cleanupExtraAdmin = true;
     await service
       .from("approvals")
       .update({
         status: "approved",
-        approved_by: SEED_USERS.marina.id,
+        approved_by: SEED_USERS.carlos.id,
         decided_at: new Date().toISOString(),
       })
       .eq("id", r.value.adminApprovalId!);
-    // Quem pediu foi Helena e quem aprovou Marina; Helena aplica e o trigger consome o pedido.
+    // Quem pediu foi Helena e quem aprovou Carlos; Helena aplica e o trigger consome o pedido.
     const applied = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
     expect(applied.ok).toBe(true);
     const after = await service
@@ -175,11 +189,43 @@ describe("administração (banco real)", () => {
       .single();
     expect(consumed.data?.status).toBe("applied");
 
-    // Revogar volta ao estado do seed.
-    const revoke = await asUser("helena", () =>
+    // Gate do P5 (achado 5): revogar admin também é pedido de duas pessoas.
+    const noReason = await asUser("helena", () =>
       setRolesCommand({ userId: thiago, roles: [{ role: "analista", sections: [] }] }),
     );
-    expect(revoke.ok && revoke.value.revoked).toEqual(["admin"]);
+    expect(noReason).toMatchObject({ ok: false, error: "invalid" });
+    const revoke = await asUser("helena", () =>
+      setRolesCommand({
+        userId: thiago,
+        roles: [{ role: "analista", sections: [] }],
+        justification: "Fim da cobertura de férias",
+      }),
+    );
+    expect(revoke.ok).toBe(true);
+    if (!revoke.ok) return;
+    expect(revoke.value.revoked).toEqual([]);
+    expect(revoke.value.adminRevokeApprovalId).toBeTruthy();
+    expect(
+      (await service.from("user_roles").select("role").eq("user_id", thiago).eq("role", "admin"))
+        .data,
+    ).toHaveLength(1);
+    const early2 = await asUser("helena", () => applyAdminRevokeCommand({ userId: thiago }));
+    expect(early2).toMatchObject({ ok: false, error: "conflict" });
+    await service
+      .from("approvals")
+      .update({
+        status: "approved",
+        approved_by: SEED_USERS.carlos.id,
+        decided_at: new Date().toISOString(),
+      })
+      .eq("id", revoke.value.adminRevokeApprovalId!);
+    const done = await asUser("helena", () => applyAdminRevokeCommand({ userId: thiago }));
+    expect(done.ok).toBe(true);
+    expect(
+      (
+        await service.from("user_roles").select("role").eq("user_id", thiago).order("role")
+      ).data?.map((x) => x.role),
+    ).toEqual(["analista"]);
   });
 
   it("mesclar tags duplicadas preserva os vínculos e não duplica", async () => {

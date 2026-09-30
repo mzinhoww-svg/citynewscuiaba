@@ -40,7 +40,12 @@ export async function requestApprovalCommand(
   const ctx = await studioContext();
   if (!ctx.session) return fail("forbidden");
   const approvals = createApprovals(ctx.db);
-  const open = (await approvals.pending(i.targetRef)).find((a) => a.targetRef === i.targetRef);
+  // Só o pedido da própria pessoa e do mesmo tipo vale como "já aberto": outra pessoa pode ter
+  // reservado o alvo antes de ele existir, e reaproveitar o pedido dela travaria a proposta.
+  const open = (await approvals.pending(i.targetRef)).find(
+    (a) =>
+      a.targetRef === i.targetRef && a.kind === i.kind && a.requestedBy === ctx.session!.userId,
+  );
   if (open) return { ok: true, value: { id: open.id, existing: true } };
   const r = await approvals.requestApproval({
     kind: i.kind,

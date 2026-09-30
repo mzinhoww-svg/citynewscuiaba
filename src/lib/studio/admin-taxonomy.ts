@@ -136,6 +136,9 @@ export const mergeTagsCommand = studioAction(
       p_into: i.into,
     });
     if (error) {
+      // 0048: tag de tema sensível não some para uma tag comum (retenção da publicação automática).
+      if (error.code === "42501" && /sens[ií]vel/.test(error.message))
+        throw new StudioFailure("invalid", T.taxonomy.mergeSensitive(i.from));
       if (error.code === "42501") throw new StudioFailure("forbidden");
       throw new Error(`merge tags: ${error.message}`);
     }

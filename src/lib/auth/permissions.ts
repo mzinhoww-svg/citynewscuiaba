@@ -144,6 +144,8 @@ export interface Session {
   /** E-mail da conta, quando o Supabase Auth informa (exibição no Estúdio). */
   email?: string;
   roles: RoleGrant[];
+  /** A sessão da equipe passou de `security.session_hours`: `roles` vem vazio até entrar de novo. */
+  expired?: boolean;
 }
 
 export type AccessDecision = { ok: true } | { ok: false; redirectTo: string };
@@ -154,7 +156,7 @@ function safeNext(next: string | undefined): string {
   return internalPath(next) ?? DEFAULT_NEXT;
 }
 
-export function loginRedirect(next?: string, reason?: "sem-permissao"): string {
+export function loginRedirect(next?: string, reason?: "sem-permissao" | "sessao-expirada"): string {
   const params = new URLSearchParams({ next: safeNext(next) });
   if (reason) params.set("motivo", reason);
   return `/entrar?${params.toString()}`;
@@ -172,6 +174,7 @@ export function resolveAccess(
   next?: string,
 ): AccessDecision {
   if (!session) return { ok: false, redirectTo: loginRedirect(next) };
+  if (session.expired) return { ok: false, redirectTo: loginRedirect(next, "sessao-expirada") };
   const allowed = scope
     ? can(session.roles, action, { ...scope, userId: session.userId })
     : canAccess(session.roles, action);

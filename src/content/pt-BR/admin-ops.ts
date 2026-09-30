@@ -150,6 +150,8 @@ export const ADMIN_OPS_TEXT = {
       `${more ? "mais de " : ""}${n} ${plural(n, "registro", "registros")}`,
     masked: "IPs mascarados",
     export: "Exportar CSV",
+    exportNote:
+      "Até 5000 linhas, sem nome nem e-mail e com ator pseudonimizado fora da administração. Se passar do limite, a última linha do arquivo avisa.",
     empty: "Nenhum registro com estes filtros.",
     more: "Carregar mais antigos",
     details: "Ver detalhes",
@@ -160,8 +162,14 @@ export const ADMIN_OPS_TEXT = {
       "Segundo fator da equipe, sessões, retenção, pedidos LGPD com prazo, revisão de acessos e rotação de chaves. Valores de chave nunca ficam no banco.",
     settings: "Políticas",
     require2fa: "Exigir segundo fator (2FA) da equipe",
+    require2faNotApplied:
+      "Ainda não aplicado: o Estúdio não tem cadastro de segundo fator, então a exigência fica desligada. A coluna 2FA da revisão de acessos mostra quem já cadastrou no Supabase.",
     sessionHours: "Duração máxima da sessão (horas)",
-    retentionDays: "Retenção de eventos e logs (dias)",
+    sessionHoursHint:
+      "Aplicado: passado esse tempo desde a última entrada, a pessoa da equipe entra de novo.",
+    retentionDays: "Retenção de eventos individuais (dias, de 30 a 90)",
+    retentionDaysHint:
+      "Aplicado toda madrugada: depois disso o evento perde o que identifica o leitor. Teto de 90 dias (spec §10).",
     save: "Salvar políticas",
     saved: "Políticas salvas.",
     privacy: "Pedidos LGPD",
@@ -276,8 +284,8 @@ export const ADMIN_OPS_TEXT = {
       "sources.fast_lane_max": "Vagas na via rápida de fontes (0 a 20)",
       "seo.title_template": "Modelo de título (SEO)",
       "security.session_hours": "Duração máxima da sessão (horas)",
-      "security.retention_days": "Retenção de eventos e logs (dias)",
-      "security.require_2fa": "Exigir segundo fator da equipe",
+      "security.retention_days": "Retenção de eventos individuais (dias, de 30 a 90)",
+      "security.require_2fa": "Exigir segundo fator da equipe (ainda não aplicado)",
       "ads.max_per_page": "Patrocinados por página (0 a 3)",
     } as Record<string, string>,
     yes: "Sim",

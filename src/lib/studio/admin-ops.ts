@@ -1,8 +1,8 @@
 import "server-only";
 import { z } from "zod";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
-import { auditCsv, type AuditFilters } from "@/lib/admin/audit-export";
-import { NEVER_SECTIONS } from "@/lib/ads/rules";
+import { auditCsv, collectAuditRows, type AuditFilters } from "@/lib/admin/audit-export";
+import { isNeverSection } from "@/lib/ads/rules";
 import { audit } from "@/lib/audit";
 import { canAccess, type Action } from "@/lib/auth/permissions";
 import type { Json } from "@/lib/db/types";
@@ -20,6 +20,7 @@ import { isReadOnly, READ_ONLY_MESSAGE } from "./read-only";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const SECTION = /^[a-z0-9-]+$/;
+const HTTPS = /^https:\/\//i;
 
 // ---------------------------------------------------------------------------
 // Publicidade
@@ -33,8 +34,15 @@ const CampaignInput = z.object({
   status: z.enum(["draft", "active", "paused", "ended"]),
   creative: z.object({
     title: z.string().trim().min(2).max(120),
-    href: z.string().trim().url().max(500),
-    imageUrl: z.string().trim().url().max(500).optional(),
+    // Só https: `javascript:`, `data:` e `http:` nunca entram (o formulário também confere).
+    href: z.string().trim().url().max(500).regex(HTTPS, "O link precisa começar com https://"),
+    imageUrl: z
+      .string()
+      .trim()
+      .url()
+      .max(500)
+      .regex(HTTPS, "A imagem precisa ser um endereço https://")
+      .optional(),
     imageAlt: z.string().trim().max(200).optional(),
   }),
 });
@@ -44,7 +52,14 @@ export const saveCampaignCommand = studioAction(
   "site.manage",
   () => ({}),
   async (i, ctx) => {
-    if (i.allowedSections.some((s) => NEVER_SECTIONS.includes(s)))
+    // Subeditoria herda a proibição: confere a categoria de autonomia de cada editoria escolhida.
+    const cats = await ctx.db
+      .from("sections")
+      .select("slug, autonomy_category")
+      .in("slug", i.allowedSections);
+    if (cats.error) throw new Error(`campaign sections: ${cats.error.message}`);
+    const categoryOf = (slug: string) => cats.data?.find((c) => c.slug === slug)?.autonomy_category;
+    if (i.allowedSections.some((s) => isNeverSection(s, categoryOf)))
       throw new StudioFailure("invalid", T.ads.dialog.forbiddenSection);
     if (i.endsOn < i.startsOn) throw new StudioFailure("invalid", T.ads.dialog.period);
     const creative: Record<string, string> = { title: i.creative.title, href: i.creative.href };
@@ -180,17 +195,32 @@ export const deleteRedirectCommand = studioAction(
 // ---------------------------------------------------------------------------
 // Auditoria: exportação
 // ---------------------------------------------------------------------------
-const EXPORT_LIMIT = 5000;
+export const EXPORT_LIMIT = 5000;
+/** Tamanho de página da leitura: o PostgREST corta em `max_rows` (1000 no config.toml). */
+const EXPORT_PAGE = 1000;
 
-/** CSV dos registros filtrados; IP mascarado (`a.b.x.x`) e hash oculto para quem não é admin. */
+/**
+ * CSV dos registros filtrados; IP mascarado (`a.b.x.x`), hash oculto e ator pseudonimizado para
+ * quem não é admin. Lê por páginas (`id` decrescente) até `EXPORT_LIMIT` e uma linha a mais para
+ * saber se parou no limite: a resposta, o arquivo e a auditoria dizem quando foi truncada.
+ */
 export const exportAuditCommand = studioAction(
   "audit.view",
   () => ({}),
   async (i: { filters: AuditFilters }, ctx) => {
     const admin = ctx.session!.roles.some((r) => r.role === "admin");
-    const rows = await searchAudit(i.filters, { limit: EXPORT_LIMIT, maskIp: !admin }, ctx.db);
-    ctx.detail({ filters: i.filters, rows: rows.length, masked: !admin });
-    return { csv: auditCsv(rows, { maskIp: !admin }), rows: rows.length, masked: !admin };
+    const { rows, truncated } = await collectAuditRows(
+      (o) => searchAudit(i.filters, { ...o, maskIp: !admin }, ctx.db),
+      EXPORT_LIMIT,
+      EXPORT_PAGE,
+    );
+    ctx.detail({ filters: i.filters, rows: rows.length, masked: !admin, truncated });
+    return {
+      csv: auditCsv(rows, { maskIp: !admin, ...(truncated ? { truncatedAt: EXPORT_LIMIT } : {}) }),
+      rows: rows.length,
+      masked: !admin,
+      truncated,
+    };
   },
   { auditAs: "audit.export", objectRef: () => "audit:export" },
 );
@@ -221,6 +251,8 @@ export const savePrivacyRequestCommand = studioAction(
           patch.decided_at = new Date().toISOString();
         }
       }
+      // Notas livres de titular não vão para a auditoria (imutável): só que mudaram.
+      const detail = { ...patch };
       if (i.notes !== undefined) patch.notes = i.notes;
       const r = await ctx.db
         .from("privacy_requests")
@@ -230,7 +262,7 @@ export const savePrivacyRequestCommand = studioAction(
         .maybeSingle();
       if (r.error) throw new Error(`privacy: ${r.error.message}`);
       if (!r.data) throw new StudioFailure("not_found");
-      ctx.detail(patch);
+      ctx.detail({ ...detail, ...(i.notes !== undefined ? { notesChanged: true } : {}) });
       return { id: i.id };
     }
     if (!i.kind || !i.email) throw new StudioFailure("invalid");

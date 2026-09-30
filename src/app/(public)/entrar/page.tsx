@@ -27,7 +27,9 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
   const sp = await searchParams;
   const next = safeNext(one(sp.next));
   const noPermission = one(sp.motivo) === "sem-permissao";
-  if (!noPermission && (await getReader())) redirect(next);
+  // Sessão da equipe vencida (A11): a conta ainda tem cookie, então não volta sozinha ao destino.
+  const expired = one(sp.motivo) === "sessao-expirada";
+  if (!noPermission && !expired && (await getReader())) redirect(next);
   const skip = next.startsWith("/estudio") ? "/" : next === "/perfil" ? "/" : next;
 
   return (
@@ -48,6 +50,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
       }
     >
       {noPermission && <InlineAlert tone="warn" title={T.noPermission} role="alert" />}
+      {expired && <InlineAlert tone="warn" title={T.sessionExpired} role="alert" />}
       <SignInForm
         signIn={signInAction}
         magicLink={magicLinkAction}

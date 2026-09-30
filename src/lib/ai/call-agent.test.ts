@@ -161,14 +161,21 @@ describe("callAgent", () => {
     expect(store.calls).toHaveLength(1);
   });
 
-  it("IA desligada ou agente desligado: disabled", async () => {
+  it("busca com IA desligada só recusa o agente da busca; o pipeline segue (gate P5, achado 12)", async () => {
     const { store, fake, callAgent } = setup();
     store.setAiEnabled(false);
-    expect(await callAgent("classify", input, ClassifySchema)).toEqual({
+    expect(await callAgent("answer", input, AnswerDraftSchema)).toEqual({
       ok: false,
       error: "disabled",
     });
-    store.setAiEnabled(true);
+    expect(fake.calls).toHaveLength(0);
+    fake.script([{ model: "google/gemini-2.5-flash", output: validClassify }]);
+    expect((await callAgent("classify", input, ClassifySchema)).ok).toBe(true);
+    expect(fake.calls).toHaveLength(1);
+  });
+
+  it("agente desligado: disabled", async () => {
+    const { store, fake, callAgent } = setup();
     store.setAgentEnabled("classify", false);
     expect(await callAgent("classify", input, ClassifySchema)).toEqual({
       ok: false,

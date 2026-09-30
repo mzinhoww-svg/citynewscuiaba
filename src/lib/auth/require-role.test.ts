@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state: { user: { id: string } | null; roles: { role: string; sections: string[] }[] } = {
+const state: {
+  user: { id: string; last_sign_in_at?: string } | null;
+  roles: { role: string; sections: string[] }[];
+  sessionHours: number;
+} = {
   user: null,
   roles: [],
+  sessionHours: 12,
 };
 
 vi.mock("next/navigation", () => ({
@@ -21,10 +26,14 @@ vi.mock("@/lib/db/client", () => ({
         eq: async () => ({ data: state.roles, error: null }),
       }),
     }),
+    rpc: async (name: string) =>
+      name === "security_session_hours"
+        ? { data: state.sessionHours, error: null }
+        : { data: null, error: { message: "rpc desconhecida" } },
   }),
 }));
 
-const { requireRole, requireAnyRole } = await import("./require-role");
+const { getSession, requireRole, requireAnyRole } = await import("./require-role");
 
 describe("requireRole", () => {
   beforeEach(() => {
@@ -53,6 +62,41 @@ describe("requireRole", () => {
       userId: "u1",
       roles: [{ role: "editor", sections: ["cidade"] }],
     });
+  });
+});
+
+describe("duração da sessão da equipe (A11, gate do P5 achado 2)", () => {
+  beforeEach(() => {
+    state.user = null;
+    state.roles = [];
+    state.sessionHours = 12;
+  });
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+
+  it("dentro do limite a sessão vale", async () => {
+    state.user = { id: "u1", last_sign_in_at: hoursAgo(2) };
+    state.roles = [{ role: "editor", sections: ["cidade"] }];
+    await expect(requireRole("article.publish", { section: "cidade" })).resolves.toMatchObject({
+      userId: "u1",
+    });
+  });
+
+  it("depois do limite tira o papel e manda entrar de novo, com o motivo", async () => {
+    state.user = { id: "u1", last_sign_in_at: hoursAgo(5) };
+    state.roles = [{ role: "editor", sections: ["cidade"] }];
+    state.sessionHours = 4;
+    await expect(requireRole("article.publish", { section: "cidade" })).rejects.toThrow(
+      "REDIRECT /entrar?next=%2Festudio&motivo=sessao-expirada",
+    );
+    await expect(requireAnyRole(["article.publish"])).rejects.toThrow("motivo=sessao-expirada");
+    const session = await getSession();
+    expect(session).toMatchObject({ userId: "u1", roles: [], expired: true });
+  });
+
+  it("quem não tem papel (leitor) nunca é afetado pelo limite", async () => {
+    state.user = { id: "leitor", last_sign_in_at: hoursAgo(500) };
+    state.roles = [];
+    expect(await getSession()).toEqual({ userId: "leitor", roles: [] });
   });
 });
 

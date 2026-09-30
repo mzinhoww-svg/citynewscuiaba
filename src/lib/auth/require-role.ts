@@ -1,6 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/db/client";
+import { DEFAULT_SESSION_HOURS, sessionExpired } from "./session-age";
 import {
   loginRedirect,
   resolveAccess,
@@ -26,6 +27,13 @@ export async function getSession(): Promise<Session | null> {
   const roles: RoleGrant[] = (rows ?? [])
     .filter((row) => isRole(row.role))
     .map((row) => ({ role: row.role, sections: row.sections }));
+  // Duração máxima da sessão da equipe (A11): vencida, o papel sai da sessão (falha fechada).
+  if (roles.length > 0) {
+    const { data: hours } = await db.rpc("security_session_hours");
+    const limit = typeof hours === "number" ? hours : DEFAULT_SESSION_HOURS;
+    if (sessionExpired(data.user.last_sign_in_at, limit, new Date()))
+      return { userId: data.user.id, email: data.user.email, roles: [], expired: true };
+  }
   return { userId: data.user.id, email: data.user.email, roles };
 }
 
@@ -61,6 +69,7 @@ export async function requireAnyRole(
   const session = await getSession();
   if (!session) redirect(loginRedirect(options.next));
   const allowed = actions.some((a) => resolveAccess(session, a, undefined, options.next).ok);
-  if (!allowed) redirect(loginRedirect(options.next, "sem-permissao"));
+  if (!allowed)
+    redirect(loginRedirect(options.next, session.expired ? "sessao-expirada" : "sem-permissao"));
   return session;
 }

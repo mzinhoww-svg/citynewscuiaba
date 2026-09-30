@@ -15,7 +15,14 @@ const THIAGO = "c1000000-0000-4000-8000-000000000008"; // analista
 const CARLOS = "c1000000-0000-4000-8000-000000000009"; // moderador
 
 const RULES_BODY = DEFAULT_RULES as unknown as NonNullable<Json>;
-const WEIGHTS: NonNullable<Json> = { popularity: 0.35, individual: 0.25, recency: 0.15 };
+const WEIGHTS: NonNullable<Json> = {
+  popularity: 0.35,
+  individual: 0.25,
+  recency: 0.15,
+  engagement: 0.1,
+  operational: 0.1,
+  diversity: 0.05,
+};
 const run = Date.now() % 1_000_000;
 const ruleVersion = (n: number) => 2_000_000 + run * 10 + n;
 const weightsVersion = (n: number) => `rec-test-${run}-${n}`;

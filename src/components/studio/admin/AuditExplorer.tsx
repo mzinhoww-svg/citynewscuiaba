@@ -80,9 +80,12 @@ export function AuditExplorer({
           {masked && <> · {A.masked}</>}
         </p>
         {rows.length > 0 && (
-          <Button href={exportHref} size="sm" variant="outline" icon="download">
-            {A.export}
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button href={exportHref} size="sm" variant="outline" icon="download">
+              {A.export}
+            </Button>
+            <p className="type-meta text-meta">{A.exportNote}</p>
+          </div>
         )}
       </div>
 

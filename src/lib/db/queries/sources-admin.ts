@@ -2,7 +2,7 @@ import "server-only";
 import { canAccess } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";
 import { createServerClient, createServiceClient, type DbClient } from "@/lib/db/client";
-import type { Database } from "@/lib/db/types";
+import type { Database, Json } from "@/lib/db/types";
 import { SupabaseEnvError } from "@/lib/db/env";
 import { err, ok, type Result } from "@/lib/result";
 import {
@@ -801,13 +801,23 @@ export async function sourceHistory(
   const p = Number.isInteger(page) && page >= 1 ? page : 1;
   return readAdmin(async (c) => {
     let q = c.db
-      .from("audit_log")
+      .from("audit_log_view")
       .select("id, at, actor, action, details, ip_hash", { count: "exact" })
       .eq("object_ref", `source:${id}`);
     if (action && /^[a-z_.]{1,40}$/.test(action)) q = q.eq("action", action);
     const res = await q
       .order("id", { ascending: false })
-      .range((p - 1) * HISTORY_PAGE_SIZE, p * HISTORY_PAGE_SIZE - 1);
+      .range((p - 1) * HISTORY_PAGE_SIZE, p * HISTORY_PAGE_SIZE - 1)
+      .returns<
+        {
+          id: number;
+          at: string;
+          actor: string;
+          action: string;
+          details: Json;
+          ip_hash: string | null;
+        }[]
+      >();
     const rows = many(res);
     const names = await namesOf(
       c.db,

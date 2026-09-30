@@ -42,6 +42,19 @@ export interface PlacedCard<T extends AdCard = AdCard> {
 }
 
 export const NEVER_SECTIONS: readonly string[] = ["politica", "seguranca", "saude"];
+
+/**
+ * A editoria (ou a categoria de autonomia dela, `sections.autonomy_category`) é Política,
+ * Segurança ou Saúde? Subeditoria herda: vale a categoria e também o prefixo do slug
+ * (`politica-municipal`). O banco confere a mesma coisa em `guard_sponsored_sections` (0048).
+ */
+export function isNeverSection(
+  slug: string,
+  categoryOf?: (slug: string) => string | undefined,
+): boolean {
+  const keys = [slug, categoryOf?.(slug)].filter((k): k is string => Boolean(k));
+  return keys.some((k) => NEVER_SECTIONS.some((n) => k === n || k.startsWith(`${n}-`)));
+}
 export const SLOT_EVERY = 6;
 
 /** Campanha vale hoje (dentro do período e ativa). */
@@ -56,6 +69,8 @@ export interface PlacementContext {
   now: Date;
   /** Teto por página (`ads.max_per_page`); padrão 1. */
   maxPerPage?: number;
+  /** Categoria de autonomia de uma editoria (`sections.autonomy_category`), para subeditorias. */
+  categoryOf?: (slug: string) => string | undefined;
 }
 
 /**
@@ -74,7 +89,7 @@ export function placeSponsored<T extends AdCard>(
     return { items, placed: 0, editorialCount };
   if (
     ctx.sectionSlug &&
-    (NEVER_SECTIONS.includes(ctx.sectionSlug) ||
+    (isNeverSection(ctx.sectionSlug, ctx.categoryOf) ||
       !campaign.allowedSections.includes(ctx.sectionSlug))
   )
     return { items, placed: 0, editorialCount };
@@ -88,7 +103,7 @@ export function placeSponsored<T extends AdCard>(
     c.urgent === true ||
     c.sensitive === true ||
     c.sponsored === true ||
-    NEVER_SECTIONS.includes(c.sectionSlug) ||
+    isNeverSection(c.sectionSlug, ctx.categoryOf) ||
     (ctx.sectionSlug === null && !campaign.allowedSections.includes(c.sectionSlug));
   for (let i = 0; i < cards.length; i++) {
     out.push({ card: cards[i]! });

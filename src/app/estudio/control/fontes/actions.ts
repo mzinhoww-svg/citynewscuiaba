@@ -559,7 +559,7 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     // aplicável mesmo depois de o campo ter sido restringido de novo (achado I-4 da revisão final;
     // o banco também deixa de consumir aprovação com mais de 24 h).
     const { data: asked } = await ctx.db
-      .from("audit_log")
+      .from("audit_log_view")
       .select("details")
       .eq("object_ref", objectRef)
       .eq("action", "source.approval_requested")

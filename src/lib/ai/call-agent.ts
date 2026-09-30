@@ -109,6 +109,14 @@ async function withinBudget(
   return mine < agent.dailyBudgetBrl && total < (deps.globalBudgetBrl ?? GLOBAL_DAILY_BUDGET_BRL);
 }
 
+/**
+ * Agentes que respondem ao leitor na busca com IA. Só eles obedecem `feature_flags.ai_enabled`
+ * ("Desligar busca com IA", A15): o pipeline (classify, locate, verify, write, image,
+ * aggregate_summary, embed) continua, como diz o runbook `ia-fora.md`. Pausar a publicação
+ * automática é outro botão (`auto_publish`). Gate do P5, achado 12.
+ */
+const SEARCH_AGENTS: ReadonlySet<string> = new Set(["answer"]);
+
 const refusal = (agent: string, model: string, error: AiError, promptVersion: number | null) =>
   ({
     agent_id: agent,
@@ -133,8 +141,8 @@ export function createCallAgent(deps: AiDeps): CallAgent {
 
   return async (agentId, input, schema, opts = {}) => {
     const agent = await deps.store.agent(agentId);
-    if (!agent || !agent.enabled || !agent.prompt || !(await deps.store.aiEnabled()))
-      return err("disabled");
+    if (!agent || !agent.enabled || !agent.prompt) return err("disabled");
+    if (SEARCH_AGENTS.has(agentId) && !(await deps.store.aiEnabled())) return err("disabled");
     const promptVersion = agent.prompt.version;
     const models = [agent.model, agent.fallback].filter(
       (m): m is AiModel => m !== null && m.active,
@@ -235,8 +243,7 @@ export function createEmbedder(deps: AiDeps & { dim?: number }): Embedder {
   return async (texts, opts = {}) => {
     if (texts.length === 0) return ok([]);
     const agent = await deps.store.agent(EMBED_AGENT);
-    if (!agent || !agent.enabled || !agent.model.active || !(await deps.store.aiEnabled()))
-      return err("disabled");
+    if (!agent || !agent.enabled || !agent.model.active) return err("disabled");
     const model = agent.model;
     if (!(await withinBudget(deps, agent))) {
       await deps.store.recordCall(refusal(EMBED_AGENT, model.id, "budget_exceeded", null));

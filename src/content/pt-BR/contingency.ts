@@ -119,6 +119,8 @@ export const CONTINGENCY_TEXT = {
     forbidden: "Só a administração usa a contingência.",
     needs_approval: "Religar a publicação automática exige aprovação de outra pessoa.",
     no_previous: "Não há versão aprovada anterior para voltar.",
+    rollback_loosens:
+      "A versão anterior é mais frouxa que a ativa (revisão, temas sensíveis ou exigências menores). Rollback direto não vale: proponha essa versão como nova em Regras, com aprovação de outra pessoa.",
     generic: "Não foi possível aplicar a ação. Tente de novo.",
     pending: "Já existe um pedido aberto para retomar a publicação automática.",
   },
