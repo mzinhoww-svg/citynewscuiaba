@@ -14,6 +14,7 @@ import {
   saveCampaignCommand,
   savePrivacyRequestCommand,
 } from "@/lib/studio/admin-ops";
+import { mergeTagsCommand } from "@/lib/studio/admin-taxonomy";
 import { inviteUserCommand } from "@/lib/studio/admin-users";
 import { decideApprovalCommand, requestApprovalCommand } from "@/lib/studio/approvals";
 import { proposeRulesCommand } from "@/lib/studio/rules";
@@ -110,6 +111,33 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
       }),
     );
     expect(proposed).toMatchObject({ ok: false, error: "invalid" });
+  });
+});
+
+describe("achado 8 · mesclar tag de tema sensível pela ação do Estúdio", () => {
+  it("recusa com mensagem clara e não reescreve nenhuma matéria", async () => {
+    const id = randomUUID();
+    const a = await service.from("articles").insert({
+      id,
+      slug: `gate-merge-${mark}`,
+      kind: "original",
+      section_slug: "cidade",
+      title: "Tag sensível",
+      dek: "Linha",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      tags: ["crime"],
+    });
+    expect(a.error).toBeNull();
+    try {
+      const r = await asUser("marina", () => mergeTagsCommand({ from: "crime", into: "cidade" }));
+      expect(r).toMatchObject({ ok: false, error: "invalid" });
+      expect(r.ok ? "" : r.message).toMatch(/tema sensível/);
+      const row = await service.from("articles").select("tags").eq("id", id).single();
+      expect(row.data?.tags).toEqual(["crime"]);
+    } finally {
+      await service.from("articles").delete().eq("id", id);
+    }
   });
 });
 

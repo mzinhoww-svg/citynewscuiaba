@@ -172,6 +172,8 @@ export const ADMIN_TEXT = {
     merge: "Mesclar",
     merged: (from: string, into: string, n: number) =>
       `“${from}” mesclada em “${into}”: ${n} ${plural(n, "vínculo preservado", "vínculos preservados")}.`,
+    mergeSensitive: (from: string) =>
+      `“${from}” é tema sensível das regras de autonomia: mesclar em outra tag faria os itens deixarem de ir para revisão. Só é possível mesclar em outra tag também sensível.`,
     mergeManual: "Mesclar duas tags",
     mergeFrom: "Tag que some",
     mergeTo: "Tag que fica",

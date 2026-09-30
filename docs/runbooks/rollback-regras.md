@@ -5,7 +5,7 @@
 ## O que acontece
 
 1. `rules_rollback()` desativa a versão ativa e reativa a **versão aprovada imediatamente anterior** (aprovada por pessoa diferente de quem propôs). Auditoria `rules.rollback` com `from`, `to` e motivo.
-2. Não pede aprovação nova: a versão de destino já passou pelas duas pessoas. Se não houver versão anterior aprovada, o botão não aparece e a função explica.
+2. Não pede aprovação nova quando a versão de destino é igual ou mais rígida que a ativa (já passou pelas duas pessoas). Se o destino for **mais frouxo** (revisão obrigatória desligada, tema sensível a menos, categoria mais automática, menos fontes, sem fonte primária, imagem ou confiança menos exigentes), `rules_rollback()` recusa com "rollback direto recusado": proponha o texto do destino como versão nova em Control Center → Regras (duas pessoas; gate do P5, achado 6). Se não houver versão anterior aprovada, o botão não aparece e a função explica.
 3. A versão desativada continua no histórico e pode ser proposta de novo (nova versão) em Control Center → Regras.
 4. As decisões já tomadas não mudam; para reavaliar itens, use "Reprocessar a partir de regras" em Control Center → Execuções.
 

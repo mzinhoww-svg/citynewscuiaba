@@ -347,6 +347,48 @@ describe("contingência: modo leitura e busca com IA", () => {
   });
 });
 
+describe("contingência: rollback de regras que afrouxa (gate P5, achado 6)", () => {
+  it("recusa voltar para versão com revisão obrigatória desligada e explica o caminho", async () => {
+    const base = 5_500_000 + Math.floor(Math.random() * 1e4);
+    const loose = base;
+    const strict = base + 1;
+    const looseBody = { ...DEFAULT_RULES, version: loose, forceReview: false };
+    must(
+      await service.from("rules").insert([
+        {
+          version: loose,
+          body: looseBody as unknown as NonNullable<Json>,
+          force_review: false,
+          proposed_by: SEED_USERS.diego.id,
+          approved_by: SEED_USERS.marina.id,
+          active: false,
+        },
+        {
+          version: strict,
+          body: { ...DEFAULT_RULES, version: strict } as unknown as NonNullable<Json>,
+          force_review: true,
+          proposed_by: SEED_USERS.diego.id,
+          approved_by: SEED_USERS.marina.id,
+          active: false,
+        },
+      ]),
+    );
+    must(await service.from("rules").update({ active: false }).eq("active", true));
+    must(await service.from("rules").update({ active: true }).eq("version", strict));
+    try {
+      const r = await run("rollback_rules");
+      expect(r).toMatchObject({ ok: false, error: "conflict" });
+      expect(r.ok ? "" : r.message).toMatch(/mais frouxa/);
+      const { data } = await service.from("rules").select("version").eq("active", true);
+      expect(data).toEqual([{ version: strict }]);
+    } finally {
+      must(await service.from("rules").update({ active: false }).in("version", [loose, strict]));
+      must(await service.from("rules").update({ active: true }).eq("version", 1));
+      await service.from("rules").delete().in("version", [loose, strict]);
+    }
+  });
+});
+
 describe("contingência: rollback de regras", () => {
   it("volta para a versão aprovada anterior; sem anterior, explica", async () => {
     const none = await run("rollback_rules");

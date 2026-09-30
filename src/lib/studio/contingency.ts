@@ -66,6 +66,8 @@ export const contingencyCommand = studioAction(
       const { data, error } = await ctx.db.rpc("rules_rollback");
       if (error) {
         if (error.code === "P0002") throw new StudioFailure("conflict", T.error.no_previous);
+        if (error.code === "42501" && /afrouxa/.test(error.message))
+          throw new StudioFailure("conflict", T.error.rollback_loosens);
         if (error.code === "42501") throw new StudioFailure("forbidden", T.error.forbidden);
         throw new Error(`rules_rollback: ${error.message}`);
       }
