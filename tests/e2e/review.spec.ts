@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { expectHydrated } from "./helpers/hydration";
 import { createArticle, loginAs, removeArticles, service, STAFF, tag } from "./studio";
 
 /*
@@ -28,6 +29,7 @@ test("aceitar sugestão de título marca origem IA e autor humano", async ({ pag
 
   await loginAs(page, "juliana");
   await page.goto(`/estudio/materias/${id}`);
+  await expectHydrated(page.getByRole("button", { name: "Aplicar título sugerido" }));
   await page.getByRole("button", { name: "Aplicar título sugerido" }).click();
   await expect(page.getByText(/Sugerido pela IA · aceito por Juliana/)).toBeVisible();
   await expect(page.getByLabel("Título", { exact: true })).toHaveValue(
@@ -45,6 +47,9 @@ test("salvar rascunho grava nova versão e marca edição humana", async ({ page
   created.push(id);
   await loginAs(page, "juliana");
   await page.goto(`/estudio/materias/${id}`);
+  // Sem hidratar, a hidratação devolve o título antigo ao campo e o salvamento não muda nada
+  // (versão 2 sem "Editado por", que só aparece para campo alterado).
+  await expectHydrated(page.getByLabel("Título", { exact: true }));
   await page.getByLabel("Título", { exact: true }).fill(`Rascunho salvo pela redação ${t}`);
   await page.getByRole("button", { name: "Salvar rascunho" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Rascunho salvo" })).toContainText(

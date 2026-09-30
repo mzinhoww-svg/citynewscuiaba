@@ -19,6 +19,12 @@ export interface ButtonProps {
   type?: "button" | "submit";
   /** Com `href`, o botão vira link (mesma aparência). */
   href?: string;
+  /**
+   * Com `href`, o link baixa um arquivo (rota que responde `Content-Disposition: attachment`):
+   * renderiza um `<a download>` comum, sem a navegação do roteador do Next (que faz uma busca
+   * RSC e só depois navega, o que o WebKit não trata como download).
+   */
+  download?: boolean;
   /** Estado alternável (Seguir/Seguindo, Salvar). */
   pressed?: boolean;
   /** Botão de envio com outra Server Action no mesmo formulário (ex.: "Receber link por e-mail"). */
@@ -74,6 +80,7 @@ export function Button({
   disabled = false,
   type = "button",
   href,
+  download = false,
   pressed,
   formAction,
   onClick,
@@ -107,6 +114,13 @@ export function Button({
     </>
   );
 
+  if (href && !disabled && download) {
+    return (
+      <a id={id} href={href} download className={classes} style={style} aria-label={ariaLabel}>
+        {content}
+      </a>
+    );
+  }
   if (href && !disabled) {
     return (
       <Link id={id} href={href} className={classes} style={style} aria-label={ariaLabel}>

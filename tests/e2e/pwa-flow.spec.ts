@@ -28,8 +28,6 @@ test.skip(
 test.use({ channel: "chromium" });
 
 const SALVA = "prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
-const ART_CIDADE = "c2000000-0000-4000-8000-000000000002";
-const ART_CULTURA = "c2000000-0000-4000-8000-000000000003";
 const created: string[] = [];
 const sends: string[] = [];
 const endpoints: string[] = [];
@@ -56,11 +54,17 @@ async function ready(page: Page) {
   await expect(page.locator('[data-ready="true"]').first()).toBeAttached();
 }
 
-/** Envio `follow` em andamento para uma matéria do seed: o recibo só vale com `started_at` em 48 h. */
-async function seedSend(
-  articleId = ART_CIDADE,
-): Promise<{ id: string; slug: string; tagValue: string }> {
+/**
+ * Envio `follow` em andamento: o recibo só vale com `started_at` em 48 h. Cada chamada cria a sua
+ * matéria, porque `push_sends_follow_article_uidx` admite um só `follow` por matéria e os projetos
+ * desktop/mobile (e `--repeat-each`) rodam este spec ao mesmo tempo.
+ */
+async function seedSend(): Promise<{ id: string; slug: string; tagValue: string }> {
   const db = serviceClient();
+  const articleId = await createArticle({
+    title: `Chuva forte ${tag()}`,
+  });
+  created.push(articleId);
   const { data: a } = await db.from("articles").select("slug").eq("id", articleId).single();
   const tagValue = articleId.replace(/-/g, "");
   const { data, error } = await db
@@ -227,7 +231,7 @@ test("Só o necessário: nenhum evento do app e nenhum recibo (Review Focus 5)",
   test.slow();
   await context.grantPermissions(["notifications"], { origin: baseURL! });
   await consent(context, baseURL!, false);
-  const send = await seedSend(ART_CULTURA);
+  const send = await seedSend();
   const marker = `/flow-${randomUUID().slice(0, 8)}`;
   await page.goto(`/?ref=${marker.slice(1)}`);
   await swReady(page);
@@ -386,14 +390,21 @@ test("jornada: seguir bairro Morada da Serra, ativar avisos, publicar matéria d
     const got = (await receivedByFakeServer()).filter((r) => r.path === `/flow/${t}`);
     expect(got.length).toBeGreaterThanOrEqual(1);
     expect(got[0]!.bytes).toBeGreaterThan(0);
-    const { data: send } = await serviceClient()
-      .from("push_sends")
-      .select("kind, status, targets_n, accepted_n, sent_measurable_n")
-      .eq("article_id", id)
-      .single();
+    // O servidor falso recebe o POST antes de o worker gravar o aceite no envio: espera os
+    // contadores em vez de lê-los uma vez (senão vira corrida entre o POST e o `update`).
+    const sendRow = () =>
+      serviceClient()
+        .from("push_sends")
+        .select("kind, status, targets_n, accepted_n, sent_measurable_n")
+        .eq("article_id", id)
+        .single()
+        .then((r) => r.data);
+    await expect
+      .poll(async () => (await sendRow())?.accepted_n ?? 0, { timeout: 20_000 })
+      .toBeGreaterThanOrEqual(1);
+    const send = await sendRow();
     expect(send).toMatchObject({ kind: "follow" });
     expect(send!.targets_n).toBeGreaterThanOrEqual(1);
-    expect(send!.accepted_n).toBeGreaterThanOrEqual(1);
     expect(send!.sent_measurable_n).toBeGreaterThanOrEqual(1);
   } finally {
     await reader.context().close();

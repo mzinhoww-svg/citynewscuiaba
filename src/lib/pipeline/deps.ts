@@ -53,7 +53,7 @@ export function productionMediaStore(db: ReturnType<typeof createServiceClient>)
 }
 
 /** Handlers de produção por etapa. As etapas entram aqui conforme as tarefas do P3. */
-export function productionHandlers(): StepHandlers {
+export function productionHandlers(pushNow: () => Date = () => new Date()): StepHandlers {
   const http: HttpFetch = (url, init) => fetch(url, init);
   const db = createServiceClient();
   const ai = createProductionAi();
@@ -102,15 +102,18 @@ export function productionHandlers(): StepHandlers {
     ...createPushSteps({
       store: createPushSendStore(db),
       sender: pushSender(),
-      now: () => new Date(),
+      now: pushNow,
     }),
   };
 }
 
 /** Pré-etapa do drain: despacho de envios aprovados, agendados e entregas adiadas (G7). */
-export function pushDispatchDue(db = createServiceClient()): () => Promise<void> {
+export function pushDispatchDue(
+  db = createServiceClient(),
+  now: () => Date = () => new Date(),
+): () => Promise<void> {
   return async () => {
-    const { error } = await db.rpc("push_dispatch_due", { p_now: new Date().toISOString() });
+    const { error } = await db.rpc("push_dispatch_due", { p_now: now().toISOString() });
     if (error) throw new Error(`push_dispatch_due: ${error.message}`);
   };
 }
@@ -148,14 +151,16 @@ export function defaultCollectNowDeps(actor: string): CollectNowDeps {
   };
 }
 
-export function defaultDrainDeps(): DrainDeps & { secret: string | undefined } {
+export function defaultDrainDeps(
+  pushNow: () => Date = () => new Date(),
+): DrainDeps & { secret: string | undefined } {
   return {
     queue: pipelineQueue(),
-    runStep: createRunStep(productionHandlers()),
+    runStep: createRunStep(productionHandlers(pushNow)),
     events: createEventSink(createServiceClient()),
     // `fetch` esgotado varrido para a quarentena conta a falha final da fonte (D-F18).
     onExhausted: createExhaustedFetchHandler({ repo: createIngestRepo(createServiceClient()) }),
-    beforeDrain: pushDispatchDue(),
+    beforeDrain: pushDispatchDue(createServiceClient(), pushNow),
     now: () => Date.now(),
     secret: process.env.CRON_SECRET,
   };

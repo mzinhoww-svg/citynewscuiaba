@@ -76,20 +76,28 @@ test("6ª denúncia na mesma hora é recusada com mensagem clara", async ({ page
   await expect(page.getByRole("status")).toHaveCount(0);
 });
 
-test("aviso de atualização durante a leitura", async ({ page }) => {
-  await page.clock.install();
-  await page.route(`**/api/materia/${SLUG}/atualizacao`, (route) =>
-    route.fulfill({ json: { updatedAt: "2030-01-01T18:32:00Z" } }),
-  );
-  await page.goto(`/materia/${SLUG}`);
-  await expect(page.locator("[data-polling='on']")).toHaveCount(1);
-  await page.clock.fastForward("01:55");
-  await expect(page.getByRole("status")).toHaveCount(0);
-  await page.clock.fastForward("00:10");
-  await expect(page.getByRole("status")).toContainText("Esta matéria foi atualizada às 14h32");
-  await expect(
-    page.getByRole("status").getByRole("link", { name: "ver o que mudou" }),
-  ).toBeVisible();
+test.describe("polling com relógio falso", () => {
+  // O SW da página (WebKit) responde ao `fetch` do polling e `page.route` não alcança requisições
+  // do SW (só o Chromium tem PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS, playwright.config.ts):
+  // conforme a hora em que o SW assume a página, a rota falsa é ignorada. Este teste é do
+  // polling, não do SW.
+  test.use({ serviceWorkers: "block" });
+
+  test("aviso de atualização durante a leitura", async ({ page }) => {
+    await page.clock.install();
+    await page.route(`**/api/materia/${SLUG}/atualizacao`, (route) =>
+      route.fulfill({ json: { updatedAt: "2030-01-01T18:32:00Z" } }),
+    );
+    await page.goto(`/materia/${SLUG}`);
+    await expect(page.locator("[data-polling='on']")).toHaveCount(1);
+    await page.clock.fastForward("01:55");
+    await expect(page.getByRole("status")).toHaveCount(0);
+    await page.clock.fastForward("00:10");
+    await expect(page.getByRole("status")).toContainText("Esta matéria foi atualizada às 14h32");
+    await expect(
+      page.getByRole("status").getByRole("link", { name: "ver o que mudou" }),
+    ).toBeVisible();
+  });
 });
 
 test("rota de atualização responde o updated_at público", async ({ request }) => {

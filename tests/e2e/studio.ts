@@ -30,10 +30,14 @@ export type Staff = keyof typeof STAFF;
 export async function loginAs(page: Page, who: Staff, next = "/estudio") {
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto(`/entrar?next=${encodeURIComponent(next)}`);
+  // Formulário hidratado (`data-ready`): antes disso o WebKit perde a senha digitada ou envia o
+  // formulário sem o `onSubmit` do cliente.
+  await expect(page.locator('form[data-ready="true"]')).toBeAttached();
   await page.getByLabel("E-mail", { exact: true }).fill(STAFF[who].email);
   await page.getByLabel("Senha", { exact: true }).fill(SEED_PASSWORD);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${next.replace(/[?]/g, "\\?")}$`));
+  // O primeiro login depois da subida do servidor (auth + Newsroom) passa de 5 s em máquina lenta.
+  await expect(page).toHaveURL(new RegExp(`${next.replace(/[?]/g, "\\?")}$`), { timeout: 20_000 });
 }
 
 export function service() {

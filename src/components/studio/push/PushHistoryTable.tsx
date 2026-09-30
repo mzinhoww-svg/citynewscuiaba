@@ -125,6 +125,7 @@ export function PushHistoryTable({
         </Button>
         <Button
           href={`${basePath}/exportar?${historyQuery(filter, 1)}`}
+          download
           size="md"
           variant="outline"
           icon="download"

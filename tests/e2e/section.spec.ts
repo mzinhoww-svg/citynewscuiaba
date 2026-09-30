@@ -64,16 +64,24 @@ test("filtros vão para a URL e o Voltar restaura", async ({ page }) => {
   await expect(page.getByLabel("Bairro")).toHaveValue("");
 });
 
-test("pílula de novas matérias aparece pelo polling de 60 s", async ({ page }) => {
-  await page.clock.install();
-  await page.route("**/api/editoria/cidade/novas**", (route) =>
-    route.fulfill({ json: { count: 2 } }),
-  );
-  await page.goto("/cidade?periodo=tudo");
-  await expect(page.locator("[data-polling='on']")).toHaveCount(1);
-  await expect(page.getByRole("button", { name: /novas matérias/ })).toHaveCount(0);
-  await page.clock.fastForward("01:05");
-  await expect(page.getByRole("button", { name: "2 novas matérias · mostrar" })).toBeVisible();
+test.describe("polling com relógio falso", () => {
+  // O SW da página (WebKit) responde ao `fetch` do polling e `page.route` não alcança requisições
+  // do SW (só o Chromium tem PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS, playwright.config.ts):
+  // conforme a hora em que o SW assume a página, a rota falsa é ignorada. Este teste é do
+  // polling, não do SW.
+  test.use({ serviceWorkers: "block" });
+
+  test("pílula de novas matérias aparece pelo polling de 60 s", async ({ page }) => {
+    await page.clock.install();
+    await page.route("**/api/editoria/cidade/novas**", (route) =>
+      route.fulfill({ json: { count: 2 } }),
+    );
+    await page.goto("/cidade?periodo=tudo");
+    await expect(page.locator("[data-polling='on']")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: /novas matérias/ })).toHaveCount(0);
+    await page.clock.fastForward("01:05");
+    await expect(page.getByRole("button", { name: "2 novas matérias · mostrar" })).toBeVisible();
+  });
 });
 
 test("rota de novas valida o parâmetro e conta", async ({ request }) => {

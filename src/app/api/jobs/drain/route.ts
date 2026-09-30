@@ -1,4 +1,5 @@
 import { defaultDrainDeps } from "@/lib/pipeline/deps";
+import { pushClockFromRequest } from "@/lib/push/clock";
 import { handleDrain } from "@/lib/pipeline/drain";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 
@@ -11,5 +12,5 @@ export const maxDuration = 60;
 export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
-  return handleDrain(req, defaultDrainDeps());
+  return handleDrain(req, defaultDrainDeps(pushClockFromRequest(req.headers)));
 }
