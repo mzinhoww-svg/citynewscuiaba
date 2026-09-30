@@ -413,11 +413,16 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
     expect((await send(req.data as string)).status).toBe("expired");
   });
 
-  it("403 do serviço pausa o envio e abre o alerta no Control Center (G8)", async () => {
+  it("403 em massa (5+ inscrições, metade do lote) pausa o envio e abre o alerta (G8, PWA-02)", async () => {
     await db.from("notifications").delete().eq("dedupe_key", "push-vapid-invalid");
-    await insertSub([`bairro:${HOOD}`], "badkey");
-    server.respond(`/${run}/badkey`, 403);
-    const art = await draft();
+    const hood = `${HOOD}v`;
+    const bad = ["k1", "k2", "k3", "k4", "k5"];
+    for (const k of bad) {
+      await insertSub([`bairro:${hood}`], k);
+      server.respond(`/${run}/${k}`, 403);
+    }
+    await insertSub([`bairro:${hood}`], "vok");
+    const art = await draft("cidade", { neighborhoods: [hood] });
     await publishAs("human", art);
     await drainOnce();
     expect((await followSendOf(art))!).toMatchObject({
@@ -431,6 +436,22 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
     expect(n).toEqual([
       { title: "Chaves VAPID inválidas", severity: "critical", channel: "control_center" },
     ]);
-    server.respond(`/${run}/badkey`, 201);
+    for (const k of bad) server.respond(`/${run}/${k}`, 201);
   });
+
+  it("403 isolado remove só a inscrição e o envio conclui (PWA-02)", async () => {
+    const hood = `${HOOD}w`;
+    const badId = await insertSub([`bairro:${hood}`], "iso-bad");
+    server.respond(`/${run}/iso-bad`, 403);
+    await insertSub([`bairro:${hood}`], "iso-ok");
+    const art = await draft("cidade", { neighborhoods: [hood] });
+    await publishAs("human", art);
+    await drainOnce();
+    expect((await followSendOf(art))!.status).toBe("sent");
+    expect(received("iso-ok")).toBe(1);
+    const { data } = await db.from("push_subscriptions").select("id").eq("id", badId);
+    expect(data).toEqual([]);
+    server.respond(`/${run}/iso-bad`, 201);
+  });
+
 });

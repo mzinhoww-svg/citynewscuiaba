@@ -12,7 +12,14 @@ import {
   cuiabaDay,
 } from "../rules";
 import type { Audience, PushKind, TargetKey } from "../types";
-import type { DeliverySub, DueDelivery, PushArticle, PushSend, PushSendStore } from "./store";
+import {
+  ORPHAN_AFTER_MS,
+  type DeliverySub,
+  type DueDelivery,
+  type PushArticle,
+  type PushSend,
+  type PushSendStore,
+} from "./store";
 
 export interface MemorySub extends DeliverySub {
   targets: TargetKey[];
@@ -37,6 +44,7 @@ export interface MemoryDelivery {
   attempts: number;
   http: number | null;
   error: string | null;
+  createdAt: string;
 }
 
 export interface MemoryPushStore extends PushSendStore {
@@ -166,7 +174,7 @@ export function memoryPushStore(
     async ensureFollowSend(a) {
       const existing = [...sends.values()].find((s) => s.kind === "follow" && s.articleId === a.id);
       if (existing) return existing;
-      if (a.urgent || a.sponsored || a.status !== "published") return null;
+      if (a.urgent || a.sponsored || !["published", "updated"].includes(a.status)) return null;
       const id = `send-${++sendSeq}`;
       store.addSend({
         id,
@@ -248,6 +256,7 @@ export function memoryPushStore(
         attempts: 0,
         http: null,
         error: null,
+        createdAt: now.toISOString(),
       };
       if (d.outcome === "ok") {
         deliveries.push({ ...base, status: "queued" });
@@ -306,6 +315,8 @@ export function memoryPushStore(
     },
     async cancelSend(sendId, reason) {
       const send = sends.get(sendId)!;
+      // Como no banco: só envio ainda vivo (um `sent` não volta atrás).
+      if (!["queued", "scheduled", "dispatching", "paused"].includes(send.status)) return;
       send.status = "cancelled";
       send.reason = reason;
     },
@@ -317,8 +328,12 @@ export function memoryPushStore(
       const t = now.getTime();
       const out: DueDelivery[] = [];
       for (const d of deliveries) {
-        if (d.sendId !== sendId || !d.notBefore || Date.parse(d.notBefore) > t) continue;
-        if (!((d.status === "queued" && d.attempts > 0) || d.status === "deferred")) continue;
+        if (d.sendId !== sendId || !["queued", "deferred"].includes(d.status)) continue;
+        const orphan =
+          d.status === "queued" &&
+          d.attempts === 0 &&
+          Date.parse(d.createdAt) < t - ORPHAN_AFTER_MS;
+        if (!orphan && (!d.notBefore || Date.parse(d.notBefore) > t)) continue;
         const s = subs.find((x) => x.id === d.subId && !x.removed);
         if (!s) continue;
         out.push({
@@ -356,6 +371,11 @@ export function memoryPushStore(
       s.dayKey = cuiabaDay(now);
       s.dayCount = count + 1;
       return "ok";
+    },
+    async expirePending(sendId) {
+      for (const d of deliveries)
+        if (d.sendId === sendId && (d.status === "queued" || d.status === "deferred"))
+          Object.assign(d, { status: "expired", skipReason: "expired" });
     },
     async notifyVapidInvalid() {
       notifications.push({ title: "Chaves VAPID inválidas", severity: "critical" });
