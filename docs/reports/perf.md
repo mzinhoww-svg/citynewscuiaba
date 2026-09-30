@@ -122,9 +122,10 @@ Medidas que ainda rendem ~1 a 3 kB por rota, se o gate exigir: carregar `ReportP
 
 ## 6. Verificação
 
-- `pnpm verify` (lint, typecheck, vitest unitário e de integração, build): ver o resultado no relatório final da task.
-- Vitest: 2211 testes passando na última rodada completa (antes dos dois últimos commits de ajuste); os arquivos tocados foram reexecutados depois.
-- Playwright (desktop e mobile, Chromium) nas rotas públicas e em `tests/a11y`: 958 passaram, 30 ignorados, 12 falharam na primeira rodada; as falhas eram minhas (faixa offline lazy, sync do push em `/alertas`, `content-visibility` na home) e foram corrigidas e reexecutadas com sucesso; um teste (`pwa-flow` "Só o necessário") falhou uma vez por tempo e passou 6 de 6 ao repetir.
+- `pnpm verify` (lint, typecheck, vitest unitário e de integração, build): verde; 257 arquivos e 2214 testes passando.
+- Playwright (desktop e mobile, Chromium; home, matéria, agregados, agenda, leitura anônima, consentimento, instalação, convites de login, migração, favoritos e alertas, newsletter, offline, privacidade, push, PWA, busca, editorias, SEO, shell, fonte, fontes, estados do sistema, assunto, versões, relatos, explorar, pergunte, teclado e todo `tests/a11y` com axe): 969 passaram, 30 ignorados, 1 falhou.
+- A falha é `pwa-flow.spec.ts` "push entregue mostra o aviso…" (espera a notificação do payload inválido). É instável no código de origem também: no commit `238ea3c`, 4 de 12 repetições falharam; no branch, 3 de 12 (e 0 de 12 nas rodadas anteriores em outros testes do mesmo arquivo). Não tem relação com esta task; vale um ticket próprio.
+- Na primeira rodada completa houve 12 falhas minhas (faixa offline lazy, sync do push em `/alertas`, `content-visibility` na home); foram corrigidas e as rotas reexecutadas com sucesso antes da rodada final acima.
 
 ## 7. Sugestão para o B-018 (não editei `.planning/`)
 
