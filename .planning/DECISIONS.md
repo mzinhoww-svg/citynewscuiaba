@@ -122,3 +122,6 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 ## A-096 · Modelo padrão dos subagentes após o limite do Fable
 - Instrução do dono (30/09/2026): enquanto o limite semanal do Fable durar, subagentes usam `model: "fable"`; quando acabar (erro 429 de limite de sessão/semanal), passar a usar `sonnet` (Sonnet 5.5) com esforço baixo como padrão.
 - Aplicação: nas próximas chamadas de `Agent`, definir `model: "sonnet"` e pedir respostas objetivas; agentes que falharem por limite são retomados via SendMessage já no novo modelo. Revisões de gate continuam pedindo leitura cuidadosa mesmo em esforço baixo.
+
+## A-097 · 0047 (correções do gate do PWA) em produção
+- Aplicada `0047_push_gate_fixes` com `list_migrations` conferido antes. Na transcrição do `push_dispatch_due` o `itemRef` do job `push_due` saiu errado (`push:` em vez de `due:`); corrigido na hora por `execute_sql` com a função do arquivo. Conferência posterior: hash normalizado (sem comentários e espaços) das 7 funções da 0047 em produção = banco local recriado do repositório. Lição: conferir por hash após aplicar migration grande por colagem.
