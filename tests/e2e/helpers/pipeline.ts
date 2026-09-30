@@ -182,10 +182,15 @@ export async function runsFor(sourceId: string, trigger: string) {
   return data;
 }
 
-async function cronPost(baseURL: string, path: string, secret?: string) {
+async function cronPost(
+  baseURL: string,
+  path: string,
+  secret?: string,
+  extraHeaders: Record<string, string> = {},
+) {
   const res = await fetch(`${baseURL}${path}`, {
     method: "POST",
-    headers: secret ? { authorization: `Bearer ${secret}` } : {},
+    headers: { ...(secret ? { authorization: `Bearer ${secret}` } : {}), ...extraHeaders },
   });
   const text = await res.text();
   let body: unknown = text;
@@ -199,8 +204,8 @@ async function cronPost(baseURL: string, path: string, secret?: string) {
 
 export const fastTick = (baseURL: string, secret?: string) =>
   cronPost(baseURL, "/api/ingest/fast-tick", secret);
-export const drain = (baseURL: string, secret?: string) =>
-  cronPost(baseURL, "/api/jobs/drain", secret);
+export const drain = (baseURL: string, secret?: string, extraHeaders?: Record<string, string>) =>
+  cronPost(baseURL, "/api/jobs/drain", secret, extraHeaders);
 export const ingestStatus = async (baseURL: string, secret: string) => {
   const res = await fetch(`${baseURL}/api/ingest/status`, {
     headers: { authorization: `Bearer ${secret}` },

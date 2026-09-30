@@ -161,9 +161,22 @@ export function stubPushManager(page: Page, endpoint: string) {
   );
 }
 
-/** Roda o `drain` (com `push_dispatch_due` antes) no servidor alvo. */
+/**
+ * Instante em que o servidor deve avaliar as regras de push: o real, exceto dentro da janela de
+ * silêncio da plataforma (22h–7h de Cuiabá), quando volta ao meio-dia (12h) mais recente. Assim as
+ * jornadas testam entrega, não a hora do runner; a regra de silêncio segue coberta por
+ * `src/lib/push/rules.test.ts` e pelo caso de adiar em `tests/integration/push-*.test.ts`.
+ */
+export function daytimeNow(real: Date = new Date()): Date {
+  const cuiabaHour = (real.getUTCHours() + 24 - 4) % 24;
+  if (cuiabaHour >= 7 && cuiabaHour < 22) return real;
+  const back = cuiabaHour >= 22 ? cuiabaHour - 12 : cuiabaHour + 12;
+  return new Date(real.getTime() - back * 3_600_000);
+}
+
+/** Roda o `drain` (com `push_dispatch_due` antes) no servidor alvo, num horário fora do silêncio. */
 export async function drainAndDispatch(baseURL: string) {
-  const r = await drain(baseURL, cronSecret());
+  const r = await drain(baseURL, cronSecret(), { "x-cn-e2e-now": daytimeNow().toISOString() });
   if (r.status !== 200) throw new Error(`drain: ${r.status} ${JSON.stringify(r.body)}`);
   return r.body;
 }
