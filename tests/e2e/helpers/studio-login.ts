@@ -17,6 +17,9 @@ export const STAFF = {
   helena: "helena.costa@citynews.local", // admin
   marina: "marina.arruda@citynews.local", // editor_chefe
   otavio: "otavio.reis@citynews.local", // editor
+  juliana: "juliana.campos@citynews.local", // jornalista
+  beatriz: "beatriz.lemos@citynews.local", // revisor
+  carlos: "carlos.nunes@citynews.local", // moderador
   diego: "diego.prado@citynews.local", // operador_ia
   thiago: "thiago.moraes@citynews.local", // analista (sem source.manage)
   paulo: "paulo.rezende@citynews.local", // leitura
@@ -47,6 +50,14 @@ function supabaseEnv(): { url: string; anonKey: string } {
  * para o `createServerClient` do servidor ler a sessão na primeira requisição.
  */
 export async function sessionCookies(who: StaffKey): Promise<{ name: string; value: string }[]> {
+  return sessionCookiesFor(STAFF[who], SEED_PASSWORD);
+}
+
+/** Igual a `sessionCookies`, para qualquer conta local (por exemplo, leitor criado no teste). */
+export async function sessionCookiesFor(
+  email: string,
+  password: string,
+): Promise<{ name: string; value: string }[]> {
   const { url, anonKey } = supabaseEnv();
   const jar = new Map<string, string>();
   const client = createServerClient(url, anonKey, {
@@ -61,10 +72,10 @@ export async function sessionCookies(who: StaffKey): Promise<{ name: string; val
     },
   });
   const { error } = await client.auth.signInWithPassword({
-    email: STAFF[who],
-    password: SEED_PASSWORD,
+    email,
+    password,
   });
-  if (error) throw new Error(`login de ${who} falhou: ${error.message}`);
+  if (error) throw new Error(`login de ${email} falhou: ${error.message}`);
   return [...jar].map(([name, value]) => ({ name, value }));
 }
 
@@ -81,7 +92,15 @@ export async function loginAs(
   who: StaffKey,
   baseURL: string = defaultBaseUrl(),
 ): Promise<void> {
-  const cookies = await sessionCookies(who);
+  await addSessionCookies(context, await sessionCookies(who), baseURL);
+}
+
+/** Grava os cookies de sessão no contexto (host do `baseURL`). */
+export async function addSessionCookies(
+  context: BrowserContext,
+  cookies: { name: string; value: string }[],
+  baseURL: string = defaultBaseUrl(),
+): Promise<void> {
   const { hostname } = new URL(baseURL);
   await context.addCookies(
     cookies.map((c) => ({
