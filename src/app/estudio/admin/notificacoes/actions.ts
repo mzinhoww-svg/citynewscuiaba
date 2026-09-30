@@ -168,7 +168,7 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
     .eq("id", articleId)
     .maybeSingle();
   if (!article) return fail(T.errors.article_invalid, { articleId: T.errors.article_invalid });
-  if (article.status !== "published" || article.sponsored)
+  if (!["published", "updated"].includes(article.status) || article.sponsored)
     return fail(T.errors.article_invalid, { articleId: T.errors.article_invalid });
   if (!pushKindsFor(ctx.roles, article.section_slug).includes(kind))
     return fail(T.errors.forbidden);

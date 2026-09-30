@@ -23,6 +23,7 @@ export const MAX_BODY_BYTES = 4 * 1024;
 export const LIMITS = {
   subscribe: { bucket: "push-sub", limit: 10, windowSec: 3600 },
   patch: { bucket: "push-patch", limit: 60, windowSec: 3600 },
+  patchIp: { bucket: "push-patch-ip", limit: 120, windowSec: 3600 },
   remove: { bucket: "push-del", limit: 20, windowSec: 3600 },
   rotate: { bucket: "push-rotate", limit: 10, windowSec: 3600 },
   receipt: { bucket: "push-receipt", limit: 120, windowSec: 3600 },
@@ -140,10 +141,13 @@ async function gate(
   deps: PushApiDeps,
   limit: { bucket: string; limit: number; windowSec: number },
   keySuffix?: string,
+  /** Apagar e alterar a própria inscrição valem sem chaves VAPID (LGPD, PWA-15). */
+  requireEnabled = true,
 ): Promise<Gate> {
   if (!originOk(req, deps.siteOrigin))
     return { ok: false, res: error(403, "origem não permitida") };
-  if (!deps.enabled) return { ok: false, res: error(503, "avisos indisponíveis") };
+  if (requireEnabled && !deps.enabled)
+    return { ok: false, res: error(503, "avisos indisponíveis") };
   if (!deps.salt) return { ok: false, res: error(503, "indisponível") };
   const key = keySuffix ?? ipKey(clientIp(req.headers), deps.now(), deps.salt);
   const bucket = keySuffix ? `${limit.bucket}:${keySuffix}` : limit.bucket;
@@ -219,6 +223,8 @@ export async function handleSubscribe(req: Request, deps: PushApiDeps): Promise<
   return json(201, { id, token });
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 async function owned(req: Request, id: string, deps: PushApiDeps): Promise<SubscriptionRow | null> {
   const row = await deps.store.get(id);
   if (!row || !tokenMatches(bearer(req), row.tokenHash)) return null;
@@ -227,7 +233,11 @@ async function owned(req: Request, id: string, deps: PushApiDeps): Promise<Subsc
 
 /** PATCH /api/push/subscriptions/:id */
 export async function handlePatch(req: Request, id: string, deps: PushApiDeps): Promise<Response> {
-  const g = await gate(req, deps, LIMITS.patch, id);
+  // Id que não é UUID nunca existe: 404 sem gravar no rate limit (PWA-05).
+  if (!UUID_RE.test(id)) return error(404, "inscrição não encontrada");
+  const ip = await gate(req, deps, LIMITS.patchIp, undefined, false);
+  if (!ip.ok) return ip.res;
+  const g = await gate(req, deps, LIMITS.patch, id, false);
   if (!g.ok) return g.res;
   const row = await owned(req, id, deps);
   if (!row) return error(404, "inscrição não encontrada");
@@ -249,7 +259,8 @@ export async function handlePatch(req: Request, id: string, deps: PushApiDeps): 
 
 /** DELETE /api/push/subscriptions/:id */
 export async function handleDelete(req: Request, id: string, deps: PushApiDeps): Promise<Response> {
-  const g = await gate(req, deps, LIMITS.remove);
+  if (!UUID_RE.test(id)) return error(404, "inscrição não encontrada");
+  const g = await gate(req, deps, LIMITS.remove, undefined, false);
   if (!g.ok) return g.res;
   const row = await owned(req, id, deps);
   if (!row) return error(404, "inscrição não encontrada");

@@ -660,7 +660,7 @@ export async function searchArticles(q: string, roles: RoleGrant[]): Promise<Art
     let query = db
       .from("articles")
       .select("id, slug, title, dek, section_slug, published_at, publish_mode, kind, urgent")
-      .eq("status", "published")
+      .in("status", ["published", "updated"])
       .eq("sponsored", false)
       .order("published_at", { ascending: false })
       .limit(10);
