@@ -791,5 +791,17 @@
     "fix": "841a029",
     "report": "docs/reports/painel-fontes.md",
     "date": "2026-09-28"
+  },
+  "pwa": {
+    "spec": "docs/superpowers/specs/2026-09-28-pwa-notificacoes-design.md",
+    "plan": "docs/superpowers/plans/2026-09-28-pwa-notificacoes.md",
+    "status": "tasks_done_gate_pending",
+    "tasks": {
+      "total": 15,
+      "done": 15
+    },
+    "lastCommit": "c66b639",
+    "migrations": "0040-0045 em produção (+0046)",
+    "report": "docs/reports/pwa.md"
   }
 }
