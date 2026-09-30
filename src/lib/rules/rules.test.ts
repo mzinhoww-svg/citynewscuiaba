@@ -21,6 +21,20 @@ it("tema sensível vence tudo", () =>
   ));
 it("segurança bloqueada retém", () =>
   expect(d({ ...ok, category: "seguranca" }, open).route).toBe("hold"));
+it("Segurança nunca publica sozinha, mesmo com modo auto adulterado nos dados (gate P5, achado 7)", () => {
+  const forced = {
+    ...open,
+    categories: {
+      ...open.categories,
+      seguranca: { ...open.categories.seguranca!, mode: "auto" as const },
+      "seguranca-urbana": { ...open.categories.servicos!, mode: "auto_notify" as const },
+    },
+  };
+  const c = { ...ok, category: "seguranca", confidenceScore: 1, independentSources: 5 };
+  expect(d(c, forced)).toMatchObject({ route: "hold", rule: "blocked" });
+  expect(d({ ...c, category: "Segurança" }, forced).route).toBe("hold");
+  expect(d({ ...c, category: "seguranca-urbana" }, forced).route).toBe("hold");
+});
 it("conflito central revisão", () =>
   expect(
     d(

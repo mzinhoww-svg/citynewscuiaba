@@ -1,5 +1,11 @@
 import { err, ok, type Result } from "@/lib/result";
-import { decidePublication, type Candidate, type Route, type RuleSet } from "./index";
+import {
+  decidePublication,
+  isSafetyCategory,
+  type Candidate,
+  type Route,
+  type RuleSet,
+} from "./index";
 
 /**
  * Simulação e comparação de versões das regras de autonomia (P5-T2, Review Focus 5). Funções
@@ -52,6 +58,8 @@ export function validateRuleSet(r: RuleSet): Result<RuleSet, string> {
   for (const [key, c] of cats) {
     if (!/^[a-z0-9-]+$/.test(key)) return err(`Categoria "${key}" inválida.`);
     if (!MODES.has(c.mode)) return err(`${key}: modo inválido.`);
+    if (isSafetyCategory(key) && c.mode !== "blocked")
+      return err("Segurança nunca publica sozinha: a categoria fica em modo bloqueado.");
     if (!isCount(c.minSources) || c.minSources > 10)
       return err(`${key}: mínimo de fontes de 0 a 10.`);
     if (c.minScore !== null && !isScore(c.minScore))
@@ -61,6 +69,14 @@ export function validateRuleSet(r: RuleSet): Result<RuleSet, string> {
   }
   if (r.sensitiveTopics.some((t) => !t.trim())) return err("Tema sensível vazio.");
   return ok(r);
+}
+
+/**
+ * A proposta tira tema sensível da lista em vigor? Isso enfraquece a retenção e abre pedido
+ * `safety.disable` (admin aprova), não um `rules.activate` comum (gate do P5, achado 7).
+ */
+export function weakensSafety(current: RuleSet, next: RuleSet): boolean {
+  return current.sensitiveTopics.some((t) => !next.sensitiveTopics.includes(t));
 }
 
 export interface RuleChange {

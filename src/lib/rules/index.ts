@@ -59,6 +59,15 @@ function sensitiveMatch(tag: string, term: string): boolean {
   return false;
 }
 
+/**
+ * Segurança e a subárvore dela (`seguranca-*`) nunca publicam sozinhas (CLAUDE.md §5.8): trava
+ * dura no código, independente do modo que estiver na tabela de regras.
+ */
+export const isSafetyCategory = (category: string): boolean => {
+  const key = normalize(category);
+  return key === "seguranca" || key.startsWith("seguranca-");
+};
+
 const isCount = (n: number): boolean => Number.isInteger(n) && n >= 0;
 const isScore = (n: number): boolean => Number.isFinite(n) && n >= 0 && n <= 1;
 
@@ -84,7 +93,7 @@ const review = (rule: string, rationale: string): Decision => ({
 
 /**
  * Decide o destino de um candidato à publicação. A primeira regra que se aplica decide, na ordem:
- * invalid_input → breaking → sensitive → forceReview → unknown_category → blocked → min_sources / primary →
+ * invalid_input → breaking → sensitive → forceReview → Segurança (sempre hold) → unknown_category → blocked → min_sources / primary →
  * conflict → image → min_score → modo da categoria. Nada fora da tabela publica sozinho.
  */
 export function decidePublication(c: Candidate, rules: RuleSet): Decision {
@@ -103,6 +112,7 @@ export function decidePublication(c: Candidate, rules: RuleSet): Decision {
   if (rules.forceReview) return review("force_review", T.forceReview(rules.version));
 
   const key = normalize(c.category);
+  if (isSafetyCategory(key)) return { route: "hold", rule: "blocked", rationale: T.blocked(key) };
   const cat = Object.hasOwn(rules.categories, key) ? rules.categories[key] : undefined;
   if (!cat) return review("unknown_category", T.unknownCategory(c.category));
 

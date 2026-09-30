@@ -1,5 +1,5 @@
 import { DEFAULT_RULES } from "./defaults";
-import { ruleDiff, simulateRules, validateRuleSet } from "./simulate";
+import { ruleDiff, simulateRules, validateRuleSet, weakensSafety } from "./simulate";
 import type { Candidate, RuleSet } from ".";
 
 /** Amostra determinística de 100 candidatos (os últimos 7 dias numa fixture). */
@@ -82,6 +82,45 @@ describe("validateRuleSet", () => {
   it("rejeita categoria vazia ou tema sensível vazio", () => {
     expect(validateRuleSet({ ...DEFAULT_RULES, categories: {} }).ok).toBe(false);
     expect(validateRuleSet({ ...DEFAULT_RULES, sensitiveTopics: ["crime", " "] }).ok).toBe(false);
+  });
+});
+
+describe("Segurança nas propostas (gate P5, achado 7)", () => {
+  it("validateRuleSet recusa Segurança fora de blocked, também em subeditoria", () => {
+    const auto = validateRuleSet({
+      ...DEFAULT_RULES,
+      categories: {
+        ...DEFAULT_RULES.categories,
+        seguranca: { ...DEFAULT_RULES.categories.seguranca!, mode: "auto" },
+      },
+    });
+    expect(auto.ok).toBe(false);
+    if (!auto.ok) expect(auto.error).toMatch(/Segurança/);
+    const sub = validateRuleSet({
+      ...DEFAULT_RULES,
+      categories: {
+        ...DEFAULT_RULES.categories,
+        "seguranca-urbana": { ...DEFAULT_RULES.categories.servicos!, mode: "review" },
+      },
+    });
+    expect(sub.ok).toBe(false);
+  });
+
+  it("weakensSafety vale quando a proposta tira tema sensível", () => {
+    expect(weakensSafety(DEFAULT_RULES, DEFAULT_RULES)).toBe(false);
+    expect(
+      weakensSafety(DEFAULT_RULES, {
+        ...DEFAULT_RULES,
+        sensitiveTopics: [...DEFAULT_RULES.sensitiveTopics, "greve"],
+      }),
+    ).toBe(false);
+    expect(
+      weakensSafety(DEFAULT_RULES, {
+        ...DEFAULT_RULES,
+        sensitiveTopics: DEFAULT_RULES.sensitiveTopics.filter((t) => t !== "crime"),
+      }),
+    ).toBe(true);
+    expect(weakensSafety(DEFAULT_RULES, { ...DEFAULT_RULES, sensitiveTopics: [] })).toBe(true);
   });
 });
 

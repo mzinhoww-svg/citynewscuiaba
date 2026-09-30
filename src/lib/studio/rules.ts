@@ -5,7 +5,13 @@ import { rulesTarget } from "@/lib/approvals/targets";
 import type { Json } from "@/lib/db/types";
 import { nextRuleVersion, recentCandidates, rulesOverview } from "@/lib/db/queries/rules";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
-import { ruleDiff, simulateRules, validateRuleSet, type Simulation } from "@/lib/rules/simulate";
+import {
+  ruleDiff,
+  simulateRules,
+  validateRuleSet,
+  weakensSafety,
+  type Simulation,
+} from "@/lib/rules/simulate";
 import type { RuleSet } from "@/lib/rules";
 import { canAccess } from "@/lib/auth/permissions";
 import { StudioFailure, studioAction, type StudioResult } from "./action";
@@ -15,7 +21,8 @@ import { requestApprovalCommand } from "./approvals";
 /*
  * Regras de autonomia (O05, P5-T2): simular e propor. A proposta nasce inativa em nome de quem
  * propõe (RLS `rules_propose` + `guard_proposal`) e abre um pedido `rules.activate` (ou
- * `force_review.disable`, quando desliga a revisão obrigatória) para outra pessoa aprovar na
+ * `force_review.disable`, quando desliga a revisão obrigatória, ou `safety.disable`, quando tira
+ * tema sensível) para outra pessoa aprovar na
  * caixa de aprovações; `approval_apply` ativa a versão.
  */
 
@@ -81,7 +88,7 @@ export type ProposeInput = z.infer<typeof ProposeInput>;
 export interface ProposeOutcome {
   version: number;
   approvalId: string | null;
-  kind: "rules.activate" | "force_review.disable";
+  kind: "rules.activate" | "force_review.disable" | "safety.disable";
 }
 
 export const proposeRulesCommand = studioAction(
@@ -112,8 +119,12 @@ export const proposeRulesCommand = studioAction(
     }
     if (!inserted) throw new StudioFailure("conflict", T.form.conflict);
 
-    const kind =
-      current.forceReview && !i.rules.forceReview ? "force_review.disable" : "rules.activate";
+    // Tirar tema sensível enfraquece a Segurança: pedido `safety.disable`, só admin aprova.
+    const kind = weakensSafety(current, { version: 0, ...i.rules })
+      ? "safety.disable"
+      : current.forceReview && !i.rules.forceReview
+        ? "force_review.disable"
+        : "rules.activate";
     const approval = await requestApprovalCommand({
       kind,
       targetRef: rulesTarget(version),
