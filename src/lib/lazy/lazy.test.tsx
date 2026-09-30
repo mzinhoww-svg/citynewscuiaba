@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { lazy, Suspense } from "react";
 import { describe, expect, it } from "vitest";
-import { safeDefault } from "./lazy-safe";
+import { safeDefault } from "./index";
 
 describe("safeDefault (B-018)", () => {
   it("carrega o componente quando o chunk chega", async () => {

@@ -10,7 +10,7 @@ import {
   useSyncExternalStore,
   type ComponentType,
 } from "react";
-import { safeDefault } from "./lazy-safe";
+import { safeDefault } from "@/lib/lazy";
 import { INVITE_EVENT } from "@/lib/anon/invite";
 import { QUALIFIED_READ_EVENT, qualifiedReadsThisSession } from "@/lib/anon/invite-storage";
 

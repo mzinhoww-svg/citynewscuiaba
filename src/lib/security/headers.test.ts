@@ -1,4 +1,5 @@
-import { buildCsp, SECURITY_HEADERS } from "./headers";
+import nextConfig from "../../../next.config";
+import { buildCsp, SECURITY_HEADERS, STATIC_ASSET_HEADERS } from "./headers";
 
 it("CSP estrita com nonce, sem unsafe-inline em script", () => {
   const csp = buildCsp({ nonce: "abc", dev: false, https: true });
@@ -36,4 +37,18 @@ it("cabeçalhos fixos: HSTS, Referrer-Policy, Permissions-Policy e nosniff", () 
   expect(h["Permissions-Policy"]).toContain("camera=()");
   expect(h["X-Content-Type-Options"]).toBe("nosniff");
   expect(h["X-Frame-Options"]).toBe("DENY");
+});
+
+it("arquivos imutáveis do build levam só o nosniff; o resto, todos os cabeçalhos (B-018)", async () => {
+  expect(STATIC_ASSET_HEADERS.map((h) => h.key)).toEqual(["X-Content-Type-Options"]);
+  const rules = (await nextConfig.headers?.()) ?? [];
+  const statics = rules.find((r) => r.source === "/_next/static/:path*");
+  expect(statics?.headers.map((h) => h.key)).toEqual(["X-Content-Type-Options"]);
+  const all = rules.find((r) => r.source.startsWith("/(("));
+  expect(all?.headers).toHaveLength(SECURITY_HEADERS.length);
+  // A regra geral não casa com /_next/static/…, então não repete cabeçalho nos arquivos.
+  const re = new RegExp(`^${all?.source.replace("/(", "/(")}$`);
+  expect(re.test("/_next/static/chunks/a.js")).toBe(false);
+  expect(re.test("/materia/x")).toBe(true);
+  expect(re.test("/api/eventos")).toBe(true);
 });

@@ -5,7 +5,7 @@ import { captureInstallPrompt, isStandalone } from "@/lib/app/install";
 import { isBlockedPath } from "@/lib/app/invites";
 import { readAppState } from "@/lib/app/storage";
 import { usePathname } from "next/navigation";
-import { safeDefault } from "./lazy-safe";
+import { safeDefault } from "@/lib/lazy";
 
 // O `beforeinstallprompt` pode disparar antes de qualquer pedaço carregado sob demanda: a
 // captura fica no bundle principal (poucas linhas) e o convite em si vem depois.

@@ -8,7 +8,7 @@ import { useInviteSlot } from "@/lib/app/slot";
 import { readAppState } from "@/lib/app/storage";
 import { installPromptAvailable } from "@/lib/app/install";
 import { currentPushState, pushSupport } from "@/lib/push/client";
-import { safeDefault } from "./lazy-safe";
+import { safeDefault } from "@/lib/lazy";
 import { NOTIF_INVITE_EVENT, type NotifInviteTrigger } from "@/lib/push/invite";
 
 // O convite e os passos do iPhone só carregam quando vão aparecer (B-018).

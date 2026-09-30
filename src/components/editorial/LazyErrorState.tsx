@@ -15,15 +15,10 @@ function LoadFailed({ reset }: ErrorStateProps) {
   return (
     <div
       role="alert"
-      className="mx-auto flex w-full max-w-page flex-col items-start gap-4 px-gutter py-16"
+      className="mx-auto flex max-w-page flex-col items-start gap-4 px-gutter py-16"
     >
-      <h1 className="type-screen-title text-strong">{LOAD_FAILED.title}</h1>
-      <p className="max-w-read type-body text-body">{LOAD_FAILED.text}</p>
-      <button
-        type="button"
-        onClick={reset}
-        className="inline-flex min-h-tap cursor-pointer items-center rounded-pill bg-tinta px-6 font-semibold text-branco"
-      >
+      <p className="type-body text-strong">{LOAD_FAILED.text}</p>
+      <button type="button" onClick={reset} className="min-h-tap font-semibold text-link underline">
         {LOAD_FAILED.retry}
       </button>
     </div>
