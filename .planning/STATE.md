@@ -8,7 +8,7 @@
 - **Fase ativa:** P6 Endurecimento e lançamento
 - **Tarefa ativa:** P6-T1 Performance
 - **Próxima tarefa:** P6-T2 Acessibilidade completa → T3 Segurança → T4 Observabilidade → T5 Privacidade → T6 Polimento e verificação final
-- **Progresso:** 68/70 tarefas · P0 a P5 concluídas (tag `p5-done`) · falta só o P6
+- **Progresso:** 64/70 tarefas · P0 a P5 concluídas (tag `p5-done`) · faltam as 6 tarefas do P6
 
 ## Verificação do ambiente (kickoff, 27/09/2026)
 
