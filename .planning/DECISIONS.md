@@ -113,3 +113,8 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 - Gratuitos da NVIDIA (`nvidia/nemotron-3-super-120b-a12b:free`) ficaram de fora: o teste mostrou raciocínio longo que consome o limite de tokens e o teto de 1000 requisições/dia não cobre o ciclo de 30 minutos. GLM 5.3 Flash exige raciocínio (não desliga).
 - Código: `openrouter.ts` envia `reasoning: { enabled: false }`; sem isso os modelos gastam `max_tokens` pensando e devolvem JSON vazio (medido).
 - Troca feita por dados em produção (Control Center é a fonte de verdade); seed/migrations 0006 não mudam para não quebrar os testes de integração.
+
+## A-095 · Produção em 0046
+- Aplicadas em produção, em ordem e verbatim: 0038, 0039, 0040, 0041, 0042, 0043, 0044, 0045, 0046 (0046 = revoke de `audit_push_changes()` e `search_path` de duas funções puras, apontados pelos advisors). `list_migrations` conferido antes.
+- Efeito colateral de 0043: pg_cron `push-dispatch` (1 min) e `push-retention` agendados; 0042: `push-funnel`. O despacho fica inerte enquanto não houver inscrições, mas `push_dispatch_due` só roda de fato com as chaves VAPID e `CRON_SECRET` (pendências do dono).
+- Advisors restantes (todos pré-existentes, para o P6): 4 `security_definer_view` (`public_sources`, `public_aggregated`, `public_bylines`, `public_article_versions`), extensões no schema public, 4 funções sem `search_path`.

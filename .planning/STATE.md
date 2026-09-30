@@ -1,6 +1,6 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-09-29 (produção em 0039; P5-T1..T10 prontas; PWA T1..T11 no branch pwa, faltam T12..T15)
+**Última atualização:** 2026-09-30 (P5-T1..T10 e PWA T1..T15 mesclados; produção em 0046; próximos: gates P5 e PWA, P6)
 **Atualizado por:** Claude Code
 
 ## Fase e tarefa
