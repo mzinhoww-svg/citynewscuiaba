@@ -125,3 +125,8 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 
 ## A-097 · 0047 (correções do gate do PWA) em produção
 - Aplicada `0047_push_gate_fixes` com `list_migrations` conferido antes. Na transcrição do `push_dispatch_due` o `itemRef` do job `push_due` saiu errado (`push:` em vez de `due:`); corrigido na hora por `execute_sql` com a função do arquivo. Conferência posterior: hash normalizado (sem comentários e espaços) das 7 funções da 0047 em produção = banco local recriado do repositório. Lição: conferir por hash após aplicar migration grande por colagem.
+
+## A-098 · 0048 (correções do gate do P5) em produção
+- Aplicada `0048_p5_gate_fixes` (verbatim, `list_migrations` conferido antes: produção estava em 0047). Conferido por hash normalizado das 21 funções novas ou redefinidas: idêntico ao banco local recriado do repositório.
+- Efeitos operacionais: `audit_log` passa a ser legível direto só por admin (demais papéis usam `audit_log_view`, 5ª view security-definer no mesmo padrão das `public_*`); retenção de eventos com teto de 90 dias; crons `events-retention` (lê a chave) e `staff-invites-sweep` (hora em hora); constraints `not valid` (linhas antigas ficam, novas são conferidas).
+- Pendências registradas pelo revisor (P6): 2FA da equipe não aplicado, máscara de `pipeline_events`, `placeSponsored` sem chamada no portal, `.limit(5000)` do histórico de push (max_rows 1000).
