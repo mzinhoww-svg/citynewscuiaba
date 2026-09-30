@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import {
   lazy,
   Suspense,
@@ -57,11 +58,13 @@ function subscribeNotificationPermission(onChange: () => void): () => void {
 
 /**
  * Alertas de navegador e sincronização do push: sem permissão de notificações decidida não há
- * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado.
+ * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. Em `/alertas` a
+ * tela de avisos precisa do estado do push (ligado, desligado, perdido), então sincroniza sempre.
  */
 export function NotificationWatchers() {
+  const pathname = usePathname() ?? "/";
   const asked = useSyncExternalStore(subscribeNotificationPermission, notificationsAsked, onServer);
-  if (!asked) return null;
+  if (!asked && !pathname.startsWith("/alertas")) return null;
   return (
     <Suspense fallback={null}>
       <AlertWatcher />
