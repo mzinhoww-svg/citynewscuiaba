@@ -2,14 +2,11 @@ import type { ReactNode } from "react";
 import { NAV_TEXT } from "@/content/pt-BR/nav";
 import type { Consent } from "@/lib/consent";
 import { ConsentProvider } from "@/lib/consent/client";
-import { AlertWatcher } from "./AlertWatcher";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
-import { FirstVisitInvite } from "./FirstVisitInvite";
+import { FirstVisitGate, LoginInviteGate, NotificationWatchers } from "./DeferredShell";
 import { InstallInviteSlot } from "./InstallInviteSlot";
-import { LoginInvite } from "./LoginInvite";
 import { OfflineNotice } from "./OfflineNotice";
-import { PushSync } from "./PushSync";
 import { SwRegistrar } from "./SwRegistrar";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
@@ -37,7 +34,6 @@ export function PublicShell({ children, consent }: PublicShellProps) {
           {NAV_TEXT.skipToContent}
         </a>
         <ConsentBanner />
-        <AlertWatcher />
         <SiteHeader />
         <OfflineNotice />
         <main id="conteudo" className="flex-1">
@@ -45,11 +41,11 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         </main>
         <SiteFooter />
         <BottomNav />
-        <FirstVisitInvite />
-        <LoginInvite />
+        <FirstVisitGate />
+        <LoginInviteGate />
         <InstallInviteSlot />
         <SwRegistrar />
-        <PushSync />
+        <NotificationWatchers />
       </div>
     </ConsentProvider>
   );

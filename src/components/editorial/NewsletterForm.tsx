@@ -7,8 +7,7 @@ import {
   NEWSLETTER_IDLE,
   type NewsletterState,
 } from "@/lib/newsletter/form-state";
-import { NEWSLETTER_PAGE } from "@/content/pt-BR/newsletter";
-import { NEWSLETTER } from "@/content/pt-BR/portal";
+import { NEWSLETTER, NEWSLETTER_PAGE } from "@/content/pt-BR/newsletter";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
