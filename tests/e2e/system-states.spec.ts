@@ -105,5 +105,8 @@ test("direito de resposta sem login: erros por campo e envio", async ({ page }) 
 test("página offline estática existe", async ({ request }) => {
   const r = await request.get("/offline.html");
   expect(r.status()).toBe(200);
-  expect(await r.text()).toContain("Você está sem conexão");
+  // Página própria do SW (spec PWA §7.7): h1 "Sem conexão" e texto "Você está sem internet".
+  const html = await r.text();
+  expect(html).toContain("<h1>Sem conexão</h1>");
+  expect(html).toContain("Você está sem internet");
 });
