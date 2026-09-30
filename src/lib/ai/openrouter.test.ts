@@ -71,6 +71,21 @@ describe("provedor OpenRouter (sem rede)", () => {
     });
   });
 
+  it("desliga o raciocínio do modelo: senão ele consome max_tokens e a resposta JSON vem vazia", async () => {
+    const { f, seen } = fakeFetch(() => chat('{"ok":true}'));
+    const p = createOpenRouterProvider({ ...cfg, fetch: f });
+    await p.complete({
+      agentId: "classify",
+      modelId: "deepseek/deepseek-v4-flash",
+      system: "s",
+      prompt: "t",
+      maxTokens: 256,
+      temperature: 0.2,
+      signal: new AbortController().signal,
+    });
+    expect(seen[0]!.body).toMatchObject({ reasoning: { enabled: false } });
+  });
+
   it("embeddings em /embeddings; dimensão só é enviada quando difere de 1536", async () => {
     const { f, seen } = fakeFetch((s) => ({
       object: "list",

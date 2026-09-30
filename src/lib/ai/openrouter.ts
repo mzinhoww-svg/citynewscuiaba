@@ -60,6 +60,9 @@ export function createOpenRouterProvider(cfg: OpenRouterConfig): ModelProvider {
           output: ai.Output.json(),
           maxRetries: 0,
           abortSignal: req.signal,
+          // Modelos de raciocínio gastam max_tokens pensando e devolvem JSON vazio; a tarefa é
+          // extração estruturada, não precisa. Modelos sem raciocínio ignoram o campo.
+          providerOptions: { openrouter: { reasoning: { enabled: false } } },
           ...(req.maxTokens !== null ? { maxOutputTokens: req.maxTokens } : {}),
           ...(req.temperature !== null ? { temperature: req.temperature } : {}),
         });

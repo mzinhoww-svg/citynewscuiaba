@@ -82,3 +82,10 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 - Mescla de `p5-admin` (0038 admin core, 0039 admin ops). Conflitos em índices/targets/audit resolvidos mantendo os dois lados; a união de `studio_audit_actions()` foi consolidada em 0038 e 0039 (ainda não aplicadas) para incluir os nomes de 0036/0037. Ação nova `site.manage`.
 - `pnpm verify` verde (195 arquivos, 1813 testes) com pilha local de pé.
 - Migrations 0036–0039 aplicadas em produção, em ordem. Pendente para o PWA: 0040–0043.
+
+## A-089 · Modelos de IA baratos (chineses) e nova chave OpenRouter
+- Chave OpenRouter nova (limite US$ 50) só na Vercel (produção, sensitive); nunca em arquivo. Vale até o dono avisar que transacionou/rotacionou.
+- Escolha em 30/09/2026 pelos preços do catálogo OpenRouter, com teste real de resposta JSON: `deepseek/deepseek-v4-flash` (US$ 0,14/0,28 por Mtok) para write, verify e answer; `qwen/qwen3.7-flash` (US$ 0,03/0,13) para classify, locate, image, aggregate_summary e source_profiler; cada um é o fallback do outro. Embeddings seguem `openai/text-embedding-3-small` (1536 dimensões, vetores existentes).
+- Gratuitos da NVIDIA (`nvidia/nemotron-3-super-120b-a12b:free`) ficaram de fora: o teste mostrou raciocínio longo que consome o limite de tokens e o teto de 1000 requisições/dia não cobre o ciclo de 30 minutos. GLM 5.3 Flash exige raciocínio (não desliga).
+- Código: `openrouter.ts` envia `reasoning: { enabled: false }`; sem isso os modelos gastam `max_tokens` pensando e devolvem JSON vazio (medido).
+- Troca feita por dados em produção (Control Center é a fonte de verdade); seed/migrations 0006 não mudam para não quebrar os testes de integração.
