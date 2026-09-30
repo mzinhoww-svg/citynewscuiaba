@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignLive, placeSponsored, type AdCard, type Campaign } from "./rules";
+import { campaignLive, isNeverSection, placeSponsored, type AdCard, type Campaign } from "./rules";
 
 const now = new Date("2026-09-29T12:00:00Z");
 const camp: Campaign = {
@@ -89,5 +89,29 @@ describe("placeSponsored (A07)", () => {
     expect(placeSponsored(list(14), null, { sectionSlug: null, now }).placed).toBe(0);
     expect(campaignLive(camp, now)).toBe(true);
     expect(campaignLive({ ...camp, startsOn: "2026-10-01" }, now)).toBe(false);
+  });
+
+  it("subeditoria herda a proibição pela categoria de autonomia e pelo prefixo (gate P5, achado 13)", () => {
+    const categoryOf = (slug: string) =>
+      ({
+        "politica-municipal": "politica",
+        "delegacia-digital": "seguranca",
+        mobilidade: "cidade",
+      })[slug];
+    expect(isNeverSection("politica-municipal")).toBe(true); // só pelo prefixo
+    expect(isNeverSection("delegacia-digital", categoryOf)).toBe(true); // só pela categoria
+    expect(isNeverSection("mobilidade", categoryOf)).toBe(false);
+    expect(isNeverSection("saude")).toBe(true);
+    expect(isNeverSection("saudavel-e-bem")).toBe(false);
+    const wide: Campaign = {
+      ...camp,
+      allowedSections: ["politica-municipal", "delegacia-digital", "cidade"],
+    };
+    for (const s of ["politica-municipal", "delegacia-digital"])
+      expect(placeSponsored(list(14), wide, { sectionSlug: s, now, categoryOf }).placed).toBe(0);
+    // Na home, card de subeditoria proibida nunca fica ao lado do anúncio.
+    const cards = list(14, (i) => (i >= 4 && i <= 7 ? { sectionSlug: "delegacia-digital" } : {}));
+    const r = placeSponsored(cards, wide, { sectionSlug: null, now, categoryOf });
+    expect(ids(r).indexOf("AD")).toBeGreaterThan(7);
   });
 });

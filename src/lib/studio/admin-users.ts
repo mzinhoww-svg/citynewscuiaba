@@ -73,7 +73,8 @@ export const inviteUserCommand = studioAction(
     });
     if (inv.error) throw new Error(`invite row: ${inv.error.message}`);
     ctx.setObjectRef(`user:${userId}`);
-    ctx.detail({ email: i.email, role: i.role, sections });
+    // O e-mail é dado pessoal e a auditoria é imutável: fica só o id da conta (gate P5, achado 9).
+    ctx.detail({ role: i.role, sections });
     return { userId };
   },
   { schema: InviteInput, auditAs: "user.invite" },

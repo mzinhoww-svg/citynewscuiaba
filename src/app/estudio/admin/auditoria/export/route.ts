@@ -24,6 +24,7 @@ export async function GET(req: Request) {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="auditoria-${day}.csv"`,
       "cache-control": "no-store",
+      ...(r.value.truncated ? { "x-export-truncated": "1" } : {}),
     },
   });
 }

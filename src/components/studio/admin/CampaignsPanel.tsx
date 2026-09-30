@@ -155,7 +155,8 @@ function CampaignDialog({
   const ready =
     advertiser.trim().length >= 2 &&
     title.trim().length >= 2 &&
-    /^https?:\/\//.test(href) &&
+    /^https:\/\//.test(href) &&
+    (imageUrl === "" || /^https:\/\//.test(imageUrl)) &&
     secs.length > 0 &&
     dateOk;
   return (
