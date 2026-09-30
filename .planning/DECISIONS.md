@@ -118,3 +118,7 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 - Aplicadas em produção, em ordem e verbatim: 0038, 0039, 0040, 0041, 0042, 0043, 0044, 0045, 0046 (0046 = revoke de `audit_push_changes()` e `search_path` de duas funções puras, apontados pelos advisors). `list_migrations` conferido antes.
 - Efeito colateral de 0043: pg_cron `push-dispatch` (1 min) e `push-retention` agendados; 0042: `push-funnel`. O despacho fica inerte enquanto não houver inscrições, mas `push_dispatch_due` só roda de fato com as chaves VAPID e `CRON_SECRET` (pendências do dono).
 - Advisors restantes (todos pré-existentes, para o P6): 4 `security_definer_view` (`public_sources`, `public_aggregated`, `public_bylines`, `public_article_versions`), extensões no schema public, 4 funções sem `search_path`.
+
+## A-096 · Modelo padrão dos subagentes após o limite do Fable
+- Instrução do dono (30/09/2026): enquanto o limite semanal do Fable durar, subagentes usam `model: "fable"`; quando acabar (erro 429 de limite de sessão/semanal), passar a usar `sonnet` (Sonnet 5.5) com esforço baixo como padrão.
+- Aplicação: nas próximas chamadas de `Agent`, definir `model: "sonnet"` e pedir respostas objetivas; agentes que falharem por limite são retomados via SendMessage já no novo modelo. Revisões de gate continuam pedindo leitura cuidadosa mesmo em esforço baixo.
