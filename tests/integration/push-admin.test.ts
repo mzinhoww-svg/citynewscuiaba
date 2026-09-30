@@ -297,7 +297,7 @@ describe("papéis (critérios 20, 21)", () => {
   it("CSV do histórico não tem endpoint, token, id de inscrição nem alvo; filtros inválidos são ignorados", async () => {
     const f = parseHistoryFilter(new URLSearchParams("periodo=99&tipo=x&estado=y&pagina=-2"));
     expect(f).toEqual({ days: 30, kind: null, status: null, page: 1 });
-    const csv = await asUser("helena", () =>
+    const { csv } = await asUser("helena", () =>
       historyCsv({ days: null, kind: null, status: null, page: 1 }),
     );
     expect(csv.split("\r\n")[0]).toBe(
