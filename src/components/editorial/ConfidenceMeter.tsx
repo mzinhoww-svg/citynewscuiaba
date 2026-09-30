@@ -1,5 +1,5 @@
 import type { ConfidenceLevel } from "@/lib/confidence";
-import { CONFIDENCE_TEXT } from "@/content/pt-BR/portal";
+import { CONFIDENCE_TEXT } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 
 export interface ConfidenceMeterProps {

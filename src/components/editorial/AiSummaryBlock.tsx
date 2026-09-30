@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { LABEL_TEXT } from "@/content/pt-BR/labels";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { cx } from "../cx";
 import { OriginLabel } from "./OriginLabel";
 

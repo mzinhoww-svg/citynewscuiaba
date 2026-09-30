@@ -13,7 +13,7 @@ import {
   cx,
 } from "@/components";
 import { NEIGHBORHOODS, neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
-import { AGENDA } from "@/content/pt-BR/portal";
+import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { listEvents, type EventView } from "@/lib/db/queries";
 import {
   AGENDA_CATEGORIES,

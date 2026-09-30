@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useId } from "react";
 import { NEIGHBORHOODS } from "@/content/pt-BR/neighborhoods";
-import { SUGGEST } from "@/content/pt-BR/portal";
+import { SUGGEST } from "@/content/pt-BR/portal-agenda";
 import {
   AGE_RATINGS,
   SUBMIT_HONEYPOT,

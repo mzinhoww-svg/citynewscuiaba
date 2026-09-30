@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { applyTheme, type Theme } from "@/lib/theme/apply";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";

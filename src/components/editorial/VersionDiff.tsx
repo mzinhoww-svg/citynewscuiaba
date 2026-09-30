@@ -1,5 +1,5 @@
 import type { DiffPart } from "@/lib/diff/words";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { cx } from "../cx";
 
 export interface VersionDiffProps {

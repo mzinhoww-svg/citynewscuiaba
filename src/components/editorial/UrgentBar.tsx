@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useId } from "react";
 import type { ArticleSummary } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
-import { HOME } from "@/content/pt-BR/portal";
+import { HOME } from "@/content/pt-BR/portal-home";
 import { cx } from "../cx";
 
 export interface UrgentBarProps {

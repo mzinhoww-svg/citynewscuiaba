@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { TopicView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { TopicStatus } from "./TopicStatus";

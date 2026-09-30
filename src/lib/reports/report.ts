@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { REPORT } from "@/content/pt-BR/portal";
+import { REPORT } from "@/content/pt-BR/portal-article";
 import type { Result } from "@/lib/result";
 import { REPORT_HONEYPOT, REPORT_KINDS, type ReportKind, type ReportState } from "./form-state";
 

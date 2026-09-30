@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { isIos, isIosSafari, isStandalone } from "@/lib/app/install";
 import { EMPTY_APP_STATE, shouldOfferInstall, shouldOfferNotifications } from "@/lib/app/invites";
 import { useInviteSlot } from "@/lib/app/slot";
@@ -9,8 +9,14 @@ import { readAppState } from "@/lib/app/storage";
 import { installPromptAvailable } from "@/lib/app/install";
 import { currentPushState, pushSupport } from "@/lib/push/client";
 import { NOTIF_INVITE_EVENT, type NotifInviteTrigger } from "@/lib/push/invite";
-import { IosInstallSteps } from "./IosInstallSteps";
-import { NotificationInvite } from "./NotificationInvite";
+
+// O convite e os passos do iPhone só carregam quando vão aparecer (B-018).
+const IosInstallSteps = lazy(() =>
+  import("./IosInstallSteps").then((m) => ({ default: m.IosInstallSteps })),
+);
+const NotificationInvite = lazy(() =>
+  import("./NotificationInvite").then((m) => ({ default: m.NotificationInvite })),
+);
 
 export interface NotificationInviteSlotProps {
   trigger: NotifInviteTrigger;
@@ -87,10 +93,16 @@ export function NotificationInviteSlot({
   const visible = useInviteSlot("notif", show !== "none", pathname);
   if (!visible) return null;
   if (show === "ios")
-    return <IosInstallSteps open safari={isIosSafari()} onClose={() => setShow("none")} />;
+    return (
+      <Suspense fallback={null}>
+        <IosInstallSteps open safari={isIosSafari()} onClose={() => setShow("none")} />
+      </Suspense>
+    );
   return (
     <div className="my-3">
-      <NotificationInvite trigger={trigger} onDone={() => setShow("none")} />
+      <Suspense fallback={null}>
+        <NotificationInvite trigger={trigger} onDone={() => setShow("none")} />
+      </Suspense>
     </div>
   );
 }

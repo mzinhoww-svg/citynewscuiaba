@@ -4,7 +4,8 @@ import Form from "next/form";
 import { Suspense } from "react";
 import { Button, Chip, EmptyState, Select, Skeleton, TopicSummaryCard } from "@/components";
 import { SECTIONS } from "@/content/pt-BR/nav";
-import { SECTION_PAGE, TOPIC } from "@/content/pt-BR/portal";
+import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { listTopics } from "@/lib/db/queries";
 import type { SearchParamsInput } from "@/lib/filters/section";
 import {

@@ -14,13 +14,13 @@ import "@/styles/globals.css";
  * `display: swap` mostra o texto na hora com a fonte de reserva de métrica ajustada (sem salto).
  */
 const schibsted = localFont({
-  src: [{ path: "./fonts/SchibstedGrotesk-normal.woff2", weight: "400 900", style: "normal" }],
+  src: [{ path: "./fonts/SchibstedGrotesk-normal.woff2", weight: "400 800", style: "normal" }],
   variable: "--font-schibsted",
   display: "swap",
 });
 
 const sourceSerif = localFont({
-  src: [{ path: "./fonts/SourceSerif4-normal.woff2", weight: "200 900", style: "normal" }],
+  src: [{ path: "./fonts/SourceSerif4-normal.woff2", weight: "400 700", style: "normal" }],
   variable: "--font-source-serif",
   display: "swap",
 });

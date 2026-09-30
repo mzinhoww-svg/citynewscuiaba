@@ -1,6 +1,6 @@
 // Fica no grupo (inicio) para não envolver as outras rotas: com loading.tsx acima delas, a
 // resposta começa em streaming e 404/410 viram 200 (docs de loading.js, "Status codes").
-import { HOME } from "@/content/pt-BR/portal";
+import { HOME } from "@/content/pt-BR/portal-home";
 
 /** Esqueleto das páginas públicas enquanto os dados chegam (docs/screens.md, estado loading). */
 export default function Loading() {

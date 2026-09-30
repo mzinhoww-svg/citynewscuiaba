@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { OFFLINE_TEXT } from "@/content/pt-BR/offline";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { queryCachedAt } from "@/lib/offline/sw";
-import { staleLabel } from "@/sw/core";
-import { Button } from "../ui/Button";
+
+// A faixa só carrega quando a página veio do cache (B-018).
+const OfflineNoticeBar = lazy(() => import("./OfflineNoticeBar"));
 
 export interface OfflineNoticeProps {
   /** Relógio injetável nos testes. */
@@ -45,20 +45,8 @@ export function OfflineNotice({
 
   if (!cachedAt) return null;
   return (
-    <div
-      role="status"
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-section bg-section px-gutter py-3 type-meta text-meta"
-    >
-      {online ? (
-        <>
-          <span className="text-strong">{OFFLINE_TEXT.backOnline}</span>
-          <Button size="sm" variant="outline" onClick={() => location.reload()}>
-            {OFFLINE_TEXT.refresh}
-          </Button>
-        </>
-      ) : (
-        <span>{staleLabel(new Date(cachedAt), now())}</span>
-      )}
-    </div>
+    <Suspense fallback={null}>
+      <OfflineNoticeBar cachedAt={cachedAt} online={online} now={now} />
+    </Suspense>
   );
 }

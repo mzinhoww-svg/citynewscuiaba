@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatHour } from "@/lib/format/date";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { Icon } from "../ui/Icon";
 
 export interface UpdatedWhileReadingProps {

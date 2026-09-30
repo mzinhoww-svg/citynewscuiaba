@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { TimelineEntry } from "@/lib/db/queries/types";
 import { formatDateTime } from "@/lib/format/date";
-import { CARD, TOPIC } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
+import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 

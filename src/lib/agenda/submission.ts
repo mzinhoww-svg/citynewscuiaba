@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
-import { SUGGEST } from "@/content/pt-BR/portal";
+import { SUGGEST } from "@/content/pt-BR/portal-agenda";
 import { dayStart } from "@/lib/format/date";
 import type { Result } from "@/lib/result";
 import {

@@ -13,7 +13,9 @@ import {
   ShareSheet,
   type IconName,
 } from "@/components";
-import { AGENDA, ARTICLE, HOME } from "@/content/pt-BR/portal";
+import { AGENDA } from "@/content/pt-BR/portal-agenda";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
+import { HOME } from "@/content/pt-BR/portal-home";
 import { getEvent, listEvents, type EventView } from "@/lib/db/queries";
 import {
   formatDateTime,

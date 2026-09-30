@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useId } from "react";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { SEARCH } from "@/content/pt-BR/search";
 import { formatDateTime, formatWhen } from "@/lib/format/date";
 import type { SearchGroup, SearchHit } from "@/lib/search/types";

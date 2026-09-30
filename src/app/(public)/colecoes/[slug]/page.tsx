@@ -14,7 +14,7 @@ import {
   TopicSummaryCard,
 } from "@/components";
 import { COLLECTION } from "@/content/pt-BR/explore";
-import { HOME } from "@/content/pt-BR/portal";
+import { HOME } from "@/content/pt-BR/portal-home";
 import { getCollectionBySlug, type CollectionDetail, type CollectionEntry } from "@/lib/db/queries";
 import { formatDateTime, formatHour } from "@/lib/format/date";
 import { breadcrumbJsonLd } from "@/lib/seo/jsonld";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
-import { TOPIC } from "@/content/pt-BR/portal";
+import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { SegmentedToggle } from "../ui/SegmentedToggle";

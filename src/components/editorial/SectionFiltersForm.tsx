@@ -1,7 +1,7 @@
 import Form from "next/form";
 import Link from "next/link";
 import { NEIGHBORHOODS } from "@/content/pt-BR/neighborhoods";
-import { SECTION_PAGE } from "@/content/pt-BR/portal";
+import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import {
   SECTION_DEFAULTS,
   SECTION_PARAM_VALUES,

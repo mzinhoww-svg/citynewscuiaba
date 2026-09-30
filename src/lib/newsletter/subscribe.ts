@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NEWSLETTER_LISTS, NEWSLETTER_MAIL, NEWSLETTER_PAGE } from "@/content/pt-BR/newsletter";
-import { NEWSLETTER } from "@/content/pt-BR/portal";
+import { NEWSLETTER } from "@/content/pt-BR/newsletter";
 import type { Result } from "@/lib/result";
 import { HONEYPOT_FIELD, LISTS_PICKED_FIELD, type NewsletterState } from "./form-state";
 

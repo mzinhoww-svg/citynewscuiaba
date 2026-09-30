@@ -14,7 +14,7 @@ import {
 } from "@/components";
 import { neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { SECTIONS } from "@/content/pt-BR/nav";
-import { SECTION_DESCRIPTION, SECTION_PAGE } from "@/content/pt-BR/portal";
+import { SECTION_DESCRIPTION, SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import { getSectionRef, listSection, type SectionPage } from "@/lib/db/queries";
 import {
   parseSectionFilters,

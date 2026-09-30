@@ -20,7 +20,10 @@ import {
   TopicStatus,
 } from "@/components";
 import { LABEL_TEXT } from "@/content/pt-BR/labels";
-import { ARTICLE, HOME, SECTION_PAGE, TOPIC } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
+import { HOME } from "@/content/pt-BR/portal-home";
+import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { getTopicBySlug, type TopicDetail } from "@/lib/db/queries";
 import { formatDayMonth, formatWhen } from "@/lib/format/date";
 import { breadcrumbJsonLd } from "@/lib/seo/jsonld";

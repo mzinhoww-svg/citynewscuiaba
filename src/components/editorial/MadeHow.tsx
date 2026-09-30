@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useId } from "react";
 import type { Label } from "@/lib/labels";
 import { LABEL_EXPLAIN } from "@/content/pt-BR/labels";
-import { MADE_HOW } from "@/content/pt-BR/portal";
+import { MADE_HOW } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { OriginLabel } from "./OriginLabel";
 

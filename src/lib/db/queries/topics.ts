@@ -5,7 +5,7 @@ import type { Result } from "@/lib/result";
 import { fetchAggregated } from "./aggregated";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, summarize } from "./articles";
 import { many, one, readPublic } from "./run";
-import { BYLINE } from "@/content/pt-BR/portal";
+import { BYLINE } from "@/content/pt-BR/portal-card";
 import type { QueryError, TimelineEntry, TopicDetail, TopicState, TopicView } from "./types";
 
 type TopicRow = Pick<

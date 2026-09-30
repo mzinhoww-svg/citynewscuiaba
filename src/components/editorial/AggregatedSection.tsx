@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useId } from "react";
 import type { AggregatedView } from "@/lib/db/queries/types";
-import { HOME } from "@/content/pt-BR/portal";
+import { HOME } from "@/content/pt-BR/portal-home";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { AggregatedCard } from "./AggregatedCard";

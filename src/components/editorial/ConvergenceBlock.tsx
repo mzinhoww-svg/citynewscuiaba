@@ -1,4 +1,4 @@
-import { TOPIC } from "@/content/pt-BR/portal";
+import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { cx } from "../cx";
 import { Icon, type IconName } from "../ui/Icon";
 
