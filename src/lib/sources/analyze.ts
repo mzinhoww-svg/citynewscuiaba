@@ -7,6 +7,7 @@
  * Respeita `feature_flags.source_link_analysis` (desliga a análise em um clique).
  */
 import { parseHTML } from "linkedom";
+import { removeHiddenElements } from "@/lib/security/hidden";
 import type { CallAgent } from "@/lib/ai/call-agent";
 import type { CrawlDeps } from "@/lib/pipeline/http";
 import type { SourceKind } from "@/lib/pipeline/ports";
@@ -149,6 +150,7 @@ export function matchDuplicate(url: URL, list: ExistingSource[]): ExistingSource
  */
 function headlineEntries(html: string, pageUrl: string): RawEntry[] {
   const { document } = parseHTML(html);
+  removeHiddenElements(document);
   const base = new URL(pageUrl);
   const seen = new Set<string>();
   const out: RawEntry[] = [];

@@ -33,6 +33,17 @@ export default defineConfig({
           fileParallelism: false,
         },
       },
+      {
+        // Segurança (P6-T3): headers, CSP, cron sem segredo, RLS com anon, extração e injeção.
+        // As de RLS usam o banco local; arquivos em série pelo mesmo motivo da integração.
+        extends: true,
+        test: {
+          name: "security",
+          environment: "node",
+          include: ["tests/security/**/*.test.ts"],
+          fileParallelism: false,
+        },
+      },
     ],
   },
 });

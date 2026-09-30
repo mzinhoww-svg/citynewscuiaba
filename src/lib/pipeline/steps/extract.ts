@@ -2,6 +2,7 @@ import { Readability } from "@mozilla/readability";
 import { XMLParser, XMLValidator } from "fast-xml-parser";
 import { parseHTML } from "linkedom";
 import { z } from "zod";
+import { removeHiddenElements } from "@/lib/security/hidden";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { extractPageList } from "@/lib/sources/page-list";
 import { consumptionSchema, pageSelectorsSchema } from "@/lib/sources/schema";
@@ -263,6 +264,8 @@ export function extractFromJsonFeed(json: string, baseUrl?: string): RawEntry[] 
 /** Página (fontes do tipo `page`): um item pela Readability, com URL canônica e data dos metadados. */
 export function extractFromPage(html: string, pageUrl: string): RawEntry[] {
   const { document } = parseHTML(html);
+  // Texto que a pessoa não vê (display:none, fonte 0, fora da tela…) não chega ao modelo.
+  removeHiddenElements(document);
   const meta = (selector: string): string =>
     document.querySelector(selector)?.getAttribute("content")?.trim() ?? "";
   const canonical =
