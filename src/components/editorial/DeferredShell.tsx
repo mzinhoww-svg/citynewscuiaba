@@ -10,6 +10,7 @@ import {
   useSyncExternalStore,
   type ComponentType,
 } from "react";
+import { safeDefault } from "./lazy-safe";
 import { INVITE_EVENT } from "@/lib/anon/invite";
 import { QUALIFIED_READ_EVENT, qualifiedReadsThisSession } from "@/lib/anon/invite-storage";
 
@@ -21,11 +22,11 @@ import { QUALIFIED_READ_EVENT, qualifiedReadsThisSession } from "@/lib/anon/invi
 
 // `React.lazy` em vez de `next/dynamic`: o carregador do Next custava ~5 kB gz a mais em toda página.
 const AlertWatcher = lazy(() =>
-  import("./AlertWatcher").then((m) => ({ default: m.AlertWatcher })),
+  safeDefault(() => import("./AlertWatcher").then((m) => m.AlertWatcher)),
 );
-const PushSync = lazy(() => import("./PushSync").then((m) => ({ default: m.PushSync })));
+const PushSync = lazy(() => safeDefault(() => import("./PushSync").then((m) => m.PushSync)));
 const FirstVisitInvite = lazy(() =>
-  import("./FirstVisitInvite").then((m) => ({ default: m.FirstVisitInvite })),
+  safeDefault(() => import("./FirstVisitInvite").then((m) => m.FirstVisitInvite)),
 );
 
 const onServer = () => false;
@@ -102,7 +103,7 @@ export function LoginInviteGate() {
     if (Comp) return;
     const onRequest = (e: Event) => {
       pending.current = e as CustomEvent;
-      void import("./LoginInvite").then((m) => setComp(() => m.LoginInvite));
+      void import("./LoginInvite").then((m) => setComp(() => m.LoginInvite)).catch(() => undefined);
     };
     window.addEventListener(INVITE_EVENT, onRequest, { once: true });
     return () => window.removeEventListener(INVITE_EVENT, onRequest);

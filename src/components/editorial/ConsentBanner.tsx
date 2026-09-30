@@ -3,13 +3,34 @@
 import Link from "next/link";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { LOAD_FAILED } from "@/content/pt-BR/system-min";
 import { useInviteSlot } from "@/lib/app/slot";
 import { useConsent, useConsentKnown } from "@/lib/consent/client";
 import type { ConsentChoice } from "@/lib/consent";
 import { Button } from "../ui/Button";
 
+import type { ConsentPanelProps } from "./ConsentPanel";
+
+/** Sem rede o painel não chega: avisa e deixa voltar (o banner continua funcionando). */
+function PanelUnavailable({ onBack }: ConsentPanelProps) {
+  return (
+    <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-4 lg:px-4">
+      <p role="alert" className="type-meta text-meta">
+        {LOAD_FAILED.text}
+      </p>
+      <div className="flex justify-end">
+        <Button variant="outline" size="md" onClick={onBack}>
+          {CONSENT_TEXT.back}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // O painel "Escolher" só carrega quando o leitor pede (B-018).
-const ConsentPanel = lazy(() => import("./ConsentPanel"));
+const ConsentPanel = lazy(() =>
+  import("./ConsentPanel").catch(() => ({ default: PanelUnavailable })),
+);
 
 /** Leva o foco ao conteúdo depois da escolha (o banner some e o foco não pode cair no body). */
 function focusContent() {

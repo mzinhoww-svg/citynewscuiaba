@@ -8,14 +8,15 @@ import { useInviteSlot } from "@/lib/app/slot";
 import { readAppState } from "@/lib/app/storage";
 import { installPromptAvailable } from "@/lib/app/install";
 import { currentPushState, pushSupport } from "@/lib/push/client";
+import { safeDefault } from "./lazy-safe";
 import { NOTIF_INVITE_EVENT, type NotifInviteTrigger } from "@/lib/push/invite";
 
 // O convite e os passos do iPhone só carregam quando vão aparecer (B-018).
 const IosInstallSteps = lazy(() =>
-  import("./IosInstallSteps").then((m) => ({ default: m.IosInstallSteps })),
+  safeDefault(() => import("./IosInstallSteps").then((m) => m.IosInstallSteps)),
 );
 const NotificationInvite = lazy(() =>
-  import("./NotificationInvite").then((m) => ({ default: m.NotificationInvite })),
+  safeDefault(() => import("./NotificationInvite").then((m) => m.NotificationInvite)),
 );
 
 export interface NotificationInviteSlotProps {
