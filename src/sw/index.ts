@@ -165,9 +165,23 @@ async function sweepOrphanAssets(): Promise<void> {
 // ---------------------------------------------------------------------------
 // Salvas (compatível com o SW anterior)
 // ---------------------------------------------------------------------------
+/**
+ * Guarda uma página salva. Mesmo invariante da navegação (PWA-10): só rota da allowlist, buscada
+ * sem cookie (`credentials: "omit"`, então nunca a versão de quem tem sessão) e só com o
+ * marcador `x-cn-offline` que o proxy põe em respostas sem sessão.
+ */
 async function cachePage(cache: string, path: string): Promise<void> {
-  const res = await fetch(path, { credentials: "same-origin" });
-  if (!res.ok) return;
+  if (routeKind(path, SW_SECTIONS) === null) return;
+  const res = await fetch(path, { credentials: "omit" });
+  if (
+    !isCacheableResponse({
+      method: "GET",
+      status: res.status,
+      sameOrigin: !res.redirected || sameOrigin(res.url),
+      headers: res.headers,
+    })
+  )
+    return;
   const html = await res.clone().text();
   await putWithIndex(cache, path, res, titleFromHtml(html));
   await cacheAssets(html);
@@ -200,7 +214,13 @@ async function cacheAssets(html: string): Promise<void> {
 
 async function syncSaved(paths: unknown[]): Promise<void> {
   const keep = paths
-    .filter((p): p is string => typeof p === "string" && p.startsWith("/") && !p.startsWith("//"))
+    .filter(
+      (p): p is string =>
+        typeof p === "string" &&
+        p.startsWith("/") &&
+        !p.startsWith("//") &&
+        routeKind(p, SW_SECTIONS) === "materia",
+    )
     .slice(0, LIMITS.salvos);
   const cache = await caches.open(CACHES.salvos);
   const gone: string[] = [];

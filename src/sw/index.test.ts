@@ -16,6 +16,7 @@ vi.mock("./shared-db", () => ({
 }));
 
 type Handler = (event: unknown) => void;
+const cachePut = vi.fn(async (_req: unknown, _res: unknown) => undefined);
 const handlers = new Map<string, Handler>();
 const ORIGIN = "https://citynews.example";
 
@@ -28,7 +29,7 @@ const clients = {
 beforeAll(async () => {
   const cacheStore = {
     match: async () => undefined,
-    put: async () => undefined,
+    put: (req: unknown, res: unknown) => cachePut(req, res),
     add: async () => undefined,
     delete: async () => true,
     keys: async () => [],
@@ -153,5 +154,59 @@ describe("notificationclick", () => {
     await click("/materia/chuva");
     expect(studio.navigate).not.toHaveBeenCalled();
     expect(clients.openWindow).toHaveBeenCalledWith("/materia/chuva");
+  });
+});
+
+describe("cache-saved (PWA-10)", () => {
+  async function sync(paths: unknown[]) {
+    const waited: Promise<unknown>[] = [];
+    handlers.get("message")!({
+      data: { type: "cache-saved", paths },
+      waitUntil: (p: Promise<unknown>) => waited.push(p),
+    });
+    await Promise.all(waited);
+  }
+  const page = (marker: boolean) =>
+    new Response("<title>Chuva · CityNews</title>", {
+      status: 200,
+      headers: marker ? { "x-cn-offline": "1" } : {},
+    });
+
+  it("busca sem cookie (credentials omit) e guarda só resposta com o marcador", async () => {
+    cachePut.mockClear();
+    const fetchMock = vi.fn(async (_url: unknown, _init?: RequestInit) => page(true));
+    vi.stubGlobal("fetch", fetchMock);
+    await sync(["/materia/chuva-em-cuiaba"]);
+    const calls = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/"));
+    expect(calls.length).toBeGreaterThan(0);
+    for (const [, init] of calls.filter(([u]) => !String(u).startsWith("/offline")))
+      expect(init).toMatchObject({ credentials: "omit" });
+    expect(cachePut.mock.calls.map(([r]) => String(r))).toContain("/materia/chuva-em-cuiaba");
+  });
+
+  it("resposta sem o marcador (havia sessão ou rota fora da política) não vai para o cache", async () => {
+    cachePut.mockClear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => page(false)),
+    );
+    await sync(["/materia/chuva-em-cuiaba"]);
+    expect(cachePut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "/estudio/materias",
+    "/perfil",
+    "/api/materia",
+    "/entrar",
+    "//evil.example/x",
+    "/cidade",
+  ])("caminho %s fora das matérias nem chega a ser buscado", async (path) => {
+    cachePut.mockClear();
+    const fetchMock = vi.fn(async () => page(true));
+    vi.stubGlobal("fetch", fetchMock);
+    await sync([path]);
+    expect(fetchMock.mock.calls.map(([u]) => String(u))).not.toContain(path);
+    expect(cachePut.mock.calls.map(([r]) => String(r))).not.toContain(path);
   });
 });

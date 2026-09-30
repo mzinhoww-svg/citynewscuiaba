@@ -425,8 +425,15 @@
     }
   }
   async function cachePage(cache, path) {
-    const res = await fetch(path, { credentials: "same-origin" });
-    if (!res.ok) return;
+    if (routeKind(path, SW_SECTIONS) === null) return;
+    const res = await fetch(path, { credentials: "omit" });
+    if (!isCacheableResponse({
+      method: "GET",
+      status: res.status,
+      sameOrigin: !res.redirected || sameOrigin(res.url),
+      headers: res.headers
+    }))
+      return;
     const html = await res.clone().text();
     await putWithIndex(cache, path, res, titleFromHtml(html));
     await cacheAssets(html);
@@ -455,7 +462,9 @@
     );
   }
   async function syncSaved(paths) {
-    const keep = paths.filter((p) => typeof p === "string" && p.startsWith("/") && !p.startsWith("//")).slice(0, LIMITS.salvos);
+    const keep = paths.filter(
+      (p) => typeof p === "string" && p.startsWith("/") && !p.startsWith("//") && routeKind(p, SW_SECTIONS) === "materia"
+    ).slice(0, LIMITS.salvos);
     const cache = await caches.open(CACHES.salvos);
     const gone = [];
     for (const req of await cache.keys()) {
