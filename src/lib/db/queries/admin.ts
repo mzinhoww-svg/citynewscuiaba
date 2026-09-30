@@ -2,7 +2,8 @@ import "server-only";
 import { parseHomeLayout, type HomeModule } from "@/lib/admin/home-layout";
 import { suggestTagMerges, type MergeSuggestion, type TagUsage } from "@/lib/admin/taxonomy";
 import { isRole } from "@/lib/admin/roles";
-import { userTarget } from "@/lib/approvals/targets";
+import { adminRevokeTarget, userTarget } from "@/lib/approvals/targets";
+import { invitePending } from "@/lib/admin/invites";
 import type { RoleGrant } from "@/lib/auth/permissions";
 import { createServiceClient, type DbClient } from "@/lib/db/client";
 import { studioContext } from "@/lib/studio/context";
@@ -40,13 +41,15 @@ export interface StaffMember {
   lastSignInAt: string | null;
   /** Pedido `role.admin` aberto ou já aprovado (falta aplicar). */
   adminApproval: { id: string; status: "pending" | "approved"; requestedBy: string } | null;
+  /** Pedido `role.admin` de revogação (alvo `revoke:<uuid>`), aberto ou aprovado. */
+  adminRevokeApproval: { id: string; status: "pending" | "approved"; requestedBy: string } | null;
 }
 
 export async function listStaff(): Promise<StaffMember[]> {
   const { db } = await studioContext();
   const [people, invites, approvals] = await Promise.all([
     db.rpc("studio_people"),
-    db.from("staff_invites").select("user_id, email, accepted_at"),
+    db.from("staff_invites").select("user_id, email, accepted_at, revoked_at, expires_at"),
     db
       .from("approvals")
       .select("id, target_ref, status, requested_by")
@@ -95,9 +98,10 @@ export async function listStaff(): Promise<StaffMember[]> {
       name: p.name,
       email: a?.email ?? inv?.email ?? null,
       roles: rolesOf.get(p.id) ?? [],
-      pendingInvite: Boolean(inv && !inv.accepted_at && !a?.lastSignInAt),
+      pendingInvite: Boolean(inv && invitePending(inv) && !a?.lastSignInAt),
       lastSignInAt: a?.lastSignInAt ?? null,
       adminApproval: approval.get(userTarget(p.id)) ?? null,
+      adminRevokeApproval: approval.get(adminRevokeTarget(p.id)) ?? null,
     };
   });
 }
@@ -265,7 +269,7 @@ export async function adminOverview(): Promise<AdminOverview> {
   const { db } = await studioContext();
   const [people, invites, approvals, teams, home, tags] = await Promise.all([
     db.rpc("studio_people"),
-    db.from("staff_invites").select("id", { count: "exact", head: true }).is("accepted_at", null),
+    db.from("staff_invites").select("accepted_at, revoked_at, expires_at"),
     db.from("approvals").select("id", { count: "exact", head: true }).eq("status", "pending"),
     db.from("teams").select("id", { count: "exact", head: true }),
     db.from("home_layouts").select("version").eq("status", "published").maybeSingle(),
@@ -280,7 +284,7 @@ export async function adminOverview(): Promise<AdminOverview> {
   const adminRequests = (await pendingApprovalsFor("", db)).filter((a) => a.kind === "role.admin");
   return {
     staff: (people.data ?? []).length,
-    pendingInvites: invites.count ?? 0,
+    pendingInvites: (invites.data ?? []).filter((i) => invitePending(i)).length,
     pendingApprovals: approvals.count ?? 0,
     teams: teams.count ?? 0,
     homeVersion: home.data?.version ?? null,

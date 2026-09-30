@@ -2,7 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { SECTION_SCOPED_ROLES, planRoleChange } from "@/lib/admin/roles";
-import { userTarget } from "@/lib/approvals/targets";
+import { adminRevokeTarget, userTarget } from "@/lib/approvals/targets";
 import { audit } from "@/lib/audit";
 import { callbackUrl } from "@/lib/auth/links";
 import { ROLES, type RoleGrant } from "@/lib/auth/permissions";
@@ -91,7 +91,12 @@ export interface SetRolesOutcome {
   revoked: string[];
   updated: string[];
   adminApprovalId: string | null;
+  /** Pedido `role.admin` de revogação (alvo `revoke:<uuid>`), quando o papel de admin sai. */
+  adminRevokeApprovalId: string | null;
 }
+
+const isTwoPersonError = (e: { code?: string; message: string }) =>
+  e.code === "42501" || /aprovação|two_person/.test(e.message);
 
 export const setRolesCommand = studioAction(
   "users.manage",
@@ -144,9 +149,29 @@ export const setRolesCommand = studioAction(
         ctx.db,
       );
     }
+    // Revogar `admin` também é mudança crítica (spec §8): o banco só deixa apagar com pedido
+    // `role.admin` (alvo `revoke:<uuid>`) decidido por outra pessoa; sem ele, abre o pedido.
+    const revoked: string[] = [];
+    let adminRevokeApprovalId: string | null = null;
     for (const role of plan.revoke) {
       const r = await ctx.db.from("user_roles").delete().eq("user_id", i.userId).eq("role", role);
-      if (r.error) throw new Error(`revoke ${role}: ${r.error.message}`);
+      if (r.error) {
+        if (role !== "admin" || !isTwoPersonError(r.error))
+          throw new Error(`revoke ${role}: ${r.error.message}`);
+        if (!i.justification?.trim())
+          throw new StudioFailure("invalid", T.users.rolesDialog.justificationRequired);
+        const req = await requestApprovalCommand({
+          kind: "role.admin",
+          targetRef: adminRevokeTarget(i.userId),
+          justification: i.justification,
+          objectRef: `user:${i.userId}`,
+          details: { revoke: "admin" },
+        });
+        if (!req.ok) throw new StudioFailure(req.error, req.message);
+        adminRevokeApprovalId = req.value.id;
+        continue;
+      }
+      revoked.push(role);
       await audit(ctx.userId, "user.role.revoke", `user:${i.userId}`, { role }, ctx.db);
     }
 
@@ -165,15 +190,17 @@ export const setRolesCommand = studioAction(
     }
     ctx.detail({
       granted: plan.grant.map((g) => g.role),
-      revoked: plan.revoke,
+      revoked,
       updated: plan.update.map((u) => u.role),
       adminApprovalId,
+      adminRevokeApprovalId,
     });
     return {
       granted: plan.grant.map((g) => g.role),
-      revoked: plan.revoke,
+      revoked,
       updated: plan.update.map((u) => u.role),
       adminApprovalId,
+      adminRevokeApprovalId,
     };
   },
   { schema: SetRolesInput, auditAs: "user.role.grant", objectRef: (i) => `user:${i.userId}` },
@@ -201,4 +228,28 @@ export const applyAdminRoleCommand = studioAction(
     return { applied: true };
   },
   { schema: ApplyAdminInput, auditAs: "user.role.grant", objectRef: (i) => `user:${i.userId}` },
+);
+
+/** Aplica a revogação de admin já aprovada por outra pessoa (o trigger consome o pedido). */
+export const applyAdminRevokeCommand = studioAction(
+  "users.manage",
+  () => ({}),
+  async (i, ctx) => {
+    if (i.userId === ctx.userId) throw new StudioFailure("forbidden", T.users.rolesDialog.self);
+    const r = await ctx.db
+      .from("user_roles")
+      .delete()
+      .eq("user_id", i.userId)
+      .eq("role", "admin")
+      .select("user_id");
+    if (r.error) {
+      if (isTwoPersonError(r.error))
+        throw new StudioFailure("conflict", T.users.rolesDialog.revokePending);
+      throw new Error(`apply revoke admin: ${r.error.message}`);
+    }
+    if ((r.data ?? []).length === 0) throw new StudioFailure("not_found");
+    ctx.detail({ role: "admin" });
+    return { applied: true };
+  },
+  { schema: ApplyAdminInput, auditAs: "user.role.revoke", objectRef: (i) => `user:${i.userId}` },
 );

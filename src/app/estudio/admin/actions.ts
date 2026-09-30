@@ -18,6 +18,7 @@ import {
 } from "@/lib/studio/admin-taxonomy";
 import { deleteTeamCommand, saveTeamCommand } from "@/lib/studio/admin-teams";
 import {
+  applyAdminRevokeCommand,
   applyAdminRoleCommand,
   inviteUserCommand,
   setRolesCommand,
@@ -46,12 +47,20 @@ export async function setRolesAction(i: {
   justification: string;
 }) {
   return reply(await setRolesCommand(i), (v) =>
-    v.adminApprovalId ? T.users.rolesDialog.adminRequested : T.users.rolesDialog.saved,
+    v.adminApprovalId
+      ? T.users.rolesDialog.adminRequested
+      : v.adminRevokeApprovalId
+        ? T.users.rolesDialog.revokeRequested
+        : T.users.rolesDialog.saved,
   );
 }
 
 export async function applyAdminRoleAction(i: { userId: string }) {
   return reply(await applyAdminRoleCommand(i), () => T.users.rolesDialog.applied);
+}
+
+export async function applyAdminRevokeAction(i: { userId: string }) {
+  return reply(await applyAdminRevokeCommand(i), () => T.users.rolesDialog.revokeApplied);
 }
 
 export async function saveTeamAction(i: {

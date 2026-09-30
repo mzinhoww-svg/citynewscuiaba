@@ -31,6 +31,7 @@ export interface StaffTableProps {
     justification: string;
   }) => Promise<AdminReply>;
   applyAdmin: (i: { userId: string }) => Promise<AdminReply>;
+  applyAdminRevoke: (i: { userId: string }) => Promise<AdminReply>;
 }
 
 const U = T.users;
@@ -49,6 +50,7 @@ export function StaffTable({
   invite,
   setRoles,
   applyAdmin,
+  applyAdminRevoke,
 }: StaffTableProps) {
   const router = useRouter();
   const [status, setStatus] = useState<AdminReply | null>(null);
@@ -117,6 +119,13 @@ export function StaffTable({
                       : U.rolesDialog.adminApproved}
                   </span>
                 )}
+                {p.adminRevokeApproval && (
+                  <span className="block type-meta font-medium text-strong">
+                    {p.adminRevokeApproval.status === "pending"
+                      ? U.rolesDialog.revokePending
+                      : U.rolesDialog.revokeApproved}
+                  </span>
+                )}
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-wrap gap-2">
@@ -133,6 +142,18 @@ export function StaffTable({
                       onClick={() => start(async () => done(await applyAdmin({ userId: p.id })))}
                     >
                       {U.rolesDialog.apply}
+                    </Button>
+                  )}
+                  {p.adminRevokeApproval?.status === "approved" && p.id !== currentUserId && (
+                    <Button
+                      size="sm"
+                      variant="outline-strong"
+                      disabled={busy}
+                      onClick={() =>
+                        start(async () => done(await applyAdminRevoke({ userId: p.id })))
+                      }
+                    >
+                      {U.rolesDialog.revokeApply}
                     </Button>
                   )}
                 </div>

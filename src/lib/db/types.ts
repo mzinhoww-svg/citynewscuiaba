@@ -228,6 +228,7 @@ export type Database = {
       approvals: {
         Row: {
           approved_by: string | null;
+          content_hash: string | null;
           created_at: string;
           decided_at: string | null;
           id: string;
@@ -239,6 +240,7 @@ export type Database = {
         };
         Insert: {
           approved_by?: string | null;
+          content_hash?: string | null;
           created_at?: string;
           decided_at?: string | null;
           id?: string;
@@ -250,6 +252,7 @@ export type Database = {
         };
         Update: {
           approved_by?: string | null;
+          content_hash?: string | null;
           created_at?: string;
           decided_at?: string | null;
           id?: string;
@@ -3193,7 +3196,8 @@ export type Database = {
           email: string;
           expires_at: string;
           id: string;
-          invited_by: string;
+          invited_by: string | null;
+          revoked_at: string | null;
           role: Database["public"]["Enums"]["app_role"];
           sections: string[];
           user_id: string;
@@ -3204,7 +3208,8 @@ export type Database = {
           email: string;
           expires_at?: string;
           id?: string;
-          invited_by: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
           role: Database["public"]["Enums"]["app_role"];
           sections?: string[];
           user_id: string;
@@ -3215,7 +3220,8 @@ export type Database = {
           email?: string;
           expires_at?: string;
           id?: string;
-          invited_by?: string;
+          invited_by?: string | null;
+          revoked_at?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           sections?: string[];
           user_id?: string;
@@ -3463,6 +3469,18 @@ export type Database = {
       };
     };
     Views: {
+      audit_log_view: {
+        Row: {
+          action: string | null;
+          actor: string | null;
+          at: string | null;
+          details: Json | null;
+          id: number | null;
+          ip_hash: string | null;
+          object_ref: string | null;
+        };
+        Relationships: [];
+      };
       my_push_subscriptions: {
         Row: {
           browser: string | null;
@@ -4184,6 +4202,9 @@ export type Database = {
       };
       require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
       rules_rollback: { Args: Record<PropertyKey, never>; Returns: Json };
+      security_retention_days: { Args: Record<PropertyKey, never>; Returns: number };
+      security_session_hours: { Args: Record<PropertyKey, never>; Returns: number };
+      staff_invites_sweep: { Args: Record<PropertyKey, never>; Returns: number };
       save_item_fingerprint: {
         Args: { p_embedding: string; p_id: string; p_simhash: string };
         Returns: undefined;

@@ -62,10 +62,16 @@ export const ADMIN_TEXT = {
       adminApproved: "Aprovado: aplicar papel de administração",
       apply: "Aplicar",
       applied: "Papel de administração aplicado.",
+      revokeRequested:
+        "Retirar a administração também precisa de outra pessoa da administração: pedido aberto na caixa de aprovações. Depois de aprovado, use “Aplicar revogação”.",
+      revokePending: "Revogação de administração aguardando aprovação",
+      revokeApproved: "Revogação aprovada: aplicar",
+      revokeApply: "Aplicar revogação",
+      revokeApplied: "Papel de administração revogado.",
       self: "Ninguém altera os próprios papéis.",
       editorNeedsSection: "Editor precisa de pelo menos uma editoria.",
       justification: "Justificativa (para o pedido de administração)",
-      justificationRequired: "Explique por que esta pessoa precisa do papel de administração.",
+      justificationRequired: "Explique o motivo da mudança no papel de administração.",
     },
   },
   roles: {

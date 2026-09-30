@@ -4,7 +4,12 @@ import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { listStaff, taxonomyOverview } from "@/lib/db/queries/admin";
 import { loadOrNull } from "../../load-error";
-import { applyAdminRoleAction, inviteUserAction, setRolesAction } from "../actions";
+import {
+  applyAdminRevokeAction,
+  applyAdminRoleAction,
+  inviteUserAction,
+  setRolesAction,
+} from "../actions";
 import { AdminScreen } from "../screen";
 
 export const metadata: Metadata = { title: "Usuários · Administração · CityNews Cuiabá" };
@@ -37,6 +42,7 @@ export default async function UsersPage() {
           invite={inviteUserAction}
           setRoles={setRolesAction}
           applyAdmin={applyAdminRoleAction}
+          applyAdminRevoke={applyAdminRevokeAction}
         />
       )}
     </AdminScreen>

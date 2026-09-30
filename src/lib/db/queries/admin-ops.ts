@@ -144,7 +144,9 @@ export async function searchAudit(
   db?: DbClient,
 ): Promise<AuditRow[]> {
   const client = db ?? (await studioContext()).db;
-  let q = client.from("audit_log").select("id, at, actor, action, object_ref, details, ip_hash");
+  let q = client
+    .from("audit_log_view")
+    .select("id, at, actor, action, object_ref, details, ip_hash");
   if (filters.action) q = q.ilike("action", `${filters.action.replace(/[%_]/g, "")}%`);
   if (filters.object) q = q.ilike("object_ref", `%${filters.object.replace(/[%_]/g, "")}%`);
   if (filters.from) q = q.gte("at", `${filters.from}T00:00:00-04:00`);
@@ -162,7 +164,17 @@ export async function searchAudit(
       q = ids.length ? q.in("actor", ids) : q.eq("actor", filters.actor);
     }
   }
-  const { data, error } = await q.order("id", { ascending: false }).limit(opts.limit);
+  const { data, error } = await q.order("id", { ascending: false }).limit(opts.limit).returns<
+    {
+      id: number;
+      at: string;
+      actor: string;
+      action: string;
+      object_ref: string;
+      details: unknown;
+      ip_hash: string | null;
+    }[]
+  >();
   check("audit", error);
   const people = await names(
     client,
