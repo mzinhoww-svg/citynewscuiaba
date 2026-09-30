@@ -117,6 +117,7 @@ export function LoginInvite() {
   return (
     <dialog
       ref={ref}
+      tabIndex={-1}
       aria-labelledby={titleId}
       style={open.style ?? undefined}
       onClose={() => {

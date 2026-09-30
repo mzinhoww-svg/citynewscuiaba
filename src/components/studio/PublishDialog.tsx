@@ -150,6 +150,8 @@ export function PublishDialog({
 
       <dialog
         ref={ref}
+
+        tabIndex={-1}
         aria-labelledby={`${uid}-titulo`}
         onClose={() => setOpen(false)}
         onClick={(e) => {

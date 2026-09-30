@@ -61,6 +61,7 @@ export function IosInstallSteps({ open, safari, onClose }: IosInstallStepsProps)
   return (
     <dialog
       ref={ref}
+      tabIndex={-1}
       aria-labelledby={titleId}
       onClose={() => onClose(chose.current ?? "dismiss")}
       className="m-auto w-[min(100%-2rem,28rem)] rounded-xl border border-line-section bg-card-white p-6 text-body shadow-dialog backdrop:bg-overlay"
