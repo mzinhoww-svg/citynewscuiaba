@@ -101,6 +101,7 @@ const created = {
   privacy: [] as string[],
   subs: [] as string[],
   users: [] as string[],
+  approvals: [] as string[],
 };
 let reader: DbClient;
 let readerId = "";
@@ -119,6 +120,20 @@ beforeAll(async () => {
     .select("id")
     .maybeSingle();
   if (ev.data?.id) created.events.push(String(ev.data.id));
+
+  // O banco recém-criado não tem pedido de aprovação: sonda própria.
+  const apr = await service
+    .from("approvals")
+    .insert({
+      kind: "push.resume",
+      target_ref: `sonda-${run}`,
+      requested_by: "c1000000-0000-4000-8000-000000000007",
+      justification: "sonda de segurança",
+    })
+    .select("id")
+    .single();
+  if (apr.error) throw new Error(apr.error.message);
+  created.approvals.push(apr.data.id);
 
   const pr = await service
     .from("privacy_requests")
@@ -172,6 +187,7 @@ afterAll(async () => {
       .from("events")
       .delete()
       .in("id", created.events as never);
+  await service.from("approvals").delete().in("id", created.approvals);
   await service.from("privacy_requests").delete().in("id", created.privacy);
   await service.from("push_subscriptions").delete().in("id", created.subs);
   await service.from("staff_invites").delete().like("email", `%${run}%`);
