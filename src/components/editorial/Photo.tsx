@@ -1,5 +1,5 @@
-import Image from "next/image";
 import type { CSSProperties, ReactNode } from "react";
+import { preload } from "react-dom";
 import { UI } from "@/content/pt-BR/ui";
 import { cx } from "../cx";
 
@@ -53,20 +53,25 @@ export function Photo({
   style,
   children,
 }: PhotoProps) {
+  if (src && priority) preload(src, { as: "image", fetchPriority: "high" });
   return (
     <div
       className={cx("relative shrink-0 overflow-hidden bg-photo", RADIUS[radius], className)}
       style={{ aspectRatio: ratio, height, ...style }}
     >
       {src ? (
-        <Image
+        // `<img>` puro em vez de `next/image`: as fotos já saem sem otimizador (`unoptimized`, URL
+        // assinada de /api/media), então o componente só somava ~9 kB de JS gz a toda página
+        // com foto (B-018). `priority` vira preload + `fetchpriority=high`, só na manchete.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={src}
           alt={alt}
-          fill
           sizes={sizes}
-          priority={priority}
-          unoptimized
-          className="object-cover"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
+          decoding="async"
+          className="absolute inset-0 size-full object-cover"
         />
       ) : alt ? (
         <span
