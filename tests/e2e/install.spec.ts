@@ -197,7 +197,10 @@ test("/app mostra instruções e 'Já instalado' em standalone", async ({ page }
   await expect(page.getByRole("status")).toHaveText("Já instalado");
 });
 
-test("?origem=app em standalone registra app_installed e limpa a URL", async ({ page }) => {
+test("?origem=app em standalone registra app_installed e limpa a URL", async ({
+  page,
+  browserName,
+}) => {
   const events: string[] = [];
   page.on("request", (r) => {
     if (r.url().includes("/api/events")) events.push(r.postData() ?? "");
@@ -210,7 +213,9 @@ test("?origem=app em standalone registra app_installed e limpa a URL", async ({ 
     .poll(() => events.some((e) => e.includes('"app_installed"')), { timeout: 10_000 })
     .toBe(true);
   const ev = JSON.parse(events.find((e) => e.includes('"app_installed"'))!);
-  expect(ev.props).toEqual({ via: "unknown" });
+  // `via` (src/lib/app/install.ts): iOS sem instruções vistas → "browser"; o projeto mobile-webkit
+  // usa o UA do iPhone 13, os de Chromium não são iOS → "unknown".
+  expect(ev.props).toEqual({ via: browserName === "webkit" ? "browser" : "unknown" });
   expect(ev.anonId).toBeNull();
   expect((await readState(page)).install.installed).toBe(true);
   // Segunda abertura não registra de novo.
