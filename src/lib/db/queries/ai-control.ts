@@ -227,7 +227,7 @@ export async function governanceOverview(now: Date = new Date()): Promise<Govern
       .limit(30),
     db.from("feature_flags").select("key, enabled"),
     db
-      .from("pipeline_events")
+      .from("pipeline_events_view")
       .select("id", { count: "exact", head: true })
       .eq("level", "security")
       .gte("at", since30),
