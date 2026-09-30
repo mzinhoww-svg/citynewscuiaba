@@ -77,6 +77,13 @@ describe("endpointProblem (Review Focus 4)", () => {
         CN_E2E: "1",
       }),
     ).toEqual(["127.0.0.1:9999"]);
+    expect(
+      testHostsFromEnv({
+        PUSH_ENDPOINT_TEST_HOSTS: "127.0.0.1:9999",
+        VERCEL_ENV: "production",
+        CN_E2E: "1",
+      }),
+    ).toEqual([]);
     expect(testHostsFromEnv({ PUSH_ENDPOINT_TEST_HOSTS: "127.0.0.1:9999, bad host" })).toEqual([
       "127.0.0.1:9999",
     ]);

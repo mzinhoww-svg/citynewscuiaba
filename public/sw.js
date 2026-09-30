@@ -73,6 +73,18 @@
     if (s && sections.includes(s[1])) return "pagina";
     return null;
   }
+  var SW_IGNORED = ["/estudio", "/api", "/entrar", "/criar-conta", "/perfil", "/auth"];
+  function bypassesSw(path) {
+    return SW_IGNORED.some((p) => path === p || path.startsWith(`${p}/`));
+  }
+  function isStudioWindow(url, origin) {
+    try {
+      const u = new URL(url, origin);
+      return u.origin === origin && (u.pathname === "/estudio" || u.pathname.startsWith("/estudio/"));
+    } catch {
+      return false;
+    }
+  }
   function cacheForKind(kind) {
     if (kind === "materia") return CACHES.lidas;
     if (kind === "favoritos") return CACHES.salvos;
@@ -509,7 +521,7 @@
     const kind = routeKind(path, SW_SECTIONS);
     const req = event.request;
     try {
-      const res = await withTimeout(fetch(req), LIMITS.networkTimeoutMs);
+      const res = kind ? await withTimeout(fetch(req), LIMITS.networkTimeoutMs) : await fetch(req);
       if (kind && isCacheableResponse({
         method: req.method,
         status: res.status,
@@ -517,13 +529,15 @@
         headers: res.headers
       })) {
         const cache = cacheForKind(kind);
-        const html = await res.clone().text();
+        const forText = res.clone();
+        const forCache = res.clone();
         event.waitUntil(
           (async () => {
-            await putWithIndex(cache, path, res.clone(), titleFromHtml(html));
+            const html = await forText.text();
+            await putWithIndex(cache, path, forCache, titleFromHtml(html));
             await touch(path, (/* @__PURE__ */ new Date()).toISOString());
             await cacheAssets(html);
-          })()
+          })().catch(() => void 0)
         );
       }
       return res;
@@ -570,6 +584,7 @@
     if (req.method !== "GET" || !sameOrigin(req.url)) return;
     const url = new URL(req.url);
     if (req.mode === "navigate") {
+      if (bypassesSw(url.pathname)) return;
       event.respondWith(handleNavigation(event, cacheKey(url.pathname, ORIGIN)));
       return;
     }
@@ -633,6 +648,7 @@
       (async () => {
         const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
         for (const c of list) {
+          if (isStudioWindow(c.url, ORIGIN)) continue;
           if ("focus" in c) {
             await c.navigate(target).catch(() => void 0);
             await c.focus();

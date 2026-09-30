@@ -19,10 +19,12 @@ import {
 } from "./contract";
 import {
   assetUrlsFromHtml,
+  bypassesSw,
   cacheForKind,
   cacheKey,
   cachedAtFor,
   isCacheableResponse,
+  isStudioWindow,
   offlineListing,
   overBucketLimit,
   parsePayload,
@@ -281,7 +283,8 @@ async function handleNavigation(event: FetchEvent, path: string): Promise<Respon
   const kind = routeKind(path, SW_SECTIONS);
   const req = event.request;
   try {
-    const res = await withTimeout(fetch(req), LIMITS.networkTimeoutMs);
+    // Tempo limite de 4 s só onde há cópia para servir; o resto espera a rede (PWA-06).
+    const res = kind ? await withTimeout(fetch(req), LIMITS.networkTimeoutMs) : await fetch(req);
     if (
       kind &&
       isCacheableResponse({
@@ -292,13 +295,17 @@ async function handleNavigation(event: FetchEvent, path: string): Promise<Respon
       })
     ) {
       const cache = cacheForKind(kind);
-      const html = await res.clone().text();
+      // A resposta sai já, sem ler o corpo (streaming e Suspense do App Router intactos, PWA-07);
+      // as cópias são lidas dentro do `waitUntil`.
+      const forText = res.clone();
+      const forCache = res.clone();
       event.waitUntil(
         (async () => {
-          await putWithIndex(cache, path, res.clone(), titleFromHtml(html));
+          const html = await forText.text();
+          await putWithIndex(cache, path, forCache, titleFromHtml(html));
           await touch(path, new Date().toISOString());
           await cacheAssets(html);
-        })(),
+        })().catch(() => undefined),
       );
     }
     return res;
@@ -350,6 +357,8 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET" || !sameOrigin(req.url)) return;
   const url = new URL(req.url);
   if (req.mode === "navigate") {
+    // Estúdio, API, entrar, perfil e o retorno de login vão direto à rede (PWA-06).
+    if (bypassesSw(url.pathname)) return;
     event.respondWith(handleNavigation(event, cacheKey(url.pathname, ORIGIN)));
     return;
   }
@@ -429,6 +438,8 @@ self.addEventListener("notificationclick", (event) => {
     (async () => {
       const list = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const c of list) {
+        // Nunca navega a aba do Estúdio (rascunho não salvo, PWA-11).
+        if (isStudioWindow(c.url, ORIGIN)) continue;
         if ("focus" in c) {
           await c.navigate(target).catch(() => undefined);
           await c.focus();

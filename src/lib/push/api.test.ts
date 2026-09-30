@@ -36,7 +36,7 @@ function memoryStore() {
       return null;
     },
     async insert(row: NewSubscription) {
-      const id = `s${++n}`;
+      const id = `00000000-0000-4000-8000-${String(++n).padStart(12, "0")}`;
       rows.set(id, { id, ...row });
       return { id };
     },
@@ -286,6 +286,46 @@ describe("PATCH, DELETE e rotate", () => {
     });
     expect(JSON.stringify(body)).not.toMatch(/endpoint|p256dh|tokenHash/);
     expect(rows.get(id)!.metricsConsent).toBe(true);
+  });
+
+  it("PATCH/DELETE com id que não é UUID: 404 sem tocar no rate limit (PWA-05)", async () => {
+    const buckets: string[] = [];
+    const { deps } = makeDeps({
+      hitLimit: async (bucket) => {
+        buckets.push(bucket);
+        return true;
+      },
+    });
+    for (const bad of ["nao-existe", "x".repeat(5000), "../../etc"]) {
+      expect(
+        (await handlePatch(req("PATCH", { seen: true }, auth("t".repeat(40))), bad, deps)).status,
+      ).toBe(404);
+      expect(
+        (await handleDelete(req("DELETE", null, auth("t".repeat(40))), bad, deps)).status,
+      ).toBe(404);
+    }
+    expect(buckets).toEqual([]);
+  });
+
+  it("PATCH também tem limite por IP, além do limite por inscrição (PWA-05)", async () => {
+    const { deps } = await subscribed();
+    let last = 0;
+    for (let i = 0; i < 130; i++) {
+      const id = `00000000-0000-4000-8000-${String(1000 + i).padStart(12, "0")}`;
+      last = (await handlePatch(req("PATCH", { seen: true }, auth("t".repeat(40))), id, deps))
+        .status;
+    }
+    expect(last).toBe(429);
+  });
+
+  it("DELETE e PATCH continuam valendo sem chaves VAPID; criação e rotação não (PWA-15)", async () => {
+    const { deps, id, token } = await subscribed();
+    const off = { ...deps, enabled: false };
+    expect((await handlePatch(req("PATCH", { seen: true }, auth(token)), id, off)).status).toBe(
+      200,
+    );
+    expect((await handleDelete(req("DELETE", null, auth(token)), id, off)).status).toBe(204);
+    expect((await handleSubscribe(post(valid), off)).status).toBe(503);
   });
 
   it("DELETE apaga com token; sem token 404", async () => {

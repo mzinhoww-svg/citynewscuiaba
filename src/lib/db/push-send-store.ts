@@ -3,12 +3,13 @@ import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import type { DbClient } from "@/lib/db/client";
 import type { Database, Json } from "@/lib/db/types";
 import { tagFor } from "@/lib/push/payload";
-import type {
-  ClaimOutcome,
-  DeliverySub,
-  DueDelivery,
-  PushSend,
-  PushSendStore,
+import {
+  ORPHAN_AFTER_MS,
+  type ClaimOutcome,
+  type DeliverySub,
+  type DueDelivery,
+  type PushSend,
+  type PushSendStore,
 } from "@/lib/push/steps/store";
 import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
 import type { Audience, PushKind, ReserveOutcome, SendStatus, TargetKey } from "@/lib/push/types";
@@ -126,7 +127,7 @@ export function createPushSendStore(db: DbClient): PushSendStore {
         .maybeSingle();
       if (existing.error) fail("ensureFollowSend", existing.error);
       if (existing.data) return toSend(existing.data);
-      if (a.urgent || a.sponsored || a.status !== "published") return null;
+      if (a.urgent || a.sponsored || !["published", "updated"].includes(a.status)) return null;
       const { data, error } = await db
         .from("push_sends")
         .insert({
@@ -293,18 +294,21 @@ export function createPushSendStore(db: DbClient): PushSendStore {
     },
 
     async dueDeliveries(sendId, now, limit = 100) {
+      // Além de retentativas e adiadas na hora, `queued` sem tentativa e antiga é órfã (PWA-08).
+      const orphanBefore = new Date(now.getTime() - ORPHAN_AFTER_MS).toISOString();
       const { data, error } = await db
         .from("push_deliveries")
         .select("id, status, attempts, push_subscriptions(id, endpoint, p256dh, auth)")
         .eq("send_id", sendId)
         .in("status", ["queued", "deferred"])
-        .lte("not_before", now.toISOString())
-        .order("not_before")
+        .or(
+          `not_before.lte.${now.toISOString()},and(status.eq.queued,attempts.eq.0,created_at.lt.${orphanBefore})`,
+        )
+        .order("created_at")
         .limit(limit);
       if (error) fail("dueDeliveries", error);
       const out: DueDelivery[] = [];
       for (const d of data ?? []) {
-        if (d.status === "queued" && d.attempts === 0) continue;
         const s = d.push_subscriptions as DeliverySub | null;
         if (!s) continue;
         out.push({
@@ -324,6 +328,15 @@ export function createPushSendStore(db: DbClient): PushSendStore {
       });
       if (error) fail("claimDue", error);
       return (data ?? "gone") as ClaimOutcome;
+    },
+
+    async expirePending(sendId) {
+      const { error } = await db
+        .from("push_deliveries")
+        .update({ status: "expired", skip_reason: "expired" })
+        .eq("send_id", sendId)
+        .in("status", ["queued", "deferred"]);
+      if (error) fail("expirePending", error);
     },
 
     async notifyVapidInvalid(sendId) {

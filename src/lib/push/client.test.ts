@@ -176,6 +176,15 @@ describe("enablePush", () => {
     expect(tracked).toEqual([{ name: "notif_permission_denied", props: { trigger: "alert" } }]);
   });
 
+  it("diálogo nativo fechado sem decidir (default): dismissed, sem evento de negada (PWA-12)", async () => {
+    (window.Notification.requestPermission as ReturnType<typeof vi.fn>).mockResolvedValue(
+      "default",
+    );
+    expect(await enablePush("alert")).toEqual({ ok: false, error: "dismissed" });
+    expect(fetchCalls).toHaveLength(0);
+    expect(tracked).toEqual([]);
+  });
+
   it("POST falhou depois do subscribe → unsubscribe e erro, sem contar recusa", async () => {
     responder = () => new Response("x", { status: 500 });
     const r = await enablePush("follow");

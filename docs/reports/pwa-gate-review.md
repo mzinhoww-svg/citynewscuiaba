@@ -136,3 +136,28 @@ Nenhum bloqueante. Os dois altos devem ser corrigidos antes do merge: aviso de m
 7. SW: navegação a `/estudio`, `/entrar`, `/auth` com rede lenta (> 4 s) não cai em `offline.html`; a resposta de matéria cacheável é entregue antes de a leitura do corpo acabar (PWA-06, PWA-07); `cachePage` recusa caminho fora da allowlist (PWA-10).
 8. Permissão `default` após fechar o diálogo nativo (PWA-12).
 9. Não verifiquei a suíte axe (`@a11y`) das telas novas nem os tamanhos 360, 768 e 1280 px; a leitura de código não mostrou violação evidente (regiões com `aria-labelledby`, `role="status"`, abas com `aria-current`, resumo textual do gráfico), mas o gate exige o resultado do axe como evidência.
+
+## Situação
+
+Correções aplicadas no branch `worktree-agent-a0967818890fd228a` (a partir de `claude/keen-hypatia-8qn86r`), com migration nova `0047_push_gate_fixes.sql` (0040..0046 intactas; não toca `studio_audit_actions()`, `app_setting_set` nem `guard_app_settings`, e nenhuma ação de auditoria nova).
+
+| Achado | Situação | Onde |
+|---|---|---|
+| PWA-01 | Corrigido | Trigger 0047 cancela também `dispatching` e expira entregas `queued`/`deferred` de qualquer envio da matéria; `push_deliver` e `push_due` reconferem matéria no ar e não patrocinada (`steps/index.ts`, `expirePending`); `push_dispatch_due` reconfere no despacho. Testes: `steps.test.ts`, `push-gate-fixes.test.ts`. |
+| PWA-02 | Corrigido | 403 isolado remove só a inscrição (`gone`); só ≥ 5 inscrições e ≥ 50% do lote em 403 pausa e alerta. Testes: `steps.test.ts`, `push-send-flow.test.ts`. |
+| PWA-03 | Corrigido | `push_resume_apply`: agendado futuro volta a `scheduled` (`push_transition_ok` aceita `paused → scheduled`); `follow` > 6 h, Urgente > 2 h e Destaque sem horário > 12 h viram `expired`. Teste: `push-gate-fixes.test.ts`. |
+| PWA-04 | Corrigido | `published` e `updated` valem no fan-out, no follow, em `guard_push_sends`, `push_request`, na ação do Estúdio e na busca de matérias. |
+| PWA-05 | Corrigido | `PATCH`/`DELETE` com id que não é UUID respondem 404 sem gravar em `rate_limits`; `PATCH` ganha limite por IP (120/h) além do por inscrição. |
+| PWA-06 | Corrigido | O SW não responde a navegação de `/estudio`, `/api`, `/entrar`, `/criar-conta`, `/perfil` e `/auth`; rota fora da allowlist não tem o tempo limite de 4 s. Teste: `src/sw/index.test.ts`. |
+| PWA-07 | Corrigido | A resposta sai antes de ler o corpo; a leitura das cópias vai para `waitUntil`. `public/sw.js` regenerado. |
+| PWA-08 | Corrigido | `queued` com 0 tentativa e mais de 3 min é reprocessada por `push_due` (`dueDeliveries` e `push_dispatch_due`). Não foi incluído orçamento de tempo no `mapLimit` (ver pendência abaixo). |
+| PWA-09 | Corrigido | `approved_by` e `approved_at` saíram de `v_person`: quem pediu não os escreve (o trigger continua preenchendo na decisão). `status_reason` ficou, porque rejeitar e cancelar por pessoa dependem dele. |
+| PWA-10 | Pendente | `cachePage`/`syncSaved` sem `routeKind` e marcador. Exige `credentials: "omit"` no fetch das salvas para não perder o cache de quem tem sessão; precisa de decisão e teste e2e offline. |
+| PWA-11 | Corrigido | `notificationclick` ignora janelas do Estúdio e abre janela nova se só houver ela. |
+| PWA-12 | Corrigido | Permissão `default` vira `dismissed`: sem `notif_permission_denied`; no convite conta como recusa comum. |
+| PWA-13 | Corrigido | `csvCell` (`src/lib/push/csv.ts`) prefixa `'` em `=`, `+`, `-`, `@`, tab e CR. |
+| PWA-14 | Pendente | O teto de 4 KB do corpo é da spec §13 (o teste de 413 usa 200 alvos); decidir entre subir o teto das rotas de inscrição e PATCH ou reduzir o máximo de alvos. |
+| PWA-15 | Corrigido | `DELETE` e `PATCH` não exigem mais chaves VAPID; criação, rotação e recibo continuam exigindo. |
+| PWA-16 | Parcial | Corrigidos: `sponsored` reconferido no despacho (SQL e TS); `PUSH_ENDPOINT_TEST_HOSTS` ignorada com `VERCEL_ENV=production` mesmo com `CN_E2E=1`; `push_settings_int` só lê `push.%`. Pendente: remover inscrição após N falhas 400/413 consecutivas. |
+
+Pendências a decidir: PWA-10, PWA-14, o último item de PWA-16 e o orçamento de tempo por lote (spec §12.3, 80%) citado em PWA-08.

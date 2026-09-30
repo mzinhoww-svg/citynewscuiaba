@@ -112,7 +112,7 @@ describe("push_match + push_deliver", () => {
     expect(store.send("send-1").counters.skipped_duplicate_n).toBeUndefined();
   });
 
-  it("403 pausa o envio, alerta o Control Center e para o lote", async () => {
+  it("403 isolado não pausa: remove só a inscrição e o resto do lote sai (PWA-02)", async () => {
     const store = memoryPushStore({
       articles: [article("A1")],
       subs: [
@@ -123,19 +123,31 @@ describe("push_match + push_deliver", () => {
     });
     const { fake, steps } = setup(store);
     fake.respondWith("/a", { kind: "failed", status: 403, vapidInvalid: true });
-    const run = createRunStep(steps);
-    const r = await run(msg("push_match", "article:A1"));
-    // Concorrência 1 para a ordem ser determinística no teste.
-    const serial = createRunStep(
-      createPushSteps({ store, sender: fake, now: () => NOW, concurrency: 1 }),
-    );
-    await serial((r.ok ? r.value : [])[0]!);
+    await runAll(msg("push_match", "article:A1"), steps);
+    expect(store.send("send-1").status).toBe("sent");
+    expect(store.notifications).toEqual([]);
+    expect(store.subs.find((s) => s.id === "a")!.removed).toBe(true);
+    expect(fake.sent).toHaveLength(3);
+    expect(store.send("send-1").counters).toMatchObject({ accepted_n: 2, removed_n: 1 });
+  });
+
+  it("403 em massa pausa o envio, alerta o Control Center e trava o lote (PWA-02)", async () => {
+    const ids = ["a", "b", "c", "d", "e", "f"];
+    const store = memoryPushStore({
+      articles: [article("A1")],
+      subs: ids.map((i) => sub(i, ["section:cidade"])),
+    });
+    const { fake, steps } = setup(store);
+    for (const i of ids.slice(0, 5))
+      fake.respondWith(`/${i}`, { kind: "failed", status: 403, vapidInvalid: true });
+    await runAll(msg("push_match", "article:A1"), steps);
     expect(store.send("send-1")).toMatchObject({ status: "paused", reason: "vapid_invalid" });
     expect(store.notifications).toEqual([
       { title: "Chaves VAPID inválidas", severity: "critical" },
     ]);
-    expect(fake.sent).toHaveLength(1);
     expect(store.batches.get("send-1:1")!.status).toBe("paused");
+    // Nenhuma inscrição é apagada por causa de uma chave do servidor errada.
+    expect(store.subs.every((s) => !s.removed)).toBe(true);
   });
 
   it("410 apaga a inscrição; 429 com Retry-After 900 reagenda em 15 min; na 4ª falha vira failed", async () => {
@@ -209,5 +221,105 @@ describe("push_match + push_deliver", () => {
     expect((await run(msg("push_deliver", "push:x:zero"))).ok).toBe(false);
     expect(await run(msg("push_match", "push:nao-existe"))).toEqual({ ok: true, value: [] });
     expect(await run(msg("push_due", "due:nao-existe"))).toEqual({ ok: true, value: [] });
+  });
+
+  it("matéria em updated (corrigida) segue no ar: follow e urgente saem (PWA-04)", async () => {
+    const store = memoryPushStore({
+      articles: [article("A1", { status: "updated" })],
+      subs: [sub("a", ["section:cidade"])],
+    });
+    const { fake, steps } = setup(store);
+    await runAll(msg("push_match", "article:A1"), steps);
+    expect(fake.sent).toHaveLength(1);
+    store.addSend({ id: "u1", kind: "urgent", articleId: "A1", status: "dispatching" });
+    store.subs.push(sub("b", ["section:esportes"]));
+    await runAll(msg("push_match", "push:u1"), steps);
+    expect(store.send("u1").status).toBe("sent");
+    expect(fake.sent).toHaveLength(2);
+  });
+
+  it("despublicada com o envio em dispatching: lotes restantes são descartados (PWA-01)", async () => {
+    const subs = Array.from({ length: 101 }, (_, i) => sub(`s${i}`, ["section:cidade"]));
+    const store = memoryPushStore({ articles: [article("A1")], subs });
+    const { fake, steps } = setup(store);
+    const run = createRunStep(steps);
+    const r = await run(msg("push_match", "article:A1"));
+    const batches = r.ok ? r.value : [];
+    expect(batches).toHaveLength(2);
+    await run(batches[0]!);
+    expect(fake.sent).toHaveLength(100);
+    store.articles.set("A1", article("A1", { status: "unpublished" }));
+    await run(batches[1]!);
+    expect(fake.sent).toHaveLength(100);
+    expect(store.send("send-1")).toMatchObject({
+      status: "cancelled",
+      reason: "Matéria despublicada",
+    });
+  });
+
+  it("despublicada com retry pendente: push_due não reenvia e expira a entrega (PWA-01)", async () => {
+    const store = memoryPushStore({
+      articles: [article("A1")],
+      subs: [sub("busy", ["section:cidade"])],
+    });
+    const { fake, steps } = setup(store);
+    fake.respondWith("/busy", { kind: "retry", status: 503, retryAfterSec: 60 });
+    await runAll(msg("push_match", "article:A1"), steps);
+    expect(store.send("send-1").status).toBe("sent");
+    store.articles.set("A1", article("A1", { status: "unpublished" }));
+    const later = createRunStep(
+      createPushSteps({ store, sender: fake, now: () => new Date("2026-09-28T15:05:00Z") }),
+    );
+    await later(msg("push_due", "due:send-1"));
+    expect(fake.sent).toHaveLength(1);
+    expect(store.deliveries[0]!.status).toBe("expired");
+  });
+
+  it("patrocinada depois da aprovação: o despacho cancela e nada sai (PWA-16)", async () => {
+    const store = memoryPushStore({
+      articles: [article("A1", { sponsored: true })],
+      subs: [sub("a", ["section:cidade"])],
+    });
+    const { fake, steps } = setup(store);
+    store.addSend({ id: "u1", kind: "urgent", articleId: "A1", status: "dispatching" });
+    await runAll(msg("push_match", "push:u1"), steps);
+    expect(store.send("u1")).toMatchObject({ status: "cancelled", reason: "Matéria patrocinada" });
+    expect(fake.sent).toHaveLength(0);
+  });
+
+  it("entrega reservada e não enviada (queda depois do reserve) é reenviada por push_due (PWA-08)", async () => {
+    const store = memoryPushStore({
+      articles: [article("A1")],
+      subs: [sub("a", ["section:cidade"]), sub("b", ["section:cidade"])],
+    });
+    const { fake, steps } = setup(store);
+    const real = fake.send.bind(fake);
+    let boom = true;
+    fake.send = async (s, p, h) => {
+      if (boom && s.endpoint.endsWith("/a")) {
+        boom = false;
+        throw new Error("worker caiu");
+      }
+      return real(s, p, h);
+    };
+    const run = createRunStep(steps);
+    const r = await run(msg("push_match", "article:A1"));
+    await run((r.ok ? r.value : [])[0]!).catch(() => undefined);
+    expect(store.deliveries.find((d) => d.subId === "a")).toMatchObject({
+      status: "queued",
+      attempts: 0,
+    });
+    // Reprocessar o lote vira duplicata; a órfã espera 3 min e então sai pelo push_due.
+    const early = createRunStep(
+      createPushSteps({ store, sender: fake, now: () => new Date("2026-09-28T15:01:00Z") }),
+    );
+    await early(msg("push_due", "due:send-1"));
+    expect(fake.sent.filter((x) => x.endpoint.endsWith("/a"))).toHaveLength(0); // ainda não é órfã
+    const late = createRunStep(
+      createPushSteps({ store, sender: fake, now: () => new Date("2026-09-28T15:04:00Z") }),
+    );
+    await late(msg("push_due", "due:send-1"));
+    expect(fake.sent.filter((x) => x.endpoint.endsWith("/a"))).toHaveLength(1);
+    expect(store.deliveries.find((d) => d.subId === "a")!.status).toBe("sent");
   });
 });

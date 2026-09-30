@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/require-role";
 import { createServerClient, createServiceClient, type DbClient } from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import type { Database, Json } from "@/lib/db/types";
+import { csvCell } from "@/lib/push/csv";
 import { missingVapidVars } from "@/lib/push/server";
 import type { audienceSchema } from "@/lib/push/schemas";
 import type { PushKind, SendStatus } from "@/lib/push/types";
@@ -585,11 +586,6 @@ const CSV_HEADER = [
   "ctr",
 ];
 
-const csvCell = (v: string | number | null): string => {
-  const s = v === null ? "" : String(v);
-  return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
 /** CSV do histórico (mesmos filtros, sem paginação, até 5 000 linhas): nenhum dado de inscrição. */
 export async function historyCsv(f: HistoryFilter): Promise<string> {
   const r = await read(async (db) => {
@@ -660,7 +656,7 @@ export async function searchArticles(q: string, roles: RoleGrant[]): Promise<Art
     let query = db
       .from("articles")
       .select("id, slug, title, dek, section_slug, published_at, publish_mode, kind, urgent")
-      .eq("status", "published")
+      .in("status", ["published", "updated"])
       .eq("sponsored", false)
       .order("published_at", { ascending: false })
       .limit(10);

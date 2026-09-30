@@ -53,6 +53,9 @@ export interface DueDelivery {
   deferred: boolean;
 }
 
+/** Entrega `queued` sem resultado há mais que isto é órfã (worker caiu depois do `reserve`, PWA-08). */
+export const ORPHAN_AFTER_MS = 3 * 60_000;
+
 export type DeliveryOutcome = "accepted" | "gone" | "retry" | "failed";
 export type ClaimOutcome = "ok" | "skipped_limit" | "expired" | "coalesced" | "gone";
 
@@ -96,5 +99,7 @@ export interface PushSendStore {
   pauseBatch(sendId: string, batchNo: number): Promise<void>;
   dueDeliveries(sendId: string, now: Date, limit?: number): Promise<DueDelivery[]>;
   claimDue(deliveryId: number, now: Date): Promise<ClaimOutcome>;
+  /** Expira as entregas `queued`/`deferred` do envio (matéria despublicada ou patrocinada, PWA-01). */
+  expirePending(sendId: string): Promise<void>;
   notifyVapidInvalid(sendId: string): Promise<void>;
 }
