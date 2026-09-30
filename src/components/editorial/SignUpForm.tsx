@@ -158,10 +158,16 @@ export function SignUpForm({ action, next }: SignUpFormProps) {
         error={bad.terms ? T.termsError : undefined}
       >
         <p className="flex flex-wrap gap-x-4 pl-8 type-meta">
-          <Link href="/termos" className="text-link underline underline-offset-4">
+          <Link
+            href="/termos"
+            className="inline-flex min-h-tap items-center text-link underline underline-offset-4"
+          >
             {T.termsLink}
           </Link>
-          <Link href="/privacidade" className="text-link underline underline-offset-4">
+          <Link
+            href="/privacidade"
+            className="inline-flex min-h-tap items-center text-link underline underline-offset-4"
+          >
             {T.privacyLink}
           </Link>
         </p>
