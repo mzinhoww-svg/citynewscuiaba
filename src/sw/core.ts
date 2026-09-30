@@ -29,6 +29,23 @@ export function routeKind(path: string, sections: readonly string[]): RouteKind 
   return null;
 }
 
+/** Navegações que o SW nunca intercepta: Estúdio, API, login e perfil (spec D-P11, §8.4). */
+const SW_IGNORED = ["/estudio", "/api", "/entrar", "/criar-conta", "/perfil", "/auth"] as const;
+
+export function bypassesSw(path: string): boolean {
+  return SW_IGNORED.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
+/** Janela do Estúdio (o toque no aviso nunca navega por cima dela, PWA-11). */
+export function isStudioWindow(url: string, origin: string): boolean {
+  try {
+    const u = new URL(url, origin);
+    return u.origin === origin && (u.pathname === "/estudio" || u.pathname.startsWith("/estudio/"));
+  } catch {
+    return false;
+  }
+}
+
 export function cacheForKind(kind: RouteKind): string {
   if (kind === "materia") return CACHES.lidas;
   if (kind === "favoritos") return CACHES.salvos;
