@@ -1,4 +1,4 @@
-import { StudioLoading } from "@/components";
+import { StudioLoading } from "@/components/estudio";
 import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 
 export default function Loading() {

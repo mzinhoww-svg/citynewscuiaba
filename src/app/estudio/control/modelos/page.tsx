@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, ModelTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { ModelTable } from "@/components/estudio";
 import { MODELS_TEXT as T } from "@/content/pt-BR/ai-prompts";
 import { requireRole } from "@/lib/auth/require-role";
 import { agentsOverview } from "@/lib/db/queries/ai-prompts";

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { AdminTable, Icon } from "@/components";
+import { Icon } from "@/components";
+import { AdminTable } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { FLAG_TEXT } from "@/content/pt-BR/approvals";
 import { requireRole } from "@/lib/auth/require-role";

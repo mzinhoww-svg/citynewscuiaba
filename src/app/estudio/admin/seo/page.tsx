@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SeoPanel } from "@/components";
+import { SeoPanel } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { requireRole } from "@/lib/auth/require-role";
 import { seoOverview } from "@/lib/db/queries/admin-ops";

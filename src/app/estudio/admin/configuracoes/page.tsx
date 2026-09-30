@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SettingsForm } from "@/components";
+import { SettingsForm } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

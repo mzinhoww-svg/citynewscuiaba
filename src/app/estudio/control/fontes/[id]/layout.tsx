@@ -1,15 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Button, EmptyState, Icon } from "@/components";
 import {
-  Button,
   EditorialScore,
-  EmptyState,
-  Icon,
   PendingApprovalsPanel,
   SourceHeaderActions,
   SourceSectionNav,
   SourceStatusBadge,
-} from "@/components";
+} from "@/components/estudio";
 import { DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { can } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";

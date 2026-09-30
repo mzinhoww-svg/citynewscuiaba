@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, EvalCasesTable, EvalRunner, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { EvalCasesTable, EvalRunner } from "@/components/estudio";
 import { AI_TEXT, GATE_LABEL, agentName, formatDec, formatPct } from "@/content/pt-BR/ai-control";
 import type { GateFailure } from "@/lib/ai/eval";
 import { REGRESSION_THRESHOLDS } from "@/lib/ai/eval";

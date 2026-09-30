@@ -1,4 +1,4 @@
-import type { StudioNavGroup, StudioNavItem } from "@/components";
+import type { StudioNavGroup, StudioNavItem } from "@/components/estudio";
 import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
 import { PUSH_ACTIONS } from "@/lib/push/permissions";
 import { ADMIN_NAV } from "./admin/nav";

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { StudioShell } from "@/components";
+import { StudioShell } from "@/components/estudio";
 import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import { canAccess, loginRedirect } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";

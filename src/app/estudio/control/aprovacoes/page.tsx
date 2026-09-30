@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { ApprovalInbox, Button, EmptyState } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { ApprovalInbox } from "@/components/estudio";
 import { APPROVALS_TEXT as T } from "@/content/pt-BR/approvals";
 import { CRITICAL_KINDS } from "@/lib/approvals/approvals";
 import { APPROVER_ACTION } from "@/lib/approvals/targets";

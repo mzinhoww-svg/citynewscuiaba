@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button, EmptyState, InlineAlert } from "@/components";
 import {
   ApprovalBanner,
-  Button,
   CampaignForm,
-  EmptyState,
   ExperimentForm,
-  InlineAlert,
   ShareChart,
   WeightSliders,
   WeightsHistory,
   WhyThisDrawer,
-} from "@/components";
+} from "@/components/estudio";
 import {
   AUDIENCE_TEXT,
   DISMISS_TEXT,

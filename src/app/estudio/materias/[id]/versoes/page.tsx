@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, Select, VersionCompare } from "@/components";
+import { Button, EmptyState, Select } from "@/components";
+import { VersionCompare } from "@/components/estudio";
 import { EDITOR_TEXT, VERSIONS_TEXT as T } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listVersions } from "@/lib/db/queries/studio-article";

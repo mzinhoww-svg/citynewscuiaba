@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ApprovalBanner, Icon, KpiStrip } from "@/components";
+import { Icon } from "@/components";
+import { ApprovalBanner, KpiStrip } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

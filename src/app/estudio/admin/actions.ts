@@ -1,6 +1,6 @@
 "use server";
 
-import type { AdminReply } from "@/components";
+import type { AdminReply } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import type { HomeModule } from "@/lib/admin/home-layout";
 import type { Role, RoleGrant } from "@/lib/auth/permissions";

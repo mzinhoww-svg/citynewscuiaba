@@ -1,12 +1,6 @@
 import type { Metadata } from "next";
-import {
-  ApprovalBanner,
-  Button,
-  EmptyState,
-  Icon,
-  RuleMatrix,
-  RuleProposalForm,
-} from "@/components";
+import { Button, EmptyState, Icon } from "@/components";
+import { ApprovalBanner, RuleMatrix, RuleProposalForm } from "@/components/estudio";
 import { RULES_TEXT as T } from "@/content/pt-BR/rules-admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { pendingApprovalsFor } from "@/lib/db/queries/approvals";

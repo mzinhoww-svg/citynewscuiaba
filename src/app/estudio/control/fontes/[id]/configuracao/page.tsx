@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { SourceConfigForm, SourceLogoForm } from "@/components";
+import { SourceConfigForm, SourceLogoForm } from "@/components/estudio";
 import { DETAIL_TEXT as T, LOGO_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { createServerClient } from "@/lib/db/client";
 import { many } from "@/lib/db/queries/run";

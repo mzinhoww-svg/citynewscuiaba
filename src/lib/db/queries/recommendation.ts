@@ -1,7 +1,8 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
-import { parseRecConfig, REC_V1 } from "@/lib/ranking/score";
+import { parseRecConfig } from "@/lib/ranking/config";
+import { REC_V1 } from "@/lib/ranking/score";
 import { summarizeRecEvents, type RecEventRow, type RecMetrics } from "@/lib/ranking/metrics";
 import type { RecConfig, Weights } from "@/lib/ranking/types";
 import { studioContext } from "@/lib/studio/context";

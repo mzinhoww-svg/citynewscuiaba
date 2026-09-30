@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, PushQueueTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { PushQueueTable } from "@/components/estudio";
 import { PUSH_QUEUE_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { canAccess } from "@/lib/auth";
 import { requireAnyRole } from "@/lib/auth/require-role";

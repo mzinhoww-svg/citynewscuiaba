@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button, EmptyState, Icon } from "@/components";
 import {
-  Button,
   CollectionSettingsDialog,
-  EmptyState,
   FastLaneSkippedNotice,
-  Icon,
   SourceApprovalsNotice,
   SourceFilters,
   SourcesTable,
-} from "@/components";
+} from "@/components/estudio";
 import { SOURCES_LIST_TEXT as T, SOURCE_STATUS_TEXT } from "@/content/pt-BR/sources-admin";
 import {
   fastLaneSkippedSources,

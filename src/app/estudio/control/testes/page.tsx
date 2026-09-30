@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, Playground, type PlaygroundAgentOption } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { Playground, type PlaygroundAgentOption } from "@/components/estudio";
 import { PLAYGROUND_TEXT as T, PROMPT_STATUS_TEXT } from "@/content/pt-BR/ai-prompts";
 import { resolveProviderKind } from "@/lib/ai/registry";
 import { AGENT_IDS } from "@/lib/ai/types";

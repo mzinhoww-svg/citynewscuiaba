@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AuditExplorer } from "@/components";
+import { AuditExplorer } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { auditFiltersQuery, parseAuditFilters } from "@/lib/admin/audit-export";
 import { requireRole } from "@/lib/auth/require-role";

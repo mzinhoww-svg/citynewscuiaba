@@ -3,11 +3,11 @@ import type { DbClient } from "@/lib/db/client";
 import {
   computeSignals,
   DEFAULT_REC_CONFIG,
-  parseRecConfig,
   type ReaderEvent,
   type RecConfig,
   type SourceRawInput,
 } from "@/lib/ranking";
+import { parseRecConfig } from "@/lib/ranking/config";
 import type { Result } from "@/lib/result";
 import { fetchAggregated } from "./aggregated";
 import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";

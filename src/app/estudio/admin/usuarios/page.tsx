@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { StaffTable } from "@/components";
+import { StaffTable } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { listStaff, taxonomyOverview } from "@/lib/db/queries/admin";

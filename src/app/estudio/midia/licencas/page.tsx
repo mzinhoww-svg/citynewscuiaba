@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, LicenseActions } from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { LicenseActions } from "@/components/estudio";
 import { MEDIA_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

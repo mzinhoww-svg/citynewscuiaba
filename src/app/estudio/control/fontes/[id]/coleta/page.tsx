@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CollectionActions, SourceRunsTable } from "@/components";
+import { CollectionActions, SourceRunsTable } from "@/components/estudio";
 import { formatMinutes, fullDateTime } from "@/content/pt-BR/sources-admin";
 import {
   COLLECTION_TAB_TEXT as T,

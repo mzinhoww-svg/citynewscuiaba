@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SecurityPanel } from "@/components";
+import { SecurityPanel } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { requireRole } from "@/lib/auth/require-role";
 import { securityOverview } from "@/lib/db/queries/admin-ops";

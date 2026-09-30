@@ -22,7 +22,8 @@ import { useAnonProfile } from "@/lib/anon/use-profile";
 import { useConsent } from "@/lib/consent/client";
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { useTrack } from "@/lib/events/use-track";
-import { LOCAL_LOCALITIES, type RankList, type RecConfig } from "@/lib/ranking";
+import { LOCAL_LOCALITIES } from "@/lib/ranking/explain";
+import type { RankList, RecConfig } from "@/lib/ranking/types";
 import {
   PERIODS,
   REGIONS,

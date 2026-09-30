@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { AbTestCard, Button, EmptyState, ShareChart } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { AbTestCard, ShareChart } from "@/components/estudio";
 import {
   AB_TEXT as T,
   EXPERIMENT_STATUS_TEXT,

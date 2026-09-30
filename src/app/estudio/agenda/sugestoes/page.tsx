@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, InlineAlert, SubmissionReview } from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { SubmissionReview } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";

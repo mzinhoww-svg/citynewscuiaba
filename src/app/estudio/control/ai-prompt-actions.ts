@@ -6,7 +6,7 @@ import {
   PLAYGROUND_TEXT,
   PROMPTS_TEXT,
 } from "@/content/pt-BR/ai-prompts";
-import type { PlaygroundReply, PromptReply } from "@/components";
+import type { PlaygroundReply, PromptReply } from "@/components/estudio";
 import type { StudioResult } from "@/lib/studio/action";
 import {
   createPromptVersionCommand,

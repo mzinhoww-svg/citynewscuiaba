@@ -1,6 +1,6 @@
 "use server";
 
-import type { AdminReply } from "@/components";
+import type { AdminReply } from "@/components/estudio";
 import { ADMIN_TEXT } from "@/content/pt-BR/admin";
 import { ADMIN_OPS_TEXT as T, PRIVACY_STATUS_LABEL } from "@/content/pt-BR/admin-ops";
 import type { Campaign } from "@/lib/ads/rules";

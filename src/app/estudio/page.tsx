@@ -1,13 +1,6 @@
 import type { Metadata } from "next";
-import {
-  Button,
-  EmptyState,
-  InlineAlert,
-  KpiStrip,
-  QueueTable,
-  QueueTabs,
-  SectionHeader,
-} from "@/components";
+import { Button, EmptyState, InlineAlert, SectionHeader } from "@/components";
+import { KpiStrip, QueueTable, QueueTabs } from "@/components/estudio";
 import { QUEUE_TEXT as T, STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";

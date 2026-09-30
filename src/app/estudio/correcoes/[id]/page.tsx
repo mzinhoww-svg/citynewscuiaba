@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CorrectionForm, EmptyState, InlineAlert } from "@/components";
+import { EmptyState, InlineAlert } from "@/components";
+import { CorrectionForm } from "@/components/estudio";
 import { CORRECTIONS_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

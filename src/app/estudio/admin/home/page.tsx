@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HomeModulesEditor } from "@/components";
+import { HomeModulesEditor } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { homeLayouts } from "@/lib/db/queries/admin";

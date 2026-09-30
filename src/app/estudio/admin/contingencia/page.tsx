@@ -1,11 +1,6 @@
 import type { Metadata } from "next";
-import {
-  ApprovalBanner,
-  Button,
-  ContingencyPanel,
-  EmptyState,
-  type ContingencyCard,
-} from "@/components";
+import { Button, EmptyState } from "@/components";
+import { ApprovalBanner, ContingencyPanel, type ContingencyCard } from "@/components/estudio";
 import { CONTINGENCY_TEXT as T } from "@/content/pt-BR/contingency";
 import { requireRole } from "@/lib/auth/require-role";
 import { contingencyOverview, type FlagState } from "@/lib/db/queries/contingency";

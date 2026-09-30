@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, FunnelChart, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { FunnelChart } from "@/components/estudio";
 import { FUNNEL_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { funnelData } from "@/lib/db/queries/push-funnel";

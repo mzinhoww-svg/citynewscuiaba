@@ -18,7 +18,7 @@ import {
   type PublishCorrectionInput,
   type PublishUpdateInput,
 } from "@/lib/studio/corrections";
-import type { GenerateReply, PublishReply } from "@/components";
+import type { GenerateReply, PublishReply } from "@/components/estudio";
 import { PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
 import { createServerClient } from "@/lib/db/client";
 import { createPushAdminStore } from "@/lib/db/push-admin-store";
