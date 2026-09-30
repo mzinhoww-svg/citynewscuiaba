@@ -16,7 +16,7 @@ vi.mock("./shared-db", () => ({
 }));
 
 type Handler = (event: unknown) => void;
-const cachePut = vi.fn(async (_req: unknown, _res: unknown) => undefined);
+const cachePut = vi.fn<(req: unknown, res: unknown) => Promise<void>>(async () => undefined);
 const handlers = new Map<string, Handler>();
 const ORIGIN = "https://citynews.example";
 
@@ -174,7 +174,9 @@ describe("cache-saved (PWA-10)", () => {
 
   it("busca sem cookie (credentials omit) e guarda só resposta com o marcador", async () => {
     cachePut.mockClear();
-    const fetchMock = vi.fn(async (_url: unknown, _init?: RequestInit) => page(true));
+    const fetchMock = vi.fn<(url: unknown, init?: RequestInit) => Promise<Response>>(async () =>
+      page(true),
+    );
     vi.stubGlobal("fetch", fetchMock);
     await sync(["/materia/chuva-em-cuiaba"]);
     const calls = fetchMock.mock.calls.filter(([u]) => String(u).startsWith("/"));
@@ -203,7 +205,7 @@ describe("cache-saved (PWA-10)", () => {
     "/cidade",
   ])("caminho %s fora das matérias nem chega a ser buscado", async (path) => {
     cachePut.mockClear();
-    const fetchMock = vi.fn(async () => page(true));
+    const fetchMock = vi.fn<(url: unknown) => Promise<Response>>(async () => page(true));
     vi.stubGlobal("fetch", fetchMock);
     await sync([path]);
     expect(fetchMock.mock.calls.map(([u]) => String(u))).not.toContain(path);

@@ -330,7 +330,7 @@ describe("comportamento: leitor logado sem papel", () => {
     for (const [fn, args] of ADMIN_RPCS) {
       const r = await reader.rpc(fn as never, args as never);
       // Erro de permissão ou, nas consultas filtradas por RLS, lista vazia.
-      const empty = Array.isArray(r.data) && r.data.length === 0;
+      const empty = Array.isArray(r.data) && (r.data as unknown[]).length === 0;
       expect(r.error !== null || empty, fn).toBe(true);
     }
     const flag = await service

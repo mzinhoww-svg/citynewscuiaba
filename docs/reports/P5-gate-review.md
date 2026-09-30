@@ -165,3 +165,7 @@
 ## Recomendação
 
 Nenhum bloqueante, mas os três altos (1, 2, 3) devem entrar antes do merge: o 1 derruba a rotina de LGPD, o 2 é controle de segurança que só finge e o 3 quebra a promessa central da fase (duas pessoas sem bypass). Os médios 4, 5, 6, 7 e 9 tocam diretamente as regras de produto §5.5/§5.8 e a exigência de CSV sem dado pessoal; os demais podem ir para `BLOCKERS.md` com condição de revisita.
+
+## Situação · P6 tarefa 3 (segurança)
+
+Achado 10 fechado na migration `0049_p6_security.sql`: `pipeline_events` só é legível por admin; quem vê o Control Center (`control_can_view`) lê `pipeline_events_view`, que mascara IP na mensagem, na referência e nos detalhes (mesmo desenho de `audit_log_view`). `control_logs` e `control_run_steps` leem a view, então a busca por texto de quem não é admin também não enxerga IP. Os cinco pontos de leitura (`control.ts`, `ai-control.ts`, `control-store.ts`) passaram a usar a view. Testes: `tests/integration/p6-hardening.test.ts` (admin vê o original; editor-chefe, operador de IA e leitura veem `203.0.x.x`; tabela crua só para admin; jornalista e anônimo não leem; `control_logs` não acha o IP por busca).
