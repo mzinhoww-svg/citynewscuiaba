@@ -31,5 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "design-system", "scripts/local-stack", ".local"]
+  "exclude": ["node_modules", "design-system", "scripts/local-stack", ".local", "src/sw/index.ts"]
 }

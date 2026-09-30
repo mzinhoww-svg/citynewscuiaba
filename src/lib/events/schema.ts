@@ -5,7 +5,12 @@ import {
   ARTICLE_KINDS,
   DISMISS_REASONS,
   EVENT_NAMES,
+  INSTALLED_VIA,
+  INSTALL_PLATFORMS,
+  INSTALL_TRIGGERS,
   LOGIN_METHODS,
+  NOTIF_PREPROMPT_TRIGGERS,
+  NOTIF_TRIGGERS,
   LOGIN_TRIGGERS,
   PERSONALIZATION_FROM,
   PERSONAL_PROPS,
@@ -66,6 +71,24 @@ export const EVENT_PROPS = {
     metrics: z.boolean(),
     personalization: z.boolean(),
   }),
+  // App instalável e notificações (spec 2026-09-28 §9.1): `browser` é acrescentado pelo servidor.
+  install_prompt_shown: z.strictObject({
+    platform: z.enum(INSTALL_PLATFORMS),
+    trigger: z.enum(INSTALL_TRIGGERS),
+  }),
+  install_prompt_dismissed: z.strictObject({
+    platform: z.enum(INSTALL_PLATFORMS),
+    refusals: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  }),
+  app_installed: z.strictObject({ via: z.enum(INSTALLED_VIA) }),
+  notif_preprompt_shown: z.strictObject({ trigger: z.enum(NOTIF_PREPROMPT_TRIGGERS) }),
+  notif_preprompt_dismissed: z.strictObject({
+    trigger: z.enum(NOTIF_PREPROMPT_TRIGGERS),
+    refusals: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  }),
+  notif_permission_granted: z.strictObject({ trigger: z.enum(NOTIF_TRIGGERS) }),
+  notif_permission_denied: z.strictObject({ trigger: z.enum(NOTIF_TRIGGERS) }),
+  push_unsubscribed: z.strictObject({ from: z.literal("settings") }),
 } satisfies Record<EventNameType, z.ZodType>;
 
 /** Caminho da página, sem query string nem fragmento (a busca nunca vaza pela URL). */

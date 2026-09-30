@@ -18,8 +18,13 @@ import {
   type PublishCorrectionInput,
   type PublishUpdateInput,
 } from "@/lib/studio/corrections";
-import type { GenerateReply } from "@/components";
+import type { GenerateReply, PublishReply } from "@/components";
+import { PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
+import { createServerClient } from "@/lib/db/client";
+import { createPushAdminStore } from "@/lib/db/push-admin-store";
 import { formatDateTime } from "@/lib/format/date";
+import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
+import { PUSH_ADMIN_PATH } from "./nav";
 import type { StudioResult } from "@/lib/studio/action";
 import {
   approveImage,
@@ -192,18 +197,60 @@ export async function reprocessAction(input: { id: string }): Promise<ActionRepl
   return reply(await reprocessItem(input), REVIEW_TEXT.reprocessed);
 }
 
+/**
+ * E06: publica e, com "Push urgente" marcado (admin ou editor-chefe), cria o pedido Urgente em A09
+ * já preenchido com título e linha fina da matéria (spec 2026-09-28 §10.7). A justificativa é
+ * conferida antes de publicar; a falha do pedido não desfaz a publicação e vira mensagem.
+ */
 export async function publishAction(
   baseVersion: number,
   input: {
     id: string;
     when: "now" | { at: string };
     destinations: ("home" | "section" | "topic" | "newsletter")[];
+    push?: { justification: string };
   },
-): Promise<ActionReply> {
-  const r = await publishArticle({ ...input, baseVersion });
+): Promise<PublishReply> {
+  const { push, ...rest } = input;
+  const justification = push?.justification?.trim() ?? "";
+  if (push) {
+    if (!justification || justification.length > 300)
+      return { ok: false, message: PUBLISH_TEXT.pushJustificationRequired };
+    if (rest.when !== "now")
+      return { ok: false, message: PUSH_ADMIN_TEXT.errors.schedule.urgent_now_only };
+  }
+  const r = await publishArticle({ ...rest, baseVersion });
   if (r.ok && r.value.status === "scheduled" && r.value.scheduledFor)
     return { ok: true, message: PUBLISH_TEXT.scheduled(formatDateTime(r.value.scheduledFor)) };
-  return reply(r, PUBLISH_TEXT.published);
+  if (!r.ok || !push) return reply(r, PUBLISH_TEXT.published);
+
+  const outcome = await requestUrgentPush(rest.id, justification);
+  if (outcome.ok)
+    return {
+      ok: true,
+      message: `${PUBLISH_TEXT.published}. ${PUBLISH_TEXT.pushRequested}`,
+      pushQueueHref: `${PUSH_ADMIN_PATH}/fila`,
+    };
+  return { ok: true, message: PUBLISH_TEXT.pushFailed(PUSH_ADMIN_TEXT.errors[outcome.error]) };
+}
+
+async function requestUrgentPush(articleId: string, justification: string) {
+  const db = await createServerClient();
+  const { data: a } = await db
+    .from("articles")
+    .select("title, dek")
+    .eq("id", articleId)
+    .maybeSingle();
+  if (!a) return { ok: false as const, error: "article_invalid" as const };
+  return createPushAdminStore(db).request({
+    kind: "urgent",
+    articleId,
+    title: sanitizeNotificationText(a.title, TITLE_MAX),
+    body: sanitizeNotificationText(a.dek, BODY_MAX),
+    audience: { type: "all" },
+    when: { type: "now" },
+    justification,
+  });
 }
 
 function conflictOr(r: StudioResult<unknown>): SaveReply {

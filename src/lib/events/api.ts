@@ -2,6 +2,8 @@ import "server-only";
 import { hitRateLimit, saveReaderEvent, type WriteError } from "@/lib/db/writes";
 import type { Result } from "@/lib/result";
 import { checkRateLimit, clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
+import { browserFamily } from "@/lib/push/ua";
+import { APP_EVENTS } from "./names";
 import { parseEvent, type EventEnvelope } from "./schema";
 
 /** Tamanho máximo do corpo (um evento). */
@@ -67,7 +69,15 @@ export async function handleEvents(req: Request, deps: EventsDeps): Promise<Resp
   const limit = await deps.hitLimit(key);
   if (limit.ok && !limit.value) return status(429, "limite");
 
-  const saved = await deps.insert(event);
+  // Eventos do app (spec 2026-09-28 §9.1): família do navegador derivada do User-Agent aqui;
+  // o UA em si nunca é gravado.
+  const withBrowser = (APP_EVENTS as readonly string[]).includes(event.name)
+    ? {
+        ...event,
+        props: { ...event.props, browser: browserFamily(req.headers.get("user-agent") ?? "") },
+      }
+    : event;
+  const saved = await deps.insert(withBrowser);
   if (!saved.ok) return status(503, saved.error.kind);
   return status(204);
 }

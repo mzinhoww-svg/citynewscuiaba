@@ -33,6 +33,10 @@ export const ACTIONS = [
   "users.manage",
   "metrics.view",
   "audit.view",
+  "push.request",
+  "push.approve",
+  "push.settings",
+  "push.metrics",
   /** Administração do site (P5-T8/T9): taxonomia, home, publicidade, SEO e governança editorial. */
   "site.manage",
 ] as const;
@@ -85,6 +89,11 @@ export const PERMISSIONS: Matrix = {
     leitura: "all",
   },
   "audit.view": { admin: "all", editor_chefe: "all", operador_ia: "all", leitura: "all" },
+  /** Push (spec 2026-09-28 §10.1): urgente só admin/editor-chefe; Destaque por editoria. */
+  "push.request": { admin: "all", editor_chefe: "all", editor: "section" },
+  "push.approve": { admin: "second", editor_chefe: "second" },
+  "push.settings": { admin: "all", editor_chefe: "all" },
+  "push.metrics": { admin: "all", editor_chefe: "all", analista: "all" },
   "site.manage": { admin: "all", editor_chefe: "all" },
 };
 

@@ -1,5 +1,5 @@
 import { err, ok, type Result } from "@/lib/result";
-import type { PipelineMessage, StepName } from "./types";
+import type { JobStep, PipelineMessage } from "./types";
 
 export type StepErrorKind =
   | "transient" // rede, banco, provedor: nova tentativa
@@ -40,15 +40,11 @@ export interface StepContext {
 }
 
 export type StepHandler = (msg: PipelineMessage, ctx?: StepContext) => Promise<StepResult>;
-export type StepHandlers = Partial<Record<StepName, StepHandler>>;
+export type StepHandlers = Partial<Record<JobStep, StepHandler>>;
 export type RunStep = (msg: PipelineMessage, ctx?: StepContext) => Promise<StepResult>;
 
 /** Próxima etapa do mesmo run. */
-export function nextMessage(
-  msg: PipelineMessage,
-  step: StepName,
-  itemRef: string,
-): PipelineMessage {
+export function nextMessage(msg: PipelineMessage, step: JobStep, itemRef: string): PipelineMessage {
   return { runId: msg.runId, step, itemRef, attempt: 1 };
 }
 

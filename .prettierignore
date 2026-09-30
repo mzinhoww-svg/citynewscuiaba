@@ -17,3 +17,4 @@ next-env.d.ts
 scripts/
 .claude/
 src/styles/tokens.css
+tests/fixtures/sw/

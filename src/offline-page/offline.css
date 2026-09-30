@@ -1,0 +1,112 @@
+/* Página "Sem conexão" (P25): só variáveis de src/styles/tokens.css (concatenado antes, G14). */
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-body);
+  font: var(--type-body);
+}
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--sp-48) var(--gutter);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-8);
+  font: var(--type-label);
+  color: var(--text-strong);
+}
+.dot {
+  width: var(--sp-8);
+  height: var(--sp-8);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+h1 {
+  font: var(--type-screen-title);
+  color: var(--text-strong);
+  margin: var(--sp-16) 0 var(--sp-8);
+}
+h2 {
+  font: var(--type-section);
+  color: var(--text-strong);
+  margin: var(--sp-32) 0 var(--sp-8);
+}
+p {
+  color: var(--text-meta);
+  margin: 0 0 var(--sp-16);
+}
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-section);
+}
+li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-4) var(--sp-12);
+  padding: var(--sp-12) 0;
+  border-bottom: 1px solid var(--border-section);
+}
+li a {
+  font: var(--type-headline-sm);
+  color: var(--text-strong);
+  text-decoration: none;
+  min-height: var(--sp-32);
+}
+li a:hover {
+  text-decoration: underline;
+}
+li small {
+  font: var(--type-meta);
+  color: var(--text-meta);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-12);
+  margin-top: var(--sp-32);
+}
+button,
+.actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-32);
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: var(--action-primary);
+  color: var(--text-inverse);
+  font: var(--type-button);
+  text-decoration: none;
+  cursor: pointer;
+}
+.actions a.secondary {
+  background: transparent;
+  color: var(--text-strong);
+  border-color: var(--border-control);
+}
+#online {
+  margin-top: var(--sp-16);
+  color: var(--text-service);
+}
+#online button {
+  margin-left: var(--sp-8);
+}
+:where(a, button):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

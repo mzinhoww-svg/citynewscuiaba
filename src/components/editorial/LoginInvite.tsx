@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { INVITE_TEXT } from "@/content/pt-BR/account";
 import { INVITE_EVENT, type InviteRequest, type InviteTrigger } from "@/lib/anon/invite";
+import { useInviteSlot } from "@/lib/app/slot";
 import { noteInviteShown, readInviteHistory } from "@/lib/anon/invite-storage";
 import { shouldShowInvite } from "@/lib/anon/invites";
 import { hasAuthCookie } from "@/lib/auth/cookie";
@@ -65,6 +66,8 @@ export function LoginInvite() {
   const send = useTrack();
   const router = useRouter();
   const pathname = usePathname();
+  // Um convite por vez (spec 2026-09-28 §7.1): login adia notificações e instalação.
+  useInviteSlot("login", open !== null, pathname ?? "/");
 
   useEffect(() => {
     const onRequest = (e: Event) => {

@@ -48,3 +48,19 @@ export async function requireRole(
   if (!decision.ok) redirect(decision.redirectTo);
   return session;
 }
+
+/**
+ * Guarda de página com várias portas (A09: `push.request`, `push.approve`, `push.settings` ou
+ * `push.metrics`): entra quem tem qualquer uma das ações em algum escopo. Mesmos
+ * redirecionamentos de `requireRole`; a checagem do objeto continua em cada Server Action.
+ */
+export async function requireAnyRole(
+  actions: readonly Action[],
+  options: { next?: string } = {},
+): Promise<Session> {
+  const session = await getSession();
+  if (!session) redirect(loginRedirect(options.next));
+  const allowed = actions.some((a) => resolveAccess(session, a, undefined, options.next).ok);
+  if (!allowed) redirect(loginRedirect(options.next, "sem-permissao"));
+  return session;
+}

@@ -6,7 +6,7 @@ import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
 import type { RuleSet } from "@/lib/rules";
 import type { StatusReason } from "@/lib/sources/types";
-import type { PipelineMessage, QueueName, RawEntry, StepName } from "./types";
+import type { JobStep, PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
   msgId: number;
@@ -44,7 +44,7 @@ export interface Queue {
   moveExhausted(queue: QueueName, maxReads: number): Promise<ExhaustedMessage[]>;
   pending(
     queue: QueueName,
-    filter?: { runId?: string; steps?: readonly StepName[]; itemRef?: string },
+    filter?: { runId?: string; steps?: readonly JobStep[]; itemRef?: string },
   ): Promise<number>;
 }
 
@@ -57,7 +57,7 @@ export type EventLevel = "info" | "warn" | "error" | "security";
 
 export interface PipelineEvent {
   runId: string | null;
-  step: StepName;
+  step: JobStep;
   itemRef: string | null;
   level: EventLevel;
   message: string;

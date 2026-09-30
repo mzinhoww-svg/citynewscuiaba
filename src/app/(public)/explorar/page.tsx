@@ -89,6 +89,15 @@ function Shortcuts() {
               className="flex-1"
             />
           </li>
+          <li className="flex">
+            <SectionTile
+              href="/app"
+              name={EXPLORE.app}
+              meta={EXPLORE.appText}
+              icon="download"
+              className="flex-1"
+            />
+          </li>
         </ul>
       </section>
       <section

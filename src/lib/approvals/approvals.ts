@@ -20,6 +20,8 @@ export const CRITICAL_KINDS = [
   "safety.disable",
   "force_review.disable",
   "push.urgent",
+  "push.highlight",
+  "push.resume",
   "source.critical",
   "push.highlight",
   "push.resume",

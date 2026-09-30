@@ -92,3 +92,23 @@ export const RECS_PAGE_TEXT = {
   policyLink: "Ler a política de privacidade",
   loading: "Carregando suas escolhas",
 } as const;
+
+/** Leitura offline (spec 2026-09-28 §8.3): botão em /privacidade. */
+export const PRIVACY_OFFLINE_TEXT = {
+  title: "Leitura offline",
+  intro:
+    "Com internet, a página inicial, as editorias e as matérias que você abre ficam guardadas neste aparelho para leitura sem conexão (até 30 lidas e 20 salvas, cerca de 25 MB). Nada disso sai do navegador.",
+  clear: "Limpar leitura offline",
+  cleared: "Leitura offline apagada deste aparelho.",
+  nothing: "Nada para apagar neste aparelho.",
+} as const;
+
+/** Avisos pelo celular (spec 2026-09-28 §14): seção em /privacidade. */
+export const PRIVACY_PUSH_TEXT = {
+  title: "Avisos pelo celular",
+  paragraphs: [
+    "Ao ativar avisos, o navegador cria uma inscrição (endereço do serviço de push e chaves de cifra) que guardamos para entregar só o que você pediu: o que você segue, urgências e destaques da redação. Vai junto a lista do que você segue (fontes, editorias, assuntos e bairros), nunca seu histórico, seus interesses ou um identificador.",
+    "No máximo 3 avisos por dia e, entre 22h e 7h, só urgências. Você ajusta tipos, silêncio e limite em Alertas e desativa quando quiser; a inscrição também some se o serviço de push a recusar ou depois de 180 dias sem visita.",
+    "Recebido e tocado só são contados, em totais por aparelho e navegador, se você permitir Métricas agregadas.",
+  ],
+} as const;

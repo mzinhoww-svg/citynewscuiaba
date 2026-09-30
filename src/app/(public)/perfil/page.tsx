@@ -40,6 +40,7 @@ const SHORTCUTS = [
   { href: "/alertas", label: T.links.alerts },
   { href: "/privacidade/recomendacoes", label: T.links.privacy },
   { href: "/newsletter", label: T.links.newsletter },
+  { href: "/app", label: T.links.app },
 ];
 
 function Section({

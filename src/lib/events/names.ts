@@ -20,7 +20,34 @@ export const EVENT_NAMES = [
   "login_completed",
   "login_skipped",
   "privacy_settings_updated",
+  ...([
+    "install_prompt_shown",
+    "install_prompt_dismissed",
+    "app_installed",
+    "notif_preprompt_shown",
+    "notif_preprompt_dismissed",
+    "notif_permission_granted",
+    "notif_permission_denied",
+    "push_unsubscribed",
+  ] as const),
 ] as const;
+
+/** Eventos do app instalável e das notificações (spec 2026-09-28 §9.1); o servidor acrescenta `browser`. */
+export const APP_EVENTS = [
+  "install_prompt_shown",
+  "install_prompt_dismissed",
+  "app_installed",
+  "notif_preprompt_shown",
+  "notif_preprompt_dismissed",
+  "notif_permission_granted",
+  "notif_permission_denied",
+  "push_unsubscribed",
+] as const;
+export const INSTALL_PLATFORMS = ["android", "ios", "desktop"] as const;
+export const INSTALL_TRIGGERS = ["visits", "reads"] as const;
+export const INSTALLED_VIA = ["prompt", "ios_steps", "browser", "unknown"] as const;
+export const NOTIF_TRIGGERS = ["follow", "alert", "urgent_article", "settings"] as const;
+export const NOTIF_PREPROMPT_TRIGGERS = ["follow", "alert", "urgent_article"] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];
 
@@ -105,6 +132,17 @@ export interface EventProps {
   login_completed: { method: Of<typeof LOGIN_METHODS>; migrated: boolean };
   login_skipped: { trigger: Of<typeof LOGIN_TRIGGERS> };
   privacy_settings_updated: { metrics: boolean; personalization: boolean };
+  install_prompt_shown: {
+    platform: Of<typeof INSTALL_PLATFORMS>;
+    trigger: Of<typeof INSTALL_TRIGGERS>;
+  };
+  install_prompt_dismissed: { platform: Of<typeof INSTALL_PLATFORMS>; refusals: 1 | 2 | 3 };
+  app_installed: { via: Of<typeof INSTALLED_VIA> };
+  notif_preprompt_shown: { trigger: Of<typeof NOTIF_PREPROMPT_TRIGGERS> };
+  notif_preprompt_dismissed: { trigger: Of<typeof NOTIF_PREPROMPT_TRIGGERS>; refusals: 1 | 2 | 3 };
+  notif_permission_granted: { trigger: Of<typeof NOTIF_TRIGGERS> };
+  notif_permission_denied: { trigger: Of<typeof NOTIF_TRIGGERS> };
+  push_unsubscribed: { from: "settings" };
 }
 
 /** Props de conteúdo pessoal: só saem com Personalização. */

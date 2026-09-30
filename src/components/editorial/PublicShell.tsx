@@ -6,7 +6,11 @@ import { AlertWatcher } from "./AlertWatcher";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
 import { FirstVisitInvite } from "./FirstVisitInvite";
+import { InstallInviteSlot } from "./InstallInviteSlot";
 import { LoginInvite } from "./LoginInvite";
+import { OfflineNotice } from "./OfflineNotice";
+import { PushSync } from "./PushSync";
+import { SwRegistrar } from "./SwRegistrar";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
 
@@ -35,6 +39,7 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         <ConsentBanner />
         <AlertWatcher />
         <SiteHeader />
+        <OfflineNotice />
         <main id="conteudo" className="flex-1">
           {children}
         </main>
@@ -42,6 +47,9 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         <BottomNav />
         <FirstVisitInvite />
         <LoginInvite />
+        <InstallInviteSlot />
+        <SwRegistrar />
+        <PushSync />
       </div>
     </ConsentProvider>
   );

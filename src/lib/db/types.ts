@@ -1870,6 +1870,409 @@ export type Database = {
         };
         Relationships: [];
       };
+      push_batches: {
+        Row: {
+          after_id: string | null;
+          batch_no: number;
+          send_id: string;
+          status: string;
+          until_id: string;
+        };
+        Insert: {
+          after_id?: string | null;
+          batch_no: number;
+          send_id: string;
+          status?: string;
+          until_id: string;
+        };
+        Update: {
+          after_id?: string | null;
+          batch_no?: number;
+          send_id?: string;
+          status?: string;
+          until_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_batches_send_id_fkey";
+            columns: ["send_id"];
+            isOneToOne: false;
+            referencedRelation: "push_sends";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_deliveries: {
+        Row: {
+          article_id: string;
+          attempts: number;
+          browser: string | null;
+          created_at: string;
+          device_class: string | null;
+          error_code: string | null;
+          http_status: number | null;
+          id: number;
+          measurable: boolean;
+          not_before: string | null;
+          send_id: string;
+          sent_at: string | null;
+          skip_reason: string | null;
+          status: string;
+          subscription_id: string | null;
+        };
+        Insert: {
+          article_id: string;
+          attempts?: number;
+          browser?: string | null;
+          created_at?: string;
+          device_class?: string | null;
+          error_code?: string | null;
+          http_status?: number | null;
+          id?: number;
+          measurable?: boolean;
+          not_before?: string | null;
+          send_id: string;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status: string;
+          subscription_id?: string | null;
+        };
+        Update: {
+          article_id?: string;
+          attempts?: number;
+          browser?: string | null;
+          created_at?: string;
+          device_class?: string | null;
+          error_code?: string | null;
+          http_status?: number | null;
+          id?: number;
+          measurable?: boolean;
+          not_before?: string | null;
+          send_id?: string;
+          sent_at?: string | null;
+          skip_reason?: string | null;
+          status?: string;
+          subscription_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_deliveries_send_id_fkey";
+            columns: ["send_id"];
+            isOneToOne: false;
+            referencedRelation: "push_sends";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey";
+            columns: ["subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "my_push_subscriptions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_deliveries_subscription_id_fkey";
+            columns: ["subscription_id"];
+            isOneToOne: false;
+            referencedRelation: "push_subscriptions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_funnel_daily: {
+        Row: {
+          browser: string;
+          day: string;
+          device_class: string;
+          n: number;
+          stage: string;
+        };
+        Insert: {
+          browser: string;
+          day: string;
+          device_class: string;
+          n?: number;
+          stage: string;
+        };
+        Update: {
+          browser?: string;
+          day?: string;
+          device_class?: string;
+          n?: number;
+          stage?: string;
+        };
+        Relationships: [];
+      };
+      push_send_counters: {
+        Row: {
+          browser: string;
+          clicked: number;
+          delivered: number;
+          device_class: string;
+          send_id: string;
+        };
+        Insert: {
+          browser: string;
+          clicked?: number;
+          delivered?: number;
+          device_class: string;
+          send_id: string;
+        };
+        Update: {
+          browser?: string;
+          clicked?: number;
+          delivered?: number;
+          device_class?: string;
+          send_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_send_counters_send_id_fkey";
+            columns: ["send_id"];
+            isOneToOne: false;
+            referencedRelation: "push_sends";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_sends: {
+        Row: {
+          accepted_n: number;
+          approval_id: string | null;
+          approved_at: string | null;
+          approved_by: string | null;
+          article_id: string;
+          audience: NonNullable<Json>;
+          batches_done: number;
+          batches_total: number;
+          body: string;
+          created_at: string;
+          failed_n: number;
+          finished_at: string | null;
+          id: string;
+          justification: string | null;
+          kind: string;
+          not_before: string | null;
+          origin_label: string;
+          queued_n: number;
+          removed_n: number;
+          requested_by: string | null;
+          scheduled_at: string | null;
+          sent_measurable_n: number;
+          skipped_duplicate_n: number;
+          skipped_limit_n: number;
+          skipped_pref_n: number;
+          skipped_quiet_n: number;
+          started_at: string | null;
+          status: string;
+          status_reason: string | null;
+          tag: string;
+          targets_n: number;
+          title: string;
+          url: string;
+          version: number;
+        };
+        Insert: {
+          accepted_n?: number;
+          approval_id?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          article_id: string;
+          audience?: NonNullable<Json>;
+          batches_done?: number;
+          batches_total?: number;
+          body: string;
+          created_at?: string;
+          failed_n?: number;
+          finished_at?: string | null;
+          id?: string;
+          justification?: string | null;
+          kind: string;
+          not_before?: string | null;
+          origin_label: string;
+          queued_n?: number;
+          removed_n?: number;
+          requested_by?: string | null;
+          scheduled_at?: string | null;
+          sent_measurable_n?: number;
+          skipped_duplicate_n?: number;
+          skipped_limit_n?: number;
+          skipped_pref_n?: number;
+          skipped_quiet_n?: number;
+          started_at?: string | null;
+          status?: string;
+          status_reason?: string | null;
+          tag: string;
+          targets_n?: number;
+          title: string;
+          url: string;
+          version?: number;
+        };
+        Update: {
+          accepted_n?: number;
+          approval_id?: string | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          article_id?: string;
+          audience?: NonNullable<Json>;
+          batches_done?: number;
+          batches_total?: number;
+          body?: string;
+          created_at?: string;
+          failed_n?: number;
+          finished_at?: string | null;
+          id?: string;
+          justification?: string | null;
+          kind?: string;
+          not_before?: string | null;
+          origin_label?: string;
+          queued_n?: number;
+          removed_n?: number;
+          requested_by?: string | null;
+          scheduled_at?: string | null;
+          sent_measurable_n?: number;
+          skipped_duplicate_n?: number;
+          skipped_limit_n?: number;
+          skipped_pref_n?: number;
+          skipped_quiet_n?: number;
+          started_at?: string | null;
+          status?: string;
+          status_reason?: string | null;
+          tag?: string;
+          targets_n?: number;
+          title?: string;
+          url?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_sends_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_sends_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "studio_queue";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_sends_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_sends_requested_by_fkey";
+            columns: ["requested_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      push_subscriptions: {
+        Row: {
+          auth: string;
+          browser: string | null;
+          consecutive_failures: number;
+          created_at: string;
+          daily_limit: number;
+          day_count: number;
+          day_key: string | null;
+          device_class: string | null;
+          endpoint: string;
+          endpoint_host: string | null;
+          id: string;
+          installed: boolean;
+          last_seen_at: string;
+          last_success_at: string | null;
+          manage_token_hash: string;
+          metrics_consent: boolean;
+          p256dh: string;
+          platform: string | null;
+          quiet_end: number;
+          quiet_start: number;
+          targets: string[];
+          user_id: string | null;
+          want_follow: boolean;
+          want_highlight: boolean;
+          want_urgent: boolean;
+        };
+        Insert: {
+          auth: string;
+          browser?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          daily_limit?: number;
+          day_count?: number;
+          day_key?: string | null;
+          device_class?: string | null;
+          endpoint: string;
+          endpoint_host?: string | null;
+          id?: string;
+          installed?: boolean;
+          last_seen_at?: string;
+          last_success_at?: string | null;
+          manage_token_hash: string;
+          metrics_consent?: boolean;
+          p256dh: string;
+          platform?: string | null;
+          quiet_end?: number;
+          quiet_start?: number;
+          targets?: string[];
+          user_id?: string | null;
+          want_follow?: boolean;
+          want_highlight?: boolean;
+          want_urgent?: boolean;
+        };
+        Update: {
+          auth?: string;
+          browser?: string | null;
+          consecutive_failures?: number;
+          created_at?: string;
+          daily_limit?: number;
+          day_count?: number;
+          day_key?: string | null;
+          device_class?: string | null;
+          endpoint?: string;
+          endpoint_host?: string | null;
+          id?: string;
+          installed?: boolean;
+          last_seen_at?: string;
+          last_success_at?: string | null;
+          manage_token_hash?: string;
+          metrics_consent?: boolean;
+          p256dh?: string;
+          platform?: string | null;
+          quiet_end?: number;
+          quiet_start?: number;
+          targets?: string[];
+          user_id?: string | null;
+          want_follow?: boolean;
+          want_highlight?: boolean;
+          want_urgent?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       rate_limits: {
         Row: {
           bucket: string;
@@ -3060,6 +3463,63 @@ export type Database = {
       };
     };
     Views: {
+      my_push_subscriptions: {
+        Row: {
+          browser: string | null;
+          created_at: string | null;
+          daily_limit: number | null;
+          device_class: string | null;
+          id: string | null;
+          installed: boolean | null;
+          last_seen_at: string | null;
+          last_success_at: string | null;
+          metrics_consent: boolean | null;
+          platform: string | null;
+          quiet_end: number | null;
+          quiet_start: number | null;
+          targets: string[] | null;
+          want_follow: boolean | null;
+          want_highlight: boolean | null;
+          want_urgent: boolean | null;
+        };
+        Insert: {
+          browser?: string | null;
+          created_at?: string | null;
+          daily_limit?: number | null;
+          device_class?: string | null;
+          id?: string | null;
+          installed?: boolean | null;
+          last_seen_at?: string | null;
+          last_success_at?: string | null;
+          metrics_consent?: boolean | null;
+          platform?: string | null;
+          quiet_end?: number | null;
+          quiet_start?: number | null;
+          targets?: string[] | null;
+          want_follow?: boolean | null;
+          want_highlight?: boolean | null;
+          want_urgent?: boolean | null;
+        };
+        Update: {
+          browser?: string | null;
+          created_at?: string | null;
+          daily_limit?: number | null;
+          device_class?: string | null;
+          id?: string | null;
+          installed?: boolean | null;
+          last_seen_at?: string | null;
+          last_success_at?: string | null;
+          metrics_consent?: boolean | null;
+          platform?: string | null;
+          quiet_end?: number | null;
+          quiet_start?: number | null;
+          targets?: string[] | null;
+          want_follow?: boolean | null;
+          want_highlight?: boolean | null;
+          want_urgent?: boolean | null;
+        };
+        Relationships: [];
+      };
       public_aggregated: {
         Row: {
           canonical_url: string | null;
@@ -3563,6 +4023,82 @@ export type Database = {
         Returns: number;
       };
       purge_reader_emails: { Args: { p_days?: number }; Returns: number };
+      push_active_by_browser: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          browser: string;
+          n: number;
+        }[];
+      };
+      push_approve: { Args: { p_send: string }; Returns: string };
+      push_audience_estimate: { Args: { p_audience: Json; p_kind: string }; Returns: number };
+      push_audit: {
+        Args: { p_action: string; p_details?: Json; p_object: string };
+        Returns: undefined;
+      };
+      push_can: { Args: { p_action: string; p_section?: string; p_uid: string }; Returns: boolean };
+      push_cancel: { Args: { p_reason: string; p_send: string }; Returns: undefined };
+      push_claim_due: { Args: { p_delivery: number; p_now: string }; Returns: string };
+      push_delivery_result: {
+        Args: {
+          p_delivery: number;
+          p_error?: string;
+          p_http?: number;
+          p_outcome: string;
+          p_retry_at?: string;
+        };
+        Returns: undefined;
+      };
+      push_dispatch_due: { Args: { p_now?: string }; Returns: Json };
+      push_expire_requests: { Args: { p_now?: string }; Returns: number };
+      push_finish_batch: { Args: { p_batch: number; p_send: string }; Returns: boolean };
+      push_funnel: {
+        Args: { p_browser?: string; p_device?: string; p_from: string; p_to: string };
+        Returns: {
+          n: number;
+          stage: string;
+        }[];
+      };
+      push_funnel_compute: {
+        Args: { p_from: string; p_to: string };
+        Returns: {
+          browser: string;
+          device_class: string;
+          n: number;
+          stage: string;
+        }[];
+      };
+      push_funnel_refresh: { Args: { p_day: string }; Returns: number };
+      push_local_day: { Args: { p_ts: string }; Returns: string };
+      push_quiet_ends_at: { Args: { p_end: number; p_now: string }; Returns: string };
+      push_receipt_hit: {
+        Args: {
+          p_browser: string;
+          p_device: string;
+          p_event: string;
+          p_now: string;
+          p_send: string;
+        };
+        Returns: boolean;
+      };
+      push_reject: { Args: { p_reason: string; p_send: string }; Returns: undefined };
+      push_request: { Args: { p: Json }; Returns: string };
+      push_reserve: {
+        Args: { p_now?: string; p_send: string; p_sub: string };
+        Returns: {
+          delivery_id: number;
+          outcome: string;
+        }[];
+      };
+      push_resume_apply: { Args: { p_approval: string }; Returns: undefined };
+      push_resume_approve: { Args: { p_approval: string }; Returns: undefined };
+      push_resume_request: { Args: { p_reason: string }; Returns: string };
+      push_retention: { Args: { p_now?: string }; Returns: Json };
+      push_settings_int: { Args: { p_default: number; p_key: string }; Returns: number };
+      push_settings_pause: { Args: { p_reason: string }; Returns: undefined };
+      push_targets_valid: { Args: { p: string[] }; Returns: boolean };
+      push_transition_ok: { Args: { p_from: string; p_to: string }; Returns: boolean };
+      push_ttl_hours: { Args: { p_kind: string }; Returns: number };
       queue_ack: { Args: { p_msg_id: number; p_queue: string }; Returns: boolean };
       queue_enqueue: {
         Args: { p_dedupe_key: string; p_delay_sec?: number; p_message: Json; p_queue: string };
@@ -3660,6 +4196,7 @@ export type Database = {
         }[];
       };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
+      schedule_push_cron: { Args: Record<PropertyKey, never>; Returns: string };
       scrub_field_origins: { Args: { p: Json; p_person?: string }; Returns: Json };
       search_did_you_mean: { Args: { p_q: string }; Returns: string };
       search_hybrid: {

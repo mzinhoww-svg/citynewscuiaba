@@ -2,13 +2,7 @@ import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import type { EventSink, PipelineEvent, Queue, QueuedMessage } from "./ports";
 import { MAX_ATTEMPTS, retryPolicy } from "./retry";
 import { stepError, type RunStep, type StepError } from "./run-step";
-import {
-  QUEUE_NAMES,
-  queueFor,
-  type PipelineMessage,
-  type QueueName,
-  type StepName,
-} from "./types";
+import { QUEUE_NAMES, queueFor, type JobStep, type PipelineMessage, type QueueName } from "./types";
 
 /** Igual ao `maxDuration` da rota /api/jobs/drain (limite do Vercel Hobby). */
 export const DRAIN_MAX_DURATION_SEC = 60;
@@ -26,7 +20,7 @@ export const DRAIN_EVENTS_FLUSH = 25;
  * Tempo mínimo que cada etapa precisa (rede com timeout de 10 s, IA com timeout de 20 a 45 s). Sem
  * esse tempo até o limite duro, a mensagem volta à fila sem contar tentativa.
  */
-export const STEP_MIN_MS: Partial<Record<StepName, number>> = {
+export const STEP_MIN_MS: Partial<Record<JobStep, number>> = {
   fetch: 12_000,
   dedupe: 8_000,
   classify: 15_000,
@@ -35,6 +29,9 @@ export const STEP_MIN_MS: Partial<Record<StepName, number>> = {
   summarize: 30_000,
   image: 15_000,
   index: 8_000,
+  /** Lote de até 100 entregas de push com concorrência 10 e 10 s por envio (spec §12.3). */
+  push_deliver: 15_000,
+  push_due: 15_000,
 };
 const DEFAULT_STEP_MIN_MS = 2_000;
 
@@ -51,7 +48,7 @@ export interface DrainDeps {
   batchSize?: number;
   vtSec?: number;
   /** Tempo mínimo por etapa (padrão `STEP_MIN_MS`). */
-  minStepMs?: (step: StepName) => number;
+  minStepMs?: (step: JobStep) => number;
   queues?: readonly QueueName[];
   /**
    * Chamado para cada mensagem que a varredura moveu para a quarentena sem passar pela etapa
@@ -59,6 +56,12 @@ export interface DrainDeps {
    * o drain.
    */
   onExhausted?: (msg: PipelineMessage, error: string) => Promise<void>;
+  /**
+   * Pré-etapa do drain (spec 2026-09-28 §12.2, G7): `push_dispatch_due()` enfileira envios
+   * aprovados, agendados vencidos, retomados e entregas adiadas. Erro é registrado e não
+   * impede o drain.
+   */
+  beforeDrain?: () => Promise<void>;
 }
 
 export interface DrainResult {
@@ -107,8 +110,7 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
   const batchSize = deps.batchSize ?? DRAIN_BATCH_SIZE;
   const vtSec = deps.vtSec ?? DRAIN_VISIBILITY_SEC;
   const queues = deps.queues ?? QUEUE_NAMES;
-  const minStepMs =
-    deps.minStepMs ?? ((step: StepName) => STEP_MIN_MS[step] ?? DEFAULT_STEP_MIN_MS);
+  const minStepMs = deps.minStepMs ?? ((step: JobStep) => STEP_MIN_MS[step] ?? DEFAULT_STEP_MIN_MS);
   const r: DrainResult = {
     processed: 0,
     succeeded: 0,
@@ -132,6 +134,19 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
   };
 
   try {
+    if (deps.beforeDrain) {
+      try {
+        await deps.beforeDrain();
+      } catch (ex) {
+        await push({
+          runId: null,
+          step: "push_match",
+          itemRef: null,
+          level: "warn",
+          message: `pré-etapa do drain falhou: ${ex instanceof Error ? ex.message : String(ex)}`,
+        });
+      }
+    }
     for (const name of queues) {
       const moved = await queue.moveExhausted(name, MAX_ATTEMPTS);
       r.exhausted += moved.length;

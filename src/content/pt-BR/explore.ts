@@ -22,6 +22,8 @@ export const EXPLORE = {
   sourcesText: "Veículos de Cuiabá e de Mato Grosso, com a origem de cada notícia.",
   agenda: "Agenda",
   agendaText: "Shows, feiras, teatro e esporte na cidade, com os gratuitos em destaque.",
+  app: "Baixar o app",
+  appText: "Instale o CityNews na tela inicial: abre mais rápido e funciona sem internet.",
   guide: "Guia Cuiabá",
   guideMore: "/guia-cuiaba",
   errorTitle: "Não conseguimos carregar o Explorar agora",

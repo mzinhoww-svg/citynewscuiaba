@@ -10,6 +10,7 @@ import {
 } from "@/lib/alerts/match";
 import { getAnonStore } from "@/lib/anon/store";
 import { showNotification } from "@/lib/offline/sw";
+import { usePushState } from "@/lib/push/client";
 
 const STATE_KEY = "cn:alertas:estado";
 const CHECK_MS = 15 * 60_000;
@@ -37,10 +38,14 @@ function writeState(s: NotifyState) {
   }
 }
 
-async function check() {
+async function check(pushOn: boolean) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   const profile = await getAnonStore().get();
-  const alerts = profile.alerts.filter((a) => a.channel === "browser" && a.status === "active");
+  // Com push ativo, o servidor manda os imediatos (D-P20); aqui ficam só os resumos.
+  const alerts = profile.alerts.filter(
+    (a) =>
+      a.channel === "browser" && a.status === "active" && !(pushOn && a.frequency === "immediate"),
+  );
   if (alerts.length === 0) return;
   // Janela de 15 min, nunca o horário exato do alerta (não vira identificador do aparelho).
   const since = pollSince(alerts, new Date());
@@ -65,11 +70,13 @@ async function check() {
  * silêncio 22h–7h). Não renderiza nada; sem alerta ou sem permissão, não faz nenhuma chamada.
  */
 export function AlertWatcher() {
+  const push = usePushState();
+  const pushOn = push.status === "on";
   useEffect(() => {
-    const run = () => void check().catch(() => undefined);
+    const run = () => void check(pushOn).catch(() => undefined);
     run();
     const t = window.setInterval(run, CHECK_MS);
     return () => window.clearInterval(t);
-  }, []);
+  }, [pushOn]);
   return null;
 }

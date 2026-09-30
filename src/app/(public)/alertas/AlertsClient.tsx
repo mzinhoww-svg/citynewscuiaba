@@ -1,13 +1,23 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
-import { Button, EmptyState, InlineAlert, Select, Skeleton, TextField } from "@/components";
+import {
+  Button,
+  EmptyState,
+  InlineAlert,
+  NotificationInviteSlot,
+  PushSettings,
+  Select,
+  Skeleton,
+  TextField,
+} from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
 import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { showNotification } from "@/lib/offline/sw";
+import { requestNotificationInvite } from "@/lib/push/invite";
 
 type Option = { value: string; label: string };
 
@@ -69,6 +79,7 @@ export function AlertsClient({ targets }: AlertsClientProps) {
         await act((s) => s.addAlert(base));
         void showNotification(T.testTitle, { body: T.testBody, href: "/alertas", tag: "cn-teste" });
         setFeedback({ tone: "success", text: T.created });
+        requestNotificationInvite("alert");
         requestLoginInvite("alert");
       } else {
         const res = await fetch("/api/alertas", {
@@ -109,59 +120,62 @@ export function AlertsClient({ targets }: AlertsClientProps) {
       data-ready={ready ? "true" : undefined}
       className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14"
     >
-      <section aria-labelledby={`${id}-ativos`} className="flex min-w-0 flex-col gap-4">
-        <h2 id={`${id}-ativos`} className="type-section text-strong">
-          {T.activeTitle}
-        </h2>
-        {degraded && (
-          <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
-            <p>{ANON_TEXT.degradedDetail}</p>
-          </InlineAlert>
-        )}
-        {!profile ? (
-          <div aria-busy="true">
-            <p className="sr-only">{T.loading}</p>
-            <Skeleton lines={2} />
-          </div>
-        ) : profile.alerts.length === 0 ? (
-          <EmptyState title={T.activeEmpty} icon="bell">
-            <p>{T.activeEmptyText}</p>
-          </EmptyState>
-        ) : (
-          <ul className="flex flex-col">
-            {profile.alerts.map((a) => (
-              <li
-                key={a.id}
-                className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-subtle py-3 last:border-b"
-              >
-                <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
-                  <p className="type-body font-semibold text-strong">
-                    {T.kinds[a.kind]}: {a.label}
-                  </p>
-                  <p className="type-meta text-meta">
-                    {T.frequencies[a.frequency]} · {T.channels[a.channel]} ·{" "}
-                    {a.status === "pending_email" && a.email ? (
-                      <span className="text-warn">{T.statusPending(a.email)}</span>
-                    ) : (
-                      T.statusActive
-                    )}
-                  </p>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  icon="trash-2"
-                  aria-label={T.removeLabel(a.label)}
-                  onClick={() => remove(a)}
+      <div className="flex min-w-0 flex-col gap-10">
+        <PushSettings />
+        <section aria-labelledby={`${id}-ativos`} className="flex min-w-0 flex-col gap-4">
+          <h2 id={`${id}-ativos`} className="type-section text-strong">
+            {T.activeTitle}
+          </h2>
+          {degraded && (
+            <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
+              <p>{ANON_TEXT.degradedDetail}</p>
+            </InlineAlert>
+          )}
+          {!profile ? (
+            <div aria-busy="true">
+              <p className="sr-only">{T.loading}</p>
+              <Skeleton lines={2} />
+            </div>
+          ) : profile.alerts.length === 0 ? (
+            <EmptyState title={T.activeEmpty} icon="bell">
+              <p>{T.activeEmptyText}</p>
+            </EmptyState>
+          ) : (
+            <ul className="flex flex-col">
+              {profile.alerts.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-subtle py-3 last:border-b"
                 >
-                  {T.remove}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="type-meta text-meta">{T.whileOpen}</p>
-      </section>
+                  <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
+                    <p className="type-body font-semibold text-strong">
+                      {T.kinds[a.kind]}: {a.label}
+                    </p>
+                    <p className="type-meta text-meta">
+                      {T.frequencies[a.frequency]} · {T.channels[a.channel]} ·{" "}
+                      {a.status === "pending_email" && a.email ? (
+                        <span className="text-warn">{T.statusPending(a.email)}</span>
+                      ) : (
+                        T.statusActive
+                      )}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon="trash-2"
+                    aria-label={T.removeLabel(a.label)}
+                    onClick={() => remove(a)}
+                  >
+                    {T.remove}
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="type-meta text-meta">{T.whileOpen}</p>
+        </section>
+      </div>
 
       <section
         aria-labelledby={`${id}-criar`}
@@ -257,6 +271,7 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               </InlineAlert>
             )}
           </div>
+          <NotificationInviteSlot trigger="alert" />
         </form>
       </section>
     </div>

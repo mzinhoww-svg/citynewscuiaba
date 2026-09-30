@@ -97,12 +97,13 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 ### P17 · Favoritos · `/favoritos` · **Nova no desktop** (mobile no canvas T12)
 - **Abas:** Salvos (lista de leitura com "não lido", "lido 60%", filtro por editoria, remover), Fontes seguidas (reordenar, deixar de seguir), Temas e assuntos seguidos, Coleções pessoais (criar, renomear, apagar).
 - **Estados:** vazio por aba com ação ("Toque no marcador em qualquer matéria para ler depois"); aviso "Salvos só neste aparelho" quando anônimo, com "Sincronizar (opcional)".
-- **Aceite:** funciona offline para leitura de salvos (service worker com as 20 últimas).
+- **Aceite:** funciona offline para leitura de salvos (service worker com as 20 últimas salvas, mais as 30 últimas lidas, a home e as editorias abertas, cada cópia com "Salva às HHhMM, pode estar desatualizada." — spec 2026-09-28 D-P03; `docs/reports/pwa.md`).
 
 ### P18 · Alertas · `/alertas` · **Nova no desktop**
 - **Blocos:** alertas ativos (bairro, tema, assunto, urgentes, agenda) com frequência (imediato, resumo diário, semanal) e canal (navegador, e-mail) · criar alerta (tipo → alvo → frequência → canal) · limites ("no máximo 3 por dia", janela de silêncio 22h–7h).
+- **Bloco "Avisos no celular e no computador" (push, spec 2026-09-28 §7.5):** estados sem suporte, sem chave VAPID, iPhone fora do app ("Como adicionar"), desligado (texto do pré-prompt + "Ativar avisos"), perdido, negado (instruções do navegador detectado + "Já reativei") e ativo (três tipos, silêncio que só aumenta 18–22h/7–10h, limite 1–3, "O que você segue", "Desativar avisos" apaga a inscrição no servidor). Alertas imediatos de bairro ficam com o push quando ele está ativo (D-P20).
 - **Estados:** permissão de notificação negada no navegador (explica como reativar); e-mail não confirmado.
-- **Aceite:** alerta de navegador sem conta; alerta por e-mail exige só e-mail confirmado.
+- **Aceite:** alerta de navegador sem conta; alerta por e-mail exige só e-mail confirmado; `tests/e2e/push-reader.spec.ts`, `tests/a11y/pwa.spec.ts`.
 
 ### P19 · Newsletter · `/newsletter` · **Nova**
 - **Blocos:** lista de newsletters (Cuiabá em 5 minutos · diária 7h; Agenda do fim de semana · quinta 12h; Política da semana · sexta 18h) com amostra da última edição · inscrição com e-mail e escolha das listas · centro de preferências via link assinado (`/newsletter/preferencias?token=`) · confirmação dupla.
@@ -128,7 +129,11 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 - `/sobre`, `/principios-editoriais`, `/metodologia` (confiança, rótulos, regras de autonomia públicas em linguagem simples), `/como-usamos-ia`, `/correcoes` (lista pública de correções com data e link), `/direito-de-resposta` (formulário), `/anuncie`, `/contato`, `/termos`.
 
 ### P25 · Erros e sistema · **Novas**
-- `404` ("A matéria pode ter sido movida. Busque pelo título ou volte ao início." + busca), `410` (despublicada, com motivo), `500` (mensagem e status), offline (salvos disponíveis), manutenção (modo leitura).
+- `404` ("A matéria pode ter sido movida. Busque pelo título ou volte ao início." + busca), `410` (despublicada, com motivo), `500` (mensagem e status), offline (`/offline.html`, spec 2026-09-28 §8.3: "Sem conexão" com as listas Páginas, Salvas e Lidas recentemente do próprio cache; CSS e textos gerados de `src/offline-page`), manutenção (modo leitura).
+
+### P26 · Baixar o app · `/app` · **Nova** (spec 2026-09-28 §7.9)
+- Explica o que o app instalável faz (ler offline, avisos), como instalar no Android/Chrome (botão "Instalar" quando o navegador oferece; "Já instalado" em standalone), no iPhone (Compartilhar → Adicionar à Tela de Início) e no computador; link "Baixar o app" no menu e no rodapé.
+- **Aceite:** `tests/e2e/install.spec.ts`, `tests/a11y/pwa.spec.ts`.
 
 ## B. Conta (opcional)
 
@@ -150,6 +155,16 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 ### C06 · Migrar dados locais · `/entrar/migrar` · **Canvas (T09)**
 - Checkboxes com contagens; "Levar selecionados" · "Começar do zero"; progresso; sucesso "3 fontes e 14 salvos sincronizados"; conflito (item já existe na conta → mantém ambos, sem duplicar).
 
+### C07 · Convite de instalação · componente `InstallInvite` · **Nova** (spec 2026-09-28 §7.2)
+- Faixa discreta "Instalar o app" na 2ª visita ou depois de 3 leituras qualificadas, nunca em standalone nem junto com outro convite (vaga única: consentimento > login > notificações > instalação); "Agora não" silencia 14 dias; após 3 recusas some e "Baixar o app" fica no menu e no rodapé.
+
+### C08 · Passos do iPhone · diálogo `IosInstallSteps` · **Nova** (spec 2026-09-28 §7.3)
+- No Safari do iPhone, "Instalar" (ou "Como adicionar" em Alertas) abre "Adicionar o CityNews à Tela de Início": Compartilhar → Adicionar à Tela de Início → Adicionar.
+
+### C09 · Pré-prompt de notificações · componente `NotificationInvite` · **Nova** (spec 2026-09-28 §7.4)
+- Só depois de seguir fonte/editoria/assunto, criar alerta de navegador ou abrir matéria urgente, com a permissão ainda não decidida: "Quer receber avisos?" + "Avisamos só do que você segue e de urgências, no máximo 3 por dia. Entre 22h e 7h, só urgências."; "Ativar" chama o pedido nativo e cria a inscrição com os alvos explícitos; "Agora não" nunca chama o pedido nativo e silencia 14 dias (3ª recusa: nunca mais). iPhone fora do app mostra C08.
+- **Aceite:** `tests/e2e/push-reader.spec.ts`, `src/components/editorial/NotificationInvite.test.tsx`.
+
 ## C. Estúdio (redação)
 
 Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada por papel; busca global (Ctrl K); notificações; troca de plantão.
@@ -169,7 +184,8 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 ### E05 · Comparação de versões · `/estudio/materias/[id]/versoes` · Canvas (E03)
 
 ### E06 · Publicação e agendamento · modal `PublishDialog` · **Nova**
-- Resumo do checklist, rótulos finais, data/hora (agora ou agendar, fuso Cuiabá), destino (home, editoria, assunto, newsletter, push com 2 aprovações), aviso de conflito com manchete, confirmação.
+- Resumo do checklist, rótulos finais, data/hora (agora ou agendar, fuso Cuiabá), destino (home, editoria, assunto, newsletter), aviso de conflito com manchete, confirmação.
+- **Push urgente** (spec 2026-09-28 §10.7): habilitado para admin e editor-chefe; marcado, pede "Justificativa do push" (≤ 300) e, publicada a matéria, cria o pedido Urgente em A09 com título e linha fina; toast "Pedido de push criado. Aguardando aprovação de outra pessoa." com link para a fila. Agendar desliga o push (urgente só sai agora).
 
 ### E07 · Calendário editorial · `/estudio/calendario` · Canvas (U03)
 
@@ -230,8 +246,11 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 - Campanhas (anunciante, período, peças, editorias permitidas, entregas), regras fixas visíveis, pré-visualização com selo.
 ### A08 · SEO · `/estudio/admin/seo` · **Nova**
 - Modelos de título, sitemap de notícias, robots, redirecionamentos (arquivadas), dados estruturados, verificação de páginas sem meta description.
-### A09 · Notificações · `/estudio/admin/notificacoes` · **Nova**
-- Push de urgente com 2 aprovações, limites por leitor, janela de silêncio, modelos de e-mail, histórico de envios.
+### A09 · Notificações · `/estudio/admin/notificacoes` · **Nova** (spec 2026-09-28 §10)
+- Guarda: qualquer ação de push (`push.request`, `push.approve`, `push.settings`, `push.metrics`); analista vai direto ao Funil; item "Notificações (n)" no menu para quem aprova.
+- Abas como subrotas (D-P23): **Novo envio** `/` (tipo, matéria com busca, título ≤ 60 e texto ≤ 120 com contadores, modelos, prévia Android/iPhone/computador com rótulo de origem, público com alcance estimado, quando, justificativa) · **Fila e aprovações** `/fila` (aprovação em texto, Revisar com prévia, Aprovar/Recusar/Cancelar com motivo, polling 10 s) · **Histórico** `/historico` e `/historico/[id]` (filtros na URL, CTR entre quem permite métricas, linha do tempo, pulos, falhas, detalhamento por aparelho e navegador, CSV sem dado de inscrição em `/historico/exportar`) · **Configurações** `/configuracoes` (limite 1–3, silêncio 18–22h/7–10h, modelos, pausar com PAUSAR digitado, retomar com aprovação de outra pessoa, estado das chaves VAPID) · **Funil do app** `/funil` (7 etapas, filtros na URL, gráfico SVG com resumo textual, "Fora do convite", "não são pessoas").
+- Faixas do cabeçalho: envios pausados (quem, quando, motivo), pendentes de aprovação, VAPID ausente (só nomes).
+- **Aceite:** `tests/e2e/a09-*.spec.ts`, `tests/a11y/pwa.spec.ts`, `docs/reports/pwa.md`.
 ### A10 · Auditoria · `/estudio/admin/auditoria` · Canvas (A04)
 ### A11 · Segurança e privacidade · `/estudio/admin/seguranca` · **Nova** (resumo no A04)
 - 2FA da equipe, sessões, retenção, pedidos LGPD (fila com prazo), revisão de acessos, chaves e rotação.

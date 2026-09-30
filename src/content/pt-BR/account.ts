@@ -221,6 +221,7 @@ export const PROFILE_TEXT = {
     alerts: "Alertas",
     privacy: "Privacidade e recomendações",
     newsletter: "Newsletters",
+    app: "Baixar o app",
   },
   account: {
     title: "Sua conta",

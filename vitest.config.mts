@@ -18,6 +18,11 @@ export default defineConfig({
         test: { name: "unit", environment: "jsdom", include: ["src/**/*.test.{ts,tsx}"] },
       },
       {
+        // Scripts de build (SW, ícones): Node puro, sem banco.
+        extends: true,
+        test: { name: "scripts", environment: "node", include: ["scripts/**/*.test.ts"] },
+      },
+      {
         // Integração compartilha um banco: arquivos em série para contagens do seed não
         // enxergarem linhas temporárias de outras suítes.
         extends: true,

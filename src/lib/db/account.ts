@@ -284,7 +284,7 @@ export interface EmailData {
 /** Cópia dos dados da conta (P20, LGPD): tudo o que é do leitor, sem dados de outras pessoas. */
 export async function exportAccount(db: DbClient, user: User) {
   const owner = user.id;
-  const [profile, prefs, follows, saved, alerts, collections, byEmail] = await Promise.all([
+  const [profile, prefs, follows, saved, alerts, collections, byEmail, push] = await Promise.all([
     db
       .from("profiles")
       .select("display_name, neighborhood, created_at, delete_requested_at")
@@ -308,8 +308,14 @@ export async function exportAccount(db: DbClient, user: User) {
       .eq("is_editorial", false),
     // Guardado pelo e-mail da conta (newsletter, alertas por e-mail, fila): gate P2, I5.
     db.rpc("export_email_data"),
+    // Inscrições de push desta conta (spec 2026-09-28 §14): sem endpoint nem chaves.
+    db
+      .from("my_push_subscriptions")
+      .select(
+        "browser, device_class, platform, installed, want_follow, want_urgent, want_highlight, targets, quiet_start, quiet_end, daily_limit, metrics_consent, created_at, last_seen_at",
+      ),
   ]);
-  for (const r of [profile, prefs, follows, saved, alerts, collections, byEmail])
+  for (const r of [profile, prefs, follows, saved, alerts, collections, byEmail, push])
     if (r.error) throw new Error(r.error.message);
   return {
     exportedAt: new Date().toISOString(),
@@ -321,5 +327,6 @@ export async function exportAccount(db: DbClient, user: User) {
     alerts: alerts.data,
     collections: collections.data,
     byEmail: byEmail.data as EmailData | null,
+    pushSubscriptions: push.data,
   };
 }

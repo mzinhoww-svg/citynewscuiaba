@@ -27,6 +27,18 @@ export const STEP_NAMES = [
 
 export type StepName = (typeof STEP_NAMES)[number];
 
+/**
+ * Jobs de push (spec 2026-09-28 §12; G3/A-072): três passos fora das 20 etapas, na fila
+ * `notify`, com `runId: "push"`. `push_match` (`article:<id>` ou `push:<sendId>`) faz o fan-out
+ * em lotes; `push_deliver` (`push:<sendId>:<lote>`) entrega um lote; `push_due` (`due:<sendId>`)
+ * entrega adiados e retentativas.
+ */
+export const PUSH_STEPS = ["push_match", "push_deliver", "push_due"] as const;
+export type PushStep = (typeof PUSH_STEPS)[number];
+export const JOB_STEPS = [...STEP_NAMES, ...PUSH_STEPS] as const;
+export type JobStep = (typeof JOB_STEPS)[number];
+export const PUSH_RUN_ID = "push";
+
 /** Etapas da fase de Coleta: o próximo ciclo não começa enquanto houver alguma pendente. */
 export const COLLECTION_STEPS: readonly StepName[] = ["fetch", "validate", "extract", "normalize"];
 
@@ -35,7 +47,7 @@ export type QueueName = (typeof QUEUE_NAMES)[number];
 
 export const PipelineMessageSchema = z.object({
   runId: z.string().min(1).max(64),
-  step: z.enum(STEP_NAMES),
+  step: z.enum(JOB_STEPS),
   itemRef: z.string().min(1).max(400),
   attempt: z.number().int().min(1),
 });
@@ -72,8 +84,8 @@ export type RawEntry = z.infer<typeof RawEntrySchema>;
  * Fila de cada etapa (ADR-004): imagem e direitos em `media`, notificação em `notify`, o resto em
  * `pipeline`. O drain enfileira a próxima etapa na fila dela.
  */
-export function queueFor(step: StepName): QueueName {
+export function queueFor(step: JobStep): QueueName {
   if (step === "image" || step === "image_rights") return "media";
-  if (step === "notify") return "notify";
+  if (step === "notify" || (PUSH_STEPS as readonly string[]).includes(step)) return "notify";
   return "pipeline";
 }

@@ -1,12 +1,32 @@
 import { existsSync, readFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
+import webpush from "web-push";
 
 const isCI = Boolean(process.env.CI);
+// Chromium: deixa `context.route`/`setOffline` alcançarem o `fetch` do service worker (leitura
+// offline, spec 2026-09-28 §8; tests/e2e/offline.spec.ts). Precisa existir antes do navegador subir.
+process.env.PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS ??= "1";
 // Worktrees em paralelo usam .local/offset para deslocar portas (scripts/local-stack/env.sh).
 const offset = existsSync(".local/offset")
   ? Number(readFileSync(".local/offset", "utf8").trim())
   : 0;
 const port = 3000 + offset;
+/**
+ * Push no e2e (spec 2026-09-28 §16; G15/G16): par VAPID gerado ao carregar (a pública é embutida
+ * no build), provedor real `webpush` e servidor de push falso em 127.0.0.1:<porta + 2>
+ * (tests/e2e/global-setup.ts), aceito só por PUSH_ENDPOINT_TEST_HOSTS com CN_E2E=1.
+ */
+const vapid = webpush.generateVAPIDKeys();
+const fakePushPort = port + 2;
+process.env.CN_FAKE_PUSH_PORT = String(fakePushPort);
+const PUSH_ENV = {
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: vapid.publicKey,
+  VAPID_PRIVATE_KEY: vapid.privateKey,
+  VAPID_SUBJECT: "mailto:teste@citynews.local",
+  PUSH_PROVIDER: "webpush",
+  PUSH_ENDPOINT_TEST_HOSTS: `127.0.0.1:${fakePushPort}`,
+  CN_E2E: "1",
+};
 /**
  * Servidor de fixtures (painel de fontes, FS-T8): `next dev` com `CRAWLER_FIXTURES=1`, que só
  * vale fora de produção (`fixturesEnabled` em src/lib/sources/http-deps.ts ignora a variável com
@@ -34,6 +54,7 @@ const BROWSER_PROJECTS = ["desktop", "mobile", ...(isCI ? ["mobile-webkit"] : []
 export default defineConfig({
   testDir: "tests",
   testMatch: "**/*.spec.ts",
+  globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
@@ -85,7 +106,7 @@ export default defineConfig({
     {
       command: `pnpm build && pnpm exec next start -p ${port}`,
       // Libera a vitrine /design-system no build de produção para o teste de a11y (P0-T9b).
-      env: { CN_SHOW_DS: "1" },
+      env: { CN_SHOW_DS: "1", ...PUSH_ENV },
       port,
       reuseExistingServer: !isCI,
       timeout: 240_000,
@@ -96,6 +117,7 @@ export default defineConfig({
         CRAWLER_FIXTURES: "1",
         AI_PROVIDER: "fake",
         APP_URL: `http://localhost:${fixturesPort}`,
+        ...PUSH_ENV,
       },
       port: fixturesPort,
       reuseExistingServer: !isCI,

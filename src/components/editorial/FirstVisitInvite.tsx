@@ -11,6 +11,7 @@ import {
 } from "@/lib/anon/invite-storage";
 import { shouldShowFirstVisit, type OnboardingGroup } from "@/lib/anon/invites";
 import { useAnonProfile } from "@/lib/anon/use-profile";
+import { useInviteSlot } from "@/lib/app/slot";
 import { hasAuthCookie } from "@/lib/auth/cookie";
 import { useConsent } from "@/lib/consent/client";
 import { useTrack } from "@/lib/events/use-track";
@@ -53,6 +54,8 @@ export function FirstVisitInvite() {
   const follows = profile?.follows.filter((f) => f.kind === "source") ?? [];
   const decided = closed || (profile !== null && load.state === "idle" && follows.length > 0);
   const visible = consent.decided && profile !== null && shouldShowFirstVisit(reads, decided);
+  // Painel da primeira visita ocupa a vaga de "consentimento" (vem logo depois do banner).
+  useInviteSlot("consent", visible);
 
   useEffect(() => {
     if (load.state === "ready") pickerTitle.current?.focus();
