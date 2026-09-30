@@ -1,6 +1,7 @@
 import { mkdir } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Browser, type Page } from "@playwright/test";
+import { gotoSettled } from "./helpers/nav";
 import { cronSecret, drain } from "./helpers/pipeline";
 import { loginAs, type StaffKey } from "./helpers/studio-login";
 import { createArticle, removeArticles, service, tag } from "./studio";
@@ -38,7 +39,9 @@ async function published(title: string, section = "cidade") {
     published_at: new Date().toISOString(),
     publish_mode: "human",
     tags: ["chuva"],
-    neighborhoods: ["cpa"],
+    // Não usar "cpa" nem "morada-da-serra": section.spec conta as matérias de Cidade do seed com
+    // bairro=cpa e a jornada do PWA segue Morada da Serra; estes testes rodam ao mesmo tempo.
+    neighborhoods: ["jardim-italia"],
   });
   created.push(id);
   return id;
@@ -50,7 +53,7 @@ async function requestUrgentVia(
   articleTitle: string,
   pushTitle: string,
 ): Promise<string> {
-  await page.goto(URL);
+  await gotoSettled(page, URL);
   await page.getByRole("radio", { name: /^Urgente/ }).check();
   await page.getByRole("combobox", { name: "Matéria" }).fill(articleTitle);
   await page.getByRole("option", { name: new RegExp(articleTitle) }).click();
@@ -75,7 +78,7 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
   const helena = await studioPage(browser, "helena");
   try {
     const id = await requestUrgentVia(marina, ART_TITLE, PUSH_TITLE);
-    await marina.goto(`${URL}/fila`);
+    await gotoSettled(marina, `${URL}/fila`);
     await expect(
       marina.getByRole("heading", { level: 2, name: "Fila e aprovações" }),
     ).toBeVisible();
@@ -85,7 +88,7 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
     await expect(dialog.getByRole("button", { name: "Aprovar" })).toBeDisabled();
     await marina.keyboard.press("Escape");
     // Helena vê "Notificações (n)" no menu e aprova.
-    await helena.goto(`${URL}/fila`);
+    await gotoSettled(helena, `${URL}/fila`);
     await expect(
       helena
         .getByRole("navigation", { name: "Estúdio" })
@@ -103,7 +106,7 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
     // O despacho (beforeDrain) leva o envio adiante; sem inscrições, termina sem alvos.
     const d = await drain(baseURL!, cronSecret());
     expect(d.status).toBe(200);
-    await helena.goto(`${URL}/historico/${id}`);
+    await gotoSettled(helena, `${URL}/historico/${id}`);
     await expect(helena.getByText("Pedido por Marina Arruda")).toBeVisible();
     await expect(helena.getByText(/Aprovado por Helena Costa às \d{2}:\d{2}/)).toBeVisible();
     await expect(helena.getByRole("list", { name: "Linha do tempo" })).toContainText("Aprovação");
@@ -118,7 +121,7 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
 
 test("filtros do histórico ficam na URL; vazio mostra Sem envios no período", async ({ page }) => {
   await loginAs(page.context(), "helena");
-  await page.goto(`${URL}/historico`);
+  await gotoSettled(page, `${URL}/historico`);
   await page.getByLabel("Período").selectOption("7");
   await page.getByLabel("Tipo").selectOption("highlight");
   await page.getByLabel("Estado").selectOption("expired");
@@ -126,14 +129,14 @@ test("filtros do histórico ficam na URL; vazio mostra Sem envios no período", 
   await expect(page).toHaveURL(/periodo=7/);
   await expect(page).toHaveURL(/tipo=highlight/);
   await expect(page).toHaveURL(/estado=expired/);
-  await page.goto(`${URL}/historico?periodo=7&tipo=follow&estado=rejected`);
+  await gotoSettled(page, `${URL}/historico?periodo=7&tipo=follow&estado=rejected`);
   await expect(page.getByText("Sem envios no período.")).toBeVisible();
   await expect(page.getByLabel("Período")).toHaveValue("7");
 });
 
 test("CSV baixado não tem colunas de inscrição", async ({ page }) => {
   await loginAs(page.context(), "helena");
-  await page.goto(`${URL}/historico?periodo=tudo`);
+  await gotoSettled(page, `${URL}/historico?periodo=tudo`);
   const [download] = await Promise.all([
     page.waitForEvent("download"),
     page.getByRole("link", { name: "Exportar CSV" }).click(),
@@ -159,7 +162,7 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
   const marina = await studioPage(browser, "marina");
   try {
     // Marina pede um Destaque de esportes (fora das editorias de Otávio).
-    await marina.goto(URL);
+    await gotoSettled(marina, URL);
     await marina.getByRole("radio", { name: /^Destaque da redação/ }).check();
     await marina.getByRole("combobox", { name: "Matéria" }).fill(other);
     await marina.getByRole("option", { name: new RegExp(other) }).click();
@@ -167,13 +170,13 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
     await marina.getByRole("button", { name: "Enviar para aprovação" }).click();
     await expect(marina.getByRole("status").filter({ hasText: "Pedido criado." })).toBeVisible();
     // Otávio pede um Destaque de cidade.
-    await otavio.goto(URL);
+    await gotoSettled(otavio, URL);
     await otavio.getByRole("combobox", { name: "Matéria" }).fill(mine);
     await otavio.getByRole("option", { name: new RegExp(mine) }).click();
     await otavio.getByLabel("Título").fill(`Destaque cidade ${t}`);
     await otavio.getByRole("button", { name: "Enviar para aprovação" }).click();
     await expect(otavio.getByRole("status").filter({ hasText: "Pedido criado." })).toBeVisible();
-    await otavio.goto(`${URL}/fila`);
+    await gotoSettled(otavio, `${URL}/fila`);
     await expect(otavio.getByText(`Destaque cidade ${t}`)).toBeVisible();
     await expect(otavio.getByText(`Destaque esportes ${t}`)).toHaveCount(0);
     // Editor não aprova o próprio pedido (aviso no diálogo) e pode cancelar.
@@ -189,7 +192,12 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
       .getByRole("button", { name: "Confirmar cancelamento" })
       .click();
     await expect(otavio.getByRole("status").filter({ hasText: "Envio cancelado" })).toBeVisible();
-    await otavio.goto(`${URL}/historico?periodo=7`);
+    // A action revalida o layout e a fila se recarrega; sem esperar o item sair dela, o `goto`
+    // seguinte cruza com essa navegação (WebKit: "interrupted by another navigation to /fila").
+    await expect(otavio.getByRole("button", { name: `Cancelar Destaque cidade ${t}` })).toHaveCount(
+      0,
+    );
+    await gotoSettled(otavio, `${URL}/historico?periodo=7`);
     await expect(otavio.getByText(`Destaque cidade ${t}`)).toBeVisible();
     await expect(otavio.getByText(`Destaque esportes ${t}`)).toHaveCount(0);
   } finally {
@@ -212,7 +220,7 @@ test("axe em 390/768/1280 e capturas da fila e do histórico @a11y", async ({ pa
       ["fila", `${URL}/fila`],
       ["historico", `${URL}/historico?periodo=tudo`],
     ] as const) {
-      await page.goto(path);
+      await gotoSettled(page, path);
       await expect(page.getByRole("heading", { level: 1, name: "Notificações" })).toBeVisible();
       const results = await new AxeBuilder({ page }).analyze();
       expect(results.violations.filter((v) => blocking(v.impact))).toEqual([]);
