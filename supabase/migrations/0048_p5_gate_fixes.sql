@@ -12,8 +12,9 @@
 --     mascara IP e oculta o hash (achado 10).
 --  6. Políticas de segurança da A11: retenção com teto de 90 dias aplicada no cron, 2FA marcado
 --     como não aplicado, duração da sessão lida pela aplicação (achado 2).
---  7. Publicidade em subeditoria proibida (13), convites com prazo e aceite (14) e CHECK dos
---     pesos de recomendação (21).
+--  7. Publicidade em subeditoria proibida (13), convites com prazo e aceite (14), CHECK dos
+--     pesos de recomendação (21), redirecionamento sem barra invertida (17) e rascunho da home
+--     fora da leitura pública (18).
 --  8. Auditoria: `studio_audit_actions()` segue a união da 0045 (nada novo nesta migration).
 
 -- ---------------------------------------------------------------------------
@@ -768,6 +769,17 @@ $$;
 drop trigger if exists sponsored_sections_guard on public.sponsored_campaigns;
 create trigger sponsored_sections_guard before insert or update on public.sponsored_campaigns
   for each row execute function public.guard_sponsored_sections();
+
+-- Redirecionamento: `/\host` e `/%5chost` viram `//host` no navegador. `not valid`: só linhas novas.
+alter table public.redirects drop constraint if exists redirects_path_safe;
+alter table public.redirects add constraint redirects_path_safe
+  check (to_path !~ '^//' and to_path !~* '(\\|%5c)' and from_path !~* '(\\|%5c)') not valid;
+
+-- Home: rascunhos e notas internas não são públicos (só a versão publicada; admin e editor-chefe
+-- leem todas pela política de escrita).
+drop policy if exists home_layouts_read on public.home_layouts;
+create policy home_layouts_read on public.home_layouts for select to anon, authenticated
+  using (status = 'published');
 
 -- Convites: `revoked_at` quando o prazo vence sem aceite; `accepted_at` no primeiro acesso.
 alter table public.staff_invites add column if not exists revoked_at timestamptz;
