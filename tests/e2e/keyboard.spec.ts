@@ -330,6 +330,26 @@ test("diálogo Rejeitar no Estúdio: foco preso, Esc fecha e o foco volta @a11y"
   await expectFocusOn(trigger, "Rejeitar");
 });
 
+test("gaveta Geração de imagem (E12): foco preso, Esc fecha e o foco volta @a11y", async ({
+  page,
+}) => {
+  const t = tag();
+  const id = await createArticle({ title: `Matéria para ilustrar ${t}`, status: "in_review" });
+  created.push(id);
+  await loginAs(page, "marina", `/estudio/materias/${id}`);
+  const trigger = page.getByRole("button", { name: "Gerar ilustração" });
+  await expectHydrated(trigger);
+  await trigger.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: "Geração de imagem" });
+  await expect(dialog).toBeVisible();
+  await expectFocusTrapped(page, dialog);
+  await expectNoSeriousViolations(page, "dialog");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expectFocusOn(trigger, "Gerar ilustração");
+});
+
 test("diálogo Publicar no editor: foco preso, Esc fecha e o foco volta @a11y", async ({ page }) => {
   const t = tag();
   const id = await createArticle({
