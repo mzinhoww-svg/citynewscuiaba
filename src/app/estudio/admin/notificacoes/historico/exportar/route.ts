@@ -17,13 +17,14 @@ export async function GET(req: Request) {
     );
   if (!allowed) return new Response(null, { status: 404 });
   const filter = parseHistoryFilter(new URL(req.url).searchParams);
-  const csv = await historyCsv(filter);
+  const { csv, truncated } = await historyCsv(filter);
   const day = new Date().toISOString().slice(0, 10);
   return new Response(`﻿${csv}`, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="notificacoes-${day}.csv"`,
       "cache-control": "no-store",
+      ...(truncated ? { "x-export-truncated": "1" } : {}),
     },
   });
 }

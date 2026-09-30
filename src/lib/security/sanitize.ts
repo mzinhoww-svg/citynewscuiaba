@@ -270,6 +270,58 @@ const INJECTION_PATTERNS: RegExp[] = [
   ),
   new RegExp(String.raw`\byou${SEP}are${SEP}now\b`),
   new RegExp(String.raw`\bnew${SEP}instructions?\s*:`),
+
+  // P6-T3: variações que o gate de segurança encontrou fora dos padrões acima.
+  // Inglês: "ignore everything above", "forget all previous context", "ignore the above".
+  new RegExp(
+    String.raw`\b(?:ignore|disregard|forget)${SEP}(?:(?:everything|all|anything)${SEP}(?:(?:above|before|prior|previous|earlier|that)\b|(?:said|written|mentioned)\b)|(?:the${SEP})?(?:above|previous|prior)\b)`,
+  ),
+  new RegExp(
+    String.raw`\b(?:ignore|disregard|forget|override)${SEP}(?:all${SEP})?(?:your|the|these|those|any)${SEP}(?:instructions?|rules|prompts?|directions|guidelines|policies|restrictions|constraints)\b`,
+  ),
+  new RegExp(
+    String.raw`\b(?:bypass|disable|override|circumvent|turn${SEP}off)${SEP}(?:(?:the|your|all|any)${SEP})*(?:safety|security|content|moderation)${SEP}(?:rules|filters?|restrictions|guardrails|policies|safeguards|checks)\b`,
+  ),
+  new RegExp(
+    String.raw`\b(?:pretend${SEP}(?:to${SEP}be|you${SEP}are)|act${SEP}as|behave${SEP}as)${SEP}(?:(?:a|an|the)${SEP})?(?:unrestricted|jailbroken|uncensored|unfiltered|system${SEP}administrator|administrator|admin|root|developer|dan)\b`,
+  ),
+  new RegExp(
+    String.raw`\b(?:reveal|show|print|repeat|leak|output|display)${SEP}(?:me${SEP})?(?:your|the)${SEP}(?:(?:system|initial|hidden|original)${SEP})?(?:prompt|instructions)\b`,
+  ),
+  new RegExp(String.raw`\bfrom${SEP}now${SEP}on${SEP}(?:you|act|respond|answer|reply)\b`),
+  new RegExp(
+    String.raw`\bjailbreak(?:ed)?${SEP}mode\b|\bdan${SEP}mode${SEP}(?:enabled|on|activated|engaged)\b`,
+  ),
+  new RegExp(String.raw`\bdo${SEP}anything${SEP}now\b`),
+  new RegExp(String.raw`\bdeveloper${SEP}mode${SEP}(?:enabled|on|activated)\b`),
+  new RegExp(
+    String.raw`\b(?:respond|reply|answer)${SEP}(?:only|just)${SEP}with\b|\bresponda${SEP}(?:apenas|somente)${SEP}com\b`,
+  ),
+  // Marcadores de conversa de modelos ("<|im_start|>", "[INST]", "<<SYS>>", "### Instruction:").
+  new RegExp(String.raw`<\|(?:im_start|im_end|system|user|assistant|endoftext)\|>`),
+  new RegExp(String.raw`\[/?inst\]|<<\/?sys>>`),
+  new RegExp(
+    String.raw`${START}#{2,}(?:${SEP})?(?:instruction|instrucao|system|sistema|prompt)s?\s*:?`,
+    "m",
+  ),
+  // Português: "esqueça tudo (que foi dito) antes", "ignore o que foi dito acima".
+  new RegExp(
+    String.raw`${NOT_AFTER}\b(?:esqueca|esquecam|ignore|ignorem|desconsidere|desconsiderem)${SEP}(?:tudo|todo${SEP}o${SEP}resto|o${SEP}que)${SEP}(?:(?:que${SEP})?(?:foi|for|estava|esta)${SEP}(?:dito|escrito|informado)${SEP})?(?:antes|acima|anteriormente|anterior)\b`,
+  ),
+  new RegExp(String.raw`\b(?:ignora|ignore)${SEP}${DET}${INSTR}${SEP}${PREV}`),
+  new RegExp(
+    String.raw`\b(?:deve|devera|precisa|tem${SEP}que|vai)${SEP}(?:ignorar|desconsiderar|esquecer|descartar)${SEP}${DET}${INSTR}\b`,
+  ),
+  new RegExp(
+    String.raw`${NOT_AFTER}\b(?:desative|desligue|desabilite|burle|contorne|ignore|bypass)${SEP}${DET}(?:filtros?|restricoes|limites|protecoes|salvaguardas|moderacao|regras${SEP}de${SEP}seguranca)\b`,
+  ),
+  new RegExp(
+    String.raw`\b(?:voce${SEP}esta${SEP}agora${SEP}(?:no|em)|modo${SEP}(?:desenvolvedor|dev|deus))${SEP}(?:modo|ativado|ligado|habilitado)\b`,
+  ),
+  // Ordens ao pipeline: aprovar ou publicar sem revisão.
+  new RegExp(
+    String.raw`${NOT_AFTER}\b(?:publique|aprove|libere|publish|approve)${SEP}(?:(?:esta|essa|a|this|the)${SEP})?(?:materia|noticia|article|story|post)?(?:${SEP})?(?:sem${SEP}(?:revisao|revisar|checar|verificar|fonte)|automaticamente|without${SEP}(?:review|checking|sources?)|automatically)\b`,
+  ),
 ];
 
 function detect(cleaned: string): string[] {

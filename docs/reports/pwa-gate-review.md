@@ -161,3 +161,15 @@ Correções aplicadas no branch `worktree-agent-a0967818890fd228a` (a partir de 
 | PWA-16 | Parcial | Corrigidos: `sponsored` reconferido no despacho (SQL e TS); `PUSH_ENDPOINT_TEST_HOSTS` ignorada com `VERCEL_ENV=production` mesmo com `CN_E2E=1`; `push_settings_int` só lê `push.%`. Pendente: remover inscrição após N falhas 400/413 consecutivas. |
 
 Pendências a decidir: PWA-10, PWA-14, o último item de PWA-16 e o orçamento de tempo por lote (spec §12.3, 80%) citado em PWA-08.
+
+## Situação · P6 tarefa 3 (segurança)
+
+Migration `0049_p6_security.sql` (`push_delivery_result` copiado da 0040 com a regra nova; não toca `studio_audit_actions()`, `app_setting_set` nem `guard_app_settings`).
+
+| Achado | Situação | Onde |
+|---|---|---|
+| PWA-10 | Corrigido | `cachePage` só busca rota da allowlist (`routeKind`), com `credentials: "omit"` (nunca a versão de quem tem sessão) e só grava resposta 200 com `x-cn-offline: 1` e sem `Set-Cookie` (`isCacheableResponse`); `syncSaved` só aceita `/materia/<slug>`. Testes: `src/sw/index.test.ts` (fetch com `omit`, sem marcador não grava, caminhos fora da allowlist nem são buscados). |
+| PWA-14 | Corrigido (decisão: subir o teto) | Inscrição e PATCH aceitam corpo de até 32 KB (`MAX_TARGETS_BODY_BYTES`, cabem os 200 alvos de até 86 caracteres, ~18 KB); rotação e recibo seguem em 4 KB. Spec §13 atualizada. Testes: `src/lib/push/api.test.ts` (200 alvos passam; acima de 32 KB é 413; recibo acima de 4 KB é 413). |
+| PWA-16 | Corrigido | Três falhas 400/413 seguidas, sem envio aceito no meio, apagam a inscrição (`push_delivery_result`, 0049); os demais 4xx continuam fora da regra dos 5 dias. Teste: `tests/integration/p6-hardening.test.ts`. |
+
+Ainda pendente (não é segurança): orçamento de tempo por lote (spec §12.3, 80%) citado em PWA-08.

@@ -3,6 +3,7 @@
  * para os cartões de matéria. Só metadados — nunca corpo — e só links do mesmo site registrável.
  */
 import { parseHTML } from "linkedom";
+import { removeHiddenElements } from "@/lib/security/hidden";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { parseFeedDate } from "@/lib/pipeline/parse-date";
 import type { RawEntry } from "@/lib/pipeline/types";
@@ -67,6 +68,7 @@ export function extractPageList(html: string, pageUrl: string, sel: PageSelector
     return [];
   }
   const { document } = parseHTML(html);
+  removeHiddenElements(document);
   const base = new URL(pageUrl);
   const entries: RawEntry[] = [];
 

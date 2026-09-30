@@ -114,7 +114,7 @@ export function createReprocessRepo(
           const slugs: string[] = [];
           if (scope.runId) {
             const { data, error } = await db
-              .from("pipeline_events")
+              .from("pipeline_events_view")
               .select("item_ref")
               .eq("run_id", scope.runId)
               .eq("step", "fetch")

@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/require-role";
 import { createServerClient, createServiceClient, type DbClient } from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import type { Database, Json } from "@/lib/db/types";
-import { csvCell } from "@/lib/push/csv";
+import { collectRange, csvCell } from "@/lib/push/csv";
 import { missingVapidVars } from "@/lib/push/server";
 import type { audienceSchema } from "@/lib/push/schemas";
 import type { PushKind, SendStatus } from "@/lib/push/types";
@@ -391,7 +391,8 @@ function historyQuery(db: DbClient, f: HistoryFilter) {
     q = q.gte("created_at", new Date(Date.now() - f.days * 86_400_000).toISOString());
   if (f.kind) q = q.eq("kind", f.kind);
   if (f.status) q = q.eq("status", f.status);
-  return q.order("created_at", { ascending: false });
+  // `id` desempata: a leitura por páginas do CSV precisa de ordem total.
+  return q.order("created_at", { ascending: false }).order("id", { ascending: false });
 }
 
 async function countersOf(
@@ -586,12 +587,23 @@ const CSV_HEADER = [
   "ctr",
 ];
 
-/** CSV do histórico (mesmos filtros, sem paginação, até 5 000 linhas): nenhum dado de inscrição. */
-export async function historyCsv(f: HistoryFilter): Promise<string> {
+export const HISTORY_EXPORT_LIMIT = 5000;
+
+/**
+ * CSV do histórico (mesmos filtros, sem paginação, até 5 000 linhas): nenhum dado de inscrição.
+ * Lê por páginas (o `max_rows` do PostgREST é 1000) e, se passar do limite, avisa: `truncated`
+ * vira cabeçalho da resposta e a última linha do arquivo diz que foi cortado.
+ */
+export async function historyCsv(f: HistoryFilter): Promise<{ csv: string; truncated: boolean }> {
+  let truncated = false;
   const r = await read(async (db) => {
-    const { data, error } = await historyQuery(db, f).limit(5000);
-    if (error) throw new Error(error.message);
-    const rows = (data ?? []) as SendRow[];
+    const got = await collectRange(async (from, to) => {
+      const { data, error } = await historyQuery(db, f).range(from, to);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as SendRow[];
+    }, HISTORY_EXPORT_LIMIT);
+    truncated = got.truncated;
+    const rows = got.rows;
     const [names, articles, sections, counters] = await Promise.all([
       namesOf(
         db,
@@ -630,7 +642,13 @@ export async function historyCsv(f: HistoryFilter): Promise<string> {
       .map(csvCell)
       .join(";"),
   );
-  return [CSV_HEADER.join(";"), ...lines].join("\r\n") + "\r\n";
+  if (truncated)
+    lines.push(
+      csvCell(
+        `AVISO: exportação truncada em ${HISTORY_EXPORT_LIMIT} linhas; refine os filtros para ver o restante`,
+      ),
+    );
+  return { csv: [CSV_HEADER.join(";"), ...lines].join("\r\n") + "\r\n", truncated };
 }
 
 // ---------------------------------------------------------------------------

@@ -394,7 +394,7 @@ Cinco falhas seguidas não 4xx da mesma inscrição em dias diferentes → inscr
 | `PUT /api/push/subscriptions/rotate` | `pushsubscriptionchange`; token + endpoint antigo | 10/h por IP |
 | `POST /api/push/receipt` | `{ s, e, d, b }`; só grava se o cookie `cn_consent` tiver Métricas e `s` existir e tiver sido enviado há menos de 48 h | 120/h por IP |
 
-Todas: só `POST`/`PATCH`/`PUT`/`DELETE`, JSON validado por zod, `Origin` igual ao do site (recusa 403), corpo ≤ 4 KB, respostas sem cache. `GET` não muda estado.
+Todas: só `POST`/`PATCH`/`PUT`/`DELETE`, JSON validado por zod, `Origin` igual ao do site (recusa 403), corpo ≤ 4 KB (32 KB em inscrição e PATCH, que levam até 200 alvos; decisão do gate, PWA-14), respostas sem cache. `GET` não muda estado.
 
 **Allowlist de endpoints** (`src/lib/push/endpoints.ts`): `fcm.googleapis.com`, `*.push.apple.com`, `updates.push.services.mozilla.com`, `*.notify.windows.com`, `push.services.mozilla.com`; `https`, porta 443, sem credenciais; resolução DNS com recusa de IP privado reaproveitando `src/lib/pipeline/net.ts`. Em teste, `PUSH_ENDPOINT_TEST_HOSTS` acrescenta `127.0.0.1:<porta>`; a variável é ignorada quando `VERCEL_ENV = production`.
 

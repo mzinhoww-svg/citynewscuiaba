@@ -183,20 +183,21 @@ export async function runDetail(id: string, opts: { maskIp: boolean }): Promise<
   const [run] = await summarize(db, [data]);
   const steps = (await stepStats(db, [id])).get(id) ?? [];
   const { data: ev, error: e2 } = await db
-    .from("pipeline_events")
+    .from("pipeline_events_view")
     .select("id, at, step, item_ref, level, message")
     .eq("run_id", id)
     .in("level", ["error", "security", "warn"])
     .order("id", { ascending: false })
     .limit(50);
   check("run_events", e2);
+  // A view tem todas as colunas anuláveis nos tipos gerados; na prática só `item_ref` pode faltar.
   const failures = (ev ?? []).map((e) => ({
-    id: e.id,
-    at: e.at,
-    step: e.step,
+    id: e.id ?? 0,
+    at: e.at ?? "",
+    step: e.step ?? "",
     itemRef: e.item_ref,
-    level: e.level,
-    message: e.message,
+    level: e.level ?? "info",
+    message: e.message ?? "",
   }));
   return {
     run: run!,
@@ -310,7 +311,10 @@ export interface ControlSnapshot {
 }
 
 async function countEvents(db: DbClient, since: string, levels?: string[]): Promise<number> {
-  let q = db.from("pipeline_events").select("id", { count: "exact", head: true }).gte("at", since);
+  let q = db
+    .from("pipeline_events_view")
+    .select("id", { count: "exact", head: true })
+    .gte("at", since);
   if (levels) q = q.in("level", levels);
   const { count, error } = await q;
   check("events_count", error);
@@ -419,19 +423,19 @@ export async function openNotifications(limit = 5): Promise<ControlNotification[
 export async function recentEvents(limit: number, opts: { maskIp: boolean }): Promise<LiveEvent[]> {
   const { db } = await studioContext();
   const { data, error } = await db
-    .from("pipeline_events")
+    .from("pipeline_events_view")
     .select("id, at, run_id, step, item_ref, level, message")
     .order("id", { ascending: false })
     .limit(limit);
   check("events", error);
   const rows = (data ?? []).map((e) => ({
-    id: e.id,
-    at: e.at,
+    id: e.id ?? 0,
+    at: e.at ?? "",
     runId: e.run_id,
-    step: e.step,
+    step: e.step ?? "",
     itemRef: e.item_ref,
-    level: e.level,
-    message: e.message,
+    level: e.level ?? "info",
+    message: e.message ?? "",
   }));
   return opts.maskIp ? maskIpsDeep(rows) : rows;
 }

@@ -3557,6 +3557,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      pipeline_events_view: {
+        Row: {
+          at: string | null;
+          details: Json | null;
+          id: number | null;
+          item_ref: string | null;
+          level: string | null;
+          message: string | null;
+          run_id: string | null;
+          step: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_events_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "ingest_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       public_aggregated: {
         Row: {
           canonical_url: string | null;
