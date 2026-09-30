@@ -58,6 +58,16 @@ describe("NotificationInvite (C09)", () => {
     expect(screen.getByRole("link", { name: "Alertas" })).toHaveAttribute("href", "/alertas");
   });
 
+  it("diálogo nativo fechado sem decidir conta como recusa comum, não como negada (PWA-12)", async () => {
+    enablePush.mockResolvedValueOnce({ ok: false, error: "dismissed" });
+    const onDone = vi.fn();
+    render(<NotificationInvite trigger="follow" onDone={onDone} />);
+    await userEvent.click(screen.getByRole("button", { name: "Ativar" }));
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalled());
+    expect(readAppState()!.notif.refusals).toBe(1);
+    expect(screen.queryByText(/Tudo bem\. Se mudar de ideia/)).toBeNull();
+  });
+
   it("negada mostra o texto e nunca mais pré-prompt; falha mostra erro com Tentar de novo", async () => {
     enablePush.mockResolvedValueOnce({ ok: false, error: "denied" });
     const { unmount } = render(<NotificationInvite trigger="urgent_article" />);

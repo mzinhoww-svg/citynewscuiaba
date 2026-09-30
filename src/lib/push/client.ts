@@ -31,7 +31,9 @@ export type PushState =
   | { status: "lost" };
 
 export type NotifTrigger = "follow" | "alert" | "urgent_article" | "settings";
-export type EnableError = "denied" | "subscribe_failed" | "server_failed" | "rate_limited";
+/** `dismissed`: fechou o diálogo nativo sem decidir (permissão segue `default`, PWA-12). */
+export type EnableError =
+  "denied" | "dismissed" | "subscribe_failed" | "server_failed" | "rate_limited";
 
 export const DEFAULT_PREFS: PushPrefs = {
   follow: true,
@@ -170,6 +172,8 @@ export async function enablePush(trigger: NotifTrigger): Promise<Result<PushStat
   } catch {
     permission = "denied";
   }
+  // Fechar o diálogo sem decidir não é negar: sem evento de negada e sem silêncio permanente.
+  if (permission === "default") return err("dismissed");
   if (permission !== "granted") {
     void trackWithConsent(c, "notif_permission_denied", { trigger });
     return err("denied");

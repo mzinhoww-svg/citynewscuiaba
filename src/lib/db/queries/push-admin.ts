@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/require-role";
 import { createServerClient, createServiceClient, type DbClient } from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import type { Database, Json } from "@/lib/db/types";
+import { csvCell } from "@/lib/push/csv";
 import { missingVapidVars } from "@/lib/push/server";
 import type { audienceSchema } from "@/lib/push/schemas";
 import type { PushKind, SendStatus } from "@/lib/push/types";
@@ -584,11 +585,6 @@ const CSV_HEADER = [
   "tocados",
   "ctr",
 ];
-
-const csvCell = (v: string | number | null): string => {
-  const s = v === null ? "" : String(v);
-  return /[",;\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 /** CSV do histórico (mesmos filtros, sem paginação, até 5 000 linhas): nenhum dado de inscrição. */
 export async function historyCsv(f: HistoryFilter): Promise<string> {

@@ -67,8 +67,10 @@ export function endpointProblem(
 export function testHostsFromEnv(env: Record<string, string | undefined>): string[] {
   const raw = env.PUSH_ENDPOINT_TEST_HOSTS?.trim();
   if (!raw) return [];
-  const production = env.VERCEL_ENV === "production" || env.NODE_ENV === "production";
-  if (production && env.CN_E2E !== "1") return [];
+  // Em produção da Vercel nunca vale, nem com CN_E2E (reabriria o SSRF, PWA-16); o Playwright
+  // local (next start, NODE_ENV=production) precisa de CN_E2E=1.
+  if (env.VERCEL_ENV === "production") return [];
+  if (env.NODE_ENV === "production" && env.CN_E2E !== "1") return [];
   return raw
     .split(",")
     .map((s) => s.trim().toLowerCase())

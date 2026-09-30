@@ -62,7 +62,11 @@ export function NotificationInvite({ trigger, onDone }: NotificationInviteProps)
     setPhase({ kind: "busy" });
     const r = await enablePush(trigger);
     if (r.ok) setPhase({ kind: "enabled" });
-    else if (r.error === "denied") {
+    else if (r.error === "dismissed") {
+      // Diálogo nativo fechado sem decisão: conta como "Agora não" comum (PWA-12).
+      setPhase({ kind: "ask" });
+      refuse();
+    } else if (r.error === "denied") {
       // Permissão negada no diálogo nativo: nunca mais pré-prompt neste navegador.
       const s = readAppState();
       if (s) writeAppState({ ...s, notif: { ...s.notif, refusals: 3 } });
