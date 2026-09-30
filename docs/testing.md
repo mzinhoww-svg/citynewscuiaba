@@ -9,7 +9,7 @@
 | Integração | Vitest + Supabase local | queries, RLS por papel, pipeline de ponta a ponta com fixtures | RLS: 1 teste por tabela sensível |
 | E2E | Playwright (Chromium, WebKit, mobile 390 × 844) | fluxos críticos (seção 2) | verde no PR |
 | Acessibilidade | `@axe-core/playwright` | todas as rotas públicas e do Estúdio com dados de seed | 0 violações `serious`/`critical` |
-| Performance | Lighthouse CI | home, matéria, fontes, busca | LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms (mobile simulado) |
+| Performance | Lighthouse CI (`lighthouserc.json`, workflow `lighthouse.yml`, não obrigatório para merge) | home, matéria, fontes, busca | LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms (mobile simulado) e JS ≤ 170 kB gz; medições e exceções em `docs/reports/perf.md` |
 | Exploratório | agent-browser | roteiros da seção 3, em preview da Vercel | relatório em `docs/reports/` |
 
 ## 2. Fluxos E2E obrigatórios (`tests/e2e`)

@@ -2,6 +2,9 @@
   "name": "citynewscuiaba",
   "version": "0.1.0",
   "private": true,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "dev": "pnpm sw:build && next dev",
     "build": "pnpm sw:build && next build",
@@ -18,6 +21,7 @@
     "db:seed:sources": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f supabase/seed_sources_real.sql",
     "sw:build": "node scripts/build-sw.mjs",
     "icons:build": "node scripts/build-icons.mjs",
+    "icons:sprite": "node scripts/build-icon-sprite.mjs",
     "push:keys": "web-push generate-vapid-keys --json"
   },
   "dependencies": {
@@ -44,6 +48,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@lhci/cli": "^0.15.1",
     "@next/env": "^16.3.6",
     "@playwright/test": "1.56.1",
     "@tailwindcss/postcss": "^4",

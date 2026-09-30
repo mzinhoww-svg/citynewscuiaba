@@ -1,0 +1,101 @@
+name: Lighthouse
+
+# Orçamentos de performance (P6-T1; docs/reports/perf.md). Não bloqueia o merge: serve de alerta.
+# Roda contra `next start` (build de produção) com o seed local, em mobile simulado.
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "public/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "next.config.ts"
+      - "lighthouserc.json"
+      - ".github/workflows/lighthouse.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Não obrigatório para merge.
+    continue-on-error: true
+    env:
+      AI_PROVIDER: fake
+      CRON_SECRET: ci-secret-ci-secret-ci-secret-00
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Supabase local (Docker)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+      - name: Exportar env do Supabase e gravar .env.local
+        run: |
+          supabase status -o env > .supabase.env
+          set -a
+          . ./.supabase.env
+          set +a
+          anon="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          service="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          if [ -z "${API_URL:-}" ] || [ -z "$anon" ] || [ -z "$service" ] || [ -z "${DB_URL:-}" ]; then
+            echo "::error::supabase status não devolveu API_URL, ANON_KEY, SERVICE_ROLE_KEY e DB_URL"
+            exit 1
+          fi
+          echo "::add-mask::$service"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$service"
+            echo "SUPABASE_DB_URL=$DB_URL"
+            echo "APP_URL=$APP_URL"
+            echo "CRON_SECRET=$CRON_SECRET"
+            echo "AI_PROVIDER=$AI_PROVIDER"
+          } > .env.local
+          cat .env.local >> "$GITHUB_ENV"
+
+      - name: Recriar banco (migrations + seed)
+        run: pnpm db:reset
+
+      - run: pnpm build
+
+      # Chrome do runner (google-chrome-stable já vem na imagem ubuntu-latest).
+      - name: Lighthouse CI (next start + seed local)
+        env:
+          CHROME_PATH: /usr/bin/google-chrome-stable
+        run: |
+          pnpm start &
+          npx --yes wait-on@8 http://localhost:3000/ --timeout 120000
+          pnpm exec lhci autorun --config=lighthouserc.json
+          node scripts/lighthouse-summary.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse
+          path: .lighthouseci
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - if: always()
+        run: supabase stop --no-backup
