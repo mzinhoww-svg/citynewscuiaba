@@ -20,7 +20,7 @@ const REPORT = "docs/reports/go-live-smoke.md";
 const WIDTHS = [390, 1280] as const;
 
 const ORIGIN_LABELS =
-  /ORIGINAL CITYNEWS|NORMALIZADO PELO CITYNEWS|AGREGADO|RESUMO POR IA|PUBLICADO AUTOMATICAMENTE|REVISADO POR HUMANO/;
+  /ORIGINAL CITYNEWS|AGREGADO|Feito a partir de|Revisado automaticamente|Revisado por/;
 
 type Row = { name: string; status: string; notes: string };
 const rows: Row[] = [];

@@ -11,6 +11,7 @@ import { askBucket, ASK_LIMITS, askRetryAt, ASK_WINDOW_SECONDS } from "@/lib/ai/
 import { createServerClient } from "@/lib/db/client";
 import { many, one, readPublic, readService } from "@/lib/db/queries/run";
 import { hitRateLimit } from "@/lib/db/writes";
+import { articleSourceLabel, plaqueOf } from "@/lib/labels";
 import { err, ok, type Result } from "@/lib/result";
 import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
 import { BYLINE } from "@/content/pt-BR/portal-card";
@@ -72,14 +73,14 @@ export async function retrieveForAnswer(
             publishedAt: a.publishedAt,
             primary: false,
             sponsored: false,
-            label: a.labels.shown[0] ?? { kind: a.kind, text: a.kind },
+            label: articleSourceLabel(a),
             text: [a.dek, ...(a.aiSummary ?? [])].join(" "),
           },
         ];
       }
       if (h.kind === "aggregated") {
         const g = h.item;
-        const label = g.labels.shown[0];
+        const label = plaqueOf(g.labels);
         if (!label) return [];
         return [
           {

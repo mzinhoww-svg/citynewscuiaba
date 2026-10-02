@@ -26,7 +26,6 @@ export const TOPIC_STATE_TEXT: Record<TopicState, string> = {
 
 export const MADE_HOW = {
   title: "Como esta matéria foi feita",
-  reviewedBy: (name: string) => `Revisado por ${name}.`,
   agent: (version: string) =>
     `Texto preparado pelo agente ${version}, dentro das regras de autonomia.`,
   versions: "Ver histórico de versões",

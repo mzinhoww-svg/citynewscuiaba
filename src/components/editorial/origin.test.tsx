@@ -67,33 +67,38 @@ describe("TopicStatus", () => {
 });
 
 describe("MadeHow", () => {
-  const labels = {
-    shown: [
-      { kind: "normalized" as const, text: "NORMALIZADO PELO CITYNEWS", detail: "3 fontes" },
-      { kind: "ai_summary" as const, text: "RESUMO POR IA" },
-    ],
-    hidden: [{ kind: "sponsored" as const, text: "PATROCINADO" }],
+  const article = {
+    kind: "normalized" as const,
+    sourceCount: 3,
+    publishMode: "auto" as const,
+    image: { kind: "reproduction" as const, credit: "folhadocerrado.example" },
+    sponsored: true,
   };
 
-  it("lista todos os rótulos, inclusive os que não couberam no card, com explicação", () => {
-    render(<MadeHow labels={labels} versionsHref="/materia/x/historico" />);
+  it("explica em linguagem simples: de quantas fontes, quem revisou, de onde vêm as imagens", () => {
+    render(<MadeHow article={article} versionsHref="/materia/x/historico" />);
     const region = screen.getByRole("region", { name: "Como esta matéria foi feita" });
-    expect(within(region).getAllByTestId("origin-label")).toHaveLength(3);
-    expect(within(region).getByText("PATROCINADO")).toBeInTheDocument();
-    expect(within(region).getByText(/resumo foi escrito por IA/i)).toBeInTheDocument();
+    expect(within(region).getByText(/feito a partir de 3 fontes/i)).toBeInTheDocument();
+    expect(within(region).getByText(/publicado pelas regras do CityNews/i)).toBeInTheDocument();
+    expect(
+      within(region).getByText(/Reprodução web de folhadocerrado.example/),
+    ).toBeInTheDocument();
+    expect(within(region).getByText(/pago por um anunciante/i)).toBeInTheDocument();
+    expect(within(region).queryAllByTestId("origin-label")).toHaveLength(0);
+    expect(region.textContent).not.toMatch(/normaliz|\bIA\b|inteligência artificial/i);
   });
 
-  it("mostra revisor, agente e link para o histórico", () => {
+  it("revisão por pessoa mostra o nome; agente e histórico continuam", () => {
     render(
       <MadeHow
-        labels={labels}
-        reviewer="Marina Couto"
+        article={{ kind: "original", publishMode: "human", reviewer: "Marina Couto" }}
         agentVersion="redator v3"
         versionsHref="/materia/x/historico"
       />,
     );
     expect(screen.getByText(/Marina Couto/)).toBeInTheDocument();
     expect(screen.getByText(/redator v3/)).toBeInTheDocument();
+    expect(screen.getByText(/apurada e escrita pela redação/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver histórico de versões" })).toHaveAttribute(
       "href",
       "/materia/x/historico",

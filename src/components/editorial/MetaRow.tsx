@@ -10,6 +10,12 @@ export interface MetaRowProps {
   time?: string;
   /** Número de fontes da matéria (R8): "3 fontes". */
   sources?: number;
+  /** Origem do texto derivado, em frase: "Feito a partir de 2 fontes" (`publicLabels`). */
+  originText?: string;
+  /** Revisão, em frase: "Revisado por Marina Arruda" ou "Revisado automaticamente". */
+  reviewText?: string;
+  /** "Patrocinado", em texto: nunca uma segunda plaqueta. */
+  sponsoredText?: string;
   /** Tempo de leitura em minutos: "4 min de leitura". */
   readMinutes?: number;
   category?: string;
@@ -26,6 +32,7 @@ export interface MetaRowProps {
  * ```tsx
  * <MetaRow author="Ana Lima" sources={3} time="há 12 min" onMore={open} />
  * <MetaRow category="Cidade" trending="Mais lida" readMinutes={4} />
+ * <MetaRow originText="Feito a partir de 2 fontes" reviewText="Revisado por Marina Arruda" time="8h05" />
  * ```
  * - Nunca mostra contagem de curtidas ou comentários (R8). Separador `·`.
  */
@@ -34,6 +41,9 @@ export function MetaRow({
   avatar,
   time,
   sources,
+  originText,
+  reviewText,
+  sponsoredText,
   readMinutes,
   category,
   trending,
@@ -65,6 +75,14 @@ export function MetaRow({
       </span>,
     );
   if (sources !== undefined) items.push(<span key="src">{UI.sourcesCount(sources)}</span>);
+  if (originText) items.push(<span key="origin">{originText}</span>);
+  if (reviewText) items.push(<span key="review">{reviewText}</span>);
+  if (sponsoredText)
+    items.push(
+      <span key="sponsored" className="font-semibold text-strong">
+        {sponsoredText}
+      </span>,
+    );
   if (readMinutes !== undefined) items.push(<span key="read">{UI.readMinutes(readMinutes)}</span>);
   if (time)
     items.push(

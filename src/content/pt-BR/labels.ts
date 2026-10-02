@@ -21,6 +21,54 @@ export function sourceCountText(n: number): string {
   return n === 1 ? "1 fonte" : `${n} fontes`;
 }
 
+/**
+ * Vocabulário público (spec 2026-10-02 §4.1; CLAUDE.md §5.3). Os `LABEL_TEXT` acima seguem como
+ * nomes internos (Estúdio, Control Center, metodologia); as telas públicas só dizem isto.
+ */
+export const PUBLIC_LABEL = {
+  plaque: { original: "ORIGINAL CITYNEWS", aggregated: "AGREGADO" },
+  derivedFrom: (n: number) => `Feito a partir de ${sourceCountText(n)}`,
+  derivedFromOthers: "Feito a partir de outras fontes",
+  reviewedBy: (name: string) => `Revisado por ${name}`,
+  reviewedNewsroom: "Revisado pela redação",
+  reviewedAuto: "Revisado automaticamente",
+  sponsored: "Patrocinado",
+  /** Legenda de foto, em frase. A imagem gerada só existiria com um gerador (hoje não há). */
+  image: {
+    original: "Foto original",
+    reproduction: "Reprodução web",
+    licensed: "Imagem licenciada",
+    illustrative: "Imagem ilustrativa",
+    ai_generated: "Imagem gerada por IA",
+  },
+} as const;
+
+/** "Como esta matéria foi feita": explicação em linguagem simples, por assunto. */
+export const PUBLIC_EXPLAIN = {
+  originTitle: "De onde veio",
+  reviewTitle: "Quem revisou",
+  imageTitle: "Imagens",
+  sponsoredTitle: "Patrocínio",
+  original: "Reportagem apurada e escrita pela redação do CityNews.",
+  derived: (n: number) =>
+    n === 1
+      ? "Texto do CityNews feito a partir de 1 fonte, citada na lista de fontes."
+      : `Texto do CityNews feito a partir de ${n} fontes, todas citadas na lista de fontes.`,
+  derivedOthers: "Texto do CityNews feito a partir de outras fontes, citadas na lista de fontes.",
+  aggregated: "Conteúdo de outro veículo. O CityNews mostra só o título e o link para o original.",
+  reviewedBy: (name: string) => `${name}, da redação, leu o texto antes de ele ir ao ar.`,
+  reviewedNewsroom: "Uma pessoa da redação leu o texto antes de ele ir ao ar.",
+  reviewedAuto:
+    "O texto foi publicado pelas regras do CityNews, que conferem as fontes. A redação pode corrigir ou retirar a qualquer momento.",
+  imageOriginal: "Foto feita pela equipe do CityNews ou cedida com autorização.",
+  imageReproduction: (source?: string) =>
+    `Reprodução web${source ? ` de ${source}` : ""}, com crédito. Sai do ar em até 24 h a pedido do veículo.`,
+  imageLicensed: "Imagem de banco de imagens, usada com licença.",
+  imageIllustrative: "Imagem ilustrativa: não mostra o fato noticiado.",
+  imageAi: "Imagem gerada para ilustrar. Nunca retrata pessoa real.",
+  sponsored: "Conteúdo pago por um anunciante e identificado como tal.",
+} as const;
+
 /** Separador de metadados. */
 export const META_SEPARATOR = " · ";
 

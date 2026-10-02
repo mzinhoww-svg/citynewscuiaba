@@ -20,12 +20,12 @@ async function report(page: Page) {
   await page.getByRole("button", { name: "Enviar" }).click();
 }
 
-test("matéria mostra resumo por IA, fontes e JSON-LD", async ({ page }) => {
+test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ page }) => {
   await page.goto(`/materia/${SLUG}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Prefeitura detalha novo plano de ônibus entre CPA e Centro",
   );
-  await expect(page.getByText("RESUMO POR IA").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeVisible();
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
   const sources = page.getByRole("region", { name: "Fontes" }).getByRole("link");

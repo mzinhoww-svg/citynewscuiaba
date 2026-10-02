@@ -64,7 +64,7 @@ Qualquer par novo precisa ser medido e registrado aqui.
 | Título de tela | `--type-screen-title` | Grotesk 700, 24 |
 | Título de seção | `--type-section` | Grotesk 700, 20 |
 | Manchete da matéria | `--type-headline-xl` | Serif 600, 28 → 44 |
-| Manchete de card | `--type-headline` / `-sm` | Serif 600, 20 → 22 / 16 |
+| Manchete de card | `--type-headline` / `-md` / `-sm` | Serif 600, 20 → 22 (standard) / 18 (list e compact) / 16 |
 | Leitura | `--type-body-read` | Serif 400, 18 → 20, entrelinha 1,65, máx. 68ch |
 | Interface | `--type-body` | Grotesk 400, 16 |
 | Metadado | `--type-meta` | Grotesk 500, 13 |
@@ -72,26 +72,33 @@ Qualquer par novo precisa ser medido e registrado aqui.
 
 Regras: `text-wrap: balance` em h1 a h3; `pretty` no corpo; números tabulares em horários e tabelas; letter-spacing nunca abaixo de −0,04em (wordmark) e −0,02em (títulos). A primeira frase do lide vai em negrito.
 
-## 5. Rótulos de origem (componente `OriginLabel`, novo)
+## 5. Origem e revisão (componente `OriginLabel` e frases)
 
-Plaqueta r4, texto em eyebrow, forma e ícone e texto; cor só reforça. Máximo de 4 por card, na ordem texto → IA → imagem → modo de publicação.
+Vocabulário público aprovado pelo dono (spec `2026-10-02-ui-publica-design.md` §4.1). A leitora vê só **de onde veio** e **quem revisou**. `normalized`, `ai_summary` e `auto_published` seguem como **nomes internos** (dado, `src/lib/labels`, Estúdio e Control Center); nenhuma tela pública os exibe. A função `publicLabels(article)` decide o que aparece.
+
+**Plaqueta** (`OriginLabel`, r4, texto em eyebrow, forma e ícone e texto; cor só reforça). **No máximo 1 por card**, e só estas duas:
 
 | `kind` | Texto | Forma |
 |---|---|---|
 | `original` | ORIGINAL CITYNEWS | Sólido Tinta, mini-símbolo |
-| `normalized` | NORMALIZADO PELO CITYNEWS · n fontes | Contorno Tinta, ícone `layers` |
 | `aggregated` | AGREGADO · fonte | Contorno Grafite, ícone `external-link` |
-| `ai_summary` | RESUMO POR IA | Fundo IA soft, borda **tracejada** IA |
-| `auto_published` | PUBLICADO AUTOMATICAMENTE | Contorno IA sólido, ícone `refresh-cw` |
-| `human_reviewed` | REVISADO POR HUMANO · nome | Fundo Cerrado soft, ícone `check` |
-| `image_original` | FOTO ORIGINAL · crédito | Contorno Grafite, ícone `camera` |
-| `image_reproduction` | REPRODUÇÃO · fonte (e crédito do autor quando houver) | Contorno Grafite, ícone `copy` |
-| `image_licensed` | IMAGEM LICENCIADA · banco | Contorno Grafite, ícone `file-check` |
-| `image_illustrative` | IMAGEM ILUSTRATIVA | Contorno Atenção |
-| `image_ai` | IMAGEM GERADA POR IA | Fundo IA soft, borda tracejada |
-| `sponsored` | PATROCINADO | Contorno Grafite, sem ícone |
 
-Os rótulos ficam em caixa alta por serem eyebrows. É a única exceção à grafia "CityNews".
+**Frases em texto** (linha de metadado, autoria da matéria e painel "Como esta matéria foi feita"), sem plaqueta e sem faixa que agrupe rótulos (`OriginStrip` é proibido):
+
+| Situação | Texto público |
+|---|---|
+| Texto feito a partir de outras fontes | Feito a partir de n fontes |
+| Publicação pelas regras, sem leitura prévia de pessoa | Revisado automaticamente |
+| Lida por pessoa da redação | Revisado por {nome} |
+| Conteúdo pago | Patrocinado (texto, nunca segunda plaqueta) |
+| Imagem de terceiros (legenda da foto) | Reprodução web · Fonte, com crédito |
+| Outras imagens (legenda) | Foto original · crédito, Imagem licenciada · banco, Imagem ilustrativa |
+
+O resumo no alto da matéria chama-se "Resumo em poucos segundos", sem rótulo de origem do texto. O painel "Como esta matéria foi feita" explica em linguagem simples de quantas fontes veio, quem revisou e de onde vêm as imagens.
+
+**Não aparecem em nenhuma tela pública:** "normalizado", "resumo por IA", "publicado automaticamente", "gerado por IA" (como rótulo), "inteligência artificial" nem "IA" como rótulo. O assistente chama-se "Perguntar ao CityNews" e, fora do ar, "Assistente indisponível". Exceções: páginas legais (`/privacidade`, `/termos`, `/metodologia`, `/principios-editoriais`, `/como-usamos-ia`, que nos links aparece como "Como funciona o CityNews"), o rótulo de imagem gerada (hoje não há gerador) e o Estúdio. O teste `tests/e2e/vocabulary.spec.ts` vigia as rotas públicas.
+
+As plaquetas ficam em caixa alta por serem eyebrows. É a única exceção à grafia "CityNews".
 
 Complementos: `ConfidenceMeter` (três barras + "Confiança alta/média/baixa"), `TopicStatus` (Em apuração, Confirmado, Corrigido, Encerrado) e `LiveIndicator` do kit ("● AGORA", pulso suave, estático com movimento reduzido).
 

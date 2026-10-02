@@ -3,9 +3,9 @@ import { useId } from "react";
 import type { ArticleSummary } from "@/lib/db/queries/types";
 import { formatHour, formatWhen, nextCycleMinutes } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
+import { publicLabels } from "@/lib/labels";
 import { cx } from "../cx";
 import { LiveIndicator } from "./LiveIndicator";
-import { OriginLabel } from "./OriginLabel";
 
 export interface NowListProps {
   items: ArticleSummary[];
@@ -33,9 +33,7 @@ export function NowList({ items, now, className }: NowListProps) {
       </h2>
       <ol aria-live="polite" className="flex flex-col">
         {items.slice(0, MAX_ITEMS).map((a) => {
-          const mode = [...a.labels.shown, ...a.labels.hidden].find(
-            (l) => l.kind === "auto_published" || l.kind === "human_reviewed",
-          );
+          const { reviewText } = publicLabels(a);
           return (
             <li
               key={a.id}
@@ -53,11 +51,7 @@ export function NowList({ items, now, className }: NowListProps) {
                   {a.title}
                 </Link>
               </h3>
-              {mode && (
-                <div className="relative">
-                  <OriginLabel label={{ kind: mode.kind, text: mode.text }} />
-                </div>
-              )}
+              {reviewText && <p className="type-meta text-meta">{reviewText}</p>}
             </li>
           );
         })}

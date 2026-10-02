@@ -78,7 +78,7 @@ test("texto da fonte nunca aparece no HTML da home e do Panorama", async ({ requ
   for (const path of [...PAGES, "/assunto/seca-e-fumaca-na-baixada-cuiabana"]) {
     const html = await (await request.get(path)).text();
     for (const s of sentences) expect(html, `${path}: ${s}`).not.toContain(s);
-    if (html.includes("RESUMO POR IA")) summaries++;
+    if (html.includes("AGREGADO")) summaries++;
   }
   // O resumo próprio aparece (item da MT Agora sobre a linha expressa).
   const topic = await (await request.get("/assunto/plano-de-onibus-cpa-centro")).text();

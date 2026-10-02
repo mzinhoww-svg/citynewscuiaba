@@ -52,7 +52,7 @@ for (const p of PUBLIC) {
   });
 }
 
-test("portal · pergunte (busca com IA, com fontes)", async ({ page }) => {
+test("portal · pergunte (com fontes)", async ({ page }) => {
   await page.goto("/pergunte");
   await page.waitForLoadState("networkidle").catch(() => {});
   await dismissConsent(page);

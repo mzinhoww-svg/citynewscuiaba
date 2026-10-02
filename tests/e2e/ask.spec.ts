@@ -19,9 +19,7 @@ test("resposta com citações clicáveis e aviso", async ({ page }) => {
   await page.goto("/pergunte?q=O que aconteceu em Cuiabá hoje?");
   const live = page.getByTestId("resposta-ia");
   await expect(live).toHaveAttribute("aria-live", "polite");
-  await expect(
-    page.getByText("RESUMO POR IA").or(page.getByText("Resposta gerada por IA")).first(),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
   await page.getByRole("link", { name: "Fonte 1", exact: true }).first().click();
   await expect(page).toHaveURL(/#fonte-1$/);
   await expect(page.locator("#fonte-1")).toBeVisible();
@@ -35,7 +33,13 @@ test("resposta com citações clicáveis e aviso", async ({ page }) => {
     expect(await f.getByRole("link", { name: /^Fonte \d+$/ }).count()).toBeGreaterThan(0);
   // Fontes de pelo menos dois veículos, com rótulo de origem.
   const rail = page.getByRole("region", { name: "Fontes consultadas" });
-  expect(await rail.getByTestId("origin-label").count()).toBeGreaterThanOrEqual(2);
+  const items = await rail.getByRole("listitem").all();
+  expect(items.length).toBeGreaterThanOrEqual(2);
+  for (const item of items) {
+    // Plaqueta (ORIGINAL ou AGREGADO) ou a frase "Feito a partir de n fontes".
+    const text = await item.innerText();
+    expect(text).toMatch(/ORIGINAL CITYNEWS|AGREGADO|Feito a partir de/);
+  }
 });
 
 test("assunto com uma só fonte não é respondido e sugere caminhos", async ({ page }) => {
@@ -43,7 +47,7 @@ test("assunto com uma só fonte não é respondido e sugere caminhos", async ({ 
   await expect(
     page.getByRole("heading", { name: "Não encontramos fontes suficientes para responder" }),
   ).toBeVisible();
-  await expect(page.getByText("RESUMO POR IA")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Ver na busca tradicional" })).toBeVisible();
 });
 

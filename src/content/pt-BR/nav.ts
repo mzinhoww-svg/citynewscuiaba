@@ -52,7 +52,7 @@ export const FOOTER_NAV: readonly NavItem[] = [
   { id: "app", label: "Baixar o app", href: "/app" },
   { id: "principios", label: "Princípios editoriais", href: "/principios-editoriais" },
   { id: "metodologia", label: "Metodologia", href: "/metodologia" },
-  { id: "ia", label: "Como usamos IA", href: "/como-usamos-ia" },
+  { id: "ia", label: "Como funciona o CityNews", href: "/como-usamos-ia" },
   { id: "correcoes", label: "Correções", href: "/correcoes" },
   { id: "resposta", label: "Direito de resposta", href: "/direito-de-resposta" },
   { id: "privacidade", label: "Privacidade", href: "/privacidade" },

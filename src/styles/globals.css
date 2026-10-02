@@ -199,6 +199,9 @@
 @utility type-headline {
   font: var(--type-headline);
 }
+@utility type-headline-md {
+  font: var(--type-headline-md);
+}
 @utility type-headline-sm {
   font: var(--type-headline-sm);
 }

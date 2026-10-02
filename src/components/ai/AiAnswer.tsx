@@ -1,11 +1,9 @@
 import { useId, type ReactNode } from "react";
 import { ASK } from "@/content/pt-BR/ask";
-import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import type { AiAnswer as AiAnswerData, Claim } from "@/lib/ai/answer";
 import { formatHour } from "@/lib/format/date";
 import { cx } from "../cx";
 import { ConfidenceMeter } from "../editorial/ConfidenceMeter";
-import { OriginLabel } from "../editorial/OriginLabel";
 import { Icon } from "../ui/Icon";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { Citation } from "./Citation";
@@ -48,7 +46,7 @@ function Block({ title, children, hint }: { title: string; children: ReactNode; 
  * ```tsx
  * <AiAnswer answer={answer} />
  * ```
- * - Rótulo RESUMO POR IA sempre visível; inferência com borda tracejada e rótulo em texto.
+ * - Sem rótulo de IA nas telas públicas; inferência com borda tracejada e rótulo em texto.
  */
 export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnswerProps) {
   const id = useId();
@@ -58,12 +56,9 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
       className={cx("flex flex-col gap-5 border-l-2 border-ai bg-card-white py-1 pl-5", className)}
     >
       <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <OriginLabel label={{ kind: "ai_summary", text: LABEL_TEXT.ai_summary }} />
-          <h2 id={id} className="type-eyebrow text-ai">
-            {ASK.aiGenerated}
-          </h2>
-        </div>
+        <h2 id={id} className="type-eyebrow text-ai">
+          {ASK.aiGenerated}
+        </h2>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <ConfidenceMeter level={answer.confidence} />
           <time dateTime={answer.asOf} className="type-meta text-meta tabular-nums">

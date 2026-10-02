@@ -173,7 +173,7 @@ export const MIGRATE_TEXT = {
     saved: "Matérias salvas e coleções",
     interests: "Interesses e fontes ocultadas",
     history: "Histórico de leitura dos últimos 30 dias",
-    conversations: "Conversas com a IA",
+    conversations: "Conversas do Perguntar ao CityNews",
   },
   /** Avisos que acompanham a caixa (gate P2, I3). */
   hints: {

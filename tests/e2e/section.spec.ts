@@ -37,9 +37,10 @@ test("lista com rótulos, subeditorias e mais lidas", async ({ page }) => {
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThanOrEqual(5);
   for (const card of await cards.all()) {
-    const n = await card.getByTestId("origin-label").count();
-    expect(n).toBeGreaterThanOrEqual(1);
-    expect(n).toBeLessThanOrEqual(4);
+    const plaques = await card.getByTestId("origin-label").count();
+    expect(plaques).toBeLessThanOrEqual(1);
+    // Origem sempre visível em texto: plaqueta ORIGINAL ou "Feito a partir de n fontes".
+    expect(await card.innerText()).toMatch(/ORIGINAL CITYNEWS|Feito a partir de/);
   }
   await expect(page.getByRole("heading", { name: "Mais lidas em Cidade" })).toBeVisible();
   await page

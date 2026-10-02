@@ -1,21 +1,19 @@
 "use client";
 
 import { useId, useState } from "react";
-import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { cx } from "../cx";
-import { OriginLabel } from "./OriginLabel";
 
 export interface AiSummaryBlockProps {
   items: string[];
-  /** Nome de quem revisou o resumo; sem revisor, o bloco diz isso com todas as letras. */
+  /** Nome de quem revisou o resumo; sem revisor, o bloco diz "Revisado automaticamente". */
   reviewer?: string;
   className?: string;
 }
 
 /**
- * "Resumo em poucos segundos" da matéria (P03): rótulo RESUMO POR IA sempre visível, revisor
- * (ou aviso de que ainda não houve revisão humana) e "Foi útil?".
+ * "Resumo em poucos segundos" da matéria (P03), sem rótulo de origem do texto (spec 2026-10-02
+ * §4.1): revisor (ou "Revisado automaticamente") e "Foi útil?".
  *
  * ```tsx
  * <AiSummaryBlock items={article.aiSummary} reviewer={article.reviewer} />
@@ -36,12 +34,9 @@ export function AiSummaryBlock({ items, reviewer, className }: AiSummaryBlockPro
       aria-labelledby={id}
       className={cx("flex flex-col gap-3 border-l-2 border-ai bg-ia-soft px-5 py-4", className)}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <OriginLabel label={{ kind: "ai_summary", text: LABEL_TEXT.ai_summary }} />
-        <h2 id={id} className="type-eyebrow text-ai">
-          {ARTICLE.aiTitle}
-        </h2>
-      </div>
+      <h2 id={id} className="type-eyebrow text-ai">
+        {ARTICLE.aiTitle}
+      </h2>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 type-body text-strong">
         {items.map((s) => (
           <li key={s}>{s}</li>

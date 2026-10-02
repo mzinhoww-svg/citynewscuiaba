@@ -3,6 +3,8 @@ import { useId } from "react";
 import type { ArticleSummary } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
+import { LABEL_TEXT } from "@/content/pt-BR/labels";
+import { publicLabels } from "@/lib/labels";
 import { cx } from "../cx";
 import { CategoryTag } from "./CategoryTag";
 import { ConfidenceMeter } from "./ConfidenceMeter";
@@ -21,13 +23,12 @@ export interface ArticleCardProps {
   className?: string;
 }
 
-const MAX_LABELS = 4;
-
+/* Escala de manchete (spec 2026-10-02 §4.3): lead 28→44, standard 20→22, list e compact 18. */
 const HEADLINE = {
   lead: "type-headline-xl",
   standard: "type-headline",
-  compact: "type-headline-sm",
-  list: "type-headline-sm",
+  compact: "type-headline-md",
+  list: "type-headline-md",
 } as const;
 
 /** Sem imagem aprovada: card tipográfico da editoria (spec §4), nunca foto genérica. */
@@ -90,13 +91,14 @@ function Cover({
 
 /**
  * Card de matéria do CityNews em quatro variantes. O título é o link (R7) e o card inteiro é
- * clicável pelo pseudo-elemento; mostra no máximo 4 rótulos de origem (DESIGN.md §5).
+ * clicável pelo pseudo-elemento; mostra no máximo 1 plaqueta (ORIGINAL CITYNEWS) e, em texto,
+ * a origem do texto derivado e a revisão (DESIGN.md §5; `publicLabels`).
  *
  * ```tsx
  * <ArticleCard variant="lead" as="h1" article={home.lead} />
  * <ArticleCard variant="compact" article={item} />
  * ```
- * - Rótulos que não couberam ficam no bloco "Como esta matéria foi feita" da matéria.
+ * - Os detalhes de origem ficam no bloco "Como esta matéria foi feita" da matéria.
  * - Sem contagem de curtidas ou comentários (R8): fontes e tempo de leitura.
  */
 export function ArticleCard({
@@ -107,7 +109,7 @@ export function ArticleCard({
   className,
 }: ArticleCardProps) {
   const summaryId = useId();
-  const labels = article.labels.shown.slice(0, MAX_LABELS);
+  const pub = publicLabels(article);
   const when = formatWhen(article.publishedAt, now);
   const lead = variant === "lead";
   const list = variant === "list";
@@ -126,21 +128,19 @@ export function ArticleCard({
           {article.dek}
         </p>
       )}
-      {labels.length > 0 && (
-        <ul className="relative flex flex-wrap gap-1.5" aria-label={CARD.origin}>
-          {labels.map((l) => (
-            <li key={`${l.kind}-${l.detail ?? ""}`} className="max-w-full">
-              <OriginLabel label={l} />
-            </li>
-          ))}
-        </ul>
+      {pub.plaque === "original" && (
+        <div className="relative flex">
+          <OriginLabel label={{ kind: "original", text: LABEL_TEXT.original }} />
+        </div>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         {lead && <ConfidenceMeter level={article.confidence.level} />}
         <MetaRow
           className="flex-wrap"
           author={lead ? CARD.by(article.byline) : undefined}
-          sources={article.kind === "normalized" ? article.sourceCount : undefined}
+          originText={pub.originText}
+          reviewText={pub.reviewText}
+          sponsoredText={pub.sponsoredText}
           readMinutes={lead ? article.readMinutes : undefined}
           time={when}
         />

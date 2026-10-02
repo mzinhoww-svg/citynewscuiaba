@@ -97,7 +97,7 @@ export const ABOUT: InstitutionalDoc = {
       title: "O que você encontra aqui",
       items: [
         "Matérias da redação do CityNews, marcadas como ORIGINAL CITYNEWS.",
-        "Textos próprios a partir de fontes públicas e de outros veículos, marcados como NORMALIZADO PELO CITYNEWS, com todas as fontes citadas.",
+        "Textos próprios feitos a partir de fontes públicas e de outros veículos, identificados como “Feito a partir de” e o número de fontes, todas citadas.",
         "Links para matérias de outros veículos, marcados como AGREGADO. Nesses casos mostramos só o título, a data e, quando o veículo permite, um resumo curto escrito por nós. A leitura continua no site original.",
         "Agenda da cidade, serviços e assuntos acompanhados ao longo do tempo.",
       ],
@@ -105,7 +105,7 @@ export const ABOUT: InstitutionalDoc = {
     {
       title: "Como trabalhamos",
       paragraphs: [
-        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático com inteligência artificial, dentro de regras públicas. Pessoas da redação supervisionam esse sistema, revisam os temas sensíveis e podem corrigir ou retirar qualquer publicação.",
+        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático, dentro de regras públicas. Cada matéria diz se foi revisada por uma pessoa ou automaticamente. A redação supervisiona o sistema, revisa os temas sensíveis e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
         "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
       ],
     },
@@ -295,7 +295,7 @@ export const ADVERTISE: InstitutionalDoc = {
       items: [
         "Todo conteúdo pago leva o rótulo PATROCINADO, visível e em texto.",
         "No máximo 1 item patrocinado a cada 6 itens em listas e recomendações.",
-        "Nada patrocinado na editoria Política nem nas respostas da busca com IA.",
+        "Nada patrocinado na editoria Política nem nas respostas do Perguntar ao CityNews.",
         "O anunciante não revisa nem altera a cobertura jornalística.",
       ],
     },
@@ -419,6 +419,6 @@ export const CORRECTIONS_PAGE = {
 export const RELATED_LINKS = [
   { href: "/principios-editoriais", label: "Princípios editoriais" },
   { href: "/metodologia", label: "Metodologia" },
-  { href: "/como-usamos-ia", label: "Como usamos IA" },
+  { href: "/como-usamos-ia", label: "Como funciona o CityNews" },
   { href: "/correcoes", label: "Correções" },
 ] as const;

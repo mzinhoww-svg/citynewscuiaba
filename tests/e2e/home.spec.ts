@@ -57,15 +57,16 @@ test("home tem os blocos de P01 na ordem", async ({ page }) => {
   expect([...rest].sort((a, b) => a - b)).toEqual(rest);
 });
 
-test("todo card mostra de 1 a 4 rótulos de origem", async ({ page }) => {
+test("todo card de matéria mostra a origem, com no máximo 1 plaqueta", async ({ page }) => {
   await page.goto("/");
-  const cards = page.locator("main article:has([data-testid='origin-label'])");
+  const cards = page.locator("main article:has(a[href^='/materia/'])");
   await expect(cards.first()).toBeVisible();
-  expect(await cards.count()).toBeGreaterThan(10);
+  expect(await cards.count()).toBeGreaterThan(5);
   for (const card of await cards.all()) {
-    const n = await card.getByTestId("origin-label").count();
-    expect(n).toBeGreaterThanOrEqual(1);
-    expect(n).toBeLessThanOrEqual(4);
+    const plaques = await card.getByTestId("origin-label").count();
+    expect(plaques).toBeLessThanOrEqual(1);
+    // Origem sempre visível em texto: plaqueta ORIGINAL ou "Feito a partir de n fontes".
+    expect(await card.innerText()).toMatch(/ORIGINAL CITYNEWS|Feito a partir de/);
   }
 });
 

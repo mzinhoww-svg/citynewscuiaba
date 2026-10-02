@@ -43,8 +43,7 @@ export const ARTICLE = {
   actions: "Ações da matéria",
   aiTitle: "Resumo em poucos segundos",
   aiReviewed: (name: string) => `Resumo revisado por ${name}.`,
-  aiNotReviewed:
-    "Resumo ainda sem revisão humana, publicado dentro das regras de autonomia. Confira no texto completo.",
+  aiNotReviewed: "Revisado automaticamente. Confira os detalhes no texto completo.",
   aiUseful: "Foi útil?",
   yes: "Sim",
   no: "Não",
@@ -64,7 +63,7 @@ export const ARTICLE = {
   tags: "Temas",
   topicTag: (title: string) => `Assunto: ${title}`,
   ask: "Pergunte sobre esta matéria",
-  askIntro: "A busca com IA responde só com fontes e mostra de onde veio cada frase.",
+  askIntro: "O CityNews responde só com fontes e mostra de onde veio cada frase.",
   askQuestions: (title: string, topic?: string) => [
     topic ? `O que já se sabe sobre “${topic}”?` : `O que já se sabe sobre “${title}”?`,
     "O que ainda não foi confirmado neste caso?",

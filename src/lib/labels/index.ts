@@ -1,4 +1,4 @@
-import { LABEL_TEXT, META_SEPARATOR, sourceCountText } from "@/content/pt-BR/labels";
+import { LABEL_TEXT, META_SEPARATOR, PUBLIC_LABEL, sourceCountText } from "@/content/pt-BR/labels";
 
 export { LABEL_TEXT };
 
@@ -99,4 +99,77 @@ export function labelsFor(input: LabelInput, max = 4): { shown: Label[]; hidden:
   }
   if (input.sponsored) all.push(label("sponsored"));
   return { shown: all.slice(0, limit), hidden: all.slice(limit) };
+}
+
+/** O que a tela pública precisa saber de uma matéria para dizer origem e revisão. */
+export interface PublicLabelInput {
+  kind: "original" | "normalized" | "aggregated";
+  sourceCount?: number;
+  publishMode: "human" | "auto" | null;
+  /** Nome de quem revisou, quando há. */
+  reviewer?: string;
+  sponsored?: boolean;
+}
+
+export interface PublicLabels {
+  /** No máximo 1 plaqueta por card, e só ORIGINAL CITYNEWS ou AGREGADO. */
+  plaque?: "original" | "aggregated";
+  /** Texto derivado: "Feito a partir de 2 fontes". */
+  originText?: string;
+  /** "Revisado por Marina Arruda" ou "Revisado automaticamente". */
+  reviewText?: string;
+  /** "Patrocinado": em texto, nunca uma segunda plaqueta. */
+  sponsoredText?: string;
+}
+
+/**
+ * Vocabulário público (spec 2026-10-02 §4.1): a leitora vê só de onde veio e quem revisou.
+ * `normalized`, `ai_summary` e `auto_published` seguem como nomes internos (dado e Estúdio);
+ * as telas públicas nunca os exibem. Conteúdo agregado só recebe a plaqueta AGREGADO.
+ */
+export function publicLabels(input: PublicLabelInput): PublicLabels {
+  const out: PublicLabels = {};
+  if (input.kind === "original") out.plaque = "original";
+  if (input.kind === "aggregated") out.plaque = "aggregated";
+  if (input.kind === "normalized") {
+    const n = input.sourceCount;
+    out.originText =
+      n !== undefined && Number.isInteger(n) && n > 0
+        ? PUBLIC_LABEL.derivedFrom(n)
+        : PUBLIC_LABEL.derivedFromOthers;
+  }
+  if (input.kind !== "aggregated") {
+    if (input.publishMode === "human") {
+      out.reviewText = input.reviewer?.trim()
+        ? PUBLIC_LABEL.reviewedBy(input.reviewer.trim())
+        : PUBLIC_LABEL.reviewedNewsroom;
+    } else if (input.publishMode === "auto") {
+      out.reviewText = PUBLIC_LABEL.reviewedAuto;
+    }
+  }
+  if (input.sponsored) out.sponsoredText = PUBLIC_LABEL.sponsored;
+  return out;
+}
+
+/** Legenda da foto em frase: "Reprodução web · Fonte". */
+export function publicImageCaption(kind: ImageKind, detail?: string): string {
+  const text = PUBLIC_LABEL.image[kind];
+  return detail?.trim() ? `${text}${META_SEPARATOR}${detail.trim()}` : text;
+}
+
+/** A única plaqueta de um conjunto de rótulos de dados: ORIGINAL CITYNEWS ou AGREGADO · fonte. */
+export function plaqueOf(set: { shown: Label[]; hidden: Label[] }): Label | undefined {
+  return [...set.shown, ...set.hidden].find(
+    (l) => l.kind === "original" || l.kind === "aggregated",
+  );
+}
+
+/**
+ * Rótulo de uma matéria do CityNews como fonte de uma resposta: plaqueta ORIGINAL CITYNEWS ou,
+ * para texto derivado, a frase "Feito a partir de n fontes" (sem plaqueta).
+ */
+export function articleSourceLabel(input: PublicLabelInput): Label {
+  const pub = publicLabels(input);
+  if (pub.plaque === "original") return { kind: "original", text: PUBLIC_LABEL.plaque.original };
+  return { kind: "normalized", text: pub.originText ?? PUBLIC_LABEL.derivedFromOthers };
 }

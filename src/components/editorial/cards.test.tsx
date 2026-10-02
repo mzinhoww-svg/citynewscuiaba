@@ -45,6 +45,7 @@ const baseArticle: ArticleSummary = {
   readMinutes: 2,
   aiSummary: ["Qualidade do ar está ruim pelo terceiro dia.", "Alerta segue até o fim da semana."],
   byline: "Redação CityNews",
+  reviewer: "Marina Couto",
   topicId: null,
   urgent: false,
   sponsored: false,
@@ -58,11 +59,6 @@ const sixLabels: Label[] = [
   { kind: "sponsored", text: "PATROCINADO" },
   { kind: "image_ai", text: "IMAGEM GERADA POR IA" },
 ];
-const fixtureWith6Labels: ArticleSummary = {
-  ...baseArticle,
-  labels: { shown: sixLabels, hidden: [] },
-};
-
 const fixtureAgg: AggregatedView = {
   id: "g1",
   title: "Viaduto da Miguel Sutil entra em nova fase e interdita duas faixas",
@@ -96,7 +92,7 @@ describe("AggregatedCard", () => {
     expect(screen.getByText("há 5 h")).toBeInTheDocument();
   });
 
-  it("texto do card = título, resumo próprio, data e link; rótulos AGREGADO e RESUMO POR IA", () => {
+  it("texto do card = título, resumo próprio, data e link; uma só plaqueta AGREGADO · fonte", () => {
     const item: AggregatedView = {
       ...fixtureAgg,
       labels: {
@@ -108,13 +104,13 @@ describe("AggregatedCard", () => {
       },
     };
     const { container } = render(<AggregatedCard item={item} now={now} />);
-    expect(screen.getByText("RESUMO POR IA")).toBeInTheDocument();
+    expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
+    expect(screen.queryByText(/RESUMO POR IA/)).not.toBeInTheDocument();
     const text = container.textContent ?? "";
     const rest = [
       "Abrir em Folha do Cerrado",
       "AGREGADO",
       "Folha do Cerrado",
-      "RESUMO POR IA",
       item.title,
       item.summary!,
       "há 5 h",
@@ -126,21 +122,52 @@ describe("AggregatedCard", () => {
 });
 
 describe("ArticleCard", () => {
-  it("card de matéria mostra no máximo 4 rótulos", () => {
-    render(<ArticleCard variant="standard" article={fixtureWith6Labels} />);
-    expect(screen.getAllByTestId("origin-label")).toHaveLength(4);
+  it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e as frases em texto", () => {
+    const article: ArticleSummary = {
+      ...baseArticle,
+      kind: "original",
+      publishMode: "auto",
+      sponsored: true,
+      labels: { shown: sixLabels.slice(0, 4), hidden: sixLabels.slice(4) },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
+    expect(screen.getByTestId("origin-label")).toHaveTextContent("ORIGINAL CITYNEWS");
+    expect(screen.getByText("Revisado automaticamente")).toBeInTheDocument();
+    expect(screen.getByText("Patrocinado")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(
+      /NORMALIZADO|RESUMO POR IA|PUBLICADO AUTOMATICAMENTE|IMAGEM GERADA/i,
+    );
+  });
+
+  it("texto derivado não ganha plaqueta: origem e revisão vão em texto na linha de metadado", () => {
+    render(<ArticleCard variant="standard" article={baseArticle} now={now} />);
+    expect(screen.queryByTestId("origin-label")).not.toBeInTheDocument();
+    expect(screen.getByText("Feito a partir de 2 fontes")).toBeInTheDocument();
+    expect(screen.getByText("Revisado por Marina Couto")).toBeInTheDocument();
   });
 
   it.each(["lead", "standard", "compact", "list"] as const)(
-    "variante %s: título é o link da matéria e há rótulos",
+    "variante %s: título é o link da matéria, com origem e revisão em texto",
     (variant) => {
       render(<ArticleCard variant={variant} article={baseArticle} now={now} />);
       const link = screen.getByRole("link", { name: baseArticle.title });
       expect(link).toHaveAttribute("href", "/materia/qualidade-do-ar");
-      expect(screen.getAllByTestId("origin-label").length).toBeGreaterThan(0);
+      expect(screen.getByText("Feito a partir de 2 fontes")).toBeInTheDocument();
       expect(screen.getByText("há 12 min")).toBeInTheDocument();
     },
   );
+
+  it.each([
+    ["lead", "type-headline-xl"],
+    ["standard", "type-headline"],
+    ["list", "type-headline-md"],
+    ["compact", "type-headline-md"],
+  ] as const)("escala de manchete: %s usa %s", (variant, cls) => {
+    render(<ArticleCard variant={variant} article={baseArticle} />);
+    const heading = screen.getByRole("heading", { name: baseArticle.title });
+    expect(heading.className.split(/\s+/)).toContain(cls);
+  });
 
   it("manchete tem confiança e resumo em 20 s", () => {
     render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
@@ -201,7 +228,7 @@ describe("demais cards", () => {
     expect(screen.getByText("3 itens")).toBeInTheDocument();
   });
 
-  it("NowList tem até 6 itens, modo de publicação e próximo ciclo", () => {
+  it("NowList tem até 6 itens, revisão em texto e próximo ciclo", () => {
     const items = Array.from({ length: 8 }, (_, i) => ({
       ...baseArticle,
       id: `n${i}`,
@@ -211,7 +238,7 @@ describe("demais cards", () => {
     render(<NowList items={items} now={new Date("2026-09-27T18:12:00Z")} />);
     const region = screen.getByRole("region", { name: "Agora" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(6);
-    expect(within(region).getAllByText("REVISADO POR HUMANO")).toHaveLength(6);
+    expect(within(region).getAllByText("Revisado por Marina Couto")).toHaveLength(6);
     expect(within(region).getByText("Próximo ciclo em 18 min")).toBeInTheDocument();
   });
 

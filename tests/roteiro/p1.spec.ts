@@ -26,7 +26,7 @@ test("1 · home: manchete com rótulos e confiança; Panorama abaixo da dobra", 
   const h1 = page.getByRole("heading", { level: 1 });
   await expect(h1).toBeVisible();
   const lead = page.locator("article").filter({ has: h1 });
-  await expect(lead.getByTestId("origin-label").first()).toBeVisible();
+  await expect(lead.getByText(/ORIGINAL CITYNEWS|Feito a partir de/).first()).toBeVisible();
   await expect(lead.getByText(/^Confiança (alta|média|baixa)$/)).toBeVisible();
   await shot(page, info, "01-home");
   const agg = page.getByRole("region", { name: "Veja também em outros portais" });
@@ -49,10 +49,10 @@ test("2 · manchete: resumo por IA com revisor, fontes e informar problema sem l
   await expect(page).toHaveURL(/\/materia\//);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await shot(page, info, "03-materia");
-  // A manchete muda com o relógio; o resumo por IA, o revisor e as fontes são conferidos
+  // A manchete muda com o relógio; o resumo, o revisor e as fontes são conferidos
   // numa matéria fixa do seed.
   await page.goto("/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro");
-  await expect(page.getByText("RESUMO POR IA").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeVisible();
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
   await shot(page, info, "04-materia-resumo-ia");

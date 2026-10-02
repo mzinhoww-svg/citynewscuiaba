@@ -1,4 +1,4 @@
-import { labelsFor } from ".";
+import { labelsFor, plaqueOf, publicImageCaption, publicLabels } from ".";
 const base = { hasAiSummary: false, publishMode: null, sponsored: false } as const;
 it("ordem fixa texto → IA → imagem → publicação e máximo 4", () => {
   const r = labelsFor({
@@ -111,3 +111,90 @@ it.each([0, undefined, -2, Number.NaN, 1.5])(
     expect(r.shown[0]).toEqual({ kind: "normalized", text: "NORMALIZADO PELO CITYNEWS" });
   },
 );
+
+// UI-T3: vocabulário público (spec 2026-10-02 §4.1)
+describe("publicLabels", () => {
+  it("reportagem própria: plaqueta ORIGINAL e nenhuma frase de origem", () => {
+    expect(publicLabels({ kind: "original", publishMode: null })).toEqual({ plaque: "original" });
+  });
+
+  it("texto derivado: 'Feito a partir de n fontes' em texto, sem plaqueta", () => {
+    expect(publicLabels({ kind: "normalized", sourceCount: 2, publishMode: null })).toEqual({
+      originText: "Feito a partir de 2 fontes",
+    });
+    expect(publicLabels({ kind: "normalized", sourceCount: 1, publishMode: null }).originText).toBe(
+      "Feito a partir de 1 fonte",
+    );
+  });
+
+  it.each([0, undefined, -2, Number.NaN, 1.5])("contagem inválida (%s) não mostra número", (n) => {
+    expect(publicLabels({ kind: "normalized", sourceCount: n, publishMode: null }).originText).toBe(
+      "Feito a partir de outras fontes",
+    );
+  });
+
+  it("revisão por pessoa leva o nome; sem nome, 'Revisado pela redação'", () => {
+    expect(
+      publicLabels({ kind: "original", publishMode: "human", reviewer: "Marina Arruda" })
+        .reviewText,
+    ).toBe("Revisado por Marina Arruda");
+    expect(publicLabels({ kind: "original", publishMode: "human" }).reviewText).toBe(
+      "Revisado pela redação",
+    );
+  });
+
+  it("publicação pelas regras: 'Revisado automaticamente'", () => {
+    expect(publicLabels({ kind: "normalized", sourceCount: 3, publishMode: "auto" })).toEqual({
+      originText: "Feito a partir de 3 fontes",
+      reviewText: "Revisado automaticamente",
+    });
+  });
+
+  it("agregado: plaqueta AGREGADO e nada mais (nunca frase de revisão)", () => {
+    expect(publicLabels({ kind: "aggregated", publishMode: "auto" })).toEqual({
+      plaque: "aggregated",
+    });
+  });
+
+  it("patrocinado vira texto próprio, nunca uma segunda plaqueta", () => {
+    expect(publicLabels({ kind: "original", publishMode: null, sponsored: true })).toEqual({
+      plaque: "original",
+      sponsoredText: "Patrocinado",
+    });
+  });
+
+  it("nenhum texto público contém o vocabulário aposentado", () => {
+    const all = [
+      publicLabels({ kind: "normalized", sourceCount: 4, publishMode: "auto", sponsored: true }),
+      publicLabels({ kind: "original", publishMode: "human", reviewer: "Ana" }),
+    ]
+      .flatMap((r) => [r.originText, r.reviewText, r.sponsoredText])
+      .join(" ");
+    expect(all).not.toMatch(/normaliz|\bIA\b|inteligência artificial|publicado automaticamente/i);
+  });
+});
+
+describe("publicImageCaption", () => {
+  it("imagem de terceiros é uma frase: 'Reprodução web · Fonte'", () => {
+    expect(publicImageCaption("reproduction", "MT Agora")).toBe("Reprodução web · MT Agora");
+    expect(publicImageCaption("reproduction")).toBe("Reprodução web");
+  });
+
+  it("os demais tipos mantêm a legenda em frase", () => {
+    expect(publicImageCaption("original", "Pedro Alencar")).toBe("Foto original · Pedro Alencar");
+    expect(publicImageCaption("illustrative")).toBe("Imagem ilustrativa");
+  });
+});
+
+describe("plaqueOf", () => {
+  it("pega só ORIGINAL ou AGREGADO de um conjunto de rótulos", () => {
+    const set = labelsFor({
+      ...base,
+      kind: "aggregated",
+      sourceName: "MT Agora",
+      hasAiSummary: true,
+    });
+    expect(plaqueOf(set)).toEqual({ kind: "aggregated", text: "AGREGADO", detail: "MT Agora" });
+    expect(plaqueOf(labelsFor({ ...base, kind: "normalized", sourceCount: 2 }))).toBeUndefined();
+  });
+});

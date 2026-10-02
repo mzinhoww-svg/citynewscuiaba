@@ -4,9 +4,16 @@ import { CARD } from "@/content/pt-BR/portal-card";
 import { PANORAMA_TEXT as T } from "@/content/pt-BR/sources";
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
+import { plaqueOf } from "@/lib/labels";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { OriginLabel } from "./OriginLabel";
+
+/** AGREGADO · fonte, a única plaqueta do item. */
+function Plaque({ set }: { set: AggregatedView["labels"] }) {
+  const plaque = plaqueOf(set);
+  return plaque ? <OriginLabel label={plaque} /> : null;
+}
 
 export interface CoverageColumn {
   slug: string;
@@ -77,9 +84,7 @@ export function CoverageCompare({
               {c.hoursAfterFirst === 0 ? T.first : T.difference(c.hoursAfterFirst)}
             </p>
             <div className="flex flex-wrap gap-1.5">
-              {c.latest.labels.shown.map((l) => (
-                <OriginLabel key={l.kind} label={l} />
-              ))}
+              <Plaque set={c.latest.labels} />
             </div>
             <a
               href={c.latest.url}

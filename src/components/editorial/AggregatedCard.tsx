@@ -1,6 +1,7 @@
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
+import { plaqueOf } from "@/lib/labels";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { OriginLabel } from "./OriginLabel";
@@ -28,7 +29,7 @@ export interface AggregatedCardProps {
  * ```tsx
  * <AggregatedCard item={item} />
  * ```
- * - Superfície neutra (`--surface-aggregated`) e rótulo AGREGADO · fonte.
+ * - Superfície neutra (`--surface-aggregated`) e uma só plaqueta, AGREGADO · fonte.
  * - O link tem o nome do veículo e avisa que abre em nova aba.
  */
 export function AggregatedCard({
@@ -40,7 +41,7 @@ export function AggregatedCard({
   className,
 }: AggregatedCardProps) {
   const when = item.publishedAt ? formatWhen(item.publishedAt, now) : "";
-  const labels = item.labels.shown;
+  const plaque = plaqueOf(item.labels);
   return (
     <article
       className={cx(
@@ -50,11 +51,9 @@ export function AggregatedCard({
         className,
       )}
     >
-      {labels.length > 0 && (
-        <div className="relative flex flex-wrap gap-1.5">
-          {labels.map((l) => (
-            <OriginLabel key={l.kind} label={l} />
-          ))}
+      {plaque && (
+        <div className="relative flex">
+          <OriginLabel label={plaque} />
         </div>
       )}
       {cta === "source" ? (

@@ -1,4 +1,4 @@
-/** Pergunte ao CityNews (busca com IA, docs/screens.md P13; spec §5.5). */
+/** Pergunte ao CityNews (Perguntar ao CityNews, docs/screens.md P13; spec §5.5). */
 export const ASK = {
   title: "Pergunte ao CityNews",
   metaDescription:
@@ -6,7 +6,7 @@ export const ASK = {
   documentTitle: (q: string) =>
     q ? `Pergunte: ${q} · CityNews Cuiabá` : "Pergunte ao CityNews · CityNews Cuiabá",
   intro:
-    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem pelo menos duas fontes independentes, a IA não responde. Não precisa de conta.",
+    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem pelo menos duas fontes independentes, o CityNews não responde. Não precisa de conta.",
   label: "Sua pergunta",
   placeholder: "Ex.: O que muda no plano de ônibus do CPA?",
   submit: "Perguntar",
@@ -25,7 +25,7 @@ export const ASK = {
     "Conferindo se há ao menos 2 fontes independentes",
     "Escrevendo a resposta com a fonte de cada frase",
   ],
-  aiGenerated: "Resposta gerada por IA",
+  aiGenerated: "Resposta do CityNews",
   asOf: (hour: string) => `Consultado às ${hour}`,
   factsTitle: "O que as fontes confirmam",
   inferencesTitle: "Inferência",
@@ -34,8 +34,7 @@ export const ASK = {
   conflictsTitle: "Onde as fontes divergem",
   lowConfidence:
     "Confiança baixa: as fontes são poucas ou divergem. Leia as fontes antes de concluir.",
-  disclaimer:
-    "Resposta gerada por IA a partir das fontes listadas. Pode conter erros: confira nas fontes antes de decidir.",
+  disclaimer: "Pode conter erros. Confira nas fontes antes de decidir.",
   sourcesTitle: "Fontes consultadas",
   foundTitle: "O que encontramos",
   citedBy: (n: number) => `Fonte ${n}`,
@@ -52,8 +51,8 @@ export const ASK = {
   insufficientTitle: "Não encontramos fontes suficientes para responder",
   insufficientText: (n: number) =>
     n === 0
-      ? "A busca com IA só responde com pelo menos 2 fontes independentes, e não achamos nenhuma sobre isso."
-      : `A busca com IA só responde com pelo menos 2 fontes independentes. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, de um só veículo ou sem relação suficiente com a pergunta.`,
+      ? "O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes, e não achamos nenhuma sobre isso."
+      : `O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, de um só veículo ou sem relação suficiente com a pergunta.`,
   suggestion: {
     traditional_search: "Ver na busca tradicional",
     widen_period: "Buscar em qualquer data",
@@ -61,10 +60,10 @@ export const ASK = {
   },
   errorTitle: {
     timeout: "A resposta demorou demais",
-    provider: "O serviço de IA falhou agora",
+    provider: "O serviço de respostas falhou agora",
     rate_limited: (limit: number) => `Você atingiu o limite de ${limit} perguntas por hora`,
-    unavailable: "A busca com IA está indisponível agora",
-    off: "A busca com IA está desligada no momento",
+    unavailable: "Assistente indisponível",
+    off: "Assistente indisponível",
   },
   errorText: {
     timeout: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
@@ -72,7 +71,7 @@ export const ASK = {
     rate_limited: (hour: string) =>
       `O limite libera às ${hour}. A busca tradicional continua sem limite.`,
     unavailable: "Pode ser uma instabilidade passageira. A busca tradicional continua funcionando.",
-    off: "A redação pausou a busca com IA. A busca tradicional continua funcionando.",
+    off: "A redação pausou o assistente. A busca tradicional continua funcionando.",
   },
   retry: "Tentar de novo",
   fallbackTitle: "Resultados da busca tradicional",
