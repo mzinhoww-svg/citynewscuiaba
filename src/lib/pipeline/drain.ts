@@ -22,6 +22,8 @@ export const DRAIN_EVENTS_FLUSH = 25;
  */
 export const STEP_MIN_MS: Partial<Record<JobStep, number>> = {
   fetch: 12_000,
+  /** Espera de 1 s + robots.txt (10 s) + página (10 s). */
+  enrich: 22_000,
   dedupe: 8_000,
   classify: 15_000,
   locate: 10_000,

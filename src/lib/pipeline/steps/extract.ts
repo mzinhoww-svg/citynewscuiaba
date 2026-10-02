@@ -11,6 +11,7 @@ import { err, ok } from "@/lib/result";
 import { parseFeedDate } from "../parse-date";
 import type { DocumentFormat, IngestRepo } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { repairTruncatedSitemap, titleFromSlug } from "../sitemap";
 import type { RawEntry } from "../types";
 
 export const MAX_ENTRIES = 200;
@@ -96,6 +97,8 @@ interface Fields {
   bodies: string[];
   author: string;
   image: string;
+  /** `title_slug`: o título veio do slug da URL (sitemap sem `news:title`), não do site. */
+  titleSource?: "title_slug";
 }
 
 /** Monta o item com todo texto sanitizado; sem título ou sem URL http(s), descarta. */
@@ -116,6 +119,7 @@ function toEntry(f: Fields, base?: string): RawEntry | null {
     imageUrl: absolute(f.image, base),
     injection: matches.length > 0,
     injectionMatches: matches,
+    ...(f.titleSource ? { titleSource: f.titleSource } : {}),
   };
 }
 
@@ -175,23 +179,45 @@ function atomEntry(entry: unknown): Fields {
   };
 }
 
-function sitemapUrl(url: unknown): Fields {
+/**
+ * `slugTitles`: sitemap sem nenhum `news:title` (anual, só `loc` e `lastmod`): o título é o slug da
+ * URL (`title_slug`) e a data é o `lastmod`. Num sitemap de notícias (com `news:title` em alguma
+ * `<url>`), a `<url>` sem título continua descartada (página institucional, não matéria).
+ */
+function sitemapUrl(url: unknown, slugTitles: boolean): Fields {
   const news = get(url, "news:news");
+  const link = text(get(url, "loc"));
+  const newsTitle = text(get(news, "news:title"));
+  const fromSlug = slugTitles && !newsTitle.trim();
   return {
-    title: text(get(news, "news:title")),
-    link: text(get(url, "loc")),
+    title: fromSlug ? (titleFromSlug(link, TITLE_MAX) ?? "") : newsTitle,
+    link,
     date: text(get(news, "news:publication_date")) || text(get(url, "lastmod")),
     bodies: [],
     author: "",
     image: text(get(first(get(url, "image:image")), "image:loc")),
+    ...(fromSlug ? { titleSource: "title_slug" as const } : {}),
   };
 }
 
+/** Mais recente primeiro; sem data vai para o fim. Estável: empate mantém a ordem do arquivo. */
+function byDateDesc(a: Fields, b: Fields): number {
+  const ta = a.date ? Date.parse(parseFeedDate(a.date) ?? "") : NaN;
+  const tb = b.date ? Date.parse(parseFeedDate(b.date) ?? "") : NaN;
+  const na = Number.isNaN(ta);
+  const nb = Number.isNaN(tb);
+  if (na || nb) return na === nb ? 0 : na ? 1 : -1;
+  return tb - ta;
+}
+
 /**
- * Itens de RSS 2.0, RSS 1.0 (RDF), Atom e sitemap de notícias. `baseUrl` resolve links relativos.
- * XML malformado, com entidades declaradas ou de formato desconhecido → lista vazia.
+ * Itens de RSS 2.0, RSS 1.0 (RDF), Atom e sitemap (de notícias ou anual). `baseUrl` resolve links
+ * relativos. XML malformado, com entidades declaradas ou de formato desconhecido → lista vazia.
+ * Sitemap cortado por `prefixBytes` é reparado (`repairTruncatedSitemap`) e ordenado por data
+ * (mais novo primeiro) antes do corte em `MAX_ENTRIES`: a ordem do arquivo não é confiável.
  */
-export function extractFromFeed(xml: string, baseUrl?: string): RawEntry[] {
+export function extractFromFeed(rawXml: string, baseUrl?: string): RawEntry[] {
+  const xml = repairTruncatedSitemap(rawXml);
   if (hasEntityDeclaration(xml) || XMLValidator.validate(xml) !== true) return [];
   let doc: unknown;
   try {
@@ -207,7 +233,11 @@ export function extractFromFeed(xml: string, baseUrl?: string): RawEntry[] {
   if (rss !== undefined) fields = list(get(get(rss, "channel"), "item")).map(rssItem);
   else if (rdf !== undefined) fields = list(get(rdf, "item")).map(rssItem);
   else if (feed !== undefined) fields = list(get(feed, "entry")).map(atomEntry);
-  else if (urlset !== undefined) fields = list(get(urlset, "url")).map(sitemapUrl);
+  else if (urlset !== undefined) {
+    const urls = list(get(urlset, "url"));
+    const hasNewsTitles = urls.some((u) => text(get(get(u, "news:news"), "news:title")).trim());
+    fields = urls.map((u) => sitemapUrl(u, !hasNewsTitles)).sort(byDateDesc);
+  }
   return fields
     .slice(0, MAX_ENTRIES)
     .map((f) => toEntry(f, baseUrl))

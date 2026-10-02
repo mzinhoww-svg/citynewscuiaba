@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixture fictícia (spec §9): sitemap anual sem news:title (só loc e lastmod), como o de um portal que usa o slug como título. Ordem aproximada, com inversões locais. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/prefeitura-abre-vagas-em-creches-de-cuiaba</loc>
+    <lastmod>2026-10-02T16:33:40.782Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/educa%C3%A7%C3%A3o-b%C3%A1sica-recebe-novos-recursos</loc>
+    <lastmod>2026-10-02T15:46:44.343Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/chuva-forte-alaga-ruas-do-centro</loc>
+    <lastmod>2026-10-02T16:19:09.669Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/feira-do-produtor-volta-ao-parque-123456.html</loc>
+    <lastmod>2026-10-02T16:00:20.827Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/obras-na-avenida-do-cpa-seguem-ate-2027</loc>
+    <lastmod>2026-10-02T12:10:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/campeonato-estadual-tem-rodada-dupla</loc>
+    <lastmod>2026-10-02T11:05:30.100Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://portal-do-pantanal.example/noticias/antiga-materia-de-janeiro</loc>
+    <lastmod>2026-01-15T09:00:00.000Z</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+</urlset>

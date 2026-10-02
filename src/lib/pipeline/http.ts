@@ -54,6 +54,8 @@ export type CrawlResponse =
       contentType: string | null;
       etag: string | null;
       lastModified: string | null;
+      /** Só presente (`true`) quando `prefixBytes` cortou o corpo (sitemap). */
+      truncated?: true;
     }
   | { kind: "not_modified" }
   | { kind: "http_error"; status: number }
@@ -85,6 +87,12 @@ export async function crawlGet(
     lastModified?: string | null;
     accept?: string;
     signal?: AbortSignal;
+    /**
+     * Só para sitemap: lê o corpo até este número de bytes e devolve o prefixo com
+     * `truncated: true` (o resto do arquivo nem é baixado). Sem a opção, o limite de
+     * `MAX_DOCUMENT_BYTES` e o `too_large` de sempre.
+     */
+    prefixBytes?: number;
     /**
      * Chamado antes de cada salto real (o pedido inicial e cada redirecionamento seguido), na
      * ordem. Devolver um motivo interrompe a cadeia ali, sem chegar a fazer aquele salto (e sem
@@ -135,6 +143,7 @@ export async function crawlGet(
     headers,
     signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
     maxBytes: MAX_DOCUMENT_BYTES,
+    prefixBytes: opts.prefixBytes,
     allowUrl: opts.onHop
       ? (u) => {
           const reason = opts.onHop!(u);
@@ -168,6 +177,7 @@ export async function crawlGet(
         contentType: res.headers.get("content-type"),
         etag: res.headers.get("etag"),
         lastModified: res.headers.get("last-modified"),
+        ...(res.truncated ? { truncated: true as const } : {}),
       };
   }
 }

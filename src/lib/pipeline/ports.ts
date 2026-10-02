@@ -196,6 +196,11 @@ export interface RawPayload {
    */
   etag?: string | null;
   lastModified?: string | null;
+  /**
+   * `true` quando o `fetch` leu só o prefixo do documento (`prefixBytes`, sitemap anual): o corpo
+   * termina no meio de uma `<url>` e é reparado por `repairTruncatedSitemap` antes de validar.
+   */
+  truncated?: boolean;
 }
 
 export type RawState = "new" | "valid" | "quarantine" | "extracted";

@@ -264,6 +264,7 @@ const RawPayloadSchema = z.object({
   sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
   etag: z.string().nullable().optional(),
   lastModified: z.string().nullable().optional(),
+  truncated: z.boolean().optional(),
 });
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
