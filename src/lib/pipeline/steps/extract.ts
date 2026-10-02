@@ -16,7 +16,8 @@ import type { RawEntry } from "../types";
 
 export const MAX_ENTRIES = 200;
 export const TITLE_MAX = 300;
-const EXCERPT_MAX = 600;
+/** Insumo interno da redação (nunca público): o bastante para a matéria ter fatos e contexto. */
+const EXCERPT_MAX = 1500;
 const AUTHOR_MAX = 200;
 
 /** Formato pelo elemento raiz (ou JSON Feed). `null` para o que não sabemos ler. */

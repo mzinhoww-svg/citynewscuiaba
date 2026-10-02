@@ -1,4 +1,5 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
+import { copiedRun } from "@/lib/ai/schemas/aggregate-summary";
 import { WriteSchema, type WriteOutput } from "@/lib/ai/schemas/write";
 import type { AiError } from "@/lib/ai/types";
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
@@ -26,7 +27,20 @@ export interface PublishStepDeps {
   embed: Embed;
   revalidate: Revalidate;
   now: () => Date;
+  /** Descarta parágrafo que copia 8 palavras seguidas da fonte (produção; o provedor falso copia). */
+  copyGuard?: boolean;
 }
+
+/**
+ * Pedido ao agente `write`: matéria com profundidade e título que chame o clique sem enganar.
+ * Profundidade vem dos fatos dos itens (nunca de enchimento); o título promete só o que o texto entrega.
+ */
+export const WRITE_TASK = [
+  "Escreva título, linha fina, resumo e corpo do assunto. Cada parágrafo cita os ids dos itens que o sustentam e usa palavras próprias (nunca 8 palavras seguidas de uma fonte).",
+  'CORPO: de 4 a 8 parágrafos quando os itens trouxerem fatos para isso (menos só se faltar fato; nunca encha). Ordem: 1) lide com o fato principal (o quê, quem, onde, quando); 2) detalhes e números exatos; 3) quem fala, atribuído ("segundo a Prefeitura"); 4) contexto que está nos itens (antecedentes, valores, prazos, bairros de Cuiabá e Várzea Grande); 5) o que muda ou o que o leitor precisa fazer, se houver serviço; 6) o que ainda não se sabe ou divergência entre fontes. Cada parágrafo traz um fato novo.',
+  'TÍTULO: específico e chamativo, de 60 a 100 caracteres, com o dado mais forte (número, local, nome, prazo) e verbo ativo; pode abrir uma curiosidade, mas a resposta tem de estar no texto. Proibido: prometer o que o texto não entrega, superlativo sem dado, ponto de exclamação, caixa alta, "você não vai acreditar", "chocante", exagero em crime, tragédia ou saúde. Em tema sensível o título é sóbrio e factual.',
+  "LINHA FINA: complementa o título com o segundo dado mais relevante, sem repeti-lo.",
+].join("\n");
 
 const TOPIC_REF = /^topic:(\S+)$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
@@ -55,13 +69,21 @@ function roleOf(ctx: DraftContext, item: DraftItem): "primary" | "secondary" | "
 }
 
 /** Só parágrafos com citação de item do assunto (nenhuma frase sem fonte). */
-function citedParagraphs(out: WriteOutput, ids: Set<string>): Paragraph[] {
-  return out.body
-    .map((p) => ({
-      text: p.text.trim(),
-      citations: [...new Set(p.citations)].filter((c) => ids.has(c)),
-    }))
-    .filter((p) => p.text.length > 0 && p.citations.length > 0);
+export function citedParagraphs(
+  out: WriteOutput,
+  ids: Set<string>,
+  sourceTexts: string[] = [],
+): Paragraph[] {
+  return (
+    out.body
+      .map((p) => ({
+        text: p.text.trim(),
+        citations: [...new Set(p.citations)].filter((c) => ids.has(c)),
+      }))
+      .filter((p) => p.text.length > 0 && p.citations.length > 0)
+      // Texto de terceiros não é republicado: parágrafo que copia 8 palavras seguidas cai.
+      .filter((p) => !sourceTexts.some((t) => copiedRun(p.text, t) !== null))
+  );
 }
 
 /** Rascunho sem IA (Review Focus 4): lista as fontes para a redação escrever. */
@@ -120,7 +142,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       {
         system,
         data: ctx.items.map((i) => ({ id: i.id, text: itemText(i) })),
-        task: "Escreva título, linha fina, resumo e corpo do assunto. Cada parágrafo cita os ids dos itens que o sustentam.",
+        task: WRITE_TASK,
       },
       WriteSchema,
       { signal: run?.signal },
@@ -130,7 +152,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     let failure: AiError | "citations" | null = r.ok ? null : r.error;
     let draft: { title: string; dek: string; body: Paragraph[]; summary: string[] | null };
     if (r.ok) {
-      const body = citedParagraphs(r.value, ids);
+      const body = citedParagraphs(r.value, ids, deps.copyGuard ? ctx.items.map(itemText) : []);
       if (body.length > 0)
         draft = { title: r.value.title, dek: r.value.dek, body, summary: r.value.summary };
       else {
