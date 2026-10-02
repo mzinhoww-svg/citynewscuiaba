@@ -129,11 +129,11 @@ p{margin:0}
 <header>
   <p class="eyebrow">CityNews Cuiabá · UI das telas públicas · v2</p>
   <h1>Wireframes das principais propostas</h1>
-  <p class="lede">Segunda versão, com as três decisões do dono: <b>sem faixa de rótulos em lugar nenhum</b>, <b>login com o botão do Google de verdade</b> e <b>Pergunte ao CityNews como chat</b>. Baixa fidelidade: mostram hierarquia, ordem e proporção, não cor final nem texto final.</p>
+  <p class="lede">Segunda versão, com as três decisões do dono: <b>login com o botão do Google</b> e <b>Pergunte ao CityNews como chat</b>. Baixa fidelidade: mostram hierarquia, ordem e proporção, não cor final nem texto final.</p>
   <div class="legend">
     <span><i class="sw"></i> Estrutura existente</span>
     <span><i class="sw u"></i> O que muda</span>
-    <span><i class="chip ia" style="font-style:normal">IA</i> Rótulo de origem, sempre em texto</span>
+    <span><i class="chip" style="font-style:normal">Texto</i> Origem e revisão, sempre em texto</span>
   </div>
 </header>
 
@@ -248,7 +248,7 @@ p{margin:0}
         </div>
         <div class="composer"><div class="field">Pergunte sobre Cuiabá…</div><span class="send">➤</span></div>
       </div>
-      <p class="note"><b>1</b> a recusa é uma mensagem do CityNews, com a saída pronta. Limite por hora, IA desligada e falha de rede seguem o mesmo formato. Embaixo, o indicador de passos enquanto responde.</p></div>
+      <p class="note"><b>1</b> a recusa é uma mensagem do CityNews, com a saída pronta. Limite por hora, assistente indisponível e falha de rede seguem o mesmo formato. Embaixo, o indicador de passos enquanto responde.</p></div>
   </div>
   <div class="col"><span class="tag new">Desktop 1280 · três áreas</span>
     <div class="desk" style="max-width:980px">
@@ -270,34 +270,80 @@ p{margin:0}
 
 <!-- 3 ROTULOS -->
 <section class="sec">
-  <header><p class="eyebrow">Decisão do dono · sem faixa de rótulos</p><h2>3. Rótulo junto do conteúdo que ele descreve</h2>
-  <p>Nenhuma faixa de rótulos. A origem principal aparece uma vez; o rótulo de IA fica colado ao texto de IA; a revisão vira texto; a foto leva a origem na legenda. Todos continuam em texto, nunca só em cor.</p></header>
+  <header><p class="eyebrow">Decisão do dono · vocabulário</p><h2>3. Só duas informações: de onde veio e quem revisou</h2>
+  <p>Sem “normalizado”, sem menção a IA, sem faixa de rótulos. O card tem no máximo uma plaqueta (reportagem própria ou conteúdo de outro veículo); o resto é texto simples na linha de metadado.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · card</span>
-      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="stack"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span></div><div class="t xs"></div></div></div>
-      <span class="metric bad">3 plaquetas por card</span></div>
-    <div class="col"><span class="tag new">Proposta · card</span>
-      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div>
-        <div class="dk hl" data-n="1" style="padding:3px"><span class="chip ia">IA</span><div style="flex:1"><div class="t"></div><div class="t s" style="margin-top:3px"></div></div></div>
-        <div class="meta hl" data-n="2" style="padding:3px"><span class="chip fill">Normalizado · 2 fontes</span><span><b>✓ Revisado por Marina Arruda</b></span><span>· 8h05</span></div></div></div>
-      <span class="metric good">1 plaqueta + texto</span>
-      <p class="note"><b>1</b> “Resumo por IA” só quando o card mostra o resumo, colado a ele · <b>2</b> origem principal e revisão em texto, na linha de metadado.</p></div>
+      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="stack"><span class="chip fill">plaqueta técnica 1</span><span class="chip ia">plaqueta técnica 2</span><span class="chip ok">plaqueta de revisão</span></div><div class="t xs"></div></div></div>
+      <span class="metric bad">3 plaquetas com vocabulário técnico</span></div>
+    <div class="col"><span class="tag new">Proposta · card derivado de fontes</span>
+      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="t"></div><div class="t s"></div>
+        <div class="meta hl" data-n="1" style="padding:3px"><span>Feito a partir de 2 fontes</span>·<span><b>Revisado por Marina Arruda</b></span>·<span>8h05</span></div></div></div>
+      <span class="metric good">nenhuma plaqueta, texto só</span>
+      <p class="note"><b>1</b> origem e revisão em texto. Publicada pelas regras, a linha diz “Revisado automaticamente”.</p></div>
+    <div class="col"><span class="tag new">Proposta · reportagem própria e agregado</span>
+      <div class="phone"><div class="pad" style="gap:9px">
+        <div style="display:flex;flex-direction:column;gap:4px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip fill hl" data-n="1">Original CityNews</span><span><b>✓ Revisado por humano</b></span></div></div>
+        <div style="display:flex;flex-direction:column;gap:4px;background:var(--block);padding:5px"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip hl" data-n="2">Agregado · fonte</span><span>9h</span></div></div></div></div>
+      <p class="note"><b>1</b> a única plaqueta de reportagem própria · <b>2</b> a única plaqueta de conteúdo de outro veículo.</p></div>
     <div class="col"><span class="tag new">Proposta · cabeçalho da matéria</span>
       <div class="phone"><div class="pad" style="gap:6px">
         <div class="row"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
         <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div><div class="t m"></div>
-        <div class="hl" data-n="1" style="padding:4px;display:flex;flex-direction:column;gap:3px"><div class="hs" style="width:40%;height:6px"></div><div class="meta">Texto do CityNews a partir de 2 fontes · <b>Revisado por Marina Arruda</b></div><div class="t xs"></div></div>
+        <div class="hl" data-n="1" style="padding:4px;display:flex;flex-direction:column;gap:3px"><div class="hs" style="width:40%;height:6px"></div><div class="meta">Feito a partir de 2 fontes · <b>Revisado por Marina Arruda</b></div><div class="t xs"></div></div>
         <div class="row"><span class="btn pri" style="flex:1;justify-content:center;height:22px">Salvar</span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span></div>
-        <div class="img r169">foto</div><div class="meta hl" data-n="2" style="padding:3px"><span class="chip">Reprodução · fonte</span><span>crédito · autor</span></div>
-        <div class="hl" data-n="3" style="padding:5px;background:var(--ia-soft);border-color:var(--ia);display:flex;flex-direction:column;gap:4px"><span class="chip ia" style="align-self:flex-start">Resumo por IA</span><div class="t"></div><div class="t s"></div></div>
+        <div class="img r169">capa</div><div class="meta hl" data-n="2" style="padding:3px"><span>Reprodução web · Fonte</span><span>crédito · Ver original</span></div>
+        <div style="padding:5px;background:var(--block);display:flex;flex-direction:column;gap:4px"><div class="hs" style="width:55%"></div><div class="t"></div><div class="t s"></div></div>
       </div></div>
-      <p class="note"><b>1</b> a origem em frase, na autoria · <b>2</b> o rótulo da foto na legenda · <b>3</b> o rótulo de IA no bloco de resumo. Todos juntos continuam no painel “Como esta matéria foi feita”.</p></div>
+      <p class="note"><b>1</b> origem e revisão em frase, na autoria · <b>2</b> legenda da foto. “Resumo em poucos segundos” não leva rótulo.</p></div>
+  </div>
+</section>
+
+<!-- 3b IMAGENS -->
+<section class="sec">
+  <header><p class="eyebrow">Imagens</p><h2>4. Duas imagens por matéria: capa e uma no texto</h2>
+  <p>O pipeline avalia até 4 imagens das fontes do assunto, dá nota a cada uma e usa a melhor como capa. A segunda melhor, de outra fonte e diferente da capa, entra no meio do texto. As duas levam a legenda “Reprodução web · Fonte”, com crédito e link para o original.</p></header>
+  <div class="pair">
+    <div class="col" style="flex:1;min-width:280px"><span class="tag new">Como o pipeline escolhe</span>
+      <div class="anat" style="max-width:520px">
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <div class="col" style="gap:3px;width:78px"><div class="img r169">fonte A</div><span class="sub"><b>92</b> · paisagem 1600 px</span></div>
+          <div class="col" style="gap:3px;width:78px"><div class="img r169">fonte B</div><span class="sub"><b>81</b> · 1200 px</span></div>
+          <div class="col" style="gap:3px;width:78px"><div class="img r169">fonte A</div><span class="sub"><b>74</b> · mesma fonte</span></div>
+          <div class="col" style="gap:3px;width:78px"><div class="img r1">fonte C</div><span class="sub"><b>38</b> · retrato, marca d'água</span></div>
+        </div>
+        <div class="lab">Nota por resolução, proporção, marca d'água, texto sensacionalista e nitidez.</div>
+        <div class="row" style="gap:8px;flex-wrap:wrap">
+          <div class="hl" data-n="1" style="padding:6px;display:flex;flex-direction:column;gap:3px;width:150px"><span class="chip fill" style="align-self:flex-start">Capa</span><span class="sub">A · nota 92</span></div>
+          <div class="hl" data-n="2" style="padding:6px;display:flex;flex-direction:column;gap:3px;width:150px"><span class="chip" style="align-self:flex-start">No texto</span><span class="sub">B · outra fonte, nota 81</span></div>
+        </div>
+        <div class="lab"><b>1</b> maior nota · <b>2</b> maior nota entre as de <b>outra fonte</b> e não parecidas com a capa. Sem segunda boa, só a capa; sem nenhuma, capa tipográfica.</div>
+      </div></div>
+    <div class="col"><span class="tag new">Matéria no celular</span>
+      <div class="phone"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="pad" style="gap:6px">
+          <div class="t s"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div><div class="meta">Feito a partir de 2 fontes · <b>Revisado automaticamente</b></div>
+          <div class="img r169 hl" data-n="1">capa (fonte A)</div><div class="meta"><span>Reprodução web · Fonte A</span><span>Ver original</span></div>
+          <div class="t"></div><div class="t m"></div><div class="t"></div><div class="t s"></div>
+          <div class="t"></div><div class="t m"></div>
+          <div class="img r169 hl" data-n="2">no texto (fonte B)</div><div class="meta"><span>Reprodução web · Fonte B</span><span>Ver original</span></div>
+          <div class="t"></div><div class="t m"></div>
+        </div></div>
+      <p class="note"><b>1</b> capa sob o título · <b>2</b> imagem depois do 3º parágrafo (do 2º, se o texto for curto).</p></div>
+    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Regras</span>
+      <div class="anat" style="max-width:420px">
+        <div class="lab"><b>Legenda:</b> “Reprodução web · Fonte”, crédito do autor quando houver, e “Ver original” com link.</div>
+        <div class="lab"><b>Direitos:</b> só fontes com política de reprodução, sem recorte do crédito, remoção em 24 h a pedido; remover uma imagem não derruba a outra.</div>
+        <div class="lab"><b>Cards:</b> usam só a capa.</div>
+        <div class="lab"><b>Matérias já publicadas:</b> reprocessadas depois da implantação para ganhar a imagem do texto.</div>
+        <div class="lab"><b>Atenção:</b> duas imagens por matéria dobram a exposição a pedidos de remoção.</div>
+      </div></div>
   </div>
 </section>
 
 <!-- 4 CONSENT -->
 <section class="sec">
-  <header><p class="eyebrow">Chrome</p><h2>4. Consentimento compacto na primeira dobra</h2>
+  <header><p class="eyebrow">Chrome</p><h2>5. Consentimento compacto na primeira dobra</h2>
   <p>Texto legal e as três escolhas ficam iguais. Muda o tamanho: a leitora vê manchete, resumo e origem sem rolar.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · 390×844</span>
@@ -307,7 +353,7 @@ p{margin:0}
       <span class="metric bad">Banner ≈ 35% da altura</span></div>
     <div class="col"><span class="tag new">Proposta · 390×844</span>
       <div class="phone fold"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div><div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
-        <div class="pad"><div class="img r169 hl" data-n="2">foto ou capa</div><div class="meta"><span class="chip fill">Normalizado · 2 fontes</span><span><b>✓ Revisado</b></span></div><div class="h"></div><div class="h"></div><div class="h s"></div><div class="t"></div><div class="t m"></div></div>
+        <div class="pad"><div class="img r169 hl" data-n="2">foto ou capa</div><div class="meta"><span>Feito a partir de 2 fontes</span><span><b>✓ Revisado</b></span></div><div class="h"></div><div class="h"></div><div class="h s"></div><div class="t"></div><div class="t m"></div></div>
         <div class="sheet hl" data-n="1" style="height:12%;justify-content:center"><div class="t"></div><div class="t s"></div><div class="row"><span class="btn">Só o necessário</span><span class="btn">Escolher</span><span class="btn pri">Aceitar</span></div></div></div>
       <span class="metric good">Banner ≤ 15% da altura</span>
       <p class="note"><b>1</b> faixa baixa, 3 escolhas em linha · <b>2</b> imagem logo abaixo do cabeçalho.</p></div>
@@ -316,7 +362,7 @@ p{margin:0}
 
 <!-- 5 HOME -->
 <section class="sec">
-  <header><p class="eyebrow">Home</p><h2>5. Home: de 11 telas para 5,5 no celular</h2>
+  <header><p class="eyebrow">Home</p><h2>6. Home: de 11 telas para 5,5 no celular</h2>
   <p>Mesma escala nas duas colunas (1 px = 0,3 px reais); cada linha laranja marca uma tela de 844 px. Ordem pela cena das 7h; o resto vai para trilhos horizontais.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · ≈ 9.240 px</span>
@@ -331,7 +377,7 @@ p{margin:0}
       <span class="metric good">≈ 5,5 telas</span></div>
     <div class="col" style="flex:1;min-width:300px"><span class="tag new">Desktop · 12 colunas</span>
       <div class="desk" style="max-width:520px"><div class="pad" style="gap:10px;padding:10px">
-        <div class="grid g12"><div class="hl" data-n="1" style="grid-column:span 8;padding:6px;display:flex;flex-direction:column;gap:5px"><div class="img r169">lead</div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="meta"><span class="chip fill">Normalizado · 3</span><span><b>✓ Revisado</b></span></div></div>
+        <div class="grid g12"><div class="hl" data-n="1" style="grid-column:span 8;padding:6px;display:flex;flex-direction:column;gap:5px"><div class="img r169">lead</div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="meta"><span>Feito a partir de 3 fontes</span><span><b>✓ Revisado</b></span></div></div>
         <div class="hl" data-n="2" style="grid-column:span 4;padding:6px;display:flex;flex-direction:column;gap:6px"><div class="hs" style="width:40%"></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div></div></div>
         <div class="grid" style="grid-template-columns:repeat(3,1fr)"><div class="hl" data-n="3" style="padding:5px;display:flex;flex-direction:column;gap:4px"><div class="img r32"></div><div class="hs"></div><div class="meta"><span class="chip">Original</span></div></div><div style="padding:5px;display:flex;flex-direction:column;gap:4px;border:1px dashed var(--line)"><div class="img r32"></div><div class="hs"></div></div><div style="padding:5px;display:flex;flex-direction:column;gap:4px;border:1px dashed var(--line)"><div class="img r32">capa</div><div class="hs"></div></div></div>
         <div style="background:var(--block);border:1px dashed var(--meta);padding:6px"><div class="meta"><span class="chip">Agregado · outros portais</span></div></div>
@@ -342,8 +388,8 @@ p{margin:0}
 
 <!-- 6 CARDS + EDITORIA + BUSCA -->
 <section class="sec">
-  <header><p class="eyebrow">Listas</p><h2>6. Editoria e Busca: imagem, hierarquia e filtro sem botão</h2>
-  <p>O título da página deixa de ser maior que a manchete. Na Busca, os filtros valem na hora e “Perguntar à IA” vira a primeira linha dos resultados.</p></header>
+  <header><p class="eyebrow">Listas</p><h2>7. Editoria e Busca: imagem, hierarquia e filtro sem botão</h2>
+  <p>O título da página deixa de ser maior que a manchete. Na Busca, os filtros valem na hora e “Perguntar ao CityNews” vira a primeira linha dos resultados.</p></header>
   <div class="pair">
     <div class="col"><span class="tag new">Editoria · 1280</span>
       <div class="desk" style="max-width:480px"><div class="pad" style="padding:12px;gap:10px">
@@ -363,16 +409,16 @@ p{margin:0}
           <div class="bub ia hl" data-n="2" style="max-width:100%;align-self:stretch;flex-direction:row;align-items:center;gap:6px"><span class="av"></span><div style="flex:1"><div class="hs" style="width:60%"></div><div class="t xs" style="margin-top:3px"></div></div><span class="sub">›</span></div>
           <div class="sub">5 resultados para “prefeitura”</div>
           <div class="card hl" data-n="3" style="padding:4px"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip">Agregado · fonte</span><span>9h</span></div></div></div>
-          <div class="card"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip fill">Normalizado · 4</span><b>✓ Revisado</b></div></div></div>
+          <div class="card"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span>Feito a partir de 4 fontes</span><b>✓ Revisado</b></div></div></div>
           <div class="card"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="meta"><span class="chip fill">Original</span></div></div></div>
         </div></div>
-      <p class="note"><b>1</b> abas como chips; filtros aplicam sem “Aplicar” · <b>2</b> “Perguntar à IA” abre o chat com a mesma pergunta · <b>3</b> miniatura, 1 plaqueta, termo destacado.</p></div>
+      <p class="note"><b>1</b> abas como chips; filtros aplicam sem “Aplicar” · <b>2</b> “Perguntar ao CityNews” abre o chat com a mesma pergunta · <b>3</b> miniatura, 1 plaqueta, termo destacado.</p></div>
   </div>
 </section>
 
 <!-- 7 AGENDA -->
 <section class="sec">
-  <header><p class="eyebrow">Descoberta</p><h2>7. Agenda: por dia, com atalhos e imagem</h2>
+  <header><p class="eyebrow">Descoberta</p><h2>8. Agenda: por dia, com atalhos e imagem</h2>
   <p>Hoje é uma lista de texto corrido. A proposta responde às perguntas reais (“hoje”, “fim de semana”, “de graça”) e mostra o evento como um cartão com imagem.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · 1280</span>
@@ -398,7 +444,7 @@ p{margin:0}
 
 <!-- 8 FONTES -->
 <section class="sec">
-  <header><p class="eyebrow">Descoberta</p><h2>8. Fontes: card enxuto, detalhes sob demanda</h2>
+  <header><p class="eyebrow">Descoberta</p><h2>9. Fontes: card enxuto, detalhes sob demanda</h2>
   <p>Hoje cada card carrega quatro estatísticas, dois botões e “Ocultar”. A proposta deixa o essencial na vista e esconde o resto.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje</span>
@@ -412,7 +458,7 @@ p{margin:0}
 </section>
 
 <footer style="border-top:1px solid var(--line);padding-top:20px;color:var(--meta);font-size:13px;max-width:72ch;display:flex;flex-direction:column;gap:6px">
-  <p><b style="color:var(--ink)">Decisão a confirmar:</b> a seção 3 relaxa a leitura da regra de rótulos para “cada rótulo junto do conteúdo que descreve, com a origem principal sempre visível”.</p>
-  <p>Spec: <code>docs/superpowers/specs/2026-10-02-ui-publica-design.md</code> · Plano: <code>docs/superpowers/plans/2026-10-02-ui-publica.md</code> (UI-T12 login, UI-T13 chat).</p>
+  <p><b style="color:var(--ink)">Decisões a confirmar:</b> (1) o novo vocabulário muda a regra de rótulos do CLAUDE.md; (2) páginas legais sobre uso de IA e o rótulo de imagem gerada (hoje inexistente) ficam fora do corte; (3) “revisado automaticamente” significa publicação pelas regras com verificação de fontes.</p>
+  <p>Spec: <code>docs/superpowers/specs/2026-10-02-ui-publica-design.md</code> · Plano: <code>docs/superpowers/plans/2026-10-02-ui-publica.md</code> (UI-T12 login, UI-T13 chat, UI-T16 imagens).</p>
 </footer>
 </div>
