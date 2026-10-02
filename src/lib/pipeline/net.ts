@@ -167,13 +167,27 @@ export interface SafeGetOptions {
   headers: Record<string, string>;
   signal: AbortSignal;
   maxBytes: number;
+  /**
+   * Leitura por prefixo (sitemaps anuais que passam de `maxBytes`): lê o corpo em streaming só até
+   * `prefixBytes`, devolve o prefixo com `truncated: true` e cancela o stream (o resto não é
+   * baixado). Em vez de `too_large`, e sem olhar o `content-length`. Sem a opção, nada muda.
+   */
+  prefixBytes?: number;
   maxRedirects?: number;
   /** Regra extra por salto (ex.: imagem só do domínio da fonte). Motivo ou `null`. */
   allowUrl?: (url: URL) => string | null;
 }
 
 export type SafeGetResult =
-  | { kind: "ok"; url: string; status: number; headers: Headers; body: Uint8Array }
+  | {
+      kind: "ok";
+      url: string;
+      status: number;
+      headers: Headers;
+      body: Uint8Array;
+      /** Só presente (`true`) quando `prefixBytes` cortou o corpo. */
+      truncated?: true;
+    }
   /** Resposta fora de 2xx (inclusive 304), sem corpo lido. */
   | { kind: "status"; url: string; status: number; headers: Headers }
   | { kind: "blocked"; reason: string }
@@ -210,6 +224,32 @@ export async function readLimited(res: Response, max: number): Promise<Uint8Arra
     at += c.byteLength;
   }
   return out;
+}
+
+/**
+ * Lê no máximo `max` bytes do corpo em streaming. Passou de `max`: devolve os primeiros `max`
+ * bytes com `truncated: true` e cancela o stream. Cabe em `max`: devolve tudo.
+ */
+export async function readPrefix(
+  res: Response,
+  max: number,
+): Promise<{ body: Uint8Array; truncated: boolean }> {
+  if (!res.body) return { body: new Uint8Array(0), truncated: false };
+  const reader = res.body.getReader();
+  const out = new Uint8Array(max);
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) return { body: out.slice(0, total), truncated: false };
+    const room = max - total;
+    if (value.byteLength > room) {
+      out.set(value.subarray(0, room), total);
+      await reader.cancel().catch(() => undefined);
+      return { body: out, truncated: true };
+    }
+    out.set(value, total);
+    total += value.byteLength;
+  }
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -268,6 +308,21 @@ export async function safeGet(
     if (res.status < 200 || res.status >= 300) {
       await res.body?.cancel().catch(() => undefined);
       return { kind: "status", url: target, status: res.status, headers: res.headers };
+    }
+    if (opts.prefixBytes !== undefined) {
+      try {
+        const { body, truncated } = await readPrefix(res, opts.prefixBytes);
+        return {
+          kind: "ok",
+          url: target,
+          status: res.status,
+          headers: res.headers,
+          body,
+          ...(truncated ? { truncated: true as const } : {}),
+        };
+      } catch (e) {
+        return { kind: "network_error", message: message(e) };
+      }
     }
     let body: Uint8Array | null;
     try {

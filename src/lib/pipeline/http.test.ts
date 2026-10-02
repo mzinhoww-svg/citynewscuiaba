@@ -177,3 +177,41 @@ describe("coletor HTTP", () => {
     ]);
   });
 });
+
+describe("crawlGet com prefixBytes (sitemap)", () => {
+  it("lê só o prefixo, devolve truncated e não baixa o resto", async () => {
+    let pulled = 0;
+    const http = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(c) {
+            pulled++;
+            c.enqueue(new TextEncoder().encode("<urlset>".padEnd(1024, " ")));
+            if (pulled > 5000) c.close();
+          },
+        }),
+        { headers: { "content-length": "5120000" } },
+      );
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://a.example/sitemap.xml",
+      { ...opts, prefixBytes: 4096 },
+    );
+    expect(r.kind).toBe("ok");
+    if (r.kind !== "ok") return;
+    expect(r.truncated).toBe(true);
+    expect(r.body.length).toBe(4096);
+    expect(pulled).toBeLessThan(10);
+  });
+
+  it("documento pequeno vem inteiro e sem a marca truncated", async () => {
+    const { http } = createFakeHttp({ "https://a.example/sitemap.xml": { body: "<urlset/>" } });
+    const r = await crawlGet(
+      { repo, http, resolve: fakeResolve(), userAgent: DEFAULT_USER_AGENT },
+      "https://a.example/sitemap.xml",
+      { ...opts, prefixBytes: 4096 },
+    );
+    expect(r).toMatchObject({ kind: "ok", body: "<urlset/>" });
+    expect("truncated" in r).toBe(false);
+  });
+});

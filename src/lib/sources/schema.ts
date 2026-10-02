@@ -46,6 +46,11 @@ export const consumptionSchema = z.object({
   strategy: z.enum(["rss", "atom", "jsonfeed", "sitemap_news", "page_list", "page_article"]),
   feedUrl: z.string().url().nullable().optional(),
   pageSelectors: pageSelectorsSchema.nullable().optional(),
+  /**
+   * Enriquecimento por página (og:title, og:image, data, lead) só dos itens novos, passo `enrich`
+   * entre `normalize` e `dedupe`. Desligado por padrão; fonte sem a flag nunca paga a requisição.
+   */
+  enrich: z.boolean().optional(),
   robots: z
     .object({
       crawlDelaySec: z.number().int().nonnegative().nullable(),

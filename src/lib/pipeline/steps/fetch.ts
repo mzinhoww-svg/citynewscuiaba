@@ -1,6 +1,6 @@
 import { err, ok } from "@/lib/result";
 import { afterFetch } from "@/lib/sources/status";
-import { checkRobots, crawlGet, type CrawlDeps } from "../http";
+import { checkRobots, crawlGet, type CrawlDeps, type CrawlResponse } from "../http";
 import type { IngestRepo, SourceRecord } from "../ports";
 import { MAX_ATTEMPTS } from "../retry";
 import {
@@ -11,6 +11,12 @@ import {
   type StepHandler,
   type StepResult,
 } from "../run-step";
+import {
+  mergeSitemaps,
+  previousYearSitemapUrl,
+  resolveYearlySitemapUrl,
+  SITEMAP_PREFIX_BYTES,
+} from "../sitemap";
 import type { PipelineMessage } from "../types";
 import { fastWindowStart } from "../window";
 
@@ -29,6 +35,38 @@ export const AUTO_PAUSE_DEDUPE_SEC = 600;
 /** URL coletada: o feed descoberto, ou a página inicial para fontes do tipo `page`. */
 export function collectUrl(source: SourceRecord): string | null {
   return source.feedUrl ?? (source.kind === "page" ? source.baseUrl : null);
+}
+
+/**
+ * Coleta de sitemap (`kind = 'sitemap'`): lê só o prefixo (`SITEMAP_PREFIX_BYTES`) do arquivo, que
+ * é ordenado do mais novo ao mais antigo mas cresce o ano todo (um anual passa de 4 MB). Em 1º e 2
+ * de janeiro (Cuiabá) lê também o fim do arquivo do ano anterior e junta as duas listas; uma falha
+ * nesse segundo arquivo é ignorada (o ano novo é o que vale). Só sitemap passa por aqui.
+ */
+export async function crawlSitemap(
+  deps: IngestDeps,
+  url: string,
+  limits: { bucket: string; limitPerHour: number; signal?: AbortSignal },
+  conditional: { etag: string | null; lastModified: string | null },
+): Promise<CrawlResponse> {
+  const opts = { ...limits, prefixBytes: SITEMAP_PREFIX_BYTES };
+  const primary = await crawlGet(deps, url, { ...opts, ...conditional });
+  const previous = previousYearSitemapUrl(url, deps.now());
+  if (!previous) return primary;
+  if (primary.kind !== "ok" && !(primary.kind === "http_error" && primary.status === 404))
+    return primary;
+  const second = await crawlGet(deps, previous, opts);
+  if (second.kind !== "ok") return primary;
+  if (primary.kind !== "ok") return second;
+  return {
+    kind: "ok",
+    url: primary.url,
+    status: primary.status,
+    body: mergeSitemaps(primary.body, second.body),
+    contentType: primary.contentType,
+    etag: primary.etag,
+    lastModified: primary.lastModified,
+  };
 }
 
 /**
@@ -97,12 +135,15 @@ export async function runFetch(
     if (!claimed) return { outcome: "already_fetched", result: ok([]) };
   }
 
-  const url = collectUrl(source);
-  if (!url) {
+  const collect = collectUrl(source);
+  if (!collect) {
     const reason = "fonte sem feed descoberto: rode activateSource";
     await deps.repo.updateSource(source.id, { lastError: reason });
     return failure(stepError.invalid(reason));
   }
+  const isSitemap = source.kind === "sitemap";
+  // Sitemap anual (`…/AAAA.xml`): sempre o arquivo do ano corrente em America/Cuiaba.
+  const url = isSitemap ? resolveYearlySitemapUrl(collect, deps.now()) : collect;
 
   const limits = {
     bucket: `crawler:${source.slug}`,
@@ -122,11 +163,10 @@ export async function runFetch(
     return { outcome: "skipped", result: ok([]) };
   }
 
-  const res = await crawlGet(deps, url, {
-    ...limits,
-    etag: source.etag,
-    lastModified: source.lastModified,
-  });
+  const conditional = { etag: source.etag, lastModified: source.lastModified };
+  const res = isSitemap
+    ? await crawlSitemap(deps, url, limits, conditional)
+    : await crawlGet(deps, url, { ...limits, ...conditional });
   const fetchedAt = deps.now().toISOString();
   switch (res.kind) {
     case "rate_limited":
@@ -173,6 +213,7 @@ export async function runFetch(
           sourceKind: source.kind,
           etag: res.etag,
           lastModified: res.lastModified,
+          ...(res.truncated ? { truncated: true } : {}),
         },
       });
       // ETag/Last-Modified só no validate: se esta mensagem cair antes de enfileirar o validate,

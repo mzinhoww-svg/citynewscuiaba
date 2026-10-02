@@ -264,6 +264,7 @@ const RawPayloadSchema = z.object({
   sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
   etag: z.string().nullable().optional(),
   lastModified: z.string().nullable().optional(),
+  truncated: z.boolean().optional(),
 });
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
@@ -526,6 +527,37 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       const pending =
         data.duplicate_of === null && data.quarantined_at === null && data.relevance === null;
       return { id: data.id, created: false, pending };
+    },
+
+    async collectedForEnrich(id) {
+      const { data, error } = await db
+        .from("collected_items")
+        .select("id, source_id, canonical_url, original_title, excerpt, published_at, image_url")
+        .eq("id", id)
+        .maybeSingle();
+      check("collectedForEnrich", error);
+      if (!data) return null;
+      return {
+        id: data.id,
+        sourceId: data.source_id,
+        canonicalUrl: data.canonical_url,
+        originalTitle: data.original_title,
+        excerpt: data.excerpt,
+        publishedAt: data.published_at,
+        imageUrl: data.image_url,
+      };
+    },
+
+    async applyEnrichment(id, patch) {
+      const update = {
+        ...(patch.originalTitle !== undefined ? { original_title: patch.originalTitle } : {}),
+        ...(patch.excerpt !== undefined ? { excerpt: patch.excerpt } : {}),
+        ...(patch.publishedAt !== undefined ? { published_at: patch.publishedAt } : {}),
+        ...(patch.imageUrl !== undefined ? { image_url: patch.imageUrl } : {}),
+      };
+      if (Object.keys(update).length === 0) return;
+      const { error } = await db.from("collected_items").update(update).eq("id", id);
+      check("applyEnrichment", error);
     },
   };
 }
