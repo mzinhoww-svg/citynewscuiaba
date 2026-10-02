@@ -74,9 +74,9 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
 
     const visitor = await context.browser()!.newPage();
     await visitor.goto("/pergunte?q=obras+no+CPA");
-    await expect(visitor.getByText("A busca com IA está desligada no momento")).toBeVisible();
-    await expect(visitor.getByText(/A redação pausou a busca com IA/)).toBeVisible();
-    // Sem IA, a página mostra a busca tradicional logo abaixo (com "Ver todos os resultados"
+    await expect(visitor.getByText("Assistente indisponível")).toBeVisible();
+    await expect(visitor.getByText(/A redação pausou o assistente/)).toBeVisible();
+    // Sem o assistente, a página mostra a busca tradicional logo abaixo (com "Ver todos os resultados"
     // quando há resultado, ou o aviso de vazio) e nunca o botão "Tentar de novo".
     await expect(
       visitor.getByText(/Resultados da busca tradicional|também não encontrou/),
