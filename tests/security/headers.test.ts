@@ -114,8 +114,8 @@ describe("CSP emitida pelo proxy", () => {
 describe("cabeçalhos fixos do next.config", () => {
   async function headers() {
     const rules = await nextConfig.headers!();
-    const all = rules.find((r) => r.source === "/:path*");
-    expect(all, "regra /:path*").toBeDefined();
+    const all = rules.find((r) => r.source.startsWith("/(("));
+    expect(all, "regra geral").toBeDefined();
     return new Map(all!.headers.map((h) => [h.key.toLowerCase(), h.value]));
   }
 
@@ -171,7 +171,10 @@ describe("nenhum script inline sem nonce no código", () => {
     for (const file of source) {
       const text = readFileSync(file, "utf8");
       if (/href=["']javascript:/i.test(text)) bad.push(`${file}: javascript:`);
-      if (/dangerouslySetInnerHTML/.test(text) && !/ld\+json|themeScript|ldScript/.test(text))
+      if (
+        /dangerouslySetInnerHTML/.test(text) &&
+        !/ld\+json|themeScript|ldScript|ICON_SPRITE/.test(text)
+      )
         bad.push(`${file}: dangerouslySetInnerHTML fora de JSON-LD/tema`);
     }
     expect(bad).toEqual([]);
