@@ -1,0 +1,441 @@
+<title>Wireframes UI Pública</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&family=Source+Serif+4:wght@600&display=swap">
+<style>
+/* Layout: prancha de wireframes, cada proposta com "Hoje" e "Proposta" lado a lado. Papel de planta em cinza azulado, Urucum só marca o que muda. */
+:root{
+  --bg:#EEF1F5; --panel:#FFFFFF; --ink:#0F1B2D; --meta:#4B5563; --line:#C7CED8; --block:#DDE3EA; --block2:#CBD3DD;
+  --urucum:#C2410C; --urucum-soft:#FBE7DD; --ia:#1E4DB7; --ia-soft:#E4ECFB; --ok:#1F6B4A; --ok-soft:#DDF0E6;
+  --f-ui:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-serif:"Source Serif 4",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1220; --panel:#131D2E; --ink:#E8EDF4; --meta:#9AA7B8; --line:#2C3A50; --block:#1D2A40; --block2:#27374F;
+  --urucum:#FF8A5C; --urucum-soft:#3A2218; --ia:#8DB0FF; --ia-soft:#1A2A4D; --ok:#7BD1A5; --ok-soft:#16352A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1220; --panel:#131D2E; --ink:#E8EDF4; --meta:#9AA7B8; --line:#2C3A50; --block:#1D2A40; --block2:#27374F;
+  --urucum:#FF8A5C; --urucum-soft:#3A2218; --ia:#8DB0FF; --ia-soft:#1A2A4D; --ok:#7BD1A5; --ok-soft:#16352A; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);padding-inline:16px;padding-block:24px 64px;line-height:1.45}
+*{box-sizing:border-box}
+.wrap{max-width:1180px;margin-inline:auto;display:flex;flex-direction:column;gap:56px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:22px;font-weight:800;margin:0;letter-spacing:-.01em;text-wrap:balance}
+p{margin:0}
+.lede{max-width:64ch;color:var(--meta);font-size:16px;margin-top:10px}
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--urucum)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:18px;font-size:13px;color:var(--meta)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.sw{width:14px;height:14px;border:1px solid var(--line);background:var(--block);display:inline-block}
+.sw.u{background:var(--urucum-soft);border-color:var(--urucum)}
+.sec{display:flex;flex-direction:column;gap:18px}
+.sec header{display:flex;flex-direction:column;gap:6px;max-width:70ch}
+.sec header p{color:var(--meta);font-size:15px}
+.pair{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.tag{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--meta)}
+.tag.new{color:var(--urucum)}
+.note{font-size:13px;color:var(--meta);max-width:34ch}
+.note b{color:var(--ink)}
+.metric{font-size:13px;font-weight:700;padding:3px 8px;border:1px solid var(--line);background:var(--panel);align-self:flex-start}
+.metric.bad{border-color:var(--urucum);color:var(--urucum)}
+.metric.good{border-color:var(--ok);color:var(--ok)}
+
+/* primitivas de wireframe */
+.phone{width:260px;max-width:100%;background:var(--panel);border:1.5px solid var(--ink);border-radius:18px;overflow:hidden;position:relative;display:flex;flex-direction:column}
+.phone.fold{height:563px}
+.desk{background:var(--panel);border:1.5px solid var(--ink);border-radius:8px;overflow:hidden;width:100%;max-width:880px;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.bar .logo{width:54px;height:14px;background:var(--ink);border-radius:2px}
+.bar .sp{flex:1}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--urucum)}
+.nav{display:flex;gap:10px;padding:6px 10px;border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap}
+.nav i{font-style:normal;font-size:9px;color:var(--meta)}
+.nav i.on{color:var(--ink);font-weight:700;border-bottom:2px solid var(--urucum)}
+.pad{padding:10px;display:flex;flex-direction:column;gap:7px;min-width:0}
+.t{height:6px;background:var(--block2);border-radius:2px}
+.t.s{width:62%}.t.xs{width:38%}.t.m{width:82%}
+.h{height:10px;background:var(--ink);border-radius:2px}
+.h.s{width:70%}
+.hs{height:7px;background:var(--ink);border-radius:2px}
+.img{background:var(--block);border:1px solid var(--line);position:relative;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--meta);letter-spacing:.06em;text-transform:uppercase;
+  background-image:linear-gradient(to top right,transparent calc(50% - .5px),var(--line) calc(50% - .5px),var(--line) calc(50% + .5px),transparent calc(50% + .5px)),linear-gradient(to bottom right,transparent calc(50% - .5px),var(--line) calc(50% - .5px),var(--line) calc(50% + .5px),transparent calc(50% + .5px))}
+.img.r169{aspect-ratio:16/9}.img.r32{aspect-ratio:3/2}.img.r1{aspect-ratio:1}
+.solid{background:var(--ink);color:var(--panel);font-size:11px;font-weight:700;padding:10px;display:flex;align-items:flex-end;min-height:84px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 5px;border:1px solid var(--ink);border-radius:3px;white-space:nowrap;color:var(--ink)}
+.chip.fill{background:var(--ink);color:var(--panel)}
+.chip.ia{border:1px dashed var(--ia);color:var(--ia);background:var(--ia-soft)}
+.chip.ok{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
+.chip.st{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.stack{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.strip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.strip .p{border:1px solid var(--ink);padding:2px 5px;border-radius:3px}
+.strip .p.fill{background:var(--ink);color:var(--panel)}
+.strip .x{color:var(--ia)}.strip .y{color:var(--ok)}
+.btn{height:16px;padding:0 7px;border:1px solid var(--ink);border-radius:99px;font-size:8px;font-weight:700;display:inline-flex;align-items:center;color:var(--ink);white-space:nowrap}
+.btn.pri{background:var(--ink);color:var(--panel)}
+.btn.sq{width:16px;padding:0;justify-content:center;border-radius:50%}
+.row{display:flex;gap:6px;align-items:center;min-width:0}
+.row>*{min-width:0}
+.card{display:flex;gap:7px}
+.card .body{flex:1;display:flex;flex-direction:column;gap:4px}
+.hl{border:1px dashed var(--urucum);background:var(--urucum-soft);position:relative}
+.hl::after{content:attr(data-n);position:absolute;top:-8px;right:-8px;width:16px;height:16px;border-radius:50%;background:var(--urucum);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.grid{display:grid;gap:10px}
+.g12{grid-template-columns:repeat(12,1fr)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1.5px solid var(--ink);padding:9px 10px;display:flex;flex-direction:column;gap:6px}
+.sheet.big{padding-bottom:12px}
+.ruler{background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--u)*844 - 1px),var(--urucum) calc(var(--u)*844 - 1px),var(--urucum) calc(var(--u)*844))}
+.long{width:120px;border:1.5px solid var(--ink);border-radius:10px;overflow:hidden;--u:.3px;display:flex;flex-direction:column;background:var(--panel)}
+.long .m{border-bottom:1px solid var(--line);font-size:8px;color:var(--meta);padding:2px 4px;display:flex;align-items:center;overflow:hidden;background:var(--block)}
+.long .m.k{background:var(--ink);color:var(--panel)}
+.long .m.n{background:var(--urucum-soft);color:var(--urucum);font-weight:700}
+.longwrap{position:relative}
+.longwrap .ruler{position:absolute;inset:0;pointer-events:none;opacity:.7}
+.cols{display:grid;gap:10px}
+.anat{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1.5px solid var(--ink);border-radius:8px;padding:14px;max-width:560px}
+.anat .lab{font-size:12px;color:var(--meta)}
+@media (prefers-reduced-motion:no-preference){.hl::after{transition:transform .2s}}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">CityNews Cuiabá · UI das telas públicas</p>
+  <h1>Wireframes das principais propostas</h1>
+  <p class="lede">Cada prancha compara o que existe hoje com a proposta da spec <code>2026-10-02-ui-publica-design.md</code>. Baixa fidelidade: mostram hierarquia, ordem e proporção, não cor final nem texto final. Medidas vêm das capturas locais em 390 e 1280 px.</p>
+  <div class="legend">
+    <span><i class="sw"></i> Estrutura existente</span>
+    <span><i class="sw u"></i> O que muda na proposta</span>
+    <span><i class="chip ia" style="font-style:normal">IA</i> Rótulo de origem (sempre em texto)</span>
+  </div>
+</header>
+
+<!-- 1 CONSENTIMENTO -->
+<section class="sec">
+  <header><p class="eyebrow">F1 · Chrome</p><h2>1. Consentimento compacto na primeira dobra</h2>
+  <p>Texto legal e as três escolhas ficam iguais. Muda o tamanho: a leitora vê manchete, resumo e origem sem rolar.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · 390×844</span>
+      <div class="phone fold">
+        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
+        <div class="pad">
+          <div class="solid">● Clima</div>
+          <div class="t xs" style="background:var(--urucum)"></div>
+          <div class="h"></div><div class="h"></div><div class="h s"></div>
+          <div class="t"></div><div class="t m"></div>
+        </div>
+        <div class="sheet big" style="height:35%">
+          <div class="hs" style="width:55%"></div><div class="t"></div><div class="t"></div><div class="t s"></div>
+          <div class="row"><span class="btn" style="flex:1;height:20px;justify-content:center">Só o necessário</span><span class="btn" style="flex:1;height:20px;justify-content:center">Escolher</span></div>
+          <span class="btn pri" style="height:22px;justify-content:center">Aceitar recomendações</span>
+        </div>
+      </div>
+      <span class="metric bad">Banner ≈ 35% da altura</span>
+      <p class="note">Corta o resumo e a origem. A manchete aparece pela metade.</p>
+    </div>
+    <div class="col"><span class="tag new">Proposta · 390×844</span>
+      <div class="phone fold">
+        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
+        <div class="pad">
+          <div class="img r169 hl" data-n="2">foto ou capa</div>
+          <div class="strip hl" data-n="3"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
+          <div class="h"></div><div class="h"></div><div class="h s"></div>
+          <div class="t"></div><div class="t m"></div><div class="t s"></div>
+        </div>
+        <div class="sheet hl" data-n="1" style="height:12%;justify-content:center">
+          <div class="t"></div><div class="t s"></div>
+          <div class="row"><span class="btn">Só o necessário</span><span class="btn">Escolher</span><span class="btn pri">Aceitar</span></div>
+        </div>
+      </div>
+      <span class="metric good">Banner ≤ 15% da altura</span>
+      <p class="note"><b>1</b> faixa baixa com as 3 escolhas em linha · <b>2</b> imagem logo abaixo do cabeçalho · <b>3</b> origem em uma linha.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2 HOME MOBILE -->
+<section class="sec">
+  <header><p class="eyebrow">F4 · Home</p><h2>2. Home no celular: de 11 telas para 5,5</h2>
+  <p>As duas colunas estão na mesma escala (1 px = 0,3 px reais). Cada linha laranja marca uma tela de 844 px. A ordem segue a cena das 7h: o que está acontecendo, depois o resto em trilhos.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · ≈ 9.240 px</span>
+      <div class="longwrap"><div class="long">
+        <div class="m" style="height:calc(var(--u)*160)">cabeçalho</div>
+        <div class="m" style="height:calc(var(--u)*50)">data</div>
+        <div class="m k" style="height:calc(var(--u)*170)">bloco chapado</div>
+        <div class="m" style="height:calc(var(--u)*520)">manchete + resumo</div>
+        <div class="m" style="height:calc(var(--u)*700)">Agora</div>
+        <div class="m" style="height:calc(var(--u)*900)">Assuntos (3 cards)</div>
+        <div class="m" style="height:calc(var(--u)*800)">Coleções (4 cards)</div>
+        <div class="m" style="height:calc(var(--u)*260)">Perto de você</div>
+        <div class="m" style="height:calc(var(--u)*520)">Agenda</div>
+        <div class="m" style="height:calc(var(--u)*520)">Serviços</div>
+        <div class="m" style="height:calc(var(--u)*450)">Política</div>
+        <div class="m" style="height:calc(var(--u)*450)">Economia</div>
+        <div class="m" style="height:calc(var(--u)*450)">Cultura</div>
+        <div class="m" style="height:calc(var(--u)*900)">Mais lidas</div>
+        <div class="m" style="height:calc(var(--u)*220)">Fontes</div>
+        <div class="m" style="height:calc(var(--u)*1100)">Panorama (4 cards)</div>
+        <div class="m" style="height:calc(var(--u)*330)">Newsletter</div>
+        <div class="m" style="height:calc(var(--u)*740)">rodapé</div>
+      </div><div class="ruler" style="--u:.3px"></div></div>
+      <span class="metric bad">≈ 11 telas · tudo em coluna</span>
+    </div>
+    <div class="col"><span class="tag new">Proposta · ≤ 4.700 px</span>
+      <div class="longwrap"><div class="long">
+        <div class="m hl" style="height:calc(var(--u)*120)">cabeçalho enxuto</div>
+        <div class="m n" style="height:calc(var(--u)*220)">foto / capa do lead</div>
+        <div class="m n" style="height:calc(var(--u)*330)">manchete + resumo + origem</div>
+        <div class="m n" style="height:calc(var(--u)*560)">Agora (6 itens)</div>
+        <div class="m n" style="height:calc(var(--u)*300)">trilho · Assuntos ›</div>
+        <div class="m n" style="height:calc(var(--u)*220)">trilho · Coleções ›</div>
+        <div class="m n" style="height:calc(var(--u)*260)">trilho · Agenda ›</div>
+        <div class="m n" style="height:calc(var(--u)*200)">trilho · Serviços ›</div>
+        <div class="m n" style="height:calc(var(--u)*520)">editorias em abas</div>
+        <div class="m" style="height:calc(var(--u)*520)">Mais lidas</div>
+        <div class="m" style="height:calc(var(--u)*200)">Fontes</div>
+        <div class="m" style="height:calc(var(--u)*160)">Perto de você</div>
+        <div class="m" style="height:calc(var(--u)*460)">Panorama (trilho)</div>
+        <div class="m" style="height:calc(var(--u)*280)">Newsletter</div>
+        <div class="m" style="height:calc(var(--u)*340)">rodapé</div>
+      </div><div class="ruler" style="--u:.3px"></div></div>
+      <span class="metric good">≈ 5,5 telas</span>
+    </div>
+    <div class="col" style="flex:1;min-width:240px"><span class="tag">Regras da ordem</span>
+      <div class="anat">
+        <div class="lab"><b>1.</b> Lead com imagem, manchete, resumo e origem na 1ª tela.</div>
+        <div class="lab"><b>2.</b> “Agora” logo depois: 6 itens com horário.</div>
+        <div class="lab"><b>3.</b> Assuntos, Coleções, Agenda e Serviços viram <b>trilhos</b> com rolagem horizontal e ponto de parada.</div>
+        <div class="lab"><b>4.</b> Editorias em abas, um bloco só.</div>
+        <div class="lab"><b>5.</b> Panorama sempre abaixo da dobra, com superfície própria.</div>
+        <div class="lab">Sem carrossel automático. Cada trilho tem nome e teclado.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 HOME DESKTOP -->
+<section class="sec">
+  <header><p class="eyebrow">F4 · Home</p><h2>3. Home no desktop: grade de 12 colunas</h2>
+  <p>Lead em 8 colunas ao lado de “Agora”. Depois três destaques com imagem e módulos em duas colunas.</p></header>
+  <div class="desk">
+    <div class="bar"><span class="logo" style="width:80px"></span><span class="sp"></span><i class="chip" style="font-style:normal">Início</i><i class="chip" style="font-style:normal">Explorar</i><i class="chip" style="font-style:normal">Fontes</i><i class="chip" style="font-style:normal">Agenda</i><span class="btn sq"></span><span class="sp"></span><span class="dot"></span></div>
+    <div class="nav" style="justify-content:center"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i><i>Entretenimento</i><i>Gastronomia</i><i>Serviços</i></div>
+    <div class="pad" style="gap:14px;padding:14px">
+      <div class="grid g12">
+        <div class="hl" data-n="1" style="grid-column:span 8;padding:8px;display:flex;flex-direction:column;gap:6px">
+          <div class="img r169">lead · 16:9</div>
+          <div class="strip"><span class="p fill">Normalizado · 3 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
+          <div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
+          <div class="t"></div><div class="t m"></div>
+        </div>
+        <div class="hl" data-n="2" style="grid-column:span 4;padding:8px;display:flex;flex-direction:column;gap:8px">
+          <div class="hs" style="width:40%"></div>
+          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
+          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
+          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
+          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
+          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
+          <div class="t xs"></div>
+        </div>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="hl" data-n="3" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">standard</div><div class="strip"><span class="p">Original</span><span class="y">✓ Revisado</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
+        <div class="hl" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">standard</div><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
+        <div class="hl" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">capa tipográfica</div><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div style="border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:6px"><div class="hs" style="width:30%"></div><div class="t"></div><div class="t"></div><div class="t s"></div></div>
+        <div style="border:1px solid var(--line);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div></div>
+      </div>
+      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
+        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
+        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
+      </div>
+      <div style="background:var(--block);border:1px dashed var(--meta);padding:8px;display:flex;flex-direction:column;gap:6px"><div class="strip"><span class="p">Agregado · outros portais</span></div><div class="grid" style="grid-template-columns:repeat(4,1fr)"><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div></div></div>
+    </div>
+  </div>
+  <p class="note" style="max-width:none"><b>1</b> lead 8 col, imagem 16:9, origem em uma linha · <b>2</b> “Agora” 4 col, sempre ao lado do lead · <b>3</b> destaques com imagem ou capa tipográfica. Panorama continua em superfície própria e abaixo da dobra.</p>
+</section>
+
+<!-- 4 MATÉRIA -->
+<section class="sec">
+  <header><p class="eyebrow">F3 · Matéria</p><h2>4. Matéria: cabeçalho enxuto e ações em uma linha</h2>
+  <p>Hoje há até 4 plaquetas antes do título e a ação principal se perde numa grade de botões. A proposta põe o título primeiro e a origem numa linha.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · 360 px</span>
+      <div class="phone">
+        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span></div>
+        <div class="pad">
+          <div class="t s"></div>
+          <div class="row"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
+          <div class="stack"><span class="chip fill" style="max-width:100%;overflow:hidden">Normalizado pelo CityNews · 2 fon…</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arr…</span></div>
+          <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
+          <div class="t"></div><div class="t m"></div>
+          <div class="row" style="flex-wrap:wrap"><span class="btn">Salvar</span><span class="btn">Compartilhar</span><span class="btn">Ajustar leitura</span><span class="btn">Informar problema</span></div>
+        </div>
+      </div>
+      <span class="metric bad">4 itens antes do título · rótulo truncado</span>
+    </div>
+    <div class="col"><span class="tag new">Proposta · 360 px</span>
+      <div class="phone">
+        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span></div>
+        <div class="pad">
+          <div class="t s"></div>
+          <div class="row hl" data-n="1"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
+          <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
+          <div class="t"></div><div class="t m"></div>
+          <div class="strip hl" data-n="2"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
+          <div class="t xs"></div>
+          <div class="row hl" data-n="3"><span class="btn pri" style="flex:1;justify-content:center;height:22px">Salvar</span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span></div>
+          <div class="img r169">foto · REPRODUÇÃO · fonte</div>
+          <div class="t"></div><div class="t m"></div>
+        </div>
+      </div>
+      <span class="metric good">1 item antes do título · origem em 1 linha</span>
+      <p class="note"><b>1</b> só kicker e status · <b>2</b> origem logo abaixo do título · <b>3</b> Salvar em destaque; os demais viram ícones com nome acessível e texto a partir de 640 px.</p>
+    </div>
+    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Desktop · leitura</span>
+      <div class="desk" style="max-width:420px">
+        <div class="grid" style="grid-template-columns:2fr 1fr;padding:12px;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:7px">
+            <div class="t s"></div><div class="h" style="height:16px"></div><div class="h s" style="height:16px"></div>
+            <div class="t m"></div>
+            <div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
+            <div class="row"><span class="btn pri">Salvar</span><span class="btn">Compartilhar</span><span class="btn">Ajustar leitura</span><span class="btn">Informar problema</span></div>
+            <div class="img r169">foto + crédito</div>
+            <div class="t"></div><div class="t"></div><div class="t m"></div><div class="t"></div>
+            <div style="border:1px solid var(--line);padding:6px"><div class="hs" style="width:30%"></div></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:7px;background:var(--block);padding:8px;align-self:flex-start">
+            <div class="hs" style="width:70%"></div><div class="t"></div><div class="t s"></div><div class="strip"><span class="p">Todos os rótulos</span></div><div class="t xs"></div>
+          </div>
+        </div>
+      </div>
+      <p class="note" style="max-width:none">Corpo em 68 caracteres. A barra lateral guarda o conjunto completo de rótulos e a explicação.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 5 ORIGINSTRIP -->
+<section class="sec">
+  <header><p class="eyebrow">F3 · Componente novo</p><h2>5. OriginStrip: toda a origem em uma linha</h2>
+  <p>A regra de produto continua: origem sempre visível, em forma, ícone e texto. A faixa mostra a origem principal e os rótulos de IA e revisão por extenso. O conjunto completo (até 4) fica no painel “Como esta matéria foi feita” e no leitor de tela.</p></header>
+  <div class="pair">
+    <div class="anat"><span class="tag">Hoje · pilha de plaquetas</span>
+      <div class="stack"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span><span class="chip">Foto original · crédito</span></div>
+      <span class="lab">3 a 4 linhas por card. Em 360 px o primeiro rótulo corta.</span></div>
+    <div class="anat"><span class="tag new">Proposta · OriginStrip</span>
+      <div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">· IA</span><span class="y">· ✓ Revisado</span></div>
+      <span class="lab">1 linha, nunca corta. Em 320 px quebra em duas linhas inteiras.</span>
+      <div style="border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px">
+        <span class="tag">Painel completo (matéria e “Como foi feita”)</span>
+        <div class="chips"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span><span class="chip">Foto original · crédito</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 CARDS -->
+<section class="sec">
+  <header><p class="eyebrow">F2 · Cards</p><h2>6. Cards: com foto, sem foto e em lista</h2>
+  <p>Sem foto deixa de ser um bloco azul-marinho de 40% da dobra. A capa tipográfica vira cabeçalho de texto no lead e miniatura clara nos demais.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · lead sem foto</span>
+      <div class="phone"><div class="pad"><div class="solid" style="min-height:130px">● Clima</div><div class="t xs" style="background:var(--urucum)"></div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="t"></div></div></div>
+      <span class="metric bad">bloco chapado, sem informação</span></div>
+    <div class="col"><span class="tag new">Proposta · lead sem foto</span>
+      <div class="phone"><div class="pad">
+        <div class="hl" data-n="1" style="padding:6px 8px;display:flex;align-items:center;gap:6px;border-left:4px solid var(--urucum)"><span class="btn sq"></span><span class="hs" style="width:30%"></span><span class="t xs" style="margin-left:auto;width:25%"></span></div>
+        <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
+        <div class="t"></div><div class="t m"></div><div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span></div></div></div>
+      <span class="metric good">altura de texto, manchete sobe</span></div>
+    <div class="col"><span class="tag new">Proposta · lead com foto</span>
+      <div class="phone"><div class="pad">
+        <div class="img r169">foto</div><div class="t xs" style="width:60%;font-size:8px"></div>
+        <div class="strip"><span class="p">Reprodução · Fonte</span></div>
+        <div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div><div class="t"></div></div></div>
+      <p class="note">Crédito e rótulo REPRODUÇÃO ficam sob a imagem, sem recorte.</p></div>
+    <div class="col"><span class="tag new">Proposta · standard e lista</span>
+      <div class="phone"><div class="pad" style="gap:10px">
+        <div class="card"><div class="img r1" style="width:64px;flex:none">foto</div><div class="body"><div class="strip"><span class="p">Original</span></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="t xs"></div></div></div>
+        <div class="card"><div class="img r1" style="width:64px;flex:none;background-image:none;background:var(--block)"><span class="btn sq"></span></div><div class="body"><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="t xs"></div></div></div>
+        <div class="card"><div class="img r1" style="width:64px;flex:none">foto</div><div class="body"><div class="strip"><span class="p">Agregado · fonte</span></div><div class="hs"></div><div class="hs" style="width:70%"></div></div></div>
+      </div></div>
+      <p class="note">Miniatura 1:1 com proporção fixa: zero salto de layout.</p></div>
+  </div>
+</section>
+
+<!-- 7 EDITORIA -->
+<section class="sec">
+  <header><p class="eyebrow">F5 · Listas</p><h2>7. Editoria: manchete manda, filtro numa barra</h2>
+  <p>O título da página deixa de ser maior que a manchete. A lista usa imagem, e o ranking lateral usa a variante de lista.</p></header>
+  <div class="pair">
+    <div class="col" style="flex:1;min-width:260px"><span class="tag">Hoje · 1280 px</span>
+      <div class="desk" style="max-width:520px"><div class="pad" style="padding:12px;gap:10px">
+        <div class="h" style="height:26px;width:34%"></div><div class="t m"></div>
+        <div class="row"><span class="btn pri">Tudo</span><span class="btn">Mobilidade</span></div><div class="row"><span class="btn">⚙ Filtros</span></div>
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid var(--ink);padding-top:8px">
+            <div class="stack"><div class="t xs" style="background:var(--urucum)"></div><div class="hs" style="width:90%"></div><div class="stack"><span class="chip fill">Original</span><span class="chip ok">✓ Revisado</span></div></div>
+            <div class="stack"><div class="t xs" style="background:var(--urucum)"></div><div class="hs" style="width:90%"></div><div class="stack"><span class="chip fill">Original</span><span class="chip ok">✓ Revisado</span></div></div>
+            <div style="height:90px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--meta)">espaço vazio</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px"><div class="hs" style="width:60%"></div><div class="stack"><div class="hs" style="width:100%"></div><span class="chip fill">Normalizado…</span><span class="chip ia">IA</span><span class="chip ok">Revisado…</span></div></div>
+        </div></div></div>
+      <span class="metric bad">título da página 26 px · lista só texto</span></div>
+    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Proposta · 1280 px</span>
+      <div class="desk" style="max-width:520px"><div class="pad" style="padding:12px;gap:10px">
+        <div class="hl" data-n="1" style="padding:4px 6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:22%;height:11px"></div><div class="t m"></div></div>
+        <div class="row hl" data-n="2"><span class="btn pri">Tudo</span><span class="btn">Mobilidade</span><span class="btn">Período ▾</span><span class="btn">Bairro ▾</span><span class="btn">Origem ▾</span></div>
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="hl" data-n="3" style="padding:6px;display:flex;flex-direction:column;gap:5px"><div class="img r169">lead</div><div class="strip"><span class="p">Original</span><span class="y">✓ Revisado</span></div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div></div>
+            <div class="grid" style="grid-template-columns:1fr 1fr"><div style="display:flex;flex-direction:column;gap:4px"><div class="img r32">standard</div><div class="hs"></div><div class="hs" style="width:60%"></div></div><div style="display:flex;flex-direction:column;gap:4px"><div class="img r32">standard</div><div class="hs"></div><div class="hs" style="width:60%"></div></div></div>
+          </div>
+          <div class="hl" data-n="4" style="padding:6px;display:flex;flex-direction:column;gap:7px"><div class="hs" style="width:60%"></div>
+            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div>
+            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div>
+            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div></div>
+        </div></div></div>
+      <p class="note" style="max-width:none"><b>1</b> título de página na escala de tela, menor que a manchete · <b>2</b> filtros numa barra, estado na URL · <b>3</b> lead com imagem · <b>4</b> ranking com miniatura e origem em uma linha.</p></div>
+  </div>
+</section>
+
+<!-- 8 PERGUNTE -->
+<section class="sec">
+  <header><p class="eyebrow">F9 · Produto</p><h2>8. Pergunte ao CityNews: mostrar o diferencial</h2>
+  <p>Hoje a tela é um campo numa coluna estreita com metade do espaço vazio. A proposta centraliza e mostra, antes de qualquer pergunta, como é uma resposta com fonte.</p></header>
+  <div class="pair">
+    <div class="col" style="flex:1;min-width:260px"><span class="tag">Hoje · 1280 px</span>
+      <div class="desk" style="max-width:520px"><div class="pad" style="padding:14px;gap:10px;width:62%">
+        <div class="h" style="height:22px"></div><div class="t"></div><div class="t m"></div>
+        <div class="row"><div style="flex:1;height:22px;border:1px solid var(--ink);border-radius:6px"></div><span class="btn pri" style="height:22px">Perguntar</span></div>
+        <div class="chips"><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span></div>
+      </div><div style="height:90px"></div></div>
+      <span class="metric bad">metade direita e a base vazias</span></div>
+    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Proposta · 1280 px</span>
+      <div class="desk" style="max-width:520px"><div class="pad" style="padding:14px;gap:10px;align-items:center">
+        <div class="h" style="height:20px;width:60%"></div><div class="t" style="width:70%"></div>
+        <div class="row" style="width:80%"><div style="flex:1;height:24px;border:1px solid var(--ink);border-radius:6px"></div><span class="btn pri" style="height:24px">Perguntar</span></div>
+        <div class="chips" style="justify-content:center"><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span></div>
+        <div class="hl" data-n="1" style="width:92%;padding:8px;display:grid;grid-template-columns:2fr 1fr;gap:10px;background:var(--panel)">
+          <div style="display:flex;flex-direction:column;gap:6px"><span class="chip ia" style="align-self:flex-start">Exemplo de resposta</span>
+            <div class="hs" style="width:25%"></div><div class="t"></div><div class="t s"></div>
+            <div class="hs" style="width:30%;background:var(--ia)"></div><div class="t"></div>
+            <div class="hs" style="width:20%;background:var(--urucum)"></div><div class="t m"></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--block);padding:6px"><div class="hs" style="width:60%"></div><div class="t"></div><div class="t"></div><div class="t s"></div></div>
+        </div>
+        <div class="t xs" style="align-self:center"></div>
+      </div></div>
+      <p class="note" style="max-width:none"><b>1</b> cartão de exemplo rotulado, com Fato, Inferência e Lacuna separados e as fontes numeradas ao lado. Mantidos: recusa com menos de 2 fontes, limite e aviso de erro.</p></div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--line);padding-top:20px;color:var(--meta);font-size:13px;max-width:70ch">
+  Próximos passos: aprovar a spec e o plano (<code>docs/superpowers/plans/2026-10-02-ui-publica.md</code>), escolher a forma de execução e começar por UI-T0 (baseline) e UI-T1 (consentimento). Cada fase publica sozinha.
+</footer>
+</div>
