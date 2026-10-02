@@ -341,18 +341,40 @@
 }
 
 /*
- * Banner de consentimento aberto (ConsentBanner): a página ganha no fim o espaço do banner e
- * a rolagem por foco/âncora para acima dele, então ele nunca esconde conteúdo nem o foco.
+ * Foco nunca coberto (WCAG 2.4.11): o cabeçalho fixo e a barra inferior do portal (só abaixo de
+ * 1024 px) entram no `scroll-padding` da página, então o navegador rola o item focado para fora
+ * deles. Cada cabeçalho fixo se declara com `data-sticky`.
  */
+:root:has(header[data-sticky="public"]) {
+  scroll-padding-top: var(--h-sticky-public);
+}
+:root:has(header[data-sticky="studio"]) {
+  scroll-padding-top: var(--h-sticky-studio);
+}
+@media (max-width: 1023.98px) {
+  :root:has(header[data-sticky="public"]) {
+    --cn-bottom-bar: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(var(--cn-bottom-bar) + var(--tap-min));
+  }
+}
+
+/*
+ * Banner de consentimento aberto (ConsentBanner): a página ganha no fim o espaço do banner e
+ * a rolagem por foco/âncora para acima dele (e da barra inferior, quando ela existe), então
+ * ele nunca esconde conteúdo nem o foco.
+ */
+/* (`:root:root` vence a especificidade de `:root:has(...)` acima.) */
 /* Faixa de instalação (C07): a página ganha espaço no fim para a faixa não cobrir nada. */
-:root[data-invite-open] {
-  scroll-padding-bottom: calc(var(--cn-invite-h, 0px) + var(--tap-min));
+:root:root[data-invite-open] {
+  scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-invite-h, 0px) + var(--tap-min));
 }
 :root[data-invite-open] body {
   padding-bottom: var(--cn-invite-h, 0px);
 }
-:root[data-consent-open] {
-  scroll-padding-bottom: calc(var(--cn-consent-h, 0px) + var(--tap-min));
+:root:root[data-consent-open] {
+  scroll-padding-bottom: calc(
+    var(--cn-bottom-bar, 0px) + var(--cn-consent-h, 0px) + var(--tap-min)
+  );
 }
 :root[data-consent-open] body {
   padding-bottom: var(--cn-consent-h, 0px);

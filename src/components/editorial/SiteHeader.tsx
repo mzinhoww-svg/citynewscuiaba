@@ -44,6 +44,7 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   return (
     <header
+      data-sticky="public"
       className={cx("sticky top-0 z-sticky border-b border-line-subtle bg-page", className)}
       style={style}
     >

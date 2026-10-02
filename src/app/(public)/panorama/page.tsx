@@ -43,7 +43,10 @@ export default async function PanoramaRoute({ searchParams }: Props) {
           <Icon name="external-link" size={16} />
           {T.notice}
         </span>
-        <Link href="/" className="font-semibold text-link underline underline-offset-4">
+        <Link
+          href="/"
+          className="inline-flex min-h-tap items-center font-semibold text-link underline underline-offset-4"
+        >
           {T.homeLink}
         </Link>
       </p>

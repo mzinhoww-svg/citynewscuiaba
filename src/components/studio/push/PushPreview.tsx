@@ -32,12 +32,12 @@ export function PushPreview({ title, body, originLabel, className }: PushPreview
             aria-label={T.previewOf[b.key]}
             className={cx(
               "flex flex-col gap-2 rounded-xl border border-line-section p-3",
-              b.key === "iphone" ? "bg-nevoa-2" : "bg-card-white",
+              b.key === "iphone" ? "bg-section" : "bg-card-white",
             )}
           >
             <figcaption className="type-eyebrow text-meta">{T.previewOf[b.key]}</figcaption>
             <div className="flex items-center gap-2 type-meta text-meta">
-              <span className="inline-flex size-5 items-center justify-center rounded-xs bg-tinta text-on-inverse">
+              <span className="inline-flex size-5 items-center justify-center rounded-xs bg-tinta text-branco">
                 <Icon name="bell" size={14} />
               </span>
               <span className="truncate">{T.previewApp}</span>

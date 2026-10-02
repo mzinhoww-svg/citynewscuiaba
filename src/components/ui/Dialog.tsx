@@ -83,6 +83,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
+      tabIndex={-1}
       aria-labelledby={title ? titleId : undefined}
       onClose={() => onClose?.()}
       onClick={(e) => {

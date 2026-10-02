@@ -44,7 +44,7 @@ export function SearchBar({
     <form role="search" action={action} className={className} style={style}>
       <div className="border-control control-field flex h-input items-center gap-3 rounded-lg bg-input pr-1 pl-4">
         <Icon name="search" color="var(--text-placeholder)" />
-        <label className="flex min-w-0 flex-1">
+        <label className="flex h-full min-w-0 flex-1 items-center">
           <span className="sr-only">{label}</span>
           <input
             type="search"

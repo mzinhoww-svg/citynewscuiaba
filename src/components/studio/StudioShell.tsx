@@ -47,7 +47,10 @@ export function StudioShell({ nav, user, children, className }: StudioShellProps
       >
         {NAV_TEXT.skipToContent}
       </a>
-      <header className="sticky top-0 z-sticky flex items-center gap-4 border-b border-line-subtle bg-page px-gutter py-1">
+      <header
+        data-sticky="studio"
+        className="sticky top-0 z-sticky flex items-center gap-4 border-b border-line-subtle bg-page px-gutter py-1"
+      >
         <Link href="/estudio" className="flex items-center gap-2 rounded-xs no-underline">
           <Logo variant="symbol" size="sm" decorative />
           <span className="type-nav-title text-strong">{STUDIO_TEXT.name}</span>
