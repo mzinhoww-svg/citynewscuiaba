@@ -57,6 +57,7 @@ export { NewsletterForm, type NewsletterFormProps } from "./editorial/Newsletter
 export { NowList, type NowListProps } from "./editorial/NowList";
 export { OriginLabel, type OriginLabelProps } from "./editorial/OriginLabel";
 export { Photo, type PhotoProps } from "./editorial/Photo";
+export { ArticleFigure, type ArticleFigureProps } from "./editorial/ArticleFigure";
 export {
   SectionFiltersForm,
   activeFilterCount,

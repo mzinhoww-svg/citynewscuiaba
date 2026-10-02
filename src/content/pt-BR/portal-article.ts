@@ -38,6 +38,9 @@ export const ARTICLE = {
   home: "Início",
   published: "Publicado em",
   updated: "Atualizado em",
+  /** Texto alternativo quando a redação não escreveu um. */
+  figureAlt: (source?: string) =>
+    source?.trim() ? `Imagem de ${source.trim()} sobre a matéria` : "Imagem sobre a matéria",
   readMinutes: (n: number) => `${n} min de leitura`,
   sources: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
   actions: "Ações da matéria",

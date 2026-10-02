@@ -8,11 +8,11 @@ import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { publicImageCaption, publicLabels } from "@/lib/labels";
 import { cx } from "../cx";
 import { Icon, type IconName } from "../ui/Icon";
-import { VisuallyHidden } from "../ui/VisuallyHidden";
 import { CategoryTag } from "./CategoryTag";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { MetaRow } from "./MetaRow";
 import { OriginLabel } from "./OriginLabel";
+import { ImageCaption } from "./ImageCaption";
 import { Photo } from "./Photo";
 
 export interface ArticleCardProps {
@@ -92,30 +92,6 @@ function TypographicCover({
     >
       {icon}
     </div>
-  );
-}
-
-/** Legenda da foto de terceiros, fora da área recortada: origem, crédito do autor e link. */
-function ReproductionCaption({ image }: { image: ArticleImage }) {
-  const caption = publicImageCaption(image.kind, image.credit);
-  return (
-    <p className="relative flex flex-wrap items-center gap-x-3 gap-y-1 type-meta text-meta">
-      <span>
-        {caption}
-        {image.author ? ` · ${CARD.photoBy(image.author)}` : ""}
-      </span>
-      {image.originUrl && (
-        <a
-          href={image.originUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex min-h-tap items-center underline"
-        >
-          {CARD.viewOriginal}
-          <VisuallyHidden> ({CARD.newTab})</VisuallyHidden>
-        </a>
-      )}
-    </p>
   );
 }
 
@@ -254,7 +230,7 @@ export function ArticleCard({
       <div className={cx("flex min-w-0 flex-1 flex-col", !row && "order-3")}>{text}</div>
       {caption && (
         <div className="order-2">
-          <ReproductionCaption image={caption} />
+          <ImageCaption image={caption} />
         </div>
       )}
     </article>

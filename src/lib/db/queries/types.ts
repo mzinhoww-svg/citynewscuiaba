@@ -29,6 +29,11 @@ export interface ArticleImage {
   originUrl?: string;
 }
 
+/** Imagem dentro do texto: entra depois do parágrafo `position` (a partir de 1) do corpo. */
+export interface ArticleInlineImage extends ArticleImage {
+  position: number;
+}
+
 /** Matéria em card (home, editoria, assunto). */
 export interface ArticleSummary {
   id: string;
@@ -49,7 +54,10 @@ export interface ArticleSummary {
   aiSummary: string[] | null;
   byline: string;
   reviewer?: string;
+  /** Capa. Os cards usam só ela. */
   image?: ArticleImage;
+  /** Segunda imagem (outra fonte), dentro do texto da matéria; os cards a ignoram. */
+  inlineImage?: ArticleInlineImage;
   topicId: string | null;
   urgent: boolean;
   sponsored: boolean;

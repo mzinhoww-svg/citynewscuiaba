@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
+import { Fragment } from "react";
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AiSummaryBlock,
   ArticleCard,
+  ArticleFigure,
   Button,
   CategoryTag,
   ConfidenceMeter,
@@ -15,7 +17,6 @@ import {
   JsonLd,
   MadeHow,
   OriginLabel,
-  Photo,
   ReadingProgress,
   ReadingSettings,
   ReadTracker,
@@ -37,7 +38,8 @@ import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
 import { findRedirect } from "@/lib/db/queries/redirects";
 import { formatDateTime } from "@/lib/format/date";
-import { publicImageCaption, publicLabels } from "@/lib/labels";
+import { withInlineFigure } from "@/lib/media/inline-figure";
+import { publicLabels } from "@/lib/labels";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
 import { reportProblemAction } from "./actions";
 
@@ -127,7 +129,7 @@ function Byline({ a }: { a: ArticleView }) {
 
 function Article({ a }: { a: ArticleView }) {
   const historyHref = `${a.href}/historico`;
-  const [first, ...rest] = a.body;
+  const blocks = withInlineFigure(a.body, a.inlineImage?.position);
   const questions = ARTICLE.askQuestions(a.title, a.topic?.title);
   const ld = articleJsonLd({
     slug: a.slug,
@@ -226,22 +228,7 @@ function Article({ a }: { a: ArticleView }) {
               <AiSummaryBlock items={a.aiSummary} reviewer={a.reviewer} className="max-w-read" />
             )}
 
-            {a.image && (
-              <figure className="flex flex-col gap-2">
-                <Photo
-                  src={a.image.src}
-                  alt={a.image.alt}
-                  ratio="16/9"
-                  radius="0"
-                  priority
-                  sizes="(min-width: 64em) 60vw, 100vw"
-                  className="w-full"
-                />
-                <figcaption className="type-meta text-meta">
-                  {publicImageCaption(a.image.kind, a.image.credit)}
-                </figcaption>
-              </figure>
-            )}
+            {a.image && <ArticleFigure image={a.image} priority />}
 
             {a.notes.length > 0 && (
               <div className="flex max-w-read flex-col gap-3">
@@ -261,25 +248,24 @@ function Article({ a }: { a: ArticleView }) {
               </div>
             )}
             <div className="reading-body flex flex-col gap-5 text-body">
-              {first &&
-                (first.type === "paragraph" ? (
-                  <Lead text={first.text} />
-                ) : (
-                  <h2 className="type-headline text-strong">{first.text}</h2>
-                ))}
-              {rest.map((b, i) =>
-                b.type === "paragraph" ? (
-                  <p key={i}>{b.text}</p>
-                ) : b.level === 3 ? (
-                  <h3 key={i} className="type-headline-sm text-strong">
-                    {b.text}
-                  </h3>
-                ) : (
-                  <h2 key={i} className="type-headline text-strong">
-                    {b.text}
-                  </h2>
-                ),
-              )}
+              {blocks.map(({ b, i, figureAfter }) => (
+                <Fragment key={i}>
+                  {b.type === "paragraph" ? (
+                    i === 0 ? (
+                      <Lead text={b.text} />
+                    ) : (
+                      <p>{b.text}</p>
+                    )
+                  ) : b.level === 3 ? (
+                    <h3 className="type-headline-sm text-strong">{b.text}</h3>
+                  ) : (
+                    <h2 className="type-headline text-strong">{b.text}</h2>
+                  )}
+                  {figureAfter && a.inlineImage && (
+                    <ArticleFigure image={a.inlineImage} className="my-2" />
+                  )}
+                </Fragment>
+              ))}
             </div>
 
             <SourcesList

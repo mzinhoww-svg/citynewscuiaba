@@ -302,6 +302,24 @@ describe("ArticleCard", () => {
     expect(photoBox.contains(link)).toBe(false);
   });
 
+  it("card usa só a capa: a imagem do texto da matéria não aparece", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/capa.jpg", alt: "Capa", kind: "reproduction" as const, credit: "MT Agora" },
+      inlineImage: {
+        src: "/texto.jpg",
+        alt: "Imagem do texto",
+        kind: "reproduction" as const,
+        credit: "Folha do Cerrado",
+        position: 3,
+      },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(container.querySelector("img")).toHaveAttribute("src", "/capa.jpg");
+    expect(screen.queryByText(/Folha do Cerrado/)).not.toBeInTheDocument();
+  });
+
   it("foto própria não ganha legenda de reprodução", () => {
     const article = {
       ...baseArticle,
