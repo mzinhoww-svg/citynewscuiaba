@@ -109,7 +109,7 @@ export const ABOUT: InstitutionalDoc = {
       items: [
         `Razão social: ${PENDING}`,
         `CNPJ: ${PENDING}`,
-        `Endereço: ${PENDING}`,
+        `Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`,
         `Responsável editorial: ${PENDING}`,
       ],
     },
@@ -236,7 +236,10 @@ export const PRIVACY: InstitutionalDoc = {
       paragraphs: [
         "Você pode pedir acesso, correção, portabilidade e exclusão dos seus dados. Quem tem conta também pode exportar e excluir os dados no próprio perfil.",
       ],
-      items: [`Encarregado de dados: ${PENDING}`, `E-mail do encarregado: ${PENDING}`],
+      items: [
+        `Encarregado de dados: ${PENDING}`,
+        `E-mail para assuntos de dados: contato@citynews.com.br`,
+      ],
     },
   ],
 };
@@ -293,7 +296,7 @@ export const ADVERTISE: InstitutionalDoc = {
     },
     {
       title: "Contato comercial",
-      items: [`E-mail: ${PENDING}`, `Telefone: ${PENDING}`],
+      items: [`E-mail: contato@citynews.com.br`, `Telefone: ${PENDING}`],
     },
   ],
 };
@@ -307,7 +310,7 @@ export const CONTACT: InstitutionalDoc = {
   sections: [
     {
       title: "Redação",
-      items: [`E-mail da redação: ${PENDING}`, `WhatsApp para pautas: ${PENDING}`],
+      items: [`E-mail da redação: contato@citynews.com.br`, `WhatsApp para pautas: ${PENDING}`],
     },
     {
       title: "Erro em uma matéria",
@@ -318,12 +321,12 @@ export const CONTACT: InstitutionalDoc = {
     {
       title: "Veículos e fontes",
       paragraphs: [
-        `Para pedir correção ou remoção de conteúdo agregado ou de imagem reproduzida, escreva para ${PENDING}. Imagens reproduzidas saem do ar em até 24 h.`,
+        `Para pedir correção ou remoção de conteúdo agregado ou de imagem reproduzida, escreva para contato@citynews.com.br. Imagens reproduzidas saem do ar em até 24 h.`,
       ],
     },
     {
       title: "Endereço",
-      items: [`Endereço: ${PENDING}`],
+      items: [`Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`],
     },
   ],
 };
