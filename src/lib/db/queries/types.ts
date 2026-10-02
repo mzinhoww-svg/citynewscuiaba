@@ -23,6 +23,10 @@ export interface ArticleImage {
   alt: string;
   kind: ImageKind;
   credit?: string;
+  /** Autor da foto, quando a fonte informa (política reproduction). */
+  author?: string;
+  /** Página original da foto (política reproduction), para "Ver original". */
+  originUrl?: string;
 }
 
 /** Matéria em card (home, editoria, assunto). */

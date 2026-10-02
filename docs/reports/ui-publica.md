@@ -74,3 +74,18 @@ acima da barra (respiro inferior via `--cn-consent-h`).
 Notas: ao rolar, a linha principal vai de 56 px para 44 px e o cabeçalho compensa com margem
 inferior, por isso a altura do bloco no fluxo não muda. Páginas legais seguem com os campos
 `[PREENCHER]`. Varredura axe de todas as rotas públicas (claro e escuro, 390 e 1280): 0 violações.
+
+### UI-T4: capa tipográfica compacta e miniaturas nas listas
+
+| Medida                                         | Antes                             | Depois                          | Como foi medido                                                              |
+| ---------------------------------------------- | --------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- |
+| Altura do `lead` sem foto, 1280 px (home)      | 438,75 px (bloco Tinta 16:9, 780 px de largura) | 48 px (faixa + ícone + editoria) | `getBoundingClientRect` de `[data-cover="header"]`, build de produção        |
+| Altura do `lead` sem foto, 390 px (cálculo)    | ~179 px (aspect 2:1 em 358 px)    | 48 px                           | altura fixa `h-12`; o seed do celular não renderizou lead sem foto na medição |
+| Foto nas listas (`compact`, `list`)            | nenhuma (compact) / só alguns casos (list) | miniatura 1:1 de 80 px (compact) e 96 px (list), com ou sem foto | `cards.test.tsx`                                      |
+
+Notas: sem foto, `standard`, `list` e `compact` mostram miniatura Névoa (token `bg-section`, que
+escurece no tema escuro) com o ícone da editoria do sprite (`SECTION_ICONS`; sem mapa, "jornal");
+nenhum bloco Tinta. A faixa do `lead` usa Urucum (Cerrado em Serviços e Guia Cuiabá). Foto de
+terceiros: legenda "Reprodução web · Fonte" com "Foto: autor" e "Ver original" abaixo da imagem,
+fora do recorte; nas miniaturas o `alt` inclui a mesma frase. O campo `author` e `originUrl` do
+`ArticleImage` vem de `media_assets` (política reproduction).

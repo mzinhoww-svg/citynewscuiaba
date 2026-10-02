@@ -40,6 +40,8 @@ export const CARD = {
   newTab: "abre em nova aba",
   openOriginal: "Abrir original",
   by: (name: string) => `Por ${name}`,
+  photoBy: (name: string) => `Foto: ${name}`,
+  viewOriginal: "Ver original",
   topicCounts: (articles: number, sources: number) =>
     `${articles === 1 ? "1 matéria" : `${articles} matérias`} · ${sources === 1 ? "1 fonte" : `${sources} fontes`}`,
   updated: (when: string) => `atualizado ${when}`,

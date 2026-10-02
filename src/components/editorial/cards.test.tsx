@@ -177,10 +177,138 @@ describe("ArticleCard", () => {
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("sem imagem aprovada, usa card tipográfico da editoria", () => {
+  it("sem imagem aprovada, o standard usa miniatura tipográfica da editoria (ícone, sem bloco Tinta)", () => {
     render(<ArticleCard variant="standard" article={baseArticle} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(screen.getByTestId("typographic-cover")).toHaveTextContent("Clima");
+    const cover = screen.getByTestId("typographic-cover");
+    expect(cover.className).toContain("bg-section");
+    expect(cover.className).not.toContain("bg-tinta");
+    expect(cover.querySelector("svg use")).toHaveAttribute("href", "#icon-newspaper");
+    expect(cover.style.aspectRatio || cover.className).toBeTruthy();
+  });
+
+  it("lead sem foto vira cabeçalho tipográfico compacto (altura ≤ 96 px) e a manchete sobe", () => {
+    render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
+    const cover = screen.getByTestId("typographic-cover");
+    expect(cover).toHaveAttribute("data-cover", "header");
+    expect(cover.className.split(/\s+/)).toContain("h-12"); // 48 px (token de espaçamento)
+    expect(cover.className).not.toMatch(/aspect-/);
+    expect(cover).toHaveTextContent("Clima");
+    expect(cover.className).not.toContain("bg-tinta");
+    // a capa vem antes do título, mas sem ocupar a área de uma foto 16:9
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(cover.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("lead com foto usa Photo 16:9 e não mostra a capa tipográfica", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    const { container } = render(<ArticleCard variant="lead" article={article} as="h1" />);
+    expect(screen.queryByTestId("typographic-cover")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Fumaça" })).toBeInTheDocument();
+    expect(container.querySelector<HTMLElement>('[style*="aspect-ratio"]')?.style.aspectRatio).toBe(
+      "16/9",
+    );
+  });
+
+  it("standard com foto usa 3:2 fixo", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(container.querySelector<HTMLElement>('[style*="aspect-ratio"]')?.style.aspectRatio).toBe(
+      "3/2",
+    );
+  });
+
+  describe.each(["compact", "list"] as const)("miniatura na variante %s", (variant) => {
+    it("com foto aprovada: miniatura quadrada de tamanho fixo (CLS zero)", () => {
+      const article = {
+        ...baseArticle,
+        image: { src: "/f.jpg", alt: "Fumaça sobre o rio", kind: "original" as const },
+      };
+      const { container } = render(<ArticleCard variant={variant} article={article} />);
+      expect(screen.getByRole("img", { name: "Fumaça sobre o rio" })).toBeInTheDocument();
+      const box = container.querySelector<HTMLElement>('[style*="aspect-ratio"]');
+      expect(box?.style.aspectRatio).toBe("1 / 1");
+      expect(box?.className).toMatch(/\bsize-(20|24)\b/);
+      expect(screen.queryByTestId("typographic-cover")).not.toBeInTheDocument();
+    });
+
+    it("sem foto: miniatura tipográfica Névoa com ícone da editoria, sem bloco Tinta", () => {
+      render(<ArticleCard variant={variant} article={baseArticle} />);
+      const cover = screen.getByTestId("typographic-cover");
+      expect(cover.className).toContain("bg-section");
+      expect(cover.className).not.toContain("bg-tinta");
+      expect(cover.className).toMatch(/\bsize-(20|24)\b/);
+      expect(cover.querySelector("svg use")).toHaveAttribute("href", "#icon-newspaper");
+      expect(cover).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("editoria mapeada usa o ícone dela; sem mapa, padrão neutro (jornal)", () => {
+      const cidade = { ...baseArticle, section: { slug: "cidade", name: "Cidade" } };
+      const { unmount } = render(<ArticleCard variant={variant} article={cidade} />);
+      expect(screen.getByTestId("typographic-cover").querySelector("svg use")).toHaveAttribute(
+        "href",
+        "#icon-house",
+      );
+      unmount();
+      render(<ArticleCard variant={variant} article={baseArticle} />);
+      expect(screen.getByTestId("typographic-cover").querySelector("svg use")).toHaveAttribute(
+        "href",
+        "#icon-newspaper",
+      );
+    });
+
+    it("foto de terceiros: texto acessível inclui 'Reprodução web · Fonte'", () => {
+      const article = {
+        ...baseArticle,
+        image: {
+          src: "/f.jpg",
+          alt: "Fumaça sobre o rio",
+          kind: "reproduction" as const,
+          credit: "MT Agora",
+        },
+      };
+      render(<ArticleCard variant={variant} article={article} />);
+      expect(screen.getByRole("img", { name: /Reprodução web · MT Agora/ })).toBeInTheDocument();
+    });
+  });
+
+  it("foto de terceiros em lead/standard: legenda 'Reprodução web · Fonte' com crédito e 'Ver original', fora da área recortada", () => {
+    const article = {
+      ...baseArticle,
+      image: {
+        src: "/f.jpg",
+        alt: "Fumaça",
+        kind: "reproduction" as const,
+        credit: "MT Agora",
+        author: "Ana Souza",
+        originUrl: "https://mtagora.example/materia-1",
+      },
+    };
+    render(<ArticleCard variant="standard" article={article} />);
+    const caption = screen.getByText(/Reprodução web · MT Agora/);
+    expect(caption).toHaveTextContent("Foto: Ana Souza");
+    const photoBox = screen.getByRole("img", { name: /Fumaça/ }).parentElement!;
+    expect(photoBox.contains(caption)).toBe(false);
+    const link = screen.getByRole("link", { name: /Ver original/ });
+    expect(link).toHaveAttribute("href", "https://mtagora.example/materia-1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(photoBox.contains(link)).toBe(false);
+  });
+
+  it("foto própria não ganha legenda de reprodução", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    render(<ArticleCard variant="standard" article={article} />);
+    expect(screen.queryByText(/Reprodução web/)).not.toBeInTheDocument();
   });
 });
 

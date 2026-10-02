@@ -175,6 +175,11 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
           : kind === "licensed"
             ? asset.license
             : (asset.credit ?? undefined),
+      author:
+        kind === "reproduction" && asset.credit && asset.credit !== hostOf(asset.origin_url)
+          ? asset.credit
+          : undefined,
+      originUrl: kind === "reproduction" ? (asset.origin_url ?? undefined) : undefined,
     });
   }
 
