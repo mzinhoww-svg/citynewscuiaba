@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, CostChart, EmptyState, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { CostChart } from "@/components/estudio";
 import { AI_TEXT, agentName, formatInt, formatPct } from "@/content/pt-BR/ai-control";
 import { formatBrl } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";

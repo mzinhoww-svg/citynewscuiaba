@@ -1,19 +1,19 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useSyncExternalStore } from "react";
+import { lazy, Suspense, useSyncExternalStore } from "react";
 import { captureInstallPrompt, isStandalone } from "@/lib/app/install";
 import { isBlockedPath } from "@/lib/app/invites";
 import { readAppState } from "@/lib/app/storage";
 import { usePathname } from "next/navigation";
+import { safeDefault } from "@/lib/lazy";
 
 // O `beforeinstallprompt` pode disparar antes de qualquer pedaço carregado sob demanda: a
 // captura fica no bundle principal (poucas linhas) e o convite em si vem depois.
 captureInstallPrompt();
 
-const InstallInvite = dynamic(() => import("./InstallInvite").then((m) => m.InstallInvite), {
-  ssr: false,
-});
+const InstallInvite = lazy(() =>
+  safeDefault(() => import("./InstallInvite").then((m) => m.InstallInvite)),
+);
 
 /**
  * Carrega a faixa de instalação (C07) sob demanda, só quando faz sentido: fora do app
@@ -38,5 +38,9 @@ function wanted(pathname: string): boolean {
 export function InstallInviteSlot() {
   const pathname = usePathname() ?? "/";
   const load = useSyncExternalStore(never, () => wanted(pathname), onServer);
-  return load ? <InstallInvite /> : null;
+  return load ? (
+    <Suspense fallback={null}>
+      <InstallInvite />
+    </Suspense>
+  ) : null;
 }

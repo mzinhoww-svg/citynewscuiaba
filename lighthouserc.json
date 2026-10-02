@@ -1,0 +1,76 @@
+{
+  "ci": {
+    "collect": {
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro",
+        "http://localhost:3000/fontes",
+        "http://localhost:3000/busca?q=viaduto"
+      ],
+      "numberOfRuns": 3,
+      "settings": {
+        "formFactor": "mobile",
+        "chromeFlags": "--no-sandbox --headless=new"
+      }
+    },
+    "assert": {
+      "assertMatrix": [
+        {
+          "matchingUrlPattern": "^http://localhost:3000/(\\?.*)?$",
+          "assertions": {
+            "largest-contentful-paint": [
+              "warn",
+              { "maxNumericValue": 2500, "aggregationMethod": "median" }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+            ],
+            "total-blocking-time": [
+              "warn",
+              { "maxNumericValue": 200, "aggregationMethod": "median" }
+            ],
+            "resource-summary:script:size": ["error", { "maxNumericValue": 170000 }]
+          }
+        },
+        {
+          "matchingUrlPattern": "^http://localhost:3000/busca",
+          "assertions": {
+            "largest-contentful-paint": [
+              "warn",
+              { "maxNumericValue": 2500, "aggregationMethod": "median" }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+            ],
+            "total-blocking-time": [
+              "warn",
+              { "maxNumericValue": 200, "aggregationMethod": "median" }
+            ],
+            "resource-summary:script:size": ["error", { "maxNumericValue": 170000 }]
+          }
+        },
+        {
+          "matchingUrlPattern": "^http://localhost:3000/(materia|fontes)",
+          "assertions": {
+            "largest-contentful-paint": [
+              "warn",
+              { "maxNumericValue": 2500, "aggregationMethod": "median" }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+            ],
+            "total-blocking-time": [
+              "warn",
+              { "maxNumericValue": 200, "aggregationMethod": "median" }
+            ],
+            "resource-summary:script:size": ["error", { "maxNumericValue": 185000 }]
+          }
+        }
+      ]
+    },
+    "upload": { "target": "filesystem", "outputDir": ".lighthouseci" }
+  }
+}

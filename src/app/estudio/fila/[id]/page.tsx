@@ -3,13 +3,12 @@ import Link from "next/link";
 import {
   Button,
   ConfidenceMeter,
-  DecisionPanel,
   EmptyState,
-  FieldDiff,
   InlineAlert,
   OriginLabel,
   SectionHeader,
 } from "@/components";
+import { DecisionPanel, FieldDiff } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   EDITOR_TEXT,

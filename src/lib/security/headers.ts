@@ -54,3 +54,12 @@ export const SECURITY_HEADERS: readonly { key: string; value: string }[] = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
+
+/**
+ * Arquivos imutáveis do build (`/_next/static/*`: JS, CSS, fontes): só o `nosniff`. Os demais
+ * cabeçalhos só têm efeito em documento (HSTS vale para a origem inteira e já sai no HTML), e
+ * repeti-los custava ~340 B por arquivo, algo como 4 kB por página no orçamento de JS (B-018).
+ */
+export const STATIC_ASSET_HEADERS: readonly { key: string; value: string }[] = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+];

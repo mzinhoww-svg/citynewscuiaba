@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { AgentTable, Button, EmptyState } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { AgentTable } from "@/components/estudio";
 import { AGENTS_TEXT as T } from "@/content/pt-BR/ai-prompts";
 import { GLOBAL_DAILY_BUDGET_BRL } from "@/lib/ai/registry";
 import { requireRole } from "@/lib/auth/require-role";

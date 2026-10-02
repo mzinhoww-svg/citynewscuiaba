@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { SECTION_PAGE } from "@/content/pt-BR/portal";
+import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 

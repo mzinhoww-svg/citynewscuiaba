@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AGENDA } from "@/content/pt-BR/portal";
+import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 

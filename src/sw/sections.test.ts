@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { SECTION_DESCRIPTION } from "@/content/pt-BR/portal";
+import { SECTION_DESCRIPTION } from "@/content/pt-BR/portal-section";
 import { SW_SECTIONS } from "./sections";
 
 describe("SW_SECTIONS (G12)", () => {

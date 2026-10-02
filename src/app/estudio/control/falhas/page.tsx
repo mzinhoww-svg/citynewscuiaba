@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, JobTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { JobTable } from "@/components/estudio";
 import { CONTROL_TEXT as T } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
 import { controlAbilities } from "@/lib/control";

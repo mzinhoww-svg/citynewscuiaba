@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { SourceRecForm } from "@/components";
+import { SourceRecForm } from "@/components/estudio";
 import { DETAIL_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { updateSourceAction } from "../../actions";
 import { loadSource, logoUrlOf } from "../detail";

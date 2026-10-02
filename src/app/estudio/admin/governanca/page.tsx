@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { KpiStrip } from "@/components";
+import { KpiStrip } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { requireRole } from "@/lib/auth/require-role";
 import { governanceOverview } from "@/lib/db/queries/admin-ops";

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminTable } from "@/components";
+import { AdminTable } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import { ACTIONS, ROLES, grantOf } from "@/lib/auth/permissions";

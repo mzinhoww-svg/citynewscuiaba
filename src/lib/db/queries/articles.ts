@@ -4,7 +4,7 @@ import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import { labelsFor, type ImageKind } from "@/lib/labels";
 import type { Result } from "@/lib/result";
-import { BYLINE } from "@/content/pt-BR/portal";
+import { BYLINE } from "@/content/pt-BR/portal-card";
 import { many, one, readPublic } from "./run";
 import type {
   ArticleBlock,

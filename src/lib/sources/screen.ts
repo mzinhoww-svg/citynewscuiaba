@@ -1,18 +1,15 @@
 import { SOURCE_CATEGORY_TEXT } from "@/content/pt-BR/sources";
 import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
 import type { AnonProfile } from "@/lib/anon/types";
+import { explainRecommendation } from "@/lib/ranking/explain";
+import { capItems, rankSources } from "@/lib/ranking/rank";
 import {
-  capItems,
-  explainRecommendation,
-  rankSources,
   readerSignals,
   type ComputedSignals,
-  type RankList,
-  type RankedSource,
   type ReaderEvent,
-  type RecConfig,
-} from "@/lib/ranking";
-import type { TrendDirection } from "@/lib/ranking";
+  type TrendDirection,
+} from "@/lib/ranking/signals";
+import type { RankList, RankedSource, RecConfig } from "@/lib/ranking/types";
 
 /**
  * Tela Fontes em destaque (P14, spec §7.5), sem React e sem banco: parâmetros da URL, perfil

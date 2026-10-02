@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  EmptyState,
-  ImageApproval,
-  ImageTextForm,
-  InlineAlert,
-  MediaThumb,
-  OriginLabel,
-} from "@/components";
+import { EmptyState, InlineAlert, OriginLabel } from "@/components";
+import { ImageApproval, ImageTextForm, MediaThumb } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, IMAGE_TEXT, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

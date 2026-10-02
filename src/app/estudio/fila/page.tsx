@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { EmptyState, QueueFilters, QueueTable, QueueTabs, Button } from "@/components";
+import { EmptyState, Button } from "@/components";
+import { QueueFilters, QueueTable, QueueTabs } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, CONFIDENCE_LABEL, QUEUE_TEXT as T } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

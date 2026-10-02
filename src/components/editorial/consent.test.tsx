@@ -71,8 +71,9 @@ it("Aceitar recomendações grava m1|p1 e cria o anonId; Só o necessário apaga
 it("Escolher abre o painel com foco no título, Esc volta sem prender o foco", async () => {
   renderBanner();
   await userEvent.click(screen.getByRole("button", { name: "Escolher" }));
-  const title = screen.getByRole("heading", { name: "Escolha o que o CityNews pode usar" });
-  expect(document.activeElement).toBe(title);
+  // O painel é carregado sob demanda (B-018).
+  const title = await screen.findByRole("heading", { name: "Escolha o que o CityNews pode usar" });
+  await waitFor(() => expect(document.activeElement).toBe(title));
   expect(screen.getByRole("switch", { name: "Métricas agregadas" })).toHaveAttribute(
     "aria-checked",
     "false",
@@ -90,7 +91,7 @@ it("Escolher abre o painel com foco no título, Esc volta sem prender o foco", a
 it("Escolher e salvar grava só o que foi ligado", async () => {
   renderBanner();
   await userEvent.click(screen.getByRole("button", { name: "Escolher" }));
-  await userEvent.click(screen.getByRole("switch", { name: "Métricas agregadas" }));
+  await userEvent.click(await screen.findByRole("switch", { name: "Métricas agregadas" }));
   await userEvent.click(screen.getByRole("button", { name: "Salvar escolhas" }));
   expect(readConsentCookie(document.cookie)).toMatchObject({
     decided: true,

@@ -1,7 +1,7 @@
 "use server";
 
 import { RULES_TEXT as T } from "@/content/pt-BR/rules-admin";
-import type { RuleSetDraft, SimulationView } from "@/components";
+import type { RuleSetDraft, SimulationView } from "@/components/estudio";
 import { proposeRulesCommand, simulateRulesCommand } from "@/lib/studio/rules";
 
 /* Server Actions da tela de regras (P5-T2): camada fina sobre src/lib/studio/rules. */

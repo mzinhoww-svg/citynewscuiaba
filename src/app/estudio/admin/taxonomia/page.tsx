@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TaxonomyPanel } from "@/components";
+import { TaxonomyPanel } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { taxonomyOverview } from "@/lib/db/queries/admin";

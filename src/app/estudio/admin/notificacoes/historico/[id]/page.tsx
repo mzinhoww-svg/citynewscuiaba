@@ -1,14 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Button,
-  EmptyState,
-  Icon,
-  PushBreakdown,
-  PushStatusBadge,
-  PushTimeline,
-} from "@/components";
+import { Button, EmptyState, Icon } from "@/components";
+import { PushBreakdown, PushStatusBadge, PushTimeline } from "@/components/estudio";
 import { clockTime, fullDateTime } from "@/content/pt-BR/sources-admin";
 import { PUSH_ADMIN_TEXT, PUSH_HISTORY_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { requireAnyRole } from "@/lib/auth/require-role";

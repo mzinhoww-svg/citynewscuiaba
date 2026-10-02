@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { FUNNEL_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import type { FunnelFilter } from "@/lib/push/funnel";
-import { Button, NativeSelect, TextInput } from "@/components";
+import { Button } from "@/components";
+import { NativeSelect, TextInput } from "@/components/estudio";
 
 export interface FunnelFiltersProps {
   filter: FunnelFilter;

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, MediaGrid, QueueTabs } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { MediaGrid, QueueTabs } from "@/components/estudio";
 import { MEDIA_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listMedia, type MediaCardData } from "@/lib/db/queries/studio-media";

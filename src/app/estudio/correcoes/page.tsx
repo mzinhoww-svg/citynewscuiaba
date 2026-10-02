@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, QueueTabs } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { QueueTabs } from "@/components/estudio";
 import { CORRECTIONS_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listCorrectionQueue, type CorrectionRow } from "@/lib/db/queries/studio-corrections";

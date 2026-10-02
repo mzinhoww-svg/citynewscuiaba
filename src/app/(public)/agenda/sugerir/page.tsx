@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { EventSuggestionForm } from "@/components";
-import { AGENDA, SUGGEST } from "@/content/pt-BR/portal";
+import { AGENDA, SUGGEST } from "@/content/pt-BR/portal-agenda";
 import { suggestEventAction } from "./actions";
 
 export const metadata: Metadata = pageMetadata({

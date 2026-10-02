@@ -1,5 +1,5 @@
 import "server-only";
-import type { OriginField } from "@/components";
+import type { OriginField } from "@/components/estudio";
 import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import type { StudioArticle } from "@/lib/db/queries/studio-article";
 import { labelsFor, type Label } from "@/lib/labels";

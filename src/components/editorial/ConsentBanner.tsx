@@ -1,13 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { LOAD_FAILED } from "@/content/pt-BR/system-min";
 import { useInviteSlot } from "@/lib/app/slot";
 import { useConsent, useConsentKnown } from "@/lib/consent/client";
 import type { ConsentChoice } from "@/lib/consent";
 import { Button } from "../ui/Button";
-import { ConsentChoices } from "./ConsentChoices";
+
+import type { ConsentPanelProps } from "./ConsentPanel";
+
+/** Sem rede o painel não chega: avisa e deixa voltar (o banner continua funcionando). */
+function PanelUnavailable({ onBack }: ConsentPanelProps) {
+  return (
+    <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-4 lg:px-4">
+      <p role="alert" className="type-meta text-meta">
+        {LOAD_FAILED.text}
+      </p>
+      <div className="flex justify-end">
+        <Button variant="outline" size="md" onClick={onBack}>
+          {CONSENT_TEXT.back}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// O painel "Escolher" só carrega quando o leitor pede (B-018).
+const ConsentPanel = lazy(() =>
+  import("./ConsentPanel").catch(() => ({ default: PanelUnavailable })),
+);
 
 /** Leva o foco ao conteúdo depois da escolha (o banner some e o foco não pode cair no body). */
 function focusContent() {
@@ -57,7 +80,6 @@ export function ConsentBanner() {
   const [choosing, setChoosing] = useState(false);
   const [draft, setDraft] = useState<ConsentChoice>({ metrics: false, personalization: false });
   const regionRef = useRef<HTMLElement>(null);
-  const panelTitle = useRef<HTMLHeadingElement>(null);
   const actions = useRef<HTMLDivElement>(null);
   const restoreFocus = useRef(false);
   const open = known && !consent.decided;
@@ -66,9 +88,7 @@ export function ConsentBanner() {
   useReserveSpace(regionRef, open);
 
   useEffect(() => {
-    if (choosing) {
-      panelTitle.current?.focus();
-    } else if (restoreFocus.current) {
+    if (!choosing && restoreFocus.current) {
       restoreFocus.current = false;
       // Segundo botão das ações: "Escolher".
       actions.current?.querySelectorAll("button")[1]?.focus();
@@ -95,29 +115,9 @@ export function ConsentBanner() {
       className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t-2 border-line-strong bg-card-white lg:inset-x-auto lg:right-gutter lg:bottom-gutter lg:w-80 lg:rounded-lg lg:border-2 lg:shadow-dialog"
     >
       {choosing ? (
-        <div
-          className="mx-auto flex max-h-[70dvh] w-full max-w-page flex-col gap-3 overflow-y-auto px-gutter py-4 lg:px-4"
-          onKeyDown={(e) => {
-            if (e.key === "Escape") {
-              e.stopPropagation();
-              back();
-            }
-          }}
-        >
-          <h2 ref={panelTitle} tabIndex={-1} className="type-section text-strong">
-            {CONSENT_TEXT.panelTitle}
-          </h2>
-          <p className="type-meta text-meta">{CONSENT_TEXT.panelIntro}</p>
-          <ConsentChoices value={draft} onChange={setDraft} />
-          <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" size="md" onClick={back}>
-              {CONSENT_TEXT.back}
-            </Button>
-            <Button size="md" onClick={() => decideAndClose(draft)}>
-              {CONSENT_TEXT.save}
-            </Button>
-          </div>
-        </div>
+        <Suspense fallback={null}>
+          <ConsentPanel draft={draft} onChange={setDraft} onBack={back} onSave={decideAndClose} />
+        </Suspense>
       ) : (
         <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-3 lg:p-4">
           <div className="flex min-w-0 flex-col gap-1">

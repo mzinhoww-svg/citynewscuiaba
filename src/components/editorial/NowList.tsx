@@ -2,7 +2,7 @@ import Link from "next/link";
 import { useId } from "react";
 import type { ArticleSummary } from "@/lib/db/queries/types";
 import { formatHour, formatWhen, nextCycleMinutes } from "@/lib/format/date";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { LiveIndicator } from "./LiveIndicator";
 import { OriginLabel } from "./OriginLabel";

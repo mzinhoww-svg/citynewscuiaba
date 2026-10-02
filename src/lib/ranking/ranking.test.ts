@@ -6,13 +6,13 @@ import {
   capItems,
   effectiveWeights,
   explainRecommendation,
-  parseRecConfig,
   rankSources,
   scoreSource,
   type RankList,
   type RankedSource,
   type SourceSignals,
 } from "./index";
+import { parseRecConfig } from "./config";
 
 /** PRNG determinístico (mulberry32): propriedades com listas aleatórias e seed fixa. */
 function rng(seed: number): () => number {

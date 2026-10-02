@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { useId } from "react";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { PANORAMA_TEXT as T } from "@/content/pt-BR/sources";
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";

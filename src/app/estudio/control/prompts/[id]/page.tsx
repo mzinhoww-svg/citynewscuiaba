@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, PromptVersions, type PromptVersionItem } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { PromptVersions, type PromptVersionItem } from "@/components/estudio";
 import { agentName } from "@/content/pt-BR/ai-control";
 import { PROMPTS_TEXT as T } from "@/content/pt-BR/ai-prompts";
 import { isAgentId, promptTarget } from "@/lib/ai/prompts";

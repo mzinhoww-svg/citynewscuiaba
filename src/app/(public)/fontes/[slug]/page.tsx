@@ -13,7 +13,7 @@ import {
   SourceBadges,
   SourceFollow,
 } from "@/components";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { LOCALITY_TEXT, SOURCE_TEXT } from "@/content/pt-BR/recommendations";
 import { SOURCE_CATEGORY_TEXT, SOURCE_PAGE_TEXT as T, SOURCES_PAGE } from "@/content/pt-BR/sources";
 import { getSourceDetail, listSourceItems, type SourceDetail } from "@/lib/db/queries";

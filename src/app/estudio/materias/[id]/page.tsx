@@ -1,21 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Button, ConfidenceMeter, EmptyState, InlineAlert, OriginLabel } from "@/components";
 import {
   AiSuggestionInline,
   ArticleEditor,
-  Button,
   ChecklistPanel,
-  ConfidenceMeter,
   CorrectionForm,
-  EmptyState,
   GenerateImageDrawer,
-  InlineAlert,
-  OriginLabel,
   PublishDialog,
   SourcesEditor,
   ImageTextForm,
   MediaThumb,
-} from "@/components";
+} from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   CORRECTIONS_TEXT,

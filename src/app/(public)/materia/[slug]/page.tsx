@@ -28,7 +28,9 @@ import {
   UpdatedWhileReading,
   NotificationInviteSlot,
 } from "@/components";
-import { ARTICLE, CARD, SECTION_PAGE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
+import { CARD } from "@/content/pt-BR/portal-card";
+import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import { SITE } from "@/content/pt-BR/site";
 import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";

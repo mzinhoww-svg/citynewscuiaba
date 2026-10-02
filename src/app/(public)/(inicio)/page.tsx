@@ -18,7 +18,8 @@ import {
   TopicSummaryCard,
   UrgentBar,
 } from "@/components";
-import { HOME, HOME_SERVICES, NEWSLETTER } from "@/content/pt-BR/portal";
+import { HOME, HOME_SERVICES } from "@/content/pt-BR/portal-home";
+import { NEWSLETTER } from "@/content/pt-BR/newsletter";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
 import { formatHour, formatLongDate } from "@/lib/format/date";
 import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";

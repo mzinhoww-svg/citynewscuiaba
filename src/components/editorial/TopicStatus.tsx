@@ -1,5 +1,5 @@
 import type { TopicState } from "@/lib/db/queries/types";
-import { TOPIC_STATE_TEXT } from "@/content/pt-BR/portal";
+import { TOPIC_STATE_TEXT } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { Icon, type IconName } from "../ui/Icon";
 

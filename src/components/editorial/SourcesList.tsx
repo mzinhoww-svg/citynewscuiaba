@@ -1,7 +1,7 @@
 import { useId } from "react";
 import type { ArticleSource } from "@/lib/db/queries/types";
 import { formatDateTime } from "@/lib/format/date";
-import { ARTICLE } from "@/content/pt-BR/portal";
+import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 

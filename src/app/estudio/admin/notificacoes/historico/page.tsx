@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, PushHistoryTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { PushHistoryTable } from "@/components/estudio";
 import { PUSH_HISTORY_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { requireAnyRole } from "@/lib/auth/require-role";
 import { HISTORY_PAGE_SIZE, historyRows, parseHistoryFilter } from "@/lib/db/queries/push-admin";

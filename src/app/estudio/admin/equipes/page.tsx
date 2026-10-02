@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TeamsEditor } from "@/components";
+import { TeamsEditor } from "@/components/estudio";
 import { ADMIN_TEXT as T } from "@/content/pt-BR/admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { listStaff, listTeams, taxonomyOverview } from "@/lib/db/queries/admin";

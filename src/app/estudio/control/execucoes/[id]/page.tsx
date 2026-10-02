@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, PhaseChart, ReprocessForm } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { PhaseChart, ReprocessForm } from "@/components/estudio";
 import {
   CONTROL_TEXT as T,
   LEVEL_LABEL,

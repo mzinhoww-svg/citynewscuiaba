@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, SourceAuditTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { SourceAuditTable } from "@/components/estudio";
 import { DETAIL_TEXT, HISTORY_TAB_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { sourceHistory } from "@/lib/db/queries/sources-admin";
 import { detailPath, loadSource } from "../detail";

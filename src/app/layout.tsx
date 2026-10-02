@@ -2,24 +2,25 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import localFont from "next/font/local";
 import type { ReactNode } from "react";
+import { IconSprite } from "@/components";
 import { SITE } from "@/content/pt-BR/site";
 import { siteUrl } from "@/lib/seo/jsonld";
 import "@/styles/globals.css";
 
+/*
+ * Só as faces normais (P6-T1, docs/reports/perf.md): o portal não usa itálico (nem na leitura nem
+ * na interface), e `next/font` pré-carrega todas as faces declaradas; as duas itálicas somavam
+ * ~180 kB em toda página. O `<em>` do editor do Estúdio usa o itálico sintetizado do navegador.
+ * `display: swap` mostra o texto na hora com a fonte de reserva de métrica ajustada (sem salto).
+ */
 const schibsted = localFont({
-  src: [
-    { path: "./fonts/SchibstedGrotesk-normal.woff2", weight: "400 900", style: "normal" },
-    { path: "./fonts/SchibstedGrotesk-italic.woff2", weight: "400 900", style: "italic" },
-  ],
+  src: [{ path: "./fonts/SchibstedGrotesk-normal.woff2", weight: "400 800", style: "normal" }],
   variable: "--font-schibsted",
   display: "swap",
 });
 
 const sourceSerif = localFont({
-  src: [
-    { path: "./fonts/SourceSerif4-normal.woff2", weight: "200 900", style: "normal" },
-    { path: "./fonts/SourceSerif4-italic.woff2", weight: "200 900", style: "italic" },
-  ],
+  src: [{ path: "./fonts/SourceSerif4-normal.woff2", weight: "400 700", style: "normal" }],
   variable: "--font-source-serif",
   display: "swap",
 });
@@ -63,7 +64,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       <head>
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="bg-page text-strong antialiased">{children}</body>
+      <body className="bg-page text-strong antialiased">
+        <IconSprite />
+        {children}
+      </body>
     </html>
   );
 }

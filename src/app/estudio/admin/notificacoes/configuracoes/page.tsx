@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PushSettingsForm } from "@/components";
+import { PushSettingsForm } from "@/components/estudio";
 import { PUSH_SETTINGS_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

@@ -13,7 +13,7 @@ import { many, one, readPublic, readService } from "@/lib/db/queries/run";
 import { hitRateLimit } from "@/lib/db/writes";
 import { err, ok, type Result } from "@/lib/result";
 import { clientIp, ipKey, rateLimitSalt } from "@/lib/security/rate-limit";
-import { BYLINE } from "@/content/pt-BR/portal";
+import { BYLINE } from "@/content/pt-BR/portal-card";
 import { minMatchFor, questionQuery } from "./query";
 import { searchHits, type SearchDeps } from "./server";
 

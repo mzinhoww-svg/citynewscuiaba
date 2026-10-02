@@ -1,6 +1,6 @@
 "use server";
 
-import type { RecReply, WhyReply } from "@/components";
+import type { RecReply, WhyReply } from "@/components/estudio";
 import { AB_TEXT, REC_TEXT } from "@/content/pt-BR/recommendation-admin";
 import type { StudioResult } from "@/lib/studio/action";
 import {

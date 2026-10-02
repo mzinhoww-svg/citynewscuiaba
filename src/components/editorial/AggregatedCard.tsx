@@ -1,6 +1,6 @@
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { OriginLabel } from "./OriginLabel";

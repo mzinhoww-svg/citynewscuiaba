@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, LogExplorer } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { LogExplorer } from "@/components/estudio";
 import {
   AGENT_LABEL,
   CONTROL_TEXT as T,

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { CollectionView } from "@/lib/db/queries/types";
-import { CARD } from "@/content/pt-BR/portal";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 

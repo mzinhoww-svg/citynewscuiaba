@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AddSourceWizard, Icon } from "@/components";
+import { Icon } from "@/components";
+import { AddSourceWizard } from "@/components/estudio";
 import { WIZARD_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { createServerClient } from "@/lib/db/client";
 import { many } from "@/lib/db/queries/run";

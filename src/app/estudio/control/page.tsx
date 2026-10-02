@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Button,
-  CycleStrip,
-  EmptyState,
-  InlineAlert,
-  RunNowForm,
-  SourceHealthTable,
-} from "@/components";
+import { Button, EmptyState, InlineAlert } from "@/components";
+import { CycleStrip, RunNowForm, SourceHealthTable } from "@/components/estudio";
 import { ALERT_TEXT, CONTROL_TEXT as T, RUN_STATE_LABEL, formatBrl } from "@/content/pt-BR/control";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";

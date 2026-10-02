@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useId, useState } from "react";
-import { REPORT } from "@/content/pt-BR/portal";
+import { REPORT } from "@/content/pt-BR/portal-article";
 import {
   REPORT_HONEYPOT,
   REPORT_IDLE,

@@ -5,7 +5,7 @@ import { useId } from "react";
 import { SOURCE_TEXT } from "@/content/pt-BR/recommendations";
 import type { DismissReason } from "@/lib/anon/types";
 import { formatWhen } from "@/lib/format/date";
-import { formatReach, type TrendDirection } from "@/lib/ranking";
+import { formatReach, type TrendDirection } from "@/lib/ranking/signals";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";

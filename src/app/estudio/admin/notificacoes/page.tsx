@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { NewPushForm } from "@/components";
+import { NewPushForm } from "@/components/estudio";
 import { NEW_PUSH_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { canAccess } from "@/lib/auth";
 import { requireAnyRole } from "@/lib/auth/require-role";

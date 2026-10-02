@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, SourceHealthPanel, SourceRunsTable } from "@/components";
+import { Button, EmptyState } from "@/components";
+import { SourceHealthPanel, SourceRunsTable } from "@/components/estudio";
 import { formatMinutes, FREQUENCY_TEXT } from "@/content/pt-BR/sources-admin";
 import { COLLECTION_TAB_TEXT, DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { sourceHealth, sourceRuns } from "@/lib/db/queries/sources-admin";

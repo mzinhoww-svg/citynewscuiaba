@@ -1,5 +1,5 @@
 import "server-only";
-import type { QueueTableRow } from "@/components";
+import type { QueueTableRow } from "@/components/estudio";
 import { can, type Session } from "@/lib/auth/permissions";
 import type { QueueRow, QueueTab } from "@/lib/db/queries/queue";
 

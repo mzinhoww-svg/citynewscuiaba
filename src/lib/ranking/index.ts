@@ -7,14 +7,7 @@ export {
   reasonFor,
   TRENDING_MIN,
 } from "./explain";
-export {
-  DEFAULT_REC_CONFIG,
-  effectiveWeights,
-  parseRecConfig,
-  REC_V1,
-  scoreSource,
-  WEIGHT_KEYS,
-} from "./score";
+export { DEFAULT_REC_CONFIG, effectiveWeights, REC_V1, scoreSource, WEIGHT_KEYS } from "./score";
 export { isQualifiedRead, isWeakSignal } from "@/lib/events/weak";
 export type * from "./types";
 export {

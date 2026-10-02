@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Icon, PushBanners, PushTabsNav, type PushTabKey } from "@/components";
+import { Icon } from "@/components";
+import { PushBanners, PushTabsNav, type PushTabKey } from "@/components/estudio";
 import { PUSH_ADMIN_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { canAccess, type RoleGrant } from "@/lib/auth";
 import { requireAnyRole } from "@/lib/auth/require-role";

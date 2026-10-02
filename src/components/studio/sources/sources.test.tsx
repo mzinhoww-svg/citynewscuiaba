@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { EditorialScore, FrequencyLabel, HealthBadge, SourceStatusBadge } from "../../index";
+import { EditorialScore, FrequencyLabel, HealthBadge, SourceStatusBadge } from "../../estudio";
 
 describe("SourceStatusBadge", () => {
   it("ícone + texto, com o motivo em texto", () => {
