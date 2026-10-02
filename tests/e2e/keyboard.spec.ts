@@ -114,12 +114,20 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
   };
   // O anel de foco é pintado no quadro seguinte (no WebKit e no celular o primeiro quadro ainda
   // sai sem ele): espera dois quadros antes de cada captura, e repete uma vez antes de reprovar.
+  // No WebKit sem foco de janela (CI) o requestAnimationFrame pode nunca disparar: um temporizador
+  // de reserva libera a espera para o teste não travar até o limite de 30 s.
   const frames = () =>
     page.evaluate(
       () =>
-        new Promise<void>((done) =>
-          requestAnimationFrame(() => requestAnimationFrame(() => done())),
-        ),
+        new Promise<void>((done) => {
+          const fallback = setTimeout(done, 150);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              clearTimeout(fallback);
+              done();
+            }),
+          );
+        }),
     );
   await frames();
   const withFocus = await page.screenshot({ clip, animations: "disabled" });
