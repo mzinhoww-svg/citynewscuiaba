@@ -1,0 +1,467 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Aliases semânticos de src/styles/tokens.css expostos como utilitários do Tailwind v4.
+ * `inline` faz o utilitário apontar para a variável do token, então o modo escuro
+ * (`:root[data-theme="dark"]`) troca os valores sem classes extras.
+ * Fontes: tokens.css já redefine --font-sans e --font-serif fora de camada, o que
+ * sobrescreve o tema padrão do Tailwind (font-sans / font-serif usam as fontes locais).
+ */
+/*
+ * Só cores de token: a paleta padrão do Tailwind sai do tema, então `bg-white`, `text-gray-500`
+ * e afins não existem (transparent, current e inherit continuam valendo).
+ */
+@theme {
+  --color-*: initial;
+  /* Ponto de corte "mesa larga" (1440 px): colunas secundárias da lista de fontes (spec §8, O03),
+     achado da revisão FS-T7 fix round 1 — `min-[1440px]:` levava "px" para dentro do TSX e caía
+     na regra de aderência (R13); o breakpoint nomeado evita isso e documenta a intenção. */
+  --breakpoint-wide: 90rem;
+}
+
+/* Troca de tema instantânea (src/lib/theme/apply.ts): sem cores intermediárias animadas. */
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
+}
+
+/* Medidas de layout descritas em DESIGN.md §1 que ainda não tinham token. */
+:root {
+  --layout-rail: 300px; /* barra lateral da web (agenda) e navegação do Estúdio */
+}
+
+@theme inline {
+  /* Superfícies */
+  --color-page: var(--bg-page);
+  --color-section: var(--bg-section);
+  --color-inverse: var(--bg-inverse);
+  --color-card: var(--surface-card);
+  --color-card-white: var(--surface-card-white);
+  --color-input: var(--surface-input);
+  --color-photo: var(--surface-photo);
+  --color-overlay: var(--surface-overlay);
+  --color-aggregated: var(--surface-aggregated);
+
+  /* Texto */
+  --color-strong: var(--text-strong);
+  --color-body: var(--text-body);
+  --color-meta: var(--text-meta);
+  --color-placeholder: var(--text-placeholder);
+  --color-on-inverse: var(--text-inverse);
+  --color-link: var(--text-link);
+  --color-eyebrow: var(--text-eyebrow);
+  --color-service: var(--text-service);
+  --color-danger: var(--text-danger);
+  --color-ai: var(--text-ai);
+  --color-warn: var(--text-warn);
+
+  /* Ação e acento */
+  --color-accent: var(--accent);
+  --color-accent-service: var(--accent-service);
+  --color-action-primary: var(--action-primary);
+  --color-action-primary-pressed: var(--action-primary-pressed);
+  --color-action-secondary: var(--action-secondary);
+
+  /* Bordas */
+  --color-line-subtle: var(--border-subtle);
+  --color-line-section: var(--border-section);
+  --color-line-control: var(--border-control);
+  --color-line-strong: var(--border-strong);
+
+  /* Papéis semânticos de marca (fundos suaves de rótulos e estados) */
+  --color-ia-soft: var(--cn-ia-soft);
+  --color-cerrado-soft: var(--cn-cerrado-soft);
+  --color-urucum-soft: var(--cn-urucum-soft);
+  --color-atencao-soft: var(--cn-atencao-soft);
+  --color-erro-soft: var(--cn-erro-soft);
+  --color-urgente: var(--cn-urgente);
+
+  /* Cores de marca fixas (não mudam no modo escuro): placas Tinta, texto sobre foto, O Ponto */
+  --color-tinta: var(--cn-tinta);
+  --color-tinta-80: var(--cn-tinta-80);
+  --color-branco: var(--cn-branco);
+  --color-urucum: var(--cn-urucum);
+  --color-cerrado: var(--cn-cerrado);
+  --color-nevoa: var(--cn-nevoa);
+  --color-nevoa-2: var(--cn-nevoa-2);
+  --color-ia: var(--cn-ia);
+  --color-avatar-1: var(--cn-avatar-1);
+  --color-avatar-2: var(--cn-avatar-2);
+  --color-avatar-3: var(--cn-avatar-3);
+  --color-avatar-4: var(--cn-avatar-4);
+  --color-avatar-5: var(--cn-avatar-5);
+  --color-avatar-6: var(--cn-avatar-6);
+
+  /* Raios */
+  --radius-0: var(--r-0);
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-xl: var(--r-xl);
+  --radius-2xl: var(--r-2xl);
+  --radius-pill: var(--r-pill);
+
+  /* Espaços e medidas de controle */
+  --spacing-gutter: var(--gutter);
+  --spacing-input: var(--h-input);
+  --spacing-button: var(--h-button);
+  --spacing-button-sm: var(--h-button-sm);
+  --spacing-chip: var(--h-chip);
+  --spacing-icon-btn: var(--h-icon-btn);
+  --spacing-tabbar: var(--h-tabbar);
+  --spacing-tap: var(--tap-min);
+  --spacing-rail: var(--layout-rail);
+  --container-page: var(--container-max);
+  --container-read: var(--measure-read);
+
+  /* Tipografia auxiliar */
+  --leading-tight: var(--lh-tight);
+  --leading-snug: var(--lh-snug);
+  --leading-normal: var(--lh-normal);
+  --leading-read: var(--lh-read);
+  --tracking-wordmark: var(--ls-wordmark);
+  --tracking-display: var(--ls-display);
+  --tracking-eyebrow: var(--ls-eyebrow);
+
+  /* Escala de tamanhos (text-13, text-16…) e pesos */
+  --text-12: var(--fs-12);
+  --text-13: var(--fs-13);
+  --text-14: var(--fs-14);
+  --text-16: var(--fs-16);
+  --text-18: var(--fs-18);
+  --text-20: var(--fs-20);
+  --text-24: var(--fs-24);
+  --text-28: var(--fs-28);
+  --text-32: var(--fs-32);
+  --text-40: var(--fs-40);
+  --text-56: var(--fs-56);
+  --font-weight-regular: var(--fw-regular);
+  --font-weight-medium: var(--fw-medium);
+  --font-weight-semibold: var(--fw-semibold);
+  --font-weight-bold: var(--fw-bold);
+  --font-weight-black: var(--fw-black);
+
+  /* Overlay e motion */
+  --blur-scrim: var(--blur-overlay);
+  --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
+  --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
+  --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes cn-live-pulse {
+  0% {
+    transform: scale(0.4);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+@keyframes cn-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes cn-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Papéis tipográficos de DESIGN.md §4 */
+@utility type-display {
+  font: var(--type-display);
+  letter-spacing: var(--ls-display);
+}
+@utility type-screen-title {
+  font: var(--type-screen-title);
+}
+@utility type-nav-title {
+  font: var(--type-nav-title);
+}
+@utility type-section {
+  font: var(--type-section);
+}
+@utility type-headline-xl {
+  font: var(--type-headline-xl);
+  letter-spacing: var(--ls-display);
+}
+@utility type-headline {
+  font: var(--type-headline);
+}
+@utility type-headline-sm {
+  font: var(--type-headline-sm);
+}
+@utility type-body-read {
+  font: var(--type-body-read);
+  max-width: var(--measure-read);
+}
+/* Ajustar leitura (P03): escala do corpo da matéria escolhida pelo leitor (cn_reading_size). */
+:root[data-reading-size="lg"] {
+  --reading-scale: 1.12;
+}
+:root[data-reading-size="xl"] {
+  --reading-scale: 1.25;
+}
+@utility reading-body {
+  font: var(--type-body-read);
+  font-size: calc(clamp(1.125rem, 1.08rem + 0.25vw, 1.25rem) * var(--reading-scale, 1));
+  max-width: var(--measure-read);
+  text-wrap: pretty;
+}
+@utility type-body {
+  font: var(--type-body);
+}
+@utility type-label {
+  font: var(--type-label);
+}
+@utility type-button {
+  font: var(--type-button);
+}
+@utility type-meta {
+  font: var(--type-meta);
+}
+@utility type-eyebrow {
+  font: var(--type-eyebrow);
+  letter-spacing: var(--ls-eyebrow);
+  text-transform: uppercase;
+}
+
+/* Sombras e camadas: sistema plano, só diálogo e folha usam elevação */
+@utility shadow-dialog {
+  box-shadow: var(--shadow-lg);
+}
+@utility z-sticky {
+  z-index: var(--z-sticky);
+}
+@utility z-dropdown {
+  z-index: var(--z-dropdown);
+}
+@utility z-overlay {
+  z-index: var(--z-overlay);
+}
+@utility z-sheet {
+  z-index: var(--z-sheet);
+}
+@utility z-modal {
+  z-index: var(--z-modal);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+@utility z-tooltip {
+  z-index: var(--z-tooltip);
+}
+
+/*
+ * R4: controle com borda visível (3,73:1). O teste do TextField procura esta classe no
+ * contêiner do input.
+ */
+@utility border-control {
+  border: 1px solid var(--cn-field-border, var(--border-control));
+}
+
+/* Estado de erro do campo: troca só a cor da borda de controle. */
+@utility field-error {
+  --cn-field-border: var(--text-danger);
+}
+
+/*
+ * R4 + R5 no contêiner de campo: foco troca a borda para Tinta 2 px (1 px de borda + 1 px
+ * interno) e mostra o anel Urucum no contêiner. O anel do input some porque o contêiner o
+ * substitui; botões internos (mostrar senha, filtros) mantêm o anel próprio.
+ */
+@utility control-field {
+  &:focus-within {
+    border-color: var(--border-strong);
+    box-shadow: inset 0 0 0 1px var(--border-strong);
+  }
+  &:has(input:focus-visible) {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  & input:focus-visible {
+    outline: none;
+  }
+}
+
+/* Alvo de toque mínimo (44 px) para controles visualmente menores, sem mudar o layout. */
+@utility hit-area {
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, var(--tap-min));
+    height: max(100%, var(--tap-min));
+    transform: translate(-50%, -50%);
+  }
+}
+
+/*
+ * R7: o título do card é o link; o pseudo-elemento cobre o card inteiro (que precisa de
+ * `relative`). O anel de foco aparece em volta do card, não só do texto.
+ */
+@utility card-link {
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--card-radius, 0);
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::after {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+}
+
+/* Área segura inferior (barra de gestos) e espaço da barra inferior do app. */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pb-tabbar-safe {
+  padding-bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
+@utility bottom-tabbar-safe {
+  bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
+
+/*
+ * Foco nunca coberto (WCAG 2.4.11): o cabeçalho fixo e a barra inferior do portal (só abaixo de
+ * 1024 px) entram no `scroll-padding` da página, então o navegador rola o item focado para fora
+ * deles. Cada cabeçalho fixo se declara com `data-sticky`.
+ */
+:root:has(header[data-sticky="public"]) {
+  scroll-padding-top: var(--h-sticky-public);
+}
+:root:has(header[data-sticky="studio"]) {
+  scroll-padding-top: var(--h-sticky-studio);
+}
+@media (max-width: 1023.98px) {
+  :root:has(header[data-sticky="public"]) {
+    --cn-bottom-bar: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(var(--cn-bottom-bar) + var(--tap-min));
+  }
+}
+
+/*
+ * Banner de consentimento aberto (ConsentBanner): a página ganha no fim o espaço do banner e
+ * a rolagem por foco/âncora para acima dele (e da barra inferior, quando ela existe), então
+ * ele nunca esconde conteúdo nem o foco.
+ */
+/* (`:root:root` vence a especificidade de `:root:has(...)` acima.) */
+/* Faixa de instalação (C07): a página ganha espaço no fim para a faixa não cobrir nada. */
+:root:root[data-invite-open] {
+  scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-invite-h, 0px) + var(--tap-min));
+}
+:root[data-invite-open] body {
+  padding-bottom: var(--cn-invite-h, 0px);
+}
+:root:root[data-consent-open] {
+  scroll-padding-bottom: calc(
+    var(--cn-bottom-bar, 0px) + var(--cn-consent-h, 0px) + var(--tap-min)
+  );
+}
+:root[data-consent-open] body {
+  padding-bottom: var(--cn-consent-h, 0px);
+}
+
+/* Slider nativo (input range): trilho com preenchimento Urucum até --cn-range-fill. */
+@utility cn-range {
+  appearance: none;
+  background: transparent;
+  &::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: linear-gradient(
+      to right,
+      var(--accent) var(--cn-range-fill, 0%),
+      var(--border-control) var(--cn-range-fill, 0%)
+    );
+  }
+  &::-moz-range-track {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: var(--border-control);
+  }
+  &::-moz-range-progress {
+    height: 6px;
+    border-radius: var(--r-xs);
+    background: var(--accent);
+  }
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+    border-radius: var(--r-pill);
+    background: var(--cn-branco);
+    border: 3px solid var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  &::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    box-sizing: border-box;
+    border-radius: var(--r-pill);
+    background: var(--cn-branco);
+    border: 3px solid var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  body {
+    font: var(--type-body);
+  }
+}
+
+/* Estúdio · editor (P4-T3): marcas de origem no texto e estados do Tiptap. */
+@layer components {
+  .cn-mark-ai {
+    background: var(--cn-ia-soft);
+    border-bottom: 2px dashed var(--text-ai);
+  }
+  .cn-mark-human {
+    border-bottom: 2px solid var(--text-service);
+  }
+  .cn-prose {
+    &:focus-visible {
+      outline: var(--focus-ring);
+      outline-offset: var(--focus-offset);
+    }
+    & p + p,
+    & p + h2,
+    & h2 + p,
+    & h3 + p {
+      margin-top: 0.75em;
+    }
+    & h2 {
+      font: var(--type-section);
+    }
+    & h3 {
+      font: var(--type-headline-sm);
+    }
+  }
+}

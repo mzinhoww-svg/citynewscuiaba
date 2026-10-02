@@ -1,0 +1,38 @@
+name: Regressão da IA
+
+# Avaliação da busca com IA (P5-T6, tela O14) em todo PR que muda a camada de IA ou uma
+# migration de IA. Roda com o provedor falso (AI_PROVIDER=fake): sem rede, sem banco e sem
+# segredo. Falha se precisão, cobertura, frases sem fonte, alucinações, recusas erradas ou p95
+# saírem dos limites de REGRESSION_THRESHOLDS (src/lib/ai/eval.ts).
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/*ai*"
+      - "src/lib/ai/**"
+      - "tests/fixtures/eval/**"
+      - ".github/workflows/regression.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AI_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Regressão (FakeProvider)
+        run: pnpm exec vitest run --project unit src/lib/ai/eval.test.ts src/lib/ai/answer.test.ts src/lib/ai/call-agent.test.ts

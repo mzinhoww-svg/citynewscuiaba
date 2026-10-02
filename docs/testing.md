@@ -9,7 +9,7 @@
 | Integração | Vitest + Supabase local | queries, RLS por papel, pipeline de ponta a ponta com fixtures | RLS: 1 teste por tabela sensível |
 | E2E | Playwright (Chromium, WebKit, mobile 390 × 844) | fluxos críticos (seção 2) | verde no PR |
 | Acessibilidade | `@axe-core/playwright` | todas as rotas públicas e do Estúdio com dados de seed | 0 violações `serious`/`critical` |
-| Performance | Lighthouse CI | home, matéria, fontes, busca | LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms (mobile simulado) |
+| Performance | Lighthouse CI (`lighthouserc.json`, workflow `lighthouse.yml`, não obrigatório para merge) | home, matéria, fontes, busca | LCP ≤ 2,5 s, CLS ≤ 0,1, TBT ≤ 200 ms (mobile simulado) e JS ≤ 170 kB gz; medições e exceções em `docs/reports/perf.md` |
 | Exploratório | agent-browser | roteiros da seção 3, em preview da Vercel | relatório em `docs/reports/` |
 
 ## 2. Fluxos E2E obrigatórios (`tests/e2e`)
@@ -55,3 +55,34 @@ Executar contra a URL de preview da Vercel. Para cada passo: navegar, capturar s
 ## 4. Fixtures
 
 `tests/fixtures/feeds/*.xml` (RSS das fontes fictícias, incluindo um item com instrução injetada e um duplicado), `tests/fixtures/ai/*.json` (respostas gravadas do provedor falso), `tests/fixtures/images/*` (original sem permissão, licenciada, com marca d'água). O provedor de IA em teste é `FakeProvider` (`src/lib/ai/fake.ts`), determinístico, selecionado por `AI_PROVIDER=fake`.
+
+## 5. Banco local e usuários de seed
+
+```bash
+pnpm db:start   # pilha local sem Docker (scripts/local-stack); no CI: supabase start
+pnpm db:reset   # recria public, aplica supabase/migrations/*.sql e supabase/seed.sql
+pnpm test       # inclui tests/integration (precisam do banco com seed)
+```
+
+O Vitest carrega `.env.local` (escrito por `scripts/local-stack/start.sh`) em `vitest.setup.ts`; no CI as variáveis vêm do `supabase status`.
+
+Usuários de seed (só banco local e CI; nunca em staging ou produção). Senha de todos: **`citynews-local-123`**.
+
+| Pessoa | E-mail | Papel | Editorias |
+|---|---|---|---|
+| Helena Costa | helena.costa@citynews.local | admin | — |
+| Marina Arruda | marina.arruda@citynews.local | editor_chefe | todas |
+| Otávio Reis | otavio.reis@citynews.local | editor | cidade, servicos, clima, agenda |
+| Juliana Campos | juliana.campos@citynews.local | jornalista | — |
+| Rafael Siqueira | rafael.siqueira@citynews.local | jornalista | — |
+| Beatriz Lemos | beatriz.lemos@citynews.local | revisor | — |
+| Diego Prado | diego.prado@citynews.local | operador_ia | — |
+| Thiago Moraes | thiago.moraes@citynews.local | analista | — |
+| Carlos Nunes | carlos.nunes@citynews.local | moderador | — |
+| Paulo Rezende | paulo.rezende@citynews.local | leitura | — |
+
+Paulo Rezende usa o papel `leitura` de propósito: é a conta de teste do Estúdio **só leitura** (vê métricas e auditoria, não edita nada). Não é um leitor do portal; leitor comum não tem linha em `user_roles`.
+
+A regra de duas pessoas é testada no banco em `tests/integration/rls-two-person.test.ts` (cada tentativa de contorno como `authenticated`, mais o caminho feliz com duas pessoas).
+
+IDs fixos: usuários `c1000000-…-0000000000NN`, matérias `c2…`, itens coletados `c3…`, assuntos `c4…`, fontes `c5…`, eventos `c6…`, coleções `c7…`.

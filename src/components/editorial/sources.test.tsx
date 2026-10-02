@@ -1,0 +1,246 @@
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import {
+  DismissMenu,
+  PopularSourcesRail,
+  RecommendationReason,
+  SourceCard,
+  SourceRow,
+  type SourceCardData,
+} from "../index";
+
+const now = new Date("2026-09-27T18:00:00Z");
+
+const fixtureSource: SourceCardData = {
+  slug: "folha-do-cerrado",
+  name: "Folha do Cerrado",
+  href: "/fontes/folha-do-cerrado",
+  category: "Política",
+  locality: "Cuiabá",
+  reason: "Mais acessada em Cuiabá esta semana",
+  reach: 18_342,
+  trend: "stable",
+  itemsToday: 42,
+  updatedAt: "2026-09-27T17:48:00Z",
+  verified: true,
+  preferred: false,
+  followed: false,
+};
+
+describe("SourceCard", () => {
+  it("SourceCard mostra alcance aproximado, tendência, matérias hoje, atualização e justificativa", () => {
+    render(<SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />);
+    for (const t of [
+      "~18 mil",
+      "estável",
+      "42 hoje",
+      "há 12 min",
+      "Mais acessada em Cuiabá esta semana",
+    ])
+      expect(screen.getByText(new RegExp(t))).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Seguir Folha do Cerrado" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("nunca mostra contagem exata de leitores", () => {
+    const { container } = render(
+      <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,
+    );
+    expect(container.textContent).not.toMatch(/18\.?342/);
+  });
+
+  it("nome é link para a página da fonte e 'Ver matérias' também", () => {
+    render(<SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />);
+    expect(screen.getByRole("link", { name: "Folha do Cerrado" })).toHaveAttribute(
+      "href",
+      "/fontes/folha-do-cerrado",
+    );
+    expect(screen.getByRole("link", { name: "Ver matérias de Folha do Cerrado" })).toHaveAttribute(
+      "href",
+      "/fontes/folha-do-cerrado",
+    );
+  });
+
+  it("selos em plaqueta de contorno, sem 'melhor', 'top' ou estrelas", () => {
+    const { container } = render(
+      <SourceCard
+        source={{ ...fixtureSource, preferred: true }}
+        onFollow={vi.fn()}
+        onHide={vi.fn()}
+        now={now}
+      />,
+    );
+    const badges = screen.getAllByTestId("source-badge");
+    expect(badges.map((b) => b.textContent)).toEqual(["PREFERIDA", "VERIFICADA"]);
+    for (const b of badges) expect(b.className).toMatch(/\bborder\b/);
+    expect(container.textContent).not.toMatch(/melhor|\btop\b|★|☆|estrela/i);
+  });
+
+  it("sem logotipo usa monograma de 2 letras sobre cor de avatar", () => {
+    const { container } = render(
+      <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,
+    );
+    const mono = container.querySelector("[class*='bg-avatar-']");
+    expect(mono?.textContent).toBe("FC");
+  });
+
+  it("seguir chama onFollow com o próximo estado; seguida mostra 'Seguindo'", async () => {
+    const onFollow = vi.fn();
+    const { rerender } = render(
+      <SourceCard source={fixtureSource} onFollow={onFollow} onHide={vi.fn()} now={now} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Seguir Folha do Cerrado" }));
+    expect(onFollow).toHaveBeenCalledWith("folha-do-cerrado", true);
+    rerender(
+      <SourceCard
+        source={{ ...fixtureSource, followed: true }}
+        onFollow={onFollow}
+        onHide={vi.fn()}
+        now={now}
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Seguir Folha do Cerrado" });
+    expect(btn).toHaveAttribute("aria-pressed", "true");
+    expect(btn).toHaveTextContent("Seguindo");
+  });
+
+  it("tendência subindo e caindo com texto, não só ícone", () => {
+    const { rerender } = render(
+      <SourceCard
+        source={{ ...fixtureSource, trend: "up" }}
+        onFollow={vi.fn()}
+        onHide={vi.fn()}
+        now={now}
+      />,
+    );
+    expect(screen.getByText(/subindo/)).toBeInTheDocument();
+    rerender(
+      <SourceCard
+        source={{ ...fixtureSource, trend: "down" }}
+        onFollow={vi.fn()}
+        onHide={vi.fn()}
+        now={now}
+      />,
+    );
+    expect(screen.getByText(/caindo/)).toBeInTheDocument();
+  });
+});
+
+describe("DismissMenu", () => {
+  it("ocultar pede motivo com as 4 opções", async () => {
+    render(<DismissMenu onChoose={vi.fn()} sourceName="MT Agora" />);
+    await userEvent.click(screen.getByRole("button", { name: "Ocultar MT Agora" }));
+    for (const t of [
+      "Não tenho interesse",
+      "Já conheço esta fonte",
+      "Não quero ver este tema",
+      "Não quero recomendações personalizadas",
+    ])
+      expect(screen.getByRole("menuitem", { name: t })).toBeInTheDocument();
+  });
+
+  it("escolher um motivo chama onChoose, fecha e devolve o foco", async () => {
+    const onChoose = vi.fn();
+    render(<DismissMenu onChoose={onChoose} sourceName="MT Agora" />);
+    const trigger = screen.getByRole("button", { name: "Ocultar MT Agora" });
+    await userEvent.click(trigger);
+    await userEvent.click(
+      screen.getByRole("menuitem", { name: "Não quero recomendações personalizadas" }),
+    );
+    expect(onChoose).toHaveBeenCalledWith("no_personalization");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("teclado: abre com foco no primeiro item, setas navegam, Esc fecha", async () => {
+    render(<DismissMenu onChoose={vi.fn()} sourceName="MT Agora" />);
+    const trigger = screen.getByRole("button", { name: "Ocultar MT Agora" });
+    trigger.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("menuitem", { name: "Não tenho interesse" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("menuitem", { name: "Já conheço esta fonte" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowUp}{ArrowUp}");
+    expect(
+      screen.getByRole("menuitem", { name: "Não quero recomendações personalizadas" }),
+    ).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("clique fora fecha sem escolher", async () => {
+    const onChoose = vi.fn();
+    render(
+      <div>
+        <p>fora</p>
+        <DismissMenu onChoose={onChoose} sourceName="MT Agora" />
+      </div>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Ocultar MT Agora" }));
+    await userEvent.click(screen.getByText("fora"));
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(onChoose).not.toHaveBeenCalled();
+  });
+});
+
+describe("SourceRow", () => {
+  it("avatar, nome, justificativa em Azul IA, Seguir de 44 px e ocultar", async () => {
+    const onHide = vi.fn();
+    render(
+      <ul>
+        <SourceRow source={fixtureSource} onFollow={vi.fn()} onHide={onHide} />
+      </ul>,
+    );
+    const row = screen.getByRole("listitem");
+    expect(within(row).getByRole("link", { name: "Folha do Cerrado" })).toBeInTheDocument();
+    expect(within(row).getByText("Mais acessada em Cuiabá esta semana").className).toMatch(
+      /text-ai/,
+    );
+    expect(within(row).getByRole("button", { name: "Seguir Folha do Cerrado" }).className).toMatch(
+      /h-tap/,
+    );
+    await userEvent.click(within(row).getByRole("button", { name: "Ocultar Folha do Cerrado" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Já conheço esta fonte" }));
+    expect(onHide).toHaveBeenCalledWith("folha-do-cerrado", "already_know");
+  });
+});
+
+describe("PopularSourcesRail", () => {
+  it("fileira com título, avatares com link e rolagem com snap", () => {
+    render(
+      <PopularSourcesRail
+        title="Mais acessadas em Cuiabá"
+        sources={[
+          { slug: "folha-do-cerrado", name: "Folha do Cerrado", href: "/fontes/folha-do-cerrado" },
+          { slug: "mt-agora", name: "MT Agora", href: "/fontes/mt-agora" },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Mais acessadas em Cuiabá" })).toBeInTheDocument();
+    const list = screen.getByRole("list");
+    expect(list.className).toMatch(/snap-x/);
+    expect(
+      within(list)
+        .getAllByRole("link")
+        .map((a) => a.getAttribute("href")),
+    ).toEqual(["/fontes/folha-do-cerrado", "/fontes/mt-agora"]);
+  });
+
+  it("vazia não renderiza nada", () => {
+    const { container } = render(<PopularSourcesRail title="Mais acessadas" sources={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("RecommendationReason", () => {
+  it("texto em Azul IA", () => {
+    render(<RecommendationReason text="Popular em Cuiabá" />);
+    expect(screen.getByText("Popular em Cuiabá").className).toMatch(/text-ai/);
+  });
+});

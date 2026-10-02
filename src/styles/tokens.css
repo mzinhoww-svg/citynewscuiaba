@@ -96,6 +96,8 @@
   --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-40: 40px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
   --gutter: 24px; --container-max: 1200px;
   --h-input: 52px; --h-button: 56px; --h-button-sm: 36px; --h-chip: 36px; --h-icon-btn: 48px; --h-tabbar: 64px;
+  /* Cabeçalhos fixos (medidos no navegador, com folga): base do scroll-padding (WCAG 2.4.11) */
+  --h-sticky-public: 128px; --h-sticky-studio: 60px;
   --tap-min: 44px;
 
   /* Raios: app suave, web editorial */
@@ -124,7 +126,7 @@
 /* Modo escuro [R] (todos os pares de texto ≥ 7:1) */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg-page: #0b1320; --bg-section: #121c2c; --surface-card: #121c2c; --surface-card-white: #0b1320;
+  --bg-page: #0b1320; --bg-section: #121c2c; --bg-inverse: #e9edf3; --surface-card: #121c2c; --surface-card-white: #0b1320;
   --surface-input: #0b1320; --surface-photo: #1b2638; --surface-aggregated: #121c2c;
   --text-strong: #e9edf3; --text-body: #e9edf3; --text-meta: #9aa6b8; --text-placeholder: #9aa6b8;
   --text-inverse: #0b1320; --text-link: #f39a78; --text-eyebrow: #f39a78; --text-service: #6fc3a2;

@@ -30,6 +30,8 @@
 
 ### Task 1: Aprovações
 
+> **Nota (Painel de Fontes, FS-T6):** `source.critical` já existe em `src/lib/approvals` (`createApprovals(db)` com `requestApproval`/`approve`/`reject`/`pending`, erros `self_approval`/`forbidden`/`not_pending`/`invalid`, mensagem "A aprovação precisa ser de outra pessoa"). Esta tarefa estende o mesmo módulo com os demais `CriticalKind` em vez de recriá-lo.
+
 **Files:** Create `src/lib/approvals/index.ts`, `src/components/studio/ApprovalBanner.tsx` · Test `tests/integration/approvals.test.ts`
 
 **Interfaces:** Produces `requestApproval({ kind: CriticalKind; targetRef; justification }): Promise<Result<{ id }, "invalid">>`; `approve({ id }): Promise<Result<void, "self_approval" | "forbidden" | "not_pending">>`; `type CriticalKind = "rules.activate" | "prompt.publish" | "rec.weights" | "role.admin" | "safety.disable" | "force_review.disable" | "push.urgent"`.
@@ -56,6 +58,8 @@
 - [ ] **Step 5: Commit** `feat(control): monitoramento, falhas, execuções, logs e reprocessamento`
 
 ### Task 4: Fontes (lista, cadastro, teste de conexão, recomendação)
+
+> **Coberta pelo Painel de Fontes, FS-T1…T8** (`docs/superpowers/specs/2026-09-27-painel-de-fontes.md`, plano `docs/superpowers/plans/2026-09-27-painel-de-fontes.md`, relatório `docs/reports/painel-fontes.md`): lista O03 com filtros e lote, cadastro por link com descoberta e agente `source_profiler`, `testConnection` com a mesma interface e as mesmas mensagens desta tarefa, aba Recomendação com auditoria, ciclo de vida completo, frequência por fonte e via rápida. Nada a implementar aqui; P5-T3 lê `source_health_daily`/`status_reason` (spec §11).
 
 **Files:** Create `src/app/estudio/control/fontes/page.tsx`, `fontes/[id]/page.tsx`, `src/lib/sources/test-connection.ts` · Test `src/lib/sources/test-connection.test.ts`
 

@@ -1,0 +1,72 @@
+/** Favoritos (P17), salvar matéria e seguir assunto, sem conta (spec §5.3). */
+export const FAVORITES_TEXT = {
+  metaTitle: "Favoritos · CityNews Cuiabá",
+  metaDescription:
+    "Matérias salvas, fontes e assuntos seguidos e coleções pessoais, guardados neste aparelho sem precisar de conta.",
+  title: "Favoritos",
+  intro: "O que você guardou neste navegador. Não precisa de conta.",
+  deviceOnly: "Salvos só neste aparelho",
+  deviceOnlyText:
+    "Seus favoritos ficam guardados neste navegador. Se limpar os dados do navegador, eles somem.",
+  sync: "Sincronizar (opcional)",
+  /** Texto fixo de "ação que exige conta" (spec §5.4). */
+  syncSoon:
+    "Para sincronizar essa preferência entre dispositivos, é necessário entrar ou criar uma conta. Você pode continuar usando o CityNews sem cadastro.",
+  tabsLabel: "Seus favoritos",
+  tabs: {
+    saved: "Salvos",
+    sources: "Fontes seguidas",
+    topics: "Temas e assuntos",
+    collections: "Coleções pessoais",
+  },
+  savedEmpty: "Nenhuma matéria salva",
+  savedEmptyText: "Toque no marcador em qualquer matéria para ler depois.",
+  savedEmptyAction: "Ir para a página inicial",
+  filterLabel: "Filtrar salvos por editoria",
+  all: "Todas",
+  unread: "não lido",
+  readPct: (n: number) => (n >= 95 ? "lido" : `lido ${n}%`),
+  savedAt: (when: string) => `salvo ${when}`,
+  remove: "Remover",
+  removeLabel: (title: string) => `Remover dos salvos: ${title}`,
+  offline: "As 20 últimas salvas ficam disponíveis para leitura sem internet.",
+  untitled: "Matéria salva",
+  sourcesEmpty: "Você ainda não segue nenhuma fonte",
+  sourcesEmptyText: "Siga veículos em Fontes em destaque. Fica guardado neste navegador.",
+  sourcesEmptyAction: "Ver fontes",
+  moveUp: (name: string) => `Subir ${name}`,
+  moveDown: (name: string) => `Descer ${name}`,
+  unfollow: "Deixar de seguir",
+  unfollowLabel: (name: string) => `Deixar de seguir ${name}`,
+  topicsEmpty: "Nenhum tema ou assunto seguido",
+  topicsEmptyText: "Na página de um assunto, toque em Seguir assunto para acompanhar as novidades.",
+  topicsEmptyAction: "Ver assuntos",
+  collectionsEmpty: "Nenhuma coleção pessoal",
+  collectionsEmptyText: "Crie coleções para organizar o que você salvou.",
+  newCollection: "Nome da nova coleção",
+  newCollectionPlaceholder: "Ex.: Para ler no fim de semana",
+  create: "Criar coleção",
+  rename: "Renomear",
+  renameLabel: (name: string) => `Renomear ${name}`,
+  renameField: (name: string) => `Novo nome para ${name}`,
+  saveName: "Salvar nome",
+  cancel: "Cancelar",
+  delete: "Apagar",
+  deleteLabel: (name: string) => `Apagar coleção ${name}`,
+  items: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
+  removed: (title: string) => `Removido: ${title}`,
+  undo: "Desfazer",
+  loading: "Carregando seus favoritos",
+} as const;
+
+export const SAVE_TEXT = {
+  save: "Salvar",
+  saved: "Salvo neste aparelho.",
+  seeFavorites: "Ver Favoritos",
+} as const;
+
+export const FOLLOW_TOPIC_TEXT = {
+  follow: "Seguir assunto",
+  following: "Seguindo assunto",
+  label: (title: string) => `Seguir assunto ${title}`,
+} as const;

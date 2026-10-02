@@ -1,0 +1,468 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useId, useState } from "react";
+import {
+  Button,
+  Chip,
+  EmptyState,
+  IconButton,
+  InlineAlert,
+  Skeleton,
+  Tabs,
+  TextField,
+} from "@/components";
+import { FAVORITES_TEXT as T } from "@/content/pt-BR/favorites";
+import { SECTIONS } from "@/content/pt-BR/nav";
+import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { requestLoginInvite } from "@/lib/anon/invite";
+import type { AnonProfile } from "@/lib/anon/types";
+import { useAnonProfile } from "@/lib/anon/use-profile";
+import { formatWhen } from "@/lib/format/date";
+import { cacheSaved } from "@/lib/offline/sw";
+
+type Tab = keyof typeof T.tabs;
+const TABS: Tab[] = ["saved", "sources", "topics", "collections"];
+const sectionName = (slug?: string) => SECTIONS.find((s) => s.id === slug)?.label ?? slug ?? "";
+
+export interface FavoritesClientProps {
+  sourceNames: Record<string, string>;
+}
+
+type Undo = { text: string; undo: () => void } | null;
+
+export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
+  const { profile, degraded, ready, act } = useAnonProfile();
+  const [tab, setTab] = useState<Tab>("saved");
+  const [notice, setNotice] = useState<Undo>(null);
+  const [syncAsked, setSyncAsked] = useState(false);
+  const id = useId();
+
+  const savedPaths = (profile?.saved ?? []).flatMap((s) => (s.href ? [s.href] : [])).join("|");
+  useEffect(() => {
+    if (savedPaths) void cacheSaved(savedPaths.split("|"));
+  }, [savedPaths]);
+
+  const tabIndex = TABS.indexOf(tab);
+  return (
+    <div data-ready={ready ? "true" : undefined} className="flex flex-col gap-6">
+      <InlineAlert
+        tone="info"
+        title={T.deviceOnly}
+        role="none"
+        action={
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setSyncAsked(true);
+              requestLoginInvite("sync", { explicit: true });
+            }}
+          >
+            {T.sync}
+          </Button>
+        }
+      >
+        <p>{syncAsked ? T.syncSoon : T.deviceOnlyText}</p>
+      </InlineAlert>
+      {degraded && (
+        <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
+          <p>{ANON_TEXT.degradedDetail}</p>
+        </InlineAlert>
+      )}
+      <Tabs
+        label={T.tabsLabel}
+        items={TABS.map((t) => T.tabs[t])}
+        value={T.tabs[tab]}
+        onChange={(label) => {
+          const next = TABS.find((t) => T.tabs[t] === label);
+          if (next) {
+            setTab(next);
+            setNotice(null);
+          }
+        }}
+        idPrefix={id}
+        layout="scroll"
+      />
+      {notice && (
+        <InlineAlert
+          tone="success"
+          action={
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                notice.undo();
+                setNotice(null);
+              }}
+            >
+              {T.undo}
+            </Button>
+          }
+        >
+          <p>{notice.text}</p>
+        </InlineAlert>
+      )}
+      {TABS.map((t, i) =>
+        i === tabIndex ? (
+          <div
+            key={t}
+            role="tabpanel"
+            id={`${id}-painel-${i}`}
+            aria-labelledby={`${id}-aba-${i}`}
+            className="flex flex-col gap-4"
+          >
+            {!profile ? (
+              <div aria-busy="true" className="flex flex-col gap-3">
+                <p className="sr-only">{T.loading}</p>
+                <Skeleton lines={2} />
+                <Skeleton lines={2} />
+              </div>
+            ) : t === "saved" ? (
+              <Saved profile={profile} act={act} onNotice={setNotice} />
+            ) : t === "sources" ? (
+              <Sources profile={profile} act={act} names={sourceNames} />
+            ) : t === "topics" ? (
+              <Topics profile={profile} act={act} />
+            ) : (
+              <Collections profile={profile} act={act} />
+            )}
+          </div>
+        ) : (
+          <div
+            key={t}
+            role="tabpanel"
+            id={`${id}-painel-${i}`}
+            aria-labelledby={`${id}-aba-${i}`}
+            hidden
+          />
+        ),
+      )}
+    </div>
+  );
+}
+
+type Act = ReturnType<typeof useAnonProfile>["act"];
+
+function Saved({
+  profile,
+  act,
+  onNotice,
+}: {
+  profile: AnonProfile;
+  act: Act;
+  onNotice: (u: Undo) => void;
+}) {
+  const [section, setSection] = useState<string | null>(null);
+  if (profile.saved.length === 0)
+    return (
+      <EmptyState
+        title={T.savedEmpty}
+        icon="bookmark"
+        actions={
+          <Button href="/" size="md" variant="outline">
+            {T.savedEmptyAction}
+          </Button>
+        }
+      >
+        <p>{T.savedEmptyText}</p>
+      </EmptyState>
+    );
+  const sections = [...new Set(profile.saved.flatMap((s) => (s.section ? [s.section] : [])))];
+  const list = profile.saved.filter((s) => !section || s.section === section);
+  return (
+    <>
+      {sections.length > 1 && (
+        <div role="group" aria-label={T.filterLabel} className="flex flex-wrap gap-2">
+          <Chip active={!section} onClick={() => setSection(null)}>
+            {T.all}
+          </Chip>
+          {sections.map((s) => (
+            <Chip key={s} active={section === s} onClick={() => setSection(s)}>
+              {sectionName(s)}
+            </Chip>
+          ))}
+        </div>
+      )}
+      <ul className="flex flex-col">
+        {list.map((s) => {
+          const title = s.title ?? T.untitled;
+          return (
+            <li
+              key={s.ref}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-subtle py-3 last:border-b"
+            >
+              <div className="flex min-w-0 flex-1 basis-60 flex-col gap-1">
+                {s.href ? (
+                  <Link
+                    href={s.href}
+                    className="type-headline-sm text-strong underline-offset-4 hover:underline"
+                  >
+                    {title}
+                  </Link>
+                ) : (
+                  <p className="type-headline-sm text-strong">{title}</p>
+                )}
+                <p className="type-meta text-meta">
+                  {[
+                    sectionName(s.section),
+                    s.progress > 0 ? T.readPct(Math.round(s.progress)) : T.unread,
+                    T.savedAt(formatWhen(s.at)),
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                icon="trash-2"
+                aria-label={T.removeLabel(title)}
+                onClick={() => {
+                  void act((st) => st.unsave(s.ref));
+                  onNotice({
+                    text: T.removed(title),
+                    undo: () =>
+                      void act((st) =>
+                        st.save(s.ref, s.progress, {
+                          title: s.title,
+                          href: s.href,
+                          section: s.section,
+                        }),
+                      ),
+                  });
+                }}
+              >
+                {T.remove}
+              </Button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="type-meta text-meta">{T.offline}</p>
+    </>
+  );
+}
+
+function Sources({
+  profile,
+  act,
+  names,
+}: {
+  profile: AnonProfile;
+  act: Act;
+  names: Record<string, string>;
+}) {
+  const list = profile.follows.filter((f) => f.kind === "source");
+  if (list.length === 0)
+    return (
+      <EmptyState
+        title={T.sourcesEmpty}
+        icon="globe"
+        actions={
+          <Button href="/fontes" size="md" variant="outline">
+            {T.sourcesEmptyAction}
+          </Button>
+        }
+      >
+        <p>{T.sourcesEmptyText}</p>
+      </EmptyState>
+    );
+  const ids = list.map((f) => f.id);
+  const move = (i: number, d: -1 | 1) => {
+    const next = [...ids];
+    const [x] = next.splice(i, 1);
+    next.splice(i + d, 0, x!);
+    void act((s) => s.reorderFollows("source", next));
+  };
+  return (
+    <ol className="flex flex-col">
+      {list.map((f, i) => {
+        const name = names[f.id] ?? f.label ?? f.id;
+        return (
+          <li
+            key={f.id}
+            className="flex flex-wrap items-center gap-2 border-t border-line-subtle py-2 last:border-b"
+          >
+            <Link
+              href={`/fontes/${f.id}`}
+              className="min-w-0 flex-1 basis-40 type-body font-semibold text-strong underline-offset-4 hover:underline"
+            >
+              {name}
+            </Link>
+            <IconButton
+              icon="arrow-up"
+              size={44}
+              label={T.moveUp(name)}
+              disabled={i === 0}
+              onClick={() => move(i, -1)}
+            />
+            <IconButton
+              icon="chevron-down"
+              size={44}
+              label={T.moveDown(name)}
+              disabled={i === list.length - 1}
+              onClick={() => move(i, 1)}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={T.unfollowLabel(name)}
+              onClick={() => void act((s) => s.unfollow("source", f.id))}
+            >
+              {T.unfollow}
+            </Button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function Topics({ profile, act }: { profile: AnonProfile; act: Act }) {
+  const list = profile.follows.filter((f) => f.kind === "topic" || f.kind === "section");
+  if (list.length === 0)
+    return (
+      <EmptyState
+        title={T.topicsEmpty}
+        icon="layers"
+        actions={
+          <Button href="/assuntos" size="md" variant="outline">
+            {T.topicsEmptyAction}
+          </Button>
+        }
+      >
+        <p>{T.topicsEmptyText}</p>
+      </EmptyState>
+    );
+  return (
+    <ul className="flex flex-col">
+      {list.map((f) => {
+        const name = f.label ?? (f.kind === "section" ? sectionName(f.id) : f.id);
+        return (
+          <li
+            key={`${f.kind}:${f.id}`}
+            className="flex flex-wrap items-center gap-2 border-t border-line-subtle py-2 last:border-b"
+          >
+            <Link
+              href={f.kind === "topic" ? `/assunto/${f.id}` : `/${f.id}`}
+              className="min-w-0 flex-1 basis-40 type-body font-semibold text-strong underline-offset-4 hover:underline"
+            >
+              {name}
+            </Link>
+            <Button
+              size="sm"
+              variant="outline"
+              aria-label={T.unfollowLabel(name)}
+              onClick={() => void act((s) => s.unfollow(f.kind, f.id))}
+            >
+              {T.unfollow}
+            </Button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function Collections({ profile, act }: { profile: AnonProfile; act: Act }) {
+  const id = useId();
+  const [name, setName] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  return (
+    <>
+      <form
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return;
+          void act((s) => s.createCollection(name));
+          setName("");
+          requestLoginInvite("collection");
+        }}
+      >
+        <TextField
+          id={`${id}-nova`}
+          label={T.newCollection}
+          placeholder={T.newCollectionPlaceholder}
+          value={name}
+          maxLength={80}
+          onChange={(e) => setName(e.target.value)}
+          className="flex-1"
+        />
+        <Button type="submit" icon="plus">
+          {T.create}
+        </Button>
+      </form>
+      {profile.collections.length === 0 ? (
+        <EmptyState title={T.collectionsEmpty} icon="list">
+          <p>{T.collectionsEmptyText}</p>
+        </EmptyState>
+      ) : (
+        <ul className="flex flex-col">
+          {profile.collections.map((c) => (
+            <li
+              key={c.id}
+              className="flex flex-wrap items-center gap-2 border-t border-line-subtle py-2 last:border-b"
+            >
+              {editing === c.id ? (
+                <form
+                  className="flex flex-1 flex-wrap items-end gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void act((s) => s.renameCollection(c.id, draft));
+                    setEditing(null);
+                  }}
+                >
+                  <TextField
+                    id={`${id}-${c.id}`}
+                    label={T.renameField(c.name)}
+                    value={draft}
+                    maxLength={80}
+                    onChange={(e) => setDraft(e.target.value)}
+                    className="min-w-0 flex-1 basis-48"
+                  />
+                  <Button type="submit" size="sm">
+                    {T.saveName}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setEditing(null)}>
+                    {T.cancel}
+                  </Button>
+                </form>
+              ) : (
+                <>
+                  <p className="min-w-0 flex-1 basis-40 type-body text-strong">
+                    <span className="font-semibold">{c.name}</span>{" "}
+                    <span className="type-meta text-meta">· {T.items(c.items.length)}</span>
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon="pencil"
+                    aria-label={T.renameLabel(c.name)}
+                    onClick={() => {
+                      setDraft(c.name);
+                      setEditing(c.id);
+                    }}
+                  >
+                    {T.rename}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    icon="trash-2"
+                    aria-label={T.deleteLabel(c.name)}
+                    onClick={() => void act((s) => s.deleteCollection(c.id))}
+                  >
+                    {T.delete}
+                  </Button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  );
+}

@@ -1,0 +1,15 @@
+{
+  "mainFact": "A obra do viaduto na avenida Miguel Sutil tem custo divulgado pelas fontes.",
+  "roles": [
+    { "id": "i-folha", "role": "secondary" },
+    { "id": "i-mt", "role": "secondary" }
+  ],
+  "conflict": {
+    "kind": "number",
+    "description": "Custo total da obra do viaduto diverge entre as fontes.",
+    "positions": [
+      { "id": "i-folha", "value": "R$ 60 milhões" },
+      { "id": "i-mt", "value": "R$ 90 milhões" }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Sem conexão · CityNews Cuiabá</title>
+    <link rel="stylesheet" href="/offline.css" />
+  </head>
+  <body>
+    <main id="offline-page">
+      <p class="brand"><span class="dot" aria-hidden="true"></span>CityNews Cuiabá</p>
+      <h1>Sem conexão</h1>
+      <p id="intro">Você está sem internet. Estas páginas estão guardadas neste aparelho:</p>
+      <section id="paginas" hidden>
+        <h2 id="paginas-titulo">Páginas</h2>
+        <ul aria-labelledby="paginas-titulo"></ul>
+      </section>
+      <section id="salvas" hidden>
+        <h2 id="salvas-titulo">Salvas</h2>
+        <ul aria-labelledby="salvas-titulo"></ul>
+      </section>
+      <section id="lidas" hidden>
+        <h2 id="lidas-titulo">Lidas recentemente</h2>
+        <ul aria-labelledby="lidas-titulo"></ul>
+      </section>
+      <p id="empty" hidden>
+        Nada guardado ainda. Com internet, as páginas que você abrir ficam disponíveis aqui.
+      </p>
+      <p class="actions">
+        <button type="button" id="retry">Tentar de novo</button>
+        <a href="/favoritos" class="secondary">Abrir Favoritos</a>
+      </p>
+      <p id="online" role="status" hidden></p>
+    </main>
+    <script src="/offline.js"></script>
+  </body>
+</html>

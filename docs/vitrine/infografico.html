@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CityNews Cuiabá · Resumo do projeto</title>
+<style>
+  @font-face { font-family: "Schibsted Grotesk"; src: url("assets/SchibstedGrotesk-normal.woff2") format("woff2"); font-weight: 400 900; font-display: swap; }
+  @font-face { font-family: "Source Serif 4"; src: url("assets/SourceSerif4-normal.woff2") format("woff2"); font-weight: 200 900; font-display: swap; }
+  :root {
+    --tinta: #0f1b2d; --tinta-80: #27324a; --urucum: #e8491d; --urucum-texto: #b33a12;
+    --cerrado: #1e6b52; --cerrado-soft: #e3f1ec; --ia: #1f4f9c; --ia-soft: #e6eef9;
+    --atencao: #7a5200; --atencao-soft: #fdf1d6;
+    --grafite: #4a4f57; --nevoa: #f3f5f8; --nevoa-2: #e9edf2; --linha: #d5dbe3; --branco: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--nevoa-2); color: var(--tinta); font-family: "Schibsted Grotesk", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  .poster { width: 1200px; margin: 0 auto; background: var(--branco); }
+  h1, h2, h3 { font-family: "Source Serif 4", Georgia, serif; font-weight: 700; letter-spacing: -0.01em; }
+  .eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--urucum-texto); }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--urucum); margin-right: 8px; vertical-align: 1px; }
+  section { padding: 60px 64px; }
+  section + section { border-top: 1px solid var(--linha); }
+  .alt { background: var(--nevoa); }
+  .head { background: var(--tinta); color: var(--branco); padding: 56px 64px 56px; }
+  .head img.logo { height: 44px; display: block; }
+  .head h1 { font-size: 62px; line-height: 1.04; margin-top: 44px; max-width: 900px; }
+  .head p { font-size: 22px; line-height: 1.45; color: #d6dce6; margin-top: 20px; max-width: 820px; }
+  .promises { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; }
+  .promises span { padding: 10px 18px; border-radius: 999px; background: #ffffff1a; font-weight: 700; font-size: 16px; }
+  .head .tag { display: inline-block; margin-top: 28px; padding: 8px 16px; border: 1.5px solid #ffffff55; border-radius: 999px; font-size: 15px; font-weight: 600; }
+  h2 { font-size: 36px; line-height: 1.12; margin-top: 8px; max-width: 900px; }
+  .lead { font-size: 19px; line-height: 1.5; color: var(--grafite); margin-top: 14px; max-width: 860px; }
+  .grid { display: grid; gap: 20px; margin-top: 34px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g2 { grid-template-columns: repeat(2, 1fr); }
+  .card { background: var(--nevoa); border-radius: 16px; padding: 24px; }
+  .alt .card { background: var(--branco); }
+  .card h3 { font-size: 21px; line-height: 1.2; }
+  .card p { font-size: 15.5px; line-height: 1.5; color: var(--grafite); margin-top: 10px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; margin-bottom: 14px; }
+  .b-cer { background: var(--cerrado-soft); color: var(--cerrado); } .b-ia { background: var(--ia-soft); color: var(--ia); } .b-urc { background: #fbe6de; color: var(--urucum-texto); } .b-att { background: var(--atencao-soft); color: var(--atencao); }
+  /* problema */
+  .problem .card { border-top: 4px solid var(--urucum); }
+  .answer { margin-top: 28px; background: var(--tinta); color: var(--branco); border-radius: 16px; padding: 26px 30px; display: flex; gap: 22px; align-items: center; }
+  .answer .big { font-family: "Source Serif 4", serif; font-weight: 700; font-size: 26px; line-height: 1.2; flex: 1; }
+  .answer p { font-size: 16px; line-height: 1.5; color: #d6dce6; flex: 1; }
+  /* celulares */
+  .phones { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; margin-top: 40px; }
+  .phone { text-align: left; }
+  .frame { border: 8px solid var(--tinta); border-radius: 34px; overflow: hidden; background: var(--branco); box-shadow: 0 18px 36px #0f1b2d33; }
+  .frame img { display: block; width: 100%; }
+  .phone .st { display: flex; gap: 10px; align-items: center; margin-top: 20px; }
+  .phone .n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--urucum); color: var(--tinta); display: grid; place-items: center; font-weight: 800; }
+  .phone h3 { font-family: "Schibsted Grotesk", sans-serif; font-size: 18px; line-height: 1.2; }
+  .phone p { font-size: 14.5px; line-height: 1.45; color: var(--grafite); margin-top: 8px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 36px; }
+  .pills span { padding: 10px 16px; border-radius: 999px; background: var(--cerrado-soft); color: var(--cerrado); font-weight: 700; font-size: 15px; }
+  /* bastidores */
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; margin-top: 36px; }
+  .step { position: relative; padding: 0 12px 0 0; }
+  .step .n { width: 44px; height: 44px; border-radius: 50%; background: var(--tinta); color: var(--branco); display: grid; place-items: center; font-weight: 800; font-size: 18px; position: relative; z-index: 1; }
+  .step:not(:last-child)::after { content: ""; position: absolute; top: 21px; left: 44px; right: 0; height: 2px; background: var(--linha); }
+  .step h3 { font-family: "Schibsted Grotesk", sans-serif; font-size: 17px; margin-top: 14px; }
+  .step p { font-size: 14px; line-height: 1.45; color: var(--grafite); margin-top: 6px; }
+  .browser { margin-top: 36px; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--linha); box-shadow: 0 18px 36px #0f1b2d22; }
+  .browser .bar { background: var(--nevoa-2); padding: 10px 14px; display: flex; gap: 7px; align-items: center; }
+  .browser .bar i { width: 11px; height: 11px; border-radius: 50%; background: #b7c0cc; display: block; }
+  .browser img { display: block; width: 100%; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px; }
+  .note { margin-top: 28px; padding: 18px 22px; border-left: 4px solid var(--urucum); background: var(--branco); border-radius: 0 12px 12px 0; font-size: 17px; line-height: 1.5; }
+  /* possibilidades */
+  .col { background: var(--nevoa); border-radius: 16px; padding: 22px; }
+  .col h3 { font-size: 22px; }
+  .col .sub { font-size: 14px; color: var(--grafite); margin-top: 4px; line-height: 1.4; }
+  .it { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--linha); }
+  .it b { display: block; font-size: 16px; line-height: 1.25; }
+  .it span.d { display: block; font-size: 14px; line-height: 1.45; color: var(--grafite); margin-top: 5px; }
+  .it .badge { margin: 8px 0 0; font-size: 11px; padding: 3px 8px; }
+  /* confiança */
+  .rule { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; border: 1.5px solid var(--linha); border-radius: 16px; background: var(--branco); }
+  .rule .k { flex: none; width: 36px; height: 36px; border-radius: 10px; background: var(--cerrado-soft); color: var(--cerrado); display: grid; place-items: center; font-weight: 800; }
+  .rule h3 { font-family: "Schibsted Grotesk", sans-serif; font-size: 17px; }
+  .rule p { font-size: 14.5px; line-height: 1.45; color: var(--grafite); margin-top: 4px; }
+  .labels { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .labels span { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; padding: 6px 10px; border-radius: 6px; background: var(--nevoa-2); color: var(--tinta); }
+  .labels .ai { background: var(--ia-soft); color: var(--ia); }
+  /* números */
+  .num { font-family: "Schibsted Grotesk", sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -0.02em; line-height: 1; }
+  .stat { background: var(--tinta); color: var(--branco); border-radius: 16px; padding: 22px 22px 20px; }
+  .stat .lab { font-size: 14.5px; line-height: 1.35; color: #d6dce6; margin-top: 10px; }
+  .phases { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 30px; }
+  .ph { background: var(--nevoa); border-radius: 12px; padding: 14px 16px; }
+  .ph b { font-size: 15.5px; display: block; line-height: 1.25; } .ph small { display: block; font-size: 13px; color: var(--grafite); margin-top: 4px; line-height: 1.35; }
+  .ph .s { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+  .ok { background: var(--cerrado-soft); color: var(--cerrado); } .go { background: #fbe6de; color: var(--urucum-texto); }
+  ul.tick { list-style: none; padding: 0; margin-top: 18px; display: grid; gap: 10px; }
+  ul.tick li { font-size: 17px; line-height: 1.45; padding-left: 26px; position: relative; }
+  ul.tick li::before { content: ""; position: absolute; left: 0; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--cerrado); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  .cta { background: var(--tinta); color: var(--branco); padding: 56px 64px; text-align: left; }
+  .cta h2 { font-size: 40px; max-width: 900px; }
+  .cta p { font-size: 19px; line-height: 1.5; color: #d6dce6; margin-top: 16px; max-width: 800px; }
+  .foot { background: #0a1322; color: #d6dce6; padding: 30px 64px; display: flex; justify-content: space-between; align-items: center; font-size: 14.5px; }
+  .foot img { height: 30px; }
+  .small { font-size: 13px; color: var(--grafite); margin-top: 18px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="poster">
+
+  <header class="head">
+    <img class="logo" src="assets/citynews-horizontal-negative.svg" alt="CityNews Cuiabá" />
+    <h1>Cuiabá inteira em um só lugar, com a fonte de cada notícia</h1>
+    <p>Um portal de notícias locais que junta, verifica e explica tudo o que acontece na cidade, a cada 30 minutos, e que o leitor pode conferir com um toque.</p>
+    <div class="promises"><span>Tudo em um só lugar</span><span>Sempre com a fonte</span><span>Rápido, sem precisar de login</span></div>
+    <span class="tag"><span class="dot"></span>Apresentação do projeto · versão de demonstração · outubro de 2026</span>
+  </header>
+
+  <section class="problem">
+    <div class="eyebrow">A oportunidade</div>
+    <h2>Quem mora em Cuiabá lê notícia em dez lugares e não sabe em qual confiar</h2>
+    <div class="grid g3">
+      <div class="card"><h3>Informação espalhada</h3><p>Prefeitura, jornais, rádios e redes publicam cada um no seu canto. Para saber o que mudou no ônibus do CPA, o leitor precisa caçar.</p></div>
+      <div class="card"><h3>Pouca transparência</h3><p>Na maioria dos sites não dá para saber quem escreveu, de onde veio a informação ou se uma pessoa conferiu o texto.</p></div>
+      <div class="card"><h3>IA sem fonte</h3><p>Textos gerados por IA circulam sem dizer de onde tiraram a informação, e o leitor não tem como checar.</p></div>
+    </div>
+    <div class="answer"><div class="big">O CityNews resolve isso com um portal próprio, um panorama de todas as fontes e a origem sempre visível.</div><p>Em vez de mais um site de notícias, um ponto de partida confiável: o leitor lê, compara e vai direto ao original quando quiser.</p></div>
+  </section>
+
+  <section class="alt">
+    <div class="eyebrow">Como o leitor vai usar</div>
+    <h2>Do primeiro toque à decisão do dia, em quatro passos</h2>
+    <p class="lead">Telas reais da versão de demonstração, no celular. Funciona no navegador, sem baixar de loja e sem criar conta.</p>
+    <div class="phones">
+      <div class="phone"><div class="frame"><img src="portal-01-home-390.png" alt="Home do CityNews no celular" /></div><div class="st"><div class="n">1</div><h3>Vê o que importa agora</h3></div><p>A home mostra a manchete, o Agora e a confiança de cada matéria, com rótulo de origem e quem revisou.</p></div>
+      <div class="phone"><div class="frame"><img src="portal-03-materia-390.png" alt="Matéria com rótulos de origem" /></div><div class="st"><div class="n">2</div><h3>Lê sabendo como foi feito</h3></div><p>Cada matéria diz quantas fontes tem, se a IA ajudou e qual pessoa da redação revisou.</p></div>
+      <div class="phone"><div class="frame"><img src="portal-04-panorama-390.png" alt="Panorama de fontes" /></div><div class="st"><div class="n">3</div><h3>Compara quem cobriu</h3></div><p>O Panorama mostra o que outros veículos publicaram sobre o mesmo assunto, com link para o original.</p></div>
+      <div class="phone"><div class="frame"><img src="portal-07-agenda-390.png" alt="Agenda de Cuiabá" /></div><div class="st"><div class="n">4</div><h3>Planeja o fim de semana</h3></div><p>Agenda de eventos confirmados, com filtros, e o leitor pode sugerir um evento para a redação.</p></div>
+    </div>
+    <div class="pills"><span>Instala na tela inicial do celular</span><span>Lê as matérias salvas sem internet</span><span>Recebe aviso do bairro e dos assuntos que segue</span><span>Pergunta ao CityNews e recebe resposta com fontes</span><span>Alertas por e-mail e newsletter</span><span>Modo escuro</span></div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Nos bastidores</div>
+    <h2>Velocidade de máquina, decisão de gente</h2>
+    <p class="lead">Um motor coleta, agrupa, verifica e resume a cada 30 minutos. A redação define as regras, acompanha tudo e decide o que é delicado.</p>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><h3>Coleta</h3><p>Fontes reais, respeitando as regras de cada site.</p></div>
+      <div class="step"><div class="n">2</div><h3>Agrupa</h3><p>Reúne o que fala do mesmo fato.</p></div>
+      <div class="step"><div class="n">3</div><h3>Verifica</h3><p>Compara fontes e aponta conflito.</p></div>
+      <div class="step"><div class="n">4</div><h3>Resume</h3><p>Texto próprio, com as fontes citadas.</p></div>
+      <div class="step"><div class="n">5</div><h3>Ilustra</h3><p>Imagem só com permissão ou rótulo claro.</p></div>
+      <div class="step"><div class="n">6</div><h3>Publica</h3><p>Pela regra, ou vai para a fila da redação.</p></div>
+    </div>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="estudio-01-fila-da-redacao-1280.png" alt="Fila de matérias do Estúdio" /></div>
+    <div class="note"><strong>Segurança e notícia de última hora nunca saem sozinhas.</strong> Aparecem na fila com o aviso "Tema sensível" e esperam uma pessoa da redação decidir. É a regra do sistema, não uma promessa.</div>
+  </section>
+
+  <section class="alt">
+    <div class="eyebrow">Controle total</div>
+    <h2>Um painel para a redação mandar no sistema</h2>
+    <p class="lead">A equipe adiciona fontes só colando um link, define a frequência de coleta, pausa o que der problema e acompanha custos e falhas em tempo real.</p>
+    <div class="browser"><div class="bar"><i></i><i></i><i></i></div><img src="estudio-05-painel-de-fontes-1280.png" alt="Painel de fontes do Control Center" /></div>
+    <div class="grid g3">
+      <div class="card"><h3>Fontes na mão da equipe</h3><p>Nota de confiabilidade, prioridade, via rápida de 10 a 20 minutos e pausa automática quando uma fonte falha.</p></div>
+      <div class="card"><h3>IA com orçamento</h3><p>Cada agente tem teto diário, e o total nunca passa de R$ 30 por dia. Modelos de baixo custo, trocáveis pelo painel.</p></div>
+      <div class="card"><h3>Duas pessoas para o que é crítico</h3><p>Aviso urgente, mudança de regra, de prompt e de permissão de admin só valem com a aprovação de uma segunda pessoa.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Possibilidades</div>
+    <h2>Uma base pronta para virar negócio, audiência e marca regional</h2>
+    <p class="lead">O que já está construído abre quatro frentes. As etiquetas mostram o que está pronto e o que depende de uma próxima etapa.</p>
+    <div class="grid g4">
+      <div class="col"><h3>Receita</h3><div class="sub">Do patrocínio à marca de confiança</div>
+        <div class="it"><b>Patrocínio com rótulo claro</b><span class="d">Gestão de campanhas e regras: nunca em Política, Segurança ou Saúde.</span><span class="badge b-att">Veiculação em integração</span></div>
+        <div class="it"><b>Página para anunciantes</b><span class="d">"Anuncie" já tem a entrada para pequenos e grandes negócios locais.</span><span class="badge b-cer">Pronto</span></div>
+        <div class="it"><b>Newsletter</b><span class="d">Listas, confirmação e preferências por leitor, base para assinatura e patrocínio.</span><span class="badge b-cer">Pronto</span></div>
+      </div>
+      <div class="col"><h3>Audiência</h3><div class="sub">Hábito diário, sem depender de rede social</div>
+        <div class="it"><b>App na tela inicial</b><span class="d">Instalável, com leitura offline e convite que respeita o "agora não".</span><span class="badge b-cer">Pronto</span></div>
+        <div class="it"><b>Avisos que o leitor escolhe</b><span class="d">Notificações do bairro e dos assuntos seguidos, até 3 por dia, sem acordar ninguém.</span><span class="badge b-att">Chaves de push a configurar</span></div>
+        <div class="it"><b>Recomendação com consentimento</b><span class="d">Personaliza só quem aceitou, sem nenhum dado sensível.</span><span class="badge b-cer">Pronto</span></div>
+      </div>
+      <div class="col"><h3>Comunidade e serviço</h3><div class="sub">O portal que a cidade usa, não só lê</div>
+        <div class="it"><b>Agenda da cidade</b><span class="d">Eventos confirmados e sugeridos pelos leitores, com calendário.</span><span class="badge b-cer">Pronto</span></div>
+        <div class="it"><b>Guia Cuiabá</b><span class="d">Editorias de Guia, Gastronomia e Serviços: uma vitrine natural para o comércio local.</span><span class="badge b-cer">Base pronta</span></div>
+        <div class="it"><b>Correções e direito de resposta</b><span class="d">Canal público para erros e respostas, que reforça a credibilidade.</span><span class="badge b-cer">Pronto</span></div>
+      </div>
+      <div class="col"><h3>Crescimento</h3><div class="sub">O mesmo motor, outras praças</div>
+        <div class="it"><b>Várzea Grande e região</b><span class="d">A marca já prevê a linha própria; basta ativar novas fontes e editorias.</span><span class="badge b-ia">Próxima etapa</span></div>
+        <div class="it"><b>Painel de dados da audiência</b><span class="d">Funil do app e métricas agregadas, respeitando a LGPD, para vender com números.</span><span class="badge b-cer">Pronto</span></div>
+        <div class="it"><b>Parcerias com veículos locais</b><span class="d">O Panorama leva tráfego para quem produz notícia e cria base para acordos.</span><span class="badge b-ia">Próxima etapa</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="eyebrow">Por que o leitor confia</div>
+    <h2>Seis regras que o sistema não deixa quebrar</h2>
+    <div class="grid g3">
+      <div class="rule"><div class="k">1</div><div><h3>Origem sempre visível</h3><p>Todo conteúdo mostra de onde veio e como foi feito.</p></div></div>
+      <div class="rule"><div class="k">2</div><div><h3>Login nunca é obrigatório</h3><p>Ler, buscar e usar o Panorama funciona sem conta.</p></div></div>
+      <div class="rule"><div class="k">3</div><div><h3>A IA não responde sem fonte</h3><p>Com menos de duas fontes, ela recusa e explica por quê.</p></div></div>
+      <div class="rule"><div class="k">4</div><div><h3>Notícia alheia não é copiada</h3><p>Só título, resumo curto próprio e link para o original.</p></div></div>
+      <div class="rule"><div class="k">5</div><div><h3>Personalização só com consentimento</h3><p>Nada de saúde, religião, política ou renda.</p></div></div>
+      <div class="rule"><div class="k">6</div><div><h3>Texto de fora é dado, não ordem</h3><p>Filtro contra instruções escondidas antes da IA.</p></div></div>
+    </div>
+    <div class="labels">
+      <span>ORIGINAL CITYNEWS</span><span>NORMALIZADO PELO CITYNEWS</span><span>AGREGADO</span><span class="ai">RESUMO POR IA</span><span>PUBLICADO AUTOMATICAMENTE</span><span>REVISADO POR HUMANO</span><span>FOTO ORIGINAL</span><span>REPRODUÇÃO</span><span>IMAGEM LICENCIADA</span><span>IMAGEM ILUSTRATIVA</span><span class="ai">IMAGEM GERADA POR IA</span><span>PATROCINADO</span>
+    </div>
+    <p class="small">Os 12 rótulos de origem que acompanham o conteúdo.</p>
+  </section>
+
+  <section>
+    <div class="eyebrow">Em números</div>
+    <h2>Já existe muito produto por trás da demonstração</h2>
+    <div class="grid g4">
+      <div class="stat"><div class="num">100</div><div class="lab">telas: 40 do portal público e 59 do Estúdio, Control Center e Administração</div></div>
+      <div class="stat"><div class="num">235</div><div class="lab">componentes de interface reutilizáveis</div></div>
+      <div class="stat"><div class="num">4.148</div><div class="lab">testes automáticos, de unidade a navegador real em celular e desktop</div></div>
+      <div class="stat"><div class="num">0</div><div class="lab">vulnerabilidades altas ou críticas nas dependências de produção</div></div>
+    </div>
+    <p class="small">Medido no código e nos testes em 30/09/2026: 2.536 testes unitários, de integração e de segurança, mais 1.612 de ponta a ponta. As 100 telas incluem a vitrine interna do sistema de design.</p>
+    <div class="phases">
+      <div class="ph"><span class="s ok">Pronto</span><b>Fundação</b><small>Banco, login, identidade, testes</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Portal público</b><small>Home, matéria, agenda, Panorama</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Motor e busca</b><small>Coleta, verificação, busca com IA</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Fontes e conta</b><small>Seguir, recomendar, privacidade</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Estúdio</b><small>Fila, editor, mídia, correções</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Control Center</b><small>IA, regras, auditoria, contingência</small></div>
+      <div class="ph"><span class="s ok">Pronto</span><b>Painel de fontes e app</b><small>Notificações e instalação</small></div>
+      <div class="ph"><span class="s go">Em andamento</span><b>Lançamento</b><small>Segurança verificada; performance e acessibilidade em fechamento</small></div>
+    </div>
+  </section>
+
+  <section class="alt">
+    <div class="two">
+      <div>
+        <div class="eyebrow">Pensado para todo mundo ler</div>
+        <h2>Qualidade que aparece na tela</h2>
+        <ul class="tick">
+          <li>Testado em celular e computador, com modo escuro</li>
+          <li>Navegação completa só por teclado</li>
+          <li>Nenhuma violação grave de acessibilidade nas telas testadas</li>
+          <li>Home mais leve (em integração): de 586 kB para 167 kB de JavaScript</li>
+        </ul>
+      </div>
+      <div>
+        <div class="eyebrow">Próximos passos</div>
+        <h2>Para entrar no ar</h2>
+        <ul class="tick">
+          <li>Ligar a coleta automática a cada 30 minutos</li>
+          <li>Ativar as fontes reais do registro aprovado</li>
+          <li>Configurar as chaves das notificações push</li>
+          <li>Revisão com leitor de tela e publicação em produção</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <div class="eyebrow" style="color:#f39a78">Vamos juntos</div>
+    <h2>Colocar Cuiabá para ler com confiança</h2>
+    <p>O produto está construído e demonstrável. O próximo passo é ativar as fontes reais, abrir para os primeiros leitores e começar a construir audiência e receita em cima de uma base que a cidade possa conferir.</p>
+  </div>
+
+  <footer class="foot">
+    <img src="assets/citynews-horizontal-negative.svg" alt="CityNews Cuiabá" />
+    <span>Dados de demonstração: veículos e matérias das telas são fictícios.</span>
+  </footer>
+</div>
+</body>
+</html>
