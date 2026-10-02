@@ -226,7 +226,26 @@ export interface CollectedInsert {
   locality: string;
 }
 
-/** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize). */
+/** Item coletado como o `enrich` o lê (só o necessário para decidir e aplicar o enriquecimento). */
+export interface EnrichableItem {
+  id: string;
+  sourceId: string;
+  canonicalUrl: string;
+  originalTitle: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  imageUrl: string | null;
+}
+
+/** Campos que o `enrich` pode corrigir em `collected_items`; o que não vier não é tocado. */
+export interface EnrichmentPatch {
+  originalTitle?: string;
+  excerpt?: string;
+  publishedAt?: string;
+  imageUrl?: string;
+}
+
+/** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize, enrich). */
 export interface IngestRepo {
   sourceBySlug(slug: string): Promise<SourceRecord | null>;
   sourceById(id: string): Promise<SourceRecord | null>;
@@ -282,6 +301,10 @@ export interface IngestRepo {
   insertCollectedItem(
     item: CollectedInsert,
   ): Promise<{ id: string; created: boolean; pending: boolean }>;
+  /** Item coletado para o `enrich` (`null` se sumiu). */
+  collectedForEnrich(id: string): Promise<EnrichableItem | null>;
+  /** Aplica o enriquecimento (só os campos presentes); idempotente. */
+  applyEnrichment(id: string, patch: EnrichmentPatch): Promise<void>;
 }
 
 /** Item coletado como as etapas de Entendimento (dedupe em diante) o enxergam. */

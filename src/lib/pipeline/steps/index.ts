@@ -2,6 +2,7 @@ import type { StepHandlers } from "../run-step";
 import { createClassifyStep, type UnderstandStepDeps } from "./classify";
 import { createClusterStep } from "./cluster";
 import { createDedupeStep, type UnderstandingDeps } from "./dedupe";
+import { createEnrichStep } from "./enrich";
 import { createExtractStep } from "./extract";
 import { createLocateStep } from "./locate";
 import { createDecideStep } from "./decide";
@@ -37,6 +38,8 @@ export function createIngestHandlers(deps: IngestDeps): StepHandlers {
     validate: createValidateStep(deps),
     extract: createExtractStep(deps),
     normalize: createNormalizeStep(deps),
+    // Passo opcional (fora das 20 etapas): só recebe item de fonte com `consumption.enrich`.
+    enrich: createEnrichStep(deps),
   };
 }
 

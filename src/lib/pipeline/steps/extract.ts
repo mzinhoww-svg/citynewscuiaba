@@ -15,7 +15,7 @@ import { repairTruncatedSitemap, titleFromSlug } from "../sitemap";
 import type { RawEntry } from "../types";
 
 export const MAX_ENTRIES = 200;
-const TITLE_MAX = 300;
+export const TITLE_MAX = 300;
 const EXCERPT_MAX = 600;
 const AUTHOR_MAX = 200;
 
@@ -80,7 +80,7 @@ function absolute(u: string, base?: string): string | null {
   }
 }
 
-function excerptOf(s: string): string | null {
+export function excerptOf(s: string): string | null {
   const flat = s.replace(/\s*\n\s*/g, " ").trim();
   if (!flat) return null;
   if (flat.length <= EXCERPT_MAX) return flat;

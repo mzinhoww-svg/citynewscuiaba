@@ -122,6 +122,24 @@ export function createMemoryIngestRepo(sources: SourceRecord[], opts: MemoryInge
       collected.push({ ...item, id });
       return { id, created: true, pending: true };
     },
+    async collectedForEnrich(id) {
+      const c = collected.find((x) => x.id === id);
+      return c
+        ? {
+            id: c.id,
+            sourceId: c.sourceId,
+            canonicalUrl: c.canonicalUrl,
+            originalTitle: c.originalTitle,
+            excerpt: c.excerpt,
+            publishedAt: c.publishedAt,
+            imageUrl: c.imageUrl,
+          }
+        : null;
+    },
+    async applyEnrichment(id, patch) {
+      const c = collected.find((x) => x.id === id);
+      if (c) Object.assign(c, patch);
+    },
   };
   return Object.assign(repo, {
     source: (slug: string) => rows.find((s) => s.slug === slug),
