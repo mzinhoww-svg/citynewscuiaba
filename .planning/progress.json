@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-09-29T22:17:27.682Z",
+  "updatedAt": "2026-10-02",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -603,14 +603,11 @@
         "P3",
         "P4"
       ],
-      "status": "pending",
+      "status": "done",
       "gate": {
-        "verify": false,
-        "preview": false,
-        "agentBrowser": false,
-        "impeccable": false,
-        "report": false,
-        "merged": false
+        "commit": "de63b7f",
+        "date": "2026-10-02",
+        "notes": "gate P5 + PWA revisados (docs/reports/P5-gate-review.md, pwa-gate-review.md)"
       },
       "tasks": [
         {
@@ -717,69 +714,66 @@
         "P4",
         "P5"
       ],
-      "status": "pending",
+      "status": "done",
       "gate": {
-        "verify": false,
-        "preview": false,
-        "agentBrowser": false,
-        "impeccable": false,
-        "report": false,
-        "merged": false
+        "commit": "de63b7f",
+        "date": "2026-10-02",
+        "notes": "verify verde (2546 testes); relatório final.md"
       },
       "tasks": [
         {
           "id": "P6-T1",
           "title": "Performance",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "perf.md; JS home 166,9 kB; LCP/TBT acima da meta (B-020)"
         },
         {
           "id": "P6-T2",
           "title": "Acessibilidade completa",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "a11y.md; axe todas as rotas"
         },
         {
           "id": "P6-T3",
           "title": "Segurança",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "security.md; 0049 em produção"
         },
         {
           "id": "P6-T4",
           "title": "Observabilidade e recuperação",
           "parallel": false,
-          "status": "pending",
+          "status": "degraded",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "runbook restore.md; exercício pendente (B-021)"
         },
         {
           "id": "P6-T5",
           "title": "Privacidade",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "privacy-strict.spec.ts"
         },
         {
           "id": "P6-T6",
           "title": "Polimento visual e verificação final",
           "parallel": false,
-          "status": "pending",
+          "status": "done",
           "attempts": 0,
-          "commit": null,
-          "notes": ""
+          "commit": "de63b7f",
+          "notes": "final.md com 12 critérios"
         }
       ]
     }

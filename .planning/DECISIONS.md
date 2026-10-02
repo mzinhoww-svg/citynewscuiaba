@@ -130,3 +130,7 @@ Decisões autônomas tomadas durante a execução recebem `A-###`:
 - Aplicada `0048_p5_gate_fixes` (verbatim, `list_migrations` conferido antes: produção estava em 0047). Conferido por hash normalizado das 21 funções novas ou redefinidas: idêntico ao banco local recriado do repositório.
 - Efeitos operacionais: `audit_log` passa a ser legível direto só por admin (demais papéis usam `audit_log_view`, 5ª view security-definer no mesmo padrão das `public_*`); retenção de eventos com teto de 90 dias; crons `events-retention` (lê a chave) e `staff-invites-sweep` (hora em hora); constraints `not valid` (linhas antigas ficam, novas são conferidas).
 - Pendências registradas pelo revisor (P6): 2FA da equipe não aplicado, máscara de `pipeline_events`, `placeSponsored` sem chamada no portal, `.limit(5000)` do histórico de push (max_rows 1000).
+
+## A-099 · Fechamento do P6 e lançamento v1.0.0
+
+P6-T1 (performance) e T2 (acessibilidade) mesclados; testes de cabeçalhos e `OfflineNotice` ajustados (regra de cabeçalhos dividida por B-018; espera de estado sob carga). `pnpm verify` verde (2546 testes). Metas de LCP e TBT ficam como degradadas (B-020) e o exercício de recuperação como pendente do dono (B-021); ambos não bloqueiam o lançamento. Merge da PR #1 na `main` para a Vercel publicar. Custo se errado: reverter o merge na `main`.

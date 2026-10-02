@@ -1,6 +1,6 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-01 — PROJETO PAUSADO a pedido do dono. Produção em 0049. Branch `claude/keen-hypatia-8qn86r` em `f3c5730` (P6 T3/T5 mesclados). Pendentes de mescla: worktrees `worktree-agent-a55117a36612a27b5` (P6-T1 performance, JS home 166,9 kB; LCP/TBT acima da meta) e `worktree-agent-ae0cd6e6d9e29d70e` (P6-T2 acessibilidade). Falta: T4 (exercício de recuperação, exige 2º projeto Supabase), T6 (final.md, 12 critérios, deploy/merge da PR #1 na main), pendências do dono em BLOCKERS.
+**Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
 ## Fase e tarefa
