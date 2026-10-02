@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { OfflineNotice } from "./OfflineNotice";
 
@@ -13,7 +13,7 @@ describe("OfflineNotice", () => {
     act(() => {
       window.dispatchEvent(new Event("online"));
     });
-    expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta.");
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta."));
     expect(screen.getByRole("button", { name: "Atualizar" })).toBeVisible();
   });
 
