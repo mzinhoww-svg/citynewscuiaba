@@ -184,3 +184,42 @@ export async function retryQuarantined(
   if (resolved.length > 0) await deps.repo.resolveQuarantine(resolved);
   return ok(outcome);
 }
+
+/** Banco do reprocesso de imagens (UI-T16). */
+export interface ImageReprocessRepo {
+  /**
+   * Matérias publicadas, sem escolha nem edição de pessoa, que têm só a capa ou nenhuma imagem
+   * (e ainda podem ganhar a imagem do texto ou a capa), das mais recentes às mais antigas.
+   */
+  articlesNeedingImages(limit: number): Promise<string[]>;
+}
+
+export interface ImageReprocessOutcome {
+  targets: number;
+  enqueued: number;
+  alreadyQueued: number;
+}
+
+/**
+ * Depois da implantação da capa e da imagem no texto (spec 2026-10-02 §4.10): reenfileira o passo
+ * `image` das matérias publicadas que só têm capa ou não têm imagem. O passo é idempotente e não
+ * toca em escolha de pessoa nem em matéria editada por pessoa; a matéria publicada não volta a
+ * passar pelas regras de publicação (a etapa `rules` ignora quem já saiu de rascunho).
+ */
+export async function reprocessImages(
+  deps: { queue: Queue; repo: ImageReprocessRepo; now: () => Date },
+  input: { limit: number },
+): Promise<ImageReprocessOutcome> {
+  const limit = Math.min(Math.floor(input.limit), MAX_REPROCESS_TARGETS);
+  const empty = { targets: 0, enqueued: 0, alreadyQueued: 0 };
+  if (!Number.isFinite(limit) || limit < 1) return empty;
+  const ids = [...new Set(await deps.repo.articlesNeedingImages(limit))].slice(0, limit);
+  const runId = reprocessRunRef(deps.now());
+  const outcome = { ...empty, targets: ids.length };
+  for (const id of ids) {
+    const msg: PipelineMessage = { runId, step: "image", itemRef: `article:${id}`, attempt: 1 };
+    if (await deps.queue.enqueue(queueFor("image"), msg)) outcome.enqueued++;
+    else outcome.alreadyQueued++;
+  }
+  return outcome;
+}

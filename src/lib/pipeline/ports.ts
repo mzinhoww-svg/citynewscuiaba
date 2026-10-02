@@ -490,6 +490,17 @@ export interface MediaSourceItem {
   };
 }
 
+/** Imagem já ligada à matéria (capa ou imagem do texto). */
+export interface MediaSlot {
+  mediaId: string;
+  sourceId: string | null;
+  originUrl: string | null;
+  kind: MediaAssetRecord["kind"];
+  status: MediaAssetRecord["status"];
+  /** dHash da imagem, quando conhecido (compara com a candidata do outro papel). */
+  phash: bigint | null;
+}
+
 /** Matéria como a etapa de imagem a enxerga. */
 export interface MediaContext {
   articleId: string;
@@ -502,6 +513,16 @@ export interface MediaContext {
   tags: string[];
   /** A matéria já tem imagem escolhida (idempotência). */
   hasMedia: boolean;
+  /** Capa atual (`article_media.role = 'cover'`), mesmo se removida a pedido (status `blocked`). */
+  cover: MediaSlot | null;
+  /** Imagem do texto atual (`role = 'inline'`). */
+  inline: MediaSlot | null;
+  /** Parágrafos do corpo (documento doc → paragraph); define a posição da imagem do texto. */
+  bodyParagraphs: number;
+  /** Alguma imagem foi escolhida por pessoa (`chosen_by` fora de `pipeline*`): nunca é trocada. */
+  humanMedia: boolean;
+  /** A matéria tem versão de pessoa: o reprocesso de imagem não toca nela. */
+  humanEdited: boolean;
   /** Itens do assunto: primárias primeiro, depois os mais recentes. */
   items: MediaSourceItem[];
 }
@@ -552,11 +573,16 @@ export interface MediaRepo extends Pick<IngestRepo, "hitRateLimit"> {
   /** Acervo ilustrativo aprovado, com alguma das etiquetas. */
   archiveCandidates(tags: string[], limit: number): Promise<MediaAssetRecord[]>;
   insertAsset(a: NewMediaAsset): Promise<string>;
+  /**
+   * Liga o ativo à matéria como capa ou imagem do texto (`position` = parágrafo depois do qual
+   * entra, só no papel `inline`). Idempotente: o mesmo par ou o mesmo papel já ocupado não muda.
+   */
   linkArticleMedia(
     articleId: string,
     mediaId: string,
     rationale: string,
     chosenBy: string,
+    slot?: { role: "cover" | "inline"; position?: number },
   ): Promise<void>;
   recordDecision(d: DecisionRecord): Promise<void>;
   asset(id: string): Promise<MediaAssetRecord | null>;

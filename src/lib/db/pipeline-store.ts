@@ -873,6 +873,21 @@ export function createFlags(db: DbClient): Flags {
   };
 }
 
+const MediaSlotSchema = z
+  .object({
+    mediaId: z.string(),
+    sourceId: z.string().nullable(),
+    originUrl: z.string().nullable(),
+    kind: z.enum(["original", "reproduction", "licensed", "illustrative", "ai_generated"]),
+    status: z.enum(["pending", "approved", "blocked"]),
+    phash: z.string().nullable(),
+  })
+  .transform((s) => ({
+    ...s,
+    // dHash trafega como texto com sinal (bigint do Postgres); volta a 64 bits sem sinal.
+    phash: s.phash === null ? null : BigInt.asUintN(64, BigInt(s.phash)),
+  }));
+
 const MediaContextSchema = z.object({
   articleId: z.string(),
   topicId: z.string().nullable(),
@@ -882,6 +897,11 @@ const MediaContextSchema = z.object({
   sensitive: z.boolean(),
   tags: z.array(z.string()),
   hasMedia: z.boolean(),
+  cover: MediaSlotSchema.nullable(),
+  inline: MediaSlotSchema.nullable(),
+  bodyParagraphs: z.number(),
+  humanMedia: z.boolean(),
+  humanEdited: z.boolean(),
   items: z.array(
     z.object({
       itemId: z.string(),
@@ -994,13 +1014,28 @@ export function createMediaRepo(db: DbClient): MediaRepo {
       return data;
     },
 
-    async linkArticleMedia(articleId, mediaId, rationale, chosenBy) {
-      const { error } = await db
+    async linkArticleMedia(articleId, mediaId, rationale, chosenBy, slot) {
+      const role = slot?.role ?? "cover";
+      // Um papel por matéria (índices únicos parciais): o que já está lá não é trocado.
+      const taken = await db
         .from("article_media")
-        .upsert(
-          { article_id: articleId, media_id: mediaId, rationale, chosen_by: chosenBy },
-          { onConflict: "article_id,media_id", ignoreDuplicates: true },
-        );
+        .select("media_id")
+        .eq("article_id", articleId)
+        .eq("role", role)
+        .maybeSingle();
+      check("linkArticleMedia(role)", taken.error);
+      if (taken.data) return;
+      const { error } = await db.from("article_media").upsert(
+        {
+          article_id: articleId,
+          media_id: mediaId,
+          rationale,
+          chosen_by: chosenBy,
+          role,
+          position: role === "inline" ? (slot?.position ?? null) : null,
+        },
+        { onConflict: "article_id,media_id", ignoreDuplicates: true },
+      );
       check("linkArticleMedia", error);
     },
 

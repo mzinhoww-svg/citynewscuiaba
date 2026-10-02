@@ -273,7 +273,9 @@ export type Database = {
           chosen_at: string;
           chosen_by: string;
           media_id: string;
+          position: number | null;
           rationale: string;
+          role: string;
         };
         Insert: {
           alt?: string | null;
@@ -282,7 +284,9 @@ export type Database = {
           chosen_at?: string;
           chosen_by: string;
           media_id: string;
+          position?: number | null;
           rationale: string;
+          role?: string;
         };
         Update: {
           alt?: string | null;
@@ -291,7 +295,9 @@ export type Database = {
           chosen_at?: string;
           chosen_by?: string;
           media_id?: string;
+          position?: number | null;
           rationale?: string;
+          role?: string;
         };
         Relationships: [
           {

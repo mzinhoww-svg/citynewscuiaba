@@ -7,6 +7,7 @@ import {
   watermarkHint,
 } from "@/lib/media/checks";
 import { chooseImage, mayGenerate } from "@/lib/media/choose";
+import { inlinePosition, pickCoverAndInline, scoreImage } from "@/lib/media/score";
 import { fetchImage, outsideSourceDomain, sourceDomain } from "@/lib/media/fetch-image";
 import { mediaPath, type MediaStore } from "@/lib/media/store";
 import type { Candidate, ImageAnalysis, ImagePolicy, MediaChoice } from "@/lib/media/types";
@@ -40,8 +41,9 @@ export interface MediaStepDeps {
   canGenerate?: boolean;
 }
 
-/** Imagens de fonte baixadas por matéria, no máximo. */
-const MAX_SOURCE_IMAGES = 3;
+/** Imagens de fonte avaliadas por matéria (capa e imagem do texto saem delas), no máximo. */
+const MAX_SOURCE_IMAGES = 4;
+const AUTO_CHOSEN_BY = "pipeline:image";
 const ARCHIVE_LIMIT = 12;
 const ARTICLE_REF = /^article:(\S+)$/;
 
@@ -50,6 +52,8 @@ export const REPRODUCTION_LICENSE =
 
 interface Prepared {
   item: MediaSourceItem;
+  /** Como a política da fonte permite usar a imagem. */
+  use: "original" | "reproduction";
   candidate: Candidate;
   existing: MediaAssetRecord | null;
   download: { bytes: Uint8Array; analysis: ImageAnalysis } | null;
@@ -101,12 +105,14 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     item: MediaSourceItem,
     imageUrl: string,
     signal: AbortSignal | undefined,
+    use: Prepared["use"],
   ): Promise<Result<Prepared, string>> => {
     const existing = await deps.repo.assetByOrigin(imageUrl);
     if (existing?.status === "blocked") return err("imagem removida a pedido");
     const base = {
       url: item.pageUrl,
       imageUrl,
+      sourceId: item.source.id,
       sourceName: item.source.name,
       ...(item.author?.trim() ? { author: item.author.trim() } : {}),
       fit: 1,
@@ -116,6 +122,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     if (existing && existing.width !== null && existing.height !== null)
       return ok({
         item,
+        use,
         existing,
         download: null,
         candidate: { ...base, width: existing.width, height: existing.height, phashDistances: [] },
@@ -155,6 +162,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     );
     return ok({
       item,
+      use,
       existing: null,
       download: { bytes: file.value.bytes, analysis: analysis.value },
       candidate: {
@@ -162,28 +170,42 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         width: analysis.value.width,
         height: analysis.value.height,
         phashDistances: distances,
+        phash: analysis.value.phash,
+        ...(analysis.value.sharpness !== undefined ? { sharpness: analysis.value.sharpness } : {}),
       },
     });
   };
 
-  const sourceImage = async (
+  /**
+   * Avalia até `MAX_SOURCE_IMAGES` imagens de fontes diferentes do assunto (política, flag,
+   * `robots.txt` e limite da fonte como sempre) e devolve as que passam em `checkImage`. Uma
+   * fonte que já tem imagem aprovada não gasta outra tentativa. `skip` tira da disputa a capa
+   * que a matéria já tem (mesma fonte ou mesma imagem).
+   */
+  const sourceImages = async (
     ctx: MediaContext,
     reproductionEnabled: boolean,
     notes: string[],
     signal: AbortSignal | undefined,
-  ) => {
+    skip?: { sourceId: string | null; originUrl: string | null },
+  ): Promise<Prepared[]> => {
     const now = deps.now();
     let tried = 0;
     let reproductionOff = false;
+    const passed: Prepared[] = [];
+    const doneSources = new Set<string>();
     for (const item of ctx.items) {
       if (!item.imageUrl) continue;
+      if (skip?.sourceId && item.source.id === skip.sourceId) continue;
+      if (skip?.originUrl && item.imageUrl === skip.originUrl) continue;
+      if (doneSources.has(item.source.id)) continue;
       const use = usableAs(item, reproductionEnabled, now);
       if (!use) {
         if (item.source.imagePolicy === "reproduction") reproductionOff = true;
         continue;
       }
       if (tried++ >= MAX_SOURCE_IMAGES) break;
-      const p = await prepare(item, item.imageUrl, signal);
+      const p = await prepare(item, item.imageUrl, signal, use);
       if (!p.ok) {
         notes.push(`${item.source.name}: ${p.error}.`);
         continue;
@@ -193,10 +215,60 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         notes.push(`${item.source.name}: imagem reprovada (${check.issues.join(", ")}).`);
         continue;
       }
-      return p.value;
+      passed.push(p.value);
+      doneSources.add(item.source.id);
     }
     if (reproductionOff) notes.push("Imagem da fonte não usada: reprodução desligada.");
-    return null;
+    return passed;
+  };
+
+  /** Copia o arquivo para o Storage e cria o ativo (ou reaproveita o da mesma origem). */
+  const saveAsset = async (
+    p: Prepared,
+    kind: "original" | "reproduction",
+    articleId: string,
+  ): Promise<Result<string, ReturnType<typeof stepError.transient>>> => {
+    if (p.existing) return ok(p.existing.id);
+    if (!p.download) return err(stepError.transient("imagem sem arquivo", { articleId }));
+    const { bytes, analysis } = p.download;
+    const path = mediaPath(kind, analysis.sha256, analysis.format);
+    const put = await deps.store.put(path, bytes, analysis.contentType);
+    if (!put.ok) return err(stepError.transient(`Storage: ${put.error}`, { articleId, path }));
+    const s = p.item.source;
+    const id = await deps.repo.insertAsset({
+      kind,
+      storagePath: put.value.path,
+      originUrl: p.candidate.imageUrl ?? p.item.pageUrl,
+      pageUrl: p.item.pageUrl,
+      sourceId: s.id,
+      sourceName: s.name,
+      author: p.candidate.author ?? null,
+      license:
+        kind === "reproduction"
+          ? REPRODUCTION_LICENSE
+          : `Acordo com ${s.name} vigente até ${s.agreementUntil ?? "?"}.`,
+      credit: p.candidate.author ?? null,
+      allowedUse: kind === "reproduction" ? `article:${articleId}` : "editorial",
+      width: analysis.width,
+      height: analysis.height,
+      phash: analysis.phash,
+      sha256: analysis.sha256,
+      contentType: analysis.contentType,
+      risk: kind === "reproduction" ? "medio" : "baixo",
+      provenance: {
+        policy: s.imagePolicy,
+        sourceSlug: s.slug,
+        itemId: p.item.itemId,
+        imageUrl: p.candidate.imageUrl,
+        pageUrl: p.item.pageUrl,
+        fetchedAt: deps.now().toISOString(),
+        userAgent: deps.userAgent,
+        bytes: analysis.bytes,
+        sha256: analysis.sha256,
+        unmodified: true,
+      },
+    });
+    return ok(id);
   };
 
   return async (msg, step) => {
@@ -205,103 +277,138 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     const ctx = await deps.repo.mediaContext(articleId);
     if (!ctx) return err(stepError.notFound(`matéria ${articleId} não encontrada`));
     const next = [nextMessage(msg, "rules", msg.itemRef)];
-    if (ctx.hasMedia) return ok(next);
+    // Escolha de pessoa e matéria editada por pessoa nunca são tocadas (reprocesso idempotente).
+    if (ctx.humanMedia || ctx.humanEdited) return ok(next);
+
+    const position = inlinePosition(ctx.bodyParagraphs);
+    const coverFromSource =
+      ctx.cover !== null && (ctx.cover.kind === "original" || ctx.cover.kind === "reproduction");
+    const wantCover = ctx.cover === null;
+    // A imagem do texto só vem de fonte, ao lado de uma capa que também veio de fonte, e só entra
+    // se o corpo comporta (≥ 2 parágrafos).
+    const wantInline = ctx.inline === null && position !== null && (wantCover || coverFromSource);
+    if (!wantCover && !wantInline) return ok(next);
 
     const reproductionEnabled = await deps.flags.isEnabled("image_reproduction_enabled");
     const notes: string[] = [];
-    const chosen = await sourceImage(ctx, reproductionEnabled, notes, step?.signal);
-
-    const wanted = [...new Set([ctx.sectionSlug, ctx.category, ...ctx.tags])];
-    const archive: Candidate[] = (await deps.repo.archiveCandidates(wanted, ARCHIVE_LIMIT))
-      .filter((a) => a.width !== null && a.height !== null)
-      .map((a) => ({
-        url: a.storagePath,
-        assetId: a.id,
-        width: a.width!,
-        height: a.height!,
-        fit: a.tags.includes(ctx.sectionSlug) ? 1 : a.tags.includes(ctx.category) ? 0.85 : 0.7,
-        phashDistances: [],
-        watermark: false,
-      }));
-
-    const policy: ImagePolicy = chosen?.item.source.imagePolicy ?? "none";
-    const choice = chooseImage({
-      sourcePolicy: policy,
-      hasAgreement: chosen ? hasAgreement(chosen.item.source.agreementUntil, deps.now()) : false,
+    const prepared = await sourceImages(
+      ctx,
       reproductionEnabled,
-      ...(chosen ? { original: chosen.candidate } : {}),
-      licensed: [],
-      archive,
-      topicAllowsGenerated: deps.canGenerate === true && mayGenerate(ctx),
-      category: ctx.category,
-      sensitive: ctx.sensitive,
-      tags: ctx.tags,
-    });
+      notes,
+      step?.signal,
+      ctx.cover ? { sourceId: ctx.cover.sourceId, originUrl: ctx.cover.originUrl } : undefined,
+    );
+    const byCandidate = new Map(prepared.map((p) => [p.candidate, p]));
+    const picked = pickCoverAndInline(
+      prepared.map((p) => p.candidate),
+      ctx.cover
+        ? {
+            cover: {
+              ...(ctx.cover.sourceId ? { sourceId: ctx.cover.sourceId } : {}),
+              ...(ctx.cover.originUrl ? { imageUrl: ctx.cover.originUrl } : {}),
+              ...(ctx.cover.phash !== null ? { phash: ctx.cover.phash } : {}),
+            },
+          }
+        : undefined,
+    );
+    const scores = prepared.map((p) => ({
+      source: p.item.source.name,
+      score: scoreImage(p.candidate),
+    }));
+    const chosen = picked.cover ? (byCandidate.get(picked.cover) ?? null) : null;
+    const inlineChosen = picked.inline ? (byCandidate.get(picked.inline) ?? null) : null;
 
+    let choice: MediaChoice | null = null;
     let mediaId: string | null = null;
-    if ((choice.kind === "original" || choice.kind === "reproduction") && chosen) {
-      if (chosen.existing) mediaId = chosen.existing.id;
-      else if (chosen.download) {
-        const { bytes, analysis } = chosen.download;
-        const path = mediaPath(choice.kind, analysis.sha256, analysis.format);
-        const put = await deps.store.put(path, bytes, analysis.contentType);
-        if (!put.ok) return err(stepError.transient(`Storage: ${put.error}`, { articleId, path }));
-        const s = chosen.item.source;
-        mediaId = await deps.repo.insertAsset({
-          kind: choice.kind,
-          storagePath: put.value.path,
-          originUrl: chosen.candidate.imageUrl ?? chosen.item.pageUrl,
-          pageUrl: chosen.item.pageUrl,
-          sourceId: s.id,
-          sourceName: s.name,
-          author: chosen.candidate.author ?? null,
-          license:
-            choice.kind === "reproduction"
-              ? REPRODUCTION_LICENSE
-              : `Acordo com ${s.name} vigente até ${s.agreementUntil ?? "?"}.`,
-          credit: chosen.candidate.author ?? null,
-          allowedUse: choice.kind === "reproduction" ? `article:${articleId}` : "editorial",
-          width: analysis.width,
-          height: analysis.height,
-          phash: analysis.phash,
-          sha256: analysis.sha256,
-          contentType: analysis.contentType,
-          risk: choice.kind === "reproduction" ? "medio" : "baixo",
-          provenance: {
-            policy: s.imagePolicy,
-            sourceSlug: s.slug,
-            itemId: chosen.item.itemId,
-            imageUrl: chosen.candidate.imageUrl,
-            pageUrl: chosen.item.pageUrl,
-            fetchedAt: deps.now().toISOString(),
-            userAgent: deps.userAgent,
-            bytes: analysis.bytes,
-            sha256: analysis.sha256,
-            unmodified: true,
-          },
-        });
+    if (wantCover) {
+      const wanted = [...new Set([ctx.sectionSlug, ctx.category, ...ctx.tags])];
+      const archive: Candidate[] = (await deps.repo.archiveCandidates(wanted, ARCHIVE_LIMIT))
+        .filter((a) => a.width !== null && a.height !== null)
+        .map((a) => ({
+          url: a.storagePath,
+          assetId: a.id,
+          width: a.width!,
+          height: a.height!,
+          fit: a.tags.includes(ctx.sectionSlug) ? 1 : a.tags.includes(ctx.category) ? 0.85 : 0.7,
+          phashDistances: [],
+          watermark: false,
+        }));
+
+      const policy: ImagePolicy = chosen?.item.source.imagePolicy ?? "none";
+      choice = chooseImage({
+        sourcePolicy: policy,
+        hasAgreement: chosen ? hasAgreement(chosen.item.source.agreementUntil, deps.now()) : false,
+        reproductionEnabled,
+        ...(chosen ? { original: chosen.candidate } : {}),
+        licensed: [],
+        archive,
+        topicAllowsGenerated: deps.canGenerate === true && mayGenerate(ctx),
+        category: ctx.category,
+        sensitive: ctx.sensitive,
+        tags: ctx.tags,
+      });
+      if ((choice.kind === "original" || choice.kind === "reproduction") && chosen) {
+        const saved = await saveAsset(chosen, choice.kind, articleId);
+        if (!saved.ok) return saved;
+        mediaId = saved.value;
+      } else if (choice.kind === "illustrative" || choice.kind === "licensed") {
+        mediaId = choice.asset?.assetId ?? null;
       }
-    } else if (choice.kind === "illustrative" || choice.kind === "licensed") {
-      mediaId = choice.asset?.assetId ?? null;
     }
 
-    const rationale = [choice.rationale, ...notes].join(" ");
-    if (mediaId) await deps.repo.linkArticleMedia(articleId, mediaId, rationale, "pipeline:image");
+    // Imagem do texto: de outra fonte, outra foto, e só quando a capa também é de fonte.
+    const coverIsSource = wantCover
+      ? choice?.kind === "original" || choice?.kind === "reproduction"
+      : coverFromSource;
+    let inlineId: string | null = null;
+    if (wantInline && coverIsSource && inlineChosen && position !== null) {
+      const saved = await saveAsset(inlineChosen, inlineChosen.use, articleId);
+      if (!saved.ok) return saved;
+      inlineId = saved.value;
+    }
+
+    // Reprocesso que não achou imagem do texto e não precisava de capa: nada mudou, nada a registrar.
+    if (!wantCover && !inlineId) return ok(next);
+
+    const rationale = [choice?.rationale, ...notes].filter(Boolean).join(" ");
+    if (mediaId && choice)
+      await deps.repo.linkArticleMedia(articleId, mediaId, rationale, AUTO_CHOSEN_BY, {
+        role: "cover",
+      });
+    if (inlineId && position !== null)
+      await deps.repo.linkArticleMedia(
+        articleId,
+        inlineId,
+        `Imagem do texto: ${inlineChosen!.item.source.name} (outra fonte e outra foto que a capa), depois do parágrafo ${position}.`,
+        AUTO_CHOSEN_BY,
+        { role: "inline", position },
+      );
+    const kind = choice?.kind ?? "inline_only";
     await deps.repo.recordDecision({
       objectRef: msg.itemRef,
       step: "image",
       agentId: null,
       promptVersion: null,
-      inputHash: inputHash("image", articleId, mediaId, choice.kind),
+      inputHash: inputHash("image", articleId, mediaId, kind, inlineId),
       output: {
-        kind: choice.kind,
+        kind,
         mediaId,
-        label: imageLabel(choice),
-        credit: choice.credit,
+        label: choice ? imageLabel(choice) : null,
+        credit: choice?.credit ?? null,
         reproductionEnabled,
+        cover: mediaId ? { mediaId, score: scoreOf(scores, chosen) } : null,
+        inline: inlineId
+          ? { mediaId: inlineId, position, score: scoreOf(scores, inlineChosen) }
+          : null,
+        scores,
       },
-      rationale,
+      rationale: [rationale, inlineId ? `Imagem do texto gravada (parágrafo ${position}).` : ""]
+        .filter(Boolean)
+        .join(" "),
     });
     return ok(next);
   };
 }
+
+const scoreOf = (scores: { source: string; score: number }[], p: Prepared | null): number | null =>
+  p ? (scores.find((x) => x.source === p.item.source.name)?.score ?? null) : null;

@@ -5,6 +5,9 @@ import {
   reprocessRunRef,
   retryQuarantined,
   stepLevel,
+  MAX_REPROCESS_TARGETS,
+  reprocessImages,
+  type ImageReprocessRepo,
   type ReprocessRepo,
 } from "./reprocess";
 
@@ -147,5 +150,52 @@ describe("retryQuarantined", () => {
       { runId: "r1", step: "classify", itemRef: "item:i1", attempt: 1 },
     ]);
     expect(repo.resolved).toEqual([7]);
+  });
+});
+
+describe("reprocessImages (UI-T16)", () => {
+  const imageRepo = (ids: string[]): ImageReprocessRepo & { asked: number[] } => {
+    const asked: number[] = [];
+    return {
+      asked,
+      articlesNeedingImages: async (limit) => {
+        asked.push(limit);
+        return ids.slice(0, limit);
+      },
+    };
+  };
+
+  it("reenfileira o passo image das matérias sem imagem ou só com capa", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2"]);
+    const r = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 50 });
+    expect(r).toEqual({ targets: 2, enqueued: 2, alreadyQueued: 0 });
+    expect(repo.asked).toEqual([50]);
+    const msgs = q.messages("media");
+    expect(msgs.map((m) => [m.step, m.itemRef])).toEqual([
+      ["image", "article:a1"],
+      ["image", "article:a2"],
+    ]);
+  });
+
+  it("é idempotente: a mesma matéria já na fila não entra de novo", async () => {
+    const q = createMemoryQueue();
+    const deps = { queue: q, repo: imageRepo(["a1"]), now: NOW };
+    await reprocessImages(deps, { limit: 10 });
+    const again = await reprocessImages(deps, { limit: 10 });
+    expect(again).toEqual({ targets: 1, enqueued: 0, alreadyQueued: 1 });
+  });
+
+  it("limita o lote e recusa limite inválido", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2", "a3"]);
+    const r = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 2 });
+    expect(r.targets).toBe(2);
+    const huge = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 10_000 });
+    expect(repo.asked.at(-1)).toBe(MAX_REPROCESS_TARGETS);
+    expect(huge.targets).toBeLessThanOrEqual(3);
+    const bad = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 0 });
+    expect(bad.targets).toBe(0);
+    expect(repo.asked.length).toBe(2);
   });
 });
