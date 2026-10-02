@@ -60,3 +60,17 @@ Notas: o título virou `sr-only` (a região mantém o mesmo nome); no celular o 
 escolhas não mudaram. A barra do desktop é de largura total; o `h1` da home em 1280x800 fica
 parcialmente sob ela até rolar, por isso o e2e de desktop agora verifica o `h1` rolado para
 acima da barra (respiro inferior via `--cn-consent-h`).
+
+### UI-T2: cabeçalho enxuto e rodapé sem campos pendentes
+
+| Medida                                  | Antes                  | Depois                                   | Como foi medido                                            |
+| --------------------------------------- | ---------------------- | ---------------------------------------- | ---------------------------------------------------------- |
+| Altura do cabeçalho, 390 px (topo)      | 106 px                 | 102 px (90 px ao rolar)                  | `getBoundingClientRect` do `<header>`, build de produção   |
+| Altura do cabeçalho, 1280 px (topo)     | 118 px                 | 102 px (90 px ao rolar)                  | idem                                                       |
+| Destinos na linha principal (desktop)   | 7 links + editorias    | 4 links + 3 ícones (Busca, Favoritos, Perfil) + editorias | e2e `shell.spec.ts`                       |
+| Altura do documento ao rolar            | n/a                    | igual à do topo (sem salto)              | `scrollHeight` antes e depois de rolar 600 px              |
+| Linhas pendentes no rodapé              | 3 (`[PREENCHER]`)      | 0 (a seção some até o dono informar)     | e2e `shell.spec.ts`, `SiteFooter.test.tsx`                 |
+
+Notas: ao rolar, a linha principal vai de 56 px para 44 px e o cabeçalho compensa com margem
+inferior, por isso a altura do bloco no fluxo não muda. Páginas legais seguem com os campos
+`[PREENCHER]`. Varredura axe de todas as rotas públicas (claro e escuro, 390 e 1280): 0 violações.

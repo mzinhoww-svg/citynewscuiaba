@@ -4,6 +4,11 @@
  */
 export const PENDING = "[PREENCHER]";
 
+/** `false` para valor vazio, só espaços ou ainda pendente (`[PREENCHER]`): não vai à tela. */
+export function isFilled(v: string): boolean {
+  return v.trim() !== "" && !v.includes(PENDING);
+}
+
 export const REPLY = {
   metaTitle: "Direito de resposta · CityNews Cuiabá",
   metaDescription:
