@@ -112,9 +112,25 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
     width: Math.min(box.width + 2 * pad, 1200),
     height: Math.min(box.height + 2 * pad, 400),
   };
+  // O anel de foco é pintado no quadro seguinte (no WebKit e no celular o primeiro quadro ainda
+  // sai sem ele): espera dois quadros antes de cada captura, e repete uma vez antes de reprovar.
+  const frames = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => done())),
+        ),
+    );
+  await frames();
   const withFocus = await page.screenshot({ clip, animations: "disabled" });
   await page.evaluate(() => (document.activeElement as HTMLElement).blur());
-  const without = await page.screenshot({ clip, animations: "disabled" });
+  await frames();
+  let without = await page.screenshot({ clip, animations: "disabled" });
+  if (Buffer.compare(withFocus, without) === 0) {
+    await page.waitForTimeout(250);
+    await frames();
+    without = await page.screenshot({ clip, animations: "disabled" });
+  }
   expect(
     Buffer.compare(withFocus, without) !== 0,
     `o foco de ${name} não muda a imagem (indicador ausente)`,

@@ -238,6 +238,10 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             }
           }
           await flush();
+          // Uma leva por fila a cada volta (alternância): uma fila cheia não pode deixar as outras
+          // (mídia, notificações) sem vez. Antes esvaziava a primeira fila inteira, e as imagens
+          // nunca eram lidas enquanto houvesse mensagens na pipeline.
+          break;
         }
       }
       if (!progressed) break;
