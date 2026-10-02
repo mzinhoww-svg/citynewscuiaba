@@ -6,6 +6,7 @@
 :root{
   --bg:#EEF1F5; --panel:#FFFFFF; --ink:#0F1B2D; --meta:#4B5563; --line:#C7CED8; --block:#DDE3EA; --block2:#CBD3DD;
   --urucum:#C2410C; --urucum-soft:#FBE7DD; --ia:#1E4DB7; --ia-soft:#E4ECFB; --ok:#1F6B4A; --ok-soft:#DDF0E6;
+  --g-bg:#FFFFFF; --g-fg:#1F1F1F; --g-bd:#747775;
   --f-ui:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-serif:"Source Serif 4",Georgia,"Times New Roman",serif;
 }
@@ -68,10 +69,6 @@ p{margin:0}
 .chip.st{border-color:transparent;background:var(--ok-soft);color:var(--ok)}
 .chips{display:flex;flex-wrap:wrap;gap:4px}
 .stack{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
-.strip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;font-size:8px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
-.strip .p{border:1px solid var(--ink);padding:2px 5px;border-radius:3px}
-.strip .p.fill{background:var(--ink);color:var(--panel)}
-.strip .x{color:var(--ia)}.strip .y{color:var(--ok)}
 .btn{height:16px;padding:0 7px;border:1px solid var(--ink);border-radius:99px;font-size:8px;font-weight:700;display:inline-flex;align-items:center;color:var(--ink);white-space:nowrap}
 .btn.pri{background:var(--ink);color:var(--panel)}
 .btn.sq{width:16px;padding:0;justify-content:center;border-radius:50%}
@@ -96,346 +93,326 @@ p{margin:0}
 .anat{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1.5px solid var(--ink);border-radius:8px;padding:14px;max-width:560px}
 .anat .lab{font-size:12px;color:var(--meta)}
 @media (prefers-reduced-motion:no-preference){.hl::after{transition:transform .2s}}
-</style>
 
+.gbtn{height:30px;border:1px solid var(--g-bd);background:var(--g-bg);color:var(--g-fg);border-radius:99px;display:flex;align-items:center;justify-content:center;gap:7px;font-size:9px;font-weight:700;box-shadow:0 1px 3px rgba(15,27,45,.25)}
+.gbtn svg{width:12px;height:12px;flex:none}
+.gbtn.flat{height:20px;box-shadow:none;border-color:var(--ink);background:transparent;color:var(--ink);font-weight:500}
+.field{height:20px;border:1px solid var(--ink);border-radius:6px;display:flex;align-items:center;padding:0 6px;font-size:8px;color:var(--meta)}
+.div{display:flex;align-items:center;gap:6px;font-size:8px;color:var(--meta)}
+.div::before,.div::after{content:"";flex:1;height:1px;background:var(--line)}
+.bub{min-width:78%;border:1px solid var(--line);border-radius:10px 10px 10px 2px;padding:6px;background:var(--panel);display:flex;flex-direction:column;gap:5px;max-width:92%;align-self:flex-start}
+.bub.me{min-width:0;align-self:flex-end;background:var(--ink);border-color:var(--ink);border-radius:10px 10px 2px 10px}
+.bub.me .t{background:var(--panel);opacity:.8}
+.bub.ia{border:1px dashed var(--ia);background:var(--ia-soft)}
+.bub.warn{border-color:var(--urucum);background:var(--urucum-soft)}
+.av{width:14px;height:14px;border-radius:50%;background:var(--ink);flex:none;position:relative}
+.av::after{content:"";position:absolute;right:1px;top:1px;width:4px;height:4px;border-radius:50%;background:var(--urucum)}
+.composer{border-top:1.5px solid var(--ink);padding:6px;display:flex;gap:6px;align-items:center;background:var(--panel)}
+.composer .field{flex:1;height:22px;border-radius:99px}
+.send{width:22px;height:22px;border-radius:50%;background:var(--ink);flex:none;display:flex;align-items:center;justify-content:center;color:var(--panel);font-size:9px}
+.cit{display:inline-flex;width:11px;height:11px;border-radius:50%;background:var(--ia-soft);color:var(--ia);font-size:7px;font-weight:700;align-items:center;justify-content:center;border:1px solid var(--ia)}
+.pill{border:1px solid var(--ink);border-radius:99px;padding:4px 8px;font-size:8px;font-weight:500;display:block}
+.thread{flex:1;padding:8px;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
+.sub{font-size:8px;color:var(--meta)}
+.sub b{color:var(--ink)}
+.typing{display:flex;gap:3px}.typing i{width:4px;height:4px;border-radius:50%;background:var(--meta)}
+.ben{display:flex;gap:6px;align-items:center;font-size:8px}
+.ben i{width:10px;height:10px;border:1.5px solid var(--ink);border-radius:3px;flex:none}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}.cal i{aspect-ratio:1;border:1px solid var(--line);font-size:6px;font-style:normal;display:flex;align-items:flex-start;padding:1px;color:var(--meta)}
+.cal i.d{background:var(--ink);color:var(--panel)}
+.meta{font-size:8px;color:var(--meta);display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.meta b{color:var(--ok);font-weight:700}
+.dk{display:flex;gap:5px;align-items:flex-start}
+
+</style>
 <div class="wrap">
 <header>
-  <p class="eyebrow">CityNews Cuiabá · UI das telas públicas</p>
+  <p class="eyebrow">CityNews Cuiabá · UI das telas públicas · v2</p>
   <h1>Wireframes das principais propostas</h1>
-  <p class="lede">Cada prancha compara o que existe hoje com a proposta da spec <code>2026-10-02-ui-publica-design.md</code>. Baixa fidelidade: mostram hierarquia, ordem e proporção, não cor final nem texto final. Medidas vêm das capturas locais em 390 e 1280 px.</p>
+  <p class="lede">Segunda versão, com as três decisões do dono: <b>sem faixa de rótulos em lugar nenhum</b>, <b>login com o botão do Google de verdade</b> e <b>Pergunte ao CityNews como chat</b>. Baixa fidelidade: mostram hierarquia, ordem e proporção, não cor final nem texto final.</p>
   <div class="legend">
     <span><i class="sw"></i> Estrutura existente</span>
-    <span><i class="sw u"></i> O que muda na proposta</span>
-    <span><i class="chip ia" style="font-style:normal">IA</i> Rótulo de origem (sempre em texto)</span>
+    <span><i class="sw u"></i> O que muda</span>
+    <span><i class="chip ia" style="font-style:normal">IA</i> Rótulo de origem, sempre em texto</span>
   </div>
 </header>
 
-<!-- 1 CONSENTIMENTO -->
+<!-- 1 LOGIN -->
 <section class="sec">
-  <header><p class="eyebrow">F1 · Chrome</p><h2>1. Consentimento compacto na primeira dobra</h2>
+  <header><p class="eyebrow">Fluxo · Login e cadastro</p><h2>1. Login: o Google primeiro, branco e com o “G”</h2>
+  <p>Hoje o botão do Google é um botão de contorno só com texto, abaixo do formulário e do link por e-mail; no cadastro nem existe. A proposta segue a marca do Google (fundo branco, logotipo colorido, “Continuar com o Google”), com 56 px de altura, e o coloca como primeiro controle.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · 390 px</span>
+      <div class="phone"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="pad" style="gap:9px">
+          <div class="h" style="height:13px;width:60%"></div><div class="t m"></div>
+          <div class="sub"><b>E-mail</b></div><div class="field">Digite seu e-mail</div>
+          <div class="sub"><b>Senha</b></div><div class="field">Digite sua senha</div>
+          <div class="t xs" style="align-self:flex-end;background:var(--urucum)"></div>
+          <span class="btn pri" style="height:24px;justify-content:center">Entrar</span>
+          <div style="border-top:1px solid var(--line);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:45%"></div><div class="t"></div><span class="btn" style="height:22px;justify-content:center">✉ Receber link por e-mail</span></div>
+          <span class="gbtn flat">Entrar com Google</span>
+          <div class="t m" style="margin-top:4px"></div><div class="t s"></div>
+        </div></div>
+      <span class="metric bad">Google no fim, sem logotipo, sem cor</span>
+      <p class="note">Quem veio para entrar com o Google precisa rolar, e o botão não se parece com o do Google.</p></div>
+    <div class="col"><span class="tag new">Proposta · 390 px</span>
+      <div class="phone"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="pad" style="gap:9px">
+          <div class="h" style="height:13px;width:60%"></div><div class="t m"></div>
+          <div class="gbtn hl" data-n="1" style="height:36px;font-size:10px"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuar com o Google</div>
+          <div class="sub" style="text-align:center">Usamos seu nome e e-mail para criar a conta.</div>
+          <div class="div hl" data-n="2">ou use seu e-mail</div>
+          <div class="field">E-mail</div><div class="field">Senha</div>
+          <span class="btn pri" style="height:26px;justify-content:center">Entrar</span>
+          <div class="row" style="justify-content:space-between"><span class="sub"><b style="color:var(--urucum)">Esqueci a senha</b></span><span class="sub"><b style="color:var(--urucum)">Entrar sem senha</b></span></div>
+          <div style="border-top:1px solid var(--line);padding-top:7px;display:flex;flex-direction:column;gap:6px">
+            <div class="sub" style="text-align:center">Ainda não tem conta? <b style="color:var(--urucum)">Criar conta</b></div>
+            <span class="btn hl" data-n="3" style="height:22px;justify-content:center">Continuar sem entrar</span></div>
+        </div></div>
+      <span class="metric good">Google em 1º, 36 px no wireframe (56 px reais)</span>
+      <p class="note"><b>1</b> botão branco com borda neutra e “G” oficial · <b>2</b> divisor “ou use seu e-mail” · <b>3</b> “Agora não” explícito.</p></div>
+    <div class="col" style="flex:1;min-width:300px"><span class="tag new">Proposta · desktop 1280</span>
+      <div class="desk" style="max-width:560px">
+        <div class="grid" style="grid-template-columns:1fr 1fr;min-height:260px">
+          <div style="background:var(--ink);padding:14px;display:flex;flex-direction:column;gap:9px;justify-content:center">
+            <div style="width:60px;height:14px;background:var(--panel);border-radius:2px"></div>
+            <div class="h" style="background:var(--panel);height:12px"></div><div class="h s" style="background:var(--panel);height:12px"></div>
+            <div class="ben" style="color:var(--panel)"><i style="border-color:var(--panel)"></i>Salvos em todos os aparelhos</div>
+            <div class="ben" style="color:var(--panel)"><i style="border-color:var(--panel)"></i>Alertas do seu bairro</div>
+            <div class="ben" style="color:var(--panel)"><i style="border-color:var(--panel)"></i>Fontes que você segue</div>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:8px;justify-content:center">
+            <div class="hs" style="width:50%;height:9px"></div>
+            <div class="gbtn" style="height:30px"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>Continuar com o Google</div>
+            <div class="div">ou use seu e-mail</div>
+            <div class="field">E-mail</div><div class="field">Senha</div>
+            <span class="btn pri" style="height:22px;justify-content:center">Entrar</span>
+            <div class="sub" style="text-align:center"><b style="color:var(--urucum)">Criar conta</b> · <b style="color:var(--urucum)">Continuar sem entrar</b></div>
+          </div>
+        </div></div>
+      <p class="note" style="max-width:none">Dois painéis: benefícios à esquerda (só no desktop), formulário à direita. A tela de <b>cadastro</b> usa a mesma ordem, com o mesmo botão do Google no topo. Provedor desligado: o botão e o divisor somem e não fica texto de “indisponível”.</p></div>
+  </div>
+</section>
+
+<!-- 2 CHAT -->
+<section class="sec">
+  <header><p class="eyebrow">Fluxo · Pergunte ao CityNews</p><h2>2. Pergunte ao CityNews como chat</h2>
+  <p>Formato de conversa, que todo mundo já conhece. As regras do produto continuam: cada frase com fonte numerada, inferência e lacuna separadas, recusa com menos de 2 fontes. O campo de envio fica fixo na base e as perguntas iniciais ensinam como funciona.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag new">1 · Início</span>
+      <div class="phone fold">
+        <div class="bar"><span class="av"></span><div style="display:flex;flex-direction:column;gap:3px"><span class="hs" style="width:70px"></span><span class="sub">Respostas só com fontes</span></div><span class="sp"></span><span class="btn" style="height:14px">Nova</span></div>
+        <div class="thread">
+          <div class="dk"><span class="av"></span><div class="bub hl" data-n="1"><div class="t"></div><div class="t m"></div><div class="t s"></div></div></div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-left:19px">
+            <span class="pill">O que aconteceu em Cuiabá hoje?</span>
+            <span class="pill">Como está a qualidade do ar?</span>
+            <span class="pill">O que muda no plano de ônibus do CPA?</span>
+            <span class="pill">Quais eventos gratuitos neste fim de semana?</span>
+          </div>
+          <div class="sub" style="text-align:center;margin-top:auto">A resposta pode conter erros. Confira nas fontes.</div>
+        </div>
+        <div class="composer hl" data-n="2"><div class="field">Pergunte sobre Cuiabá…</div><span class="send">➤</span></div>
+      </div>
+      <p class="note"><b>1</b> boas-vindas do CityNews + perguntas para tocar · <b>2</b> campo fixo na base, acima da barra inferior.</p></div>
+    <div class="col"><span class="tag new">2 · Resposta</span>
+      <div class="phone fold">
+        <div class="bar"><span class="av"></span><span class="hs" style="width:70px"></span><span class="sp"></span><span class="btn" style="height:14px">Nova</span></div>
+        <div class="thread">
+          <div class="bub me"><div class="t" style="width:120px"></div><div class="t s"></div></div>
+          <div class="dk"><span class="av"></span><div style="display:flex;flex-direction:column;gap:5px;flex:1">
+            <div class="bub"><div class="hs" style="width:40%"></div>
+              <div class="row"><div class="t"></div><span class="cit">1</span></div>
+              <div class="row"><div class="t m"></div><span class="cit">2</span></div></div>
+            <div class="bub ia"><span class="chip ia" style="align-self:flex-start">Inferência</span><div class="t"></div><div class="t s"></div></div>
+            <div class="bub"><div class="hs" style="width:55%;background:var(--urucum)"></div><div class="t m"></div></div>
+            <div class="meta" style="padding-left:2px"><span>Confiança alta</span>·<span>Consultado às 15h40</span></div>
+            <div class="row" style="padding-left:2px"><span class="btn">Útil</span><span class="btn">Não ajudou</span><span class="btn">Erro</span></div>
+            <div class="bub hl" data-n="1" style="max-width:100%"><div class="row" style="justify-content:space-between"><span class="hs" style="width:40%"></span><span class="sub">3 fontes ▾</span></div></div>
+          </div></div>
+        </div>
+        <div class="composer"><div class="field">Pergunte sobre Cuiabá…</div><span class="send">➤</span></div>
+      </div>
+      <p class="note"><b>1</b> fontes recolhíveis sob a resposta; cada [n] abre a fonte, com a origem em texto.</p></div>
+    <div class="col"><span class="tag new">3 · Sem fontes suficientes</span>
+      <div class="phone fold">
+        <div class="bar"><span class="av"></span><span class="hs" style="width:70px"></span><span class="sp"></span><span class="btn" style="height:14px">Nova</span></div>
+        <div class="thread">
+          <div class="bub me"><div class="t" style="width:110px"></div></div>
+          <div class="dk"><span class="av"></span><div style="display:flex;flex-direction:column;gap:6px;flex:1">
+            <div class="bub warn"><div class="hs" style="width:70%"></div><div class="t"></div><div class="t m"></div><div class="t s"></div><span class="btn pri hl" data-n="1" style="height:20px;align-self:flex-start;margin-top:3px">Buscar do jeito tradicional</span></div>
+            <div class="sub" style="padding-left:2px">Menos de 2 fontes relevantes. O CityNews não responde sem fonte.</div>
+          </div></div>
+          <div class="dk"><span class="av"></span><div class="bub"><div class="row"><div class="typing"><i></i><i></i><i></i></div><span class="sub">Buscando fontes… comparando…</span></div></div></div>
+        </div>
+        <div class="composer"><div class="field">Pergunte sobre Cuiabá…</div><span class="send">➤</span></div>
+      </div>
+      <p class="note"><b>1</b> a recusa é uma mensagem do CityNews, com a saída pronta. Limite por hora, IA desligada e falha de rede seguem o mesmo formato. Embaixo, o indicador de passos enquanto responde.</p></div>
+  </div>
+  <div class="col"><span class="tag new">Desktop 1280 · três áreas</span>
+    <div class="desk" style="max-width:980px">
+      <div class="grid" style="grid-template-columns:180px 1fr 240px;min-height:360px">
+        <div style="border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px"><span class="btn pri" style="height:20px;justify-content:center">+ Nova conversa</span><div class="sub"><b>Hoje</b></div><div class="t"></div><div class="t s"></div><div class="t m"></div><div class="sub" style="margin-top:auto">Histórico só neste aparelho e só com personalização aceita.</div></div>
+        <div style="display:flex;flex-direction:column;min-width:0">
+          <div class="thread" style="padding:12px;gap:10px">
+            <div class="bub me" style="max-width:60%"><div class="t" style="width:140px"></div></div>
+            <div class="dk"><span class="av"></span><div style="display:flex;flex-direction:column;gap:6px;flex:1;max-width:520px"><div class="bub"><div class="hs" style="width:30%"></div><div class="row"><div class="t"></div><span class="cit">1</span></div><div class="row"><div class="t m"></div><span class="cit">2</span></div></div><div class="bub ia"><span class="chip ia" style="align-self:flex-start">Inferência</span><div class="t"></div></div><div class="bub"><div class="hs" style="width:40%;background:var(--urucum)"></div><div class="t m"></div></div></div></div>
+          </div>
+          <div class="composer"><div class="field">Pergunte sobre Cuiabá…</div><span class="send">➤</span></div>
+        </div>
+        <div style="border-left:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--block)"><div class="hs" style="width:50%"></div>
+          <div style="background:var(--panel);border:1px solid var(--ink);padding:6px;display:flex;flex-direction:column;gap:4px"><div class="row"><span class="cit">1</span><span class="chip">Original CityNews</span></div><div class="hs"></div><div class="t xs"></div></div>
+          <div style="background:var(--panel);border:1px solid var(--line);padding:6px;display:flex;flex-direction:column;gap:4px"><div class="row"><span class="cit">2</span><span class="chip">Agregado · fonte</span></div><div class="hs"></div><div class="t xs"></div></div></div>
+      </div></div>
+    <p class="note" style="max-width:none">Histórico à esquerda, conversa no centro e fontes da resposta selecionada à direita. Clicar em [1] destaca a fonte. <code>/pergunte?q=</code> abre a conversa já com a pergunta enviada (links da Busca e das matérias). Sem JavaScript, o formulário simples continua funcionando.</p></div>
+</section>
+
+<!-- 3 ROTULOS -->
+<section class="sec">
+  <header><p class="eyebrow">Decisão do dono · sem faixa de rótulos</p><h2>3. Rótulo junto do conteúdo que ele descreve</h2>
+  <p>Nenhuma faixa de rótulos. A origem principal aparece uma vez; o rótulo de IA fica colado ao texto de IA; a revisão vira texto; a foto leva a origem na legenda. Todos continuam em texto, nunca só em cor.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje · card</span>
+      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="stack"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span></div><div class="t xs"></div></div></div>
+      <span class="metric bad">3 plaquetas por card</span></div>
+    <div class="col"><span class="tag new">Proposta · card</span>
+      <div class="phone"><div class="pad" style="gap:5px"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="hs" style="width:70%"></div>
+        <div class="dk hl" data-n="1" style="padding:3px"><span class="chip ia">IA</span><div style="flex:1"><div class="t"></div><div class="t s" style="margin-top:3px"></div></div></div>
+        <div class="meta hl" data-n="2" style="padding:3px"><span class="chip fill">Normalizado · 2 fontes</span><span><b>✓ Revisado por Marina Arruda</b></span><span>· 8h05</span></div></div></div>
+      <span class="metric good">1 plaqueta + texto</span>
+      <p class="note"><b>1</b> “Resumo por IA” só quando o card mostra o resumo, colado a ele · <b>2</b> origem principal e revisão em texto, na linha de metadado.</p></div>
+    <div class="col"><span class="tag new">Proposta · cabeçalho da matéria</span>
+      <div class="phone"><div class="pad" style="gap:6px">
+        <div class="row"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
+        <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div><div class="t m"></div>
+        <div class="hl" data-n="1" style="padding:4px;display:flex;flex-direction:column;gap:3px"><div class="hs" style="width:40%;height:6px"></div><div class="meta">Texto do CityNews a partir de 2 fontes · <b>Revisado por Marina Arruda</b></div><div class="t xs"></div></div>
+        <div class="row"><span class="btn pri" style="flex:1;justify-content:center;height:22px">Salvar</span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span></div>
+        <div class="img r169">foto</div><div class="meta hl" data-n="2" style="padding:3px"><span class="chip">Reprodução · fonte</span><span>crédito · autor</span></div>
+        <div class="hl" data-n="3" style="padding:5px;background:var(--ia-soft);border-color:var(--ia);display:flex;flex-direction:column;gap:4px"><span class="chip ia" style="align-self:flex-start">Resumo por IA</span><div class="t"></div><div class="t s"></div></div>
+      </div></div>
+      <p class="note"><b>1</b> a origem em frase, na autoria · <b>2</b> o rótulo da foto na legenda · <b>3</b> o rótulo de IA no bloco de resumo. Todos juntos continuam no painel “Como esta matéria foi feita”.</p></div>
+  </div>
+</section>
+
+<!-- 4 CONSENT -->
+<section class="sec">
+  <header><p class="eyebrow">Chrome</p><h2>4. Consentimento compacto na primeira dobra</h2>
   <p>Texto legal e as três escolhas ficam iguais. Muda o tamanho: a leitora vê manchete, resumo e origem sem rolar.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · 390×844</span>
-      <div class="phone fold">
-        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
-        <div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
-        <div class="pad">
-          <div class="solid">● Clima</div>
-          <div class="t xs" style="background:var(--urucum)"></div>
-          <div class="h"></div><div class="h"></div><div class="h s"></div>
-          <div class="t"></div><div class="t m"></div>
-        </div>
-        <div class="sheet big" style="height:35%">
-          <div class="hs" style="width:55%"></div><div class="t"></div><div class="t"></div><div class="t s"></div>
-          <div class="row"><span class="btn" style="flex:1;height:20px;justify-content:center">Só o necessário</span><span class="btn" style="flex:1;height:20px;justify-content:center">Escolher</span></div>
-          <span class="btn pri" style="height:22px;justify-content:center">Aceitar recomendações</span>
-        </div>
-      </div>
-      <span class="metric bad">Banner ≈ 35% da altura</span>
-      <p class="note">Corta o resumo e a origem. A manchete aparece pela metade.</p>
-    </div>
+      <div class="phone fold"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div><div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
+        <div class="pad"><div class="solid">● Clima</div><div class="t xs" style="background:var(--urucum)"></div><div class="h"></div><div class="h"></div><div class="h s"></div><div class="t"></div><div class="t m"></div></div>
+        <div class="sheet big" style="height:35%"><div class="hs" style="width:55%"></div><div class="t"></div><div class="t"></div><div class="t s"></div><div class="row"><span class="btn" style="flex:1;height:20px;justify-content:center">Só o necessário</span><span class="btn" style="flex:1;height:20px;justify-content:center">Escolher</span></div><span class="btn pri" style="height:22px;justify-content:center">Aceitar recomendações</span></div></div>
+      <span class="metric bad">Banner ≈ 35% da altura</span></div>
     <div class="col"><span class="tag new">Proposta · 390×844</span>
-      <div class="phone fold">
-        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
-        <div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
-        <div class="pad">
-          <div class="img r169 hl" data-n="2">foto ou capa</div>
-          <div class="strip hl" data-n="3"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
-          <div class="h"></div><div class="h"></div><div class="h s"></div>
-          <div class="t"></div><div class="t m"></div><div class="t s"></div>
-        </div>
-        <div class="sheet hl" data-n="1" style="height:12%;justify-content:center">
-          <div class="t"></div><div class="t s"></div>
-          <div class="row"><span class="btn">Só o necessário</span><span class="btn">Escolher</span><span class="btn pri">Aceitar</span></div>
-        </div>
-      </div>
+      <div class="phone fold"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div><div class="nav"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i></div>
+        <div class="pad"><div class="img r169 hl" data-n="2">foto ou capa</div><div class="meta"><span class="chip fill">Normalizado · 2 fontes</span><span><b>✓ Revisado</b></span></div><div class="h"></div><div class="h"></div><div class="h s"></div><div class="t"></div><div class="t m"></div></div>
+        <div class="sheet hl" data-n="1" style="height:12%;justify-content:center"><div class="t"></div><div class="t s"></div><div class="row"><span class="btn">Só o necessário</span><span class="btn">Escolher</span><span class="btn pri">Aceitar</span></div></div></div>
       <span class="metric good">Banner ≤ 15% da altura</span>
-      <p class="note"><b>1</b> faixa baixa com as 3 escolhas em linha · <b>2</b> imagem logo abaixo do cabeçalho · <b>3</b> origem em uma linha.</p>
-    </div>
+      <p class="note"><b>1</b> faixa baixa, 3 escolhas em linha · <b>2</b> imagem logo abaixo do cabeçalho.</p></div>
   </div>
 </section>
 
-<!-- 2 HOME MOBILE -->
+<!-- 5 HOME -->
 <section class="sec">
-  <header><p class="eyebrow">F4 · Home</p><h2>2. Home no celular: de 11 telas para 5,5</h2>
-  <p>As duas colunas estão na mesma escala (1 px = 0,3 px reais). Cada linha laranja marca uma tela de 844 px. A ordem segue a cena das 7h: o que está acontecendo, depois o resto em trilhos.</p></header>
+  <header><p class="eyebrow">Home</p><h2>5. Home: de 11 telas para 5,5 no celular</h2>
+  <p>Mesma escala nas duas colunas (1 px = 0,3 px reais); cada linha laranja marca uma tela de 844 px. Ordem pela cena das 7h; o resto vai para trilhos horizontais.</p></header>
   <div class="pair">
     <div class="col"><span class="tag">Hoje · ≈ 9.240 px</span>
       <div class="longwrap"><div class="long">
-        <div class="m" style="height:calc(var(--u)*160)">cabeçalho</div>
-        <div class="m" style="height:calc(var(--u)*50)">data</div>
-        <div class="m k" style="height:calc(var(--u)*170)">bloco chapado</div>
-        <div class="m" style="height:calc(var(--u)*520)">manchete + resumo</div>
-        <div class="m" style="height:calc(var(--u)*700)">Agora</div>
-        <div class="m" style="height:calc(var(--u)*900)">Assuntos (3 cards)</div>
-        <div class="m" style="height:calc(var(--u)*800)">Coleções (4 cards)</div>
-        <div class="m" style="height:calc(var(--u)*260)">Perto de você</div>
-        <div class="m" style="height:calc(var(--u)*520)">Agenda</div>
-        <div class="m" style="height:calc(var(--u)*520)">Serviços</div>
-        <div class="m" style="height:calc(var(--u)*450)">Política</div>
-        <div class="m" style="height:calc(var(--u)*450)">Economia</div>
-        <div class="m" style="height:calc(var(--u)*450)">Cultura</div>
-        <div class="m" style="height:calc(var(--u)*900)">Mais lidas</div>
-        <div class="m" style="height:calc(var(--u)*220)">Fontes</div>
-        <div class="m" style="height:calc(var(--u)*1100)">Panorama (4 cards)</div>
-        <div class="m" style="height:calc(var(--u)*330)">Newsletter</div>
-        <div class="m" style="height:calc(var(--u)*740)">rodapé</div>
+        <div class="m" style="height:calc(var(--u)*160)">cabeçalho</div><div class="m" style="height:calc(var(--u)*50)">data</div><div class="m k" style="height:calc(var(--u)*170)">bloco chapado</div><div class="m" style="height:calc(var(--u)*520)">manchete + resumo</div><div class="m" style="height:calc(var(--u)*700)">Agora</div><div class="m" style="height:calc(var(--u)*900)">Assuntos (3)</div><div class="m" style="height:calc(var(--u)*800)">Coleções (4)</div><div class="m" style="height:calc(var(--u)*260)">Perto de você</div><div class="m" style="height:calc(var(--u)*520)">Agenda</div><div class="m" style="height:calc(var(--u)*520)">Serviços</div><div class="m" style="height:calc(var(--u)*450)">Política</div><div class="m" style="height:calc(var(--u)*450)">Economia</div><div class="m" style="height:calc(var(--u)*450)">Cultura</div><div class="m" style="height:calc(var(--u)*900)">Mais lidas</div><div class="m" style="height:calc(var(--u)*220)">Fontes</div><div class="m" style="height:calc(var(--u)*1100)">Panorama (4)</div><div class="m" style="height:calc(var(--u)*330)">Newsletter</div><div class="m" style="height:calc(var(--u)*740)">rodapé</div>
       </div><div class="ruler" style="--u:.3px"></div></div>
-      <span class="metric bad">≈ 11 telas · tudo em coluna</span>
-    </div>
+      <span class="metric bad">≈ 11 telas</span></div>
     <div class="col"><span class="tag new">Proposta · ≤ 4.700 px</span>
       <div class="longwrap"><div class="long">
-        <div class="m hl" style="height:calc(var(--u)*120)">cabeçalho enxuto</div>
-        <div class="m n" style="height:calc(var(--u)*220)">foto / capa do lead</div>
-        <div class="m n" style="height:calc(var(--u)*330)">manchete + resumo + origem</div>
-        <div class="m n" style="height:calc(var(--u)*560)">Agora (6 itens)</div>
-        <div class="m n" style="height:calc(var(--u)*300)">trilho · Assuntos ›</div>
-        <div class="m n" style="height:calc(var(--u)*220)">trilho · Coleções ›</div>
-        <div class="m n" style="height:calc(var(--u)*260)">trilho · Agenda ›</div>
-        <div class="m n" style="height:calc(var(--u)*200)">trilho · Serviços ›</div>
-        <div class="m n" style="height:calc(var(--u)*520)">editorias em abas</div>
-        <div class="m" style="height:calc(var(--u)*520)">Mais lidas</div>
-        <div class="m" style="height:calc(var(--u)*200)">Fontes</div>
-        <div class="m" style="height:calc(var(--u)*160)">Perto de você</div>
-        <div class="m" style="height:calc(var(--u)*460)">Panorama (trilho)</div>
-        <div class="m" style="height:calc(var(--u)*280)">Newsletter</div>
-        <div class="m" style="height:calc(var(--u)*340)">rodapé</div>
+        <div class="m hl" style="height:calc(var(--u)*120)">cabeçalho enxuto</div><div class="m n" style="height:calc(var(--u)*220)">foto / capa do lead</div><div class="m n" style="height:calc(var(--u)*330)">manchete + resumo + origem</div><div class="m n" style="height:calc(var(--u)*560)">Agora (6)</div><div class="m n" style="height:calc(var(--u)*300)">trilho · Assuntos ›</div><div class="m n" style="height:calc(var(--u)*220)">trilho · Coleções ›</div><div class="m n" style="height:calc(var(--u)*260)">trilho · Agenda ›</div><div class="m n" style="height:calc(var(--u)*200)">trilho · Serviços ›</div><div class="m n" style="height:calc(var(--u)*520)">editorias em abas</div><div class="m" style="height:calc(var(--u)*520)">Mais lidas</div><div class="m" style="height:calc(var(--u)*200)">Fontes</div><div class="m" style="height:calc(var(--u)*160)">Perto de você</div><div class="m" style="height:calc(var(--u)*460)">Panorama (trilho)</div><div class="m" style="height:calc(var(--u)*280)">Newsletter</div><div class="m" style="height:calc(var(--u)*340)">rodapé</div>
       </div><div class="ruler" style="--u:.3px"></div></div>
-      <span class="metric good">≈ 5,5 telas</span>
-    </div>
-    <div class="col" style="flex:1;min-width:240px"><span class="tag">Regras da ordem</span>
-      <div class="anat">
-        <div class="lab"><b>1.</b> Lead com imagem, manchete, resumo e origem na 1ª tela.</div>
-        <div class="lab"><b>2.</b> “Agora” logo depois: 6 itens com horário.</div>
-        <div class="lab"><b>3.</b> Assuntos, Coleções, Agenda e Serviços viram <b>trilhos</b> com rolagem horizontal e ponto de parada.</div>
-        <div class="lab"><b>4.</b> Editorias em abas, um bloco só.</div>
-        <div class="lab"><b>5.</b> Panorama sempre abaixo da dobra, com superfície própria.</div>
-        <div class="lab">Sem carrossel automático. Cada trilho tem nome e teclado.</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 3 HOME DESKTOP -->
-<section class="sec">
-  <header><p class="eyebrow">F4 · Home</p><h2>3. Home no desktop: grade de 12 colunas</h2>
-  <p>Lead em 8 colunas ao lado de “Agora”. Depois três destaques com imagem e módulos em duas colunas.</p></header>
-  <div class="desk">
-    <div class="bar"><span class="logo" style="width:80px"></span><span class="sp"></span><i class="chip" style="font-style:normal">Início</i><i class="chip" style="font-style:normal">Explorar</i><i class="chip" style="font-style:normal">Fontes</i><i class="chip" style="font-style:normal">Agenda</i><span class="btn sq"></span><span class="sp"></span><span class="dot"></span></div>
-    <div class="nav" style="justify-content:center"><i class="on">Cidade</i><i>Política</i><i>Economia</i><i>Cultura</i><i>Esportes</i><i>Entretenimento</i><i>Gastronomia</i><i>Serviços</i></div>
-    <div class="pad" style="gap:14px;padding:14px">
-      <div class="grid g12">
-        <div class="hl" data-n="1" style="grid-column:span 8;padding:8px;display:flex;flex-direction:column;gap:6px">
-          <div class="img r169">lead · 16:9</div>
-          <div class="strip"><span class="p fill">Normalizado · 3 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
-          <div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
-          <div class="t"></div><div class="t m"></div>
-        </div>
-        <div class="hl" data-n="2" style="grid-column:span 4;padding:8px;display:flex;flex-direction:column;gap:8px">
-          <div class="hs" style="width:40%"></div>
-          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
-          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
-          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
-          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
-          <div class="card"><span class="t" style="width:28px;height:10px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div>
-          <div class="t xs"></div>
-        </div>
-      </div>
-      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
-        <div class="hl" data-n="3" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">standard</div><div class="strip"><span class="p">Original</span><span class="y">✓ Revisado</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
-        <div class="hl" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">standard</div><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
-        <div class="hl" style="padding:8px;display:flex;flex-direction:column;gap:5px"><div class="img r32">capa tipográfica</div><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:60%"></div></div>
-      </div>
-      <div class="grid" style="grid-template-columns:1fr 1fr">
-        <div style="border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:6px"><div class="hs" style="width:30%"></div><div class="t"></div><div class="t"></div><div class="t s"></div></div>
-        <div style="border:1px solid var(--line);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px"><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div><div class="img r32" style="aspect-ratio:3/1"></div></div>
-      </div>
-      <div class="grid" style="grid-template-columns:repeat(3,1fr)">
-        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
-        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
-        <div style="border-top:2px solid var(--ink);padding-top:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:35%"></div><div class="t"></div><div class="t s"></div></div>
-      </div>
-      <div style="background:var(--block);border:1px dashed var(--meta);padding:8px;display:flex;flex-direction:column;gap:6px"><div class="strip"><span class="p">Agregado · outros portais</span></div><div class="grid" style="grid-template-columns:repeat(4,1fr)"><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div><div class="t" style="height:22px"></div></div></div>
-    </div>
-  </div>
-  <p class="note" style="max-width:none"><b>1</b> lead 8 col, imagem 16:9, origem em uma linha · <b>2</b> “Agora” 4 col, sempre ao lado do lead · <b>3</b> destaques com imagem ou capa tipográfica. Panorama continua em superfície própria e abaixo da dobra.</p>
-</section>
-
-<!-- 4 MATÉRIA -->
-<section class="sec">
-  <header><p class="eyebrow">F3 · Matéria</p><h2>4. Matéria: cabeçalho enxuto e ações em uma linha</h2>
-  <p>Hoje há até 4 plaquetas antes do título e a ação principal se perde numa grade de botões. A proposta põe o título primeiro e a origem numa linha.</p></header>
-  <div class="pair">
-    <div class="col"><span class="tag">Hoje · 360 px</span>
-      <div class="phone">
-        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span></div>
-        <div class="pad">
-          <div class="t s"></div>
-          <div class="row"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
-          <div class="stack"><span class="chip fill" style="max-width:100%;overflow:hidden">Normalizado pelo CityNews · 2 fon…</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arr…</span></div>
-          <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
-          <div class="t"></div><div class="t m"></div>
-          <div class="row" style="flex-wrap:wrap"><span class="btn">Salvar</span><span class="btn">Compartilhar</span><span class="btn">Ajustar leitura</span><span class="btn">Informar problema</span></div>
-        </div>
-      </div>
-      <span class="metric bad">4 itens antes do título · rótulo truncado</span>
-    </div>
-    <div class="col"><span class="tag new">Proposta · 360 px</span>
-      <div class="phone">
-        <div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span></div>
-        <div class="pad">
-          <div class="t s"></div>
-          <div class="row hl" data-n="1"><span class="t xs" style="background:var(--urucum);width:22%"></span><span class="chip st">✓ Confirmado</span></div>
-          <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
-          <div class="t"></div><div class="t m"></div>
-          <div class="strip hl" data-n="2"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
-          <div class="t xs"></div>
-          <div class="row hl" data-n="3"><span class="btn pri" style="flex:1;justify-content:center;height:22px">Salvar</span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span><span class="btn sq" style="width:22px;height:22px"></span></div>
-          <div class="img r169">foto · REPRODUÇÃO · fonte</div>
-          <div class="t"></div><div class="t m"></div>
-        </div>
-      </div>
-      <span class="metric good">1 item antes do título · origem em 1 linha</span>
-      <p class="note"><b>1</b> só kicker e status · <b>2</b> origem logo abaixo do título · <b>3</b> Salvar em destaque; os demais viram ícones com nome acessível e texto a partir de 640 px.</p>
-    </div>
-    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Desktop · leitura</span>
-      <div class="desk" style="max-width:420px">
-        <div class="grid" style="grid-template-columns:2fr 1fr;padding:12px;gap:14px">
-          <div style="display:flex;flex-direction:column;gap:7px">
-            <div class="t s"></div><div class="h" style="height:16px"></div><div class="h s" style="height:16px"></div>
-            <div class="t m"></div>
-            <div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span><span class="y">✓ Revisado</span></div>
-            <div class="row"><span class="btn pri">Salvar</span><span class="btn">Compartilhar</span><span class="btn">Ajustar leitura</span><span class="btn">Informar problema</span></div>
-            <div class="img r169">foto + crédito</div>
-            <div class="t"></div><div class="t"></div><div class="t m"></div><div class="t"></div>
-            <div style="border:1px solid var(--line);padding:6px"><div class="hs" style="width:30%"></div></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:7px;background:var(--block);padding:8px;align-self:flex-start">
-            <div class="hs" style="width:70%"></div><div class="t"></div><div class="t s"></div><div class="strip"><span class="p">Todos os rótulos</span></div><div class="t xs"></div>
-          </div>
-        </div>
-      </div>
-      <p class="note" style="max-width:none">Corpo em 68 caracteres. A barra lateral guarda o conjunto completo de rótulos e a explicação.</p>
-    </div>
-  </div>
-</section>
-
-<!-- 5 ORIGINSTRIP -->
-<section class="sec">
-  <header><p class="eyebrow">F3 · Componente novo</p><h2>5. OriginStrip: toda a origem em uma linha</h2>
-  <p>A regra de produto continua: origem sempre visível, em forma, ícone e texto. A faixa mostra a origem principal e os rótulos de IA e revisão por extenso. O conjunto completo (até 4) fica no painel “Como esta matéria foi feita” e no leitor de tela.</p></header>
-  <div class="pair">
-    <div class="anat"><span class="tag">Hoje · pilha de plaquetas</span>
-      <div class="stack"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span><span class="chip">Foto original · crédito</span></div>
-      <span class="lab">3 a 4 linhas por card. Em 360 px o primeiro rótulo corta.</span></div>
-    <div class="anat"><span class="tag new">Proposta · OriginStrip</span>
-      <div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">· IA</span><span class="y">· ✓ Revisado</span></div>
-      <span class="lab">1 linha, nunca corta. Em 320 px quebra em duas linhas inteiras.</span>
-      <div style="border-top:1px dashed var(--line);padding-top:10px;display:flex;flex-direction:column;gap:6px">
-        <span class="tag">Painel completo (matéria e “Como foi feita”)</span>
-        <div class="chips"><span class="chip fill">Normalizado pelo CityNews · 2 fontes</span><span class="chip ia">Resumo por IA</span><span class="chip ok">✓ Revisado por humano · Marina Arruda</span><span class="chip">Foto original · crédito</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- 6 CARDS -->
-<section class="sec">
-  <header><p class="eyebrow">F2 · Cards</p><h2>6. Cards: com foto, sem foto e em lista</h2>
-  <p>Sem foto deixa de ser um bloco azul-marinho de 40% da dobra. A capa tipográfica vira cabeçalho de texto no lead e miniatura clara nos demais.</p></header>
-  <div class="pair">
-    <div class="col"><span class="tag">Hoje · lead sem foto</span>
-      <div class="phone"><div class="pad"><div class="solid" style="min-height:130px">● Clima</div><div class="t xs" style="background:var(--urucum)"></div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="t"></div></div></div>
-      <span class="metric bad">bloco chapado, sem informação</span></div>
-    <div class="col"><span class="tag new">Proposta · lead sem foto</span>
-      <div class="phone"><div class="pad">
-        <div class="hl" data-n="1" style="padding:6px 8px;display:flex;align-items:center;gap:6px;border-left:4px solid var(--urucum)"><span class="btn sq"></span><span class="hs" style="width:30%"></span><span class="t xs" style="margin-left:auto;width:25%"></span></div>
-        <div class="h" style="height:14px"></div><div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div>
-        <div class="t"></div><div class="t m"></div><div class="strip"><span class="p fill">Normalizado · 2 fontes</span><span class="x">IA</span></div></div></div>
-      <span class="metric good">altura de texto, manchete sobe</span></div>
-    <div class="col"><span class="tag new">Proposta · lead com foto</span>
-      <div class="phone"><div class="pad">
-        <div class="img r169">foto</div><div class="t xs" style="width:60%;font-size:8px"></div>
-        <div class="strip"><span class="p">Reprodução · Fonte</span></div>
-        <div class="h" style="height:14px"></div><div class="h s" style="height:14px"></div><div class="t"></div></div></div>
-      <p class="note">Crédito e rótulo REPRODUÇÃO ficam sob a imagem, sem recorte.</p></div>
-    <div class="col"><span class="tag new">Proposta · standard e lista</span>
-      <div class="phone"><div class="pad" style="gap:10px">
-        <div class="card"><div class="img r1" style="width:64px;flex:none">foto</div><div class="body"><div class="strip"><span class="p">Original</span></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="t xs"></div></div></div>
-        <div class="card"><div class="img r1" style="width:64px;flex:none;background-image:none;background:var(--block)"><span class="btn sq"></span></div><div class="body"><div class="strip"><span class="p fill">Normalizado · 2</span><span class="x">IA</span></div><div class="hs"></div><div class="hs" style="width:70%"></div><div class="t xs"></div></div></div>
-        <div class="card"><div class="img r1" style="width:64px;flex:none">foto</div><div class="body"><div class="strip"><span class="p">Agregado · fonte</span></div><div class="hs"></div><div class="hs" style="width:70%"></div></div></div>
+      <span class="metric good">≈ 5,5 telas</span></div>
+    <div class="col" style="flex:1;min-width:300px"><span class="tag new">Desktop · 12 colunas</span>
+      <div class="desk" style="max-width:520px"><div class="pad" style="gap:10px;padding:10px">
+        <div class="grid g12"><div class="hl" data-n="1" style="grid-column:span 8;padding:6px;display:flex;flex-direction:column;gap:5px"><div class="img r169">lead</div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="meta"><span class="chip fill">Normalizado · 3</span><span><b>✓ Revisado</b></span></div></div>
+        <div class="hl" data-n="2" style="grid-column:span 4;padding:6px;display:flex;flex-direction:column;gap:6px"><div class="hs" style="width:40%"></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div><div class="card"><span class="t" style="width:22px;height:8px"></span><div class="body"><div class="t"></div><div class="t s"></div></div></div></div></div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)"><div class="hl" data-n="3" style="padding:5px;display:flex;flex-direction:column;gap:4px"><div class="img r32"></div><div class="hs"></div><div class="meta"><span class="chip">Original</span></div></div><div style="padding:5px;display:flex;flex-direction:column;gap:4px;border:1px dashed var(--line)"><div class="img r32"></div><div class="hs"></div></div><div style="padding:5px;display:flex;flex-direction:column;gap:4px;border:1px dashed var(--line)"><div class="img r32">capa</div><div class="hs"></div></div></div>
+        <div style="background:var(--block);border:1px dashed var(--meta);padding:6px"><div class="meta"><span class="chip">Agregado · outros portais</span></div></div>
       </div></div>
-      <p class="note">Miniatura 1:1 com proporção fixa: zero salto de layout.</p></div>
+      <p class="note" style="max-width:none"><b>1</b> lead 8 col · <b>2</b> “Agora” 4 col · <b>3</b> destaques com imagem ou capa tipográfica, 1 plaqueta por card.</p></div>
   </div>
 </section>
 
-<!-- 7 EDITORIA -->
+<!-- 6 CARDS + EDITORIA + BUSCA -->
 <section class="sec">
-  <header><p class="eyebrow">F5 · Listas</p><h2>7. Editoria: manchete manda, filtro numa barra</h2>
-  <p>O título da página deixa de ser maior que a manchete. A lista usa imagem, e o ranking lateral usa a variante de lista.</p></header>
+  <header><p class="eyebrow">Listas</p><h2>6. Editoria e Busca: imagem, hierarquia e filtro sem botão</h2>
+  <p>O título da página deixa de ser maior que a manchete. Na Busca, os filtros valem na hora e “Perguntar à IA” vira a primeira linha dos resultados.</p></header>
   <div class="pair">
-    <div class="col" style="flex:1;min-width:260px"><span class="tag">Hoje · 1280 px</span>
-      <div class="desk" style="max-width:520px"><div class="pad" style="padding:12px;gap:10px">
-        <div class="h" style="height:26px;width:34%"></div><div class="t m"></div>
-        <div class="row"><span class="btn pri">Tudo</span><span class="btn">Mobilidade</span></div><div class="row"><span class="btn">⚙ Filtros</span></div>
-        <div class="grid" style="grid-template-columns:2fr 1fr;gap:14px">
-          <div style="display:flex;flex-direction:column;gap:10px;border-top:2px solid var(--ink);padding-top:8px">
-            <div class="stack"><div class="t xs" style="background:var(--urucum)"></div><div class="hs" style="width:90%"></div><div class="stack"><span class="chip fill">Original</span><span class="chip ok">✓ Revisado</span></div></div>
-            <div class="stack"><div class="t xs" style="background:var(--urucum)"></div><div class="hs" style="width:90%"></div><div class="stack"><span class="chip fill">Original</span><span class="chip ok">✓ Revisado</span></div></div>
-            <div style="height:90px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--meta)">espaço vazio</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px"><div class="hs" style="width:60%"></div><div class="stack"><div class="hs" style="width:100%"></div><span class="chip fill">Normalizado…</span><span class="chip ia">IA</span><span class="chip ok">Revisado…</span></div></div>
-        </div></div></div>
-      <span class="metric bad">título da página 26 px · lista só texto</span></div>
-    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Proposta · 1280 px</span>
-      <div class="desk" style="max-width:520px"><div class="pad" style="padding:12px;gap:10px">
+    <div class="col"><span class="tag new">Editoria · 1280</span>
+      <div class="desk" style="max-width:480px"><div class="pad" style="padding:12px;gap:10px">
         <div class="hl" data-n="1" style="padding:4px 6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:22%;height:11px"></div><div class="t m"></div></div>
-        <div class="row hl" data-n="2"><span class="btn pri">Tudo</span><span class="btn">Mobilidade</span><span class="btn">Período ▾</span><span class="btn">Bairro ▾</span><span class="btn">Origem ▾</span></div>
-        <div class="grid" style="grid-template-columns:2fr 1fr;gap:14px">
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div class="hl" data-n="3" style="padding:6px;display:flex;flex-direction:column;gap:5px"><div class="img r169">lead</div><div class="strip"><span class="p">Original</span><span class="y">✓ Revisado</span></div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div></div>
-            <div class="grid" style="grid-template-columns:1fr 1fr"><div style="display:flex;flex-direction:column;gap:4px"><div class="img r32">standard</div><div class="hs"></div><div class="hs" style="width:60%"></div></div><div style="display:flex;flex-direction:column;gap:4px"><div class="img r32">standard</div><div class="hs"></div><div class="hs" style="width:60%"></div></div></div>
-          </div>
-          <div class="hl" data-n="4" style="padding:6px;display:flex;flex-direction:column;gap:7px"><div class="hs" style="width:60%"></div>
-            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div>
-            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div>
-            <div class="card"><div class="img r1" style="width:30px;flex:none"></div><div class="body"><div class="hs"></div><div class="t xs"></div></div></div></div>
+        <div class="row hl" data-n="2" style="flex-wrap:wrap"><span class="btn pri">Tudo</span><span class="btn">Mobilidade</span><span class="btn">Período ▾</span><span class="btn">Bairro ▾</span></div>
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:10px"><div class="hl" data-n="3" style="padding:5px;display:flex;flex-direction:column;gap:4px"><div class="img r169">lead</div><div class="h" style="height:12px"></div><div class="h s" style="height:12px"></div><div class="meta"><span class="chip">Original</span><b>✓ Revisado</b></div></div>
+          <div class="grid" style="grid-template-columns:1fr 1fr"><div style="display:flex;flex-direction:column;gap:3px"><div class="img r32"></div><div class="hs"></div></div><div style="display:flex;flex-direction:column;gap:3px"><div class="img r32"></div><div class="hs"></div></div></div></div>
+          <div class="hl" data-n="4" style="padding:5px;display:flex;flex-direction:column;gap:6px"><div class="hs" style="width:60%"></div><div class="card"><div class="img r1" style="width:26px;flex:none"></div><div class="body"><div class="hs"></div></div></div><div class="card"><div class="img r1" style="width:26px;flex:none"></div><div class="body"><div class="hs"></div></div></div><div class="card"><div class="img r1" style="width:26px;flex:none"></div><div class="body"><div class="hs"></div></div></div></div>
         </div></div></div>
-      <p class="note" style="max-width:none"><b>1</b> título de página na escala de tela, menor que a manchete · <b>2</b> filtros numa barra, estado na URL · <b>3</b> lead com imagem · <b>4</b> ranking com miniatura e origem em uma linha.</p></div>
+      <p class="note" style="max-width:none"><b>1</b> título na escala de tela · <b>2</b> filtros numa barra, estado na URL · <b>3</b> lead com imagem · <b>4</b> ranking com miniatura.</p></div>
+    <div class="col"><span class="tag new">Busca · 390 px</span>
+      <div class="phone"><div class="bar"><span class="logo"></span><span class="sp"></span><span class="dot"></span><span class="t" style="width:28px"></span></div>
+        <div class="pad" style="gap:7px">
+          <div class="row"><div class="field" style="flex:1;height:24px">🔍 prefeitura</div></div>
+          <div class="row hl" data-n="1" style="overflow:hidden"><span class="btn pri">Tudo</span><span class="btn">Matérias</span><span class="btn">Assuntos</span><span class="btn">Eventos</span><span class="btn">⚙ Filtros</span></div>
+          <div class="bub ia hl" data-n="2" style="max-width:100%;align-self:stretch;flex-direction:row;align-items:center;gap:6px"><span class="av"></span><div style="flex:1"><div class="hs" style="width:60%"></div><div class="t xs" style="margin-top:3px"></div></div><span class="sub">›</span></div>
+          <div class="sub">5 resultados para “prefeitura”</div>
+          <div class="card hl" data-n="3" style="padding:4px"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip">Agregado · fonte</span><span>9h</span></div></div></div>
+          <div class="card"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="hs" style="width:70%"></div><div class="meta"><span class="chip fill">Normalizado · 4</span><b>✓ Revisado</b></div></div></div>
+          <div class="card"><div class="img r1" style="width:46px;flex:none"></div><div class="body"><div class="hs"></div><div class="meta"><span class="chip fill">Original</span></div></div></div>
+        </div></div>
+      <p class="note"><b>1</b> abas como chips; filtros aplicam sem “Aplicar” · <b>2</b> “Perguntar à IA” abre o chat com a mesma pergunta · <b>3</b> miniatura, 1 plaqueta, termo destacado.</p></div>
   </div>
 </section>
 
-<!-- 8 PERGUNTE -->
+<!-- 7 AGENDA -->
 <section class="sec">
-  <header><p class="eyebrow">F9 · Produto</p><h2>8. Pergunte ao CityNews: mostrar o diferencial</h2>
-  <p>Hoje a tela é um campo numa coluna estreita com metade do espaço vazio. A proposta centraliza e mostra, antes de qualquer pergunta, como é uma resposta com fonte.</p></header>
+  <header><p class="eyebrow">Descoberta</p><h2>7. Agenda: por dia, com atalhos e imagem</h2>
+  <p>Hoje é uma lista de texto corrido. A proposta responde às perguntas reais (“hoje”, “fim de semana”, “de graça”) e mostra o evento como um cartão com imagem.</p></header>
   <div class="pair">
-    <div class="col" style="flex:1;min-width:260px"><span class="tag">Hoje · 1280 px</span>
-      <div class="desk" style="max-width:520px"><div class="pad" style="padding:14px;gap:10px;width:62%">
-        <div class="h" style="height:22px"></div><div class="t"></div><div class="t m"></div>
-        <div class="row"><div style="flex:1;height:22px;border:1px solid var(--ink);border-radius:6px"></div><span class="btn pri" style="height:22px">Perguntar</span></div>
-        <div class="chips"><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span></div>
-      </div><div style="height:90px"></div></div>
-      <span class="metric bad">metade direita e a base vazias</span></div>
-    <div class="col" style="flex:1;min-width:260px"><span class="tag new">Proposta · 1280 px</span>
-      <div class="desk" style="max-width:520px"><div class="pad" style="padding:14px;gap:10px;align-items:center">
-        <div class="h" style="height:20px;width:60%"></div><div class="t" style="width:70%"></div>
-        <div class="row" style="width:80%"><div style="flex:1;height:24px;border:1px solid var(--ink);border-radius:6px"></div><span class="btn pri" style="height:24px">Perguntar</span></div>
-        <div class="chips" style="justify-content:center"><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span><span class="btn">sugestão</span></div>
-        <div class="hl" data-n="1" style="width:92%;padding:8px;display:grid;grid-template-columns:2fr 1fr;gap:10px;background:var(--panel)">
-          <div style="display:flex;flex-direction:column;gap:6px"><span class="chip ia" style="align-self:flex-start">Exemplo de resposta</span>
-            <div class="hs" style="width:25%"></div><div class="t"></div><div class="t s"></div>
-            <div class="hs" style="width:30%;background:var(--ia)"></div><div class="t"></div>
-            <div class="hs" style="width:20%;background:var(--urucum)"></div><div class="t m"></div></div>
-          <div style="display:flex;flex-direction:column;gap:6px;background:var(--block);padding:6px"><div class="hs" style="width:60%"></div><div class="t"></div><div class="t"></div><div class="t s"></div></div>
-        </div>
-        <div class="t xs" style="align-self:center"></div>
-      </div></div>
-      <p class="note" style="max-width:none"><b>1</b> cartão de exemplo rotulado, com Fato, Inferência e Lacuna separados e as fontes numeradas ao lado. Mantidos: recusa com menos de 2 fontes, limite e aviso de erro.</p></div>
+    <div class="col"><span class="tag">Hoje · 1280</span>
+      <div class="desk" style="max-width:360px"><div class="pad" style="gap:8px;padding:12px"><div class="h" style="height:18px;width:60%"></div><div class="row"><span class="btn pri">Lista</span><span class="btn">Calendário</span></div><span class="btn" style="align-self:flex-start">Filtros da agenda</span>
+        <div class="hs" style="width:35%"></div><div class="card"><span class="t" style="width:22px;height:22px"></span><div class="body"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="t m"></div></div></div>
+        <div class="hs" style="width:35%"></div><div class="card"><span class="t" style="width:22px;height:22px"></span><div class="body"><div class="t xs" style="background:var(--urucum)"></div><div class="hs"></div><div class="t m"></div></div></div>
+        <div style="height:60px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--meta)">metade direita vazia</div></div></div>
+      <span class="metric bad">texto corrido, sem imagem</span></div>
+    <div class="col" style="flex:1;min-width:300px"><span class="tag new">Proposta · 1280</span>
+      <div class="desk" style="max-width:560px"><div class="pad" style="gap:8px;padding:12px">
+        <div class="h" style="height:16px;width:50%"></div>
+        <div class="row hl" data-n="1" style="flex-wrap:wrap"><span class="btn pri">Hoje</span><span class="btn">Amanhã</span><span class="btn">Fim de semana</span><span class="btn">Grátis</span><span class="sp"></span><span class="btn">Lista ▪ Calendário</span></div>
+        <div class="grid" style="grid-template-columns:2fr 1fr;gap:12px">
+          <div style="display:flex;flex-direction:column;gap:8px"><div class="hs" style="width:40%"></div>
+            <div class="card hl" data-n="2" style="border:1px solid var(--line);padding:5px"><div class="img r1" style="width:52px;flex:none"></div><div class="body"><div class="meta"><span class="chip">Cultura</span><span>18h–23h · Orla do Porto</span><span class="chip st">Grátis</span></div><div class="hs"></div><div class="row"><span class="btn" style="height:13px">Salvar</span><span class="btn" style="height:13px">＋ Calendário</span></div></div></div>
+            <div class="hs" style="width:40%"></div>
+            <div class="card" style="border:1px solid var(--line);padding:5px"><div class="img r1" style="width:52px;flex:none">capa</div><div class="body"><div class="meta"><span class="chip">Esporte</span><span>6h30 · Parque Mãe Bonifácia</span></div><div class="hs"></div></div></div></div>
+          <div class="hl" data-n="3" style="padding:6px;display:flex;flex-direction:column;gap:5px"><div class="hs" style="width:50%"></div><div class="cal"><i>1</i><i>2</i><i class="d">3</i><i class="d">4</i><i>5</i><i>6</i><i>7</i><i>8</i><i>9</i><i>10</i><i>11</i><i>12</i><i>13</i><i>14</i><i>15</i><i>16</i><i>17</i><i>18</i><i>19</i><i>20</i><i>21</i><i>22</i><i>23</i><i>24</i><i>25</i><i>26</i><i>27</i><i>28</i></div></div>
+        </div></div></div>
+      <p class="note" style="max-width:none"><b>1</b> atalhos de dia e preço, na URL · <b>2</b> cartão de evento com imagem ou capa, local, hora, preço e ações · <b>3</b> mini-calendário lateral com os dias que têm evento.</p></div>
   </div>
 </section>
 
-<footer style="border-top:1px solid var(--line);padding-top:20px;color:var(--meta);font-size:13px;max-width:70ch">
-  Próximos passos: aprovar a spec e o plano (<code>docs/superpowers/plans/2026-10-02-ui-publica.md</code>), escolher a forma de execução e começar por UI-T0 (baseline) e UI-T1 (consentimento). Cada fase publica sozinha.
+<!-- 8 FONTES -->
+<section class="sec">
+  <header><p class="eyebrow">Descoberta</p><h2>8. Fontes: card enxuto, detalhes sob demanda</h2>
+  <p>Hoje cada card carrega quatro estatísticas, dois botões e “Ocultar”. A proposta deixa o essencial na vista e esconde o resto.</p></header>
+  <div class="pair">
+    <div class="col"><span class="tag">Hoje</span>
+      <div class="phone"><div class="pad" style="gap:5px"><div class="row"><span class="av" style="width:22px;height:22px"></span><div style="flex:1"><div class="hs"></div><div class="t xs" style="margin-top:3px"></div></div></div><span class="chip">Verificada</span><div class="t s" style="background:var(--ia)"></div><div class="grid" style="grid-template-columns:1fr 1fr;gap:3px"><div class="t"></div><div class="t"></div><div class="t"></div><div class="t"></div></div><div class="row"><span class="btn pri">+ Seguir</span><span class="btn">Ver matérias</span><span class="sp"></span><span class="sub">Ocultar</span></div></div></div>
+      <span class="metric bad">4 estatísticas + 3 ações</span></div>
+    <div class="col"><span class="tag new">Proposta</span>
+      <div class="phone"><div class="pad" style="gap:6px"><div class="row"><span class="av" style="width:22px;height:22px"></span><div style="flex:1"><div class="hs"></div><div class="t xs" style="margin-top:3px"></div></div><span class="btn sq">⋯</span></div><div class="sub" style="color:var(--ia)"><b style="color:var(--ia)">Popular em Cuiabá</b></div><div class="row"><span class="btn pri" style="flex:1;justify-content:center;height:20px">+ Seguir</span><span class="btn" style="flex:1;justify-content:center;height:20px">Ver matérias</span></div><div class="sub hl" data-n="1" style="padding:3px">Detalhes ▾</div></div></div>
+      <span class="metric good">1 justificativa, 2 ações</span>
+      <p class="note"><b>1</b> alcance, tendência e atualização ficam em “Detalhes”; “Ocultar” vai para o menu ⋯, com desfazer. Agregados mantêm 1 plaqueta AGREGADO · fonte.</p></div>
+  </div>
+</section>
+
+<footer style="border-top:1px solid var(--line);padding-top:20px;color:var(--meta);font-size:13px;max-width:72ch;display:flex;flex-direction:column;gap:6px">
+  <p><b style="color:var(--ink)">Decisão a confirmar:</b> a seção 3 relaxa a leitura da regra de rótulos para “cada rótulo junto do conteúdo que descreve, com a origem principal sempre visível”.</p>
+  <p>Spec: <code>docs/superpowers/specs/2026-10-02-ui-publica-design.md</code> · Plano: <code>docs/superpowers/plans/2026-10-02-ui-publica.md</code> (UI-T12 login, UI-T13 chat).</p>
 </footer>
 </div>
