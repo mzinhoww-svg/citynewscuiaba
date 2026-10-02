@@ -73,6 +73,12 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+      # Detector de anti-padrões de design (impeccable). Não bloqueante até UI-T14, que o torna
+      # obrigatório; baseline: 2 avisos border-accent-on-rounded em ConsentBanner.
+      - name: Detector de design
+        run: pnpm design:detect
+        continue-on-error: true
+
       - name: SW gerado confere
         run: pnpm sw:build && git diff --exit-code public/sw.js public/offline.js public/offline.css
 
