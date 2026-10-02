@@ -43,3 +43,20 @@ arredondado):
 
 (O plano previa os 2 no `ConsentBanner`; um deles está em `FirstVisitInvite`.) O passo de CI é
 não bloqueante até UI-T14.
+
+## Depois (parcial)
+
+### UI-T1: consentimento compacto
+
+| Medida                                   | Antes                 | Depois                | Como foi medido                                      |
+| ---------------------------------------- | --------------------- | --------------------- | ---------------------------------------------------- |
+| Banner na 1ª dobra, 390x844              | 24,6% (207 de 844 px) | 11,3% (95 de 844 px)  | `getBoundingClientRect` da região, e2e `consent.spec.ts` |
+| Banner na 1ª dobra, 360x640              | n/m                   | 14,8% (95 de 640 px)  | idem (meta: até 15%)                                 |
+| Banner no desktop, 1280x800              | cartão de 320 px      | barra de 61 px (7,6%) | uma linha, largura total                             |
+| Avisos `border-accent-on-rounded`        | 2                     | 0                     | `pnpm design:detect`                                 |
+
+Notas: o título virou `sr-only` (a região mantém o mesmo nome); no celular o texto fica limitado a
+2 linhas, com "Saiba mais" ao lado e o texto completo no DOM e em `/privacidade`. Textos e as três
+escolhas não mudaram. A barra do desktop é de largura total; o `h1` da home em 1280x800 fica
+parcialmente sob ela até rolar, por isso o e2e de desktop agora verifica o `h1` rolado para
+acima da barra (respiro inferior via `--cn-consent-h`).

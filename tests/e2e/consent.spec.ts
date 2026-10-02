@@ -186,7 +186,37 @@ test("banner não é modal, não cobre o h1 em 360 px e respeita a CSP", async (
   expect(errors).toEqual([]);
 });
 
-test("desktop: o cartão do banner não encosta no h1", async ({ page }) => {
+test("compacto: até 15% da altura no celular e barra de uma linha no desktop", async ({ page }) => {
+  for (const [width, height] of [
+    [360, 640],
+    [390, 844],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    await expect(banner(page)).toBeVisible();
+    const b = (await banner(page).boundingBox())!;
+    expect(b.height / height, `banner em ${width}x${height}`).toBeLessThanOrEqual(0.15);
+    for (const name of ["Só o necessário", "Escolher", "Aceitar recomendações"]) {
+      const box = (await page.getByRole("button", { name }).boundingBox())!;
+      expect(box.height, name).toBeGreaterThanOrEqual(44);
+    }
+    // A última linha da página não fica escondida: o respiro inferior cobre o banner.
+    const pad = await page.evaluate(
+      () => parseFloat(getComputedStyle(document.body).paddingBottom) || 0,
+    );
+    expect(pad).toBeGreaterThanOrEqual(Math.floor(b.height));
+  }
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await expect(banner(page)).toBeVisible();
+  const bar = (await banner(page).boundingBox())!;
+  const btn = (await page.getByRole("button", { name: "Aceitar recomendações" }).boundingBox())!;
+  // Uma linha: os botões cabem na altura do botão mais o respiro da barra.
+  expect(bar.height).toBeLessThanOrEqual(btn.height + 24);
+  expect(bar.width).toBeGreaterThanOrEqual(1270);
+});
+
+test("desktop: a barra não esconde o h1 (a rolagem o leva para acima dela)", async ({ page }) => {
   for (const [width, height] of [
     [1280, 800],
     [1024, 768],
@@ -197,6 +227,8 @@ test("desktop: o cartão do banner não encosta no h1", async ({ page }) => {
       const h1 = page.getByRole("heading", { level: 1 });
       await expect(h1).toBeVisible();
       await expect(banner(page)).toBeVisible();
+      // Barra de largura total: o h1 baixo na dobra é rolado para acima dela (respiro inferior).
+      await h1.evaluate((el) => el.scrollIntoView({ block: "end" }));
       const h = (await h1.boundingBox())!;
       const b = (await banner(page).boundingBox())!;
       const overlap =

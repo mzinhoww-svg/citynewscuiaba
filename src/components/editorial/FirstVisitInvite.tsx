@@ -86,7 +86,7 @@ export function FirstVisitInvite() {
       onKeyDown={(e) => {
         if (e.key === "Escape") finish();
       }}
-      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t-2 border-line-strong bg-card-white lg:inset-x-auto lg:right-gutter lg:bottom-gutter lg:w-96 lg:rounded-lg lg:border-2 lg:shadow-dialog"
+      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t border-line-strong bg-card-white lg:inset-x-auto lg:right-gutter lg:bottom-gutter lg:w-96 lg:rounded-lg lg:border lg:shadow-dialog"
     >
       <div className="mx-auto flex max-h-[70dvh] w-full max-w-page flex-col gap-3 overflow-y-auto px-gutter py-4 lg:px-5">
         <div className="flex items-start justify-between gap-3">
