@@ -112,6 +112,8 @@ export const AUDIT_ACTIONS = [
   "privacy.request.save",
   "security.key.rotate",
   ...PUSH_AUDIT_ACTIONS,
+  // Publicação forçada da fila de revisão (REV-T1, 0054)
+  "article.force_publish",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

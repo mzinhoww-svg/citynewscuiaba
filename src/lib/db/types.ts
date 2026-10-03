@@ -1382,6 +1382,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      forced_publish_jobs: {
+        Row: {
+          batches: NonNullable<Json>;
+          batches_done: number[];
+          done: number;
+          excluded: NonNullable<Json>;
+          failed: number;
+          failures: NonNullable<Json>;
+          finished_at: string | null;
+          id: string;
+          requested_at: string;
+          requested_by: string;
+          risks: NonNullable<Json>;
+          status: string;
+          total: number;
+        };
+        Insert: {
+          batches?: NonNullable<Json>;
+          batches_done?: number[];
+          done?: number;
+          excluded?: NonNullable<Json>;
+          failed?: number;
+          failures?: NonNullable<Json>;
+          finished_at?: string | null;
+          id?: string;
+          requested_at?: string;
+          requested_by: string;
+          risks?: NonNullable<Json>;
+          status?: string;
+          total: number;
+        };
+        Update: {
+          batches?: NonNullable<Json>;
+          batches_done?: number[];
+          done?: number;
+          excluded?: NonNullable<Json>;
+          failed?: number;
+          failures?: NonNullable<Json>;
+          finished_at?: string | null;
+          id?: string;
+          requested_at?: string;
+          requested_by?: string;
+          risks?: NonNullable<Json>;
+          status?: string;
+          total?: number;
+        };
+        Relationships: [];
+      };
       home_layouts: {
         Row: {
           created_at: string;
@@ -4048,6 +4096,7 @@ export type Database = {
       };
       email_escape: { Args: { p: string; p_max: number }; Returns: string };
       export_email_data: { Args: Record<PropertyKey, never>; Returns: Json };
+      forced_publish_batch: { Args: { p_batch: number; p_job: string }; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       hamming64: { Args: { a: number; b: number }; Returns: number };
@@ -4510,6 +4559,7 @@ export type Database = {
       };
       studio_queue_reader_email: { Args: { p_kind: string; p_ref: string }; Returns: string };
       studio_replace_image: { Args: { p_article: string; p_media: string }; Returns: Json };
+      studio_reported_articles: { Args: { p_ids: string[] }; Returns: string[] };
       studio_request_reprocess: { Args: { p_article: string }; Returns: number };
       studio_save_draft: { Args: { p_base: number; p_id: string; p_patch: Json }; Returns: Json };
       studio_set_image_text: {

@@ -41,7 +41,13 @@ export type PushStep = (typeof PUSH_STEPS)[number];
  * a flag nunca recebe esta mensagem.
  */
 export const ENRICH_STEP = "enrich" as const;
-export const JOB_STEPS = [...STEP_NAMES, ENRICH_STEP, ...PUSH_STEPS] as const;
+/**
+ * `forced_publish` (fora das 20 etapas, REV-T1): um lote de até 50 matérias do "Publicar mesmo
+ * assim" da fila de revisão (`forced:<job>:<lote>`), com `runId: "forced"`. Lido antes das demais.
+ */
+export const FORCED_PUBLISH_STEP = "forced_publish" as const;
+export const FORCED_PUBLISH_RUN_ID = "forced";
+export const JOB_STEPS = [...STEP_NAMES, ENRICH_STEP, ...PUSH_STEPS, FORCED_PUBLISH_STEP] as const;
 export type JobStep = (typeof JOB_STEPS)[number];
 export const PUSH_RUN_ID = "push";
 
