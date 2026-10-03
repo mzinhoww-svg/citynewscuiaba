@@ -29,6 +29,8 @@ const event: EventView = {
   origin: "organizer",
   description: null,
   confirmedAt: null,
+  sourceUrl: null,
+  priceUnknown: false,
 };
 
 beforeEach(() => {
@@ -86,5 +88,13 @@ describe("EventCard", () => {
     render(<EventCard event={event} />);
     const save = screen.getByRole("button", { name: /^Salvar / });
     expect(save.closest("div")).toHaveClass("relative");
+  });
+});
+
+describe("EventCard preço não informado", () => {
+  it("diz para consultar o valor e nunca 'Gratuito'", () => {
+    render(<EventCard event={{ ...event, priceUnknown: true, isFree: false, priceCents: null }} />);
+    expect(screen.getByText("Consulte o valor no site")).toBeInTheDocument();
+    expect(screen.queryByText("Gratuito")).not.toBeInTheDocument();
   });
 });

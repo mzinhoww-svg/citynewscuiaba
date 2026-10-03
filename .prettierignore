@@ -20,3 +20,4 @@ src/styles/tokens.css
 tests/fixtures/sw/
 .lighthouseci/
 src/components/ui/icon-sprite.ts
+tests/fixtures/agenda/

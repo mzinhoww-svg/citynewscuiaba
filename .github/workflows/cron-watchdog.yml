@@ -146,6 +146,14 @@ jobs:
             echo "Via rápida em dia (ou sem fonte rápida ativa)."
           fi
 
+          # Agenda (AGE-T1): a rota se limita sozinha (intervalo mínimo de 5 h); aqui só garante a chamada.
+          code=$(curl -sS -o "$body" -w '%{http_code}' -X POST --max-time 75 -H "$auth" "$app/api/ingest/agenda" || echo "000")
+          case "$code" in
+            2??) echo "Coleta da Agenda (HTTP $code): $(head -c 200 "$body")" ;;
+            404) echo "::warning::/api/ingest/agenda ainda não existe (HTTP 404); nada a fazer." ;;
+            *) echo "::warning::Coleta da Agenda devolveu HTTP $code" ;;
+          esac
+
           if [ "$pending" = "0" ]; then
             echo "Fila vazia; drain não chamado."
             exit 0

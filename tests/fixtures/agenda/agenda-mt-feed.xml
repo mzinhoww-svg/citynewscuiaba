@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Agenda MT (fictícia)</title><link>https://agendamt.example/</link>
+<item><title>Exposição "Rios de Cuiabá" abre no Museu do Rio, 21 de outubro, às 18h</title><link>https://agendamt.example/expo-rios</link><pubDate>Fri, 02 Oct 2026 12:00:00 -0400</pubDate><description><![CDATA[<p>Entrada franca. Local: Museu do Rio, Porto, Cuiabá.</p>]]></description><category>Cultura</category></item>
+<item><title>Resenha: livro novo de autor local</title><link>https://agendamt.example/resenha</link><description>Sem data de evento aqui.</description></item>
+<item><title>Feira de Artesanato de Cuiabá - 08/11 às 9h</title><link>https://agendamt.example/feira-artesanato</link><description>Praça da República, Centro Sul, Cuiabá. Entrada gratuita.</description></item>
+</channel></rss>

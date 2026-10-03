@@ -35,9 +35,15 @@ const SITES: Record<string, string> = {
   "jornaldachapada.example": "jornal-da-chapada",
   "proibido.example": "proibido",
   "cadencia.example": "cadencia",
+  // Coletor da Agenda (AGE-T1).
+  "cerradovivo.example": "cerrado-vivo",
+  "bloqueado-agenda.example": "bloqueado-agenda",
 };
 
 const EXTRA: Record<string, Record<string, string>> = {
+  "culturavarzea.example": { "/calendario.ics": "agenda/cultura-varzea.ics" },
+  "agendamt.example": { "/feed": "agenda/agenda-mt-feed.xml" },
+  "ingressosmt.example": { "/eventos/cuiaba-mt": "agenda/ingressos-cuiaba.html" },
   "folhadocerrado.example": {
     "/feed": "feeds/folha-do-cerrado.xml",
     "/termos": "sites/termos.html",
@@ -56,6 +62,7 @@ const CONTENT_TYPE: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
   ".xml": "application/xml; charset=utf-8",
+  ".ics": "text/calendar; charset=utf-8",
   ".json": "application/json; charset=utf-8",
 };
 

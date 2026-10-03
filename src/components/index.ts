@@ -39,6 +39,7 @@ export { AggregatedCard, type AggregatedCardProps } from "./editorial/Aggregated
 export { AggregatedSection, type AggregatedSectionProps } from "./editorial/AggregatedSection";
 export { AgendaList, type AgendaItem, type AgendaListProps } from "./editorial/AgendaList";
 export { EventCard, type EventCardProps } from "./editorial/EventCard";
+export { RecurringDates, type RecurringDatesProps } from "./editorial/RecurringDates";
 export { SaveEventButton, type SaveEventButtonProps } from "./editorial/SaveEventButton";
 export { ArticleCard, ArticleThumb, type ArticleCardProps } from "./editorial/ArticleCard";
 export {

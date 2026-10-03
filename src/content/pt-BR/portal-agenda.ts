@@ -137,9 +137,26 @@ export const AGENDA = {
   seeAllDates: "Ver todas as datas",
   results: (n: number) => (n === 1 ? "1 evento" : `${n} eventos`),
   free: "Gratuito",
+  recurring: {
+    title: "Datas e eventos recorrentes de Cuiabá",
+    intro:
+      "Datas fixas do calendário da cidade. Os eventos da semana entram aqui assim que forem confirmados.",
+    sourceLabel: (name: string) => `Fonte: ${name}`,
+    sourceAria: (title: string, name: string) => `${title}: conferir em ${name}`,
+    /** "8 de abril · Cuiabá" ou "primeira semana de julho · Igreja ..." */
+    whenWhere: (when: string, place?: string) => (place ? `${when} · ${place}` : when),
+  },
+  priceUnknown: "Consulte o valor no site",
+  sourceLink: "Ver no site da organização",
+  sourceLinkFor: (title: string) => `Ver ${title} no site da organização`,
   price: (cents: number) =>
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),
-  age: (a: string) => (a === "livre" ? "Classificação livre" : `A partir de ${a} anos`),
+  age: (a: string) =>
+    a === "livre"
+      ? "Classificação livre"
+      : a === "consulte"
+        ? "Consulte a classificação"
+        : `A partir de ${a} anos`,
   emptyTitle: (parts: {
     free: boolean;
     kids: boolean;
