@@ -160,6 +160,7 @@ export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingP
 export { ReadingSettings } from "./editorial/ReadingSettings";
 export { ReadTracker, type ReadTrackerProps } from "./editorial/ReadTracker";
 export { ConsentBanner } from "./editorial/ConsentBanner";
+export { KeepFocusInView } from "./editorial/KeepFocusInView";
 export { ConsentChoices } from "./editorial/ConsentChoices";
 export { PrivacyPreferences } from "./editorial/PrivacyPreferences";
 export { ReportProblemForm, type ReportProblemFormProps } from "./editorial/ReportProblemForm";

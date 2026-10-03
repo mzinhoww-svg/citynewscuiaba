@@ -7,6 +7,7 @@ import {
   Icon,
   SearchBox,
   SearchFiltersBar,
+  KeepFocusInView,
   SearchGroupBlock,
   Skeleton,
 } from "@/components";
@@ -129,6 +130,15 @@ function Failure({ filters }: { filters: SearchFilters }) {
 }
 
 async function Results({ filters }: { filters: SearchFilters }) {
+  return (
+    <>
+      <KeepFocusInView />
+      <ResultsBody filters={filters} />
+    </>
+  );
+}
+
+async function ResultsBody({ filters }: { filters: SearchFilters }) {
   const result = await searchHybrid(filters.q, filters);
   if (!result.ok) return <Failure filters={filters} />;
   const r = result.value;
