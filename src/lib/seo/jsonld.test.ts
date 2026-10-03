@@ -63,6 +63,26 @@ it("Event no fuso de Cuiabá com local", () => {
   expect(ld.isAccessibleForFree).toBe(true);
 });
 
+it("Event com preço não informado não afirma gratuidade nem oferta", () => {
+  const ld = eventJsonLd(
+    {
+      slug: "x",
+      title: "Show",
+      startsAt: "2026-10-04T00:00:00Z",
+      endsAt: null,
+      venue: "Casa",
+      neighborhood: null,
+      isFree: false,
+      priceCents: null,
+      description: null,
+      priceUnknown: true,
+    },
+    "https://citynews.example",
+  );
+  expect(ld).not.toHaveProperty("isAccessibleForFree");
+  expect(ld).not.toHaveProperty("offers");
+});
+
 it("BreadcrumbList com posições e URLs absolutas", () => {
   const ld = breadcrumbJsonLd(
     [

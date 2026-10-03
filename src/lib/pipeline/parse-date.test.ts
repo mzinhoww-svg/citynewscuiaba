@@ -1,4 +1,4 @@
-import { parseFeedDate } from "./parse-date";
+import { parseDateInText, parseFeedDate } from "./parse-date";
 
 describe("parseFeedDate", () => {
   it("data sem fuso é Cuiabá", () =>
@@ -31,4 +31,32 @@ describe("parseFeedDate", () => {
     expect(parseFeedDate("2026-02-30 10:00")).toBeNull();
     expect(parseFeedDate("2026-09-27 25:00")).toBeNull();
   });
+});
+
+describe("parseFeedDate: português e separadores de sites públicos", () => {
+  it("data por extenso", () => {
+    expect(parseFeedDate("03 de Outubro de 2026")).toBe("2026-10-03T04:00:00.000Z");
+    expect(parseFeedDate("3 DE OUTUBRO DE 2026 ÀS 06:30:00")).toBe("2026-10-03T10:30:00.000Z");
+    expect(parseFeedDate("1 de março de 2026")).toBe("2026-03-01T04:00:00.000Z");
+  });
+  it("dd/mm/aaaa com | ou h", () => {
+    expect(parseFeedDate("29/09/2026 | 13:53")).toBe("2026-09-29T17:53:00.000Z");
+    expect(parseFeedDate("02/10/2026 13h47")).toBe("2026-10-02T17:47:00.000Z");
+  });
+  it("mês desconhecido ou dia impossível vira null", () => {
+    expect(parseFeedDate("3 de foo de 2026")).toBeNull();
+    expect(parseFeedDate("31 de fevereiro de 2026")).toBeNull();
+  });
+});
+
+describe("parseDateInText", () => {
+  it("acha a data no meio de ruído", () => {
+    expect(parseDateInText("Postado em 02/10/2026 13h47 · 1 day ago")).toBe(
+      "2026-10-02T17:47:00.000Z",
+    );
+    expect(parseDateInText("Publicado: 3 de outubro de 2026 - atualizado")).toBe(
+      "2026-10-03T04:00:00.000Z",
+    );
+  });
+  it("sem data devolve null", () => expect(parseDateInText("Há 3 horas")).toBeNull());
 });

@@ -5,10 +5,13 @@ import type { Result } from "@/lib/result";
 import { many, one, readPublic } from "./run";
 import type { EventView, QueryError } from "./types";
 
-type EventRow = Omit<Database["public"]["Tables"]["event_listings"]["Row"], "tsv">;
+type EventRow = Omit<
+  Database["public"]["Tables"]["event_listings"]["Row"],
+  "tsv" | "source_id" | "dedupe_key" | "collected_at"
+>;
 
 export const EVENT_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown";
 
 export interface EventFilters {
   /** ISO; padrão = agora (só eventos que ainda não terminaram). */
@@ -46,6 +49,8 @@ export function toEventView(r: EventRow): EventView {
     origin: r.origin === "official" || r.origin === "reader" ? r.origin : "organizer",
     description: r.description,
     confirmedAt: r.confirmed_at,
+    sourceUrl: r.source_url,
+    priceUnknown: r.price_unknown,
   };
 }
 

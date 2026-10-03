@@ -202,6 +202,10 @@ export interface EventView {
   description: string | null;
   /** Quando a organização (ou a fonte oficial) confirmou as informações. */
   confirmedAt: string | null;
+  /** Link do original (eventos coletados da internet); `null` nos cadastrados na casa. */
+  sourceUrl: string | null;
+  /** Preço não informado pela fonte: nunca vale como gratuito. */
+  priceUnknown: boolean;
 }
 
 export interface CollectionView {

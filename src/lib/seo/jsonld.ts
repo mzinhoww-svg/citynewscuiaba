@@ -60,6 +60,8 @@ export interface EventLdInput {
   isFree: boolean;
   priceCents: number | null;
   description: string | null;
+  /** Preço não informado: sem `isAccessibleForFree` nem `offers`. */
+  priceUnknown?: boolean;
 }
 
 export function eventJsonLd(e: EventLdInput, base: string = siteUrl()): Ld {
@@ -83,8 +85,8 @@ export function eventJsonLd(e: EventLdInput, base: string = siteUrl()): Ld {
       },
     },
     ...(e.description ? { description: e.description } : {}),
-    isAccessibleForFree: e.isFree,
-    ...(e.isFree
+    ...(e.priceUnknown ? {} : { isAccessibleForFree: e.isFree }),
+    ...(e.isFree || e.priceUnknown
       ? {}
       : {
           offers: {

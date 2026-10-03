@@ -3,6 +3,30 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      agenda_collect_runs: {
+        Row: {
+          finished_at: string | null;
+          id: string;
+          report: Json | null;
+          started_at: string;
+          trigger: string;
+        };
+        Insert: {
+          finished_at?: string | null;
+          id?: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Update: {
+          finished_at?: string | null;
+          id?: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Relationships: [];
+      };
       ai_agents: {
         Row: {
           daily_budget_brl: number;
@@ -1110,7 +1134,9 @@ export type Database = {
           accessibility: string | null;
           age_rating: string;
           category: string;
+          collected_at: string | null;
           confirmed_at: string | null;
+          dedupe_key: string | null;
           description: string | null;
           ends_at: string | null;
           id: string;
@@ -1118,7 +1144,10 @@ export type Database = {
           neighborhood: string | null;
           origin: string;
           price_cents: number | null;
+          price_unknown: boolean;
           slug: string;
+          source_id: string | null;
+          source_url: string | null;
           starts_at: string;
           title: string;
           tsv: unknown;
@@ -1128,7 +1157,9 @@ export type Database = {
           accessibility?: string | null;
           age_rating?: string;
           category: string;
+          collected_at?: string | null;
           confirmed_at?: string | null;
+          dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
           id?: string;
@@ -1136,7 +1167,10 @@ export type Database = {
           neighborhood?: string | null;
           origin: string;
           price_cents?: number | null;
+          price_unknown?: boolean;
           slug: string;
+          source_id?: string | null;
+          source_url?: string | null;
           starts_at: string;
           title: string;
           tsv?: unknown;
@@ -1146,7 +1180,9 @@ export type Database = {
           accessibility?: string | null;
           age_rating?: string;
           category?: string;
+          collected_at?: string | null;
           confirmed_at?: string | null;
+          dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
           id?: string;
@@ -1154,7 +1190,10 @@ export type Database = {
           neighborhood?: string | null;
           origin?: string;
           price_cents?: number | null;
+          price_unknown?: boolean;
           slug?: string;
+          source_id?: string | null;
+          source_url?: string | null;
           starts_at?: string;
           title?: string;
           tsv?: unknown;
@@ -1349,6 +1388,54 @@ export type Database = {
           owner_ref?: string;
           target_id?: string;
           target_kind?: string;
+        };
+        Relationships: [];
+      };
+      forced_publish_jobs: {
+        Row: {
+          batches: NonNullable<Json>;
+          batches_done: number[];
+          done: number;
+          excluded: NonNullable<Json>;
+          failed: number;
+          failures: NonNullable<Json>;
+          finished_at: string | null;
+          id: string;
+          requested_at: string;
+          requested_by: string;
+          risks: NonNullable<Json>;
+          status: string;
+          total: number;
+        };
+        Insert: {
+          batches?: NonNullable<Json>;
+          batches_done?: number[];
+          done?: number;
+          excluded?: NonNullable<Json>;
+          failed?: number;
+          failures?: NonNullable<Json>;
+          finished_at?: string | null;
+          id?: string;
+          requested_at?: string;
+          requested_by: string;
+          risks?: NonNullable<Json>;
+          status?: string;
+          total: number;
+        };
+        Update: {
+          batches?: NonNullable<Json>;
+          batches_done?: number[];
+          done?: number;
+          excluded?: NonNullable<Json>;
+          failed?: number;
+          failures?: NonNullable<Json>;
+          finished_at?: string | null;
+          id?: string;
+          requested_at?: string;
+          requested_by?: string;
+          risks?: NonNullable<Json>;
+          status?: string;
+          total?: number;
         };
         Relationships: [];
       };
@@ -4025,6 +4112,7 @@ export type Database = {
       };
       email_escape: { Args: { p: string; p_max: number }; Returns: string };
       export_email_data: { Args: Record<PropertyKey, never>; Returns: Json };
+      forced_publish_batch: { Args: { p_batch: number; p_job: string }; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       hamming64: { Args: { a: number; b: number }; Returns: number };
@@ -4295,6 +4383,7 @@ export type Database = {
           version: number;
         }[];
       };
+      schedule_agenda_cron: { Args: Record<PropertyKey, never>; Returns: string };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
       schedule_push_cron: { Args: Record<PropertyKey, never>; Returns: string };
       scrub_field_origins: { Args: { p: Json; p_person?: string }; Returns: Json };
@@ -4486,6 +4575,7 @@ export type Database = {
       };
       studio_queue_reader_email: { Args: { p_kind: string; p_ref: string }; Returns: string };
       studio_replace_image: { Args: { p_article: string; p_media: string }; Returns: Json };
+      studio_reported_articles: { Args: { p_ids: string[] }; Returns: string[] };
       studio_request_reprocess: { Args: { p_article: string }; Returns: number };
       studio_save_draft: { Args: { p_base: number; p_id: string; p_patch: Json }; Returns: Json };
       studio_set_image_text: {

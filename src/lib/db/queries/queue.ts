@@ -22,6 +22,8 @@ export interface QueueFilter {
   /** Prazo: vencido ou vencendo hoje (até o fim do dia). */
   due?: "overdue" | "today";
   limit?: number;
+  /** Só matérias em revisão (`in_review`), para "selecionar todas" e a publicação forçada. */
+  reviewOnly?: boolean;
 }
 
 export interface QueueRow {
@@ -98,10 +100,29 @@ function endOfToday(now: Date): Date {
  * - `sensitive`: temas sensíveis (Segurança ou fonte marcada), fora do arquivo.
  */
 export async function listQueue(filter: QueueFilter): Promise<QueueRow[]> {
+  return (await queryQueue(filter)).rows;
+}
+
+/** Teto de matérias da seleção "todas em revisão" (uma publicação forçada). */
+export const REVIEW_SELECTION_MAX = 2000;
+
+/**
+ * Matérias em revisão (`in_review`) dentro das abas e filtros atuais, em todas as páginas:
+ * `total` é a contagem exata; `rows` vem até `limit` (padrão: o teto da seleção).
+ */
+export async function listReviewable(
+  filter: QueueFilter,
+  limit: number = REVIEW_SELECTION_MAX,
+): Promise<{ rows: QueueRow[]; total: number }> {
+  return queryQueue({ ...filter, reviewOnly: true, limit });
+}
+
+async function queryQueue(filter: QueueFilter): Promise<{ rows: QueueRow[]; total: number }> {
   const ctx = await studioContext();
   const me = ctx.session?.userId;
   const now = ctx.now();
-  let q = ctx.db.from("studio_queue").select("*");
+  let q = ctx.db.from("studio_queue").select("*", { count: "exact" });
+  if (filter.reviewOnly) q = q.eq("status", "in_review");
 
   switch (filter.tab) {
     case "exceptions":
@@ -117,7 +138,7 @@ export async function listQueue(filter: QueueFilter): Promise<QueueRow[]> {
         .gte("published_at", new Date(now.getTime() - DAY_MS).toISOString());
       break;
     case "mine":
-      if (!me) return [];
+      if (!me) return { rows: [], total: 0 };
       q = q.or(`assignee_id.eq.${me},and(author_id.eq.${me},status.in.(${OPEN.join(",")}))`);
       break;
     case "sensitive":
@@ -147,9 +168,11 @@ export async function listQueue(filter: QueueFilter): Promise<QueueRow[]> {
           .order("due_at", { ascending: true, nullsFirst: false })
           .order("updated_at", { ascending: false });
 
-  const { data, error } = await q.limit(Math.max(1, Math.min(filter.limit ?? 100, 200)));
+  const cap = filter.reviewOnly ? REVIEW_SELECTION_MAX : 200;
+  const { data, error, count } = await q.limit(Math.max(1, Math.min(filter.limit ?? 100, cap)));
   if (error) throw new Error(`fila: ${error.message}`);
-  return (data ?? []).map(toRow).filter((r): r is QueueRow => r !== null);
+  const rows = (data ?? []).map(toRow).filter((r): r is QueueRow => r !== null);
+  return { rows, total: count ?? rows.length };
 }
 
 export interface NewsroomKpis {

@@ -6,6 +6,8 @@ import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
 import { FirstVisitGate, LoginInviteGate, NotificationWatchers } from "./DeferredShell";
 import { InstallInviteSlot } from "./InstallInviteSlot";
+import { listTickerItems } from "@/lib/db/queries/ticker";
+import { NewsTicker } from "./NewsTicker";
 import { OfflineNotice } from "./OfflineNotice";
 import { SwRegistrar } from "./SwRegistrar";
 import { SiteFooter } from "./SiteFooter";
@@ -23,7 +25,8 @@ export interface PublicShellProps {
  * O banner de consentimento vem logo depois do "Pular para o conteúdo": quem navega por
  * teclado o encontra cedo, e ele fica fixo no rodapé sem cobrir a leitura.
  */
-export function PublicShell({ children, consent }: PublicShellProps) {
+export async function PublicShell({ children, consent }: PublicShellProps) {
+  const tickerItems = await listTickerItems();
   return (
     <ConsentProvider initial={consent}>
       <div className="flex min-h-dvh flex-col pb-tabbar-safe lg:pb-0">
@@ -35,6 +38,7 @@ export function PublicShell({ children, consent }: PublicShellProps) {
         </a>
         <ConsentBanner />
         <SiteHeader />
+        <NewsTicker items={tickerItems} />
         <OfflineNotice />
         <main id="conteudo" className="flex-1">
           {children}

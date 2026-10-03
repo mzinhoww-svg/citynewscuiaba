@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "decision": "R43",
+  "termsDelegatedOn": "2026-10-03",
+  "sources": [
+    {
+      "slug": "g1-mt",
+      "name": "g1 Mato Grosso",
+      "strategy": "page_list",
+      "feedUrl": "https://g1.globo.com/mt/mato-grosso/",
+      "pageSelectors": {
+        "item": "div.feed-post",
+        "link": "a.feed-post-link",
+        "title": "a.feed-post-link"
+      },
+      "termsUrl": "https://g1.globo.com/institucional/termos-de-uso-do-g1.ghtml",
+      "robotsSummary": "User-agent * sem bloqueio da seção; Disallow só em caminhos internos (/jornalismo/g1/, /busca/*, /_ssi/ etc.).",
+      "frequencyMinutes": 30,
+      "rateLimitPerHour": 20,
+      "expect": { "minItems": 3, "requireDate": false, "maxAgeDays": 30 },
+      "note": "A listagem só mostra data relativa (Há 3 horas), então published_at fica vazio. O RSS /rss/g1/mato-grosso/ está parado em 2018 e é nacional, por isso não é usado. Os termos do g1 restringem reprodução: só título e link."
+    },
+    {
+      "slug": "cnn-brasil-mt",
+      "name": "CNN Brasil · Mato Grosso",
+      "strategy": "page_list",
+      "feedUrl": "https://www.cnnbrasil.com.br/nacional/centro-oeste/mt/",
+      "pageSelectors": {
+        "item": "figure.grow",
+        "link": "h2 a",
+        "title": "h2 a",
+        "date": "time"
+      },
+      "termsUrl": "https://conteudos.cnnbrasil.com.br/termos-de-uso-da-cnn-brasil/",
+      "robotsSummary": "User-agent * com Disallow só em /wp-admin/, /wp-json/, /author/ e buscas; a seção /nacional/centro-oeste/mt/ é permitida.",
+      "frequencyMinutes": 60,
+      "rateLimitPerHour": 20,
+      "note": "O /feed do site redireciona para admin.cnnbrasil.com.br e é nacional (sem recorte de MT). A hora da listagem é de Brasília e é lida como Cuiabá: a data sai 1 hora adiantada."
+    },
+    {
+      "slug": "canal-rural",
+      "name": "Canal Rural",
+      "strategy": "rss",
+      "feedUrl": "https://www.canalrural.com.br/feed",
+      "termsUrl": "https://www.canalrural.com.br/",
+      "robotsSummary": "User-agent * só bloqueia /wp-admin/, buscas e /search/. GPTBot, ClaudeBot, anthropic-ai, Google-Extended, CCBot e outros robôs de IA estão bloqueados por nome; CityNewsBot não é citado.",
+      "aiBotsBlockedByRobots": true,
+      "frequencyMinutes": 30,
+      "rateLimitPerHour": 30,
+      "note": "Feed nacional de agro, sem recorte de MT. A home responde 403 a robôs, o feed responde 200."
+    },
+    {
+      "slug": "olhar-conceito",
+      "name": "Olhar Conceito",
+      "strategy": "sitemap_news",
+      "feedUrl": "https://www.olhardireto.com.br/sitemap/conceito/2026.xml",
+      "termsUrl": "https://www.olhardireto.com.br",
+      "robotsSummary": "Allow geral e Allow explícito para GPTBot, ClaudeBot, anthropic-ai, PerplexityBot e Google-Extended.",
+      "frequencyMinutes": 30,
+      "rateLimitPerHour": 30,
+      "note": "Mesmo coletor por sitemap do Olhar Direto (A-101), título pelo slug. O sitemap principal do Olhar Direto já lista as matérias de /conceito/noticias/; como canonical_url é único, a primeira fonte que coleta a matéria fica com ela."
+    },
+    {
+      "slug": "agro-olhar",
+      "name": "Agro Olhar",
+      "strategy": "sitemap_news",
+      "feedUrl": "https://www.olhardireto.com.br/sitemap/agro-e-negocios/2026.xml",
+      "termsUrl": "https://www.olhardireto.com.br",
+      "robotsSummary": "Allow geral e Allow explícito para GPTBot, ClaudeBot, anthropic-ai, PerplexityBot e Google-Extended.",
+      "frequencyMinutes": 30,
+      "rateLimitPerHour": 30,
+      "note": "Mesmo coletor por sitemap do Olhar Direto (A-101), título pelo slug. O sitemap principal do Olhar Direto também lista /agro-e-negocios/noticias/; a primeira fonte que coleta a matéria fica com ela."
+    },
+    {
+      "slug": "prefeitura-cuiaba",
+      "name": "Prefeitura de Cuiabá",
+      "strategy": "page_list",
+      "feedUrl": "https://www.cuiaba.mt.gov.br/noticias",
+      "pageSelectors": {
+        "item": "li.gridNews-item",
+        "link": "a.read-more",
+        "title": "a.read-more",
+        "date": "p.date"
+      },
+      "termsUrl": "https://www.cuiaba.mt.gov.br/politica-de-privacidade",
+      "robotsSummary": "User-agent * com Crawl-delay 10; PerplexityBot, ClaudeBot, bingbot e outros bloqueados por nome; CityNewsBot não é citado.",
+      "aiBotsBlockedByRobots": true,
+      "frequencyMinutes": 60,
+      "rateLimitPerHour": 20,
+      "note": "Sem RSS (/feed, /rss, /sitemap-news.xml dão 404). Data só do dia, meia-noite de Cuiabá."
+    },
+    {
+      "slug": "almt",
+      "name": "Assembleia Legislativa de MT",
+      "strategy": "page_list",
+      "feedUrl": "https://www.al.mt.gov.br/midia/texto",
+      "pageSelectors": {
+        "item": "div.col-12.py-3.px-0",
+        "link": "a.d-block",
+        "title": "h3",
+        "date": "span.text-nowrap"
+      },
+      "termsUrl": "https://www.al.mt.gov.br/lgpd",
+      "robotsSummary": "User-agent * permite /midia/texto (Disallow só em /midia exato, /midia com query, /proposicao? etc.); CCBot, ChatGPT-User, GPTBot e Google-Extended bloqueados por nome.",
+      "aiBotsBlockedByRobots": true,
+      "frequencyMinutes": 60,
+      "rateLimitPerHour": 20,
+      "note": "Sem RSS. A listagem de notícias (tipo texto) tem 12 itens por página; só a página 1 é lida (links com query estão no Disallow)."
+    },
+    {
+      "slug": "tjmt",
+      "name": "Tribunal de Justiça de MT",
+      "strategy": "page_list",
+      "feedUrl": "https://www.tjmt.jus.br/",
+      "pageSelectors": {
+        "item": "div.noticia-hover",
+        "link": "a.itemcard",
+        "title": "div.titulo-lista",
+        "date": "small"
+      },
+      "termsUrl": "https://www.tjmt.jus.br/",
+      "robotsSummary": "Sem robots.txt (a URL devolve a home): sem restrição declarada.",
+      "frequencyMinutes": 60,
+      "rateLimitPerHour": 10,
+      "note": "As últimas notícias saem na home (Angular com renderização no servidor); /noticias reinicia a conexão a partir do ambiente de teste, por isso a coleta usa a home. O site reinicia conexões de vez em quando: a coleta é a cada 60 min, no máximo 10 pedidos por hora."
+    },
+    {
+      "slug": "inmet",
+      "name": "INMET",
+      "strategy": "page_list",
+      "feedUrl": "https://portal.inmet.gov.br/noticias",
+      "pageSelectors": {
+        "item": "article.post-preview",
+        "link": "a",
+        "title": "h2.post-title",
+        "date": "p.post-meta"
+      },
+      "termsUrl": "https://portal.inmet.gov.br/",
+      "robotsSummary": "Sem robots.txt (404): sem restrição declarada.",
+      "frequencyMinutes": 60,
+      "rateLimitPerHour": 20,
+      "expect": { "minItems": 3, "requireDate": true, "maxAgeDays": 45 },
+      "note": "Coleta só as notícias do portal. A API de avisos (apiprevmet3.inmet.gov.br/avisos/ativos) responde, mas é um JSON próprio com polígonos, não JSON Feed, e precisa de adaptador e filtro por MT; não está ligada. Segurança nunca publica sozinha (regra de produto)."
+    },
+    {
+      "slug": "secom-mt",
+      "name": "Governo de Mato Grosso (Secom)",
+      "robotsSummary": "www.secom.mt.gov.br/robots.txt: User-agent * Disallow: / (liberado só para Googlebot e Bingbot).",
+      "blocked": {
+        "reason": "robots",
+        "detail": "robots.txt de www.secom.mt.gov.br proíbe todos os robôs (User-agent * Disallow: /), exceto Googlebot e Bingbot. www.mt.gov.br redireciona para portal.mt.gov.br, que é um catálogo de serviços em SPA, sem notícias. Liberar depende do órgão."
+      }
+    },
+    {
+      "slug": "defesa-civil-mt",
+      "name": "Defesa Civil de MT",
+      "robotsSummary": "www.defesacivil.mt.gov.br/robots.txt: User-agent * Disallow: / e Crawl-delay 30 (liberado só para Googlebot e Bingbot).",
+      "blocked": {
+        "reason": "robots",
+        "detail": "robots.txt de www.defesacivil.mt.gov.br proíbe todos os robôs (User-agent * Disallow: /), exceto Googlebot e Bingbot. Liberar depende do órgão."
+      }
+    },
+    {
+      "slug": "camara-cuiaba",
+      "name": "Câmara Municipal de Cuiabá",
+      "robotsSummary": "Não foi possível ler: o WAF devolve Request Rejected também para /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "WAF do site responde Request Rejected (200 com página de bloqueio) a / , /noticias e /robots.txt para o CityNewsBot; sem robots.txt legível e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao órgão."
+      }
+    },
+    {
+      "slug": "tce-mt",
+      "name": "Tribunal de Contas de MT",
+      "robotsSummary": "Não foi possível ler: a conexão é reiniciada em /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "O servidor reinicia a conexão (connection reset) em /, /robots.txt e nas demais URLs a partir do ambiente de teste; sem robots.txt e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao órgão."
+      }
+    },
+    {
+      "slug": "tre-mt",
+      "name": "TRE-MT",
+      "robotsSummary": "Não foi possível ler: HTTP 403 (Akamai) em /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "HTTP 403 (Access Denied, Akamai) em /, /comunicacao/noticias e /robots.txt para o CityNewsBot; sem robots.txt legível e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao órgão."
+      }
+    },
+    {
+      "slug": "mpmt",
+      "name": "Ministério Público de MT",
+      "robotsSummary": "Não foi possível ler: a conexão é reiniciada em /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "O servidor reinicia a conexão (connection reset) em /, /noticias e /robots.txt a partir do ambiente de teste; sem robots.txt e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao órgão."
+      }
+    },
+    {
+      "slug": "iomat",
+      "name": "Diário Oficial de MT (IOMAT)",
+      "robotsSummary": "Sem robots.txt (404): sem restrição declarada.",
+      "blocked": {
+        "reason": "quality",
+        "detail": "O site publica as edições do diário (legislação em PDF) e não tem página de listagem de notícias com datas (só /site/noticias/visualizar/N avulsas); não há o que extrair como matéria. Precisaria de coletor próprio de edições."
+      }
+    },
+    {
+      "slug": "imea",
+      "name": "Imea",
+      "robotsSummary": "Sem robots.txt (404): sem restrição declarada.",
+      "blocked": {
+        "reason": "quality",
+        "detail": "A home responde quase vazia e /imea-site/noticias devolve HTTP 500 (sem listagem de notícias renderizada no servidor, sem feed nem sitemap). Os boletins são relatórios, não matérias. Precisaria de coletor próprio."
+      }
+    },
+    {
+      "slug": "diario-de-cuiaba",
+      "name": "Diário de Cuiabá",
+      "robotsSummary": "Não foi possível ler: HTTP 403 (Cloudflare, Attention Required) em /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "Cloudflare responde HTTP 403 (Attention Required) a /, /robots.txt e a qualquer caminho para o CityNewsBot; sem feed descoberto e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao veículo."
+      }
+    },
+    {
+      "slug": "reporter-mt",
+      "name": "Repórter MT",
+      "robotsSummary": "Não foi possível ler: HTTP 403 (Cloudflare, Attention Required) em /robots.txt.",
+      "blocked": {
+        "reason": "other",
+        "detail": "Cloudflare responde HTTP 403 (Attention Required) a /, /robots.txt e a qualquer caminho para o CityNewsBot; sem feed descoberto e sem como validar a extração. Refazer o teste de outra rede ou pedir liberação do robô ao veículo."
+      }
+    },
+    {
+      "slug": "midianews",
+      "name": "MidiaNews",
+      "robotsSummary": "Allow geral (lista longa de robôs de scraping bloqueados por nome; CityNewsBot não é citado).",
+      "blocked": {
+        "reason": "quality",
+        "detail": "O feed /rss.php existe e responde, mas todas as datas (pubDate) são de 2001 e 2002 em vez de 2026 (a hora do dia é a real), e os sitemaps são arquivos .gz de arquivo histórico. Com data errada o item entra no portal com published_at falso. Ativar quando o veículo corrigir o feed. O feed é ISO-8859-1; o decodificador novo já cobre isso."
+      }
+    },
+    {
+      "slug": "olhar-esportivo",
+      "name": "Olhar Esportivo",
+      "robotsSummary": "Allow geral e Allow explícito para robôs de IA.",
+      "blocked": {
+        "reason": "quality",
+        "detail": "Não tem feed nem sitemap próprio (/sitemap/esportes/2026.xml dá 404) e a listagem /editoria/esportes entrega os cartões dentro de um div hidden (streaming do Next.js), que a extração descarta por segurança. As matérias de esportes já entram pelo sitemap do Olhar Direto, sem separar a editoria."
+      }
+    }
+  ]
+}

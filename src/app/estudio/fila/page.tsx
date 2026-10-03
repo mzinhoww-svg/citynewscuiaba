@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import {
   listAssignees,
   listQueue,
+  listReviewable,
   listSectionOptions,
   QUEUE_ORIGINS,
   QUEUE_TABS,
@@ -15,6 +16,9 @@ import {
 } from "@/lib/db/queries/queue";
 import {
   assignAction,
+  forcedPublishStatusAction,
+  forcePublishAction,
+  previewForcedPublishAction,
   requestReviewAction,
   unpublishAutoAction,
   unpublishManyAction,
@@ -55,17 +59,33 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   };
 
   let rows: QueueRow[] | null = null;
+  let reviewTotal = 0;
   let sections: { value: string; label: string }[] = [];
   let people: { id: string; name: string }[] = [];
   try {
-    [rows, sections, people] = await Promise.all([
+    let review: { total: number };
+    [rows, sections, people, review] = await Promise.all([
       listQueue(filter),
       listSectionOptions(),
       listAssignees(),
+      listReviewable(filter, 1),
     ]);
+    reviewTotal = review.total;
   } catch {
     rows = null;
   }
+
+  // Mesmas abas e filtros da tela, para "Selecionar todas as N em revisão" (todas as páginas).
+  const forceFilter: Record<string, string> = { tab };
+  for (const [k, v] of Object.entries({
+    section: filter.section,
+    status: filter.status,
+    confidence: filter.confidence,
+    assignee: filter.assignee,
+    origin: filter.origin,
+    due: filter.due,
+  }))
+    if (v) forceFilter[k] = v;
 
   const now = new Date();
   const manageDesk = canAccess(session.roles, "article.publish");
@@ -132,6 +152,15 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
                   assign: assignAction,
                   requestReview: requestReviewAction,
                   unpublishMany: canUnpublishAny ? unpublishManyAction : undefined,
+                  forcePublish: {
+                    reviewTotal,
+                    filter: forceFilter,
+                    api: {
+                      preview: previewForcedPublishAction,
+                      start: forcePublishAction,
+                      status: forcedPublishStatusAction,
+                    },
+                  },
                 }
               : undefined
           }

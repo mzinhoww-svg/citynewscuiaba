@@ -5,7 +5,7 @@
 import { parseHTML } from "linkedom";
 import { removeHiddenElements } from "@/lib/security/hidden";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
-import { parseFeedDate } from "@/lib/pipeline/parse-date";
+import { parseDateInText } from "@/lib/pipeline/parse-date";
 import type { RawEntry } from "@/lib/pipeline/types";
 import { hostKey } from "./url";
 import type { PageSelectors } from "./types";
@@ -86,7 +86,7 @@ export function extractPageList(html: string, pageUrl: string, sel: PageSelector
 
     const dateEl = sel.date ? item.querySelector(sel.date) : null;
     const dateRaw = dateEl?.getAttribute("datetime")?.trim() || dateEl?.textContent?.trim() || "";
-    const publishedAt = dateRaw ? parseFeedDate(dateRaw) : null;
+    const publishedAt = dateRaw ? parseDateInText(dateRaw) : null;
 
     entries.push({
       title: sanitized.text,

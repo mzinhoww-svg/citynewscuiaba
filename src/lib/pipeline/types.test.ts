@@ -19,7 +19,7 @@ describe("mensagens do pipeline", () => {
   it("STEP_NAMES segue com 20 etapas; push_* vão para notify (G3)", () => {
     expect(STEP_NAMES).toHaveLength(20);
     expect(PUSH_STEPS).toEqual(["push_match", "push_deliver", "push_due"]);
-    expect(JOB_STEPS).toHaveLength(24);
+    expect(JOB_STEPS).toHaveLength(25);
     expect(JOB_STEPS).toContain("enrich");
     expect(queueFor("enrich")).toBe("pipeline");
     expect(queueFor("push_deliver")).toBe("notify");

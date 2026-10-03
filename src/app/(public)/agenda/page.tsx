@@ -10,11 +10,13 @@ import {
   EmptyState,
   EventCard,
   FilterBar,
+  RecurringDates,
   Skeleton,
   cx,
 } from "@/components";
 import { NEIGHBORHOODS, neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
+import { upcomingRecurring } from "@/lib/agenda/recurring";
 import { listEvents, type EventView } from "@/lib/db/queries";
 import {
   AGENDA_CATEGORIES,
@@ -213,6 +215,21 @@ function emptyTitle(f: AgendaFilters): string {
   });
 }
 
+/** Sem filtro do visitante e com menos de 3 eventos próximos: mostra as datas fixas da cidade. */
+function recurringFor(f: AgendaFilters, events: readonly EventView[], now: Date) {
+  const unfiltered =
+    !f.category &&
+    !f.neighborhood &&
+    !f.origin &&
+    !f.free &&
+    !f.kids &&
+    !f.day &&
+    f.when === "30d" &&
+    f.view === "list";
+  const near = events.filter((e) => Date.parse(e.startsAt) <= now.getTime() + 14 * 86_400_000);
+  return unfiltered && near.length < 3 ? upcomingRecurring(now, 6) : [];
+}
+
 async function Results({ f }: { f: AgendaFilters }) {
   const now = new Date();
   const range = agendaRange(f, now);
@@ -269,6 +286,21 @@ async function Results({ f }: { f: AgendaFilters }) {
           }))}
         />
         {events.length === 0 && <p className="type-body text-meta">{emptyTitle(f)}.</p>}
+      </div>
+    );
+  }
+
+  const recurring = recurringFor(f, events, now);
+
+  if (events.length === 0 && recurring.length > 0) {
+    return (
+      <div className="flex flex-col gap-6">
+        <RecurringDates items={recurring} headingLevel={2} id="agenda-recorrentes" />
+        <div>
+          <Button href="/agenda/sugerir" size="md" variant="outline">
+            {AGENDA.suggest}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -338,6 +370,9 @@ async function Results({ f }: { f: AgendaFilters }) {
             </ol>
           </section>
         ))}
+        {recurring.length > 0 && (
+          <RecurringDates items={recurring} headingLevel={2} id="agenda-recorrentes" />
+        )}
       </div>
       {mini && (
         <aside

@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { requireRole } from "@/lib/auth/require-role";
 import {
   CORRECTIONS_TEXT,
   IMAGE_TEXT,
@@ -18,7 +19,13 @@ import {
   type PublishCorrectionInput,
   type PublishUpdateInput,
 } from "@/lib/studio/corrections";
-import type { GenerateReply, PublishReply } from "@/components/estudio";
+import type {
+  GenerateReply,
+  PreviewReply,
+  PublishReply,
+  StartReply,
+  StatusReply,
+} from "@/components/estudio";
 import { PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
 import { createServerClient } from "@/lib/db/client";
 import { createPushAdminStore } from "@/lib/db/push-admin-store";
@@ -39,6 +46,11 @@ import {
   type ImageTextInput,
 } from "@/lib/studio/media";
 import { approveSubmission, rejectSubmission, respondReport } from "@/lib/studio/moderation";
+import {
+  forcedPublishStatus,
+  previewForcedPublish,
+  startForcedPublish,
+} from "@/lib/studio/forced-publish";
 import { publishArticle } from "@/lib/studio/publish";
 import { rejectItem, reprocessItem, requestChanges, updateSources } from "@/lib/studio/review";
 import {
@@ -113,6 +125,37 @@ export async function unpublishManyAction(input: {
 }): Promise<ActionReply> {
   if (!input.reason.trim()) return { ok: false, message: QUEUE_TEXT.reasonRequired };
   return batchReply(await unpublishAutoBatch(input), QUEUE_TEXT.unpublishedMany);
+}
+
+/*
+ * "Selecionar tudo" e "Publicar mesmo assim" da fila de revisão (REV-T1). `requireRole` barra quem
+ * não publica (redireciona ao login); as editorias de cada matéria são conferidas de novo em
+ * `forced-publish` e no banco. Publicar só enfileira os lotes; o andamento vem de `forcedStatus`.
+ */
+export async function previewForcedPublishAction(selection: unknown): Promise<PreviewReply> {
+  await requireRole("article.publish", undefined, { next: "/estudio/fila" });
+  const r = await previewForcedPublish(selection);
+  if (!r.ok) return { ok: false, message: r.message ?? QUEUE_TEXT.genericError };
+  return {
+    ok: true,
+    total: r.value.summary.total,
+    top: r.value.summary.top.map((t) => ({ key: t.key, count: t.count, example: t.example })),
+    excluded: r.value.excluded,
+  };
+}
+
+export async function forcePublishAction(selection: unknown): Promise<StartReply> {
+  await requireRole("article.publish", undefined, { next: "/estudio/fila" });
+  const r = await startForcedPublish(selection);
+  if (!r.ok) return { ok: false, message: r.message ?? QUEUE_TEXT.genericError };
+  return { ok: true, jobId: r.value.jobId, total: r.value.total };
+}
+
+export async function forcedPublishStatusAction(jobId: string): Promise<StatusReply> {
+  await requireRole("article.publish", undefined, { next: "/estudio/fila" });
+  const r = await forcedPublishStatus(jobId);
+  if (!r.ok) return { ok: false, message: r.message ?? QUEUE_TEXT.genericError };
+  return { ok: true, ...r.value };
 }
 
 export type SaveReply =

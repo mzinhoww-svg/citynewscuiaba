@@ -35,6 +35,8 @@ export const STEP_MIN_MS: Partial<Record<JobStep, number>> = {
   /** Lote de até 100 entregas de push com concorrência 10 e 10 s por envio (spec §12.3). */
   push_deliver: 15_000,
   push_due: 15_000,
+  /** Lote de até 50 matérias numa chamada só ao banco. */
+  forced_publish: 10_000,
 };
 const DEFAULT_STEP_MIN_MS = 2_000;
 

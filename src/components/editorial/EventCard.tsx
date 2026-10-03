@@ -74,7 +74,11 @@ export function EventCard({ event: e, className }: EventCardProps) {
         <p className="type-meta text-meta">{eventWhenWhere(e)}</p>
         <p className="type-meta text-meta">
           <span className={cx("font-semibold", e.isFree ? "text-service" : "text-strong")}>
-            {e.isFree ? AGENDA.free : AGENDA.price(e.priceCents ?? 0)}
+            {e.priceUnknown
+              ? AGENDA.priceUnknown
+              : e.isFree
+                ? AGENDA.free
+                : AGENDA.price(e.priceCents ?? 0)}
           </span>
           {" · "}
           {AGENDA.age(e.ageRating)}
