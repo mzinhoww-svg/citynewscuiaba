@@ -6,20 +6,18 @@ import { cx } from "../cx";
 
 export interface AiSummaryBlockProps {
   items: string[];
-  /** Nome de quem revisou o resumo; sem revisor, o bloco diz "Revisado automaticamente". */
-  reviewer?: string;
   className?: string;
 }
 
 /**
- * "Resumo em poucos segundos" da matéria (P03), sem rótulo de origem do texto (spec 2026-10-02
- * §4.1): revisor (ou "Revisado automaticamente") e "Foi útil?".
+ * "Resumo em poucos segundos" da matéria (P03), sem rótulo de origem do texto nem rodapé de
+ * revisão (spec 2026-10-03 R16): só os itens e "Foi útil?".
  *
  * ```tsx
- * <AiSummaryBlock items={article.aiSummary} reviewer={article.reviewer} />
+ * <AiSummaryBlock items={article.aiSummary} />
  * ```
  */
-export function AiSummaryBlock({ items, reviewer, className }: AiSummaryBlockProps) {
+export function AiSummaryBlock({ items, className }: AiSummaryBlockProps) {
   const id = useId();
   const [vote, setVote] = useState<"yes" | "no" | null>(null);
   const button = (active: boolean) =>
@@ -45,9 +43,6 @@ export function AiSummaryBlock({ items, reviewer, className }: AiSummaryBlockPro
           <li key={s}>{s}</li>
         ))}
       </ul>
-      <p className="type-meta text-meta">
-        {reviewer ? ARTICLE.aiReviewed(reviewer) : ARTICLE.aiNotReviewed}
-      </p>
       <div className="flex flex-wrap items-center gap-3">
         <span id={`${id}-util`} className="type-meta text-strong">
           {ARTICLE.aiUseful}

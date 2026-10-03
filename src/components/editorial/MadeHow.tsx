@@ -7,11 +7,11 @@ import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 
 export interface MadeHowProps {
-  /** Dados da matéria: de quantas fontes veio, quem revisou, qual a imagem. */
+  /** Dados da matéria: de quantas fontes veio e qual a imagem. */
   article: PublicLabelInput & { image?: { kind: ImageKind; credit?: string } };
-  /** Matéria publicada pelas regras de revisão (sem autor humano), quando for o caso. */
-  byRules?: boolean;
   versionsHref: string;
+  /** Link para a página legal de metodologia; sem ele, o painel não a menciona (R18). */
+  methodologyHref?: string;
   /** Nível do título (padrão h2). */
   as?: "h2" | "h3";
   /** Recolhível: fechado no celular, aberto de 1024 px em diante. */
@@ -26,17 +26,6 @@ function originText(a: MadeHowProps["article"]): string {
   return n !== undefined && Number.isInteger(n) && n > 0
     ? PUBLIC_EXPLAIN.derived(n)
     : PUBLIC_EXPLAIN.derivedOthers;
-}
-
-function reviewText(a: MadeHowProps["article"]): string | undefined {
-  if (a.kind === "aggregated") return undefined;
-  if (a.publishMode === "human") {
-    return a.reviewer?.trim()
-      ? PUBLIC_EXPLAIN.reviewedBy(a.reviewer.trim())
-      : PUBLIC_EXPLAIN.reviewedNewsroom;
-  }
-  if (a.publishMode === "auto") return PUBLIC_EXPLAIN.reviewedAuto;
-  return undefined;
 }
 
 function imageText(image: NonNullable<MadeHowProps["article"]["image"]>): string {
@@ -55,9 +44,9 @@ function imageText(image: NonNullable<MadeHowProps["article"]["image"]>): string
 }
 
 /**
- * Bloco "Como esta matéria foi feita": em linguagem simples, de quantas fontes veio, quem
- * revisou e de onde vêm as imagens (spec 2026-10-02 §4.1), mais link para o histórico
- * público de versões. Sem plaquetas: o texto carrega o sentido.
+ * Bloco "De onde veio" (spec 2026-10-03 R17): em linguagem simples, de quantas fontes veio o
+ * texto e de onde vêm as imagens, mais o link para o histórico público de versões. Sem
+ * plaquetas, sem revisão e sem modo de publicação: o texto carrega o sentido.
  *
  * ```tsx
  * <MadeHow article={article} versionsHref="/materia/x/historico" />
@@ -65,18 +54,16 @@ function imageText(image: NonNullable<MadeHowProps["article"]["image"]>): string
  */
 export function MadeHow({
   article,
-  byRules,
   versionsHref,
+  methodologyHref,
   as: Heading = "h2",
   collapsible = false,
   className,
 }: MadeHowProps) {
   const id = useId();
-  const review = reviewText(article);
   const rows: Array<{ title: string; text: string }> = [
     { title: PUBLIC_EXPLAIN.originTitle, text: originText(article) },
   ];
-  if (review) rows.push({ title: PUBLIC_EXPLAIN.reviewTitle, text: review });
   if (article.image)
     rows.push({ title: PUBLIC_EXPLAIN.imageTitle, text: imageText(article.image) });
   const linkClass =
@@ -102,14 +89,15 @@ export function MadeHow({
           </div>
         )}
       </dl>
-      {byRules && <p className="type-body text-body">{MADE_HOW.rules}</p>}
       <div className="flex flex-wrap gap-x-6">
         <Link href={versionsHref} className={linkClass}>
           {MADE_HOW.versions}
         </Link>
-        <Link href={MADE_HOW.methodologyHref} className={linkClass}>
-          {MADE_HOW.methodology}
-        </Link>
+        {methodologyHref && (
+          <Link href={methodologyHref} className={linkClass}>
+            {MADE_HOW.methodology}
+          </Link>
+        )}
       </div>
     </>
   );

@@ -55,15 +55,18 @@ describe("ConfidenceMeter", () => {
 });
 
 describe("TopicStatus", () => {
-  it.each([
-    ["em_apuracao", "Em apuração"],
-    ["confirmado", "Confirmado"],
-    ["corrigido", "Corrigido"],
-    ["encerrado", "Encerrado"],
-  ] as const)("%s mostra %s", (state, text) => {
-    render(<TopicStatus state={state} />);
-    expect(screen.getByText(text)).toBeInTheDocument();
+  it("corrigido mostra o selo Corrigido (transparência de correção)", () => {
+    render(<TopicStatus state="corrigido" />);
+    expect(screen.getByText("Corrigido")).toBeInTheDocument();
   });
+
+  it.each(["em_apuracao", "confirmado", "encerrado"] as const)(
+    "%s não aparece para o público (R16)",
+    (state) => {
+      const { container } = render(<TopicStatus state={state} />);
+      expect(container).toBeEmptyDOMElement();
+    },
+  );
 });
 
 describe("MadeHow", () => {
@@ -75,11 +78,12 @@ describe("MadeHow", () => {
     sponsored: true,
   };
 
-  it("explica em linguagem simples: de quantas fontes, quem revisou, de onde vêm as imagens", () => {
+  it("'De onde veio': só fontes, imagens, patrocínio e histórico, sem revisão (R17)", () => {
     render(<MadeHow article={article} versionsHref="/materia/x/historico" />);
-    const region = screen.getByRole("region", { name: "Como esta matéria foi feita" });
+    const region = screen.getByRole("region", { name: "De onde veio" });
     expect(within(region).getByText(/feito a partir de 3 fontes/i)).toBeInTheDocument();
-    expect(within(region).getByText(/publicado pelas regras do CityNews/i)).toBeInTheDocument();
+    expect(within(region).queryByText("Quem revisou")).not.toBeInTheDocument();
+    expect(region.textContent).not.toMatch(/revis|regras|automátic|gerad/i);
     expect(
       within(region).getByText(/Reprodução web de folhadocerrado.example/),
     ).toBeInTheDocument();
@@ -88,21 +92,26 @@ describe("MadeHow", () => {
     expect(region.textContent).not.toMatch(/normaliz|\bIA\b|inteligência artificial/i);
   });
 
-  it("revisão por pessoa mostra o nome; texto das regras e histórico continuam", () => {
-    render(
-      <MadeHow
-        article={{ kind: "original", publishMode: "human", reviewer: "Marina Couto" }}
-        byRules
-        versionsHref="/materia/x/historico"
-      />,
-    );
-    expect(screen.getByText(/Marina Couto/)).toBeInTheDocument();
-    expect(screen.getByText(/dentro das regras de revisão/)).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/agente/i);
+  it("reportagem própria: nome do revisor nunca aparece; histórico continua, metodologia só se pedida", () => {
+    const article = { kind: "original" as const, publishMode: "human", reviewer: "Marina Couto" };
+    const { rerender } = render(<MadeHow article={article} versionsHref="/materia/x/historico" />);
+    expect(document.body.textContent).not.toMatch(/Marina Couto|agente|regras de revisão/i);
     expect(screen.getByText(/apurada e escrita pela redação/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver histórico de versões" })).toHaveAttribute(
       "href",
       "/materia/x/historico",
+    );
+    expect(screen.queryByRole("link", { name: /metodologia/i })).not.toBeInTheDocument();
+    rerender(
+      <MadeHow
+        article={article}
+        versionsHref="/materia/x/historico"
+        methodologyHref="/metodologia"
+      />,
+    );
+    expect(screen.getByRole("link", { name: "Entenda a metodologia" })).toHaveAttribute(
+      "href",
+      "/metodologia",
     );
   });
 });

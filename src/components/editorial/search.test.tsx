@@ -77,7 +77,7 @@ it("grupo por assunto é uma região com o título do assunto e a lista de itens
   );
   const region = screen.getByRole("region", { name: "Obra do viaduto na avenida Miguel Sutil" });
   expect(within(region).getAllByRole("listitem")).toHaveLength(2);
-  expect(within(region).getByText("Em apuração")).toBeInTheDocument();
+  expect(within(region).queryByText("Em apuração")).not.toBeInTheDocument();
 });
 
 const article = {

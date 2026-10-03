@@ -12,8 +12,8 @@ export interface SectionTabsProps {
 }
 
 /**
- * Editorias da home: abas no celular (um painel por vez), três colunas no desktop (todos os
- * painéis visíveis, sem abas). O conteúdo é o mesmo nos dois, só muda a exibição.
+ * Editorias da home: abas no celular (um painel por vez), colunas no desktop, uma por painel até três
+ * (sem coluna vazia; todos os painéis visíveis, sem abas). O conteúdo é o mesmo nos dois, só muda a exibição.
  *
  * ```tsx
  * <SectionTabs label="Editorias" panels={[{ slug: "politica", name: "Política", content }]} />
@@ -32,7 +32,14 @@ export function SectionTabs({ label, panels, className }: SectionTabsProps) {
         layout="scroll"
         className="lg:hidden"
       />
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+      <div
+        className={cx(
+          "grid grid-cols-1 gap-10",
+          panels.length === 1 && "lg:grid-cols-1",
+          panels.length === 2 && "lg:grid-cols-2",
+          panels.length >= 3 && "lg:grid-cols-3",
+        )}
+      >
         {panels.map((p, i) => (
           <div
             key={p.slug}

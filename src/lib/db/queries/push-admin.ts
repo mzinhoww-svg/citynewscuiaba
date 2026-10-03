@@ -7,6 +7,7 @@ import type { Database, Json } from "@/lib/db/types";
 import { collectRange, csvCell } from "@/lib/push/csv";
 import { missingVapidVars } from "@/lib/push/server";
 import type { audienceSchema } from "@/lib/push/schemas";
+import { pushOriginLabel } from "@/lib/push/text";
 import type { PushKind, SendStatus } from "@/lib/push/types";
 import type { z } from "zod";
 import { err, ok, type Result } from "@/lib/result";
@@ -662,9 +663,7 @@ function editorSections(roles: RoleGrant[]): string[] | null {
 }
 
 function originLabelOf(a: { publish_mode: string | null; kind: string }): string {
-  if (a.publish_mode === "auto") return "PUBLICADO AUTOMATICAMENTE";
-  if (a.kind === "normalized") return "NORMALIZADO PELO CITYNEWS";
-  return "ORIGINAL CITYNEWS";
+  return pushOriginLabel(a.kind);
 }
 
 /** Matérias publicadas, não patrocinadas, por trecho do título; editor só da própria editoria. */

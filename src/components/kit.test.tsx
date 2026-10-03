@@ -261,17 +261,12 @@ describe("notícias", () => {
     expect(screen.getByText("Cidade")).toBeInTheDocument();
     expect(screen.getByText("Agora")).toBeInTheDocument();
   });
-  it("MetaRow mostra origem e revisão em frases, na ordem da spec §4.1", () => {
+  it("MetaRow mostra a origem em frase, sem texto de revisão (LAB-T1)", () => {
     const { container } = render(
-      <MetaRow
-        originText="Feito a partir de 2 fontes"
-        reviewText="Revisado por Marina Arruda"
-        time="8h05"
-      />,
+      <MetaRow originText="Feito a partir de 2 fontes" sponsoredText="Patrocinado" time="8h05" />,
     );
-    expect(container.textContent).toBe(
-      "Feito a partir de 2 fontes·Revisado por Marina Arruda·8h05",
-    );
+    expect(container.textContent).toBe("Feito a partir de 2 fontes·Patrocinado·8h05");
+    expect(container.textContent).not.toMatch(/revisad/i);
   });
 
   it("MetaRow mostra só o que recebeu, com separador decorativo", () => {

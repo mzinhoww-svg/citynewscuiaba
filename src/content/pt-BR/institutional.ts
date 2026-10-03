@@ -105,7 +105,7 @@ export const ABOUT: InstitutionalDoc = {
     {
       title: "Como trabalhamos",
       paragraphs: [
-        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático, dentro de regras públicas. Cada matéria diz se foi revisada por uma pessoa ou automaticamente. A redação supervisiona o sistema, revisa os temas sensíveis e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
+        "Reunimos informações de fontes cadastradas e de apuração própria. A redação acompanha o que vai ao ar e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
         "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
       ],
     },
@@ -182,7 +182,7 @@ export const AI_USE: InstitutionalDoc = {
       items: [
         "Lê as fontes cadastradas a cada 30 minutos e agrupa as notícias sobre o mesmo fato.",
         "Classifica editoria e bairro, confere se há fonte oficial e se as fontes concordam.",
-        "Escreve resumos curtos, marcados como RESUMO POR IA.",
+        "Escreve resumos curtos, que aparecem como Resumo em poucos segundos.",
         "Sugere títulos e imagens ilustrativas, que seguem as mesmas regras de rótulo.",
         "Responde perguntas na busca com IA, sempre citando as fontes.",
       ],

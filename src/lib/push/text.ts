@@ -44,3 +44,26 @@ export function withOriginLabel(label: string, body: string): string {
   const l = label.trim();
   return l ? `${l} · ${body}` : body;
 }
+
+/** Origem em frase de texto derivado (mesmo texto de `PUBLIC_LABEL.derivedFromOthers`). */
+const DERIVED_ORIGIN = "Feito a partir de outras fontes";
+const OWN_ORIGIN = "ORIGINAL CITYNEWS";
+
+/**
+ * Rótulo de origem da notificação (spec 2026-10-03 R16 e R17): ORIGINAL CITYNEWS para matéria
+ * própria e a origem em frase para texto derivado. Nunca diz "publicado automaticamente" nem
+ * "normalizado", e não depende do modo de publicação.
+ */
+export function pushOriginLabel(kind: string): string {
+  return kind === "normalized" ? DERIVED_ORIGIN : OWN_ORIGIN;
+}
+
+/** Envios gravados antes de R16 trazem os rótulos aposentados; saem com o texto público. */
+const LEGACY_ORIGIN: Record<string, string> = {
+  "PUBLICADO AUTOMATICAMENTE": OWN_ORIGIN,
+  "NORMALIZADO PELO CITYNEWS": DERIVED_ORIGIN,
+};
+
+export function publicPushOrigin(label: string): string {
+  return LEGACY_ORIGIN[label.trim()] ?? label;
+}

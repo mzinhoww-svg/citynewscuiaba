@@ -6,16 +6,16 @@ const TOPIC = "/assunto/obra-do-viaduto-na-miguel-sutil";
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
 
-test("assunto mostra concordam, divergem, não confirmado e cobertura externa rotulada", async ({
+test("assunto não mostra apuração, confiança nem blocos de convergência; cobertura externa rotulada", async ({
   page,
 }) => {
   await page.goto(TOPIC);
   for (const h of ["As fontes concordam", "As fontes divergem", "Ainda não confirmado"])
-    await expect(page.getByRole("heading", { name: h })).toBeVisible();
-  await expect(page.getByText("Em apuração").first()).toBeVisible();
-  await expect(
-    page.getByText(/Em apuração: as informações ainda estão sendo confirmadas/),
-  ).toBeVisible();
+    await expect(page.getByRole("heading", { name: h })).toHaveCount(0);
+  await expect(page.getByText(/Confiança|Nada registrado|Como medimos/)).toHaveCount(0);
+  // R16: o estado do assunto não aparece para o público.
+  await expect(page.getByText("Em apuração")).toHaveCount(0);
+  await expect(page.locator("[data-state]")).toHaveCount(0);
   const ext = page.getByRole("region", { name: "Cobertura de outros veículos" });
   await expect(ext.getByText("AGREGADO").first()).toBeVisible();
   for (const link of await ext.locator("article a[target]").all()) {
@@ -23,18 +23,18 @@ test("assunto mostra concordam, divergem, não confirmado e cobertura externa ro
   }
 });
 
-test("assunto tem resumo com revisor, linha do tempo e perguntas", async ({ page }) => {
+test("assunto tem resumo sem selo de revisão, linha do tempo e perguntas", async ({ page }) => {
   await page.goto(TOPIC);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Obra do viaduto na avenida Miguel Sutil",
   );
   const summary = page.getByRole("region", { name: "O que se sabe" });
   await expect(summary.getByText(/RESUMO POR IA/)).toHaveCount(0);
-  await expect(summary.getByText(/Resumo revisado por/)).toBeVisible();
+  await expect(summary.getByText(/revisad/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Linha do tempo" })).toBeVisible();
   await page.getByText("Quando a obra termina?").click();
   await expect(page.getByText(/prazo ainda não foi confirmado/)).toBeVisible();
-  await expect(page.getByRole("link", { name: "Entenda a metodologia" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Entenda a metodologia" })).toHaveCount(0);
 });
 
 test("filtro de origem esconde a outra cobertura", async ({ page }) => {
@@ -50,16 +50,15 @@ test("assunto inexistente responde 404", async ({ page }) => {
   expect((await page.goto("/assunto/nao-existe"))!.status()).toBe(404);
 });
 
-test("lista de assuntos filtra por situação na URL", async ({ page }) => {
+test("lista de assuntos só oferece o filtro Corrigidos entre as situações", async ({ page }) => {
   await page.goto("/assuntos");
   await expect(page.getByRole("heading", { level: 1, name: "Assuntos" })).toBeVisible();
   await expect(page.locator("main article")).toHaveCount(3);
-  await page.getByRole("link", { name: "Em apuração" }).click();
-  await expect(page).toHaveURL(/situacao=em-apuracao/);
-  await expect(page.locator("main article")).toHaveCount(1);
-  await expect(
-    page.getByRole("heading", { name: "Obra do viaduto na avenida Miguel Sutil" }),
-  ).toBeVisible();
+  for (const name of ["Em apuração", "Confirmados", "Encerrados"])
+    await expect(page.getByRole("link", { name })).toHaveCount(0);
+  await page.getByRole("link", { name: "Corrigidos" }).click();
+  await expect(page).toHaveURL(/situacao=corrigidos/);
+  await expect(page.getByText("Nenhum assunto com esses filtros")).toBeVisible();
 });
 
 test("lista de assuntos vazia oferece ver todos e ignora filtro inválido", async ({ page }) => {

@@ -145,13 +145,13 @@ export function ArticleThumb({ article }: { article: ArticleSummary }) {
 /**
  * Card de matéria do CityNews em quatro variantes. O título é o link (R7) e o card inteiro é
  * clicável pelo pseudo-elemento; mostra no máximo 1 plaqueta (ORIGINAL CITYNEWS) e, em texto,
- * a origem do texto derivado e a revisão (DESIGN.md §5; `publicLabels`).
+ * a origem do texto derivado (DESIGN.md §5; `publicLabels`).
  *
  * ```tsx
  * <ArticleCard variant="lead" as="h1" article={home.lead} />
  * <ArticleCard variant="compact" article={item} />
  * ```
- * - Os detalhes de origem ficam no bloco "Como esta matéria foi feita" da matéria.
+ * - Os detalhes de origem ficam no bloco "De onde veio" da matéria.
  * - Sem contagem de curtidas ou comentários (R8): fontes e tempo de leitura.
  */
 export function ArticleCard({
@@ -196,7 +196,6 @@ export function ArticleCard({
           className="flex-wrap"
           author={lead ? CARD.by(article.byline) : undefined}
           originText={pub.originText}
-          reviewText={pub.reviewText}
           sponsoredText={pub.sponsoredText}
           readMinutes={lead ? article.readMinutes : undefined}
           time={when}

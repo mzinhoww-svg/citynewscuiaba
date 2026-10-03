@@ -2,7 +2,13 @@
  * Payload e cabeçalhos do envio (spec §8.5, G19). Nada do leitor entra aqui.
  */
 import { err, ok, type Result } from "@/lib/result";
-import { BODY_MAX, sanitizeNotificationText, TITLE_MAX, withOriginLabel } from "./text";
+import {
+  BODY_MAX,
+  publicPushOrigin,
+  sanitizeNotificationText,
+  TITLE_MAX,
+  withOriginLabel,
+} from "./text";
 import { TTL_HOURS } from "./rules";
 import type { PushKind, PushPayload } from "./types";
 
@@ -28,7 +34,7 @@ export function buildPayload(p: PayloadInput): Result<PushPayload, "bad_url" | "
   const payload: PushPayload = {
     v: 1,
     t: sanitizeNotificationText(p.title, TITLE_MAX),
-    b: withOriginLabel(p.originLabel, sanitizeNotificationText(p.body, BODY_MAX)),
+    b: withOriginLabel(publicPushOrigin(p.originLabel), sanitizeNotificationText(p.body, BODY_MAX)),
     u: p.url,
     g: p.tag,
     s: p.sendId,

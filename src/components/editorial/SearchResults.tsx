@@ -62,12 +62,6 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
                   <span>{pub.originText}</span>
                 </>
               )}
-              {pub.reviewText && (
-                <>
-                  <span aria-hidden="true">·</span>
-                  <span>{pub.reviewText}</span>
-                </>
-              )}
               <span aria-hidden="true">·</span>
               <time dateTime={a.publishedAt} className="tabular-nums">
                 {formatWhen(a.publishedAt, now)}

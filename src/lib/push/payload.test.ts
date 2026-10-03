@@ -13,6 +13,13 @@ const base = {
 };
 
 describe("buildPayload", () => {
+  it("rótulo aposentado de envio antigo sai com o texto público (R16)", () => {
+    const r = buildPayload({ ...base, originLabel: "PUBLICADO AUTOMATICAMENTE" });
+    expect(r.ok && r.value.b).toBe("ORIGINAL CITYNEWS · Defesa Civil alerta");
+    const n = buildPayload({ ...base, originLabel: "NORMALIZADO PELO CITYNEWS" });
+    expect(n.ok && n.value.b).toBe("Feito a partir de outras fontes · Defesa Civil alerta");
+  });
+
   it("payload só com v,t,b,u,g,s e ≤ 1 KB; URL externa recusada", () => {
     const r = buildPayload(base);
     expect(r.ok && Object.keys(r.value).sort()).toEqual(["b", "g", "s", "t", "u", "v"]);

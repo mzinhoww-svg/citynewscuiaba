@@ -182,7 +182,6 @@ export {
 } from "./editorial/UpdatedWhileReading";
 export { VersionDiff, type VersionDiffProps } from "./editorial/VersionDiff";
 
-export { ConvergenceBlock, type ConvergenceBlockProps } from "./editorial/ConvergenceBlock";
 export { Timeline, type TimelineProps } from "./editorial/Timeline";
 export { TopicCoverage, type TopicCoverageProps } from "./editorial/TopicCoverage";
 export { TopicFaq, type TopicFaqProps } from "./editorial/TopicFaq";
