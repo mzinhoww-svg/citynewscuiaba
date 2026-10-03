@@ -1,7 +1,9 @@
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
-import { err, ok } from "@/lib/result";
+import { err, ok, type Result } from "@/lib/result";
+import type { RuleSet } from "@/lib/rules";
 import type { DecisionContext } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { resolveRules } from "@/lib/rules/load";
 import { articleIdFrom, neverAuto } from "./decide";
 import { inputHash } from "./understanding";
 import type { PublishStepDeps } from "./write";
@@ -41,10 +43,18 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
     const autoPublish = await deps.flags.isEnabled("auto_publish");
     const readOnly = await deps.flags.isEnabled("read_only");
 
+    let loaded: Result<RuleSet, string>;
+    try {
+      loaded = await deps.rules.activeRules();
+    } catch (e) {
+      loaded = { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+    const { rules } = resolveRules(loaded);
+
     let blocked: string | null = null;
     if (!last || (route !== "publish" && route !== "publish_notify") || !sameRevision)
       blocked = RULE_RATIONALE.staleDecision();
-    else if (neverAuto(ctx)) blocked = RULE_RATIONALE.neverAuto();
+    else if (neverAuto(ctx, rules)) blocked = RULE_RATIONALE.neverAuto();
     else if (!autoPublish || readOnly) blocked = RULE_RATIONALE.autoPublishOff();
 
     // A decisão vem antes da mudança de status: uma queda no meio nunca deixa matéria publicada

@@ -1,11 +1,5 @@
 import { err, ok, type Result } from "@/lib/result";
-import {
-  decidePublication,
-  isSafetyCategory,
-  type Candidate,
-  type Route,
-  type RuleSet,
-} from "./index";
+import { decidePublication, type Candidate, type Route, type RuleSet } from "./index";
 
 /**
  * Simulação e comparação de versões das regras de autonomia (P5-T2, Review Focus 5). Funções
@@ -58,8 +52,6 @@ export function validateRuleSet(r: RuleSet): Result<RuleSet, string> {
   for (const [key, c] of cats) {
     if (!/^[a-z0-9-]+$/.test(key)) return err(`Categoria "${key}" inválida.`);
     if (!MODES.has(c.mode)) return err(`${key}: modo inválido.`);
-    if (isSafetyCategory(key) && c.mode !== "blocked")
-      return err("Segurança nunca publica sozinha: a categoria fica em modo bloqueado.");
     if (!isCount(c.minSources) || c.minSources > 10)
       return err(`${key}: mínimo de fontes de 0 a 10.`);
     if (c.minScore !== null && !isScore(c.minScore))
@@ -68,6 +60,8 @@ export function validateRuleSet(r: RuleSet): Result<RuleSet, string> {
       return err(`${key}: resumo de até 500 palavras.`);
   }
   if (r.sensitiveTopics.some((t) => !t.trim())) return err("Tema sensível vazio.");
+  if (r.neverAuto.some((t) => !/^[a-z0-9-]+$/.test(t)))
+    return err('Categoria da lista "nunca automática" inválida.');
   return ok(r);
 }
 
@@ -76,7 +70,12 @@ export function validateRuleSet(r: RuleSet): Result<RuleSet, string> {
  * `safety.disable` (admin aprova), não um `rules.activate` comum (gate do P5, achado 7).
  */
 export function weakensSafety(current: RuleSet, next: RuleSet): boolean {
-  return current.sensitiveTopics.some((t) => !next.sensitiveTopics.includes(t));
+  return (
+    current.sensitiveTopics.some((t) => !next.sensitiveTopics.includes(t)) ||
+    current.neverAuto.some((t) => !next.neverAuto.includes(t)) ||
+    (current.breakingReview && !next.breakingReview) ||
+    (current.sensitiveFlagReview && !next.sensitiveFlagReview)
+  );
 }
 
 export interface RuleChange {
@@ -93,6 +92,16 @@ export function ruleDiff(a: RuleSet, b: RuleSet): RuleChange[] {
   const out: RuleChange[] = [];
   if (a.forceReview !== b.forceReview)
     out.push({ path: "forceReview", from: String(a.forceReview), to: String(b.forceReview) });
+  for (const f of ["breakingReview", "sensitiveFlagReview"] as const)
+    if (a[f] !== b[f]) out.push({ path: f, from: String(a[f]), to: String(b[f]) });
+  const droppedNever = a.neverAuto.filter((t) => !b.neverAuto.includes(t));
+  const addedNever = b.neverAuto.filter((t) => !a.neverAuto.includes(t));
+  if (droppedNever.length || addedNever.length)
+    out.push({
+      path: "neverAuto",
+      from: droppedNever.map((t) => `-${t}`).join(" "),
+      to: addedNever.map((t) => `+${t}`).join(" "),
+    });
   const removed = a.sensitiveTopics.filter((t) => !b.sensitiveTopics.includes(t));
   const added = b.sensitiveTopics.filter((t) => !a.sensitiveTopics.includes(t));
   if (removed.length || added.length)

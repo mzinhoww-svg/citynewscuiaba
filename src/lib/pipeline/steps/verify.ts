@@ -4,6 +4,7 @@ import type { AiError } from "@/lib/ai/types";
 import { computeConfidence, type Confidence } from "@/lib/confidence";
 import { normalizePlace } from "@/lib/geo/neighborhoods";
 import { err, ok, type Result } from "@/lib/result";
+import { isDubious } from "@/lib/rules/dubious";
 import type { TopicBundle, TopicItem } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import type { UnderstandStepDeps } from "./classify";
@@ -20,6 +21,8 @@ export interface VerifyResult {
   independentSources: number;
   primarySources: number;
   centralConflict: boolean;
+  /** O agente marcou o assunto como extremamente duvidoso ou sem atribuição possível. */
+  dubious: boolean;
   /** Conflito confirmado pela regra (`null` sem conflito central). */
   conflict: Conflict | null;
   roles: { id: string; role: SourceRole }[];
@@ -92,7 +95,7 @@ export function confirmConflict(conflict: Conflict, items: readonly TopicItem[])
 }
 
 const TASK =
-  "Verifique o assunto: fato principal, papel de cada item e conflito central (número, data ou local do fato principal que diverge entre itens), citando o valor exato de cada item.";
+  "Verifique o assunto: fato principal, papel de cada item e conflito central (número, data ou local do fato principal que diverge entre itens), citando o valor exato de cada item. Marque dubious=true só se o conteúdo for extremamente duvidoso (fato que não se sustenta, texto incoerente) e unattributable=true se o fato não puder ser atribuído a nenhuma fonte.";
 
 /**
  * Verificação de um assunto (etapa 10): fontes independentes, primárias (confiabilidade `primary`
@@ -147,6 +150,7 @@ export function createVerifyTopic(deps: { callAgent: CallAgent }) {
       independentSources,
       primarySources,
       centralConflict,
+      dubious: isDubious(r.value),
       conflict: centralConflict ? r.value.conflict : null,
       roles,
       hoursSinceUpdate,

@@ -1190,6 +1190,9 @@ const DecisionContextSchema = z.object({
   sensitive: z.boolean(),
   centralConflict: z.boolean(),
   imageApproved: z.boolean(),
+  // Campos da migration 0074; ausentes (banco antigo) valem como falso.
+  dubious: z.boolean().default(false),
+  sourceTrusted: z.boolean().default(false),
 });
 
 /** Banco das etapas 11 a 20 e da despublicação (service role). */

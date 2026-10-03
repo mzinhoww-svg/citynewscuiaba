@@ -685,6 +685,10 @@ export interface DecisionContext {
   sensitive: boolean;
   centralConflict: boolean;
   imageApproved: boolean;
+  /** O agente `verify` marcou o assunto como extremamente duvidoso. */
+  dubious: boolean;
+  /** Alguma fonte do assunto é confiável (`sources.trusted`). */
+  sourceTrusted: boolean;
 }
 
 export interface StatusPatch {

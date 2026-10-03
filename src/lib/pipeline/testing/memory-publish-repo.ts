@@ -18,6 +18,8 @@ export interface MemoryTopicItem {
   tags?: string[];
   sensitive?: boolean;
   sectionSlug?: string | null;
+  /** Fonte confiável (`sources.trusted`) neste item. */
+  trusted?: boolean;
 }
 
 export interface MemoryTopic {
@@ -29,6 +31,7 @@ export interface MemoryTopic {
   confidenceScore: number;
   items: MemoryTopicItem[];
   verify?: DraftContext["verify"];
+  dubious?: boolean;
 }
 
 interface ArticleRow {
@@ -171,6 +174,8 @@ export function createMemoryPublishRepo(
         sensitive: items.some((i) => i.sensitive),
         centralConflict: t.verify?.centralConflict ?? false,
         imageApproved: a.imageApproved,
+        dubious: t.dubious ?? false,
+        sourceTrusted: items.some((i) => i.trusted ?? false),
       };
     },
     async setStatus(articleId, p) {

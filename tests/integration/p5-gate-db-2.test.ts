@@ -53,8 +53,8 @@ function anon() {
   );
 }
 
-describe("achado 7 · Segurança nunca é automática nas regras", () => {
-  it("versão nova com `seguranca` fora de blocked é recusada pelo banco", async () => {
+describe("achado 7 · Segurança nas regras (A4: a v3 do dono libera a proposta)", () => {
+  it("versão nova com `seguranca` em auto é aceita como proposta inativa (ativação segue com duas pessoas)", async () => {
     const body = {
       ...DEFAULT_RULES,
       categories: {
@@ -63,19 +63,15 @@ describe("achado 7 · Segurança nunca é automática nas regras", () => {
       },
     } as unknown as NonNullable<Json>;
     const version = 6_900_000 + (run % 1000);
-    const marina = await clientOf("marina");
-    const r = await marina
-      .from("rules")
-      .insert({ version, body, force_review: true, proposed_by: SEED_USERS.marina.id });
-    expect(r.error).not.toBeNull();
     const s = await service
       .from("rules")
       .insert({ version, body, force_review: true, proposed_by: SEED_USERS.marina.id });
-    expect(s.error).not.toBeNull();
-    const ok = await service
+    expect(s.error).toBeNull();
+    const active = await service
       .from("rules")
-      .insert({ version, body: RULES_BODY, force_review: true, proposed_by: SEED_USERS.marina.id });
-    expect(ok.error).toBeNull();
+      .update({ active: true, approved_by: SEED_USERS.marina.id })
+      .eq("version", version);
+    expect(active.error).not.toBeNull();
   });
 });
 

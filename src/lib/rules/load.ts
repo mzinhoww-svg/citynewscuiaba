@@ -15,6 +15,9 @@ const CategoryRuleSchema = z.object({
 const RuleBodySchema = z.object({
   forceReview: z.boolean().optional(),
   sensitiveTopics: z.array(z.string()),
+  neverAuto: z.array(z.string()).optional(),
+  breakingReview: z.boolean().optional(),
+  sensitiveFlagReview: z.boolean().optional(),
   categories: z.record(z.string(), CategoryRuleSchema),
 });
 
@@ -30,9 +33,15 @@ export function parseRuleRow(row: {
   const body = RuleBodySchema.safeParse(row.body);
   if (!body.success)
     return err(`regras v${row.version} inválidas: ${body.error.issues[0]?.message ?? ""}`);
+  // Corpo sem `neverAuto` é anterior à v3: mantém os portões antigos (Segurança bloqueada,
+  // breaking e sensível em revisão). Só um corpo v3 explícito os libera (decisão do dono, A2/A4).
+  const legacy = body.data.neverAuto === undefined;
   return ok({
     version: row.version,
     forceReview: row.force_review || body.data.forceReview !== false,
+    neverAuto: body.data.neverAuto ?? ["seguranca"],
+    breakingReview: body.data.breakingReview ?? legacy,
+    sensitiveFlagReview: body.data.sensitiveFlagReview ?? legacy,
     sensitiveTopics: body.data.sensitiveTopics,
     categories: body.data.categories,
   });

@@ -38,11 +38,28 @@ const CategoryRuleSchema = z.object({
 export const RuleSetInput = z.object({
   forceReview: z.boolean(),
   sensitiveTopics: z.array(z.string().trim().min(1).max(60)).max(100),
+  /** Ausentes: herdam da versão ativa (a tela de regras ainda não edita estes campos). */
+  neverAuto: z
+    .array(z.string().regex(/^[a-z0-9-]+$/))
+    .max(50)
+    .optional(),
+  breakingReview: z.boolean().optional(),
+  sensitiveFlagReview: z.boolean().optional(),
   categories: z.record(z.string().regex(/^[a-z0-9-]+$/), CategoryRuleSchema),
 });
 export type RuleSetInput = z.infer<typeof RuleSetInput>;
 
 const noScope = () => ({});
+
+/** Completa os campos de portão que a tela não envia com os da versão em vigor. */
+function withGates(input: RuleSetInput, current: RuleSet): Omit<RuleSet, "version"> {
+  return {
+    ...input,
+    neverAuto: input.neverAuto ?? current.neverAuto,
+    breakingReview: input.breakingReview ?? current.breakingReview,
+    sensitiveFlagReview: input.sensitiveFlagReview ?? current.sensitiveFlagReview,
+  };
+}
 
 export interface SimulationReply extends Simulation {
   diff: ReturnType<typeof ruleDiff>;
@@ -61,13 +78,13 @@ export async function simulateRulesCommand(
   const ctx = await studioContext();
   if (!ctx.session || !canAccess(ctx.session.roles, "rules.propose"))
     return { ok: false, error: "forbidden", message: T.form.forbidden };
-  const next = validateRuleSet({ version: 0, ...parsed.data });
-  if (!next.ok) return { ok: false, error: "invalid", message: next.error };
   const [overview, sample] = await Promise.all([
     rulesOverview(ctx.db),
     recentCandidates(7, ctx.db),
   ]);
   const current = overview.active?.rules ?? { ...DEFAULT_RULES, forceReview: true };
+  const next = validateRuleSet({ version: 0, ...withGates(parsed.data, current) });
+  if (!next.ok) return { ok: false, error: "invalid", message: next.error };
   const sim = simulateRules(next.value, sample, current);
   return {
     ok: true,
@@ -97,13 +114,14 @@ export const proposeRulesCommand = studioAction(
   async (i: ProposeInput, ctx): Promise<ProposeOutcome> => {
     const overview = await rulesOverview(ctx.db);
     const current = overview.active?.rules ?? { ...DEFAULT_RULES, forceReview: true };
-    const diff = ruleDiff(current, { version: 0, ...i.rules });
+    const proposed = withGates(i.rules, current);
+    const diff = ruleDiff(current, { version: 0, ...proposed });
     if (diff.length === 0) throw new StudioFailure("invalid", T.form.noChanges);
 
     let version = await nextRuleVersion(ctx.db);
     let inserted = false;
     for (let attempt = 0; attempt < 3 && !inserted; attempt++) {
-      const body: RuleSet = { version, ...i.rules };
+      const body: RuleSet = { version, ...proposed };
       const valid = validateRuleSet(body);
       if (!valid.ok) throw new StudioFailure("invalid", valid.error);
       const { error } = await ctx.db.from("rules").insert({
@@ -120,7 +138,7 @@ export const proposeRulesCommand = studioAction(
     if (!inserted) throw new StudioFailure("conflict", T.form.conflict);
 
     // Tirar tema sensível enfraquece a Segurança: pedido `safety.disable`, só admin aprova.
-    const kind = weakensSafety(current, { version: 0, ...i.rules })
+    const kind = weakensSafety(current, { version: 0, ...proposed })
       ? "safety.disable"
       : current.forceReview && !i.rules.forceReview
         ? "force_review.disable"

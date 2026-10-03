@@ -14,6 +14,14 @@ export interface Candidate {
   breaking: boolean;
   /** Algum item marcado sensível pelo agente `classify` (crime, tragédia, saúde individual…). */
   sensitive?: boolean;
+  /** Conteúdo extremamente duvidoso (agente marcou `dubious` ou não há atribuição possível). */
+  dubious?: boolean;
+  /** Alguma fonte do assunto é confiável (`sources.trusted`). */
+  sourceTrusted?: boolean;
+  /** Assunto grave: acusação a pessoa, saúde individual ou segurança. */
+  grave?: boolean;
+  /** Escopo da notícia (A15); só informativo para a decisão, usado para urgência e destaque. */
+  newsScope?: "cuiaba" | "mt" | "national";
 }
 
 export type Route = "publish" | "publish_notify" | "review" | "hold";
@@ -59,13 +67,19 @@ function sensitiveMatch(tag: string, term: string): boolean {
   return false;
 }
 
-/**
- * Segurança e a subárvore dela (`seguranca-*`) nunca publicam sozinhas (CLAUDE.md §5.8): trava
- * dura no código, independente do modo que estiver na tabela de regras.
- */
+/** Segurança e a subárvore dela (`seguranca-*`). Já não é portão fixo: só `rules.neverAuto` bloqueia. */
 export const isSafetyCategory = (category: string): boolean => {
   const key = normalize(category);
   return key === "seguranca" || key.startsWith("seguranca-");
+};
+
+/** A categoria (ou a subárvore `<item>-*`) está em `neverAuto`? */
+export const isNeverAutoCategory = (category: string, neverAuto: readonly string[]): boolean => {
+  const key = normalize(category);
+  return neverAuto.some((n) => {
+    const k = normalize(n);
+    return k !== "" && (key === k || key.startsWith(`${k}-`));
+  });
 };
 
 const isCount = (n: number): boolean => Number.isInteger(n) && n >= 0;
@@ -93,36 +107,43 @@ const review = (rule: string, rationale: string): Decision => ({
 
 /**
  * Decide o destino de um candidato à publicação. A primeira regra que se aplica decide, na ordem:
- * invalid_input → breaking → sensitive → forceReview → Segurança (sempre hold) → unknown_category → blocked → min_sources / primary →
- * conflict → image → min_score → modo da categoria. Nada fora da tabela publica sozinho.
+ * invalid_input → breaking (só se a regra o mantém) → tema sensível da tabela e do agente →
+ * forceReview → neverAuto (hold) → unknown_category → blocked → conflict (fontes divergentes) →
+ * dubious → fonte não confiável com assunto grave e sem segunda fonte → min_sources / primary →
+ * image → min_score → modo da categoria. Nada fora da tabela publica sozinho. `breaking`,
+ * `sensitive` e segurança não são portões nas regras v3 (decisão do dono, A2/A4).
  */
 export function decidePublication(c: Candidate, rules: RuleSet): Decision {
   // Falha fechado: número não finito, negativo ou fora da faixa nunca publica.
   const bad = invalidInput(c, rules);
   if (bad.length > 0) return review("invalid_input", T.invalidInput(bad));
 
-  if (c.breaking) return review("breaking", T.breaking());
+  if (rules.breakingReview && c.breaking) return review("breaking", T.breaking());
 
   const hits = [c.category, ...c.tags].filter((t) =>
     rules.sensitiveTopics.some((term) => sensitiveMatch(t, term)),
   );
   if (hits.length > 0) return review("sensitive", T.sensitive(hits));
-  if (c.sensitive) return review("sensitive", T.sensitiveFlag());
+  if (rules.sensitiveFlagReview && c.sensitive) return review("sensitive", T.sensitiveFlag());
 
   if (rules.forceReview) return review("force_review", T.forceReview(rules.version));
 
   const key = normalize(c.category);
-  if (isSafetyCategory(key)) return { route: "hold", rule: "blocked", rationale: T.blocked(key) };
+  if (isNeverAutoCategory(key, rules.neverAuto))
+    return { route: "hold", rule: "blocked", rationale: T.blocked(key) };
   const cat = Object.hasOwn(rules.categories, key) ? rules.categories[key] : undefined;
   if (!cat) return review("unknown_category", T.unknownCategory(c.category));
 
   if (cat.mode === "blocked") return { route: "hold", rule: "blocked", rationale: T.blocked(key) };
 
+  if (c.centralConflict) return review("conflict", T.conflict());
+  if (c.dubious) return review("dubious", T.dubious());
+  if (c.grave && !c.sourceTrusted && c.independentSources < 2)
+    return review("untrusted_grave", T.untrustedGrave());
+
   if (c.independentSources < cat.minSources)
     return review("min_sources", T.minSources(c.independentSources, cat.minSources, key));
   if (cat.requirePrimary && c.primarySources < 1) return review("primary", T.primary(key));
-
-  if (c.centralConflict) return review("conflict", T.conflict());
 
   if (cat.requireApprovedImage && !c.imageApproved) return review("image", T.image(key));
 
