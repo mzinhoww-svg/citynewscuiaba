@@ -135,6 +135,7 @@ const COLUMN: Record<string, string> = {
   recPinned: "rec_pinned",
   recLocalHighlight: "rec_local_highlight",
   recExcluded: "rec_excluded",
+  trusted: "trusted",
   logoPath: "logo_path",
   ownerId: "owner_id",
   termsReviewedAt: "terms_reviewed_at",

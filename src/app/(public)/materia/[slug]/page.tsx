@@ -3,6 +3,7 @@ import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { Fragment } from "react";
+
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AiSummaryBlock,
@@ -12,6 +13,7 @@ import {
   Button,
   CategoryTag,
   CorrectionNote,
+  CreditLine,
   EmptyState,
   GoneState,
   JsonLd,
@@ -222,7 +224,9 @@ function Article({ a }: { a: ArticleView }) {
             <div className="reading-body flex flex-col gap-5 text-body">
               {blocks.map(({ b, i, figureAfter }) => (
                 <Fragment key={i}>
-                  {b.type === "paragraph" ? (
+                  {b.type === "credit" ? (
+                    <CreditLine text={b.text} sources={b.sources} />
+                  ) : b.type === "paragraph" ? (
                     i === 0 ? (
                       <Lead text={b.text} />
                     ) : (

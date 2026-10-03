@@ -3,6 +3,7 @@ import { defaultHomeLayout, parseHomeLayout, type HomeModule } from "@/lib/admin
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
+import { isEligibleForFeature } from "@/lib/geo/news-scope";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
 import { many, readPublic } from "./run";
@@ -169,8 +170,18 @@ export async function getHomeData(
       const articles = await summarize(db, rows);
       const editorial = articles.filter((a) => !a.sponsored);
 
-      // Urgente só se publicado por humano (docs/screens.md P01).
-      const urgent = editorial.find((a) => a.urgent && a.publishMode === "human") ?? null;
+      // Urgente: publicado por humano, ou automático e local/regional (ou comoção nacional): A2 e
+      // A15. Notícia nacional sem comoção nunca ocupa a faixa Urgente.
+      const urgent =
+        editorial.find(
+          (a) =>
+            a.urgent &&
+            (a.publishMode === "human" ||
+              isEligibleForFeature({
+                newsScope: a.newsScope,
+                nationalCommotion: a.nationalCommotion ?? false,
+              })),
+        ) ?? null;
       const lead = editorial.find((a) => a.id !== urgent?.id) ?? null;
       const shown = new Set<string>([urgent?.id, lead?.id].filter((v): v is string => !!v));
       const nowList = editorial.filter((a) => !shown.has(a.id)).slice(0, NOW_COUNT);

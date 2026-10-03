@@ -1,3 +1,4 @@
+import type { CoverState, ChecklistPatch, ShortReason } from "../steps/auto-checklist";
 import type {
   ArticleStatus,
   ConfidenceLevel,
@@ -18,6 +19,11 @@ export interface MemoryTopicItem {
   tags?: string[];
   sensitive?: boolean;
   sectionSlug?: string | null;
+  /** Fonte confiável (`sources.trusted`) neste item. */
+  trusted?: boolean;
+  /** Bairro e município localizados no item (etapa `locate`). */
+  neighborhood?: string | null;
+  municipality?: string | null;
 }
 
 export interface MemoryTopic {
@@ -29,6 +35,7 @@ export interface MemoryTopic {
   confidenceScore: number;
   items: MemoryTopicItem[];
   verify?: DraftContext["verify"];
+  dubious?: boolean;
 }
 
 interface ArticleRow {
@@ -44,13 +51,23 @@ interface ArticleRow {
   version: number;
   humanEdited: boolean;
   urgent: boolean;
+  newsScope: "cuiaba" | "mt" | "national" | null;
+  nationalCommotion: boolean;
+  /** Estado da capa para o portão de completude (padrão: cartão tipográfico decidido). */
+  cover: CoverState;
+  coverAlt: string | null;
+  shortReason: ShortReason | null;
+  checklistPatch: ChecklistPatch | null;
   imageApproved: boolean;
   indexed: { embedding: number[] | null } | null;
 }
 
 /** Assuntos, matérias, decisões e notificações em memória para as etapas 11 a 20 (só testes). */
 export function createMemoryPublishRepo(
-  sources: Record<string, { reliability: SourceReliability; name: string }>,
+  sources: Record<
+    string,
+    { reliability: SourceReliability; name: string; locality?: "cuiaba" | "mt" | "nacional" }
+  >,
   categories: Record<string, string> = {},
 ) {
   const topics = new Map<string, MemoryTopic>();
@@ -130,6 +147,12 @@ export function createMemoryPublishRepo(
           version: 0,
           humanEdited: false,
           urgent: false,
+          newsScope: null,
+          nationalCommotion: false,
+          cover: "typographic",
+          coverAlt: null,
+          shortReason: null,
+          checklistPatch: null,
           imageApproved: false,
           indexed: null,
         };
@@ -171,6 +194,14 @@ export function createMemoryPublishRepo(
         sensitive: items.some((i) => i.sensitive),
         centralConflict: t.verify?.centralConflict ?? false,
         imageApproved: a.imageApproved,
+        dubious: t.dubious ?? false,
+        sourceTrusted: items.some((i) => i.trusted ?? false),
+        neighborhoods: [...new Set(items.flatMap((i) => (i.neighborhood ? [i.neighborhood] : [])))],
+        municipalities: [
+          ...new Set(items.flatMap((i) => (i.municipality ? [i.municipality] : []))),
+        ],
+        sourceLocalities: [...new Set(items.map((i) => src(i.sourceSlug).locality ?? "cuiaba"))],
+        nationalCommotion: a.nationalCommotion,
       };
     },
     async setStatus(articleId, p) {
@@ -181,6 +212,32 @@ export function createMemoryPublishRepo(
       if (p.publishedAt !== undefined) a.publishedAt = p.publishedAt;
       if (p.rulesVersion !== undefined) a.rulesVersion = p.rulesVersion;
       if (p.reviewReason !== undefined) a.reviewReason = p.reviewReason;
+      if (p.newsScope !== undefined) a.newsScope = p.newsScope;
+      if (p.nationalCommotion !== undefined) a.nationalCommotion = p.nationalCommotion;
+      if (p.urgent !== undefined) a.urgent = p.urgent;
+      if (p.shortReason !== undefined) a.shortReason = p.shortReason;
+    },
+    async checkInput(articleId) {
+      const a = articles.get(articleId);
+      if (!a) return null;
+      return {
+        title: a.input.title,
+        dek: a.input.dek,
+        body: a.input.body,
+        seoTitle: a.checklistPatch?.seoTitle ?? null,
+        seoDescription: a.checklistPatch?.seoDescription ?? null,
+        tags: a.checklistPatch?.tags ?? [],
+        neighborhoods: a.checklistPatch?.neighborhoods ?? [],
+        sectionSlug: a.input.sectionSlug,
+        sourceCount: a.input.sources.length,
+        cover: a.cover,
+        coverAlt: a.checklistPatch?.coverAlt ?? a.coverAlt,
+        shortReason: a.shortReason,
+      };
+    },
+    async applyChecklist(articleId, patch) {
+      const a = articles.get(articleId);
+      if (a) a.checklistPatch = { ...a.checklistPatch, ...patch };
     },
     async articleText(articleId) {
       const a = articles.get(articleId);
@@ -226,6 +283,10 @@ export function createMemoryPublishRepo(
     markHumanEdited(id: string) {
       const a = articles.get(id);
       if (a) a.humanEdited = true;
+    },
+    setCover(id: string, cover: CoverState) {
+      const a = articles.get(id);
+      if (a) a.cover = cover;
     },
     approveImage(id: string) {
       const a = articles.get(id);

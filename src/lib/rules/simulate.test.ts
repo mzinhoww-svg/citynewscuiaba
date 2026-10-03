@@ -86,24 +86,25 @@ describe("validateRuleSet", () => {
 });
 
 describe("Segurança nas propostas (gate P5, achado 7)", () => {
-  it("validateRuleSet recusa Segurança fora de blocked, também em subeditoria", () => {
+  it("validateRuleSet aceita Segurança em auto (decisão do dono, A4) e recusa neverAuto inválido", () => {
     const auto = validateRuleSet({
       ...DEFAULT_RULES,
+      neverAuto: [],
       categories: {
         ...DEFAULT_RULES.categories,
         seguranca: { ...DEFAULT_RULES.categories.seguranca!, mode: "auto" },
       },
     });
-    expect(auto.ok).toBe(false);
-    if (!auto.ok) expect(auto.error).toMatch(/Segurança/);
-    const sub = validateRuleSet({
-      ...DEFAULT_RULES,
-      categories: {
-        ...DEFAULT_RULES.categories,
-        "seguranca-urbana": { ...DEFAULT_RULES.categories.servicos!, mode: "review" },
-      },
-    });
-    expect(sub.ok).toBe(false);
+    expect(auto.ok).toBe(true);
+    expect(validateRuleSet({ ...DEFAULT_RULES, neverAuto: ["Segurança!"] }).ok).toBe(false);
+  });
+
+  it("weakensSafety vale quando a proposta tira neverAuto, breaking ou sensível", () => {
+    expect(weakensSafety(DEFAULT_RULES, { ...DEFAULT_RULES, neverAuto: [] })).toBe(true);
+    expect(weakensSafety(DEFAULT_RULES, { ...DEFAULT_RULES, breakingReview: false })).toBe(true);
+    expect(weakensSafety(DEFAULT_RULES, { ...DEFAULT_RULES, sensitiveFlagReview: false })).toBe(
+      true,
+    );
   });
 
   it("weakensSafety vale quando a proposta tira tema sensível", () => {

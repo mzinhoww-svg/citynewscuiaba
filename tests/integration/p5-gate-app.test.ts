@@ -96,7 +96,7 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
     }
   });
 
-  it("proposta com Segurança automática é recusada antes de gravar", async () => {
+  it("proposta com Segurança automática passa a ser aceita (decisão do dono, A4)", async () => {
     const proposed = await asUser("marina", () =>
       proposeRulesCommand({
         rules: {
@@ -107,10 +107,14 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
             seguranca: { ...DEFAULT_RULES.categories.seguranca!, mode: "auto" },
           },
         },
-        justification: "Tentativa",
+        justification: "Regras v3: segurança publica sozinha",
       }),
     );
-    expect(proposed).toMatchObject({ ok: false, error: "invalid" });
+    expect(proposed.ok).toBe(true);
+    if (proposed.ok) {
+      ruleVersions.push(proposed.value.version);
+      if (proposed.value.approvalId) approvalIds.push(proposed.value.approvalId);
+    }
   });
 });
 

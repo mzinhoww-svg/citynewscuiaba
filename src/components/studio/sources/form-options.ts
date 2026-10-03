@@ -122,6 +122,7 @@ const BASE: SourceConfig = {
   recPinned: false,
   recLocalHighlight: false,
   recExcluded: false,
+  trusted: false,
 };
 
 /** Campos que AFROUXAM direitos (D-F3) e por isso exigem segunda aprovação. */

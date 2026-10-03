@@ -45,3 +45,64 @@ export const setSwitchCommand = studioAction(
 export const isFreeSwitch = (k: string): k is (typeof FREE_SWITCHES)[number] =>
   (FREE_SWITCHES as readonly string[]).includes(k);
 export { SWITCH_KEYS };
+
+/*
+ * Disjuntor da publicação automática (AUT-T4, A8): limites editáveis e reset manual (admin). O
+ * reset zera a janela de contagem; religar `auto_publish` continua pela Contingência, com duas
+ * pessoas.
+ */
+
+const LimitsInput = z.object({
+  hourly: z.number().int().min(1).max(100_000).optional(),
+  daily: z.number().int().min(1).max(1_000_000).optional(),
+  reportsPerHour: z.number().int().min(1).max(100_000).optional(),
+  aiFailuresPerHour: z.number().int().min(1).max(100_000).optional(),
+  reason: z.string().trim().min(1, T.dialog.reasonRequired).max(500),
+});
+export type BreakerLimitsInput = z.infer<typeof LimitsInput>;
+
+export const setBreakerLimitsCommand = studioAction(
+  "users.manage",
+  () => ({}),
+  async (i: BreakerLimitsInput, ctx): Promise<{ saved: true }> => {
+    const { reason, ...limits } = i;
+    ctx.detail({ ...limits, reason });
+    const { error } = await ctx.db.rpc("publish_breaker_set_limits", {
+      p: limits,
+      p_ctx: { reason },
+    });
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden", T.error.forbidden);
+      throw new StudioFailure("conflict", T.error.generic);
+    }
+    return { saved: true };
+  },
+  {
+    schema: LimitsInput,
+    auditAs: "flag.set",
+    objectRef: () => "flag:auto_publish",
+    allowReadOnly: true,
+  },
+);
+
+const ResetInput = z.object({ reason: z.string().trim().min(1, T.dialog.reasonRequired).max(500) });
+
+export const resetBreakerCommand = studioAction(
+  "users.manage",
+  () => ({}),
+  async (i: z.infer<typeof ResetInput>, ctx): Promise<{ reset: true }> => {
+    ctx.detail({ reason: i.reason });
+    const { error } = await ctx.db.rpc("publish_breaker_reset", { p_ctx: { reason: i.reason } });
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden", T.error.forbidden);
+      throw new StudioFailure("conflict", T.error.generic);
+    }
+    return { reset: true };
+  },
+  {
+    schema: ResetInput,
+    auditAs: "flag.set",
+    objectRef: () => "flag:auto_publish",
+    allowReadOnly: true,
+  },
+);

@@ -6,6 +6,8 @@ import type { Database } from "@/lib/db/types";
 import { labelsFor, type ImageKind } from "@/lib/labels";
 import type { Result } from "@/lib/result";
 import { BYLINE } from "@/content/pt-BR/portal-card";
+import { asScope } from "@/lib/geo/news-scope";
+import { creditSourcesOfNode } from "@/lib/pipeline/steps/credit-line";
 import { many, one, readPublic } from "./run";
 import type {
   ArticleBlock,
@@ -45,10 +47,12 @@ type ArticleRow = Pick<
   | "updated_at"
   | "seo_title"
   | "seo_description"
+  | "news_scope"
+  | "national_commotion"
 >;
 
 export const ARTICLE_COLUMNS =
-  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description";
+  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion";
 
 /** Destinos escolhidos na publicação (E06): a home e a editoria só listam o que foi para elas. */
 export type PublicDestination = "home" | "section";
@@ -91,7 +95,9 @@ export function parseBody(body: unknown): ArticleBlock[] {
       const level = isRecord(node.attrs) && node.attrs.level === 3 ? 3 : 2;
       blocks.push({ type: "heading", level, text });
     } else if (node.type === "paragraph") {
-      blocks.push({ type: "paragraph", text });
+      const credit = creditSourcesOfNode(node);
+      if (credit) blocks.push({ type: "credit", text, sources: credit });
+      else blocks.push({ type: "paragraph", text });
     }
   }
   return blocks;
@@ -289,6 +295,8 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
     topicId: row.topic_id,
     urgent: row.urgent,
     sponsored: row.sponsored,
+    newsScope: asScope(row.news_scope) ?? undefined,
+    nationalCommotion: row.national_commotion,
   };
 }
 

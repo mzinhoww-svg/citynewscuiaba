@@ -5,7 +5,7 @@ const src =
 
 describe("write: profundidade e título", () => {
   it("o pedido exige corpo longo, contexto e título específico sem engano", () => {
-    expect(WRITE_TASK).toMatch(/4 a 8 parágrafos/);
+    expect(WRITE_TASK).toMatch(/no mínimo 30 linhas/);
     expect(WRITE_TASK).toMatch(/nunca encha/);
     expect(WRITE_TASK).toMatch(/a resposta tem de estar no texto/);
     expect(WRITE_TASK).toMatch(/Proibido.*você não vai acreditar/s);
