@@ -10,7 +10,6 @@ import { clientOf, SEED_USERS, service } from "./studio";
 
 const run = Date.now() % 1_000_000;
 const PASSWORD = "senha-de-teste-123";
-const RULES_BODY = DEFAULT_RULES as unknown as NonNullable<Json>;
 const createdUsers: string[] = [];
 const weightsVersions: string[] = [];
 const auditMarkers: string[] = [];

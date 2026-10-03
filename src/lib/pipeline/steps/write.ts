@@ -16,6 +16,7 @@ import type {
   RulesSource,
 } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { appendCreditLine, creditSourcesOf, type Doc } from "./credit-line";
 import { aiStepError, inputHash } from "./understanding";
 
 export interface PublishStepDeps {
@@ -42,6 +43,27 @@ export const WRITE_TASK = [
   "LINHA FINA: complementa o título com o segundo dado mais relevante, sem repeti-lo.",
 ].join("\n");
 
+/**
+ * Regras de redação que substituem o portão humano (spec de autonomia §3): segurança, política e
+ * saúde publicam sozinhas, então o texto já nasce com presunção de inocência, sem identificar
+ * menor nem vítima, sem método de suicídio e sem orientação clínica, sempre atribuído à fonte.
+ */
+export const REDACTION_RULES =
+  'REGRAS DE REDAÇÃO (obrigatórias): 1) presunção de inocência: use "suspeito", "acusado", "segundo a polícia" e nunca "culpado" ou "criminoso" antes de condenação; 2) nenhum menor de idade nem vítima de violência sexual é identificado (nome, foto, escola, endereço, parentesco); 3) em caso de suicídio, nenhum detalhe de método ou local; 4) saúde sem orientação clínica, dose, tratamento nem promessa de cura; 5) atribua sempre à fonte com "segundo {fonte}" ou "de acordo com {fonte}"; fato sem fonte no item não entra no texto.';
+const ATTRIBUTION_RULE =
+  'ATRIBUIÇÃO: atribua o fato principal à fonte ("segundo {fonte}"). A linha final "Com informações de {fonte}" é acrescentada pelo sistema; não a escreva.';
+/** Editorias cujo texto publica sozinho com as regras de redação reforçadas. */
+const SENSITIVE_SECTIONS = new Set(["seguranca", "politica", "saude"]);
+
+/** Pedido ao agente `write` para a editoria: regras de redação reforçadas em segurança, política e saúde. */
+export function writeTaskFor(section: string, sensitive = false): string {
+  return [
+    WRITE_TASK,
+    ATTRIBUTION_RULE,
+    ...(SENSITIVE_SECTIONS.has(section) || sensitive ? [REDACTION_RULES] : []),
+  ].join("\n");
+}
+
 const TOPIC_REF = /^topic:(\S+)$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
 const PIPELINE_OWNED = new Set(["draft", "in_review"]);
@@ -49,7 +71,7 @@ const PIPELINE_OWNED = new Set(["draft", "in_review"]);
 type Paragraph = { text: string; citations: string[] };
 
 /** Documento do editor (doc → paragraph → text), com as citações em `attrs`. */
-export function toDoc(paragraphs: Paragraph[]): Record<string, unknown> {
+export function toDoc(paragraphs: Paragraph[]): Doc {
   return {
     type: "doc",
     content: paragraphs.map((p) => ({
@@ -142,7 +164,10 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       {
         system,
         data: ctx.items.map((i) => ({ id: i.id, text: itemText(i) })),
-        task: WRITE_TASK,
+        task: writeTaskFor(
+          section,
+          ctx.items.some((i) => i.sensitive),
+        ),
       },
       WriteSchema,
       { signal: run?.signal },
@@ -173,7 +198,11 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       sectionSlug: section,
       title: draft.title,
       dek: draft.dek,
-      body: toDoc(draft.body),
+      body: appendCreditLine(
+        toDoc(draft.body),
+        creditSourcesOf(ctx.items),
+        ctx.items.map((i) => i.id),
+      ),
       aiSummary: draft.summary,
       confidence: ctx.topic.confidence,
       confidenceScore: ctx.topic.confidenceScore,

@@ -80,6 +80,7 @@ interface Values {
   imagePolicy: ImagePolicy;
   republishPolicy: RepublishPolicy;
   maySoleSource: boolean;
+  trusted: boolean;
   agreementUntil: string;
   agreementNote: string;
   termsUrl: string;
@@ -104,6 +105,7 @@ function valuesOf(c: SourceConfig): Values {
     imagePolicy: c.imagePolicy,
     republishPolicy: c.republishPolicy,
     maySoleSource: c.maySoleSource,
+    trusted: c.trusted,
     agreementUntil: c.agreementUntil ?? "",
     agreementNote: c.agreementNote ?? "",
     termsUrl: c.termsUrl ?? "",
@@ -224,6 +226,7 @@ export function SourceConfigForm({
     form.set("imagePolicy", values.imagePolicy);
     form.set("republishPolicy", values.republishPolicy);
     form.set("maySoleSource", values.maySoleSource ? "true" : "false");
+    form.set("trusted", values.trusted ? "true" : "false");
     form.set("agreementUntil", values.agreementUntil);
     form.set("agreementNote", values.agreementNote);
     form.set("termsUrl", values.termsUrl);
@@ -368,6 +371,13 @@ export function SourceConfigForm({
             onChange={(v) => set("maySoleSource", v)}
             hint={FIELD_TEXT.criticalStatic}
             aside={criticalAside("maySoleSource")}
+          />
+          <CheckboxField
+            id={id("trusted")}
+            label={FIELD_TEXT.trusted}
+            checked={values.trusted}
+            onChange={(v) => set("trusted", v)}
+            hint={FIELD_TEXT.trustedHint}
           />
           <TextInput
             id={id("agreementUntil")}

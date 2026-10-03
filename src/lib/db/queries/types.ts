@@ -64,7 +64,10 @@ export interface ArticleSummary {
 }
 
 export type ArticleBlock =
-  { type: "paragraph"; text: string } | { type: "heading"; level: 2 | 3; text: string };
+  | { type: "paragraph"; text: string }
+  | { type: "heading"; level: 2 | 3; text: string }
+  /** Linha final "Com informações de {fonte}", com os links das fontes. */
+  | { type: "credit"; text: string; sources: { name: string; url: string }[] };
 
 export interface ArticleSource {
   name: string;

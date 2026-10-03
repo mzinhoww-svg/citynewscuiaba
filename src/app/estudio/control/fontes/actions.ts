@@ -214,7 +214,13 @@ async function storeFailure(ctx: Ctx, id: string, e: StoreError): Promise<Action
 // Formulário → patch
 // ---------------------------------------------------------------------------
 
-const BOOL_FIELDS = ["maySoleSource", "recPinned", "recLocalHighlight", "recExcluded"] as const;
+const BOOL_FIELDS = [
+  "maySoleSource",
+  "recPinned",
+  "recLocalHighlight",
+  "recExcluded",
+  "trusted",
+] as const;
 const INT_FIELDS = ["rateLimitPerHour", "editorialScore", "priority"] as const;
 const NULLABLE_INT_FIELDS = ["layer", "frequencyMinutes", "termsMinIntervalMinutes"] as const;
 const NULLABLE_TEXT_FIELDS = [
@@ -1231,6 +1237,7 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
     recPinned: false,
     recLocalHighlight: false,
     recExcluded: false,
+    trusted: false,
   };
   const wanted: SourceConfig = {
     ...restricted,

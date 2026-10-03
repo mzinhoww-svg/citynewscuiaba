@@ -28,6 +28,7 @@ function cfg(overrides: Partial<SourceConfig> = {}): SourceConfig {
     recPinned: false,
     recLocalHighlight: false,
     recExcluded: false,
+    trusted: false,
     ...overrides,
   };
 }

@@ -73,6 +73,7 @@ export const sourceConfigSchema = z.object({
   imagePolicy: z.enum(["none", "licensed_only", "with_agreement", "reproduction"]),
   republishPolicy: z.enum(["link_only", "summary_2_sentences"]),
   maySoleSource: z.boolean(),
+  trusted: z.boolean(),
   agreementUntil: z.string().nullable(),
   agreementNote: z.string().nullable(),
   termsUrl: z.string().nullable(),

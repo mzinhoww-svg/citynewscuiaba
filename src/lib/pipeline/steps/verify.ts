@@ -5,6 +5,7 @@ import { computeConfidence, type Confidence } from "@/lib/confidence";
 import { normalizePlace } from "@/lib/geo/neighborhoods";
 import { err, ok, type Result } from "@/lib/result";
 import { isDubious } from "@/lib/rules/dubious";
+import { anySourceTrusted } from "@/lib/sources/trusted";
 import type { TopicBundle, TopicItem } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import type { UnderstandStepDeps } from "./classify";
@@ -23,6 +24,8 @@ export interface VerifyResult {
   centralConflict: boolean;
   /** O agente marcou o assunto como extremamente duvidoso ou sem atribuição possível. */
   dubious: boolean;
+  /** Alguma fonte do assunto é confiável (A6): publica sem espera, sempre citada. */
+  sourceTrusted: boolean;
   /** Conflito confirmado pela regra (`null` sem conflito central). */
   conflict: Conflict | null;
   roles: { id: string; role: SourceRole }[];
@@ -151,6 +154,7 @@ export function createVerifyTopic(deps: { callAgent: CallAgent }) {
       primarySources,
       centralConflict,
       dubious: isDubious(r.value),
+      sourceTrusted: anySourceTrusted(items),
       conflict: centralConflict ? r.value.conflict : null,
       roles,
       hoursSinceUpdate,

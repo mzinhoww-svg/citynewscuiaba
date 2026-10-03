@@ -6,6 +6,7 @@ import type { Database } from "@/lib/db/types";
 import { labelsFor, type ImageKind } from "@/lib/labels";
 import type { Result } from "@/lib/result";
 import { BYLINE } from "@/content/pt-BR/portal-card";
+import { creditSourcesOfNode } from "@/lib/pipeline/steps/credit-line";
 import { many, one, readPublic } from "./run";
 import type {
   ArticleBlock,
@@ -91,7 +92,9 @@ export function parseBody(body: unknown): ArticleBlock[] {
       const level = isRecord(node.attrs) && node.attrs.level === 3 ? 3 : 2;
       blocks.push({ type: "heading", level, text });
     } else if (node.type === "paragraph") {
-      blocks.push({ type: "paragraph", text });
+      const credit = creditSourcesOfNode(node);
+      if (credit) blocks.push({ type: "credit", text, sources: credit });
+      else blocks.push({ type: "paragraph", text });
     }
   }
   return blocks;

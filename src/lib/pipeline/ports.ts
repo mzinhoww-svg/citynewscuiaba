@@ -392,6 +392,8 @@ export interface TopicItem {
   sourceId: string;
   sourceSlug: string;
   reliability: SourceReliability;
+  /** `sources.trusted`; ausente (dado antigo) vale o padrão por confiabilidade. */
+  trusted?: boolean;
   title: string;
   excerpt: string | null;
   publishedAt: string | null;

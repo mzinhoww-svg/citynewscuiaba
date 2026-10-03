@@ -695,3 +695,6 @@ from (values
 ) as a(agent_id, model_id, version, unit, per_day)
 cross join generate_series(1, 14) d
 cross join lateral generate_series(1, a.per_day) g;
+
+-- Fonte confiável (AUT-T2): mesmo padrão do backfill da migration 0071 para as fontes do seed.
+update sources set trusted = true where reliability in ('primary', 'verified');

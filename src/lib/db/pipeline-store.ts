@@ -658,7 +658,7 @@ const toReliability = (v: string | null | undefined): SourceReliability =>
   RELIABILITIES.find((r) => r === v) ?? "low";
 
 const ITEM_WITH_SOURCE =
-  "id, source_id, original_title, excerpt, summary, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, locality, republish_policy)";
+  "id, source_id, original_title, excerpt, summary, published_at, topic_id, duplicate_of, quarantined_at, section_slug, sources(slug, reliability, trusted, locality, republish_policy)";
 
 interface ItemWithSourceRow {
   id: string;
@@ -674,6 +674,7 @@ interface ItemWithSourceRow {
   sources: {
     slug: string;
     reliability: string;
+    trusted?: boolean | null;
     locality: string;
     republish_policy: string;
   } | null;
@@ -833,6 +834,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
           sourceId: r.source_id,
           sourceSlug: r.sources?.slug ?? "",
           reliability: toReliability(r.sources?.reliability),
+          trusted: r.sources?.trusted ?? undefined,
           title: r.original_title,
           excerpt: r.excerpt,
           publishedAt: r.published_at,

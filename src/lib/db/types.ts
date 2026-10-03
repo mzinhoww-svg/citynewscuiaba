@@ -3026,6 +3026,7 @@ export type Database = {
           rec_excluded: boolean;
           rec_local_highlight: boolean;
           rec_pinned: boolean;
+          trusted: boolean;
           reliability: Database["public"]["Enums"]["source_reliability"];
           republish_policy: Database["public"]["Enums"]["republish_policy"];
           slug: string;
@@ -3076,6 +3077,7 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
+          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug: string;
@@ -3126,6 +3128,7 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
+          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug?: string;
