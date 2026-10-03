@@ -1,0 +1,1686 @@
+{
+  "generated_on": "2026-10-03",
+  "sources": [
+    "docs/superpowers/specs/2026-10-03-banners-padrao-design.md",
+    "docs/superpowers/plans/2026-10-03-banners-padrao.md",
+    "src/lib/ads/rules.ts",
+    "supabase/migrations/0001_init.sql",
+    "0039_admin_ops.sql",
+    "0048_p5_gate_fixes.sql"
+  ],
+  "legend": {
+    "origin": {
+      "existe": "há código no repositório",
+      "planejado": "na spec/plano banners-padrão ou no pedido do dono, sem código",
+      "candidato": "proposta deste inventário, fora de qualquer spec",
+      "vetado": "regra proíbe"
+    },
+    "status": [
+      "implementado",
+      "parcial",
+      "não implementado"
+    ]
+  },
+  "never_sections": {
+    "in_code": [
+      "politica",
+      "seguranca",
+      "saude"
+    ],
+    "required_by_owner": [
+      "politica",
+      "justica",
+      "seguranca",
+      "saude"
+    ],
+    "gap": "`justica` não existe em NEVER_SECTIONS nem no trigger guard_sponsored_sections; hoje não há editoria Justiça"
+  },
+  "slots": [
+    {
+      "slot_id": "NATIVE-HOME-MAISLIDAS",
+      "screen": "home",
+      "route": "/",
+      "origin": "existe",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Fim do módulo \"Mais lidas em Cuiabá\", linha inteira (md:col-span-2) abaixo dos itens 1 a 4",
+          "size": "linha de 1120×~96 (compacto)"
+        },
+        "tablet_768": {
+          "position": "Mesmo ponto, linha inteira",
+          "size": "~700×96"
+        },
+        "mobile_390": {
+          "position": "Depois dos 3 itens visíveis, coluna única",
+          "size": "342×~96"
+        }
+      },
+      "sizes": [
+        "card compacto de matéria (sem tamanho de peça)"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "qualquer (sem filtro: gap, ver Lacunas 2)"
+      ],
+      "sections_blocked": [],
+      "frequency": "1 por carga (o primeiro `articles.sponsored = true` entre as 60 mais recentes); ignora `ads.max_per_page`",
+      "label": "Texto \"Patrocinado\" na linha de meta + `MadeHow` \"Patrocínio\"; sem plaqueta (publicLabels)",
+      "lazy_load": "não (SSR no HTML)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "só `article_opened` genérico, sem marca de patrocinado",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/(inicio)/page.tsx (Module_most_read), src/components/editorial/ArticleCard.tsx, MetaRow.tsx, src/lib/db/queries/home.ts",
+      "status": "parcial",
+      "note": "Só aparece se houver artigo com `sponsored = true`: zero no banco local e zero em produção. Sem vínculo com `sponsored_campaigns`, sem estúdio para marcar a matéria."
+    },
+    {
+      "slot_id": "TOP",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Abaixo do ticker, largura do container (970 centralizado)",
+          "size": "970×250"
+        },
+        "tablet_768": {
+          "position": "Abaixo do ticker",
+          "size": "728×90 (proposto)"
+        },
+        "mobile_390": {
+          "position": "Abaixo do ticker",
+          "size": "320×100"
+        }
+      },
+      "sizes": [
+        "970×250",
+        "728×90",
+        "320×100"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot (src/components/editorial/AdSlot.tsx) montado em PublicShell; ainda não existe",
+      "status": "não implementado",
+      "note": "768: sem breakpoint na spec; proposto seguir o layout mobile (a coluna lateral só existe a partir de lg = 1024)"
+    },
+    {
+      "slot_id": "RAIL-A",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna direita, topo, acima do \"Agora\" (empurra o Agora para baixo)",
+          "size": "300×250"
+        },
+        "tablet_768": {
+          "position": "não aparece (proposto)",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "some; vira MID",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×250"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; coluna direita da home (page.tsx, grid lg:col-span-4)",
+      "status": "não implementado",
+      "note": "A home de hoje não tem coluna lateral além do NowList; o wireframe põe RAIL-A acima de \"Agora\"."
+    },
+    {
+      "slot_id": "RAIL-B",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna direita, abaixo do \"Agora\", fixo ao rolar",
+          "size": "300×600"
+        },
+        "tablet_768": {
+          "position": "não aparece",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "some",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×600"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; coluna direita",
+      "status": "não implementado",
+      "note": "A spec diz \"fixo ao rolar\"; conflita com a altura da coluna (Agora tem 6 itens). Decisão do dono: ver seção própria."
+    },
+    {
+      "slot_id": "MID-1",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Entre módulos, depois de \"Assuntos em destaque\"",
+          "size": "970×120"
+        },
+        "tablet_768": {
+          "position": "Mesmo ponto",
+          "size": "728×90 (proposto)"
+        },
+        "mobile_390": {
+          "position": "Mesmo ponto",
+          "size": "320×100"
+        }
+      },
+      "sizes": [
+        "970×120",
+        "320×100"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos; MID 2 só no padrão C (fora do B)",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot dentro de MODULES (page.tsx); módulo novo em src/lib/admin/home-layout",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "HUB",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Abaixo do bloco de editorias; bloco escuro, 2 a 4 cards de vídeo ou entrevista",
+          "size": "~970×220 (cards)"
+        },
+        "tablet_768": {
+          "position": "2 cards",
+          "size": "~728×220"
+        },
+        "mobile_390": {
+          "position": "Carrossel (manual, sem rotação automática)",
+          "size": "~320×220"
+        }
+      },
+      "sizes": [
+        "2 a 4 cards"
+      ],
+      "kind": "vídeo",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "só quando houver parceiro; sem rotação automática",
+      "label": "Conteúdo de parceiro",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "bloco novo; sem arquivo",
+      "status": "não implementado",
+      "note": "Spec diz carrossel no mobile: precisa ser manual (regra do dono: nenhum carrossel automático). Vídeo curto só no HUB."
+    },
+    {
+      "slot_id": "STICKY",
+      "screen": "home",
+      "route": "/",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "não existe",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "não existe (proposto)",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "Rodapé fixo, acima da BottomNav, após 40% de rolagem",
+          "size": "320×50"
+        }
+      },
+      "sizes": [
+        "320×50"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 por sessão; nunca junto com TOP",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "sim: ✕ dispensável, lembrar em sessionStorage; foco e teclado para fechar",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "BottomNav.tsx (hoje só navegação) + AdSlot",
+      "status": "não implementado",
+      "note": "Decisão do dono: empilhar acima da BottomNav (perde ~50 px de tela) ou substituí-la."
+    },
+    {
+      "slot_id": "TILE-SERVICOS",
+      "screen": "home",
+      "route": "/",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Módulo \"Serviços\", 5º tile",
+          "size": "tile de ServiceTile"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "tile"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "tile"
+        }
+      },
+      "sizes": [
+        "tile 1×1 do ServiceTile"
+      ],
+      "kind": "tile",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "não definida",
+      "label": "Patrocinado (texto)",
+      "lazy_load": "não",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/components/editorial/ServiceTile.tsx (sem prop de patrocínio)",
+      "status": "não implementado",
+      "note": "Candidato, fora de qualquer spec. Registrado porque o dono pediu o tipo tile."
+    },
+    {
+      "slot_id": "TOP",
+      "screen": "[editoria]",
+      "route": "/[editoria] (ex.: /cidade)",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Abaixo do ticker",
+          "size": "970×250"
+        },
+        "tablet_768": {
+          "position": "Abaixo do ticker",
+          "size": "728×90 (proposto)"
+        },
+        "mobile_390": {
+          "position": "Abaixo do ticker",
+          "size": "320×100"
+        }
+      },
+      "sizes": [
+        "970×250",
+        "728×90",
+        "320×100"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; src/app/(public)/[editoria]/page.tsx",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "RAIL-A",
+      "screen": "[editoria]",
+      "route": "/[editoria]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna direita (300 px), acima de \"Mais lidas\"",
+          "size": "300×250"
+        },
+        "tablet_768": {
+          "position": "vira faixa 320×100 acima de \"Mais lidas\"",
+          "size": "320×100"
+        },
+        "mobile_390": {
+          "position": "vira MID",
+          "size": "320×100"
+        }
+      },
+      "sizes": [
+        "300×250",
+        "320×100"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; aside#mais-lidas do [editoria]/page.tsx",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "RAIL-B",
+      "screen": "[editoria]",
+      "route": "/[editoria]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna direita, abaixo de \"Mais lidas\", fixo ao rolar",
+          "size": "300×600"
+        },
+        "tablet_768": {
+          "position": "não aparece",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "some",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×600"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; aside do [editoria]/page.tsx",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "NATIVE-LIST-CARD",
+      "screen": "[editoria]",
+      "route": "/[editoria]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Na grade de 2 colunas, depois do 6º card (nunca manchete, nunca antes do índice 6)",
+          "size": "card padrão"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "card padrão"
+        },
+        "mobile_390": {
+          "position": "idem, coluna única",
+          "size": "card padrão"
+        }
+      },
+      "sizes": [
+        "card de matéria"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "máx. 1 a cada 6 cards e `ads.max_per_page` (0 a 3, padrão 1); nunca ao lado de urgente ou sensível",
+      "label": "Patrocinado (texto, sem segunda plaqueta)",
+      "lazy_load": "não",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/lib/ads/rules.ts (placeSponsored: puro, testado, NÃO chamado por nenhuma página); src/lib/db/queries/sections.ts exclui `sponsored` das listas",
+      "status": "parcial",
+      "note": "Regra pronta e visível no painel A07, mas B-022: o portal não a chama. Hoje a editoria nem lista matéria patrocinada."
+    },
+    {
+      "slot_id": "STICKY",
+      "screen": "[editoria]",
+      "route": "/[editoria]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "não existe",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "não existe (proposto)",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "Rodapé fixo, 40% de rolagem",
+          "size": "320×50"
+        }
+      },
+      "sizes": [
+        "320×50"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "sim, sessionStorage",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "BottomNav.tsx + AdSlot",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "NATIVE-ARTICLE-LABEL",
+      "screen": "materia",
+      "route": "/materia/[slug]",
+      "origin": "existe",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Linha de origem do byline e bloco \"Como foi feito\" na lateral",
+          "size": "texto"
+        },
+        "tablet_768": {
+          "position": "byline",
+          "size": "texto"
+        },
+        "mobile_390": {
+          "position": "byline",
+          "size": "texto"
+        }
+      },
+      "sizes": [
+        "texto"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "qualquer (sem filtro)"
+      ],
+      "sections_blocked": [],
+      "frequency": "por matéria com `sponsored = true`",
+      "label": "\"Patrocinado\" no byline; \"Patrocínio: Conteúdo pago por um anunciante e identificado como tal\" em MadeHow",
+      "lazy_load": "não",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/materia/[slug]/page.tsx (Byline), MadeHow.tsx, src/lib/labels/index.ts (publicLabels)",
+      "status": "implementado",
+      "note": "Push (0041/0043) e busca com IA (`exclude_sponsored`) já ignoram matéria patrocinada."
+    },
+    {
+      "slot_id": "ART-1",
+      "screen": "materia",
+      "route": "/materia/[slug]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Após o 4º parágrafo, coluna de leitura",
+          "size": "728×90"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "728×90 (proposto)"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "320×100"
+        }
+      },
+      "sizes": [
+        "728×90",
+        "320×100"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos; nunca em matéria urgente ou de editoria bloqueada",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot dentro do loop `.reading-body` da matéria",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "ART-2",
+      "screen": "materia",
+      "route": "/materia/[slug]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Entre o fim da matéria e \"Semelhantes\"/\"Relacionadas\"",
+          "size": "728×250"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "728×250 (proposto)"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "300×250"
+        }
+      },
+      "sizes": [
+        "728×250",
+        "300×250"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot antes de section#semelhantes",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "RAIL-A",
+      "screen": "materia",
+      "route": "/materia/[slug]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Topo do aside (acima de \"Como foi feito\"), sticky",
+          "size": "300×250"
+        },
+        "tablet_768": {
+          "position": "não aparece",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "some",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×250"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "AdSlot; aside da matéria (lg:sticky)",
+      "status": "não implementado",
+      "note": "RAIL-B não aparece no wireframe da matéria: decisão do dono."
+    },
+    {
+      "slot_id": "STICKY",
+      "screen": "materia",
+      "route": "/materia/[slug]",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "não existe",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "não existe (proposto)",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "Rodapé fixo após 40% de rolagem",
+          "size": "320×50"
+        }
+      },
+      "sizes": [
+        "320×50"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 peça por campo, rotação estável por sessão (peso); máx. 3 campos visíveis por tela no desktop e 2 no mobile; STICKY e TOP nunca juntos",
+      "label": "Publicidade (texto fixo acima da peça, `rel=\"sponsored noopener\"`, `alt` obrigatório)",
+      "lazy_load": "sim, fora da primeira dobra; altura reservada (CLS 0)",
+      "dismiss_and_remember": "sim, sessionStorage",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "BottomNav.tsx + AdSlot",
+      "status": "não implementado",
+      "note": ""
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "assunto",
+      "route": "/assunto/[slug]",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot na spec",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/assunto/[slug]/page.tsx",
+      "status": "não implementado",
+      "note": "Spec banners-padrão §2 só prevê home, editorias e matéria. Cobertura de assunto mistura editorias e pode tocar Política."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "explorar",
+      "route": "/explorar",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot na spec",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "tile",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/explorar/page.tsx; SectionTile.tsx",
+      "status": "não implementado",
+      "note": "Candidato natural para tile patrocinado (SectionTile); sem spec: Decisão do dono."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "colecoes",
+      "route": "/colecoes/[slug]",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot na spec",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/colecoes/[slug]/page.tsx",
+      "status": "não implementado",
+      "note": "Coleção patrocinada seria nativo; o plano guia-cuiaba prevê a flag Patrocinado só para listas do Guia (GUIA-T5), não implementada."
+    },
+    {
+      "slot_id": "AGENDA-RAIL-A",
+      "screen": "agenda",
+      "route": "/agenda",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna direita (300 px), abaixo do calendário",
+          "size": "300×250"
+        },
+        "tablet_768": {
+          "position": "não aparece",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×250"
+      ],
+      "kind": "display",
+      "sections_allowed": [
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 por tela",
+      "label": "Publicidade",
+      "lazy_load": "sim",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "planejado ADS-T1: POST /api/ads/view, 1 envio por peça por sessão (IntersectionObserver); sem evento em `events`",
+        "click": "planejado ADS-T1: GET /api/ads/click/[id] com 302 e contagem agregada (`ad_stats`)",
+        "viewability": "não implementado; o plano só prevê IntersectionObserver, sem limiar (requisito do dono: >= 50% por 1 s)"
+      },
+      "component": "aside de src/app/(public)/agenda/page.tsx; AdSlot inexistente",
+      "status": "não implementado",
+      "note": "Candidato, fora da spec banners-padrão."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "evento",
+      "route": "/agenda/[slug]",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot na spec",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/agenda/[slug]/page.tsx",
+      "status": "não implementado",
+      "note": "Não existe rota /evento; o evento vive em /agenda/[slug]. Evento patrocinado (destaque pago) não existe no modelo."
+    },
+    {
+      "slot_id": "NATIVE-CARD-LABEL",
+      "screen": "busca",
+      "route": "/busca",
+      "origin": "existe",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Qualquer ArticleCard em resultado",
+          "size": "texto no card"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "texto"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "texto"
+        }
+      },
+      "sizes": [
+        "texto"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "qualquer"
+      ],
+      "sections_blocked": [],
+      "frequency": "por resultado com `sponsored = true`; busca com IA exclui",
+      "label": "\"Patrocinado\" em texto na meta do card",
+      "lazy_load": "não",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "ArticleCard.tsx / MetaRow.tsx; src/lib/db/queries/search.ts (exclude_sponsored)",
+      "status": "implementado",
+      "note": "Vale para todo card em qualquer tela."
+    },
+    {
+      "slot_id": "ASK-RESPOSTA-PATROCINADA",
+      "screen": "pergunte",
+      "route": "/pergunte",
+      "origin": "vetado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "vetado",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "vetado",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "vetado",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "resposta",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "todas"
+      ],
+      "frequency": "nunca",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "placeSponsored recusa lista com `aiAnswer`; `exclude_sponsored` na busca com IA; spec D17 e CLAUDE.md §5.5",
+      "status": "não implementado",
+      "note": "Vetado por regra: IA nunca responde com patrocinado, patrocinado nunca entra em `sources`. Não é lacuna a fechar."
+    },
+    {
+      "slot_id": "ASK-RAIL-A",
+      "screen": "pergunte",
+      "route": "/pergunte",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Coluna \"Fontes consultadas\", abaixo das fontes, nunca ao lado de resposta",
+          "size": "300×250"
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [
+        "300×250"
+      ],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "todas"
+      ],
+      "frequency": "—",
+      "label": "Publicidade",
+      "lazy_load": "—",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/pergunte/page.tsx (grid com --layout-rail)",
+      "status": "não implementado",
+      "note": "NÃO recomendado: qualquer banner junto da resposta pode parecer parte dela. Registrado só para o dono decidir."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "fontes",
+      "route": "/fontes e /fontes/[slug]",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot na spec",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/fontes/**",
+      "status": "não implementado",
+      "note": "Ranking de fontes não pode ser influenciado por anúncio (tracking-plan §4)."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "panorama",
+      "route": "/panorama",
+      "origin": "vetado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "todas"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/panorama/page.tsx; AggregatedSection.tsx",
+      "status": "não implementado",
+      "note": "Superfície de agregados (regra 3: 1 plaqueta por card, AGREGADO). Anúncio ao lado confundiria origem; não recomendado."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "favoritos",
+      "route": "/favoritos",
+      "origin": "vetado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "todas"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/favoritos/page.tsx",
+      "status": "não implementado",
+      "note": "Área pessoal do leitor; segmentar exigiria dado individual (regra 7)."
+    },
+    {
+      "slot_id": "NEWSLETTER-SPONSOR",
+      "screen": "newsletter",
+      "route": "/newsletter",
+      "origin": "candidato",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Bloco de patrocinador no corpo do e-mail diário (não na página)",
+          "size": "600×~100 no e-mail"
+        },
+        "tablet_768": {
+          "position": "—",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "—",
+          "size": "320×~100"
+        }
+      },
+      "sizes": [
+        "a definir (e-mail)"
+      ],
+      "kind": "newsletter",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 por edição",
+      "label": "Patrocinado (texto)",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "não mensurável sem pixel (regra 7)",
+        "click": "redirecionamento contado, planejado",
+        "viewability": "não se aplica"
+      },
+      "component": "src/app/(public)/newsletter/page.tsx + NewsletterForm.tsx (só inscrição, é divulgação do próprio CityNews, não anúncio); envio não existe (B-005)",
+      "status": "não implementado",
+      "note": "Sem provedor de e-mail com chave (B-005) não há edição para patrocinar."
+    },
+    {
+      "slot_id": "(nenhum)",
+      "screen": "perfil",
+      "route": "/perfil",
+      "origin": "vetado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "sem slot",
+          "size": null
+        },
+        "tablet_768": {
+          "position": "sem slot",
+          "size": null
+        },
+        "mobile_390": {
+          "position": "sem slot",
+          "size": null
+        }
+      },
+      "sizes": [],
+      "kind": "display",
+      "sections_allowed": [],
+      "sections_blocked": [
+        "todas"
+      ],
+      "frequency": "—",
+      "label": "—",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/app/(public)/perfil/page.tsx",
+      "status": "não implementado",
+      "note": "Conta e privacidade: sem anúncio."
+    },
+    {
+      "slot_id": "TV-PLAYER-COTA",
+      "screen": "tv (P7)",
+      "route": "/tv (não existe)",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Dentro do player: pré-roll curto ou cota de patrocínio na moldura",
+          "size": "—"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "—"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "—"
+        }
+      },
+      "sizes": [
+        "a definir"
+      ],
+      "kind": "vídeo",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "a definir; sem autoplay com som",
+      "label": "Patrocinado (texto) + \"Publicidade\" na cota",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "nenhum; só VideoLowerThird.tsx (tarja de vídeo da marca, sem relação com anúncio)",
+      "status": "não implementado",
+      "note": "Não há spec nem plano P7 no repositório (busca em docs/ e .planning/): este slot vem do pedido do dono."
+    },
+    {
+      "slot_id": "TV-SPONSOR-CARD",
+      "screen": "tv (P7)",
+      "route": "/tv/[slug] (não existe)",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Card do patrocinador acima da matéria/vídeo",
+          "size": "—"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "—"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "—"
+        }
+      },
+      "sizes": [
+        "a definir"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "1 por vídeo",
+      "label": "Patrocinado por {anunciante}",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "nenhum",
+      "status": "não implementado",
+      "note": "Mesma regra de editoria; relatório por vídeo."
+    },
+    {
+      "slot_id": "TV-CUT-BADGE",
+      "screen": "tv (P7)",
+      "route": "/tv (cortes)",
+      "origin": "planejado",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Selo do patrocinador nos cortes (canto do card e do vídeo)",
+          "size": "—"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "—"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "—"
+        }
+      },
+      "sizes": [
+        "selo"
+      ],
+      "kind": "vídeo",
+      "sections_allowed": [
+        "cidade",
+        "mobilidade",
+        "clima",
+        "economia",
+        "cultura",
+        "entretenimento",
+        "gastronomia",
+        "esportes",
+        "servicos",
+        "guia-cuiaba",
+        "agenda"
+      ],
+      "sections_blocked": [
+        "politica",
+        "justica",
+        "seguranca",
+        "saude"
+      ],
+      "frequency": "por corte",
+      "label": "Patrocinado (texto, com ícone)",
+      "lazy_load": "—",
+      "dismiss_and_remember": "—",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "nenhum",
+      "status": "não implementado",
+      "note": "Texto nunca só por cor (regra 3)."
+    }
+  ]
+}
