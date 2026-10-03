@@ -3,7 +3,6 @@ import type { TopicView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
-import { ConfidenceMeter } from "./ConfidenceMeter";
 import { TopicStatus } from "./TopicStatus";
 
 export interface TopicSummaryCardProps {
@@ -16,7 +15,7 @@ export interface TopicSummaryCardProps {
 }
 
 /**
- * Assunto em destaque (P01, P06): situação, título, resumo, confiança do conjunto e
+ * Assunto em destaque (P01, P06): situação "Corrigido" (quando houver), título, resumo e
  * contagem de matérias e fontes. Não confundir com `TopicCard` (seguir tema, do kit).
  *
  * ```tsx
@@ -54,7 +53,6 @@ export function TopicSummaryCard({
         </p>
       )}
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1">
-        <ConfidenceMeter level={topic.confidence.level} />
         <p className="type-meta text-meta">
           {CARD.topicCounts(topic.articleCount, topic.sourceCount)} ·{" "}
           {CARD.updated(formatWhen(topic.updatedAt, now))}

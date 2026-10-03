@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  Button,
-  ConfidenceMeter,
-  EmptyState,
-  InlineAlert,
-  OriginLabel,
-  SectionHeader,
-} from "@/components";
-import { DecisionPanel, FieldDiff } from "@/components/estudio";
+import { Button, EmptyState, InlineAlert, OriginLabel, SectionHeader } from "@/components";
+import { ConfidenceMeter, DecisionPanel, FieldDiff } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   EDITOR_TEXT,

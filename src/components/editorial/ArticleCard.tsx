@@ -9,7 +9,6 @@ import { publicImageCaption, publicLabels } from "@/lib/labels";
 import { cx } from "../cx";
 import { Icon, type IconName } from "../ui/Icon";
 import { CategoryTag } from "./CategoryTag";
-import { ConfidenceMeter } from "./ConfidenceMeter";
 import { MetaRow } from "./MetaRow";
 import { OriginLabel } from "./OriginLabel";
 import { ImageCaption } from "./ImageCaption";
@@ -191,7 +190,6 @@ export function ArticleCard({
         </div>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        {lead && <ConfidenceMeter level={article.confidence.level} />}
         <MetaRow
           className="flex-wrap"
           author={lead ? CARD.by(article.byline) : undefined}

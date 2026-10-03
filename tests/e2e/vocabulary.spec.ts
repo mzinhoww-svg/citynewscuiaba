@@ -8,6 +8,7 @@ import { forwardedFor } from "./own-ip";
  * "revisado", "automático", "manipulado", "agente" nem "autonomia", e os selos de estado do assunto
  * "Em apuração", "Confirmado" e "Encerrado" ficam só no Estúdio ("Corrigido" permanece). Vale para o
  * texto visível, aria-label, alt, title, placeholder e para `<title>`, `<meta>` e JSON-LD.
+ * O nível de confiança (CONF-T1, R13) também não aparece: fica só no Estúdio.
  * Exceção: páginas legais (/como-usamos-ia, /metodologia, termos, privacidade, princípios).
  */
 const FORBIDDEN = new RegExp(
@@ -24,6 +25,7 @@ const FORBIDDEN = new RegExp(
     "automátic[oa]s?\\b",
     "manipulad",
     "autonomia",
+    "confian[cç]a",
   ].join("|"),
   "i",
 );
@@ -176,6 +178,15 @@ test("assunto: sem apuração, confiança, convergência nem placeholder, e sem 
   ])
     expect(text, String(term)).not.toMatch(term);
   expect(html).toContain("Seguir");
+});
+
+test("metodologia descreve em texto simples, sem níveis de confiança (R13, R18)", async ({
+  page,
+}) => {
+  await page.goto("/metodologia");
+  const text = await page.innerText("body");
+  expect(text).not.toMatch(/confian[cç]a/i);
+  await expect(page.getByRole("heading", { level: 1, name: "Metodologia" })).toBeVisible();
 });
 
 test("a allowlist cobre só as páginas legais", () => {

@@ -10,7 +10,6 @@ import {
   ArticleFigure,
   Button,
   CategoryTag,
-  ConfidenceMeter,
   CorrectionNote,
   EmptyState,
   GoneState,
@@ -312,7 +311,6 @@ function Article({ a }: { a: ArticleView }) {
 
           <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
             <MadeHow article={a} versionsHref={historyHref} collapsible />
-            <ConfidenceMeter level={a.confidence.level} />
           </aside>
         </div>
 

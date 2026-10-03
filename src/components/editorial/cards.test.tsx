@@ -170,10 +170,12 @@ describe("ArticleCard", () => {
     expect(heading.className.split(/\s+/)).toContain(cls);
   });
 
-  it("manchete tem confiança e resumo em 20 s", () => {
-    render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
+  it("manchete tem resumo em poucos segundos e nenhum nível de confiança (R13)", () => {
+    const { container } = render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
     expect(screen.getByRole("heading", { level: 1, name: baseArticle.title })).toBeInTheDocument();
-    expect(screen.getByText("Confiança alta")).toBeInTheDocument();
+    expect(screen.queryByText(/confian/i)).not.toBeInTheDocument();
+    expect(container.querySelector("[data-bar]")).toBeNull();
+    expect(screen.queryByRole("img", { name: /confian/i })).not.toBeInTheDocument();
     const summary = screen.getByRole("region", { name: "Resumo em poucos segundos" });
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -356,8 +358,9 @@ describe("demais cards", () => {
   it("TopicSummaryCard não mostra selo de estado (R16) e mantém as contagens", () => {
     const { container } = render(<TopicSummaryCard topic={topic} now={now} />);
     expect(screen.getByRole("link", { name: topic.title })).toHaveAttribute("href", topic.href);
-    expect(container.textContent).not.toMatch(/Em apuração|Confirmado|Encerrado/);
+    expect(container.textContent).not.toMatch(/Em apuração|Confirmado|Encerrado|confian/i);
     expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector("[data-bar]")).toBeNull();
     expect(screen.getByText(/1 matéria · 4 fontes/)).toBeInTheDocument();
   });
 

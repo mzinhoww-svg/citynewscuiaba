@@ -27,7 +27,7 @@ test("1 · home: manchete com rótulos e confiança; Panorama abaixo da dobra", 
   await expect(h1).toBeVisible();
   const lead = page.locator("article").filter({ has: h1 });
   await expect(lead.getByText(/ORIGINAL CITYNEWS|Feito a partir de/).first()).toBeVisible();
-  await expect(lead.getByText(/^Confiança (alta|média|baixa)$/)).toBeVisible();
+  await expect(lead.getByText(/Confiança/)).toHaveCount(0);
   await shot(page, info, "01-home");
   const agg = page.getByRole("region", { name: "Veja também em outros portais" });
   const box = await agg.boundingBox();

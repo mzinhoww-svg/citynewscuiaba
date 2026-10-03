@@ -1,5 +1,5 @@
 import type { ConfidenceLevel } from "@/lib/confidence";
-import { CONFIDENCE_TEXT } from "@/content/pt-BR/portal-card";
+import { CONFIDENCE_TEXT } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 
 export interface ConfidenceMeterProps {
@@ -15,7 +15,8 @@ const TONE: Record<ConfidenceLevel, string> = {
 };
 
 /**
- * Nível de confiança do conjunto de fontes (spec §6.3): três barras + "Confiança alta".
+ * Nível de confiança do conjunto de fontes (spec §6.3): três barras + "Confiança alta". Só no
+ * Estúdio: o público não vê o nível (spec 2026-10-03 R13).
  *
  * ```tsx
  * <ConfidenceMeter level="média" />

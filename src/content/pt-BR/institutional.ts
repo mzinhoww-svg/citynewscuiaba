@@ -341,21 +341,21 @@ export const METHOD = {
   path: "/metodologia",
   metaTitle: meta("Metodologia"),
   description:
-    "Como o CityNews mede a confiança, o que cada rótulo significa e as regras públicas de publicação automática.",
+    "Como as matérias do CityNews são feitas, o que cada rótulo significa e as regras públicas de publicação.",
   title: "Metodologia",
   intro:
     "Aqui explicamos, em linguagem simples, como decidimos o que publicar e como mostramos isso para você.",
-  confidenceTitle: "Como medimos a confiança",
-  confidenceIntro:
-    "Cada matéria e cada assunto mostram um nível de confiança, em texto e em barras. O nível depende de quantas fontes independentes confirmam a informação, se há fonte oficial (primária), se as fontes divergem no fato central e de quando foi a última atualização.",
-  confidenceLevels: [
-    "Confiança alta: pelo menos 2 fontes independentes, ao menos 1 fonte primária, nenhuma divergência no fato central e atualização nas últimas 24 h.",
-    "Confiança baixa: só 1 fonte independente e nenhuma primária, ou fontes que divergem no fato central.",
-    "Confiança média: todos os outros casos.",
+  howTitle: "Como as matérias são feitas",
+  howIntro:
+    "Cada matéria vem de fontes citadas, que aparecem na própria matéria com link para o original. Quando as fontes são outras, o texto diz de quantas veio. Reportagem própria da redação leva a marca ORIGINAL CITYNEWS, e links para outros veículos levam AGREGADO e o nome da fonte.",
+  howItems: [
+    "Erros são corrigidos na própria matéria, com nota visível e histórico de versões.",
+    "Crime, violência, morte, saúde de pessoas e eleições passam sempre por revisão humana antes de ir ao ar.",
+    "Conteúdo pago é identificado como Patrocinado.",
   ],
   labelsTitle: "O que cada rótulo significa",
   labelsIntro:
-    "Cada card mostra até 4 rótulos. Os demais ficam no bloco Como esta matéria foi feita, dentro da matéria.",
+    "Cada card mostra até 4 rótulos. Os demais ficam no bloco De onde veio, dentro da matéria.",
   rulesTitle: "Regras de publicação automática",
   rulesIntro:
     "O sistema só publica sozinho quando a categoria permite e a informação cumpre os requisitos abaixo. Temas sensíveis e notícias urgentes sempre passam por uma pessoa. Nesta fase inicial, a revisão humana está ligada para todas as categorias.",
@@ -366,7 +366,7 @@ export const METHOD = {
     sources: "Mínimo de fontes",
     primary: "Exige fonte primária",
     image: "Exige imagem aprovada",
-    score: "Confiança mínima",
+    score: "Pontuação mínima",
   },
   modes: {
     auto: "Automático",

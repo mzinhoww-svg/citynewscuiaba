@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, ConfidenceMeter, EmptyState, InlineAlert, OriginLabel } from "@/components";
+import { Button, EmptyState, InlineAlert, OriginLabel } from "@/components";
 import {
   AiSuggestionInline,
+  ConfidenceMeter,
   ArticleEditor,
   ChecklistPanel,
   CorrectionForm,

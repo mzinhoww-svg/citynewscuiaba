@@ -1,4 +1,3 @@
-import type { ConfidenceLevel } from "@/lib/confidence";
 import type { TopicState } from "@/lib/db/queries/types";
 
 /*
@@ -10,12 +9,6 @@ import type { TopicState } from "@/lib/db/queries/types";
 export const BYLINE = {
   newsroom: "Redação CityNews",
 } as const;
-
-export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = {
-  alta: "Confiança alta",
-  média: "Confiança média",
-  baixa: "Confiança baixa",
-};
 
 /**
  * Selos de estado do assunto que o público vê (R16): só "Corrigido", por transparência de

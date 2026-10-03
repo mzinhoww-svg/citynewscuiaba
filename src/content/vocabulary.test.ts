@@ -28,7 +28,7 @@ import * as ui from "./pt-BR/ui";
  * UI-T3 (spec 2026-10-02 §4.1) e LAB-T1 (spec 2026-10-03 R16): os textos das telas públicas nunca
  * dizem "normalizado", "IA", "inteligência artificial", "resumo por IA", "publicado
  * automaticamente", "gerado", "revisado", "automático", "manipulado", "autonomia", "agente", nem
- * os selos de estado "Em apuração" e "Encerrado" (o estado fica só no Estúdio). Cobre também
+ * "confiança" (CONF-T1) e os selos de estado "Em apuração" e "Encerrado" (o estado fica só no Estúdio). Cobre também
  * estados que o e2e não alcança (assistente indisponível, limite, erro).
  * Exceções: as páginas legais de institutional.ts, a metodologia, LABEL_TEXT/LABEL_EXPLAIN (nomes
  * internos, usados no Estúdio e na metodologia).
@@ -49,6 +49,7 @@ const FORBIDDEN = new RegExp(
     "\\bagentes?\\b",
     "em apuração",
     "encerrad[oa]s?\\b",
+    "confian[cç]a",
   ].join("|"),
   "i",
 );
