@@ -117,7 +117,10 @@ const ISO =
   /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{1,2}):(\d{2})(?::(\d{2})(?:[.,](\d{1,9}))?)?)?\s*(z|[+-]\d{2}(?::?\d{2})?|utc|gmt)?$/i;
 const RFC822 =
   /^(?:[a-zà-ú]{3,}\.?,?\s+)?(\d{1,2})\s+([a-zà-ú]{3,})\.?\s+(\d{2}|\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?\s*([a-z]{1,5}|[+-]\d{2}:?\d{2}|(?:gmt|utc)[+-]\d{2}:?\d{2})?$/i;
-const BR = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+const BR = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s*[,|-]?\s*(\d{1,2})[:h](\d{2})(?::(\d{2}))?)?$/i;
+/** "3 de outubro de 2026", "03 de Outubro de 2026 às 06:30:00" (sites de órgãos públicos). */
+const PT_LONG =
+  /^(\d{1,2})\s+de\s+([a-zà-ú]{3,})\s+de\s+(\d{4})(?:\s*(?:às|as|,|-|\|)?\s*(\d{1,2})[:h](\d{2})(?::(\d{2}))?)?$/i;
 
 export function parseFeedDate(input: string): string | null {
   const s = input.trim().replace(/\s+/g, " ");
@@ -160,6 +163,24 @@ export function parseFeedDate(input: string): string | null {
     );
   }
 
+  const pt = PT_LONG.exec(s);
+  if (pt) {
+    const month = MONTHS[pt[2]!.slice(0, 3).toLowerCase()];
+    if (month === undefined) return null;
+    return toIso(
+      {
+        y: Number(pt[3]),
+        mo: month,
+        d: Number(pt[1]),
+        h: Number(pt[4] ?? 0),
+        mi: Number(pt[5] ?? 0),
+        s: Number(pt[6] ?? 0),
+        ms: 0,
+      },
+      null,
+    );
+  }
+
   const br = BR.exec(s);
   if (br) {
     return toIso(
@@ -174,6 +195,28 @@ export function parseFeedDate(input: string): string | null {
       },
       null,
     );
+  }
+  return null;
+}
+
+const IN_TEXT = [
+  /\d{1,2}\/\d{1,2}\/\d{4}(?:\s*[,|-]?\s*\d{1,2}[:h]\d{2}(?::\d{2})?)?/,
+  /\d{1,2}\s+de\s+[a-zà-ú]{3,}\s+de\s+\d{4}(?:\s*(?:às|as|,|-|\|)?\s*\d{1,2}[:h]\d{2}(?::\d{2})?)?/i,
+  /\d{4}-\d{2}-\d{2}(?:[T ]\d{1,2}:\d{2}(?::\d{2})?)?/,
+];
+
+/**
+ * Procura uma data dentro de um texto com ruído ("Postado em 02/10/2026 13h47 · 1 day ago").
+ * Só os formatos que `parseFeedDate` entende; devolve a primeira que valida, ou null.
+ */
+export function parseDateInText(input: string): string | null {
+  const direct = parseFeedDate(input);
+  if (direct) return direct;
+  const s = input.replace(/\s+/g, " ");
+  for (const re of IN_TEXT) {
+    const m = re.exec(s);
+    const iso = m ? parseFeedDate(m[0]) : null;
+    if (iso) return iso;
   }
   return null;
 }
