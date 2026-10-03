@@ -60,6 +60,16 @@ O dono pediu varrer **todas** as labels que digam que um conteúdo é revisado, 
 - **R19 Estúdio e Control Center** continuam mostrando tudo (modo de publicação, "auto_published", revisão), pois são ferramentas internas.
 - **Guarda:** `vocabulary.spec.ts` passa a proibir nas rotas públicas e nos metadados: "revisad", "revisão", "gerad", "automátic", "inteligência", "IA", "agente", "manipulad", "autonomia", "confiança"; com lista de exceções só para as páginas legais.
 
+### Emenda 4 de 03/10/2026 — portal regional: destaque local (pedido do dono)
+
+O CityNews é um portal regional. As principais notícias, os destaques e as urgências devem ser **locais ou regionais**, e só vão para essas áreas as notícias nacionais **de comoção nacional**.
+
+- **R20 Escopo da notícia.** Cada matéria ganha `news_scope` ∈ {`cuiaba`, `mt`, `national`}, definido no passo `locate` (hoje existe localização por bairro e fonte com `locality`): bairro ou município de Cuiabá/Várzea Grande = `cuiaba`; outro município ou órgão estadual de MT = `mt`; o resto = `national`. A fonte com `locality = 'cuiaba'|'mt'` empurra o escopo na mesma direção, sem decidir sozinha.
+- **R21 Elegibilidade.** Só `cuiaba` e `mt` podem ocupar `home.lead`, `home.destaques`, `editoria.lead`, `explorar.topo`, a faixa Urgente e a pauta quente (R8 a R12). `national` só entra nelas com `national_commotion = true`.
+- **R22 Comoção nacional.** `national_commotion` é verdadeiro quando: (a) pelo menos **5 portais nacionais** monitorados mantêm o assunto nas 3 primeiras posições da página inicial dentro de 3 h (mesmo passo `frontpage`, com um grupo de fontes `scope = national`), **e** (b) o assunto tem matéria nossa publicada; ou (c) o admin marca a matéria manualmente. Vale por 6 h, renovável enquanto o sinal durar, e ocupa no máximo 1 vaga de `home.destaques` e a faixa Urgente, nunca `home.lead` quando houver matéria local elegível publicada nas últimas 3 h.
+- **R23 Automático por janela (R1).** A pontuação das candidatas multiplica por 1,0 (`cuiaba`), 0,8 (`mt`) e 0,0 (`national` sem comoção); sem candidata local, a posição cai para a mais recente `mt` e nunca fica vazia.
+- **Testes:** matéria nacional publicada mais recente que a local não vira lead; com 5 portais nacionais e comoção ligada, entra em `home.destaques` mas não em `home.lead`; Urgente nacional sem comoção é rebaixado para publicação normal.
+
 ## 4. Arquitetura
 
 - Banco (migrations 0053 e 0054): `featured_slots`, `featured_items` (manual, com `starts_at`, `ends_at`, `position`, `slot_key`, `section_slug` opcional, `article_id`, `created_by`, `note`, `ended_at`), RLS pública de leitura só das linhas ativas e de matéria publicada, escrita só por função com checagem de papel; coluna `collected_items.body_text`.
