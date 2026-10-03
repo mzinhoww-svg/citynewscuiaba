@@ -278,3 +278,4 @@ export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
 export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
+export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";

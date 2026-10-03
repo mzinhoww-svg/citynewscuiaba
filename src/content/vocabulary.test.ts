@@ -25,17 +25,37 @@ import * as system from "./pt-BR/system";
 import * as ui from "./pt-BR/ui";
 
 /*
- * UI-T3 (spec 2026-10-02 §4.1): os textos das telas públicas nunca dizem "normalizado", "IA",
- * "inteligência artificial", "resumo por IA", "publicado automaticamente" nem "gerado por IA".
- * Cobre também estados que o e2e não alcança (assistente indisponível, limite, erro).
+ * UI-T3 (spec 2026-10-02 §4.1) e LAB-T1 (spec 2026-10-03 R16): os textos das telas públicas nunca
+ * dizem "normalizado", "IA", "inteligência artificial", "resumo por IA", "publicado
+ * automaticamente", "gerado", "revisado", "automático", "manipulado", "autonomia", "agente", nem
+ * "confiança" (CONF-T1) e os selos de estado "Em apuração" e "Encerrado" (o estado fica só no Estúdio). Cobre também
+ * estados que o e2e não alcança (assistente indisponível, limite, erro).
  * Exceções: as páginas legais de institutional.ts, a metodologia, LABEL_TEXT/LABEL_EXPLAIN (nomes
- * internos, usados no Estúdio e na metodologia) e o rótulo de imagem gerada (não há gerador hoje).
+ * internos, usados no Estúdio e na metodologia).
  */
-const FORBIDDEN =
-  /normaliz|\bIA\b|inteligência artificial|resumo por ia|publicado automaticamente|gerad[oa] por ia/i;
+const FORBIDDEN = new RegExp(
+  [
+    "normaliz",
+    "\\bIA\\b",
+    "inteligência artificial",
+    "resumo por ia",
+    "publicad[oa] automaticamente",
+    "gerad[oa]s?\\b",
+    "revisad[oa]s?\\b",
+    "automaticamente",
+    "automátic[oa]s?\\b",
+    "manipulad",
+    "autonomia",
+    "\\bagentes?\\b",
+    "em apuração",
+    "encerrad[oa]s?\\b",
+    "confian[cç]a",
+  ].join("|"),
+  "i",
+);
 
-/** Endereços e identificadores não são texto de tela; `ai_generated` é o rótulo de imagem gerada. */
-const SKIPPED_KEYS = new Set(["href", "id", "path", "ai_generated"]);
+/** Endereços e identificadores não são texto de tela. */
+const SKIPPED_KEYS = new Set(["href", "id", "path"]);
 const LEGAL_EXPORTS = new Set(["AI_USE", "PRIVACY", "TERMS", "METHOD", "PRINCIPLES"]);
 const INTERNAL_EXPORTS = new Set(["LABEL_TEXT", "LABEL_EXPLAIN"]);
 
@@ -105,4 +125,16 @@ it("os links para a página legal de uso de IA se chamam 'Como funciona o CityNe
   );
   expect(links.length).toBe(2);
   for (const l of links) expect(l.label).toBe("Como funciona o CityNews");
+});
+
+it("a página de assunto não tem textos de apuração, confiança nem placeholder vazio", () => {
+  const found = strings(portalTopic.TOPIC).filter((s) =>
+    /confian|Nada registrado|divergem|concordam|Ainda não confirmado|em apuração/i.test(s),
+  );
+  expect(found).toEqual([]);
+});
+
+it("o único selo de estado do assunto que o público vê é 'Corrigido' (R16)", () => {
+  expect(Object.keys(portalCard.TOPIC_STATE_TEXT)).toEqual(["corrigido"]);
+  expect(portalCard.TOPIC_STATE_TEXT.corrigido).toBe("Corrigido");
 });

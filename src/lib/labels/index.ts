@@ -101,13 +101,10 @@ export function labelsFor(input: LabelInput, max = 4): { shown: Label[]; hidden:
   return { shown: all.slice(0, limit), hidden: all.slice(limit) };
 }
 
-/** O que a tela pública precisa saber de uma matéria para dizer origem e revisão. */
+/** O que a tela pública precisa saber de uma matéria para dizer a origem. */
 export interface PublicLabelInput {
   kind: "original" | "normalized" | "aggregated";
   sourceCount?: number;
-  publishMode: "human" | "auto" | null;
-  /** Nome de quem revisou, quando há. */
-  reviewer?: string;
   sponsored?: boolean;
 }
 
@@ -116,16 +113,15 @@ export interface PublicLabels {
   plaque?: "original" | "aggregated";
   /** Texto derivado: "Feito a partir de 2 fontes". */
   originText?: string;
-  /** "Revisado por Marina Arruda" ou "Revisado automaticamente". */
-  reviewText?: string;
   /** "Patrocinado": em texto, nunca uma segunda plaqueta. */
   sponsoredText?: string;
 }
 
 /**
- * Vocabulário público (spec 2026-10-02 §4.1): a leitora vê só de onde veio e quem revisou.
- * `normalized`, `ai_summary` e `auto_published` seguem como nomes internos (dado e Estúdio);
- * as telas públicas nunca os exibem. Conteúdo agregado só recebe a plaqueta AGREGADO.
+ * Vocabulário público (spec 2026-10-03 R16 e R17): a leitora vê só de onde veio (plaqueta,
+ * "Feito a partir de n fontes") e se é patrocinado. Revisão, modo de publicação, geração e IA
+ * não saem daqui: `normalized`, `ai_summary`, `auto_published` e `human_reviewed` seguem como
+ * nomes internos (dado e Estúdio). Conteúdo agregado só recebe a plaqueta AGREGADO.
  */
 export function publicLabels(input: PublicLabelInput): PublicLabels {
   const out: PublicLabels = {};
@@ -137,15 +133,6 @@ export function publicLabels(input: PublicLabelInput): PublicLabels {
       n !== undefined && Number.isInteger(n) && n > 0
         ? PUBLIC_LABEL.derivedFrom(n)
         : PUBLIC_LABEL.derivedFromOthers;
-  }
-  if (input.kind !== "aggregated") {
-    if (input.publishMode === "human") {
-      out.reviewText = input.reviewer?.trim()
-        ? PUBLIC_LABEL.reviewedBy(input.reviewer.trim())
-        : PUBLIC_LABEL.reviewedNewsroom;
-    } else if (input.publishMode === "auto") {
-      out.reviewText = PUBLIC_LABEL.reviewedAuto;
-    }
   }
   if (input.sponsored) out.sponsoredText = PUBLIC_LABEL.sponsored;
   return out;

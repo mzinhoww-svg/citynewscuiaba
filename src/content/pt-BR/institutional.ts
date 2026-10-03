@@ -105,7 +105,7 @@ export const ABOUT: InstitutionalDoc = {
     {
       title: "Como trabalhamos",
       paragraphs: [
-        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático, dentro de regras públicas. Cada matéria diz se foi revisada por uma pessoa ou automaticamente. A redação supervisiona o sistema, revisa os temas sensíveis e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
+        "Reunimos informações de fontes cadastradas e de apuração própria. A redação acompanha o que vai ao ar e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
         "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
       ],
     },
@@ -182,7 +182,7 @@ export const AI_USE: InstitutionalDoc = {
       items: [
         "Lê as fontes cadastradas a cada 30 minutos e agrupa as notícias sobre o mesmo fato.",
         "Classifica editoria e bairro, confere se há fonte oficial e se as fontes concordam.",
-        "Escreve resumos curtos, marcados como RESUMO POR IA.",
+        "Escreve resumos curtos, que aparecem como Resumo em poucos segundos.",
         "Sugere títulos e imagens ilustrativas, que seguem as mesmas regras de rótulo.",
         "Responde perguntas na busca com IA, sempre citando as fontes.",
       ],
@@ -341,21 +341,21 @@ export const METHOD = {
   path: "/metodologia",
   metaTitle: meta("Metodologia"),
   description:
-    "Como o CityNews mede a confiança, o que cada rótulo significa e as regras públicas de publicação automática.",
+    "Como as matérias do CityNews são feitas, o que cada rótulo significa e as regras públicas de publicação.",
   title: "Metodologia",
   intro:
     "Aqui explicamos, em linguagem simples, como decidimos o que publicar e como mostramos isso para você.",
-  confidenceTitle: "Como medimos a confiança",
-  confidenceIntro:
-    "Cada matéria e cada assunto mostram um nível de confiança, em texto e em barras. O nível depende de quantas fontes independentes confirmam a informação, se há fonte oficial (primária), se as fontes divergem no fato central e de quando foi a última atualização.",
-  confidenceLevels: [
-    "Confiança alta: pelo menos 2 fontes independentes, ao menos 1 fonte primária, nenhuma divergência no fato central e atualização nas últimas 24 h.",
-    "Confiança baixa: só 1 fonte independente e nenhuma primária, ou fontes que divergem no fato central.",
-    "Confiança média: todos os outros casos.",
+  howTitle: "Como as matérias são feitas",
+  howIntro:
+    "Cada matéria vem de fontes citadas, que aparecem na própria matéria com link para o original. Quando as fontes são outras, o texto diz de quantas veio. Reportagem própria da redação leva a marca ORIGINAL CITYNEWS, e links para outros veículos levam AGREGADO e o nome da fonte.",
+  howItems: [
+    "Erros são corrigidos na própria matéria, com nota visível e histórico de versões.",
+    "Crime, violência, morte, saúde de pessoas e eleições passam sempre por revisão humana antes de ir ao ar.",
+    "Conteúdo pago é identificado como Patrocinado.",
   ],
   labelsTitle: "O que cada rótulo significa",
   labelsIntro:
-    "Cada card mostra até 4 rótulos. Os demais ficam no bloco Como esta matéria foi feita, dentro da matéria.",
+    "Cada card mostra até 4 rótulos. Os demais ficam no bloco De onde veio, dentro da matéria.",
   rulesTitle: "Regras de publicação automática",
   rulesIntro:
     "O sistema só publica sozinho quando a categoria permite e a informação cumpre os requisitos abaixo. Temas sensíveis e notícias urgentes sempre passam por uma pessoa. Nesta fase inicial, a revisão humana está ligada para todas as categorias.",
@@ -366,7 +366,7 @@ export const METHOD = {
     sources: "Mínimo de fontes",
     primary: "Exige fonte primária",
     image: "Exige imagem aprovada",
-    score: "Confiança mínima",
+    score: "Pontuação mínima",
   },
   modes: {
     auto: "Automático",

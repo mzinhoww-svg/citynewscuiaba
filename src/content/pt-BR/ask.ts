@@ -32,9 +32,7 @@ export const ASK = {
   inferencesHint: "Conclusão a partir das fontes, não confirmada por elas.",
   gapsTitle: "O que ainda não se sabe",
   conflictsTitle: "Onde as fontes divergem",
-  lowConfidence:
-    "Confiança baixa: as fontes são poucas ou divergem. Leia as fontes antes de concluir.",
-  disclaimer: "Pode conter erros. Confira nas fontes antes de decidir.",
+  disclaimer: "Pode conter erros. Confira nas fontes.",
   sourcesTitle: "Fontes consultadas",
   foundTitle: "O que encontramos",
   citedBy: (n: number) => `Fonte ${n}`,

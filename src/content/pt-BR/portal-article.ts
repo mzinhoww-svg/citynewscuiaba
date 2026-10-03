@@ -45,8 +45,6 @@ export const ARTICLE = {
   sources: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
   actions: "Ações da matéria",
   aiTitle: "Resumo em poucos segundos",
-  aiReviewed: (name: string) => `Resumo revisado por ${name}.`,
-  aiNotReviewed: "Revisado automaticamente. Confira os detalhes no texto completo.",
   aiUseful: "Foi útil?",
   yes: "Sim",
   no: "Não",

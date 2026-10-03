@@ -3,7 +3,6 @@ import { ASK } from "@/content/pt-BR/ask";
 import type { AiAnswer as AiAnswerData, Claim } from "@/lib/ai/answer";
 import { formatHour } from "@/lib/format/date";
 import { cx } from "../cx";
-import { ConfidenceMeter } from "../editorial/ConfidenceMeter";
 import { Icon } from "../ui/Icon";
 import { AnswerFeedback } from "./AnswerFeedback";
 import { Citation } from "./Citation";
@@ -40,7 +39,7 @@ function Block({ title, children, hint }: { title: string; children: ReactNode; 
 
 /**
  * Resposta da busca com IA (spec §5.5, P13): fatos com citação clicável em cada frase, inferência
- * rotulada, lacunas e conflitos em blocos separados, confiança, horário da consulta, aviso fixo
+ * rotulada, lacunas e conflitos em blocos separados, horário da consulta, aviso fixo
  * de que pode conter erros e "Esta resposta ajudou?".
  *
  * ```tsx
@@ -60,14 +59,10 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
           {ASK.aiGenerated}
         </h2>
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <ConfidenceMeter level={answer.confidence} />
           <time dateTime={answer.asOf} className="type-meta text-meta tabular-nums">
             {ASK.asOf(formatHour(answer.asOf))}
           </time>
         </p>
-        {answer.confidence === "baixa" && (
-          <p className="type-meta text-warn">{ASK.lowConfidence}</p>
-        )}
       </header>
 
       <Block title={ASK.factsTitle}>

@@ -13,7 +13,6 @@ import {
   topicListHref,
   type TopicListQuery,
 } from "@/lib/filters/topics";
-import type { TopicState } from "@/lib/db/queries/types";
 
 /** Lista de assuntos (P06). Filtros na URL: renderizada por requisição. */
 export const revalidate = 120;
@@ -26,7 +25,8 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
-const STATES: TopicState[] = ["em_apuracao", "confirmado", "corrigido", "encerrado"];
+/** Só "Corrigidos" é filtro público (R16); a URL antiga com outra situação ainda funciona. */
+const STATES: Array<keyof typeof TOPIC.listStates> = ["corrigido"];
 
 type Props = { searchParams: Promise<SearchParamsInput> };
 

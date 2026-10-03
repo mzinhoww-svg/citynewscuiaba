@@ -180,32 +180,40 @@ function Module_nearby() {
 function Module_agenda_services({ data }: { data: HomeData }) {
   return (
     <>
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
-        <section aria-labelledby="home-agenda" className="flex min-w-0 flex-col gap-4">
-          <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
-          {data.events.length === 0 ? (
-            <p className="type-body text-meta">{HOME.agendaEmpty}</p>
-          ) : (
-            <Rail label={HOME.agenda} desktop="grid">
-              {data.events.map((e) => (
-                <article
-                  key={e.id}
-                  className="relative flex w-full items-center gap-3 border border-line-section p-3 [--card-radius:var(--r-0)]"
-                >
-                  <EventDateBadge startsAt={e.startsAt} />
-                  <div className="flex min-w-0 flex-col gap-1">
-                    <h3 className="type-headline-sm line-clamp-2 text-strong">
-                      <Link href={e.href} className="card-link no-underline">
-                        {e.title}
-                      </Link>
-                    </h3>
-                    <p className="type-meta text-meta">{eventMeta(e)}</p>
-                  </div>
-                </article>
-              ))}
-            </Rail>
-          )}
-        </section>
+      <div
+        className={
+          data.events.length > 0
+            ? "grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10"
+            : "grid grid-cols-1 gap-8"
+        }
+      >
+        {data.events.length > 0 && (
+          <section aria-labelledby="home-agenda" className="flex min-w-0 flex-col gap-4">
+            <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
+            {data.events.length === 0 ? (
+              <p className="type-body text-meta">{HOME.agendaEmpty}</p>
+            ) : (
+              <Rail label={HOME.agenda} desktop="grid">
+                {data.events.map((e) => (
+                  <article
+                    key={e.id}
+                    className="relative flex w-full items-center gap-3 border border-line-section p-3 [--card-radius:var(--r-0)]"
+                  >
+                    <EventDateBadge startsAt={e.startsAt} />
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <h3 className="type-headline-sm line-clamp-2 text-strong">
+                        <Link href={e.href} className="card-link no-underline">
+                          {e.title}
+                        </Link>
+                      </h3>
+                      <p className="type-meta text-meta">{eventMeta(e)}</p>
+                    </div>
+                  </article>
+                ))}
+              </Rail>
+            )}
+          </section>
+        )}
 
         <section aria-labelledby="home-services" className="flex min-w-0 flex-col gap-4">
           <SectionHeader id="home-services" title={HOME.services} actionHref={HOME.servicesMore} />
@@ -279,18 +287,21 @@ function Module_most_read({ data }: { data: HomeData }) {
               {HOME.mostRead}
             </h2>
           </div>
-          <ol className="grid grid-cols-1 gap-x-10 gap-y-0 max-md:[&>li:nth-child(n+4)]:hidden md:grid-cols-2">
-            {data.mostRead.map((a, i) => (
-              <li key={a.id} className="flex min-w-0 items-start gap-4">
-                <span
-                  aria-hidden="true"
-                  className="w-8 shrink-0 pt-3 font-sans text-32 font-black leading-none text-meta tabular-nums"
-                >
-                  {i + 1}
-                </span>
-                <ArticleCard variant="compact" article={a} className="min-w-0 flex-1" />
-              </li>
-            ))}
+          <ol className="grid grid-cols-1 gap-x-10 gap-y-4 max-md:[&>li:nth-child(n+4)]:hidden md:grid-cols-2">
+            {/* Número par no desktop: a grade de duas colunas nunca fica com buraco no fim. */}
+            {data.mostRead
+              .slice(0, data.mostRead.length - (data.mostRead.length % 2))
+              .map((a, i) => (
+                <li key={a.id} className="flex min-w-0 items-start gap-4">
+                  <span
+                    aria-hidden="true"
+                    className="w-8 shrink-0 pt-3 font-sans text-32 font-black leading-none text-meta tabular-nums"
+                  >
+                    {i + 1}
+                  </span>
+                  <ArticleCard variant="compact" article={a} className="min-w-0 flex-1" />
+                </li>
+              ))}
             {data.sponsored && (
               <li className="flex items-start gap-4 md:col-span-2">
                 <ArticleCard

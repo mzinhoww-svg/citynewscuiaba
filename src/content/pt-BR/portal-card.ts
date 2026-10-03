@@ -1,4 +1,3 @@
-import type { ConfidenceLevel } from "@/lib/confidence";
 import type { TopicState } from "@/lib/db/queries/types";
 
 /*
@@ -11,25 +10,18 @@ export const BYLINE = {
   newsroom: "Redação CityNews",
 } as const;
 
-export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = {
-  alta: "Confiança alta",
-  média: "Confiança média",
-  baixa: "Confiança baixa",
-};
-
-export const TOPIC_STATE_TEXT: Record<TopicState, string> = {
-  em_apuracao: "Em apuração",
-  confirmado: "Confirmado",
+/**
+ * Selos de estado do assunto que o público vê (R16): só "Corrigido", por transparência de
+ * correção. "Em apuração", "Confirmado" e "Encerrado" ficam no Estúdio.
+ */
+export const TOPIC_STATE_TEXT: Partial<Record<TopicState, string>> = {
   corrigido: "Corrigido",
-  encerrado: "Encerrado",
 };
 
 export const MADE_HOW = {
-  title: "Como esta matéria foi feita",
-  rules: "Texto do CityNews, publicado dentro das regras de revisão.",
+  title: "De onde veio",
   versions: "Ver histórico de versões",
   methodology: "Entenda a metodologia",
-  methodologyHref: "/metodologia",
 } as const;
 
 export const CARD = {

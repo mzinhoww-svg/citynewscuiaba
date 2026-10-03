@@ -41,14 +41,12 @@ describe("SourcesList em <details>", () => {
 });
 
 describe("MadeHow recolhível", () => {
-  const article = { kind: "normalized" as const, sourceCount: 2, publishMode: "auto" as const };
-  it("com collapsible, o conteúdo fica em <details> com resumo 'Como esta matéria foi feita'", () => {
+  const article = { kind: "normalized" as const, sourceCount: 2 };
+  it("com collapsible, o conteúdo fica em <details> com resumo 'De onde veio'", () => {
     const { container } = render(<MadeHow article={article} versionsHref="/x" collapsible />);
-    expect(container.querySelector("details > summary")).toHaveTextContent(
-      "Como esta matéria foi feita",
-    );
+    expect(container.querySelector("details > summary")).toHaveTextContent("De onde veio");
     // Versão para o desktop (aberta, escolhida por CSS) vem no mesmo HTML.
-    expect(screen.getAllByRole("region", { name: "Como esta matéria foi feita" })).toHaveLength(2);
+    expect(screen.getAllByRole("region", { name: "De onde veio" })).toHaveLength(2);
   });
   it("sem collapsible, não usa <details>", () => {
     const { container } = render(<MadeHow article={article} versionsHref="/x" />);
@@ -57,10 +55,13 @@ describe("MadeHow recolhível", () => {
 });
 
 describe("AiSummaryBlock", () => {
-  it("chama-se 'Resumo em poucos segundos' e não usa rótulo de IA", () => {
-    const { container } = render(<AiSummaryBlock items={["A", "B"]} reviewer="Marina Arruda" />);
+  it("chama-se 'Resumo em poucos segundos', sem rótulo de IA nem rodapé de revisão", () => {
+    const { container } = render(<AiSummaryBlock items={["A", "B"]} />);
     expect(screen.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeInTheDocument();
-    expect(container.textContent).not.toMatch(/\bIA\b|inteligência artificial|gerado/i);
+    expect(container.textContent).not.toMatch(
+      /\bIA\b|inteligência artificial|gerado|revisad|automátic/i,
+    );
+    expect(screen.getByText("Foi útil?")).toBeInTheDocument();
     expect(container.innerHTML).not.toMatch(/bg-ia-soft|border-ai|text-ai/);
   });
 });

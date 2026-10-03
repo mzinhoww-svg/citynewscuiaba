@@ -52,7 +52,6 @@ export { BarChart, type BarChartProps } from "./editorial/BarChart";
 export { BottomNav, type BottomNavProps } from "./editorial/BottomNav";
 export { CategoryTag, type CategoryTagProps } from "./editorial/CategoryTag";
 export { CollectionCard, type CollectionCardProps } from "./editorial/CollectionCard";
-export { ConfidenceMeter, type ConfidenceMeterProps } from "./editorial/ConfidenceMeter";
 export { EventDateBadge, type EventDateBadgeProps } from "./editorial/EventDateBadge";
 export { FeatureCard, type FeatureCardProps } from "./editorial/FeatureCard";
 export { LiveIndicator, type LiveIndicatorProps } from "./editorial/LiveIndicator";
@@ -182,7 +181,6 @@ export {
 } from "./editorial/UpdatedWhileReading";
 export { VersionDiff, type VersionDiffProps } from "./editorial/VersionDiff";
 
-export { ConvergenceBlock, type ConvergenceBlockProps } from "./editorial/ConvergenceBlock";
 export { Timeline, type TimelineProps } from "./editorial/Timeline";
 export { TopicCoverage, type TopicCoverageProps } from "./editorial/TopicCoverage";
 export { TopicFaq, type TopicFaqProps } from "./editorial/TopicFaq";

@@ -1,5 +1,4 @@
 import "server-only";
-import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import type { DbClient } from "@/lib/db/client";
 import type { Database, Json } from "@/lib/db/types";
 import { tagFor } from "@/lib/push/payload";
@@ -11,7 +10,7 @@ import {
   type PushSend,
   type PushSendStore,
 } from "@/lib/push/steps/store";
-import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
+import { BODY_MAX, pushOriginLabel, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
 import type { Audience, PushKind, ReserveOutcome, SendStatus, TargetKey } from "@/lib/push/types";
 
 type SendRow = Database["public"]["Tables"]["push_sends"]["Row"];
@@ -38,11 +37,9 @@ function toSend(r: SendRow): PushSend {
   };
 }
 
-/** Rótulo principal da matéria (D-P18): automático, normalizado ou original. */
+/** Rótulo de origem da notificação (R16): ORIGINAL CITYNEWS ou a origem em frase. */
 export function originLabelFor(a: { publishMode: "human" | "auto" | null; kind: string }): string {
-  if (a.publishMode === "auto") return LABEL_TEXT.auto_published;
-  if (a.kind === "normalized") return LABEL_TEXT.normalized;
-  return LABEL_TEXT.original;
+  return pushOriginLabel(a.kind);
 }
 
 const SUB_COLS = "id, endpoint, p256dh, auth";

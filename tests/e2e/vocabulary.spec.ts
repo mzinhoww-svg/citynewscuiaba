@@ -2,13 +2,35 @@ import { expect, test, type Page } from "@playwright/test";
 import { forwardedFor } from "./own-ip";
 
 /*
- * UI-T3: vocabulário público (spec 2026-10-02 §4.1). Nenhuma tela pública mostra "normalizado",
- * "IA", "inteligência artificial", "resumo por IA", "publicado automaticamente" nem "gerado por
- * IA", nem no texto visível, nem em aria-label, alt, title ou placeholder. Exceção: páginas legais
- * e a página /como-usamos-ia (conteúdo legal sobre o uso de IA permanece).
+ * UI-T3 e LAB-T1: vocabulário público (spec 2026-10-02 §4.1; spec 2026-10-03 R16 e R17). Nenhuma
+ * tela pública diz que o conteúdo é revisado, gerado ou tratado por IA: nada de "normalizado",
+ * "IA", "inteligência artificial", "resumo por IA", "publicado automaticamente", "gerado",
+ * "revisado", "automático", "manipulado", "agente" nem "autonomia", e os selos de estado do assunto
+ * "Em apuração", "Confirmado" e "Encerrado" ficam só no Estúdio ("Corrigido" permanece). Vale para o
+ * texto visível, aria-label, alt, title, placeholder e para `<title>`, `<meta>` e JSON-LD.
+ * O nível de confiança (CONF-T1, R13) também não aparece: fica só no Estúdio.
+ * Exceção: páginas legais (/como-usamos-ia, /metodologia, termos, privacidade, princípios).
  */
-const FORBIDDEN =
-  /normaliz|\bagente\b|\bIA\b|inteligência artificial|resumo por ia|publicado automaticamente|gerad[oa] por ia/i;
+const FORBIDDEN = new RegExp(
+  [
+    "normaliz",
+    "\\bagente\\b",
+    "\\bIA\\b",
+    "inteligência artificial",
+    "resumo por ia",
+    "publicad[oa] automaticamente",
+    "gerad[oa]s?\\b",
+    "revisad[oa]s?\\b",
+    "automaticamente",
+    "automátic[oa]s?\\b",
+    "manipulad",
+    "autonomia",
+    "confian[cç]a",
+  ].join("|"),
+  "i",
+);
+/** Selos de estado do assunto (R16): com maiúscula, para não pegar "ainda não confirmado". */
+const STATE_BADGES = /\b(Em apuração|Confirmados?|Encerrados?)\b/;
 
 const ARTICLE = "/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const TOPIC = "/assunto/plano-de-onibus-cpa-centro";
@@ -23,6 +45,7 @@ const ROUTES = [
   "/agenda",
   "/explorar",
   "/assuntos",
+  "/assuntos?situacao=em-apuracao",
   "/favoritos",
   "/alertas",
   "/newsletter",
@@ -64,16 +87,26 @@ async function visibleStrings(page: Page): Promise<string[]> {
     }
     return out;
   });
-  return [body, ...attrs];
+  const head = await page.evaluate(() => {
+    const out: string[] = [document.title];
+    for (const m of Array.from(document.querySelectorAll("meta[content]")))
+      out.push(m.getAttribute("content") ?? "");
+    for (const j of Array.from(document.querySelectorAll('script[type="application/ld+json"]')))
+      out.push(j.textContent ?? "");
+    return out;
+  });
+  return [body, ...attrs, ...head];
 }
 
 function hits(strings: string[]): string[] {
   const found = new Set<string>();
-  const re = new RegExp(FORBIDDEN.source, "gi");
+  const res = [new RegExp(FORBIDDEN.source, "gi"), new RegExp(STATE_BADGES.source, "g")];
   for (const s of strings) {
-    for (const m of s.matchAll(re)) {
-      const i = m.index ?? 0;
-      found.add(s.slice(Math.max(0, i - 30), i + m[0].length + 30).replace(/\s+/g, " "));
+    for (const re of res) {
+      for (const m of s.matchAll(re)) {
+        const i = m.index ?? 0;
+        found.add(s.slice(Math.max(0, i - 30), i + m[0].length + 30).replace(/\s+/g, " "));
+      }
     }
   }
   return [...found];
@@ -113,6 +146,47 @@ test("Perguntar ao CityNews: resposta com fontes e recusa por falta de fontes", 
     page.getByRole("heading", { name: /Não encontramos fontes suficientes/ }),
   ).toBeVisible();
   expect(hits(await visibleStrings(page)), "recusa").toEqual([]);
+});
+
+test("matéria: painel 'De onde veio', sem 'Como esta matéria foi feita', sem selo de estado", async ({
+  page,
+}) => {
+  await page.goto(ARTICLE);
+  await expect(page.getByRole("region", { name: "De onde veio" }).first()).toBeAttached();
+  await expect(page.getByText("Como esta matéria foi feita")).toHaveCount(0);
+  await expect(page.getByText("Quem revisou")).toHaveCount(0);
+  await expect(page.locator("[data-state]")).toHaveCount(0);
+  const res = await page.request.get(ARTICLE);
+  expect(res.status()).toBe(200);
+});
+
+test("assunto: sem apuração, confiança, convergência nem placeholder, e sem 'Carregando' no HTML inicial", async ({
+  request,
+}) => {
+  const html = await (await request.get(TOPIC)).text();
+  const text = html
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<style[\s\S]*?<\/style>/g, " ")
+    .replace(/<[^>]+>/g, " ");
+  for (const term of [
+    /apuração/i,
+    /confiança|confianca/i,
+    /Nada registrado/,
+    /As fontes divergem|As fontes concordam/,
+    /Ainda não confirmado/,
+    /Carregando/,
+  ])
+    expect(text, String(term)).not.toMatch(term);
+  expect(html).toContain("Seguir");
+});
+
+test("metodologia descreve em texto simples, sem níveis de confiança (R13, R18)", async ({
+  page,
+}) => {
+  await page.goto("/metodologia");
+  const text = await page.innerText("body");
+  expect(text).not.toMatch(/confian[cç]a/i);
+  await expect(page.getByRole("heading", { level: 1, name: "Metodologia" })).toBeVisible();
 });
 
 test("a allowlist cobre só as páginas legais", () => {

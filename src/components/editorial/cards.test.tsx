@@ -122,7 +122,7 @@ describe("AggregatedCard", () => {
 });
 
 describe("ArticleCard", () => {
-  it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e as frases em texto", () => {
+  it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e a origem em texto", () => {
     const article: ArticleSummary = {
       ...baseArticle,
       kind: "original",
@@ -133,22 +133,23 @@ describe("ArticleCard", () => {
     const { container } = render(<ArticleCard variant="standard" article={article} />);
     expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
     expect(screen.getByTestId("origin-label")).toHaveTextContent("ORIGINAL CITYNEWS");
-    expect(screen.getByText("Revisado automaticamente")).toBeInTheDocument();
     expect(screen.getByText("Patrocinado")).toBeInTheDocument();
     expect(container.textContent).not.toMatch(
-      /NORMALIZADO|RESUMO POR IA|PUBLICADO AUTOMATICAMENTE|IMAGEM GERADA/i,
+      /NORMALIZADO|RESUMO POR IA|PUBLICADO AUTOMATICAMENTE|IMAGEM GERADA|revisad|automátic/i,
     );
   });
 
-  it("texto derivado não ganha plaqueta: origem e revisão vão em texto na linha de metadado", () => {
-    render(<ArticleCard variant="standard" article={baseArticle} now={now} />);
+  it("texto derivado não ganha plaqueta: a origem vai em texto, sem revisão", () => {
+    const { container } = render(
+      <ArticleCard variant="standard" article={baseArticle} now={now} />,
+    );
     expect(screen.queryByTestId("origin-label")).not.toBeInTheDocument();
     expect(screen.getByText("Feito a partir de 2 fontes")).toBeInTheDocument();
-    expect(screen.getByText("Revisado por Marina Couto")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/revisad|Marina Couto/i);
   });
 
   it.each(["lead", "standard", "compact", "list"] as const)(
-    "variante %s: título é o link da matéria, com origem e revisão em texto",
+    "variante %s: título é o link da matéria, com a origem em texto",
     (variant) => {
       render(<ArticleCard variant={variant} article={baseArticle} now={now} />);
       const link = screen.getByRole("link", { name: baseArticle.title });
@@ -169,10 +170,12 @@ describe("ArticleCard", () => {
     expect(heading.className.split(/\s+/)).toContain(cls);
   });
 
-  it("manchete tem confiança e resumo em 20 s", () => {
-    render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
+  it("manchete tem resumo em poucos segundos e nenhum nível de confiança (R13)", () => {
+    const { container } = render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
     expect(screen.getByRole("heading", { level: 1, name: baseArticle.title })).toBeInTheDocument();
-    expect(screen.getByText("Confiança alta")).toBeInTheDocument();
+    expect(screen.queryByText(/confian/i)).not.toBeInTheDocument();
+    expect(container.querySelector("[data-bar]")).toBeNull();
+    expect(screen.queryByRole("img", { name: /confian/i })).not.toBeInTheDocument();
     const summary = screen.getByRole("region", { name: "Resumo em poucos segundos" });
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
@@ -352,12 +355,18 @@ describe("demais cards", () => {
     sourceCount: 4,
   };
 
-  it("TopicSummaryCard mostra situação, confiança e contagens", () => {
-    render(<TopicSummaryCard topic={topic} now={now} />);
+  it("TopicSummaryCard não mostra selo de estado (R16) e mantém as contagens", () => {
+    const { container } = render(<TopicSummaryCard topic={topic} now={now} />);
     expect(screen.getByRole("link", { name: topic.title })).toHaveAttribute("href", topic.href);
-    expect(screen.getByText("Em apuração")).toBeInTheDocument();
-    expect(screen.getByText("Confiança média")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/Em apuração|Confirmado|Encerrado|confian/i);
+    expect(container.querySelector("[data-state]")).toBeNull();
+    expect(container.querySelector("[data-bar]")).toBeNull();
     expect(screen.getByText(/1 matéria · 4 fontes/)).toBeInTheDocument();
+  });
+
+  it("TopicSummaryCard mantém só o selo Corrigido", () => {
+    render(<TopicSummaryCard topic={{ ...topic, state: "corrigido" }} now={now} />);
+    expect(screen.getByText("Corrigido")).toBeInTheDocument();
   });
 
   it("CollectionCard é link com contagem de itens", () => {
@@ -374,7 +383,7 @@ describe("demais cards", () => {
     expect(screen.getByText("3 itens")).toBeInTheDocument();
   });
 
-  it("NowList tem até 6 itens, revisão em texto e próximo ciclo", () => {
+  it("NowList tem até 6 itens, sem texto de revisão, e próximo ciclo", () => {
     const items = Array.from({ length: 8 }, (_, i) => ({
       ...baseArticle,
       id: `n${i}`,
@@ -384,10 +393,7 @@ describe("demais cards", () => {
     render(<NowList items={items} now={new Date("2026-09-27T18:12:00Z")} />);
     const region = screen.getByRole("region", { name: "Agora" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(6);
-    // Cada item traz a revisão uma vez por largura (linha do horário no celular, parágrafo acima).
-    for (const li of within(region).getAllByRole("listitem")) {
-      expect(within(li).getAllByText("Revisado por Marina Couto").length).toBeGreaterThanOrEqual(1);
-    }
+    expect(region.textContent).not.toMatch(/revisad|Marina Couto/i);
     expect(within(region).getByText("Próximo ciclo em 18 min")).toBeInTheDocument();
   });
 

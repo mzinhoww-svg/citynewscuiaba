@@ -27,7 +27,7 @@ test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ pag
     "Prefeitura detalha novo plano de ônibus entre CPA e Centro",
   );
   await expect(page.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeVisible();
-  await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
+  await expect(page.getByText(/revisad/i)).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /^Fontes/ })).toBeVisible();
   const sourcesRegion = page.getByRole("region", { name: /^Fontes/ });
   await expect(sourcesRegion.locator("details")).not.toHaveAttribute("open", "");
@@ -45,7 +45,7 @@ test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ pag
   expect(ld["@type"]).toBe("NewsArticle");
   expect(ld.dateModified).toBeTruthy();
   expect(ld.citation.length).toBeGreaterThan(0);
-  const made = page.getByRole("region", { name: "Como esta matéria foi feita" });
+  const made = page.getByRole("region", { name: "De onde veio" });
   await expect(made).toBeVisible();
   // Recolhido no celular; aberto de 1024 px em diante.
   if (await made.locator("details:not([open])").count()) await made.locator("summary").click();
@@ -68,15 +68,14 @@ test("antes do h1 só kicker e status, sem plaqueta nem faixa de rótulos", asyn
     return { items: prev ? prev.children.length : 0, text: prev?.textContent ?? "" };
   });
   expect(before.items).toBeLessThanOrEqual(2);
-  expect(before.text).not.toMatch(/ORIGINAL CITYNEWS|AGREGADO|Revisado|Feito a partir/);
+  expect(before.text).not.toMatch(/ORIGINAL CITYNEWS|AGREGADO|Revisad|Feito a partir/);
 });
 
-test("autoria diz origem e revisão em frase, sem plaqueta", async ({ page }) => {
+test("autoria diz a origem em frase, sem revisão e sem plaqueta", async ({ page }) => {
   await page.goto(`/materia/${SLUG}`);
   const header = page.locator("article > header");
-  await expect(header).toContainText(
-    /Feito a partir de \d+ fontes? · Revisado (por .+|automaticamente)/,
-  );
+  await expect(header).toContainText(/Feito a partir de \d+ fontes?/);
+  await expect(header).not.toContainText(/revisad|automátic/i);
   await expect(header.locator("[data-origin-label], [data-plaque]")).toHaveCount(0);
 });
 
@@ -125,7 +124,7 @@ test("depois de salvar, a mensagem não quebra a linha de ações (360 px)", asy
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
 
-test("'Como esta matéria foi feita' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
+test("'De onde veio' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
   browser,
 }) => {
   const ctx = await browser.newContext({
@@ -138,17 +137,13 @@ test("'Como esta matéria foi feita' vem aberto no desktop já no HTML do servid
   await ctx.close();
 });
 
-test("'Como esta matéria foi feita' abre sozinho no desktop e recolhe no celular", async ({
-  page,
-}) => {
+test("'De onde veio' abre sozinho no desktop e recolhe no celular", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/materia/${SLUG}`);
   await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 800 });
   await page.goto(`/materia/${SLUG}`);
-  const summary = page
-    .getByRole("region", { name: "Como esta matéria foi feita" })
-    .locator("summary");
+  const summary = page.getByRole("region", { name: "De onde veio" }).locator("summary");
   await expect(page.getByRole("link", { name: "Ver histórico de versões" })).not.toBeVisible();
   await summary.click();
   await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toBeVisible();

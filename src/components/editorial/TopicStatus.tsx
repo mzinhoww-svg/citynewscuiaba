@@ -16,14 +16,17 @@ const LOOK: Record<TopicState, { classes: string; icon: IconName }> = {
 };
 
 /**
- * Situação de um assunto: Em apuração, Confirmado, Corrigido ou Encerrado.
+ * Selo de situação do assunto para o público: só "Corrigido" (spec 2026-10-03 R16). Os demais
+ * estados (Em apuração, Confirmado, Encerrado) não renderizam nada; ficam no Estúdio.
  *
  * ```tsx
- * <TopicStatus state="em_apuracao" />
+ * <TopicStatus state="corrigido" />
  * ```
  * - Ícone + texto; a cor só reforça.
  */
 export function TopicStatus({ state, className }: TopicStatusProps) {
+  const text = TOPIC_STATE_TEXT[state];
+  if (!text) return null;
   const look = LOOK[state];
   return (
     <span
@@ -35,7 +38,7 @@ export function TopicStatus({ state, className }: TopicStatusProps) {
       )}
     >
       <Icon name={look.icon} size={14} />
-      {TOPIC_STATE_TEXT[state]}
+      {text}
     </span>
   );
 }

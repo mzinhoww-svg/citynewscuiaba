@@ -33,7 +33,7 @@ export function NowList({ items, now, className }: NowListProps) {
       </h2>
       <ol aria-live="polite" className="flex flex-col">
         {items.slice(0, MAX_ITEMS).map((a) => {
-          const { reviewText } = publicLabels(a);
+          const { originText } = publicLabels(a);
           return (
             <li
               key={a.id}
@@ -45,15 +45,15 @@ export function NowList({ items, now, className }: NowListProps) {
                 </time>
                 <span aria-hidden="true"> · </span>
                 <span className="max-sm:hidden">{formatWhen(a.publishedAt, reference)}</span>
-                {/* Celular: a revisão vai na linha do horário (o horário já está dito). */}
-                {reviewText && <span className="sm:hidden">{reviewText}</span>}
+                {/* Celular: a origem vai na linha do horário (o horário já está dito). */}
+                {originText && <span className="sm:hidden">{originText}</span>}
               </p>
               <h3 className="type-headline-sm text-strong">
                 <Link href={a.href} className="card-link no-underline">
                   {a.title}
                 </Link>
               </h3>
-              {reviewText && <p className="type-meta text-meta max-sm:hidden">{reviewText}</p>}
+              {originText && <p className="type-meta text-meta max-sm:hidden">{originText}</p>}
             </li>
           );
         })}

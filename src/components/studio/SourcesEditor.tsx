@@ -6,7 +6,7 @@ import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import { computeConfidence } from "@/lib/confidence";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
-import { ConfidenceMeter } from "../editorial/ConfidenceMeter";
+import { ConfidenceMeter } from "./ConfidenceMeter";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";

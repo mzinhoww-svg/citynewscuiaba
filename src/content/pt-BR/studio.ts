@@ -1,4 +1,12 @@
 import type { Role } from "@/lib/auth";
+import type { ConfidenceLevel } from "@/lib/confidence";
+
+/** Nível de confiança: só no Estúdio (spec 2026-10-03 R13). */
+export const CONFIDENCE_TEXT: Record<ConfidenceLevel, string> = {
+  alta: "Confiança alta",
+  média: "Confiança média",
+  baixa: "Confiança baixa",
+};
 
 export const STUDIO_TEXT = {
   name: "Estúdio",

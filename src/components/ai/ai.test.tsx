@@ -52,7 +52,7 @@ it("resposta separa fato, inferência, conflito e lacuna, com citações e aviso
   render(<AiAnswer answer={answer} />);
   expect(screen.getByRole("heading", { name: "Resposta do CityNews" })).toBeInTheDocument();
   expect(screen.queryByText(/RESUMO POR IA|gerada por IA/i)).not.toBeInTheDocument();
-  expect(screen.getByText(/Pode conter erros/)).toBeInTheDocument();
+  expect(screen.getByText("Pode conter erros. Confira nas fontes.")).toBeInTheDocument();
   const facts = screen.getByRole("region", { name: "O que as fontes confirmam" });
   expect(within(facts).getByRole("link", { name: "Fonte 1" })).toHaveAttribute("href", "#fonte-1");
   expect(within(facts).getByRole("link", { name: "Fonte 2" })).toHaveAttribute("href", "#fonte-2");
@@ -61,7 +61,16 @@ it("resposta separa fato, inferência, conflito e lacuna, com citações e aviso
     "Intervalo no pico",
   );
   expect(screen.getByRole("region", { name: "O que ainda não se sabe" })).toBeInTheDocument();
-  expect(screen.getByText(/as fontes são poucas ou divergem/)).toBeInTheDocument();
+});
+
+it("resposta não mostra nível de confiança, nem medidor nem aviso de baixa confiança (R13)", () => {
+  for (const confidence of ["alta", "média", "baixa"] as const) {
+    const { container, unmount } = render(<AiAnswer answer={{ ...answer, confidence }} />);
+    expect(container.textContent).not.toMatch(/confian/i);
+    expect(container.querySelector("[data-bar]")).toBeNull();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    unmount();
+  }
 });
 
 it("lista de fontes numerada, com alvo das citações e link externo em nova aba", () => {

@@ -112,65 +112,62 @@ it.each([0, undefined, -2, Number.NaN, 1.5])(
   },
 );
 
-// UI-T3: vocabulário público (spec 2026-10-02 §4.1)
+// UI-T3 e LAB-T1: vocabulário público (spec 2026-10-02 §4.1; spec 2026-10-03 R16 e R17)
 describe("publicLabels", () => {
   it("reportagem própria: plaqueta ORIGINAL e nenhuma frase de origem", () => {
-    expect(publicLabels({ kind: "original", publishMode: null })).toEqual({ plaque: "original" });
+    expect(publicLabels({ kind: "original" })).toEqual({ plaque: "original" });
   });
 
   it("texto derivado: 'Feito a partir de n fontes' em texto, sem plaqueta", () => {
-    expect(publicLabels({ kind: "normalized", sourceCount: 2, publishMode: null })).toEqual({
+    expect(publicLabels({ kind: "normalized", sourceCount: 2 })).toEqual({
       originText: "Feito a partir de 2 fontes",
     });
-    expect(publicLabels({ kind: "normalized", sourceCount: 1, publishMode: null }).originText).toBe(
+    expect(publicLabels({ kind: "normalized", sourceCount: 1 }).originText).toBe(
       "Feito a partir de 1 fonte",
     );
   });
 
   it.each([0, undefined, -2, Number.NaN, 1.5])("contagem inválida (%s) não mostra número", (n) => {
-    expect(publicLabels({ kind: "normalized", sourceCount: n, publishMode: null }).originText).toBe(
+    expect(publicLabels({ kind: "normalized", sourceCount: n }).originText).toBe(
       "Feito a partir de outras fontes",
     );
   });
 
-  it("revisão por pessoa leva o nome; sem nome, 'Revisado pela redação'", () => {
-    expect(
-      publicLabels({ kind: "original", publishMode: "human", reviewer: "Marina Arruda" })
-        .reviewText,
-    ).toBe("Revisado por Marina Arruda");
-    expect(publicLabels({ kind: "original", publishMode: "human" }).reviewText).toBe(
-      "Revisado pela redação",
-    );
+  it("nunca devolve texto de revisão, qualquer que seja o modo de publicação ou o revisor", () => {
+    // Uma matéria inteira (com modo de publicação e revisor) pode ser passada como entrada.
+    const human = { kind: "original" as const, publishMode: "human", reviewer: "Marina Arruda" };
+    const auto = { kind: "normalized" as const, sourceCount: 3, publishMode: "auto" };
+    expect(publicLabels(human)).toEqual({ plaque: "original" });
+    expect(publicLabels(auto)).toEqual({ originText: "Feito a partir de 3 fontes" });
+    for (const r of [publicLabels(human), publicLabels(auto)]) {
+      expect(
+        Object.keys(r).every((k) => ["plaque", "originText", "sponsoredText"].includes(k)),
+      ).toBe(true);
+    }
   });
 
-  it("publicação pelas regras: 'Revisado automaticamente'", () => {
-    expect(publicLabels({ kind: "normalized", sourceCount: 3, publishMode: "auto" })).toEqual({
-      originText: "Feito a partir de 3 fontes",
-      reviewText: "Revisado automaticamente",
-    });
-  });
-
-  it("agregado: plaqueta AGREGADO e nada mais (nunca frase de revisão)", () => {
-    expect(publicLabels({ kind: "aggregated", publishMode: "auto" })).toEqual({
-      plaque: "aggregated",
-    });
+  it("agregado: plaqueta AGREGADO e nada mais", () => {
+    expect(publicLabels({ kind: "aggregated" })).toEqual({ plaque: "aggregated" });
   });
 
   it("patrocinado vira texto próprio, nunca uma segunda plaqueta", () => {
-    expect(publicLabels({ kind: "original", publishMode: null, sponsored: true })).toEqual({
+    expect(publicLabels({ kind: "original", sponsored: true })).toEqual({
       plaque: "original",
       sponsoredText: "Patrocinado",
     });
   });
 
-  it("nenhum texto público contém o vocabulário aposentado", () => {
+  it("nenhum texto público contém o vocabulário de revisão, geração ou IA (R16)", () => {
     const all = [
-      publicLabels({ kind: "normalized", sourceCount: 4, publishMode: "auto", sponsored: true }),
-      publicLabels({ kind: "original", publishMode: "human", reviewer: "Ana" }),
+      publicLabels({ kind: "normalized", sourceCount: 4, sponsored: true }),
+      publicLabels({ kind: "original" }),
+      publicLabels({ kind: "aggregated" }),
     ]
-      .flatMap((r) => [r.originText, r.reviewText, r.sponsoredText])
+      .flatMap((r) => [r.originText, r.sponsoredText])
       .join(" ");
-    expect(all).not.toMatch(/normaliz|\bIA\b|inteligência artificial|publicado automaticamente/i);
+    expect(all).not.toMatch(
+      /normaliz|\bIA\b|inteligência artificial|publicado automaticamente|revisad|gerad|automátic|autonomia/i,
+    );
   });
 });
 
@@ -183,6 +180,10 @@ describe("publicImageCaption", () => {
   it("os demais tipos mantêm a legenda em frase", () => {
     expect(publicImageCaption("original", "Pedro Alencar")).toBe("Foto original · Pedro Alencar");
     expect(publicImageCaption("illustrative")).toBe("Imagem ilustrativa");
+  });
+
+  it("imagem de gerador também sai como 'Imagem ilustrativa' (R16)", () => {
+    expect(publicImageCaption("ai_generated")).toBe("Imagem ilustrativa");
   });
 });
 

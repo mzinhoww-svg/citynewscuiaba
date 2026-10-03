@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeNotificationText, withOriginLabel } from "./text";
+import {
+  publicPushOrigin,
+  pushOriginLabel,
+  sanitizeNotificationText,
+  withOriginLabel,
+} from "./text";
 
 describe("sanitizeNotificationText", () => {
   it("remove HTML e controle, normaliza espaços, corta por grafema", () => {
@@ -19,5 +24,25 @@ describe("sanitizeNotificationText", () => {
       "ORIGINAL CITYNEWS · Defesa Civil alerta",
     );
     expect(withOriginLabel("", "x")).toBe("x");
+  });
+});
+
+// LAB-T1 (R16): a notificação nunca diz "publicado automaticamente" nem "normalizado".
+describe("rótulo de origem da notificação", () => {
+  it("matéria própria leva ORIGINAL CITYNEWS; texto derivado, a origem em frase", () => {
+    expect(pushOriginLabel("original")).toBe("ORIGINAL CITYNEWS");
+    expect(pushOriginLabel("normalized")).toBe("Feito a partir de outras fontes");
+  });
+
+  it("não depende do modo de publicação (automático não aparece)", () => {
+    expect(pushOriginLabel("original")).not.toMatch(/autom/i);
+    expect(pushOriginLabel("normalized")).not.toMatch(/autom|normaliz/i);
+  });
+
+  it("envios antigos com o rótulo aposentado saem com o texto público", () => {
+    expect(publicPushOrigin("PUBLICADO AUTOMATICAMENTE")).toBe("ORIGINAL CITYNEWS");
+    expect(publicPushOrigin("NORMALIZADO PELO CITYNEWS")).toBe("Feito a partir de outras fontes");
+    expect(publicPushOrigin("ORIGINAL CITYNEWS")).toBe("ORIGINAL CITYNEWS");
+    expect(publicPushOrigin("")).toBe("");
   });
 });

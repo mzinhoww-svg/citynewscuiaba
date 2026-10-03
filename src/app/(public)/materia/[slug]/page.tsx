@@ -10,7 +10,6 @@ import {
   ArticleFigure,
   Button,
   CategoryTag,
-  ConfidenceMeter,
   CorrectionNote,
   EmptyState,
   GoneState,
@@ -89,7 +88,7 @@ function Lead({ text }: { text: string }) {
 function Byline({ a }: { a: ArticleView }) {
   const updated = a.updatedAt !== a.publishedAt && a.status === "updated";
   const pub = publicLabels(a);
-  const origin = [pub.originText, pub.reviewText, pub.sponsoredText].filter(Boolean).join(" · ");
+  const origin = [pub.originText, pub.sponsoredText].filter(Boolean).join(" · ");
   return (
     <div className="flex flex-col gap-1 type-meta text-meta">
       <p className="font-semibold text-strong">{CARD.by(a.byline)}</p>
@@ -212,9 +211,7 @@ function Article({ a }: { a: ArticleView }) {
               </div>
             </header>
 
-            {a.aiSummary && (
-              <AiSummaryBlock items={a.aiSummary} reviewer={a.reviewer} className="max-w-read" />
-            )}
+            {a.aiSummary && <AiSummaryBlock items={a.aiSummary} className="max-w-read" />}
 
             {a.image && <ArticleFigure image={a.image} priority />}
 
@@ -313,13 +310,7 @@ function Article({ a }: { a: ArticleView }) {
           </article>
 
           <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
-            <MadeHow
-              article={a}
-              byRules={Boolean(a.agentId)}
-              versionsHref={historyHref}
-              collapsible
-            />
-            <ConfidenceMeter level={a.confidence.level} />
+            <MadeHow article={a} versionsHref={historyHref} collapsible />
           </aside>
         </div>
 

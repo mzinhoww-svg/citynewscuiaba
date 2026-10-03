@@ -6,7 +6,7 @@ import { LABEL_EXPLAIN, LABEL_TEXT } from "@/content/pt-BR/labels";
 import type { LabelKind } from "@/lib/labels";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
 
-/** Metodologia (P24): confiança, rótulos e regras de autonomia públicas, a partir do código. */
+/** Metodologia (P24): como as matérias são feitas, rótulos e regras públicas, a partir do código. */
 export const metadata: Metadata = pageMetadata({
   title: METHOD.title,
   documentTitle: METHOD.metaTitle,
@@ -22,13 +22,13 @@ export default function MethodologyPage() {
   return (
     <DocPage title={METHOD.title} intro={METHOD.intro} path={METHOD.path}>
       <div className="flex max-w-read flex-col gap-10">
-        <section aria-labelledby="confianca" className="flex flex-col gap-3">
-          <h2 id="confianca" className="type-section text-strong">
-            {METHOD.confidenceTitle}
+        <section aria-labelledby="como" className="flex flex-col gap-3">
+          <h2 id="como" className="type-section text-strong">
+            {METHOD.howTitle}
           </h2>
-          <p className="type-body-read text-body">{METHOD.confidenceIntro}</p>
+          <p className="type-body-read text-body">{METHOD.howIntro}</p>
           <ul className="flex list-disc flex-col gap-2 pl-6 type-body-read text-body marker:text-meta">
-            {METHOD.confidenceLevels.map((l) => (
+            {METHOD.howItems.map((l) => (
               <li key={l}>{l}</li>
             ))}
           </ul>
