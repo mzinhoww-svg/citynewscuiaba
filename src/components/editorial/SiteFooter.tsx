@@ -17,7 +17,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
   const company = [LEGAL.companyName, LEGAL.cnpj, LEGAL.dpo].filter(isFilled);
   return (
     <footer className={cx("bg-tinta text-branco", className)}>
-      <div className="mx-auto flex max-w-page flex-col gap-8 px-gutter py-10">
+      <div className="mx-auto flex max-w-page flex-col gap-6 px-gutter py-8 lg:gap-8 lg:py-10">
         <div className="flex flex-col gap-3">
           <Logo tone="negative" size="md" className="-ml-3 self-start" />
           <p className="type-body text-branco/85">{LEGAL.tagline}</p>

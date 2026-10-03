@@ -32,6 +32,7 @@ export const HOME = {
   aggregatedNotice:
     "Links para matérias de outros veículos. O CityNews não republica esses textos: eles abrem no site de origem.",
   aggregatedMore: "Ver Panorama de fontes",
+  sectionsTabs: "Editorias",
   sectionMore: (name: string) => `Mais de ${name}`,
   emptyTitle: "CityNews Cuiabá",
   emptyText: "Ainda não há matérias publicadas. Enquanto isso, veja a agenda da cidade.",

@@ -37,7 +37,7 @@ export function NowList({ items, now, className }: NowListProps) {
           return (
             <li
               key={a.id}
-              className="relative flex flex-col gap-1.5 border-b border-line-subtle py-3 [--card-radius:var(--r-0)]"
+              className="relative flex flex-col gap-1.5 border-b border-line-subtle py-2 [--card-radius:var(--r-0)]"
             >
               <p className="type-meta text-meta">
                 <time dateTime={a.publishedAt} className="font-bold tabular-nums text-strong">
@@ -51,12 +51,14 @@ export function NowList({ items, now, className }: NowListProps) {
                   {a.title}
                 </Link>
               </h3>
-              {reviewText && <p className="type-meta text-meta">{reviewText}</p>}
+              {reviewText && <p className="hidden type-meta text-meta lg:block">{reviewText}</p>}
             </li>
           );
         })}
       </ol>
-      <p className="pt-3 type-meta text-meta">{CARD.nextCycle(nextCycleMinutes(reference))}</p>
+      <p className="hidden pt-3 type-meta text-meta lg:block">
+        {CARD.nextCycle(nextCycleMinutes(reference))}
+      </p>
     </section>
   );
 }

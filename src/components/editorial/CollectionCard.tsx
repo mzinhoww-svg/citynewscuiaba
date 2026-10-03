@@ -34,7 +34,7 @@ export function CollectionCard({ collection, as: Heading = "h3", className }: Co
           {collection.title}
         </Link>
       </Heading>
-      <p className="line-clamp-2 type-body text-body">{collection.description}</p>
+      <p className="hidden line-clamp-2 type-body text-body sm:block">{collection.description}</p>
       <p className="mt-auto type-meta text-meta">{CARD.collectionItems(collection.itemCount)}</p>
     </article>
   );

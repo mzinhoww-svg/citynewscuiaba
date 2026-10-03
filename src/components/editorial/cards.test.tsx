@@ -173,7 +173,7 @@ describe("ArticleCard", () => {
     render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
     expect(screen.getByRole("heading", { level: 1, name: baseArticle.title })).toBeInTheDocument();
     expect(screen.getByText("Confiança alta")).toBeInTheDocument();
-    const summary = screen.getByRole("region", { name: "Resumo em 20 s" });
+    const summary = screen.getByRole("region", { name: "Resumo em poucos segundos" });
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
 

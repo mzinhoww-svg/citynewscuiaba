@@ -46,7 +46,7 @@ export function ServiceTile({
             {title}
           </Link>
         </Heading>
-        {description && <p className="type-meta text-meta">{description}</p>}
+        {description && <p className="hidden type-meta text-meta sm:block">{description}</p>}
       </div>
     </article>
   );

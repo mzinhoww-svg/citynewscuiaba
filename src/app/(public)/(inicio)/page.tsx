@@ -12,7 +12,9 @@ import {
   EventDateBadge,
   NewsletterForm,
   NowList,
+  Rail,
   SectionHeader,
+  SectionTabs,
   ServiceTile,
   SourceAvatar,
   TopicSummaryCard,
@@ -79,7 +81,7 @@ function NewsletterBlock() {
         <h2 id="home-newsletter" className="type-section text-strong">
           {NEWSLETTER.title}
         </h2>
-        <p className="type-body text-body">{NEWSLETTER.intro}</p>
+        <p className="hidden type-body text-body sm:block">{NEWSLETTER.intro}</p>
       </div>
       <NewsletterForm action={subscribeNewsletterAction} />
     </section>
@@ -119,15 +121,13 @@ function Module_topics({ data }: { data: HomeData }) {
   return (
     <>
       {data.topics.length > 0 && (
-        <section aria-labelledby="home-topics" className="flex flex-col gap-5">
+        <section aria-labelledby="home-topics" className="flex flex-col gap-3">
           <SectionHeader id="home-topics" title={HOME.topics} actionHref={HOME.topicsMore} />
-          <ul className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <Rail label={HOME.topics} desktop="grid">
             {data.topics.map((t) => (
-              <li key={t.id} className="flex">
-                <TopicSummaryCard topic={t} className="flex-1" />
-              </li>
+              <TopicSummaryCard key={t.id} topic={t} className="flex-1" />
             ))}
-          </ul>
+          </Rail>
         </section>
       )}
     </>
@@ -138,19 +138,17 @@ function Module_collections({ data }: { data: HomeData }) {
   return (
     <>
       {data.collections.length > 0 && (
-        <section aria-labelledby="home-collections" className="flex flex-col gap-5">
+        <section aria-labelledby="home-collections" className="flex flex-col gap-3">
           <SectionHeader
             id="home-collections"
             title={HOME.collections}
             actionHref={HOME.collectionsMore}
           />
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Rail label={HOME.collections} itemWidth="sm" desktop="grid">
             {data.collections.map((c) => (
-              <li key={c.id} className="flex">
-                <CollectionCard collection={c} className="flex-1" />
-              </li>
+              <CollectionCard key={c.id} collection={c} className="flex-1" />
             ))}
-          </ul>
+          </Rail>
         </section>
       )}
     </>
@@ -168,7 +166,7 @@ function Module_nearby() {
           <h2 id="home-nearby" className="type-section text-strong">
             {HOME.nearby}
           </h2>
-          <p className="type-body text-body">{HOME.nearbyText}</p>
+          <p className="hidden type-body text-body sm:block">{HOME.nearbyText}</p>
         </div>
         <Button href={HOME.nearbyHref} size="md" variant="outline" icon="map-pin">
           {HOME.nearbyCta}
@@ -181,48 +179,47 @@ function Module_nearby() {
 function Module_agenda_services({ data }: { data: HomeData }) {
   return (
     <>
-      <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-10">
-        <section aria-labelledby="home-agenda" className="flex flex-col gap-4">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+        <section aria-labelledby="home-agenda" className="flex min-w-0 flex-col gap-4">
           <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
           {data.events.length === 0 ? (
             <p className="type-body text-meta">{HOME.agendaEmpty}</p>
           ) : (
-            <ol className="flex flex-col">
+            <Rail label={HOME.agenda} desktop="grid">
               {data.events.map((e) => (
-                <li
+                <article
                   key={e.id}
-                  className="relative flex items-center gap-4 border-t border-line-subtle py-3 [--card-radius:var(--r-0)]"
+                  className="relative flex w-full items-center gap-3 border border-line-section p-3 [--card-radius:var(--r-0)]"
                 >
                   <EventDateBadge startsAt={e.startsAt} />
                   <div className="flex min-w-0 flex-col gap-1">
-                    <h3 className="type-headline-sm text-strong">
+                    <h3 className="type-headline-sm line-clamp-2 text-strong">
                       <Link href={e.href} className="card-link no-underline">
                         {e.title}
                       </Link>
                     </h3>
                     <p className="type-meta text-meta">{eventMeta(e)}</p>
                   </div>
-                </li>
+                </article>
               ))}
-            </ol>
+            </Rail>
           )}
         </section>
 
-        <section aria-labelledby="home-services" className="flex flex-col gap-4">
+        <section aria-labelledby="home-services" className="flex min-w-0 flex-col gap-4">
           <SectionHeader id="home-services" title={HOME.services} actionHref={HOME.servicesMore} />
-          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Rail label={HOME.services} itemWidth="sm" desktop="grid">
             {HOME_SERVICES.map((s) => (
-              <li key={s.href} className="flex">
-                <ServiceTile
-                  href={s.href}
-                  title={s.title}
-                  description={s.description}
-                  icon={s.icon}
-                  className="flex-1"
-                />
-              </li>
+              <ServiceTile
+                key={s.href}
+                href={s.href}
+                title={s.title}
+                description={s.description}
+                icon={s.icon}
+                className="flex-1"
+              />
             ))}
-          </ul>
+          </Rail>
         </section>
       </div>
     </>
@@ -233,33 +230,37 @@ function Module_sections({ data }: { data: HomeData }) {
   return (
     <>
       {data.sectionBlocks.length > 0 && (
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-3">
-          {data.sectionBlocks.map(({ section, articles }) => (
-            <section
-              key={section.slug}
-              aria-labelledby={`home-section-${section.slug}`}
-              className="flex flex-col gap-4"
-            >
-              <SectionHeader
-                id={`home-section-${section.slug}`}
-                title={section.name}
-                actionHref={`/${section.slug}`}
-                className="border-b-2 border-line-strong pb-2"
-              />
-              <ul className="flex flex-col gap-4">
-                {articles.map((a, i) => (
-                  <li key={a.id}>
-                    {/* Sem foto aprovada, o bloco fica tipográfico e compacto (sem capas escuras repetidas). */}
-                    <ArticleCard
-                      variant={i === 0 && a.image ? "standard" : "compact"}
-                      article={a}
-                    />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <SectionTabs
+          label={HOME.sectionsTabs}
+          panels={data.sectionBlocks.map(({ section, articles }) => ({
+            slug: section.slug,
+            name: section.name,
+            content: (
+              <section
+                aria-labelledby={`home-section-${section.slug}`}
+                className="flex flex-col gap-4"
+              >
+                <SectionHeader
+                  id={`home-section-${section.slug}`}
+                  title={section.name}
+                  actionHref={`/${section.slug}`}
+                  className="border-b-2 border-line-strong pb-2"
+                />
+                <ul className="flex flex-col gap-4 max-lg:[&>li:nth-child(n+3)]:hidden">
+                  {articles.map((a, i) => (
+                    <li key={a.id}>
+                      {/* Sem foto aprovada, o bloco fica tipográfico e compacto (sem capas escuras repetidas). */}
+                      <ArticleCard
+                        variant={i === 0 && a.image ? "standard" : "compact"}
+                        article={a}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ),
+          }))}
+        />
       )}
     </>
   );
@@ -276,7 +277,7 @@ function Module_most_read({ data }: { data: HomeData }) {
               {HOME.mostRead}
             </h2>
           </div>
-          <ol className="grid grid-cols-1 gap-x-10 gap-y-2 md:grid-cols-2">
+          <ol className="grid grid-cols-1 gap-x-10 gap-y-0 max-md:[&>li:nth-child(n+4)]:hidden md:grid-cols-2">
             {data.mostRead.map((a, i) => (
               <li key={a.id} className="flex min-w-0 items-start gap-4">
                 <span
@@ -308,15 +309,13 @@ function Module_sources({ data }: { data: HomeData }) {
   return (
     <>
       {data.sources.length > 0 && (
-        <section aria-labelledby="home-sources" className="flex flex-col gap-4">
+        <section aria-labelledby="home-sources" className="flex flex-col gap-3">
           <SectionHeader id="home-sources" title={HOME.sources} actionHref={HOME.sourcesMore} />
-          <ul className="-mx-gutter flex snap-x gap-4 overflow-x-auto px-gutter pb-2 scrollbar-none lg:mx-0 lg:justify-between lg:px-0">
+          <Rail label={HOME.sources} itemWidth="sm" className="lg:flex lg:justify-between">
             {data.sources.map((s) => (
-              <li key={s.slug} className="snap-start">
-                <SourceAvatar name={s.name} href={s.href} size={64} />
-              </li>
+              <SourceAvatar key={s.slug} name={s.name} href={s.href} size={64} />
             ))}
-          </ul>
+          </Rail>
         </section>
       )}
     </>
@@ -359,11 +358,11 @@ function Home({ data }: { data: HomeData }) {
     <>
       {data.urgent && <UrgentBar article={data.urgent} />}
       <DateStrip generatedAt={data.generatedAt} />
-      <div className={`${CONTAINER} flex flex-col gap-12 py-8 lg:gap-14 lg:py-10`}>
+      <div className={`${CONTAINER} flex flex-col gap-7 py-4 lg:gap-14 lg:py-10`}>
         {/* Manchete + Agora: 100% CityNews na primeira dobra */}
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-10">
-          <ArticleCard variant="lead" as="h1" article={lead} />
-          <NowList items={data.now} />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
+          <ArticleCard variant="lead" as="h1" article={lead} className="lg:col-span-8" />
+          <NowList items={data.now} className="lg:col-span-4" />
         </div>
 
         {data.modules

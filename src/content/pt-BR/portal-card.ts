@@ -35,7 +35,7 @@ export const MADE_HOW = {
 
 export const CARD = {
   origin: "Origem",
-  summary20s: "Resumo em 20 s",
+  summary20s: "Resumo em poucos segundos",
   openIn: (source: string) => `Abrir em ${source}`,
   newTab: "abre em nova aba",
   openOriginal: "Abrir original",

@@ -40,7 +40,9 @@ export function TopicSummaryCard({
           {topic.title}
         </Link>
       </Heading>
-      {topic.summary && <p className="line-clamp-3 type-body text-body">{topic.summary}</p>}
+      {topic.summary && (
+        <p className="line-clamp-2 sm:line-clamp-3 type-body text-body">{topic.summary}</p>
+      )}
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1">
         <ConfidenceMeter level={topic.confidence.level} />
         <p className="type-meta text-meta">
