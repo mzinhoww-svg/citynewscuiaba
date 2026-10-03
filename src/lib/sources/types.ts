@@ -65,6 +65,8 @@ export interface SourceConfig {
   recPinned: boolean;
   recLocalHighlight: boolean;
   recExcluded: boolean;
+  /** Fonte confiável: publica direto, sem espera, sempre citada (AUT-T2). */
+  trusted: boolean;
 }
 
 export interface SourcePreviewItem {

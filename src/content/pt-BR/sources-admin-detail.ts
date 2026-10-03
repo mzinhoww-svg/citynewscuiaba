@@ -139,6 +139,9 @@ export const FIELD_TEXT = {
   imagePolicy: "Política de imagem",
   republishPolicy: "Política de republicação",
   maySoleSource: "Pode ser fonte única",
+  trusted: "Fonte confiável",
+  trustedHint:
+    "Publica direto, sem espera, sempre com a fonte citada. Fonte não confiável com assunto grave e sem segunda fonte vai para aprovação.",
   agreementUntil: "Acordo válido até",
   agreementNote: "Nota do acordo",
   termsUrl: "Endereço dos termos de uso",

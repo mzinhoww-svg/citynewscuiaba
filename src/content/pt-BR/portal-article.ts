@@ -53,6 +53,7 @@ export const ARTICLE = {
   correctionNote: "Correção",
   noteAt: (when: string) => `em ${when}`,
   seeChanges: "Ver o que mudou",
+  creditPrefix: "Com informações de",
   sourcesTitle: "Fontes",
   sourcesIntro: "Onde o CityNews encontrou cada informação. Os links abrem no site de origem.",
   ownReporting: "Apuração própria da redação do CityNews.",

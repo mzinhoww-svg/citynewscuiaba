@@ -1,6 +1,20 @@
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
+import {
+  isEligibleForFeature,
+  mostLocal,
+  NATIONAL_COMMOTION_TAG,
+  newsScope,
+  type NewsScope,
+} from "@/lib/geo/news-scope";
 import { err, ok, type Result } from "@/lib/result";
-import { decidePublication, type Candidate, type Decision, type RuleSet } from "@/lib/rules";
+import {
+  decidePublication,
+  isNeverAutoCategory,
+  isSafetyCategory,
+  type Candidate,
+  type Decision,
+  type RuleSet,
+} from "@/lib/rules";
 import { resolveRules } from "@/lib/rules/load";
 import type { DecisionContext } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
@@ -8,11 +22,8 @@ import { inputHash } from "./understanding";
 import type { PublishStepDeps } from "./write";
 
 const ARTICLE_REF = /^article:(\S+)$/;
-/** Etiquetas que marcam notícia urgente (breaking): nunca publica sozinha. */
+/** Etiquetas que marcam notícia urgente (breaking). Só vira revisão se as regras mantêm o portão. */
 const BREAKING_TAGS = new Set(["urgente", "breaking", "breaking-news", "ultima-hora", "plantao"]);
-/** Categorias que nunca publicam sozinhas, qualquer que seja a regra (CLAUDE.md regra 8). */
-const NEVER_AUTO = new Set(["seguranca"]);
-
 export const articleIdFrom = (ref: string): string | null => ARTICLE_REF.exec(ref)?.[1] ?? null;
 
 const fold = (s: string) =>
@@ -27,6 +38,59 @@ export function isBreaking(ctx: Pick<DecisionContext, "urgent" | "tags">): boole
   return ctx.urgent || ctx.tags.some((t) => BREAKING_TAGS.has(fold(t)));
 }
 
+/** Comoção nacional marcada na matéria ou pela classificação dos itens (A15). */
+export function hasNationalCommotion(
+  ctx: Pick<DecisionContext, "nationalCommotion" | "tags">,
+): boolean {
+  return ctx.nationalCommotion || ctx.tags.some((t) => fold(t) === NATIONAL_COMMOTION_TAG);
+}
+
+/** Escopo da notícia (A15) pelos bairros, municípios e fontes dos itens e pelo título. */
+export function newsScopeOf(
+  ctx: Pick<DecisionContext, "neighborhoods" | "municipalities" | "sourceLocalities" | "title">,
+): NewsScope {
+  return newsScope({
+    neighborhoods: ctx.neighborhoods,
+    municipality: mostLocal(ctx.municipalities),
+    sourceLocality: mostLocal(ctx.sourceLocalities) ?? "cuiaba",
+    text: ctx.title,
+  });
+}
+
+/**
+ * Urgente e destaque só para o que é local ou regional, ou nacional de comoção (A15). Notícia
+ * nacional sem comoção perde o marcador `urgent` (e, sem ele, não gera push urgente).
+ */
+export function urgentDemoted(
+  ctx: Pick<
+    DecisionContext,
+    | "urgent"
+    | "neighborhoods"
+    | "municipalities"
+    | "sourceLocalities"
+    | "title"
+    | "nationalCommotion"
+    | "tags"
+  >,
+): boolean {
+  return (
+    ctx.urgent &&
+    !isEligibleForFeature({
+      newsScope: newsScopeOf(ctx),
+      nationalCommotion: hasNationalCommotion(ctx),
+    })
+  );
+}
+
+/** Assunto grave (A3/A6): segurança, ou item marcado sensível (acusação, saúde individual, tragédia). */
+export function isGrave(ctx: Pick<DecisionContext, "category" | "sensitive" | "tags">): boolean {
+  return (
+    isSafetyCategory(ctx.category) ||
+    ctx.sensitive ||
+    ctx.tags.some((t) => fold(t) === "saude-individual")
+  );
+}
+
 export function candidateOf(ctx: DecisionContext): Candidate {
   return {
     category: ctx.category,
@@ -38,12 +102,25 @@ export function candidateOf(ctx: DecisionContext): Candidate {
     confidenceScore: ctx.confidenceScore,
     breaking: isBreaking(ctx),
     sensitive: ctx.sensitive,
+    dubious: ctx.dubious,
+    sourceTrusted: ctx.sourceTrusted,
+    grave: isGrave(ctx),
+    newsScope: newsScopeOf(ctx),
   };
 }
 
-/** Pode publicar sem pessoa? Defesa em profundidade além de `decidePublication`. */
-export function neverAuto(ctx: DecisionContext): boolean {
-  return isBreaking(ctx) || ctx.sensitive || ctx.aiFallback || NEVER_AUTO.has(fold(ctx.category));
+/**
+ * Pode publicar sem pessoa? Defesa em profundidade além de `decidePublication`: rascunho sem IA
+ * nunca, e os portões que as regras em vigor ainda mantêm (breaking, sensível, `neverAuto`).
+ * Nas regras v3 só sobra o rascunho sem IA.
+ */
+export function neverAuto(ctx: DecisionContext, rules: RuleSet): boolean {
+  return (
+    ctx.aiFallback ||
+    (rules.breakingReview && isBreaking(ctx)) ||
+    (rules.sensitiveFlagReview && ctx.sensitive) ||
+    isNeverAutoCategory(ctx.category, rules.neverAuto)
+  );
 }
 
 const isPublish = (d: Decision) => d.route === "publish" || d.route === "publish_notify";
@@ -80,7 +157,7 @@ export function routeArticle(
       rule: "ai_unavailable",
       rationale: RULE_RATIONALE.aiUnavailable("rascunho sem IA"),
     });
-  if (isPublish(base) && neverAuto(ctx))
+  if (isPublish(base) && neverAuto(ctx, rules))
     return out({ route: "review", rule: "never_auto", rationale: RULE_RATIONALE.neverAuto() });
   if (isPublish(base) && (!flags.autoPublish || flags.readOnly))
     return out({
@@ -123,7 +200,16 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
       autoPublish: await deps.flags.isEnabled("auto_publish"),
       readOnly: await deps.flags.isEnabled("read_only"),
     };
-    const d = routeArticle(ctx, loaded, flags);
+    // Escopo regional (A15): grava o escopo e rebaixa `urgent` de notícia nacional sem comoção.
+    const scope = newsScopeOf(ctx);
+    const demote = urgentDemoted(ctx);
+    await deps.repo.setStatus(articleId, {
+      status: ctx.status,
+      newsScope: scope,
+      nationalCommotion: hasNationalCommotion(ctx),
+      ...(demote ? { urgent: false } : {}),
+    });
+    const d = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
     const hash = inputHash(
       "rules",
       ctx.version,

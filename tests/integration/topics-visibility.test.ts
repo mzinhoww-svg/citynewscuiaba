@@ -120,21 +120,16 @@ describe("visibilidade dos assuntos", () => {
     expect(sitemap.ok && sitemap.value.some((e) => e.path.endsWith(after.slug))).toBe(true);
   });
 
-  it("Segurança ou urgente publicado sem revisão humana não abre o assunto (D12)", async () => {
+  it("Segurança ou urgente publicado automaticamente abre o assunto (A2/A4, regras v3)", async () => {
     const seg = await internalTopic("seguranca");
     const a = await article(seg.id, { section_slug: "seguranca" });
     await publish(a.id, "auto");
-    expect((await readTopic(seg.id)).visibility).toBe("internal");
+    expect((await readTopic(seg.id)).visibility).toBe("public");
 
     const urg = await internalTopic("cidade");
     const b = await article(urg.id, { section_slug: "cidade", urgent: true });
     await publish(b.id, "auto");
-    expect((await readTopic(urg.id)).visibility).toBe("internal");
-
-    // Com revisão humana, abre.
-    const c = await article(seg.id, { section_slug: "seguranca" });
-    await publish(c.id, "human");
-    expect((await readTopic(seg.id)).visibility).toBe("public");
+    expect((await readTopic(urg.id)).visibility).toBe("public");
   });
 
   it("interno fica fora de lista, página e sitemap", async () => {

@@ -32,6 +32,7 @@ const CONFIG: SourceConfig = {
   recPinned: false,
   recLocalHighlight: false,
   recExcluded: false,
+  trusted: false,
 };
 
 function setup(over: Partial<SourceConfigFormProps["source"]> = {}, action?: WizardAction) {

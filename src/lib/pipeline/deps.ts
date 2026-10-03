@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createProductionAi } from "@/lib/ai/server";
+import { createBreakerStore } from "@/lib/db/breaker-store";
 import { createSupabaseMediaStore } from "@/lib/db/media-store";
 import { createPushSendStore } from "@/lib/db/push-send-store";
 import { pushSender } from "@/lib/push/deps";
@@ -99,6 +100,7 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       revalidate: revalidateTags,
       now: () => new Date(),
       copyGuard: process.env.AI_PROVIDER !== "fake",
+      breaker: createBreakerStore(db),
     }),
     // Publicação forçada da fila de revisão (REV-T1): lote de até 50 por mensagem.
     ...createForcedPublishHandlers({

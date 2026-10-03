@@ -25,6 +25,7 @@ import {
 import { audienceEstimate, pushSettings, searchArticles } from "@/lib/db/queries/push-admin";
 import type { Json } from "@/lib/db/types";
 import { hitRateLimit } from "@/lib/db/writes";
+import { asScope, isEligibleForFeature } from "@/lib/geo/news-scope";
 import { PUSH_ACTIONS, pushKindsFor } from "@/lib/push/permissions";
 import { cuiabaLocalToIso, scheduleProblem } from "@/lib/push/rules";
 import { audienceSchema, pushRequestSchema } from "@/lib/push/schemas";
@@ -164,7 +165,7 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
   // A editoria da matéria decide se a pessoa pode pedir este tipo (editor: só Destaque da sua).
   const { data: article } = await ctx.db
     .from("articles")
-    .select("section_slug, status, sponsored")
+    .select("section_slug, status, sponsored, news_scope, national_commotion")
     .eq("id", articleId)
     .maybeSingle();
   if (!article) return fail(T.errors.article_invalid, { articleId: T.errors.article_invalid });
@@ -172,6 +173,15 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
     return fail(T.errors.article_invalid, { articleId: T.errors.article_invalid });
   if (!pushKindsFor(ctx.roles, article.section_slug).includes(kind))
     return fail(T.errors.forbidden);
+  // Urgência só local ou regional (A15): nacional sem comoção não gera push urgente.
+  if (
+    kind === "urgent" &&
+    !isEligibleForFeature({
+      newsScope: asScope(article.news_scope),
+      nationalCommotion: article.national_commotion,
+    })
+  )
+    return fail(T.errors.national_scope, { articleId: T.errors.national_scope });
 
   const r = await ctx.store.request(parsed.data);
   if (!r.ok) return storeFailure(r.error);

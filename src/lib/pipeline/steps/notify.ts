@@ -64,6 +64,12 @@ export const NOTIFY_KINDS: Record<string, KindSpec> = {
     grouped: false,
     title: (t) => `Publicada automaticamente (com aviso): ${t}`,
   },
+  breaker_open: {
+    severity: "critical",
+    channels: ["control_center", "oncall_email"],
+    grouped: true,
+    title: () => "Disjuntor aberto: publicação automática pausada",
+  },
   new_sources: {
     severity: "info",
     channels: ["control_center"],

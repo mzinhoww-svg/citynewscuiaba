@@ -912,6 +912,29 @@ describe("ip_hash chega ao audit_log (Finding 6)", () => {
   });
 });
 
+describe("Fonte confiável (AUT-T2)", () => {
+  it("source_admin_update salva trusted, bumpa a versão e audita", async () => {
+    const before = await sourceBySlug("folha-do-cerrado");
+    await rpcAs(helena(), "source_admin_update", {
+      p_id: before.id,
+      p_version: before.version,
+      p_patch: { trusted: !before.trusted },
+      p_ctx: { reason: "AUT-T2" },
+    });
+    const after = await sourceBySlug("folha-do-cerrado");
+    expect(after.trusted).toBe(!before.trusted);
+    expect(after.version).toBe(before.version + 1);
+    const rows = await auditFor(`source:${before.id}`);
+    expect(JSON.stringify(rows[rows.length - 1])).toContain("trusted");
+    await rpcAs(helena(), "source_admin_update", {
+      p_id: after.id,
+      p_version: after.version,
+      p_patch: { trusted: before.trusted },
+      p_ctx: {},
+    });
+  });
+});
+
 describe("agendamento sem pg_net/Vault (pilha local, A-017)", () => {
   it("schedule_pipeline_cron não agenda nada e não derruba a migration", async () => {
     const r = await rpc("schedule_pipeline_cron");

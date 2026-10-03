@@ -26,5 +26,7 @@ export const ClassifySchema = z.object({
   /** Tema sensível (crime, tragédia, saúde individual, eleições…): nunca publica sozinho. */
   sensitive: z.boolean(),
   tags: z.array(z.string().min(1).max(40)).max(8),
+  /** Notícia nacional de comoção (tragédia, luto, evento histórico): única que pode ser urgente ou destaque fora de Cuiabá e MT. */
+  nationalCommotion: z.boolean().optional(),
 });
 export type Classification = z.infer<typeof ClassifySchema>;

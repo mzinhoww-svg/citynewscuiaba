@@ -325,6 +325,7 @@ export function configFromRow(row: SourceRow): SourceConfig {
     recPinned: row.rec_pinned,
     recLocalHighlight: row.rec_local_highlight,
     recExcluded: row.rec_excluded,
+    trusted: row.trusted,
   };
 }
 

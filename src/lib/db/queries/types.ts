@@ -61,10 +61,16 @@ export interface ArticleSummary {
   topicId: string | null;
   urgent: boolean;
   sponsored: boolean;
+  /** Escopo regional (A15); ausente em dado antigo. */
+  newsScope?: "cuiaba" | "mt" | "national";
+  nationalCommotion?: boolean;
 }
 
 export type ArticleBlock =
-  { type: "paragraph"; text: string } | { type: "heading"; level: 2 | 3; text: string };
+  | { type: "paragraph"; text: string }
+  | { type: "heading"; level: 2 | 3; text: string }
+  /** Linha final "Com informações de {fonte}", com os links das fontes. */
+  | { type: "credit"; text: string; sources: { name: string; url: string }[] };
 
 export interface ArticleSource {
   name: string;

@@ -25,5 +25,9 @@ export const VerifySchema = z.object({
         .max(10),
     })
     .nullable(),
+  /** Conteúdo extremamente duvidoso (fato que não se sustenta, texto incoerente). */
+  dubious: z.boolean().optional(),
+  /** Não há como atribuir o fato principal a nenhuma das fontes. */
+  unattributable: z.boolean().optional(),
 });
 export type VerifyOutput = z.infer<typeof VerifySchema>;

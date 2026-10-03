@@ -1,5 +1,6 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
 import { ClassifySchema, type Classification } from "@/lib/ai/schemas/classify";
+import { NATIONAL_COMMOTION_TAG } from "@/lib/geo/news-scope";
 import { err, ok } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import type { UnderstandRepo } from "../ports";
@@ -16,7 +17,7 @@ export interface UnderstandStepDeps {
 }
 
 const TASK =
-  "Classifique o item coletado: editoria, relevância para Cuiabá e Várzea Grande (0 a 1), se o tema é sensível e até 8 etiquetas curtas.";
+  "Classifique o item coletado: editoria, relevância para Cuiabá e Várzea Grande (0 a 1), se o tema é sensível e até 8 etiquetas curtas. Marque nationalCommotion=true só para notícia nacional de grande comoção (tragédia, luto, fato histórico); notícia nacional comum não é comoção.";
 
 /**
  * Etapa 8: editoria, relevância e sensibilidade pelo agente `classify`. O texto é conferido antes
@@ -78,7 +79,9 @@ export function createClassifyStep(deps: UnderstandStepDeps): StepHandler {
       sectionSlug: out.section,
       relevance: out.relevance,
       sensitive: out.sensitive,
-      tags: out.tags,
+      tags: out.nationalCommotion
+        ? [...new Set([...out.tags.slice(0, 7), NATIONAL_COMMOTION_TAG])]
+        : out.tags,
     });
     // Resumo próprio do agregado (quando a política da fonte permite). Nunca trava o item.
     await aggregateSummary(item, { sensitive: out.sensitive, signal: ctx?.signal });
