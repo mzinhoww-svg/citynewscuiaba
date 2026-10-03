@@ -33,6 +33,7 @@ import { createRunStep, type StepHandlers } from "./run-step";
 import { createExhaustedFetchHandler } from "./steps/fetch";
 import {
   createClusterHandlers,
+  createForcedPublishHandlers,
   createIngestHandlers,
   createMediaHandlers,
   createPublishHandlers,
@@ -98,6 +99,22 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       revalidate: revalidateTags,
       now: () => new Date(),
       copyGuard: process.env.AI_PROVIDER !== "fake",
+    }),
+    // Publicação forçada da fila de revisão (REV-T1): lote de até 50 por mensagem.
+    ...createForcedPublishHandlers({
+      runBatch: async (jobId, batch) => {
+        const { data, error } = await db.rpc("forced_publish_batch", {
+          p_job: jobId,
+          p_batch: batch,
+        });
+        if (error) throw new Error(`publicação forçada: ${error.message}`);
+        const r = (data ?? {}) as {
+          status?: string;
+          published?: { id: string; slug: string; topicId: string | null; sectionSlug: string }[];
+        };
+        return { status: r.status ?? "ok", published: r.published ?? [] };
+      },
+      revalidate: revalidateTags,
     }),
     // Push (spec 2026-09-28 §12): fila `notify`, sender por PUSH_PROVIDER (fake sem VAPID).
     ...createPushSteps({

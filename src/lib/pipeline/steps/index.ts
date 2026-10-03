@@ -4,6 +4,7 @@ import { createClusterStep } from "./cluster";
 import { createDedupeStep, type UnderstandingDeps } from "./dedupe";
 import { createEnrichStep } from "./enrich";
 import { createExtractStep } from "./extract";
+import { createForcedPublishStep, type ForcedPublishDeps } from "./forced-publish";
 import { createLocateStep } from "./locate";
 import { createDecideStep } from "./decide";
 import { createIndexStep } from "./indexing";
@@ -17,6 +18,7 @@ import { createValidateStep } from "./validate";
 import { createVerifyStep } from "./verify";
 
 export type { IngestDeps } from "./fetch";
+export type { ForcedPublishDeps } from "./forced-publish";
 export type { UnderstandingDeps } from "./dedupe";
 export type { UnderstandStepDeps } from "./classify";
 export type { MediaStepDeps } from "./media";
@@ -71,4 +73,9 @@ export function createPublishHandlers(deps: PublishStepDeps): StepHandlers {
     index: createIndexStep(deps),
     notify: createNotifyStep(deps),
   };
+}
+
+/** Publicação forçada da fila de revisão (REV-T1): um lote de até 50 por mensagem. */
+export function createForcedPublishHandlers(deps: ForcedPublishDeps): StepHandlers {
+  return { forced_publish: createForcedPublishStep(deps) };
 }

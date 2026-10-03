@@ -20,6 +20,16 @@ export {
   type QueueTableProps,
   type QueueTableRow,
 } from "./studio/QueueTable";
+export {
+  ForcedPublishDialog,
+  type ExcludedItem,
+  type ForcedPublishApi,
+  type ForcedPublishDialogProps,
+  type ForcedSelectionPayload,
+  type PreviewReply,
+  type StartReply,
+  type StatusReply,
+} from "./studio/ForcedPublishDialog";
 export { StudioLoading, type StudioLoadingProps } from "./studio/StudioLoading";
 export {
   ChecklistPanel,

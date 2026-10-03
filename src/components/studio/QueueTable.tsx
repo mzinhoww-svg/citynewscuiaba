@@ -9,10 +9,12 @@ import {
   QUEUE_TEXT as T,
   RECOMMENDED_LABEL,
 } from "@/content/pt-BR/studio";
+import { REVIEW_BULK_TEXT as R } from "@/content/pt-BR/studio-review";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
+import { ForcedPublishDialog, type ForcedPublishApi } from "./ForcedPublishDialog";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
 
@@ -52,6 +54,11 @@ export interface QueueTableProps {
     assign: (i: { ids: string[]; userId: string | null }) => Promise<ActionReply>;
     requestReview: (i: { ids: string[] }) => Promise<ActionReply>;
     unpublishMany?: (i: { ids: string[]; reason: string }) => Promise<ActionReply>;
+    /**
+     * "Selecionar tudo" e "Publicar mesmo assim" (REV-T1): `reviewTotal` são todas as matérias em
+     * revisão nas abas e filtros atuais (todas as páginas); `filter` as identifica no servidor.
+     */
+    forcePublish?: { reviewTotal: number; filter: Record<string, string>; api: ForcedPublishApi };
   };
   unpublish?: (i: { id: string; title: string; reason: string }) => Promise<ActionReply>;
   /** Estado vazio no lugar da tabela; a região de status continua montada (ex.: depois de
@@ -77,19 +84,43 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [assignee, setAssignee] = useState("");
   const [pending, start] = useTransition();
+  const [allMatching, setAllMatching] = useState(false);
+  const [forceOpen, setForceOpen] = useState(false);
 
+  const force = bulk?.forcePublish;
   const ids = [...selected];
-  const toggle = (id: string, on: boolean) =>
+  // "Selecionar tudo" pega as que estão em revisão (as únicas que a publicação forçada aceita).
+  const eligible = rows.filter((r) => (force ? r.status === "in_review" : true));
+  const pageAllSelected = eligible.length > 0 && eligible.every((r) => selected.has(r.id));
+  const pageSomeSelected = eligible.some((r) => selected.has(r.id));
+  const selectionCount = allMatching && force ? force.reviewTotal : ids.length;
+  const togglePage = (on: boolean) => {
+    setAllMatching(false);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      for (const r of eligible) {
+        if (on) next.add(r.id);
+        else next.delete(r.id);
+      }
+      return next;
+    });
+  };
+  const toggle = (id: string, on: boolean) => {
+    setAllMatching(false);
     setSelected((prev) => {
       const next = new Set(prev);
       if (on) next.add(id);
       else next.delete(id);
       return next;
     });
+  };
 
   const finish = (r: ActionReply) => {
     setStatus(r);
-    if (r.ok) setSelected(new Set());
+    if (r.ok) {
+      setSelected(new Set());
+      setAllMatching(false);
+    }
     router.refresh();
   };
 
@@ -142,7 +173,7 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
             <fieldset className="flex flex-wrap items-end gap-3 rounded-lg border border-line-subtle bg-card-white p-4">
               <legend className="sr-only">{T.bulkLabel}</legend>
               <p className="w-full type-meta text-meta" aria-live="polite">
-                {T.bulkLabel} · {T.bulkSelected(ids.length)}
+                {T.bulkLabel} · {T.bulkSelected(selectionCount)}
               </p>
               <Select
                 id={`${uid}-assignee`}
@@ -184,6 +215,44 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
                   {T.unpublishSelected}
                 </Button>
               )}
+              {force && (
+                <Button
+                  size="md"
+                  variant="outline-strong"
+                  disabled={selectionCount === 0 || pending}
+                  onClick={() => setForceOpen(true)}
+                >
+                  {R.publishAnyway}
+                </Button>
+              )}
+              {force && pageAllSelected && (
+                <p role="status" aria-live="polite" className="w-full type-body text-strong">
+                  {allMatching ? (
+                    <>
+                      {R.allSelected(force.reviewTotal)}{" "}
+                      <Button
+                        size="sm"
+                        variant="text"
+                        onClick={() => {
+                          setAllMatching(false);
+                          setSelected(new Set());
+                        }}
+                      >
+                        {R.clearSelection}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      {R.pageSelected(eligible.length)}{" "}
+                      {force.reviewTotal > eligible.length && (
+                        <Button size="sm" variant="text" onClick={() => setAllMatching(true)}>
+                          {R.selectAllMatching(force.reviewTotal)}
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </p>
+              )}
             </fieldset>
           )}
 
@@ -199,7 +268,17 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
                 <tr className="type-meta text-meta">
                   {bulk && (
                     <th scope="col" className="w-12 px-3 py-3">
-                      <span className="sr-only">{T.col.select}</span>
+                      <input
+                        type="checkbox"
+                        aria-label={force ? R.selectAllPage : T.col.select}
+                        checked={pageAllSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = pageSomeSelected && !pageAllSelected;
+                        }}
+                        disabled={eligible.length === 0}
+                        onChange={(e) => togglePage(e.target.checked)}
+                        className="size-5 accent-(--action-primary)"
+                      />
                     </th>
                   )}
                   <th scope="col" className="px-3 py-3">
@@ -300,6 +379,21 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
             </table>
           </div>
         </>
+      )}
+
+      {force && forceOpen && (
+        <ForcedPublishDialog
+          selection={allMatching ? { filter: force.filter } : { ids: ids }}
+          api={force.api}
+          onClose={(changed) => {
+            setForceOpen(false);
+            if (changed) {
+              setSelected(new Set());
+              setAllMatching(false);
+              router.refresh();
+            }
+          }}
+        />
       )}
 
       <Dialog
