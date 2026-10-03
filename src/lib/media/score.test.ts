@@ -36,6 +36,15 @@ describe("scoreImage", () => {
     expect(mid).toBeGreaterThan(small);
   });
 
+  it("600 a 799 px pontua menos que 1200 e não fica negativa", () => {
+    const at1200 = scoreImage(cand({ width: 1200, height: 675 }));
+    for (const w of [600, 700, 799]) {
+      const s = scoreImage(cand({ width: w, height: Math.round((w * 9) / 16) }));
+      expect(s).toBeGreaterThan(0);
+      expect(s).toBeLessThan(at1200);
+    }
+  });
+
   it("largura abaixo de 600 reprova (nota 0)", () => {
     expect(scoreImage(cand({ width: 599, height: 337 }))).toBe(0);
   });

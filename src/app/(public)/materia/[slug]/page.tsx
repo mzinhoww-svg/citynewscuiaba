@@ -315,7 +315,7 @@ function Article({ a }: { a: ArticleView }) {
           <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
             <MadeHow
               article={a}
-              agentVersion={a.agentId ?? undefined}
+              byRules={Boolean(a.agentId)}
               versionsHref={historyHref}
               collapsible
             />

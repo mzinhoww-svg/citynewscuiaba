@@ -22,12 +22,31 @@ export function sourceDomain(baseUrl: string): string | null {
   }
 }
 
-/** Motivo para recusar a imagem fora do domínio da fonte, ou `null` se é dela. */
+const CATEGORY_LABELS = new Set(["com", "gov", "org", "net", "edu", "jus", "mp", "leg"]);
+
+/**
+ * Domínio registrável simples: últimos 2 rótulos, ou últimos 3 quando o penúltimo é um rótulo de
+ * categoria (com, gov, org, net, edu, jus, mp, leg) e o último tem 2 letras (ex.: ebc.com.br).
+ */
+export function registrableDomain(host: string): string {
+  const labels = host.toLowerCase().replace(/\.$/, "").split(".").filter(Boolean);
+  if (labels.length <= 2) return labels.join(".");
+  const last = labels[labels.length - 1] ?? "";
+  const prev = labels[labels.length - 2] ?? "";
+  const n = CATEGORY_LABELS.has(prev) && last.length === 2 ? 3 : 2;
+  return labels.slice(-n).join(".");
+}
+
+/**
+ * Motivo para recusar a imagem fora do domínio da fonte, ou `null` se é dela: o próprio domínio,
+ * um subdomínio ou outro host do mesmo domínio registrável (CDN do mesmo veículo).
+ */
 export function outsideSourceDomain(url: URL, domain: string): string | null {
   const host = url.hostname.toLowerCase().replace(/\.$/, "");
-  return host === domain || host.endsWith(`.${domain}`)
-    ? null
-    : `imagem fora do domínio da fonte (${host} não é ${domain})`;
+  if (host === domain || host.endsWith(`.${domain}`)) return null;
+  const reg = registrableDomain(domain);
+  if (reg.includes(".") && registrableDomain(host) === reg) return null;
+  return `imagem fora do domínio da fonte (${host} não é ${domain})`;
 }
 
 /**

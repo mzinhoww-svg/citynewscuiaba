@@ -99,7 +99,7 @@ describe("chooseImage (cascata da spec §6.5)", () => {
     const r = chooseImage({
       ...base,
       sourcePolicy: "reproduction",
-      original: { ...good, width: 800, height: 450 },
+      original: { ...good, width: 599, height: 337 },
       archive: [ilustr],
     });
     expect(r.kind).toBe("illustrative");
@@ -190,8 +190,21 @@ describe("mayGenerate e prompt seguro (regra 9)", () => {
 describe("checkImage", () => {
   it("baixa resolução reprova", () =>
     expect(
-      checkImage({ width: 800, height: 450, phashDistances: [], watermark: false }).issues,
+      checkImage({ width: 599, height: 337, phashDistances: [], watermark: false }).issues,
     ).toContain("low_res"));
+  it("600 px no lado maior passa (mínimo relaxado de 1200 para 600)", () =>
+    expect(checkImage({ width: 600, height: 338, phashDistances: [], watermark: false })).toEqual({
+      ok: true,
+      issues: [],
+    }));
+  it("imagens reais de fontes: 810x519 passa, 475x210 reprova", () => {
+    expect(checkImage({ width: 810, height: 519, phashDistances: [], watermark: false }).ok).toBe(
+      true,
+    );
+    expect(
+      checkImage({ width: 475, height: 210, phashDistances: [], watermark: false }).issues,
+    ).toContain("low_res");
+  });
   it("1200 px no lado maior passa", () =>
     expect(checkImage({ width: 1200, height: 1600, phashDistances: [], watermark: false })).toEqual(
       { ok: true, issues: [] },
