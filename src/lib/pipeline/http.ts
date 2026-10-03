@@ -1,4 +1,5 @@
 import type { HttpFetch, IngestRepo } from "./ports";
+import { decodeBody } from "./charset";
 import { isAllowedByRobots } from "./crawl";
 import { deadlineSignal, safeGet, urlProblem, type ResolveHost } from "./net";
 
@@ -173,7 +174,7 @@ export async function crawlGet(
         kind: "ok",
         url: res.url,
         status: res.status,
-        body: new TextDecoder().decode(res.body),
+        body: decodeBody(res.body, res.headers.get("content-type")),
         contentType: res.headers.get("content-type"),
         etag: res.headers.get("etag"),
         lastModified: res.headers.get("last-modified"),
