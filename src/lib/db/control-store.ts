@@ -1,6 +1,7 @@
 import "server-only";
 import { parsePipelineMessage } from "@/lib/pipeline/types";
 import type {
+  ImageReprocessRepo,
   QuarantinedMessage,
   RefLevel,
   ReprocessRepo,
@@ -274,6 +275,28 @@ export function createRunNowRepo(db: DbClient): RunNowRepo {
         .order("slug", { ascending: true });
       check("activeSources", error);
       return data ?? [];
+    },
+  };
+}
+
+/** Matérias publicadas que ainda podem ganhar imagem, para `reprocessImages` (service role). */
+export function createImageReprocessRepo(db: DbClient): ImageReprocessRepo {
+  return {
+    async articlesNeedingImages(limit, after) {
+      const { data, error } = await db.rpc("media_reprocess_candidates", {
+        p_limit: limit,
+        ...(after ? { p_after_at: after.publishedAt, p_after_id: after.id } : {}),
+      });
+      check("articlesNeedingImages", error);
+      const rows = data ?? [];
+      const last = rows.at(-1);
+      return {
+        ids: rows.map((r) => r.id),
+        next:
+          rows.length === limit && last && last.published_at
+            ? { publishedAt: last.published_at, id: last.id }
+            : null,
+      };
     },
   };
 }

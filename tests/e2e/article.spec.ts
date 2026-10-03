@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { forwardedFor } from "./own-ip";
+import { createArticle, removeArticles, service, tag } from "./studio";
 
 const SLUG = "prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const CORRECTED = "com-fumaca-escolas-ajustam-horario-de-educacao-fisica";
@@ -20,12 +21,12 @@ async function report(page: Page) {
   await page.getByRole("button", { name: "Enviar" }).click();
 }
 
-test("matéria mostra resumo por IA, fontes e JSON-LD", async ({ page }) => {
+test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ page }) => {
   await page.goto(`/materia/${SLUG}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Prefeitura detalha novo plano de ônibus entre CPA e Centro",
   );
-  await expect(page.getByText("RESUMO POR IA").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeVisible();
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
   const sources = page.getByRole("region", { name: "Fontes" }).getByRole("link");
@@ -163,4 +164,167 @@ test("matéria no modo escuro sem violações graves @a11y", async ({ page }) =>
   await page.goto(`/materia/${SLUG}`);
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((v) => blocking(v.impact)).map((v) => v.id)).toEqual([]);
+});
+
+/*
+ * UI-T16 · capa e imagem no texto: matéria com dois ativos de fontes diferentes (capa sob o título
+ * e figura depois do 3º parágrafo), ambas com "Reprodução web · Fonte", crédito e "Ver original".
+ * As imagens são fictícias (a pilha local não tem Storage: o arquivo não carrega, a caixa de
+ * proporção fixa continua no lugar).
+ */
+test.describe("capa e imagem no texto", () => {
+  const created: { articles: string[]; media: string[] } = { articles: [], media: [] };
+  const para = (text: string) => ({ type: "paragraph", content: [{ type: "text", text }] });
+
+  /** Matéria publicada com capa e imagem no texto; `blockInline` simula remoção a pedido. */
+  async function seed(opts: { blockInline?: boolean } = {}) {
+    const db = service();
+    const t = tag();
+    const id = await createArticle({
+      title: `Feira de artesanato ocupa a Orla do Porto ${t}`,
+      status: "published",
+      publish_mode: "human",
+      published_at: new Date(Date.now() - 3_600_000).toISOString(),
+      body: {
+        type: "doc",
+        content: [
+          para("A feira de artesanato ocupa a Orla do Porto neste fim de semana."),
+          para("São 60 bancas de artesãos de Cuiabá e Várzea Grande."),
+          para("A entrada é gratuita e a feira abre às 8h."),
+          para("O encerramento será às 18h de domingo."),
+        ],
+      },
+    });
+    created.articles.push(id);
+    const { data: row } = await db.from("articles").select("slug").eq("id", id).single();
+    const mk = async (origin: string, credit: string, page: string, status = "approved") => {
+      const mid = crypto.randomUUID();
+      const { error } = await db.from("media_assets").insert({
+        id: mid,
+        kind: "reproduction",
+        storage_path: `teste/${mid}.jpg`,
+        origin_url: origin,
+        page_url: page,
+        license: "Reprodução (teste)",
+        credit,
+        allowed_use: `article:${id}`,
+        width: 1600,
+        height: 900,
+        status,
+      });
+      if (error) throw error;
+      created.media.push(mid);
+      return mid;
+    };
+    const cover = await mk(
+      "https://folhadocerrado.example/img/feira.jpg",
+      "Ana Prado",
+      "https://folhadocerrado.example/feira",
+    );
+    const inline = await mk(
+      "https://mtagora.example/img/orla.jpg",
+      "Rui Lopes",
+      "https://mtagora.example/orla",
+      opts.blockInline ? "blocked" : "approved",
+    );
+    const link = await db.from("article_media").insert([
+      {
+        article_id: id,
+        media_id: cover,
+        rationale: "teste",
+        chosen_by: "pipeline:image",
+        alt: "Barracas da feira na Orla",
+        role: "cover",
+      },
+      {
+        article_id: id,
+        media_id: inline,
+        rationale: "teste",
+        chosen_by: "pipeline:image",
+        alt: "Artesã trabalha na feira",
+        role: "inline",
+        position: 3,
+      },
+    ]);
+    if (link.error) throw link.error;
+    return row!.slug;
+  }
+
+  test.afterAll(async () => {
+    await removeArticles(created.articles);
+    if (created.media.length) await service().from("media_assets").delete().in("id", created.media);
+  });
+
+  test("capa sob o título e figura depois do 3º parágrafo, ambas com legenda de reprodução", async ({
+    page,
+  }) => {
+    await page.goto(`/materia/${await seed()}`);
+    const figures = page.locator("article figure");
+    await expect(figures).toHaveCount(2);
+
+    const cover = figures.nth(0);
+    await expect(cover.getByRole("img", { name: "Barracas da feira na Orla" })).toBeAttached();
+    await expect(cover.locator("figcaption")).toContainText(
+      "Reprodução web · folhadocerrado.example",
+    );
+    await expect(cover.locator("figcaption")).toContainText("Foto: Ana Prado");
+    await expect(cover.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
+      "href",
+      "https://folhadocerrado.example/feira",
+    );
+    // A capa vem depois do título e antes do corpo do texto.
+    const order = await page.evaluate(() => {
+      const h1 = document.querySelector("article h1")!;
+      const body = document.querySelector("article .reading-body")!;
+      const fig = document.querySelectorAll("article figure")[0]!;
+      const follows = (a: Element, b: Element) =>
+        !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return {
+        afterTitle: follows(h1, fig),
+        beforeBody: follows(fig, body),
+        coverInBody: body.contains(fig),
+      };
+    });
+    expect(order).toEqual({ afterTitle: true, beforeBody: true, coverInBody: false });
+
+    const body = page.locator("article .reading-body");
+    const inline = body.locator("figure");
+    await expect(inline).toHaveCount(1);
+    await expect(inline.getByRole("img", { name: "Artesã trabalha na feira" })).toBeAttached();
+    await expect(inline.locator("figcaption")).toContainText("Reprodução web · mtagora.example");
+    await expect(inline.locator("figcaption")).toContainText("Foto: Rui Lopes");
+    await expect(inline.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
+      "href",
+      "https://mtagora.example/orla",
+    );
+    // Posição: depois do 3º parágrafo, antes do 4º; nunca antes do lide.
+    const kids = await body.locator(":scope > *").evaluateAll((els) => els.map((e) => e.tagName));
+    expect(kids).toEqual(["P", "P", "P", "FIGURE", "P"]);
+  });
+
+  test("as duas fotos têm proporção fixa (sem salto de layout) e legenda fora da área recortada", async ({
+    page,
+  }) => {
+    await page.goto(`/materia/${await seed()}`);
+    for (const i of [0, 1]) {
+      const fig = page.locator("article figure").nth(i);
+      const box = await fig.getByRole("img").locator("xpath=..").boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.width / box!.height).toBeCloseTo(16 / 9, 1);
+      const cap = await fig.locator("figcaption").boundingBox();
+      expect(cap!.y).toBeGreaterThanOrEqual(box!.y + box!.height - 1);
+    }
+  });
+
+  test("matéria com as duas imagens sem violações do axe @a11y", async ({ page }) => {
+    await page.goto(`/materia/${await seed()}`);
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+
+  test("uma das duas removida a pedido: a outra continua na página", async ({ page }) => {
+    await page.goto(`/materia/${await seed({ blockInline: true })}`);
+    await expect(page.locator("article figure")).toHaveCount(1);
+    await expect(page.locator("article figure figcaption")).toContainText("folhadocerrado.example");
+  });
 });

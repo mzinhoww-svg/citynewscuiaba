@@ -97,6 +97,7 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       embed: ai.embedOne,
       revalidate: revalidateTags,
       now: () => new Date(),
+      copyGuard: process.env.AI_PROVIDER !== "fake",
     }),
     // Push (spec 2026-09-28 §12): fila `notify`, sender por PUSH_PROVIDER (fake sem VAPID).
     ...createPushSteps({

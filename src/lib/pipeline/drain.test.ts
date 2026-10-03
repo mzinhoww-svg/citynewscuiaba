@@ -118,6 +118,30 @@ describe("drain", () => {
     expect(queue.readCounts()).toEqual([0, 0]);
   });
 
+  it("alterna entre as filas: pipeline cheia não deixa a mídia esperando", async () => {
+    const queue = createMemoryQueue();
+    for (let i = 0; i < 6; i++) await queue.enqueue("pipeline", m(`source:${i}`, "classify"));
+    await queue.enqueue("media", m("article:a1", "image"));
+    const order: string[] = [];
+    let clock = 0;
+    const runStep = createRunStep({
+      classify: async () => {
+        order.push("classify");
+        clock += 10_000;
+        return { ok: true, value: [] };
+      },
+      image: async () => {
+        order.push("image");
+        clock += 10_000;
+        return { ok: true, value: [] };
+      },
+    });
+    // Orçamento de 48 s com etapas de 10 s: cabem 5 etapas. Lotes de 2.
+    await drain({ queue, runStep, events: sink(), now: () => clock, batchSize: 2 });
+    expect(order).toContain("image");
+    expect(order.indexOf("image")).toBeLessThan(order.length - 1);
+  });
+
   it("etapa de imagem vai para a fila media, notificação para notify, e o drain esvazia todas", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("topic:t1", "summarize"));
@@ -273,5 +297,12 @@ describe("drain", () => {
     expect(queueFor("image_rights")).toBe("media");
     expect(queueFor("notify")).toBe("notify");
     expect(queueFor("publish")).toBe("pipeline");
+  });
+});
+
+describe("STEP_MIN_MS.image", () => {
+  it("comporta robots.txt e imagem de até 2 fontes (4 requisições de 10 s, com folga parcial)", async () => {
+    const { STEP_MIN_MS } = await import("./drain");
+    expect(STEP_MIN_MS.image).toBeGreaterThanOrEqual(30_000);
   });
 });

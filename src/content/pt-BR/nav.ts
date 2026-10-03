@@ -6,14 +6,18 @@ export interface NavItem {
   href: string;
 }
 
-/** Barra superior do cabeçalho no desktop. */
+/** Destinos principais do cabeçalho no desktop (os demais ficam em `QUICK_NAV`). */
 export const MAIN_NAV: readonly NavItem[] = [
   { id: "home", label: "Início", href: "/" },
   { id: "explore", label: "Explorar", href: "/explorar" },
-  { id: "sources", label: "Fontes", href: "/fontes" },
-  { id: "favorites", label: "Favoritos", href: "/favoritos" },
   { id: "agenda", label: "Agenda", href: "/agenda" },
+  { id: "sources", label: "Fontes", href: "/fontes" },
+];
+
+/** Atalhos em ícone do cabeçalho no desktop; no celular vêm da barra inferior. */
+export const QUICK_NAV: readonly NavItem[] = [
   { id: "search", label: "Busca", href: "/busca" },
+  { id: "favorites", label: "Favoritos", href: "/favoritos" },
   { id: "profile", label: "Perfil", href: "/perfil" },
 ];
 
@@ -48,7 +52,7 @@ export const FOOTER_NAV: readonly NavItem[] = [
   { id: "app", label: "Baixar o app", href: "/app" },
   { id: "principios", label: "Princípios editoriais", href: "/principios-editoriais" },
   { id: "metodologia", label: "Metodologia", href: "/metodologia" },
-  { id: "ia", label: "Como usamos IA", href: "/como-usamos-ia" },
+  { id: "ia", label: "Como funciona o CityNews", href: "/como-usamos-ia" },
   { id: "correcoes", label: "Correções", href: "/correcoes" },
   { id: "resposta", label: "Direito de resposta", href: "/direito-de-resposta" },
   { id: "privacidade", label: "Privacidade", href: "/privacidade" },
@@ -61,6 +65,7 @@ export const NAV_TEXT = {
   skipToContent: "Pular para o conteúdo",
   mainNav: "Principal",
   sectionsNav: "Editorias",
+  quickNav: "Busca e conta",
   footerNav: "Institucional",
   homeLink: "CityNews Cuiabá, página inicial",
   live: "Agora",

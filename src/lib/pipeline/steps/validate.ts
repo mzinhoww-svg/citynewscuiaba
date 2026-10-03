@@ -3,11 +3,15 @@ import { err, ok } from "@/lib/result";
 import { MAX_DOCUMENT_BYTES } from "../http";
 import type { IngestRepo, RawItemRecord } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { repairTruncatedSitemap } from "../sitemap";
 import { detectFormat, hasEntityDeclaration } from "./extract";
 
 /** Motivo para recusar o documento, ou `null` se ele pode seguir para a extração. */
 export function validateRaw(raw: RawItemRecord): string | null {
-  const { status, body, sourceKind } = raw.payload;
+  const { status, sourceKind } = raw.payload;
+  // Prefixo de sitemap (`truncated`) termina no meio de uma `<url>`: valida o reparado, que é o que
+  // a extração lê. Reparar um documento completo é no-op.
+  const body = raw.payload.truncated ? repairTruncatedSitemap(raw.payload.body) : raw.payload.body;
   if (status !== 200) return `HTTP ${status}`;
   if (!body.trim()) return "documento vazio";
   if (body.length > MAX_DOCUMENT_BYTES) return "documento maior que 5 MB";

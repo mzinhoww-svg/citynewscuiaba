@@ -11,6 +11,7 @@ import type {
   ArticleHistory,
   ArticleNote,
   ArticleImage,
+  ArticleInlineImage,
   ArticleLookup,
   ArticleSource,
   ArticleSummary,
@@ -113,7 +114,10 @@ interface Hydration {
   sections: Map<string, SectionRef>;
   names: Map<string, string>;
   sourceSlugs: Map<string, Set<string>>;
+  /** Capa (`role = 'cover'`) por matéria. */
   images: Map<string, ArticleImage>;
+  /** Imagem do texto (`role = 'inline'`) por matéria. */
+  inlineImages: Map<string, ArticleInlineImage>;
 }
 
 async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydration> {
@@ -136,7 +140,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       ? db
           .from("article_media")
           .select(
-            "article_id, alt, media_assets(id, kind, storage_path, origin_url, license, credit, status)",
+            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_name, license, credit, status)",
           )
           .in("article_id", ids)
           .then(many)
@@ -159,11 +163,16 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
   }
 
   const images = new Map<string, ArticleImage>();
+  const inlineImages = new Map<string, ArticleInlineImage>();
   for (const m of media) {
     const asset = m.media_assets;
-    if (!asset || asset.status !== "approved" || images.has(m.article_id)) continue;
+    // Ativo removido a pedido (bloqueado) some só ele: a outra imagem da matéria continua.
+    if (!asset || asset.status !== "approved") continue;
+    const inline = m.role === "inline";
+    if (inline ? inlineImages.has(m.article_id) : images.has(m.article_id)) continue;
+    if (inline && (m.position ?? 0) < 1) continue;
     const kind = MEDIA_KIND[asset.kind];
-    images.set(m.article_id, {
+    const image: ArticleImage = {
       // Bucket privado (ADR-009): a rota própria valida aprovação e flag e assina a URL.
       src: mediaHref(asset.id),
       // Texto alternativo escrito na redação (o checklist exige); sem ele, imagem decorativa.
@@ -175,7 +184,18 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
           : kind === "licensed"
             ? asset.license
             : (asset.credit ?? undefined),
-    });
+      author:
+        kind === "reproduction" &&
+        asset.credit &&
+        asset.credit !== hostOf(asset.origin_url) &&
+        asset.credit !== asset.source_name
+          ? asset.credit
+          : undefined,
+      // "Ver original" vai para a PÁGINA da matéria da fonte, nunca para o arquivo da imagem.
+      originUrl: kind === "reproduction" ? (asset.page_url ?? undefined) : undefined,
+    };
+    if (inline) inlineImages.set(m.article_id, { ...image, position: m.position ?? 0 });
+    else images.set(m.article_id, image);
   }
 
   return {
@@ -187,6 +207,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
     ),
     sourceSlugs,
     images,
+    inlineImages,
   };
 }
 
@@ -234,6 +255,7 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
     byline: (row.author_id && h.names.get(row.author_id)) || BYLINE.newsroom,
     reviewer,
     image,
+    inlineImage: h.inlineImages.get(row.id),
     topicId: row.topic_id,
     urgent: row.urgent,
     sponsored: row.sponsored,

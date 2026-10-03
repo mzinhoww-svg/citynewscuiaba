@@ -59,3 +59,22 @@ it("fora de src/components, importe pelo índice", async () => {
   );
   expect(good).toEqual([]);
 });
+
+// UI-T3 (decisão do dono): nenhuma faixa agrupa rótulos de origem. Card tem no máximo 1 plaqueta;
+// origem do texto derivado e revisão vão em texto.
+it("nenhum arquivo de src/ contém o componente OriginStrip", async () => {
+  const { readdirSync, readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const offenders: string[] = [];
+  const walk = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, e.name);
+      if (e.isDirectory()) walk(full);
+      else if (/\.(ts|tsx|css)$/.test(e.name) && e.name !== "adherence.test.ts") {
+        if (/OriginStrip/.test(readFileSync(full, "utf8"))) offenders.push(full);
+      }
+    }
+  };
+  walk(join(process.cwd(), "src"));
+  expect(offenders).toEqual([]);
+}, 30_000);

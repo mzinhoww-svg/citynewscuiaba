@@ -43,6 +43,8 @@ export async function analyzeImage(bytes: Uint8Array): Promise<Result<ImageAnaly
       for (let x = 0; x < 8; x++)
         if (px[y * 9 + x]! > px[y * 9 + x + 1]!) phash |= 1n << BigInt(y * 8 + x);
 
+    const sharpness = await measureSharpness(bytes);
+
     return ok({
       format,
       contentType: format === "jpeg" ? "image/jpeg" : `image/${format}`,
@@ -51,8 +53,42 @@ export async function analyzeImage(bytes: Uint8Array): Promise<Result<ImageAnaly
       phash,
       sha256: createHash("sha256").update(bytes).digest("hex"),
       bytes: bytes.byteLength,
+      ...(sharpness === null ? {} : { sharpness }),
     });
   } catch (e) {
     return err(`imagem inválida: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/**
+ * Nitidez 0 a 1: variância do laplaciano em cinza, em miniatura de 256 px de largura, comprimida
+ * por v / (v + 100). Imagem lisa ou desfocada fica perto de 0. Falha de leitura = sem nota.
+ */
+async function measureSharpness(bytes: Uint8Array): Promise<number | null> {
+  try {
+    const { data, info } = await sharp(bytes)
+      .rotate()
+      .grayscale()
+      .resize(256, 256, { fit: "inside", withoutEnlargement: true })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const { width: w, height: h } = info;
+    if (w < 3 || h < 3) return null;
+    let sum = 0;
+    let sumSq = 0;
+    let n = 0;
+    for (let y = 1; y < h - 1; y++)
+      for (let x = 1; x < w - 1; x++) {
+        const i = y * w + x;
+        const lap = 4 * data[i]! - data[i - 1]! - data[i + 1]! - data[i - w]! - data[i + w]!;
+        sum += lap;
+        sumSq += lap * lap;
+        n++;
+      }
+    const mean = sum / n;
+    const variance = sumSq / n - mean * mean;
+    return Math.round((variance / (variance + 100)) * 1000) / 1000;
+  } catch {
+    return null;
   }
 }

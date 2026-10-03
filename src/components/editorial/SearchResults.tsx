@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { useId } from "react";
+import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { CARD } from "@/content/pt-BR/portal-card";
 import { SEARCH } from "@/content/pt-BR/search";
 import { formatDateTime, formatWhen } from "@/lib/format/date";
+import { plaqueOf, publicLabels } from "@/lib/labels";
 import type { SearchGroup, SearchHit } from "@/lib/search/types";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
@@ -34,13 +36,14 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
   switch (hit.kind) {
     case "article": {
       const a = hit.item;
+      const pub = publicLabels(a);
       return (
         <article className={cx(ROW, className)}>
-          <div className="relative flex flex-wrap gap-1.5">
-            {a.labels.shown.slice(0, 4).map((l) => (
-              <OriginLabel key={`${l.kind}-${l.detail ?? ""}`} label={l} />
-            ))}
-          </div>
+          {pub.plaque === "original" && (
+            <div className="relative flex">
+              <OriginLabel label={{ kind: "original", text: LABEL_TEXT.original }} />
+            </div>
+          )}
           <h3 className={TITLE}>
             <Link href={a.href} className="card-link no-underline hover:underline">
               <Highlight text={a.title} terms={terms} />
@@ -51,6 +54,18 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
           </p>
           <p className="flex flex-wrap gap-x-1.5 type-meta text-meta">
             <span>{a.section.name}</span>
+            {pub.originText && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{pub.originText}</span>
+              </>
+            )}
+            {pub.reviewText && (
+              <>
+                <span aria-hidden="true">·</span>
+                <span>{pub.reviewText}</span>
+              </>
+            )}
             <span aria-hidden="true">·</span>
             <time dateTime={a.publishedAt} className="tabular-nums">
               {formatWhen(a.publishedAt, now)}
@@ -61,7 +76,7 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
     }
     case "aggregated": {
       const g = hit.item;
-      const label = g.labels.shown[0];
+      const label = plaqueOf(g.labels);
       return (
         <article className={cx(ROW, className)}>
           {label && (

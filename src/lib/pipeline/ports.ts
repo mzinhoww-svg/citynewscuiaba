@@ -196,6 +196,11 @@ export interface RawPayload {
    */
   etag?: string | null;
   lastModified?: string | null;
+  /**
+   * `true` quando o `fetch` leu só o prefixo do documento (`prefixBytes`, sitemap anual): o corpo
+   * termina no meio de uma `<url>` e é reparado por `repairTruncatedSitemap` antes de validar.
+   */
+  truncated?: boolean;
 }
 
 export type RawState = "new" | "valid" | "quarantine" | "extracted";
@@ -221,7 +226,26 @@ export interface CollectedInsert {
   locality: string;
 }
 
-/** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize). */
+/** Item coletado como o `enrich` o lê (só o necessário para decidir e aplicar o enriquecimento). */
+export interface EnrichableItem {
+  id: string;
+  sourceId: string;
+  canonicalUrl: string;
+  originalTitle: string;
+  excerpt: string | null;
+  publishedAt: string | null;
+  imageUrl: string | null;
+}
+
+/** Campos que o `enrich` pode corrigir em `collected_items`; o que não vier não é tocado. */
+export interface EnrichmentPatch {
+  originalTitle?: string;
+  excerpt?: string;
+  publishedAt?: string;
+  imageUrl?: string;
+}
+
+/** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize, enrich). */
 export interface IngestRepo {
   sourceBySlug(slug: string): Promise<SourceRecord | null>;
   sourceById(id: string): Promise<SourceRecord | null>;
@@ -277,6 +301,10 @@ export interface IngestRepo {
   insertCollectedItem(
     item: CollectedInsert,
   ): Promise<{ id: string; created: boolean; pending: boolean }>;
+  /** Item coletado para o `enrich` (`null` se sumiu). */
+  collectedForEnrich(id: string): Promise<EnrichableItem | null>;
+  /** Aplica o enriquecimento (só os campos presentes); idempotente. */
+  applyEnrichment(id: string, patch: EnrichmentPatch): Promise<void>;
 }
 
 /** Item coletado como as etapas de Entendimento (dedupe em diante) o enxergam. */
@@ -462,6 +490,17 @@ export interface MediaSourceItem {
   };
 }
 
+/** Imagem já ligada à matéria (capa ou imagem do texto). */
+export interface MediaSlot {
+  mediaId: string;
+  sourceId: string | null;
+  originUrl: string | null;
+  kind: MediaAssetRecord["kind"];
+  status: MediaAssetRecord["status"];
+  /** dHash da imagem, quando conhecido (compara com a candidata do outro papel). */
+  phash: bigint | null;
+}
+
 /** Matéria como a etapa de imagem a enxerga. */
 export interface MediaContext {
   articleId: string;
@@ -474,6 +513,16 @@ export interface MediaContext {
   tags: string[];
   /** A matéria já tem imagem escolhida (idempotência). */
   hasMedia: boolean;
+  /** Capa atual (`article_media.role = 'cover'`), mesmo se removida a pedido (status `blocked`). */
+  cover: MediaSlot | null;
+  /** Imagem do texto atual (`role = 'inline'`). */
+  inline: MediaSlot | null;
+  /** Parágrafos do corpo (documento doc → paragraph); define a posição da imagem do texto. */
+  bodyParagraphs: number;
+  /** Alguma imagem foi escolhida por pessoa (`chosen_by` fora de `pipeline*`): nunca é trocada. */
+  humanMedia: boolean;
+  /** A matéria tem versão de pessoa: o reprocesso de imagem não toca nela. */
+  humanEdited: boolean;
   /** Itens do assunto: primárias primeiro, depois os mais recentes. */
   items: MediaSourceItem[];
 }
@@ -524,11 +573,16 @@ export interface MediaRepo extends Pick<IngestRepo, "hitRateLimit"> {
   /** Acervo ilustrativo aprovado, com alguma das etiquetas. */
   archiveCandidates(tags: string[], limit: number): Promise<MediaAssetRecord[]>;
   insertAsset(a: NewMediaAsset): Promise<string>;
+  /**
+   * Liga o ativo à matéria como capa ou imagem do texto (`position` = parágrafo depois do qual
+   * entra, só no papel `inline`). Idempotente: o mesmo par ou o mesmo papel já ocupado não muda.
+   */
   linkArticleMedia(
     articleId: string,
     mediaId: string,
     rationale: string,
     chosenBy: string,
+    slot?: { role: "cover" | "inline"; position?: number },
   ): Promise<void>;
   recordDecision(d: DecisionRecord): Promise<void>;
   asset(id: string): Promise<MediaAssetRecord | null>;

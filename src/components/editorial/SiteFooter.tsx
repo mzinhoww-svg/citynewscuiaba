@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FOOTER_NAV, LEGAL, NAV_TEXT } from "@/content/pt-BR/nav";
+import { isFilled } from "@/content/pt-BR/institutional";
 import { cx } from "../cx";
 import { Logo } from "./Logo";
 
@@ -9,10 +10,11 @@ export interface SiteFooterProps {
 
 /**
  * Rodapé do portal: placa Tinta com a assinatura negativa, páginas institucionais e dados da
- * empresa. Razão social, CNPJ e encarregado LGPD ficam como `[PREENCHER]` até o dono informar
- * (B-001).
+ * empresa. Razão social, CNPJ e encarregado LGPD só aparecem quando preenchidos (B-001); sem
+ * nenhum, a seção e a linha divisória somem e sobra o copyright.
  */
 export function SiteFooter({ className }: SiteFooterProps) {
+  const company = [LEGAL.companyName, LEGAL.cnpj, LEGAL.dpo].filter(isFilled);
   return (
     <footer className={cx("bg-tinta text-branco", className)}>
       <div className="mx-auto flex max-w-page flex-col gap-8 px-gutter py-10">
@@ -34,12 +36,17 @@ export function SiteFooter({ className }: SiteFooterProps) {
             ))}
           </ul>
         </nav>
-        <div className="flex flex-col gap-1 border-t border-branco/20 pt-6 type-meta text-branco/85">
-          <p>{LEGAL.companyName}</p>
-          <p>{LEGAL.cnpj}</p>
-          <p>{LEGAL.dpo}</p>
-          <p className="mt-2">{LEGAL.copyright}</p>
-        </div>
+        {company.length > 0 && (
+          <div
+            data-company
+            className="flex flex-col gap-1 border-t border-branco/20 pt-6 type-meta text-branco/85"
+          >
+            {company.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
+          </div>
+        )}
+        <p className="type-meta text-branco/85">{LEGAL.copyright}</p>
       </div>
     </footer>
   );

@@ -22,12 +22,15 @@ export const DRAIN_EVENTS_FLUSH = 25;
  */
 export const STEP_MIN_MS: Partial<Record<JobStep, number>> = {
   fetch: 12_000,
+  /** Espera de 1 s + robots.txt (10 s) + página (10 s). */
+  enrich: 22_000,
   dedupe: 8_000,
   classify: 15_000,
   locate: 10_000,
   verify: 20_000,
   summarize: 30_000,
-  image: 15_000,
+  /** Até 2 fontes avaliadas (robots.txt + imagem, 10 s cada) para capa e imagem do texto. */
+  image: 30_000,
   index: 8_000,
   /** Lote de até 100 entregas de push com concorrência 10 e 10 s por envio (spec §12.3). */
   push_deliver: 15_000,
@@ -238,6 +241,10 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             }
           }
           await flush();
+          // Uma leva por fila a cada volta (alternância): uma fila cheia não pode deixar as outras
+          // (mídia, notificações) sem vez. Antes esvaziava a primeira fila inteira, e as imagens
+          // nunca eram lidas enquanto houvesse mensagens na pipeline.
+          break;
         }
       }
       if (!progressed) break;

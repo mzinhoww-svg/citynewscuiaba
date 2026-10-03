@@ -5,6 +5,9 @@ import {
   reprocessRunRef,
   retryQuarantined,
   stepLevel,
+  MAX_REPROCESS_TARGETS,
+  reprocessImages,
+  type ImageReprocessRepo,
   type ReprocessRepo,
 } from "./reprocess";
 
@@ -147,5 +150,73 @@ describe("retryQuarantined", () => {
       { runId: "r1", step: "classify", itemRef: "item:i1", attempt: 1 },
     ]);
     expect(repo.resolved).toEqual([7]);
+  });
+});
+
+describe("reprocessImages (UI-T16)", () => {
+  /** Repo fake paginado por cursor: devolve as matérias na ordem, `limit` por vez. */
+  const imageRepo = (ids: string[]): ImageReprocessRepo & { asked: [number, unknown][] } => {
+    const asked: [number, unknown][] = [];
+    return {
+      asked,
+      articlesNeedingImages: async (limit, after) => {
+        asked.push([limit, after ?? null]);
+        const start = after ? ids.indexOf(after.id) + 1 : 0;
+        const page = ids.slice(start, start + limit);
+        const last = page.at(-1);
+        return {
+          ids: page,
+          next:
+            page.length === limit && last
+              ? { publishedAt: "2026-10-01T00:00:00Z", id: last }
+              : null,
+        };
+      },
+    };
+  };
+
+  it("reenfileira o passo image das matérias sem imagem ou só com capa", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2"]);
+    const r = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 50 });
+    expect(r).toEqual({ targets: 2, enqueued: 2, alreadyQueued: 0, next: null });
+    expect(q.messages("media").map((m) => [m.step, m.itemRef])).toEqual([
+      ["image", "article:a1"],
+      ["image", "article:a2"],
+    ]);
+  });
+
+  it("é idempotente: a mesma matéria já na fila não entra de novo", async () => {
+    const q = createMemoryQueue();
+    const deps = { queue: q, repo: imageRepo(["a1"]), now: NOW };
+    await reprocessImages(deps, { limit: 10 });
+    const again = await reprocessImages(deps, { limit: 10 });
+    expect(again).toMatchObject({ targets: 1, enqueued: 0, alreadyQueued: 1 });
+  });
+
+  it("avança por cursor: o próximo lote começa depois do anterior, sem repetir", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2", "a3"]);
+    const deps = { queue: q, repo, now: NOW };
+    const first = await reprocessImages(deps, { limit: 2 });
+    expect(first.targets).toBe(2);
+    expect(first.next).toEqual({ publishedAt: "2026-10-01T00:00:00Z", id: "a2" });
+    const second = await reprocessImages(deps, { limit: 2, after: first.next! });
+    expect(second).toMatchObject({ targets: 1, enqueued: 1, next: null });
+    expect(q.messages("media").map((m) => m.itemRef)).toEqual([
+      "article:a1",
+      "article:a2",
+      "article:a3",
+    ]);
+  });
+
+  it("limita o lote e recusa limite inválido", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2", "a3"]);
+    await reprocessImages({ queue: q, repo, now: NOW }, { limit: 10_000 });
+    expect(repo.asked.at(-1)?.[0]).toBe(MAX_REPROCESS_TARGETS);
+    const bad = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 0 });
+    expect(bad).toEqual({ targets: 0, enqueued: 0, alreadyQueued: 0, next: null });
+    expect(repo.asked).toHaveLength(1);
   });
 });

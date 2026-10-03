@@ -199,6 +199,9 @@
 @utility type-headline {
   font: var(--type-headline);
 }
+@utility type-headline-md {
+  font: var(--type-headline-md);
+}
 @utility type-headline-sm {
   font: var(--type-headline-sm);
 }
@@ -428,6 +431,29 @@
   scrollbar-width: none;
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/*
+ * Borda rolável (UI-T2): a lista indica em `data-fade` (start, end, both) de que lado ainda há
+ * itens; a máscara apaga só esse lado. Função de legibilidade, não decoração.
+ */
+@utility scroll-fade {
+  --scroll-fade-w: var(--sp-24);
+  &[data-fade="end"] {
+    mask-image: linear-gradient(to right, black calc(100% - var(--scroll-fade-w)), transparent);
+  }
+  &[data-fade="start"] {
+    mask-image: linear-gradient(to left, black calc(100% - var(--scroll-fade-w)), transparent);
+  }
+  &[data-fade="both"] {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--scroll-fade-w),
+      black calc(100% - var(--scroll-fade-w)),
+      transparent
+    );
   }
 }
 

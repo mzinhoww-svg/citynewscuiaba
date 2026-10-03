@@ -64,9 +64,9 @@ function useReserveSpace(ref: React.RefObject<HTMLElement | null>, open: boolean
 }
 
 /**
- * Banner de consentimento da primeira visita (spec §5.2, P22): região fixa no rodapé, acima
- * da barra inferior no mobile; no desktop, cartão no canto inferior direito, na largura da
- * coluna lateral, para não cobrir a manchete. Não bloqueia a leitura (não é modal e não
+ * Banner de consentimento da primeira visita (spec §5.2, P22): região fixa no rodapé, compacta
+ * (até 15% da altura no celular, acima da barra inferior; barra de uma linha no desktop).
+ * A página ganha respiro inferior enquanto ele está aberto. Não bloqueia a leitura (não é modal e não
  * prende o foco).
  * Sem resposta vale "Só o necessário". "Escolher" abre as categorias no próprio banner.
  *
@@ -112,31 +112,33 @@ export function ConsentBanner() {
     <section
       ref={regionRef}
       aria-label={CONSENT_TEXT.region}
-      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t-2 border-line-strong bg-card-white lg:inset-x-auto lg:right-gutter lg:bottom-gutter lg:w-80 lg:rounded-lg lg:border-2 lg:shadow-dialog"
+      className="fixed inset-x-0 bottom-tabbar-safe z-sheet border-t border-line-strong bg-card-white lg:bottom-0"
     >
       {choosing ? (
         <Suspense fallback={null}>
           <ConsentPanel draft={draft} onChange={setDraft} onBack={back} onSave={decideAndClose} />
         </Suspense>
       ) : (
-        <div className="mx-auto flex w-full max-w-page flex-col gap-3 px-gutter py-3 lg:p-4">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2 className="type-label text-strong">{CONSENT_TEXT.title}</h2>
-            <p className="text-14 leading-snug text-body">
-              {CONSENT_TEXT.body}{" "}
-              <Link
-                href="/privacidade"
-                aria-label={CONSENT_TEXT.learnMore}
-                className="font-semibold text-link underline underline-offset-4"
-              >
-                {CONSENT_TEXT.learnMoreShort}
-              </Link>
+        <div className="mx-auto flex w-full max-w-page flex-col gap-1.5 px-gutter py-1.5 lg:flex-row lg:items-center lg:gap-4 lg:py-2">
+          <div className="flex min-w-0 flex-1 items-end gap-2">
+            {/* O título segue na árvore (a região já leva o mesmo nome); a barra fica numa linha. */}
+            <h2 className="sr-only">{CONSENT_TEXT.title}</h2>
+            <p className="line-clamp-2 min-w-0 flex-1 text-12 leading-4 text-body lg:line-clamp-none lg:text-13">
+              {CONSENT_TEXT.body}
             </p>
+            <Link
+              href="/privacidade"
+              aria-label={CONSENT_TEXT.learnMore}
+              className="shrink-0 text-12 font-semibold leading-4 text-link underline underline-offset-4 lg:text-13"
+            >
+              {CONSENT_TEXT.learnMoreShort}
+            </Link>
           </div>
-          <div ref={actions} className="grid grid-cols-2 gap-2 lg:grid-cols-1">
+          <div ref={actions} className="grid grid-cols-3 gap-1.5 lg:flex lg:shrink-0 lg:gap-2">
             <Button
               variant="outline"
               size="md"
+              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
               onClick={() => decideAndClose({ metrics: false, personalization: false })}
             >
               {CONSENT_TEXT.necessaryOnly}
@@ -144,6 +146,7 @@ export function ConsentBanner() {
             <Button
               variant="outline"
               size="md"
+              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
               onClick={() => {
                 setDraft({ metrics: false, personalization: false });
                 setChoosing(true);
@@ -153,7 +156,7 @@ export function ConsentBanner() {
             </Button>
             <Button
               size="md"
-              className="col-span-2 lg:col-span-1"
+              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
               onClick={() => decideAndClose({ metrics: true, personalization: true })}
             >
               {CONSENT_TEXT.acceptAll}

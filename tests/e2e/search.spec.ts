@@ -101,9 +101,9 @@ test("consulta com HTML aparece como texto e a página não é indexada", async 
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
 
-test("atalho Perguntar à IA leva o mesmo texto", async ({ page }) => {
+test("atalho Perguntar ao CityNews leva o mesmo texto", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
-  await expect(page.getByRole("link", { name: /Perguntar à IA/ })).toHaveAttribute(
+  await expect(page.getByRole("link", { name: /Perguntar ao CityNews/ })).toHaveAttribute(
     "href",
     "/pergunte?q=viaduto",
   );

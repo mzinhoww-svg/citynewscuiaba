@@ -45,6 +45,7 @@ const baseArticle: ArticleSummary = {
   readMinutes: 2,
   aiSummary: ["Qualidade do ar está ruim pelo terceiro dia.", "Alerta segue até o fim da semana."],
   byline: "Redação CityNews",
+  reviewer: "Marina Couto",
   topicId: null,
   urgent: false,
   sponsored: false,
@@ -58,11 +59,6 @@ const sixLabels: Label[] = [
   { kind: "sponsored", text: "PATROCINADO" },
   { kind: "image_ai", text: "IMAGEM GERADA POR IA" },
 ];
-const fixtureWith6Labels: ArticleSummary = {
-  ...baseArticle,
-  labels: { shown: sixLabels, hidden: [] },
-};
-
 const fixtureAgg: AggregatedView = {
   id: "g1",
   title: "Viaduto da Miguel Sutil entra em nova fase e interdita duas faixas",
@@ -96,7 +92,7 @@ describe("AggregatedCard", () => {
     expect(screen.getByText("há 5 h")).toBeInTheDocument();
   });
 
-  it("texto do card = título, resumo próprio, data e link; rótulos AGREGADO e RESUMO POR IA", () => {
+  it("texto do card = título, resumo próprio, data e link; uma só plaqueta AGREGADO · fonte", () => {
     const item: AggregatedView = {
       ...fixtureAgg,
       labels: {
@@ -108,13 +104,13 @@ describe("AggregatedCard", () => {
       },
     };
     const { container } = render(<AggregatedCard item={item} now={now} />);
-    expect(screen.getByText("RESUMO POR IA")).toBeInTheDocument();
+    expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
+    expect(screen.queryByText(/RESUMO POR IA/)).not.toBeInTheDocument();
     const text = container.textContent ?? "";
     const rest = [
       "Abrir em Folha do Cerrado",
       "AGREGADO",
       "Folha do Cerrado",
-      "RESUMO POR IA",
       item.title,
       item.summary!,
       "há 5 h",
@@ -126,21 +122,52 @@ describe("AggregatedCard", () => {
 });
 
 describe("ArticleCard", () => {
-  it("card de matéria mostra no máximo 4 rótulos", () => {
-    render(<ArticleCard variant="standard" article={fixtureWith6Labels} />);
-    expect(screen.getAllByTestId("origin-label")).toHaveLength(4);
+  it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e as frases em texto", () => {
+    const article: ArticleSummary = {
+      ...baseArticle,
+      kind: "original",
+      publishMode: "auto",
+      sponsored: true,
+      labels: { shown: sixLabels.slice(0, 4), hidden: sixLabels.slice(4) },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
+    expect(screen.getByTestId("origin-label")).toHaveTextContent("ORIGINAL CITYNEWS");
+    expect(screen.getByText("Revisado automaticamente")).toBeInTheDocument();
+    expect(screen.getByText("Patrocinado")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(
+      /NORMALIZADO|RESUMO POR IA|PUBLICADO AUTOMATICAMENTE|IMAGEM GERADA/i,
+    );
+  });
+
+  it("texto derivado não ganha plaqueta: origem e revisão vão em texto na linha de metadado", () => {
+    render(<ArticleCard variant="standard" article={baseArticle} now={now} />);
+    expect(screen.queryByTestId("origin-label")).not.toBeInTheDocument();
+    expect(screen.getByText("Feito a partir de 2 fontes")).toBeInTheDocument();
+    expect(screen.getByText("Revisado por Marina Couto")).toBeInTheDocument();
   });
 
   it.each(["lead", "standard", "compact", "list"] as const)(
-    "variante %s: título é o link da matéria e há rótulos",
+    "variante %s: título é o link da matéria, com origem e revisão em texto",
     (variant) => {
       render(<ArticleCard variant={variant} article={baseArticle} now={now} />);
       const link = screen.getByRole("link", { name: baseArticle.title });
       expect(link).toHaveAttribute("href", "/materia/qualidade-do-ar");
-      expect(screen.getAllByTestId("origin-label").length).toBeGreaterThan(0);
+      expect(screen.getByText("Feito a partir de 2 fontes")).toBeInTheDocument();
       expect(screen.getByText("há 12 min")).toBeInTheDocument();
     },
   );
+
+  it.each([
+    ["lead", "type-headline-xl"],
+    ["standard", "type-headline"],
+    ["list", "type-headline-md"],
+    ["compact", "type-headline-md"],
+  ] as const)("escala de manchete: %s usa %s", (variant, cls) => {
+    render(<ArticleCard variant={variant} article={baseArticle} />);
+    const heading = screen.getByRole("heading", { name: baseArticle.title });
+    expect(heading.className.split(/\s+/)).toContain(cls);
+  });
 
   it("manchete tem confiança e resumo em 20 s", () => {
     render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
@@ -150,10 +177,156 @@ describe("ArticleCard", () => {
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
 
-  it("sem imagem aprovada, usa card tipográfico da editoria", () => {
+  it("sem imagem aprovada, o standard usa miniatura tipográfica da editoria (ícone, sem bloco Tinta)", () => {
     render(<ArticleCard variant="standard" article={baseArticle} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
-    expect(screen.getByTestId("typographic-cover")).toHaveTextContent("Clima");
+    const cover = screen.getByTestId("typographic-cover");
+    expect(cover.className).toContain("bg-section");
+    expect(cover.className).not.toContain("bg-tinta");
+    expect(cover.querySelector("svg use")).toHaveAttribute("href", "#icon-newspaper");
+    expect(cover.style.aspectRatio || cover.className).toBeTruthy();
+  });
+
+  it("lead sem foto vira cabeçalho tipográfico compacto (altura ≤ 96 px) e a manchete sobe", () => {
+    render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
+    const cover = screen.getByTestId("typographic-cover");
+    expect(cover).toHaveAttribute("data-cover", "header");
+    expect(cover.className.split(/\s+/)).toContain("h-12"); // 48 px (token de espaçamento)
+    expect(cover.className).not.toMatch(/aspect-/);
+    expect(cover).toHaveTextContent("Clima");
+    expect(cover.className).not.toContain("bg-tinta");
+    // a capa vem antes do título, mas sem ocupar a área de uma foto 16:9
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(cover.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("lead com foto usa Photo 16:9 e não mostra a capa tipográfica", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    const { container } = render(<ArticleCard variant="lead" article={article} as="h1" />);
+    expect(screen.queryByTestId("typographic-cover")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Fumaça" })).toBeInTheDocument();
+    expect(container.querySelector<HTMLElement>('[style*="aspect-ratio"]')?.style.aspectRatio).toBe(
+      "16/9",
+    );
+  });
+
+  it("standard com foto usa 3:2 fixo", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(container.querySelector<HTMLElement>('[style*="aspect-ratio"]')?.style.aspectRatio).toBe(
+      "3/2",
+    );
+  });
+
+  describe.each(["compact", "list"] as const)("miniatura na variante %s", (variant) => {
+    it("com foto aprovada: miniatura quadrada de tamanho fixo (CLS zero)", () => {
+      const article = {
+        ...baseArticle,
+        image: { src: "/f.jpg", alt: "Fumaça sobre o rio", kind: "original" as const },
+      };
+      const { container } = render(<ArticleCard variant={variant} article={article} />);
+      expect(screen.getByRole("img", { name: "Fumaça sobre o rio" })).toBeInTheDocument();
+      const box = container.querySelector<HTMLElement>('[style*="aspect-ratio"]');
+      expect(box?.style.aspectRatio).toBe("1 / 1");
+      expect(box?.className).toMatch(/\bsize-(20|24)\b/);
+      expect(screen.queryByTestId("typographic-cover")).not.toBeInTheDocument();
+    });
+
+    it("sem foto: miniatura tipográfica Névoa com ícone da editoria, sem bloco Tinta", () => {
+      render(<ArticleCard variant={variant} article={baseArticle} />);
+      const cover = screen.getByTestId("typographic-cover");
+      expect(cover.className).toContain("bg-section");
+      expect(cover.className).not.toContain("bg-tinta");
+      expect(cover.className).toMatch(/\bsize-(20|24)\b/);
+      expect(cover.querySelector("svg use")).toHaveAttribute("href", "#icon-newspaper");
+      expect(cover).toHaveAttribute("aria-hidden", "true");
+    });
+
+    it("editoria mapeada usa o ícone dela; sem mapa, padrão neutro (jornal)", () => {
+      const cidade = { ...baseArticle, section: { slug: "cidade", name: "Cidade" } };
+      const { unmount } = render(<ArticleCard variant={variant} article={cidade} />);
+      expect(screen.getByTestId("typographic-cover").querySelector("svg use")).toHaveAttribute(
+        "href",
+        "#icon-house",
+      );
+      unmount();
+      render(<ArticleCard variant={variant} article={baseArticle} />);
+      expect(screen.getByTestId("typographic-cover").querySelector("svg use")).toHaveAttribute(
+        "href",
+        "#icon-newspaper",
+      );
+    });
+
+    it("foto de terceiros: texto acessível inclui 'Reprodução web · Fonte'", () => {
+      const article = {
+        ...baseArticle,
+        image: {
+          src: "/f.jpg",
+          alt: "Fumaça sobre o rio",
+          kind: "reproduction" as const,
+          credit: "MT Agora",
+        },
+      };
+      render(<ArticleCard variant={variant} article={article} />);
+      expect(screen.getByRole("img", { name: /Reprodução web · MT Agora/ })).toBeInTheDocument();
+    });
+  });
+
+  it("foto de terceiros em lead/standard: legenda 'Reprodução web · Fonte' com crédito e 'Ver original', fora da área recortada", () => {
+    const article = {
+      ...baseArticle,
+      image: {
+        src: "/f.jpg",
+        alt: "Fumaça",
+        kind: "reproduction" as const,
+        credit: "MT Agora",
+        author: "Ana Souza",
+        originUrl: "https://mtagora.example/materia-1",
+      },
+    };
+    render(<ArticleCard variant="standard" article={article} />);
+    const caption = screen.getByText(/Reprodução web · MT Agora/);
+    expect(caption).toHaveTextContent("Foto: Ana Souza");
+    const photoBox = screen.getByRole("img", { name: /Fumaça/ }).parentElement!;
+    expect(photoBox.contains(caption)).toBe(false);
+    const link = screen.getByRole("link", { name: /Ver original/ });
+    expect(link).toHaveAttribute("href", "https://mtagora.example/materia-1");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toContain("noopener");
+    expect(photoBox.contains(link)).toBe(false);
+  });
+
+  it("card usa só a capa: a imagem do texto da matéria não aparece", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/capa.jpg", alt: "Capa", kind: "reproduction" as const, credit: "MT Agora" },
+      inlineImage: {
+        src: "/texto.jpg",
+        alt: "Imagem do texto",
+        kind: "reproduction" as const,
+        credit: "Folha do Cerrado",
+        position: 3,
+      },
+    };
+    const { container } = render(<ArticleCard variant="standard" article={article} />);
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(container.querySelector("img")).toHaveAttribute("src", "/capa.jpg");
+    expect(screen.queryByText(/Folha do Cerrado/)).not.toBeInTheDocument();
+  });
+
+  it("foto própria não ganha legenda de reprodução", () => {
+    const article = {
+      ...baseArticle,
+      image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
+    };
+    render(<ArticleCard variant="standard" article={article} />);
+    expect(screen.queryByText(/Reprodução web/)).not.toBeInTheDocument();
   });
 });
 
@@ -201,7 +374,7 @@ describe("demais cards", () => {
     expect(screen.getByText("3 itens")).toBeInTheDocument();
   });
 
-  it("NowList tem até 6 itens, modo de publicação e próximo ciclo", () => {
+  it("NowList tem até 6 itens, revisão em texto e próximo ciclo", () => {
     const items = Array.from({ length: 8 }, (_, i) => ({
       ...baseArticle,
       id: `n${i}`,
@@ -211,7 +384,7 @@ describe("demais cards", () => {
     render(<NowList items={items} now={new Date("2026-09-27T18:12:00Z")} />);
     const region = screen.getByRole("region", { name: "Agora" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(6);
-    expect(within(region).getAllByText("REVISADO POR HUMANO")).toHaveLength(6);
+    expect(within(region).getAllByText("Revisado por Marina Couto")).toHaveLength(6);
     expect(within(region).getByText("Próximo ciclo em 18 min")).toBeInTheDocument();
   });
 

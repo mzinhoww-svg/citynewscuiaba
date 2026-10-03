@@ -16,6 +16,7 @@ export const STEP_LABEL: Record<string, string> = {
   validate: "3 · Validar",
   extract: "4 · Extrair",
   normalize: "5 · Normalizar",
+  enrich: "5b · Enriquecer",
   dedupe: "6 · Deduplicar",
   cluster: "7 · Agrupar",
   classify: "8 · Classificar",

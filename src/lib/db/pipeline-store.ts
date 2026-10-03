@@ -264,6 +264,7 @@ const RawPayloadSchema = z.object({
   sourceKind: z.enum(["rss", "sitemap", "api", "page", "newsletter", "social", "events"]),
   etag: z.string().nullable().optional(),
   lastModified: z.string().nullable().optional(),
+  truncated: z.boolean().optional(),
 });
 const EntriesSchema = z.array(RawEntrySchema).nullable();
 
@@ -526,6 +527,37 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       const pending =
         data.duplicate_of === null && data.quarantined_at === null && data.relevance === null;
       return { id: data.id, created: false, pending };
+    },
+
+    async collectedForEnrich(id) {
+      const { data, error } = await db
+        .from("collected_items")
+        .select("id, source_id, canonical_url, original_title, excerpt, published_at, image_url")
+        .eq("id", id)
+        .maybeSingle();
+      check("collectedForEnrich", error);
+      if (!data) return null;
+      return {
+        id: data.id,
+        sourceId: data.source_id,
+        canonicalUrl: data.canonical_url,
+        originalTitle: data.original_title,
+        excerpt: data.excerpt,
+        publishedAt: data.published_at,
+        imageUrl: data.image_url,
+      };
+    },
+
+    async applyEnrichment(id, patch) {
+      const update = {
+        ...(patch.originalTitle !== undefined ? { original_title: patch.originalTitle } : {}),
+        ...(patch.excerpt !== undefined ? { excerpt: patch.excerpt } : {}),
+        ...(patch.publishedAt !== undefined ? { published_at: patch.publishedAt } : {}),
+        ...(patch.imageUrl !== undefined ? { image_url: patch.imageUrl } : {}),
+      };
+      if (Object.keys(update).length === 0) return;
+      const { error } = await db.from("collected_items").update(update).eq("id", id);
+      check("applyEnrichment", error);
     },
   };
 }
@@ -841,6 +873,21 @@ export function createFlags(db: DbClient): Flags {
   };
 }
 
+const MediaSlotSchema = z
+  .object({
+    mediaId: z.string(),
+    sourceId: z.string().nullable(),
+    originUrl: z.string().nullable(),
+    kind: z.enum(["original", "reproduction", "licensed", "illustrative", "ai_generated"]),
+    status: z.enum(["pending", "approved", "blocked"]),
+    phash: z.string().nullable(),
+  })
+  .transform((s) => ({
+    ...s,
+    // dHash trafega como texto com sinal (bigint do Postgres); volta a 64 bits sem sinal.
+    phash: s.phash === null ? null : BigInt.asUintN(64, BigInt(s.phash)),
+  }));
+
 const MediaContextSchema = z.object({
   articleId: z.string(),
   topicId: z.string().nullable(),
@@ -850,6 +897,11 @@ const MediaContextSchema = z.object({
   sensitive: z.boolean(),
   tags: z.array(z.string()),
   hasMedia: z.boolean(),
+  cover: MediaSlotSchema.nullable(),
+  inline: MediaSlotSchema.nullable(),
+  bodyParagraphs: z.number(),
+  humanMedia: z.boolean(),
+  humanEdited: z.boolean(),
   items: z.array(
     z.object({
       itemId: z.string(),
@@ -962,13 +1014,30 @@ export function createMediaRepo(db: DbClient): MediaRepo {
       return data;
     },
 
-    async linkArticleMedia(articleId, mediaId, rationale, chosenBy) {
-      const { error } = await db
+    async linkArticleMedia(articleId, mediaId, rationale, chosenBy, slot) {
+      const role = slot?.role ?? "cover";
+      // Um papel por matéria (índices únicos parciais): o que já está lá não é trocado.
+      const taken = await db
         .from("article_media")
-        .upsert(
-          { article_id: articleId, media_id: mediaId, rationale, chosen_by: chosenBy },
-          { onConflict: "article_id,media_id", ignoreDuplicates: true },
-        );
+        .select("media_id")
+        .eq("article_id", articleId)
+        .eq("role", role)
+        .maybeSingle();
+      check("linkArticleMedia(role)", taken.error);
+      if (taken.data) return;
+      const { error } = await db.from("article_media").upsert(
+        {
+          article_id: articleId,
+          media_id: mediaId,
+          rationale,
+          chosen_by: chosenBy,
+          role,
+          position: role === "inline" ? (slot?.position ?? null) : null,
+        },
+        { onConflict: "article_id,media_id", ignoreDuplicates: true },
+      );
+      // Corrida entre dois workers: o índice único do papel já está ocupado. Não é erro.
+      if (error && (error as { code?: string }).code === "23505") return;
       check("linkArticleMedia", error);
     },
 

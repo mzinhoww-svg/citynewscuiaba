@@ -57,6 +57,7 @@ export { NewsletterForm, type NewsletterFormProps } from "./editorial/Newsletter
 export { NowList, type NowListProps } from "./editorial/NowList";
 export { OriginLabel, type OriginLabelProps } from "./editorial/OriginLabel";
 export { Photo, type PhotoProps } from "./editorial/Photo";
+export { ArticleFigure, type ArticleFigureProps } from "./editorial/ArticleFigure";
 export {
   SectionFiltersForm,
   activeFilterCount,
@@ -159,6 +160,7 @@ export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingP
 export { ReadingSettings } from "./editorial/ReadingSettings";
 export { ReadTracker, type ReadTrackerProps } from "./editorial/ReadTracker";
 export { ConsentBanner } from "./editorial/ConsentBanner";
+export { KeepFocusInView } from "./editorial/KeepFocusInView";
 export { ConsentChoices } from "./editorial/ConsentChoices";
 export { PrivacyPreferences } from "./editorial/PrivacyPreferences";
 export { ReportProblemForm, type ReportProblemFormProps } from "./editorial/ReportProblemForm";

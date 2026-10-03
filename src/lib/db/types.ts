@@ -273,7 +273,9 @@ export type Database = {
           chosen_at: string;
           chosen_by: string;
           media_id: string;
+          position: number | null;
           rationale: string;
+          role: string;
         };
         Insert: {
           alt?: string | null;
@@ -282,7 +284,9 @@ export type Database = {
           chosen_at?: string;
           chosen_by: string;
           media_id: string;
+          position?: number | null;
           rationale: string;
+          role?: string;
         };
         Update: {
           alt?: string | null;
@@ -291,7 +295,9 @@ export type Database = {
           chosen_at?: string;
           chosen_by?: string;
           media_id?: string;
+          position?: number | null;
           rationale?: string;
+          role?: string;
         };
         Relationships: [
           {
@@ -4038,6 +4044,13 @@ export type Database = {
         Args: { p_exclude: string; p_max: number; p_phash: string };
         Returns: {
           distance: number;
+        }[];
+      };
+      media_reprocess_candidates: {
+        Args: { p_after_at?: string; p_after_id?: string; p_limit: number };
+        Returns: {
+          id: string;
+          published_at: string;
         }[];
       };
       notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };

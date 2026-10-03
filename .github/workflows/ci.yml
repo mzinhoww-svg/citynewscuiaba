@@ -1,9 +1,10 @@
 name: CI
 
+# PRs rodam por `pull_request`; `push` só na main (sem execução em dobro por commit de PR).
 on:
   pull_request:
   push:
-    branches: [main, "claude/**"]
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,9 +14,10 @@ permissions:
   contents: read
 
 jobs:
+  # Rápido: lint, tipos, testes unitários/integração/segurança e build (~15 min).
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     env:
       AI_PROVIDER: fake
       # Valor fictício, só para o runner (a pilha local do CI não é acessível de fora).
@@ -73,21 +75,102 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
+      # Detector de anti-padrões de design (impeccable). Não bloqueante até UI-T15, que o torna
+      # obrigatório; baseline: 2 avisos border-accent-on-rounded (ConsentBanner, FirstVisitInvite).
+      - name: Detector de design
+        run: pnpm design:detect
+        continue-on-error: true
+
       - name: SW gerado confere
         run: pnpm sw:build && git diff --exit-code public/sw.js public/offline.js public/offline.css
 
       - run: pnpm build
 
-      # playwright.config.ts adiciona o projeto mobile-webkit quando CI=true.
+      - if: always()
+        run: supabase stop --no-backup
+
+  # E2E em 7 partes em paralelo: a suíte inteira num job só passou de 90 min, e `--shard` sozinho
+  # não serve (o projeto `fixtures` depende dos outros e um shard saiu vazio). Cada parte roda um
+  # projeto do Playwright (metade dele, nos três grandes) com a sua pilha local e o seu build.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    name: e2e (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: desktop 1/2, args: "--project=desktop --shard=1/2" }
+          - { name: desktop 2/2, args: "--project=desktop --shard=2/2" }
+          - { name: mobile 1/2, args: "--project=mobile --shard=1/2" }
+          - { name: mobile 2/2, args: "--project=mobile --shard=2/2" }
+          - { name: webkit 1/2, args: "--project=mobile-webkit --shard=1/2" }
+          - { name: webkit 2/2, args: "--project=mobile-webkit --shard=2/2" }
+          - { name: fixtures, args: "--project=fixtures --no-deps" }
+    env:
+      AI_PROVIDER: fake
+      # Valor fictício, só para o runner (a pilha local do CI não é acessível de fora).
+      CRON_SECRET: ci-secret-ci-secret-ci-secret-00
+      APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+
+      # A versão do pnpm vem de "packageManager" no package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # O CLI existe no runner, então `pnpm db:reset` usa `supabase db reset` (scripts/db-reset.mjs).
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.118.0
+
+      - name: Supabase local (Docker)
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
+
+      - name: Exportar env do Supabase e gravar .env.local
+        run: |
+          supabase status -o env > .supabase.env
+          set -a
+          . ./.supabase.env
+          set +a
+          anon="${ANON_KEY:-${PUBLISHABLE_KEY:-}}"
+          service="${SERVICE_ROLE_KEY:-${SECRET_KEY:-}}"
+          if [ -z "${API_URL:-}" ] || [ -z "$anon" ] || [ -z "$service" ] || [ -z "${DB_URL:-}" ]; then
+            echo "::error::supabase status não devolveu API_URL, ANON_KEY, SERVICE_ROLE_KEY e DB_URL"
+            exit 1
+          fi
+          echo "::add-mask::$service"
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$anon"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$service"
+            echo "SUPABASE_DB_URL=$DB_URL"
+            echo "APP_URL=$APP_URL"
+            echo "CRON_SECRET=$CRON_SECRET"
+            echo "AI_PROVIDER=$AI_PROVIDER"
+          } > .env.local
+          cat .env.local >> "$GITHUB_ENV"
+
+      - name: Recriar banco (migrations + seed)
+        run: pnpm db:reset
+
+      - run: pnpm build
+
       - run: pnpm exec playwright install --with-deps chromium webkit
 
-      # test:e2e roda todo o diretório tests/, incluindo os testes @a11y (sem rodar test:a11y de novo).
-      - run: pnpm test:e2e
+      # Inclui os testes @a11y (sem rodar test:a11y de novo).
+      - run: pnpm exec playwright test ${{ matrix.args }}
 
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ strategy.job-index }}
           path: |
             playwright-report
             test-results

@@ -137,7 +137,7 @@ test("anônimo cria conta e migra", async ({ page }) => {
   await expect(page.getByLabel(/Fontes, temas e alertas/)).toBeChecked();
   await expect(page.getByLabel(/Matérias salvas e coleções/)).toBeChecked();
   await expect(page.getByLabel(/Histórico de leitura/)).not.toBeChecked();
-  await expect(page.getByLabel(/Conversas com a IA/)).toBeDisabled();
+  await expect(page.getByLabel(/Conversas do Perguntar ao CityNews/)).toBeDisabled();
   await expect(page.getByText("3 itens")).toBeVisible();
 
   await page.getByRole("button", { name: "Levar selecionados" }).click();

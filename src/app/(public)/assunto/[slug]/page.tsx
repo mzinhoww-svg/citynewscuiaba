@@ -13,13 +13,11 @@ import {
   ConvergenceBlock,
   EmptyState,
   Icon,
-  OriginLabel,
   Timeline,
   TopicCoverage,
   TopicFaq,
   TopicStatus,
 } from "@/components";
-import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { HOME } from "@/content/pt-BR/portal-home";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
@@ -92,12 +90,9 @@ function Topic({ t }: { t: TopicDetail }) {
             aria-labelledby="resumo-assunto"
             className="flex flex-col gap-2 border-l-2 border-ai bg-ia-soft px-5 py-4"
           >
-            <div className="flex flex-wrap items-center gap-2">
-              <OriginLabel label={{ kind: "ai_summary", text: LABEL_TEXT.ai_summary }} />
-              <h2 id="resumo-assunto" className="type-eyebrow text-ai">
-                {TOPIC.summaryTitle}
-              </h2>
-            </div>
+            <h2 id="resumo-assunto" className="type-eyebrow text-ai">
+              {TOPIC.summaryTitle}
+            </h2>
             <p className="type-body-read text-strong">{t.summary}</p>
             <p className="type-meta text-meta">
               {t.summaryReviewer

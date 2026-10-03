@@ -165,3 +165,66 @@ describe("safeGet", () => {
     expect(r.kind).toBe("too_large");
   });
 });
+
+describe("leitura por prefixo (prefixBytes)", () => {
+  /** Corpo em streaming de 400 B por pedaço; conta quantos pedaços foram puxados e se cancelou. */
+  function streaming(chunks: number, headers: Record<string, string> = {}) {
+    const state = { pulled: 0, cancelled: false };
+    const http = async () =>
+      new Response(
+        new ReadableStream<Uint8Array>({
+          pull(c) {
+            state.pulled++;
+            c.enqueue(new Uint8Array(400).fill(65));
+            if (state.pulled >= chunks) c.close();
+          },
+          cancel() {
+            state.cancelled = true;
+          },
+        }),
+        { headers },
+      );
+    return { http, state };
+  }
+  const get = (http: ReturnType<typeof streaming>["http"], extra: Parameters<typeof opts>[0]) =>
+    safeGet({ http, resolve: fakeResolve() }, "https://a.example/s.xml", opts(extra));
+
+  it("corpo maior que o prefixo: devolve exatamente N bytes, truncated e cancela o stream", async () => {
+    const { http, state } = streaming(500);
+    const r = await get(http, { maxBytes: 5_000_000, prefixBytes: 1000 });
+    expect(r.kind).toBe("ok");
+    if (r.kind !== "ok") return;
+    expect(r.body.byteLength).toBe(1000);
+    expect(r.truncated).toBe(true);
+    expect(state.cancelled).toBe(true);
+    expect(state.pulled).toBeLessThan(10);
+  });
+
+  it("content-length enorme não vira too_large no modo prefixo", async () => {
+    const { http } = streaming(500, { "content-length": "4770000" });
+    const r = await get(http, { maxBytes: 5_000_000, prefixBytes: 1000 });
+    expect(r.kind).toBe("ok");
+    if (r.kind === "ok") expect(r.truncated).toBe(true);
+  });
+
+  it("corpo que cabe no prefixo vem inteiro e sem truncated", async () => {
+    const { http } = streaming(2);
+    const r = await get(http, { prefixBytes: 1000 });
+    expect(r.kind).toBe("ok");
+    if (r.kind !== "ok") return;
+    expect(r.body.byteLength).toBe(800);
+    expect(r.truncated).toBeUndefined();
+  });
+
+  it("corpo com exatamente N bytes não é truncado", async () => {
+    const { http } = streaming(1);
+    const r = await get(http, { prefixBytes: 400 });
+    expect(r.kind === "ok" && r.truncated).toBeFalsy();
+  });
+
+  it("sem prefixBytes o comportamento antigo se mantém (too_large)", async () => {
+    const { http } = streaming(500);
+    const r = await get(http, {});
+    expect(r.kind).toBe("too_large");
+  });
+});

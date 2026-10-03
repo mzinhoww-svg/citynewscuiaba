@@ -4,6 +4,11 @@
  */
 export const PENDING = "[PREENCHER]";
 
+/** `false` para valor vazio, só espaços ou ainda pendente (`[PREENCHER]`): não vai à tela. */
+export function isFilled(v: string): boolean {
+  return v.trim() !== "" && !v.includes(PENDING);
+}
+
 export const REPLY = {
   metaTitle: "Direito de resposta · CityNews Cuiabá",
   metaDescription:
@@ -92,7 +97,7 @@ export const ABOUT: InstitutionalDoc = {
       title: "O que você encontra aqui",
       items: [
         "Matérias da redação do CityNews, marcadas como ORIGINAL CITYNEWS.",
-        "Textos próprios a partir de fontes públicas e de outros veículos, marcados como NORMALIZADO PELO CITYNEWS, com todas as fontes citadas.",
+        "Textos próprios feitos a partir de fontes públicas e de outros veículos, identificados como “Feito a partir de” e o número de fontes, todas citadas.",
         "Links para matérias de outros veículos, marcados como AGREGADO. Nesses casos mostramos só o título, a data e, quando o veículo permite, um resumo curto escrito por nós. A leitura continua no site original.",
         "Agenda da cidade, serviços e assuntos acompanhados ao longo do tempo.",
       ],
@@ -100,7 +105,7 @@ export const ABOUT: InstitutionalDoc = {
     {
       title: "Como trabalhamos",
       paragraphs: [
-        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático com inteligência artificial, dentro de regras públicas. Pessoas da redação supervisionam esse sistema, revisam os temas sensíveis e podem corrigir ou retirar qualquer publicação.",
+        "Parte do trabalho de coleta, organização e resumo é feita por um sistema automático, dentro de regras públicas. Cada matéria diz se foi revisada por uma pessoa ou automaticamente. A redação supervisiona o sistema, revisa os temas sensíveis e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
         "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
       ],
     },
@@ -109,7 +114,7 @@ export const ABOUT: InstitutionalDoc = {
       items: [
         `Razão social: ${PENDING}`,
         `CNPJ: ${PENDING}`,
-        `Endereço: ${PENDING}`,
+        `Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`,
         `Responsável editorial: ${PENDING}`,
       ],
     },
@@ -236,7 +241,10 @@ export const PRIVACY: InstitutionalDoc = {
       paragraphs: [
         "Você pode pedir acesso, correção, portabilidade e exclusão dos seus dados. Quem tem conta também pode exportar e excluir os dados no próprio perfil.",
       ],
-      items: [`Encarregado de dados: ${PENDING}`, `E-mail do encarregado: ${PENDING}`],
+      items: [
+        `Encarregado de dados: ${PENDING}`,
+        `E-mail para assuntos de dados: contato@citynews.com.br`,
+      ],
     },
   ],
 };
@@ -287,13 +295,13 @@ export const ADVERTISE: InstitutionalDoc = {
       items: [
         "Todo conteúdo pago leva o rótulo PATROCINADO, visível e em texto.",
         "No máximo 1 item patrocinado a cada 6 itens em listas e recomendações.",
-        "Nada patrocinado na editoria Política nem nas respostas da busca com IA.",
+        "Nada patrocinado na editoria Política nem nas respostas do Perguntar ao CityNews.",
         "O anunciante não revisa nem altera a cobertura jornalística.",
       ],
     },
     {
       title: "Contato comercial",
-      items: [`E-mail: ${PENDING}`, `Telefone: ${PENDING}`],
+      items: [`E-mail: contato@citynews.com.br`, `Telefone: ${PENDING}`],
     },
   ],
 };
@@ -307,7 +315,7 @@ export const CONTACT: InstitutionalDoc = {
   sections: [
     {
       title: "Redação",
-      items: [`E-mail da redação: ${PENDING}`, `WhatsApp para pautas: ${PENDING}`],
+      items: [`E-mail da redação: contato@citynews.com.br`, `WhatsApp para pautas: ${PENDING}`],
     },
     {
       title: "Erro em uma matéria",
@@ -318,12 +326,12 @@ export const CONTACT: InstitutionalDoc = {
     {
       title: "Veículos e fontes",
       paragraphs: [
-        `Para pedir correção ou remoção de conteúdo agregado ou de imagem reproduzida, escreva para ${PENDING}. Imagens reproduzidas saem do ar em até 24 h.`,
+        `Para pedir correção ou remoção de conteúdo agregado ou de imagem reproduzida, escreva para contato@citynews.com.br. Imagens reproduzidas saem do ar em até 24 h.`,
       ],
     },
     {
       title: "Endereço",
-      items: [`Endereço: ${PENDING}`],
+      items: [`Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`],
     },
   ],
 };
@@ -411,6 +419,6 @@ export const CORRECTIONS_PAGE = {
 export const RELATED_LINKS = [
   { href: "/principios-editoriais", label: "Princípios editoriais" },
   { href: "/metodologia", label: "Metodologia" },
-  { href: "/como-usamos-ia", label: "Como usamos IA" },
+  { href: "/como-usamos-ia", label: "Como funciona o CityNews" },
   { href: "/correcoes", label: "Correções" },
 ] as const;

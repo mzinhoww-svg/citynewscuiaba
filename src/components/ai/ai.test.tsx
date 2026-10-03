@@ -50,7 +50,8 @@ const answer: Extract<AiAnswerData, { kind: "answer" }> = {
 
 it("resposta separa fato, inferência, conflito e lacuna, com citações e aviso", () => {
   render(<AiAnswer answer={answer} />);
-  expect(screen.getByText("RESUMO POR IA")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "Resposta do CityNews" })).toBeInTheDocument();
+  expect(screen.queryByText(/RESUMO POR IA|gerada por IA/i)).not.toBeInTheDocument();
   expect(screen.getByText(/Pode conter erros/)).toBeInTheDocument();
   const facts = screen.getByRole("region", { name: "O que as fontes confirmam" });
   expect(within(facts).getByRole("link", { name: "Fonte 1" })).toHaveAttribute("href", "#fonte-1");

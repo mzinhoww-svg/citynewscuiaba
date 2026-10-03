@@ -32,7 +32,7 @@ export const SECTION_PAGE = {
   neighborhood: "Bairro",
   allNeighborhoods: "Todos os bairros",
   origin: "Origem",
-  origins: { all: "Todas", original: "Original CityNews", normalized: "Normalizado pelo CityNews" },
+  origins: { all: "Todas", original: "Original CityNews", normalized: "Feito a partir de fontes" },
   order: "Ordenar por",
   orders: { recent: "Mais recentes", relevance: "Relevância" },
   apply: "Aplicar filtros",

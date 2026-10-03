@@ -23,6 +23,15 @@ export interface ArticleImage {
   alt: string;
   kind: ImageKind;
   credit?: string;
+  /** Autor da foto, quando a fonte informa (política reproduction). */
+  author?: string;
+  /** Página da matéria da fonte (`media_assets.page_url`), para "Ver original"; ausente = sem link. */
+  originUrl?: string;
+}
+
+/** Imagem dentro do texto: entra depois do parágrafo `position` (a partir de 1) do corpo. */
+export interface ArticleInlineImage extends ArticleImage {
+  position: number;
 }
 
 /** Matéria em card (home, editoria, assunto). */
@@ -45,7 +54,10 @@ export interface ArticleSummary {
   aiSummary: string[] | null;
   byline: string;
   reviewer?: string;
+  /** Capa. Os cards usam só ela. */
   image?: ArticleImage;
+  /** Segunda imagem (outra fonte), dentro do texto da matéria; os cards a ignoram. */
+  inlineImage?: ArticleInlineImage;
   topicId: string | null;
   urgent: boolean;
   sponsored: boolean;

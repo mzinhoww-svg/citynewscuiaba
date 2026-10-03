@@ -35,12 +35,24 @@ export type StepName = (typeof STEP_NAMES)[number];
  */
 export const PUSH_STEPS = ["push_match", "push_deliver", "push_due"] as const;
 export type PushStep = (typeof PUSH_STEPS)[number];
-export const JOB_STEPS = [...STEP_NAMES, ...PUSH_STEPS] as const;
+/**
+ * `enrich` (fora das 20 etapas): enriquecimento opcional por página (og:title, og:image, data,
+ * lead) entre `normalize` e `dedupe`, ligado por fonte (`consumption.enrich === true`). Fonte sem
+ * a flag nunca recebe esta mensagem.
+ */
+export const ENRICH_STEP = "enrich" as const;
+export const JOB_STEPS = [...STEP_NAMES, ENRICH_STEP, ...PUSH_STEPS] as const;
 export type JobStep = (typeof JOB_STEPS)[number];
 export const PUSH_RUN_ID = "push";
 
 /** Etapas da fase de Coleta: o próximo ciclo não começa enquanto houver alguma pendente. */
-export const COLLECTION_STEPS: readonly StepName[] = ["fetch", "validate", "extract", "normalize"];
+export const COLLECTION_STEPS: readonly JobStep[] = [
+  "fetch",
+  "validate",
+  "extract",
+  "normalize",
+  "enrich",
+];
 
 export const QUEUE_NAMES = ["pipeline", "media", "notify"] as const;
 export type QueueName = (typeof QUEUE_NAMES)[number];
@@ -76,6 +88,8 @@ export const RawEntrySchema = z.object({
   /** Instrução embutida em algum campo: o item vai para a quarentena em `normalize`. */
   injection: z.boolean(),
   injectionMatches: z.array(z.string()),
+  /** `title_slug`: título derivado do slug da URL (sitemap sem `news:title`); ausente = do site. */
+  titleSource: z.literal("title_slug").optional(),
 });
 
 export type RawEntry = z.infer<typeof RawEntrySchema>;

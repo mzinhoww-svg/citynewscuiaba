@@ -22,6 +22,8 @@ export interface Candidate {
   imageUrl?: string;
   /** Asset já existente em `media_assets` (acervo, licenciada). */
   assetId?: string;
+  /** Fonte que trouxe a imagem (`sources.id`): duas imagens da mesma fonte nunca formam par. */
+  sourceId?: string;
   sourceName?: string;
   author?: string;
   width: number;
@@ -33,6 +35,10 @@ export interface Candidate {
   watermark: boolean;
   /** Título ou legenda sensacionalista associado à imagem. */
   sensational?: boolean;
+  /** dHash da própria imagem (compara capa e imagem do texto entre si). */
+  phash?: bigint;
+  /** Nitidez medida, 0 a 1 (`ImageAnalysis.sharpness`); ausente = não entra na nota. */
+  sharpness?: number;
 }
 
 export interface MediaCredit {
@@ -59,4 +65,6 @@ export interface ImageAnalysis {
   phash: bigint;
   sha256: string;
   bytes: number;
+  /** Nitidez 0 a 1 (variância do laplaciano em miniatura); opcional. */
+  sharpness?: number;
 }

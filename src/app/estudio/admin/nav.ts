@@ -66,6 +66,12 @@ export const ADMIN_NAV: AdminNavEntry[] = [
     action: "users.manage",
   },
   {
+    href: "/estudio/admin/interruptores",
+    label: "Interruptores",
+    icon: "sliders-horizontal",
+    action: "users.manage",
+  },
+  {
     href: "/estudio/admin/contingencia",
     label: "Contingência",
     icon: "triangle-alert",

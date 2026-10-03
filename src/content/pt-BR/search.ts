@@ -11,7 +11,7 @@ export const SEARCH = {
   suggestions: "Sugestões",
   recent: "Buscas recentes",
   removeRecent: (q: string) => `Remover “${q}” das buscas recentes`,
-  askAi: "Perguntar à IA",
+  askAi: "Perguntar ao CityNews",
   askAiHint: "com o mesmo texto",
   tabs: "Tipo de resultado",
   types: {
@@ -51,7 +51,7 @@ export const SEARCH = {
   emptyText:
     "Confira a grafia, use menos palavras ou tire os filtros. A busca já ignora acentos e maiúsculas.",
   emptyWiden: "Buscar sem filtros",
-  emptyAsk: "Perguntar à IA",
+  emptyAsk: "Perguntar ao CityNews",
   emptyExplore: "Explorar assuntos",
   errorTitle: "A busca não respondeu agora",
   errorText:

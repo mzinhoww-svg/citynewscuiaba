@@ -23,13 +23,13 @@ test("assunto mostra concordam, divergem, não confirmado e cobertura externa ro
   }
 });
 
-test("assunto tem resumo por IA com revisor, linha do tempo e perguntas", async ({ page }) => {
+test("assunto tem resumo com revisor, linha do tempo e perguntas", async ({ page }) => {
   await page.goto(TOPIC);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Obra do viaduto na avenida Miguel Sutil",
   );
   const summary = page.getByRole("region", { name: "O que se sabe" });
-  await expect(summary.getByText("RESUMO POR IA")).toBeVisible();
+  await expect(summary.getByText(/RESUMO POR IA/)).toHaveCount(0);
   await expect(summary.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Linha do tempo" })).toBeVisible();
   await page.getByText("Quando a obra termina?").click();

@@ -31,3 +31,6 @@ next-env.d.ts
 supabase/.temp/
 supabase/.branches/
 .lighthouseci/
+
+# capturas de tela e medições locais (pnpm design:shoot)
+/tmp/

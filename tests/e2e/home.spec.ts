@@ -22,6 +22,21 @@ test("home: conteúdo CityNews na dobra e agregado abaixo, rotulado", async ({ p
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
+test("lead sem foto é cabeçalho tipográfico compacto (≤ 96 px) e a manchete sobe", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  const header = page.locator('[data-cover="header"]').first();
+  if ((await header.count()) === 0) test.skip(true, "lead do seed tem foto");
+  await expect(header).toBeVisible();
+  await expect.poll(async () => (await header.boundingBox())?.height ?? 0).toBeGreaterThan(0);
+  const box = await header.boundingBox();
+  expect(box!.height).toBeLessThanOrEqual(96);
+  const h1 = await page.getByRole("heading", { level: 1 }).boundingBox();
+  expect(h1!.y).toBeLessThan(800 / 2);
+});
+
 test("sem urgente publicado, faixa não aparece", async ({ page }) => {
   // O seed não tem matéria urgente; o caso com urgente é coberto em tests/integration/queries.test.ts
   // e no teste do componente UrgentBar.
@@ -57,15 +72,16 @@ test("home tem os blocos de P01 na ordem", async ({ page }) => {
   expect([...rest].sort((a, b) => a - b)).toEqual(rest);
 });
 
-test("todo card mostra de 1 a 4 rótulos de origem", async ({ page }) => {
+test("todo card de matéria mostra a origem, com no máximo 1 plaqueta", async ({ page }) => {
   await page.goto("/");
-  const cards = page.locator("main article:has([data-testid='origin-label'])");
+  const cards = page.locator("main article:has(a[href^='/materia/'])");
   await expect(cards.first()).toBeVisible();
-  expect(await cards.count()).toBeGreaterThan(10);
+  expect(await cards.count()).toBeGreaterThan(5);
   for (const card of await cards.all()) {
-    const n = await card.getByTestId("origin-label").count();
-    expect(n).toBeGreaterThanOrEqual(1);
-    expect(n).toBeLessThanOrEqual(4);
+    const plaques = await card.getByTestId("origin-label").count();
+    expect(plaques).toBeLessThanOrEqual(1);
+    // Origem sempre visível em texto: plaqueta ORIGINAL ou "Feito a partir de n fontes".
+    expect(await card.innerText()).toMatch(/ORIGINAL CITYNEWS|Feito a partir de/);
   }
 });
 

@@ -261,6 +261,19 @@ describe("notícias", () => {
     expect(screen.getByText("Cidade")).toBeInTheDocument();
     expect(screen.getByText("Agora")).toBeInTheDocument();
   });
+  it("MetaRow mostra origem e revisão em frases, na ordem da spec §4.1", () => {
+    const { container } = render(
+      <MetaRow
+        originText="Feito a partir de 2 fontes"
+        reviewText="Revisado por Marina Arruda"
+        time="8h05"
+      />,
+    );
+    expect(container.textContent).toBe(
+      "Feito a partir de 2 fontes·Revisado por Marina Arruda·8h05",
+    );
+  });
+
   it("MetaRow mostra só o que recebeu, com separador decorativo", () => {
     const { container } = render(<MetaRow time="há 5 min" />);
     expect(container.textContent).toBe("há 5 min");

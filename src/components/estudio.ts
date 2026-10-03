@@ -162,6 +162,12 @@ export {
   type ContingencyPanelProps,
   type ContingencyReply,
 } from "./studio/ContingencyPanel";
+export {
+  SwitchBoard,
+  type SwitchBoardProps,
+  type SwitchCard,
+  type SwitchReply,
+} from "./studio/SwitchBoard";
 export { RuleMatrix, type RuleMatrixProps } from "./studio/RuleMatrix";
 export {
   RuleProposalForm,

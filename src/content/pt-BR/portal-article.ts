@@ -38,13 +38,15 @@ export const ARTICLE = {
   home: "Início",
   published: "Publicado em",
   updated: "Atualizado em",
+  /** Texto alternativo quando a redação não escreveu um. */
+  figureAlt: (source?: string) =>
+    source?.trim() ? `Imagem de ${source.trim()} sobre a matéria` : "Imagem sobre a matéria",
   readMinutes: (n: number) => `${n} min de leitura`,
   sources: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
   actions: "Ações da matéria",
   aiTitle: "Resumo em poucos segundos",
   aiReviewed: (name: string) => `Resumo revisado por ${name}.`,
-  aiNotReviewed:
-    "Resumo ainda sem revisão humana, publicado dentro das regras de autonomia. Confira no texto completo.",
+  aiNotReviewed: "Revisado automaticamente. Confira os detalhes no texto completo.",
   aiUseful: "Foi útil?",
   yes: "Sim",
   no: "Não",
@@ -64,7 +66,7 @@ export const ARTICLE = {
   tags: "Temas",
   topicTag: (title: string) => `Assunto: ${title}`,
   ask: "Pergunte sobre esta matéria",
-  askIntro: "A busca com IA responde só com fontes e mostra de onde veio cada frase.",
+  askIntro: "O CityNews responde só com fontes e mostra de onde veio cada frase.",
   askQuestions: (title: string, topic?: string) => [
     topic ? `O que já se sabe sobre “${topic}”?` : `O que já se sabe sobre “${title}”?`,
     "O que ainda não foi confirmado neste caso?",

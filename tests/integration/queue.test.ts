@@ -36,6 +36,21 @@ describe("fila do pipeline (tabela jobs)", () => {
     expect(await countQuarantine()).toBe(1);
   });
 
+  it("lê primeiro a etapa mais adiantada (terminar o que já começou)", async () => {
+    const { queue } = isolatedQueue();
+    const step = (s: "fetch" | "classify" | "publish", itemRef: string) => ({
+      runId: "r1",
+      step: s,
+      itemRef,
+      attempt: 1,
+    });
+    await queue.enqueue("pipeline", step("fetch", "source:antiga"));
+    await queue.enqueue("pipeline", step("classify", "item:1"));
+    await queue.enqueue("pipeline", step("publish", "item:2"));
+    const batch = await queue.readBatch("pipeline", 3, 60);
+    expect(batch.map((m) => m.msg.step)).toEqual(["publish", "classify", "fetch"]);
+  });
+
   it("enfileirar a mesma etapa do mesmo item duas vezes é idempotente", async () => {
     const { queue } = isolatedQueue();
     expect(await queue.enqueue("pipeline", msg("source:mt-agora"))).toBe(true);

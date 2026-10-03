@@ -2,6 +2,7 @@ import { err, ok } from "@/lib/result";
 import { tryCanonicalUrl } from "../canonical-url";
 import type { IngestRepo } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { enrichEnabled } from "./enrich";
 
 const REF = /^raw:([^#]+)#(\d+)$/;
 
@@ -47,7 +48,11 @@ export function createNormalizeStep(deps: { repo: IngestRepo }): StepHandler {
     });
     // Saúde da fonte (`source_health_daily.items_new`): só item de fato novo.
     if (created) await deps.repo.recordFetch(raw.sourceId, "items", null, 1, null);
-    // Item novo, ou que já existia e ainda não avançou (retomada depois de queda): segue.
-    return ok(created || pending ? [nextMessage(msg, "dedupe", `item:${id}`)] : []);
+    if (!created && !pending) return ok([]);
+    // Item novo de fonte com `consumption.enrich === true`: passa pelo enriquecimento antes do
+    // dedupe (só o delta; fonte sem a flag não paga nada). Retomada de item que já existia segue
+    // direto para o dedupe.
+    const step = created && enrichEnabled(source.consumption) ? "enrich" : "dedupe";
+    return ok([nextMessage(msg, step, `item:${id}`)]);
   };
 }

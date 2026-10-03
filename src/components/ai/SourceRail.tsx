@@ -53,7 +53,11 @@ export function SourceRail({
             <div className="flex min-w-0 flex-col gap-1.5">
               <span className="sr-only">{ASK.citedBy(i + 1)}: </span>
               <div>
-                <OriginLabel label={s.label} />
+                {s.label.kind === "original" || s.label.kind === "aggregated" ? (
+                  <OriginLabel label={s.label} />
+                ) : (
+                  <p className="type-meta text-meta">{s.label.text}</p>
+                )}
               </div>
               <p className="type-body font-semibold text-strong">
                 {s.kind === "article" ? (

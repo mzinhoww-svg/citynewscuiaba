@@ -10,6 +10,7 @@ import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-htt
 import { createMemoryMediaRepo } from "../testing/memory-media-repo";
 import type { PipelineMessage } from "../types";
 import { createMediaStep } from "./media";
+import { inlinePosition } from "@/lib/media/score";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
 const image = (name: string) =>
@@ -315,6 +316,255 @@ describe("etapa de imagem (13 e 14)", () => {
     expect(await step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
     expect(calls.length).toBe(n);
     expect(repo.decisions()).toHaveLength(1);
+  });
+});
+
+/** Três fontes fictícias, cada uma com uma imagem de proporção e resolução diferentes. */
+const FOLHA = "https://folhadocerrado.example";
+const MTA = "https://mtagora.example";
+const DIARIO = "https://diariomn.example";
+
+function multi(
+  n: number,
+  over: { dup?: boolean; sameSource?: boolean; paragraphs?: number; humanEdited?: boolean } = {},
+) {
+  const defs = [
+    {
+      id: "src-folha",
+      slug: "folha-do-cerrado",
+      name: "Folha do Cerrado",
+      base: FOLHA,
+      img: "reproducao-1600x900.jpg",
+      author: "Ana Prado",
+    },
+    {
+      id: "src-mta",
+      slug: "mt-agora",
+      name: "MT Agora",
+      base: MTA,
+      img: over.dup ? "reproducao-recomprimida-1400x788.jpg" : "reproducao-b-1500x1000.jpg",
+      author: null,
+    },
+    {
+      id: "src-diario",
+      slug: "diario-mn",
+      name: "Diário do Médio Norte",
+      base: DIARIO,
+      img: "reproducao-c-1280x720.jpg",
+      author: "Rui Lopes",
+    },
+  ].slice(0, n);
+  const items: MediaSourceItem[] = defs.map((d, i) =>
+    sourceItem(
+      { id: over.sameSource ? "src-folha" : d.id, slug: d.slug, name: d.name, baseUrl: d.base },
+      {
+        itemId: `i${i + 1}`,
+        imageUrl: `${d.base}/img/foto-${i + 1}.jpg`,
+        pageUrl: `${d.base}/materia-${i + 1}`,
+        author: d.author,
+        title: `Título ${i + 1}`,
+      },
+    ),
+  );
+  const routes: Record<string, FakeRoute> = {};
+  defs.forEach((d, i) => {
+    routes[`${d.base}/robots.txt`] = { status: 404 };
+    routes[`${d.base}/img/foto-${i + 1}.jpg`] = jpeg(d.img);
+  });
+  const h = setup({ items, routes });
+  h.repo.setContext({
+    articleId: "a1",
+    topicId: "t1",
+    title: "Feira",
+    sectionSlug: "cultura",
+    category: "cultura",
+    sensitive: false,
+    tags: [],
+    items,
+    bodyParagraphs: over.paragraphs ?? 5,
+    humanEdited: over.humanEdited ?? false,
+  });
+  return h;
+}
+
+describe("capa e imagem no texto (UI-T16)", () => {
+  it("3 fontes: capa = melhor nota, imagem do texto = outra fonte, outra foto; papéis e posição gravados", async () => {
+    const { repo, step, calls } = multi(3);
+    expect((await step(msg)).ok).toBe(true);
+    const links = repo.links();
+    expect(links.map((l) => l.role).sort()).toEqual(["cover", "inline"]);
+    const cover = links.find((l) => l.role === "cover")!;
+    const inline = links.find((l) => l.role === "inline")!;
+    const coverAsset = repo.assets().find((a) => a.id === cover.mediaId)!;
+    const inlineAsset = repo.assets().find((a) => a.id === inline.mediaId)!;
+    expect(coverAsset.sourceId).not.toBe(inlineAsset.sourceId);
+    expect(coverAsset.originUrl).toBe(`${FOLHA}/img/foto-1.jpg`);
+    expect(inline.position).toBe(3);
+    expect(cover.position).toBeNull();
+    expect(cover.chosenBy).toBe("pipeline:image");
+    expect(inline.chosenBy).toBe("pipeline:image");
+    expect(repo.assets().every((a) => a.kind === "reproduction")).toBe(true);
+    // até 4 candidatas avaliadas, uma por fonte
+    expect(calls.filter((c) => c.url.endsWith(".jpg")).length).toBeLessThanOrEqual(4);
+    const out = repo.decisions()[0]!.output as Record<string, unknown>;
+    expect(out).toMatchObject({
+      kind: "reproduction",
+      cover: { mediaId: cover.mediaId },
+      inline: { mediaId: inline.mediaId, position: 3 },
+    });
+  });
+
+  it("uma candidata: só a capa", async () => {
+    const { repo, step } = multi(1);
+    await step(msg);
+    expect(repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
+  it("duas imagens da mesma fonte não formam par", async () => {
+    const { repo, step } = multi(2, { sameSource: true });
+    await step(msg);
+    expect(repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
+  it("duas quase iguais (phash próximo) não formam par", async () => {
+    const { repo, step } = multi(2, { dup: true });
+    await step(msg);
+    expect(repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
+  it("corpo de 3 parágrafos: depois do 2º; de 1 parágrafo: sem imagem no texto", async () => {
+    const three = multi(3, { paragraphs: 3 });
+    await three.step(msg);
+    expect(three.repo.links().find((l) => l.role === "inline")?.position).toBe(2);
+    expect(inlinePosition(3)).toBe(2);
+    const one = multi(3, { paragraphs: 1 });
+    await one.step(msg);
+    expect(one.repo.links().map((l) => l.role)).toEqual(["cover"]);
+    const none = multi(3, { paragraphs: 0 });
+    await none.step(msg);
+    expect(none.repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
+  it("para de avaliar quando já há capa e imagem do texto (2 fontes); sem inline, 1 só", async () => {
+    const two = multi(3);
+    await two.step(msg);
+    expect(two.calls.filter((c) => c.url.endsWith(".jpg"))).toHaveLength(2);
+    const one = multi(3, { paragraphs: 1 });
+    await one.step(msg);
+    expect(one.calls.filter((c) => c.url.endsWith(".jpg"))).toHaveLength(1);
+  });
+
+  it("aborto do prazo sem nada gravado: erro transitório, sem capa de acervo", async () => {
+    const h = multi(3);
+    h.repo.addArchive({ id: "acervo-1", tags: ["cultura"] });
+    const ac = new AbortController();
+    ac.abort();
+    const r = await h.step(msg, { signal: ac.signal } as never);
+    expect(r).toEqual({ ok: false, error: expect.objectContaining({ kind: "transient" }) });
+    expect(h.repo.links()).toEqual([]);
+    expect(h.repo.decisions()).toEqual([]);
+  });
+
+  it("reprodução sem autor usa o nome da fonte como crédito do ativo", async () => {
+    const { repo, step } = multi(3);
+    await step(msg);
+    const mta = repo.assets().find((a) => a.sourceId === "src-mta");
+    expect(mta?.credit).toBe("MT Agora");
+    expect(repo.assets().find((a) => a.sourceId === "src-folha")?.credit).toBe("Ana Prado");
+  });
+
+  it("capa removida a pedido (bloqueada): não acrescenta imagem do texto", async () => {
+    const h = multi(3);
+    h.repo.addAsset({ id: "m-capa", originUrl: `${FOLHA}/img/foto-1.jpg`, sourceId: "src-folha" });
+    h.repo.link("a1", "m-capa", "pipeline:image");
+    await h.repo.blockAsset("m-capa", "pedido", NOW);
+    await h.step(msg);
+    expect(h.repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
+  it("é idempotente: rodar de novo não baixa nem liga nada", async () => {
+    const { repo, step, calls } = multi(3);
+    await step(msg);
+    const n = calls.length;
+    const links = structuredClone(repo.links());
+    expect(await step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+    expect(calls.length).toBe(n);
+    expect(repo.links()).toEqual(links);
+    expect(repo.decisions()).toHaveLength(1);
+  });
+
+  it("reprocesso acrescenta a imagem do texto a matéria que só tem capa, sem trocar a capa", async () => {
+    const { repo, step } = multi(3, { paragraphs: 1 });
+    await step(msg); // corpo curto: só capa
+    expect(repo.links().map((l) => l.role)).toEqual(["cover"]);
+    const coverId = repo.links()[0]!.mediaId;
+    const items = (await repo.mediaContext("a1"))!.items;
+    repo.setContext({
+      articleId: "a1",
+      topicId: "t1",
+      title: "Feira",
+      sectionSlug: "cultura",
+      category: "cultura",
+      sensitive: false,
+      tags: [],
+      items,
+      bodyParagraphs: 6,
+    });
+    await step({ ...msg, attempt: 2 });
+    const links = repo.links();
+    expect(links.find((l) => l.role === "cover")!.mediaId).toBe(coverId);
+    expect(links.find((l) => l.role === "inline")).toMatchObject({ position: 3 });
+    expect(links).toHaveLength(2);
+    expect(repo.assets()).toHaveLength(2);
+  });
+
+  it("não troca capa escolhida por pessoa nem mexe em matéria editada por pessoa", async () => {
+    const human = multi(3);
+    human.repo.addAsset({
+      id: "m-humano",
+      originUrl: `${DIARIO}/img/antiga.jpg`,
+      sourceId: "src-diario",
+    });
+    human.repo.link("a1", "m-humano", "c1000000-0000-4000-8000-000000000002");
+    await human.step(msg);
+    expect(human.repo.links()).toHaveLength(1);
+    expect(human.repo.links()[0]).toMatchObject({ mediaId: "m-humano", role: "cover" });
+    expect(human.calls).toHaveLength(0);
+
+    const edited = multi(3, { humanEdited: true });
+    await edited.step(msg);
+    expect(edited.repo.links()).toEqual([]);
+    expect(edited.calls).toHaveLength(0);
+  });
+
+  it("capa do pipeline de outra fonte: a imagem do texto vem de fonte diferente da capa existente", async () => {
+    const h = multi(3, { paragraphs: 5 });
+    h.repo.addAsset({ id: "m-capa", originUrl: `${FOLHA}/img/foto-1.jpg`, sourceId: "src-folha" });
+    h.repo.link("a1", "m-capa", "pipeline:image");
+    await h.step(msg);
+    const inline = h.repo.links().find((l) => l.role === "inline")!;
+    const asset = h.repo.assets().find((a) => a.id === inline.mediaId)!;
+    expect(asset.sourceId).not.toBe("src-folha");
+    expect(h.calls.some((c) => c.url === `${FOLHA}/img/foto-1.jpg`)).toBe(false);
+  });
+
+  it("remover a pedido uma das duas não derruba a outra", async () => {
+    const { repo, store, step } = multi(3);
+    await step(msg);
+    const [first, second] = repo.links();
+    const r = await takedownReproduction(
+      { repo, store, revalidate: async () => {}, now: () => NOW },
+      { mediaId: second!.mediaId },
+      "c1000000-0000-4000-8000-000000000002",
+      "Pedido do veículo",
+    );
+    expect(r).toEqual({ ok: true, value: { blocked: 1, articleIds: ["a1"] } });
+    const status = (id: string) => repo.assets().find((a) => a.id === id)!.status;
+    expect(status(second!.mediaId)).toBe("blocked");
+    expect(status(first!.mediaId)).toBe("approved");
+    expect(store.files.has(repo.assets().find((a) => a.id === first!.mediaId)!.storagePath)).toBe(
+      true,
+    );
   });
 });
 

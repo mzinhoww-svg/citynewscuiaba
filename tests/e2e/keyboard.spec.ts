@@ -93,9 +93,37 @@ async function settledFocus(page: Page, f?: Focus): Promise<Focus> {
   return at;
 }
 
+/** Captura com prazo próprio: no WebKit sem foco de janela a captura pode travar; traz a aba à frente e repete uma vez. */
+async function shot(page: Page, clip: { x: number; y: number; width: number; height: number }) {
+  try {
+    return await page.screenshot({ clip, animations: "disabled", timeout: 8_000 });
+  } catch {
+    await page.bringToFront();
+    return await page.screenshot({ clip, timeout: 8_000 });
+  }
+}
+
 /** Foco visível: anel calculado e imagem diferente sem o foco. */
 async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
-  const at = await settledFocus(page, f);
+  let at = await settledFocus(page, f);
+  // Folha e diálogos entram deslizando (320 ms): a caixa medida no meio do deslize não é a da
+  // captura, que congela a animação no fim. Espera as animações finitas que contêm o foco
+  // terminarem e lê o foco de novo.
+  const waited = await page.evaluate(async () => {
+    const active = document.activeElement;
+    const running = document.getAnimations().filter((a) => {
+      const target = a.effect instanceof KeyframeEffect ? a.effect.target : null;
+      return (
+        a.effect?.getComputedTiming().iterations !== Infinity &&
+        target !== null &&
+        active !== null &&
+        target.contains(active)
+      );
+    });
+    await Promise.all(running.map((a) => a.finished.catch(() => undefined)));
+    return running.length;
+  });
+  if (waited > 0) at = await settledFocus(page);
   const name = `<${at.tag}> "${at.text || at.label}"`;
   expect(at.ring, `foco invisível em ${name}`).toBe(true);
   expect(at.inView, `foco fora da tela em ${name}`).toBe(true);
@@ -112,16 +140,46 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
     width: Math.min(box.width + 2 * pad, 1200),
     height: Math.min(box.height + 2 * pad, 400),
   };
-  const withFocus = await page.screenshot({ clip, animations: "disabled" });
-  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
-  const without = await page.screenshot({ clip, animations: "disabled" });
+  // O anel de foco é pintado no quadro seguinte (no WebKit e no celular o primeiro quadro ainda
+  // sai sem ele): espera dois quadros antes de cada captura, e repete uma vez antes de reprovar.
+  // No WebKit sem foco de janela (CI) o requestAnimationFrame pode nunca disparar: um temporizador
+  // de reserva libera a espera para o teste não travar até o limite de 30 s.
+  const frames = () =>
+    page.evaluate(
+      () =>
+        new Promise<void>((done) => {
+          const fallback = setTimeout(done, 150);
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              clearTimeout(fallback);
+              done();
+            }),
+          );
+        }),
+    );
+  await frames();
+  const withFocus = await shot(page, clip);
+  await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement;
+    (window as unknown as { __kbFocus?: HTMLElement }).__kbFocus = el;
+    el.blur();
+  });
+  await frames();
+  let without = await shot(page, clip);
+  if (Buffer.compare(withFocus, without) === 0) {
+    await page.waitForTimeout(250);
+    await frames();
+    without = await shot(page, clip);
+  }
   expect(
     Buffer.compare(withFocus, without) !== 0,
     `o foco de ${name} não muda a imagem (indicador ausente)`,
   ).toBe(true);
-  // Devolve o foco ao mesmo elemento (com o indicador de teclado).
-  await page.keyboard.press("Shift+Tab");
-  await page.keyboard.press("Tab");
+  // Devolve o foco ao mesmo elemento. Não usa Shift+Tab e Tab: no WebKit o blur zera o ponto de
+  // partida da navegação e o Tab volta ao início da página (e, num menu, o Tab o fecha).
+  await page.evaluate(() => {
+    (window as unknown as { __kbFocus?: HTMLElement }).__kbFocus?.focus();
+  });
   return at;
 }
 
@@ -383,6 +441,11 @@ test("menu de ações da fonte: setas navegam, Esc fecha e o foco volta ao gatil
   const trigger = page.getByRole("button", { name: /Ações de .*Folha do Cerrado/ }).first();
   await expectHydrated(trigger);
   await trigger.focus();
+  // O WebKit só mostra :focus-visible no foco por script se o foco anterior veio do teclado
+  // (o gatilho focado por script não conta): devolve o foco ao gatilho com Shift+Tab e Tab.
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(trigger).toBeFocused();
   await page.keyboard.press("ArrowDown");
   const menu = page.getByRole("menu").first();
   await expect(menu).toBeVisible();
