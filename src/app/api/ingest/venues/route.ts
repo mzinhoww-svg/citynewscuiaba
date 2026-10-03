@@ -1,9 +1,12 @@
 import { createServiceClient } from "@/lib/db/client";
+import { createVenueMediaRepo } from "@/lib/db/guide-media-store";
 import { createGuideStore } from "@/lib/db/guide-store";
-import { createIngestRepo } from "@/lib/db/pipeline-store";
+import { createFlags, createIngestRepo } from "@/lib/db/pipeline-store";
 import { allTargets, pickTargets } from "@/lib/guide/plan";
 import { buildProviders } from "@/lib/guide/providers/factory";
 import { fetchSiteFacts } from "@/lib/guide/providers/site";
+import { productionMediaStore } from "@/lib/pipeline/deps";
+import { runVenuePhotos } from "@/lib/pipeline/steps/venue-photos";
 import { runVenueSync } from "@/lib/pipeline/steps/venue-sync";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 import { crawlDeps } from "@/lib/sources/http-deps";
@@ -79,6 +82,22 @@ export async function POST(req: Request): Promise<Response> {
     },
     { categories: targets, area: "Cuiabá", maxTaDetailsPerCategory: 15 },
   );
-  await store.finishRun(runId, report);
-  return Response.json({ status: "done", ...report });
+  // Fotos oficiais dos lugares (política reproduction); sem foto, cartão tipográfico.
+  const venueMedia = createVenueMediaRepo(db);
+  const flags = createFlags(db);
+  const photos = await runVenuePhotos(
+    {
+      crawl,
+      site: (website) => fetchSiteFacts(crawl, website),
+      repo: venueMedia,
+      store: productionMediaStore(db),
+      reproductionEnabled: () => flags.isEnabled("image_reproduction_enabled"),
+      now: () => now,
+      photos: venueMedia,
+    },
+    { limit: 10 },
+  );
+  const full = { ...report, photos };
+  await store.finishRun(runId, full);
+  return Response.json({ status: "done", ...full });
 }
