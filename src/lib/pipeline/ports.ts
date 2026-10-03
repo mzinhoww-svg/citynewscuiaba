@@ -6,6 +6,7 @@ import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
 import type { RuleSet } from "@/lib/rules";
 import type { StatusReason } from "@/lib/sources/types";
+import type { ArticleCheck, ChecklistPatch, ShortReason } from "./steps/auto-checklist";
 import type { JobStep, PipelineMessage, QueueName, RawEntry, StepName } from "./types";
 
 export interface QueuedMessage {
@@ -703,6 +704,8 @@ export interface DecisionContext {
 
 export interface StatusPatch {
   status: ArticleStatus;
+  /** Matéria curta publicada porque as fontes não trazem conteúdo (R41). */
+  shortReason?: ShortReason | null;
   /** Escopo da notícia (A15), gravado pela etapa de regras. */
   newsScope?: "cuiaba" | "mt" | "national";
   nationalCommotion?: boolean;
@@ -733,6 +736,10 @@ export interface PublishRepo {
   saveDraft(d: DraftInput): Promise<{ articleId: string; version: number }>;
   decisionContext(articleId: string): Promise<DecisionContext | null>;
   setStatus(articleId: string, patch: StatusPatch): Promise<void>;
+  /** Matéria como o checklist e o portão de completude a enxergam (AUT-T4). */
+  checkInput(articleId: string): Promise<ArticleCheck | null>;
+  /** Grava o que o checklist automático consertou (SEO, taxonomia, texto alternativo da capa). */
+  applyChecklist(articleId: string, patch: ChecklistPatch): Promise<void>;
   /** Texto indexável da matéria (título, linha fina e corpo). */
   articleText(articleId: string): Promise<string | null>;
   indexArticle(articleId: string, embedding: number[] | null): Promise<void>;

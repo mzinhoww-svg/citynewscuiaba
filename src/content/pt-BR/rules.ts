@@ -13,6 +13,14 @@ export const RULE_RATIONALE = {
     `IA indisponível na redação (${why}): rascunho montado sem IA, revisão humana obrigatória.`,
   neverAuto: () =>
     "Notícia urgente, tema sensível, Segurança ou rascunho sem IA nunca publicam sozinhos: vai para revisão.",
+  noSource: () =>
+    'Matéria sem fonte citada: a publicação automática exige a linha "Com informações de {fonte}". Vai para revisão.',
+  noTitle: () => "Matéria sem título: não publica sozinha, vai para revisão.",
+  truncatedBody: () =>
+    "Corpo cortado no meio de um parágrafo mesmo depois de refeito o texto: vai para revisão.",
+  breakerOpen: (why: string) =>
+    `Disjuntor de publicação aberto (${why}): publicação automática pausada, vai para revisão.`,
+  waitingCover: () => "Capa ainda a caminho: espera até 10 min antes de usar o cartão tipográfico.",
   staleDecision: () => "Decisão de publicação desatualizada: a matéria mudou depois da regra.",
   autoPublishOff: () =>
     "Publicação automática desligada (feature_flags.auto_publish ou modo leitura): vai para revisão.",

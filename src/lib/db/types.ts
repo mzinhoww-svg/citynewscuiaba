@@ -517,6 +517,7 @@ export type Database = {
           neighborhoods: string[];
           news_scope: string | null;
           publish_destinations: string[];
+          short_reason: string | null;
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
           review_reason: string | null;
@@ -557,6 +558,7 @@ export type Database = {
           neighborhoods?: string[];
           news_scope?: string | null;
           publish_destinations?: string[];
+          short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           review_reason?: string | null;
@@ -596,6 +598,7 @@ export type Database = {
           neighborhoods?: string[];
           news_scope?: string | null;
           publish_destinations?: string[];
+          short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
           review_reason?: string | null;
@@ -3900,6 +3903,10 @@ export type Database = {
       consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
+      publish_counts: { Args: { p_now?: string }; Returns: Json };
+      publish_breaker_trip: { Args: { p_reason: string; p_detail?: Json }; Returns: boolean };
+      publish_breaker_reset: { Args: { p_ctx?: Json }; Returns: undefined };
+      publish_breaker_set_limits: { Args: { p: Json; p_ctx?: Json }; Returns: undefined };
       control_can_operate: { Args: { uid: string }; Returns: boolean };
       control_can_view: { Args: { uid: string }; Returns: boolean };
       control_guard_view: { Args: Record<PropertyKey, never>; Returns: undefined };

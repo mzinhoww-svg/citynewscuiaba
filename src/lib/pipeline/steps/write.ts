@@ -1,4 +1,5 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
+import type { BreakerStore } from "../breaker";
 import { copiedRun } from "@/lib/ai/schemas/aggregate-summary";
 import { WriteSchema, type WriteOutput } from "@/lib/ai/schemas/write";
 import type { AiError } from "@/lib/ai/types";
@@ -16,6 +17,7 @@ import type {
   RulesSource,
 } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import { bodyLines, insufficientMaterial, MIN_BODY_LINES } from "./auto-checklist";
 import { appendCreditLine, creditSourcesOf, type Doc } from "./credit-line";
 import { aiStepError, inputHash } from "./understanding";
 
@@ -30,6 +32,8 @@ export interface PublishStepDeps {
   now: () => Date;
   /** Descarta parágrafo que copia 8 palavras seguidas da fonte (produção; o provedor falso copia). */
   copyGuard?: boolean;
+  /** Disjuntor de volume e de erro (AUT-T4); ausente = sem disjuntor (testes). */
+  breaker?: BreakerStore;
 }
 
 /**
@@ -38,7 +42,7 @@ export interface PublishStepDeps {
  */
 export const WRITE_TASK = [
   "Escreva título, linha fina, resumo e corpo do assunto. Cada parágrafo cita os ids dos itens que o sustentam e usa palavras próprias (nunca 8 palavras seguidas de uma fonte).",
-  'CORPO: de 4 a 8 parágrafos quando os itens trouxerem fatos para isso (menos só se faltar fato; nunca encha). Ordem: 1) lide com o fato principal (o quê, quem, onde, quando); 2) detalhes e números exatos; 3) quem fala, atribuído ("segundo a Prefeitura"); 4) contexto que está nos itens (antecedentes, valores, prazos, bairros de Cuiabá e Várzea Grande); 5) o que muda ou o que o leitor precisa fazer, se houver serviço; 6) o que ainda não se sabe ou divergência entre fontes. Cada parágrafo traz um fato novo.',
+  `CORPO: no mínimo ${MIN_BODY_LINES} linhas (cerca de ${MIN_BODY_LINES * 75} caracteres, de 8 a 12 parágrafos) quando os itens trouxerem fatos para isso; use todo o material de todos os itens do assunto e o contexto que eles dão (menos só se faltar fato nas fontes; nunca encha, nunca invente). Ordem: 1) lide com o fato principal (o quê, quem, onde, quando); 2) detalhes e números exatos; 3) quem fala, atribuído ("segundo a Prefeitura"); 4) contexto que está nos itens (antecedentes, valores, prazos, bairros de Cuiabá e Várzea Grande); 5) o que muda ou o que o leitor precisa fazer, se houver serviço; 6) o que ainda não se sabe ou divergência entre fontes. Cada parágrafo traz um fato novo.`,
   'TÍTULO: específico e chamativo, de 60 a 100 caracteres, com o dado mais forte (número, local, nome, prazo) e verbo ativo; pode abrir uma curiosidade, mas a resposta tem de estar no texto. Proibido: prometer o que o texto não entrega, superlativo sem dado, ponto de exclamação, caixa alta, "você não vai acreditar", "chocante", exagero em crime, tragédia ou saúde. Em tema sensível o título é sóbrio e factual.',
   "LINHA FINA: complementa o título com o segundo dado mais relevante, sem repeti-lo.",
 ].join("\n");
@@ -64,7 +68,11 @@ export function writeTaskFor(section: string, sensitive = false): string {
   ].join("\n");
 }
 
-const TOPIC_REF = /^topic:(\S+)$/;
+/** Pedido extra quando o texto anterior ficou curto (R41, até 2 refações). */
+const REWRITE_TASK = `REESCRITA: o texto anterior ficou com menos de ${MIN_BODY_LINES} linhas. Refaça usando todos os fatos, números, citações e contexto de TODOS os itens, em 8 a 12 parágrafos curtos; não repita o título nem encha com frases vazias, e não invente nada.`;
+
+/** `topic:<id>`, ou `topic:<id>#rewrite<n>` quando o texto curto volta para ser refeito (R41). */
+const TOPIC_REF = /^topic:([^\s#]+)(?:#rewrite(\d+))?$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
 const PIPELINE_OWNED = new Set(["draft", "in_review"]);
 
@@ -132,8 +140,11 @@ function summaryWordsFor(section: string): number {
  */
 export function createWriteStep(deps: PublishStepDeps): StepHandler {
   return async (msg, run) => {
-    const topicId = TOPIC_REF.exec(msg.itemRef)?.[1];
+    const ref = TOPIC_REF.exec(msg.itemRef);
+    const topicId = ref?.[1];
     if (!topicId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
+    const rewrite = Number(ref?.[2] ?? 0);
+    const topicRef = `topic:${topicId}`;
     const ctx = await deps.repo.draftContext(topicId);
     if (!ctx) return err(stepError.notFound(`assunto ${topicId} não encontrado`));
     if (ctx.items.length === 0) return ok([]);
@@ -147,8 +158,8 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       .map((i) => i.id)
       .sort()
       .join(",");
-    const hash = inputHash("write", version, revision);
-    if (existing && (await deps.repo.findDecision(msg.itemRef, "summarize", hash)))
+    const hash = inputHash("write", version, revision, rewrite);
+    if (existing && (await deps.repo.findDecision(topicRef, "summarize", hash)))
       return ok([nextMessage(msg, "image", `article:${existing.id}`)]);
 
     const section =
@@ -164,10 +175,13 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       {
         system,
         data: ctx.items.map((i) => ({ id: i.id, text: itemText(i) })),
-        task: writeTaskFor(
-          section,
-          ctx.items.some((i) => i.sensitive),
-        ),
+        task: [
+          writeTaskFor(
+            section,
+            ctx.items.some((i) => i.sensitive),
+          ),
+          ...(rewrite > 0 ? [REWRITE_TASK] : []),
+        ].join("\n"),
       },
       WriteSchema,
       { signal: run?.signal },
@@ -212,8 +226,10 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       sources: ctx.items.map((i) => ({ itemId: i.id, role: roleOf(ctx, i) })),
     };
     const saved = await deps.repo.saveDraft(input);
+    // R41: o texto precisa de 30 linhas; só fica menor se as fontes não trazem conteúdo.
+    const materialShort = insufficientMaterial(ctx.items.map(itemText));
     await deps.repo.recordDecision({
-      objectRef: msg.itemRef,
+      objectRef: topicRef,
       step: "summarize",
       agentId: "write",
       promptVersion: version,
@@ -224,6 +240,9 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
         fallback: failure !== null,
         error: failure,
         paragraphs: draft.body.length,
+        bodyLines: bodyLines(input.body),
+        rewrite,
+        insufficientSource: materialShort,
       },
       rationale:
         reason ??

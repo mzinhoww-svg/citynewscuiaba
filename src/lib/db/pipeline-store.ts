@@ -1232,6 +1232,75 @@ export function createPublishRepo(db: DbClient): PublishRepo {
       return parsed.data;
     },
 
+    async checkInput(articleId) {
+      const [art, sources, cover, imageDecision] = await Promise.all([
+        db
+          .from("articles")
+          .select(
+            "title, dek, body, seo_title, seo_description, tags, neighborhoods, section_slug, short_reason",
+          )
+          .eq("id", articleId)
+          .maybeSingle(),
+        db
+          .from("article_sources")
+          .select("*", { count: "exact", head: true })
+          .eq("article_id", articleId),
+        db
+          .from("article_media")
+          .select("alt, media_assets(status)")
+          .eq("article_id", articleId)
+          .eq("role", "cover")
+          .limit(1)
+          .maybeSingle<{ alt: string | null; media_assets: { status: string } | null }>(),
+        db
+          .from("decisions")
+          .select("*", { count: "exact", head: true })
+          .eq("object_ref", `article:${articleId}`)
+          .eq("step", "image"),
+      ]);
+      check("checkInput(article)", art.error);
+      check("checkInput(sources)", sources.error);
+      check("checkInput(cover)", cover.error);
+      check("checkInput(image)", imageDecision.error);
+      if (!art.data) return null;
+      const hasPhoto = cover.data !== null && cover.data.media_assets?.status !== "blocked";
+      return {
+        title: art.data.title,
+        dek: art.data.dek,
+        body: art.data.body,
+        seoTitle: art.data.seo_title,
+        seoDescription: art.data.seo_description,
+        tags: art.data.tags ?? [],
+        neighborhoods: art.data.neighborhoods ?? [],
+        sectionSlug: art.data.section_slug,
+        sourceCount: sources.count ?? 0,
+        cover: hasPhoto ? "photo" : (imageDecision.count ?? 0) > 0 ? "typographic" : "pending",
+        coverAlt: hasPhoto ? (cover.data?.alt ?? null) : null,
+        shortReason: art.data.short_reason === "insufficient_source" ? "insufficient_source" : null,
+      };
+    },
+
+    async applyChecklist(articleId, patch) {
+      const fields = {
+        ...(patch.seoTitle !== undefined ? { seo_title: patch.seoTitle } : {}),
+        ...(patch.seoDescription !== undefined ? { seo_description: patch.seoDescription } : {}),
+        ...(patch.tags !== undefined ? { tags: patch.tags } : {}),
+        ...(patch.neighborhoods !== undefined ? { neighborhoods: patch.neighborhoods } : {}),
+      };
+      if (Object.keys(fields).length > 0) {
+        const { error } = await db.from("articles").update(fields).eq("id", articleId);
+        check("applyChecklist(articles)", error);
+      }
+      if (patch.coverAlt !== undefined) {
+        const { error } = await db
+          .from("article_media")
+          .update({ alt: patch.coverAlt })
+          .eq("article_id", articleId)
+          .eq("role", "cover");
+        check("applyChecklist(alt)", error);
+      }
+    },
+
     async setStatus(articleId, p) {
       const { error } = await db
         .from("articles")
@@ -1245,6 +1314,7 @@ export function createPublishRepo(db: DbClient): PublishRepo {
           ...(p.newsScope !== undefined ? { news_scope: p.newsScope } : {}),
           ...(p.nationalCommotion !== undefined ? { national_commotion: p.nationalCommotion } : {}),
           ...(p.urgent !== undefined ? { urgent: p.urgent } : {}),
+          ...(p.shortReason !== undefined ? { short_reason: p.shortReason } : {}),
         })
         .eq("id", articleId);
       check("setStatus", error);
