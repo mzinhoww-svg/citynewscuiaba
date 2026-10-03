@@ -51,19 +51,98 @@ test("lista com rótulos, subeditorias e mais lidas", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Matérias de Mobilidade" })).toBeVisible();
 });
 
-test("filtros vão para a URL e o Voltar restaura", async ({ page }) => {
+test("filtros aplicam na hora, sem botão Aplicar, vão para a URL e o Voltar restaura", async ({
+  page,
+}) => {
   await page.goto("/cidade");
-  await page.locator("summary", { hasText: "Filtros" }).click();
+  // Barra única, sempre visível, com rótulos; sem "Aplicar filtros".
+  await expect(page.getByLabel("Período")).toBeVisible();
+  await expect(page.getByLabel("Bairro")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
+  await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Período").selectOption("tudo");
+  await expect(page).toHaveURL(/periodo=tudo/);
   await page.getByLabel("Bairro").selectOption("cpa");
-  await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect(page).toHaveURL(/bairro=cpa/);
   const list = page.getByRole("region", { name: "Matérias de Cidade" });
   await expect(list.locator("article")).toHaveCount(2);
   await page.goBack();
   await expect(page).not.toHaveURL(/bairro=cpa/);
   await expect(page.getByLabel("Bairro")).toHaveValue("");
+  await expect(page.getByLabel("Período")).toHaveValue("tudo");
 });
+
+test("título da página é menor que a manchete da lista (desktop e celular)", async ({ page }) => {
+  for (const size of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(size);
+    await page.goto("/cidade?periodo=tudo");
+    // Espera a lista real (o esqueleto de carregamento também tem um h1 e some ao terminar).
+    await expect(page.getByRole("region", { name: "Matérias de Cidade" })).toBeVisible();
+    const fontSize = (loc: ReturnType<typeof page.locator>) =>
+      loc.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    const h1 = await fontSize(page.getByRole("heading", { level: 1 }));
+    const lead = await fontSize(
+      page.getByRole("region", { name: "Matérias de Cidade" }).locator("article h3").first(),
+    );
+    expect(h1, `h1 ${h1}px vs manchete ${lead}px a ${size.width}`).toBeLessThan(lead);
+  }
+});
+
+test("a 1280 px a lista usa lead e depois standard em duas colunas, com ranking lateral", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/cidade?periodo=tudo");
+  const cards = page.getByRole("region", { name: "Matérias de Cidade" }).locator("article");
+  await expect(cards.nth(2)).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  const lead = (await cards.nth(0).boundingBox())!;
+  const a = (await cards.nth(1).boundingBox())!;
+  const b = (await cards.nth(2).boundingBox())!;
+  const size = (i: number) =>
+    cards
+      .nth(i)
+      .locator("h3")
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(await size(0)).toBeGreaterThan(await size(1));
+  // lead ocupa a largura toda; as duas seguintes dividem a linha.
+  expect(lead.width).toBeGreaterThan(a.width * 1.8);
+  expect(Math.abs(a.y - b.y)).toBeLessThan(4);
+  expect(b.x).toBeGreaterThan(a.x + a.width - 1);
+  // Ranking lateral à direita da lista.
+  const rail = (await page
+    .getByRole("complementary", { name: /Mais lidas em Cidade/ })
+    .boundingBox())!;
+  expect(rail.x).toBeGreaterThan(lead.x + lead.width - 1);
+});
+
+for (const url of [
+  "/cidade?periodo=tudo",
+  "/cidade?periodo=tudo&bairro=cpa",
+  "/cidade?sub=mobilidade&bairro=coxipo&periodo=7d",
+]) {
+  test(`lista sem salto de layout (CLS ≤ 0,1) em ${url}`, async ({ page }) => {
+    await page.addInitScript(() => {
+      (window as unknown as { __cls: number }).__cls = 0;
+      new PerformanceObserver((list) => {
+        for (const e of list.getEntries() as unknown as {
+          value: number;
+          hadRecentInput: boolean;
+        }[]) {
+          if (!e.hadRecentInput) (window as unknown as { __cls: number }).__cls += e.value;
+        }
+      }).observe({ type: "layout-shift", buffered: true });
+    });
+    await page.goto(url);
+    await page.waitForLoadState("networkidle");
+    const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+    expect(cls).toBeLessThanOrEqual(0.1);
+  });
+}
 
 test.describe("polling com relógio falso", () => {
   // O SW da página (WebKit) responde ao `fetch` do polling e `page.route` não alcança requisições

@@ -1,5 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import type { AggregatedView, TopicView } from "@/lib/db/queries/types";
+import type { AggregatedView, ArticleSummary, TopicView } from "@/lib/db/queries/types";
 import { Highlight, SearchGroupBlock, SearchResultItem } from "../index";
 
 const aggregated: AggregatedView = {
@@ -78,4 +78,58 @@ it("grupo por assunto é uma região com o título do assunto e a lista de itens
   const region = screen.getByRole("region", { name: "Obra do viaduto na avenida Miguel Sutil" });
   expect(within(region).getAllByRole("listitem")).toHaveLength(2);
   expect(within(region).getByText("Em apuração")).toBeInTheDocument();
+});
+
+const article = {
+  id: "a1",
+  slug: "onibus-cpa",
+  href: "/materia/onibus-cpa",
+  kind: "original",
+  title: "Novo plano de ônibus liga o CPA ao Centro",
+  dek: "A prefeitura detalhou as linhas.",
+  section: { slug: "cidade", name: "Cidade" },
+  status: "published",
+  publishMode: "human",
+  publishedAt: "2026-09-27T17:48:00Z",
+  updatedAt: "2026-09-27T17:48:00Z",
+  labels: { shown: [{ kind: "original", text: "ORIGINAL CITYNEWS" }], hidden: [] },
+  confidence: { level: "alta", score: 0.9 },
+  sourceCount: 0,
+  readMinutes: 2,
+  aiSummary: null,
+  byline: "Redação CityNews",
+  reviewer: null,
+  topicId: null,
+  urgent: false,
+  sponsored: false,
+} as unknown as ArticleSummary;
+
+describe("resultado de matéria com miniatura", () => {
+  it("sem foto usa a miniatura tipográfica da editoria (decorativa)", () => {
+    render(
+      <SearchResultItem hit={{ kind: "article", score: 1, item: article }} terms={["onibus"]} />,
+    );
+    const cover = screen.getByTestId("typographic-cover");
+    expect(cover).toHaveAttribute("data-cover", "thumb");
+    expect(cover).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getByRole("link", { name: /Novo plano de ônibus/ })).toHaveAttribute(
+      "href",
+      "/materia/onibus-cpa",
+    );
+  });
+
+  it("com foto aprovada mostra a imagem com texto alternativo", () => {
+    const withImage = {
+      ...article,
+      image: {
+        src: "https://cdn.example/foto.jpg",
+        alt: "Ônibus no terminal",
+        kind: "original",
+        credit: "Ana",
+      },
+    } as unknown as ArticleSummary;
+    render(<SearchResultItem hit={{ kind: "article", score: 1, item: withImage }} terms={[]} />);
+    expect(screen.getByRole("img", { name: "Ônibus no terminal" })).toBeInTheDocument();
+    expect(screen.queryByTestId("typographic-cover")).toBeNull();
+  });
 });

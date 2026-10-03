@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { forwardedFor } from "./own-ip";
 
 const EVENT = "/agenda/noite-de-rasqueado-no-sesc-arsenal";
@@ -10,6 +10,172 @@ const blocking = (impact: string | null | undefined) =>
 async function ownIp(page: Page) {
   await page.setExtraHTTPHeaders(forwardedFor());
 }
+
+/** Razão de contraste entre a cor do texto e o fundo efetivo (sobe pelos pais até achar fundo). */
+async function contrastOf(loc: Locator): Promise<number> {
+  return loc.evaluate((el) => {
+    const rgba = (css: string) => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 1;
+      const ctx = c.getContext("2d")!;
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = css;
+      ctx.fillRect(0, 0, 1, 1);
+      const d = ctx.getImageData(0, 0, 1, 1).data;
+      return [d[0]!, d[1]!, d[2]!, d[3]! / 255] as const;
+    };
+    const lum = ([r, g, b]: readonly number[]) => {
+      const f = (v: number) => {
+        const x = v / 255;
+        return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * f(r!) + 0.7152 * f(g!) + 0.0722 * f(b!);
+    };
+    let bg: readonly number[] = [255, 255, 255, 1];
+    for (let n: Element | null = el; n; n = n.parentElement) {
+      const c = rgba(getComputedStyle(n).backgroundColor);
+      if (c[3] > 0.99) {
+        bg = c;
+        break;
+      }
+    }
+    const fg = rgba(getComputedStyle(el).color);
+    const [a, b] = [lum(fg), lum(bg)];
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  });
+}
+
+test("atalhos Hoje, Amanhã, Fim de semana e Grátis vivem na URL e alternam", async ({ page }) => {
+  await page.goto("/agenda");
+  const shortcuts = page.getByRole("navigation", { name: "Atalhos da agenda" });
+  for (const [name, param] of [
+    ["Hoje", "quando=hoje"],
+    ["Amanhã", "quando=amanha"],
+    ["Fim de semana", "quando=fim-de-semana"],
+  ] as const) {
+    await shortcuts.getByRole("link", { name }).click();
+    await expect(page).toHaveURL(new RegExp(param));
+    await expect(shortcuts.getByRole("link", { name })).toHaveAttribute("aria-current", "page");
+  }
+  await shortcuts.getByRole("link", { name: "Grátis" }).click();
+  await expect(page).toHaveURL(/gratuito=1/);
+  await expect(page).toHaveURL(/quando=fim-de-semana/);
+  // O mesmo atalho de novo desliga o filtro.
+  await shortcuts.getByRole("link", { name: "Grátis" }).click();
+  await expect(page).not.toHaveURL(/gratuito=1/);
+  await shortcuts.getByRole("link", { name: "Fim de semana" }).click();
+  await expect(page).not.toHaveURL(/quando=/);
+});
+
+test("evento em dia agrupado é um card com data, capa, título, local · hora, preço, Salvar e Calendário", async ({
+  page,
+}) => {
+  await page.goto("/agenda");
+  const first = page.locator("main article").first();
+  await expect(first).toBeVisible();
+  await expect(first.locator("time").first()).toBeVisible();
+  await expect(first.getByTestId("event-cover")).toBeVisible();
+  const title = first.getByRole("heading", { level: 3 });
+  await expect(title.getByRole("link")).toHaveAttribute("href", /^\/agenda\//);
+  await expect(first).toContainText(/\d{1,2}h(\d{2})? · .+/);
+  await expect(first).toContainText(/Gratuito|R\$/);
+  await expect(first.getByRole("button", { name: /^Salvar / })).toBeVisible();
+  await expect(first.getByRole("link", { name: /calendário/i })).toHaveAttribute(
+    "href",
+    /^\/api\/ics\//,
+  );
+  // Cada dia é uma seção com título.
+  await expect(page.getByRole("heading", { level: 2, name: /de outubro/ }).first()).toBeVisible();
+});
+
+test("Salvar evento guarda neste aparelho e aparece em Favoritos, sem login", async ({ page }) => {
+  await page.goto("/agenda");
+  const first = page.locator("main article").first();
+  const save = first.getByRole("button", { name: /^Salvar / });
+  await expect(page.locator("[data-save-event][data-ready=true]").first()).toBeVisible();
+  const title = (await first.getByRole("heading", { level: 3 }).innerText()).trim();
+  await save.click();
+  await expect(save).toHaveAttribute("aria-pressed", "true");
+  await page.goto("/favoritos");
+  await expect(page.getByRole("link", { name: title, exact: true })).toBeVisible();
+});
+
+test("a 360 px os cards cabem e não há rolagem horizontal", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/agenda");
+  await expect(page.locator("main article").first()).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  for (const card of await page.locator("main article").all()) {
+    const box = (await card.boundingBox())!;
+    expect(box.x + box.width).toBeLessThanOrEqual(360);
+  }
+  // Botões de ação com alvo de 44 px.
+  const save = page
+    .locator("main article")
+    .first()
+    .getByRole("button", { name: /^Salvar / });
+  expect((await save.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});
+
+test("a 1280 px a lista fica ao lado de um mini-calendário lateral", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/agenda");
+  const list = page.locator("main article").first();
+  await expect(list).toBeVisible();
+  const aside = page.getByRole("complementary", { name: "Calendário do mês" });
+  await expect(aside.getByRole("table")).toBeVisible();
+  const a = (await aside.boundingBox())!;
+  const l = (await list.boundingBox())!;
+  expect(a.x).toBeGreaterThan(l.x + l.width - 1);
+  expect(Math.abs(a.y - l.y)).toBeLessThan(300);
+  // Dia com evento leva à lista daquele dia.
+  await aside
+    .getByRole("link", { name: /evento/ })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/dia=\d{4}-\d{2}-\d{2}/);
+});
+
+test("no celular o mini-calendário lateral não aparece (a lista vem primeiro)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/agenda");
+  await expect(page.getByRole("complementary", { name: "Calendário do mês" })).toBeHidden();
+});
+
+test("Lista/Calendário: os dois botões têm contraste ≥ 4,5:1 e o atual é inconfundível", async ({
+  page,
+}) => {
+  await page.goto("/agenda");
+  const group = page.getByRole("group", { name: "Visualização" });
+  const list = group.getByRole("button", { name: "Lista" });
+  const cal = group.getByRole("button", { name: "Calendário" });
+  expect(await contrastOf(list)).toBeGreaterThanOrEqual(4.5);
+  expect(await contrastOf(cal)).toBeGreaterThanOrEqual(4.5);
+  await expect(list).toHaveAttribute("aria-pressed", "true");
+  await expect(cal).toHaveAttribute("aria-pressed", "false");
+  // O ativo tem fundo escuro; o inativo, texto escuro sobre claro.
+  const bg = (l: typeof list) => l.evaluate((el) => getComputedStyle(el).backgroundColor);
+  expect(await bg(list)).not.toBe(await bg(cal));
+});
+
+test("título da agenda é menor que a manchete lead", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/agenda");
+  const h1 = await page
+    .getByRole("heading", { level: 1 })
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(h1).toBeLessThanOrEqual(28);
+});
+
+test("filtros da agenda aplicam na hora e ficam na URL", async ({ page }) => {
+  await page.goto("/agenda");
+  await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
+  await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
+  await page.getByLabel("Categoria").selectOption("musica");
+  await expect(page).toHaveURL(/categoria=musica/);
+});
 
 test("lista e calendário mantêm filtro de gratuitos na URL", async ({ page }) => {
   await page.goto("/agenda?gratuito=1");
@@ -28,7 +194,7 @@ test("calendário mostra a contagem do dia e leva à lista daquele dia", async (
   await page.getByRole("link", { name: /3 de outubro: 1 evento/ }).click();
   await expect(page).toHaveURL(/dia=2026-10-03/);
   await expect(
-    page.getByRole("link", { name: "Festival de Siriri e Cururu na Orla" }),
+    page.getByRole("link", { name: "Festival de Siriri e Cururu na Orla", exact: true }),
   ).toBeVisible();
   await expect(page.locator("main article")).toHaveCount(1);
 });

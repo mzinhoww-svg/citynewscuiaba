@@ -8,6 +8,7 @@ import { plaqueOf, publicLabels } from "@/lib/labels";
 import type { SearchGroup, SearchHit } from "@/lib/search/types";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
+import { ArticleThumb } from "./ArticleCard";
 import { Highlight } from "./Highlight";
 import { OriginLabel } from "./OriginLabel";
 import { TopicStatus } from "./TopicStatus";
@@ -38,39 +39,42 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
       const a = hit.item;
       const pub = publicLabels(a);
       return (
-        <article className={cx(ROW, className)}>
-          {pub.plaque === "original" && (
-            <div className="relative flex">
-              <OriginLabel label={{ kind: "original", text: LABEL_TEXT.original }} />
-            </div>
-          )}
-          <h3 className={TITLE}>
-            <Link href={a.href} className="card-link no-underline hover:underline">
-              <Highlight text={a.title} terms={terms} />
-            </Link>
-          </h3>
-          <p className="line-clamp-2 type-body text-body">
-            <Highlight text={a.dek} terms={terms} />
-          </p>
-          <p className="flex flex-wrap gap-x-1.5 type-meta text-meta">
-            <span>{a.section.name}</span>
-            {pub.originText && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{pub.originText}</span>
-              </>
+        <article className={cx("relative flex items-start gap-4 py-4", className)}>
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            {pub.plaque === "original" && (
+              <div className="relative flex">
+                <OriginLabel label={{ kind: "original", text: LABEL_TEXT.original }} />
+              </div>
             )}
-            {pub.reviewText && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>{pub.reviewText}</span>
-              </>
-            )}
-            <span aria-hidden="true">·</span>
-            <time dateTime={a.publishedAt} className="tabular-nums">
-              {formatWhen(a.publishedAt, now)}
-            </time>
-          </p>
+            <h3 className={TITLE}>
+              <Link href={a.href} className="card-link no-underline hover:underline">
+                <Highlight text={a.title} terms={terms} />
+              </Link>
+            </h3>
+            <p className="line-clamp-2 type-body text-body">
+              <Highlight text={a.dek} terms={terms} />
+            </p>
+            <p className="flex flex-wrap gap-x-1.5 type-meta text-meta">
+              <span>{a.section.name}</span>
+              {pub.originText && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{pub.originText}</span>
+                </>
+              )}
+              {pub.reviewText && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{pub.reviewText}</span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <time dateTime={a.publishedAt} className="tabular-nums">
+                {formatWhen(a.publishedAt, now)}
+              </time>
+            </p>
+          </div>
+          <ArticleThumb article={a} />
         </article>
       );
     }

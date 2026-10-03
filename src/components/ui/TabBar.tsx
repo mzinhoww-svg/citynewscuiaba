@@ -37,7 +37,7 @@ export interface TabBarProps {
 }
 
 /**
- * Navegação inferior do app, 64 px + área segura; destino ativo em Urucum Texto com
+ * Navegação inferior do app, 64 px + área segura (a borda entra nos 64, para o banner de consentimento encostar sem sobrepor); destino ativo em Urucum Texto com
  * indicador Urucum no topo e `aria-current="page"`.
  *
  * ```tsx
@@ -54,9 +54,9 @@ export function TabBar({
   return (
     <nav
       aria-label={label}
-      className={cx("border-t border-line-subtle bg-card-white pb-safe", className)}
+      className={cx("h-tabbar-safe border-t border-line-subtle bg-card-white pb-safe", className)}
     >
-      <ul className="flex h-tabbar">
+      <ul className="flex h-full">
         {items.map((it) => (
           <li key={it.id} className="flex flex-1">
             <NavLink

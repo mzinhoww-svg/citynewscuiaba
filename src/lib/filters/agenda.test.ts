@@ -68,3 +68,13 @@ it("links mantêm o filtro de gratuitos ao trocar de visão", () => {
   expect(agendaHref(f, { view: "cal" })).toBe("/agenda?view=cal&gratuito=1");
   expect(agendaHref(f)).toBe("/agenda?gratuito=1");
 });
+
+it("atalho Amanhã: lê a URL, monta o link e cobre só o dia seguinte no fuso de Cuiabá", () => {
+  const f = parseAgendaFilters(new URLSearchParams("quando=amanha"));
+  expect(f.when).toBe("tomorrow");
+  expect(agendaHref(f)).toBe("/agenda?quando=amanha");
+  expect(agendaRange(f, now)).toEqual({
+    from: "2026-10-01T04:00:00.000Z",
+    to: "2026-10-02T04:00:00.000Z",
+  });
+});

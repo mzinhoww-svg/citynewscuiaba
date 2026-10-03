@@ -250,6 +250,94 @@ test("só teclado: a busca da home leva a uma matéria", async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// Estados globais empilhados (UI-T7, Review Focus 3)
+
+/** Simula uma página servida do cache: o SW "responde" que ela foi salva há 1 h. */
+async function fakeCachedPage(page: Page) {
+  await page.addInitScript(() => {
+    const fake = {
+      controller: {
+        postMessage(_msg: unknown, ports: MessagePort[]) {
+          ports[0]?.postMessage({ cachedAt: new Date(Date.now() - 3_600_000).toISOString() });
+        },
+      },
+      register: async () => ({}),
+      ready: new Promise(() => {}),
+      addEventListener() {},
+      removeEventListener() {},
+    };
+    Object.defineProperty(navigator, "serviceWorker", { value: fake, configurable: true });
+  });
+}
+
+type Box = { x: number; y: number; width: number; height: number };
+const boxOf = async (l: Locator): Promise<Box> => (await l.boundingBox())!;
+const bottom = (b: Box) => b.y + b.height;
+const overlap = (a: Box, b: Box) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < bottom(b) - 0.5 && b.y < bottom(a) - 0.5;
+
+test("360×640 com consentimento pendente e aviso offline: fixos empilhados, linha fina e manchete visível", async ({
+  page,
+  context,
+}) => {
+  // A faixa Urgente não entra aqui: o seed não tem urgente e a home guarda os dados por 60 s
+  // (tag `home`); a altura dela é conferida no teste do componente (UrgentBar, home.test.tsx).
+  await context.clearCookies();
+  await page.setViewportSize({ width: 360, height: 640 });
+  await fakeCachedPage(page);
+  await page.goto("/");
+  const consent = page.getByRole("region", { name: /privacidade/i });
+  const nav = page.getByRole("navigation", { name: "Principal" });
+  const offline = page.getByRole("status").filter({ hasText: /Salva às/ });
+  const header = page.getByRole("banner");
+  for (const el of [consent, nav, offline, header]) await expect(el).toBeVisible();
+
+  const c = await boxOf(consent);
+  const n = await boxOf(nav);
+  const o = await boxOf(offline);
+  const h = await boxOf(header);
+  // Fixos empilhados: banner acima da barra inferior, sem sobreposição entre os três.
+  expect(bottom(c)).toBeLessThanOrEqual(n.y + 1);
+  expect(overlap(c, n)).toBe(false);
+  expect(overlap(h, c)).toBe(false);
+  expect(overlap(h, n)).toBe(false);
+  // Soma dos fixos de baixo ≤ 25% da altura; banner ≤ 15%.
+  expect(c.height).toBeLessThanOrEqual(640 * 0.15);
+  expect(c.height + n.height).toBeLessThanOrEqual(640 * 0.25);
+  // O aviso de cópia antiga é uma linha fina.
+  expect(o.height).toBeLessThanOrEqual(36);
+  // Nada está coberto por outro fixo: o centro de cada um acerta nele mesmo.
+  for (const [name, box, sel] of [
+    ["banner", c, "section"],
+    ["barra inferior", n, "nav"],
+  ] as const) {
+    const hit = await page.evaluate(
+      ([x, y, s]) => document.elementFromPoint(x, y)?.closest(s) !== null,
+      [box.x + box.width / 2, box.y + box.height / 2, sel] as const,
+    );
+    expect(hit, `${name} coberto`).toBe(true);
+  }
+  // A manchete aparece na janela livre entre o cabeçalho e o banner.
+  const h1 = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+  expect(h1.y).toBeGreaterThanOrEqual(bottom(h) - 1);
+  expect(h1.y).toBeLessThan(c.y - 24);
+});
+
+test("404 a 360×640 com consentimento pendente: busca e volta ao início ficam acima do banner", async ({
+  page,
+  context,
+}) => {
+  await context.clearCookies();
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.goto("/materia/nao-existe");
+  const consent = (await page.getByRole("region", { name: /privacidade/i }).boundingBox())!;
+  const search = (await page.getByRole("searchbox").boundingBox())!;
+  const back = (await page.getByRole("link", { name: "Voltar ao início" }).boundingBox())!;
+  expect(bottom(search)).toBeLessThanOrEqual(consent.y);
+  expect(bottom(back)).toBeLessThanOrEqual(consent.y);
+});
+
+// ---------------------------------------------------------------------------------------------
 // Estúdio
 
 const created: string[] = [];

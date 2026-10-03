@@ -36,6 +36,16 @@ describe("UrgentBar", () => {
     );
     expect(within(alert).getByText("há 10 min")).toBeInTheDocument();
   });
+
+  it("é uma linha fina: título e hora correm no mesmo parágrafo, sem faixa alta", () => {
+    render(<UrgentBar article={article} now={new Date("2026-09-27T18:00:00Z")} />);
+    const alert = screen.getByRole("alert", { name: /Urgente/ });
+    const row = alert.querySelector("p");
+    expect(row).not.toBeNull();
+    expect(row).toContainElement(within(alert).getByRole("link", { name: article.title }));
+    expect(row).toContainElement(within(alert).getByText("há 10 min"));
+    expect(alert.firstElementChild).toHaveClass("py-2");
+  });
 });
 
 describe("AggregatedSection", () => {

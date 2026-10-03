@@ -12,7 +12,7 @@ export interface UrgentBarProps {
 }
 
 /**
- * Faixa URGENTE (R14: texto Tinta sobre Urgente, 5,05:1). Só aparece com urgente publicado
+ * Faixa URGENTE (R14: texto Tinta sobre Urgente, 5,05:1), linha fina: eyebrow, título e hora correm no mesmo parágrafo. Só aparece com urgente publicado
  * por humano; sem urgente, a página não renderiza a faixa.
  *
  * ```tsx
@@ -27,18 +27,20 @@ export function UrgentBar({ article, now, className }: UrgentBarProps) {
       aria-labelledby={id}
       className={cx("relative bg-urgente text-tinta [--card-radius:var(--r-0)]", className)}
     >
-      <div className="mx-auto flex max-w-page flex-wrap items-baseline gap-x-3 gap-y-1 px-gutter py-3">
-        <span id={id} className="type-eyebrow">
+      <p className="mx-auto max-w-page px-gutter py-2 leading-snug">
+        <span id={id} className="type-eyebrow mr-2 align-baseline">
           {HOME.urgent}
         </span>
         <Link
           href={article.href}
-          className="card-link font-serif text-18 font-semibold leading-snug text-tinta underline-offset-4 hover:underline"
+          className="card-link font-serif text-16 font-semibold text-tinta underline-offset-4 hover:underline sm:text-18"
         >
           {article.title}
         </Link>
-        <span className="type-meta tabular-nums">{formatWhen(article.publishedAt, now)}</span>
-      </div>
+        <span className="type-meta ml-2 whitespace-nowrap tabular-nums">
+          {formatWhen(article.publishedAt, now)}
+        </span>
+      </p>
     </div>
   );
 }

@@ -126,6 +126,23 @@ function CardPhoto({
 }
 
 /**
+ * Miniatura de uma matéria para listas e resultados de busca: a foto aprovada ou, sem ela, a
+ * miniatura tipográfica da editoria. Tamanho fixo (CLS zero); a foto de terceiros leva a origem
+ * no texto acessível.
+ *
+ * ```tsx
+ * <ArticleThumb article={a} />
+ * ```
+ */
+export function ArticleThumb({ article }: { article: ArticleSummary }) {
+  return article.image ? (
+    <CardPhoto image={article.image} variant="list" />
+  ) : (
+    <TypographicCover section={article.section} mode="thumb" thumb="list" />
+  );
+}
+
+/**
  * Card de matéria do CityNews em quatro variantes. O título é o link (R7) e o card inteiro é
  * clicável pelo pseudo-elemento; mostra no máximo 1 plaqueta (ORIGINAL CITYNEWS) e, em texto,
  * a origem do texto derivado e a revisão (DESIGN.md §5; `publicLabels`).

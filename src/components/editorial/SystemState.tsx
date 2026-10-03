@@ -29,7 +29,7 @@ export function SystemState({
   search = false,
 }: SystemStateProps) {
   return (
-    <div className="mx-auto flex w-full max-w-page flex-col gap-6 px-gutter py-12 lg:py-16">
+    <div className="mx-auto flex w-full max-w-page flex-col gap-4 px-gutter py-6 lg:gap-6 lg:py-16">
       <div className="flex max-w-read flex-col items-start gap-4">
         <Icon name={icon} size={24} className="text-meta" />
         <h1 className="type-screen-title text-balance text-strong">{title}</h1>

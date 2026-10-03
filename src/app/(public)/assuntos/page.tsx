@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
-import Form from "next/form";
 import { Suspense } from "react";
-import { Button, Chip, EmptyState, Select, Skeleton, TopicSummaryCard } from "@/components";
+import { Button, Chip, EmptyState, FilterBar, Skeleton, TopicSummaryCard } from "@/components";
 import { SECTIONS } from "@/content/pt-BR/nav";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import { TOPIC } from "@/content/pt-BR/portal-topic";
@@ -61,27 +60,28 @@ function Filters({ f }: { f: TopicListQuery }) {
           </li>
         </ul>
       </nav>
-      <Form
+      <FilterBar
         action="/assuntos"
-        key={topicListHref(f)}
-        autoComplete="off"
-        className="flex flex-wrap items-end gap-3"
-      >
-        {f.state && <input type="hidden" name="situacao" value={TOPIC_STATE_PARAM[f.state]} />}
-        {f.week && <input type="hidden" name="semana" value="1" />}
-        <Select
-          id="assuntos-editoria"
-          name="editoria"
-          label={TOPIC.listSection}
-          placeholder={TOPIC.listAllSections}
-          defaultValue={f.section ?? ""}
-          options={SECTIONS.map((s) => ({ value: s.id, label: s.label }))}
-          className="min-w-64"
-        />
-        <Button type="submit" size="md" variant="outline">
-          {TOPIC.listApply}
-        </Button>
-      </Form>
+        label={TOPIC.listFilters}
+        formKey={topicListHref(f)}
+        hidden={{
+          situacao: f.state ? TOPIC_STATE_PARAM[f.state] : undefined,
+          semana: f.week ? "1" : undefined,
+        }}
+        activeCount={f.section ? 1 : 0}
+        clearHref={topicListHref(f, { section: undefined })}
+        clearLabel={SECTION_PAGE.clear}
+        applyLabel={TOPIC.listApply}
+        fields={[
+          {
+            name: "editoria",
+            label: TOPIC.listSection,
+            value: f.section ?? "",
+            placeholder: TOPIC.listAllSections,
+            options: SECTIONS.map((s) => ({ value: s.id, label: s.label })),
+          },
+        ]}
+      />
     </div>
   );
 }
@@ -143,8 +143,8 @@ export default async function TopicsRoute({ searchParams }: Props) {
   const f = parseTopicListFilters(await searchParams);
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
-      <header className="flex max-w-read flex-col gap-3 border-b-2 border-line-strong pb-5">
-        <h1 className="type-display text-strong">{TOPIC.listTitle}</h1>
+      <header className="flex max-w-read flex-col gap-3 border-b border-line-strong pb-4">
+        <h1 className="type-screen-title text-strong">{TOPIC.listTitle}</h1>
         <p className="type-body text-body">{TOPIC.listIntro}</p>
       </header>
       <Filters f={f} />
