@@ -47,7 +47,8 @@ describe("MadeHow recolhível", () => {
     expect(container.querySelector("details > summary")).toHaveTextContent(
       "Como esta matéria foi feita",
     );
-    expect(screen.getByRole("region", { name: "Como esta matéria foi feita" })).toBeInTheDocument();
+    // Versão para o desktop (aberta, escolhida por CSS) vem no mesmo HTML.
+    expect(screen.getAllByRole("region", { name: "Como esta matéria foi feita" })).toHaveLength(2);
   });
   it("sem collapsible, não usa <details>", () => {
     const { container } = render(<MadeHow article={article} versionsHref="/x" />);

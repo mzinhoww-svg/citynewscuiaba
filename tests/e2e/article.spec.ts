@@ -112,6 +112,32 @@ test("ações em uma linha: Salvar em destaque e demais só com ícone no celula
   await expect(group.getByText("Informar problema", { exact: true })).toBeVisible();
 });
 
+test("depois de salvar, a mensagem não quebra a linha de ações (360 px)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`/materia/${SLUG}`);
+  const group = page.getByRole("group", { name: "Ações da matéria" });
+  await group.getByRole("button", { name: "Salvar" }).click();
+  await expect(group.getByRole("link", { name: "Ver favoritos" })).toBeVisible();
+  const ys = [];
+  for (const name of ["Salvar", "Compartilhar", "Ajustar leitura", "Informar problema"])
+    ys.push((await group.getByRole("button", { name }).boundingBox())!.y);
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+test("'Como esta matéria foi feita' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
+  browser,
+}) => {
+  const ctx = await browser.newContext({
+    javaScriptEnabled: false,
+    viewport: { width: 1280, height: 900 },
+  });
+  const page = await ctx.newPage();
+  await page.goto(`/materia/${SLUG}`);
+  await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toBeVisible();
+  await ctx.close();
+});
+
 test("'Como esta matéria foi feita' abre sozinho no desktop e recolhe no celular", async ({
   page,
 }) => {

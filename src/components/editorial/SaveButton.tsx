@@ -77,10 +77,7 @@ export function SaveButton({ contentRef, title, href, section, targetId }: SaveB
   };
 
   return (
-    <span
-      data-ready={ready ? "true" : undefined}
-      className="inline-flex flex-wrap items-center gap-2"
-    >
+    <span data-ready={ready ? "true" : undefined} className="contents">
       <Button
         variant={saved ? "outline-strong" : "primary"}
         size="md"
@@ -90,7 +87,10 @@ export function SaveButton({ contentRef, title, href, section, targetId }: SaveB
       >
         {SAVE_TEXT.save}
       </Button>
-      <span aria-live="polite" className="type-meta text-meta">
+      <span
+        aria-live="polite"
+        className={justSaved && saved ? "order-last basis-full type-meta text-meta" : "sr-only"}
+      >
         {justSaved && saved && (
           <>
             {SAVE_TEXT.saved}{" "}

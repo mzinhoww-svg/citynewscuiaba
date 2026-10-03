@@ -5,7 +5,6 @@ import { PUBLIC_EXPLAIN } from "@/content/pt-BR/labels";
 import { MADE_HOW } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
-import { OpenOnDesktop } from "./OpenOnDesktop";
 
 export interface MadeHowProps {
   /** Dados da matéria: de quantas fontes veio, quem revisou, qual a imagem. */
@@ -115,11 +114,12 @@ export function MadeHow({
     </>
   );
   if (collapsible) {
+    // Celular: <details> recolhido. Desktop (lg): painel aberto. Os dois vêm no HTML do servidor
+    // e o CSS escolhe, sem salto de layout e sem depender de JavaScript.
     return (
-      <section aria-labelledby={id} className={cx("bg-section", className)}>
-        <OpenOnDesktop
-          className="group flex flex-col"
-          summary={
+      <>
+        <section aria-labelledby={id} className={cx("bg-section lg:hidden", className)}>
+          <details className="group flex flex-col">
             <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
               {title}
               <Icon
@@ -128,11 +128,19 @@ export function MadeHow({
                 className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
               />
             </summary>
-          }
+            <div className="flex flex-col gap-4 px-5 pb-5">{body}</div>
+          </details>
+        </section>
+        <section
+          aria-labelledby={`${id}-wide`}
+          className={cx("hidden flex-col gap-4 bg-section p-5 lg:flex", className)}
         >
-          <div className="flex flex-col gap-4 px-5 pb-5">{body}</div>
-        </OpenOnDesktop>
-      </section>
+          <Heading id={`${id}-wide`} className="type-section text-strong">
+            {MADE_HOW.title}
+          </Heading>
+          {body}
+        </section>
+      </>
     );
   }
   return (

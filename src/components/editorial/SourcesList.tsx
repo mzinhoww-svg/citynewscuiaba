@@ -39,7 +39,7 @@ export function SourcesList({ sources, ownReporting, className }: SourcesListPro
         <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 py-3 [&::-webkit-details-marker]:hidden">
           <h2 id={id} className="type-section text-strong">
             {ARTICLE.sourcesTitle}
-            {<span className="type-meta font-normal text-meta"> · {count}</span>}
+            <span className="type-meta font-normal text-meta"> · {count}</span>
           </h2>
           <Icon
             name="chevron-down"
