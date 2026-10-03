@@ -9,6 +9,7 @@ export const EXPLORE = {
   intro: "Tudo o que o CityNews cobre em Cuiabá e Várzea Grande, sem personalização.",
   onThisPage: "Nesta página",
   sections: "Editorias",
+  otherSections: "Outras editorias",
   today: (n: number) =>
     n === 0 ? "Nenhuma matéria hoje" : n === 1 ? "1 matéria hoje" : `${n} matérias hoje`,
   topics: "Assuntos em destaque",

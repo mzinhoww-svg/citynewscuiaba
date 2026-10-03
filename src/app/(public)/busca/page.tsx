@@ -58,6 +58,31 @@ function keptFilters(f: SearchFilters): Record<string, string> {
 
 const askHref = (q: string) => `/pergunte?q=${encodeURIComponent(q)}`;
 
+/** Linha de destaque no topo dos resultados: leva a mesma pergunta ao chat. */
+function AskRow({ q }: { q: string }) {
+  return (
+    <Link
+      href={askHref(q)}
+      prefetch={false}
+      className="flex min-h-tap items-center gap-3 border-y border-line-section py-3 no-underline hover:bg-section"
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-ia-soft text-ai"
+      >
+        <Icon name="message-circle" size={20} />
+      </span>
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="type-body font-semibold text-strong">{SEARCH.askAi}</span>
+        <span className="type-meta text-meta">
+          {SEARCH.askAiHint}: <span className="text-strong">“{q}”</span>
+        </span>
+      </span>
+      <Icon name="chevron-right" size={20} className="shrink-0 text-meta" />
+    </Link>
+  );
+}
+
 function Loading() {
   return (
     <div aria-busy="true" aria-live="polite" className="flex flex-col gap-6">
@@ -197,25 +222,13 @@ export default async function SearchPage({ searchParams }: Props) {
   const filters = parseSearchParams(await searchParams);
   return (
     <div className={`${CONTAINER} flex flex-col gap-6 py-8 lg:py-10`}>
-      <header className="flex max-w-read flex-col gap-4">
-        <h1 className="type-display text-strong">{SEARCH.title}</h1>
+      <header className="flex max-w-read flex-col gap-3">
+        <h1 className="type-screen-title text-strong">{SEARCH.title}</h1>
         <SearchBox key={filters.q} defaultValue={filters.q} hidden={keptFilters(filters)} />
-        {filters.q && (
-          <p>
-            <Link
-              href={askHref(filters.q)}
-              prefetch={false}
-              className="inline-flex min-h-tap items-center gap-2 rounded-lg border border-ai bg-ia-soft px-4 text-14 font-semibold text-ai no-underline hover:bg-card-white"
-            >
-              <Icon name="message-circle" size={18} />
-              {SEARCH.askAi}
-              <span className="font-normal">· {SEARCH.askAiHint}</span>
-            </Link>
-          </p>
-        )}
       </header>
       {filters.q ? (
         <>
+          <AskRow q={filters.q} />
           <SearchFiltersBar filters={filters} />
           <Suspense key={serializeSearch(filters)} fallback={<Loading />}>
             <Results filters={filters} />

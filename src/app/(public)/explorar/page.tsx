@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
+import Link from "next/link";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import {
   ArticleCard,
@@ -37,9 +38,9 @@ const ANCHORS = [
 
 function Header() {
   return (
-    <header className="flex flex-col gap-4 border-b-2 border-line-strong pb-5">
+    <header className="flex flex-col gap-4 border-b border-line-strong pb-4">
       <div className="flex max-w-read flex-col gap-3">
-        <h1 className="type-display text-strong">{EXPLORE.title}</h1>
+        <h1 className="type-screen-title text-strong">{EXPLORE.title}</h1>
         <p className="type-body text-body">{EXPLORE.intro}</p>
       </div>
       <nav aria-label={EXPLORE.onThisPage}>
@@ -125,6 +126,8 @@ function Shortcuts() {
 }
 
 function Explore({ data }: { data: ExploreData }) {
+  const withNews = data.sections.filter((s) => s.todayCount > 0);
+  const quiet = data.sections.filter((s) => s.todayCount === 0);
   return (
     <>
       <section
@@ -133,19 +136,36 @@ function Explore({ data }: { data: ExploreData }) {
         className="flex scroll-mt-32 flex-col gap-4"
       >
         <SectionHeader id="explorar-editorias" title={EXPLORE.sections} action={null} />
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {data.sections.map((s) => (
-            <li key={s.slug} className="flex">
-              <SectionTile
-                href={s.href}
-                name={s.name}
-                meta={EXPLORE.today(s.todayCount)}
-                icon={SECTION_ICONS[s.slug] ?? "newspaper"}
-                className="flex-1"
-              />
-            </li>
-          ))}
-        </ul>
+        {/* Só quem tem matéria hoje vira atalho com contagem; as demais são link simples. */}
+        {withNews.length > 0 && (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {withNews.map((s) => (
+              <li key={s.slug} className="flex">
+                <SectionTile
+                  href={s.href}
+                  name={s.name}
+                  meta={EXPLORE.today(s.todayCount)}
+                  icon={SECTION_ICONS[s.slug] ?? "newspaper"}
+                  className="flex-1"
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+        {quiet.length > 0 && (
+          <ul aria-label={EXPLORE.otherSections} className="flex flex-wrap gap-2">
+            {quiet.map((s) => (
+              <li key={s.slug}>
+                <Link
+                  href={s.href}
+                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
+                >
+                  {s.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section

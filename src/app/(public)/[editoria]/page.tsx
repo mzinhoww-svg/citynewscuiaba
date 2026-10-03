@@ -66,9 +66,9 @@ function Header({ data, filters }: { data: SectionPage; filters: SectionFilters 
   const description = SECTION_DESCRIPTION[section.slug];
   const base = `/${section.slug}`;
   return (
-    <header className="flex flex-col gap-4 border-b-2 border-line-strong pb-5">
+    <header className="flex flex-col gap-4 border-b border-line-strong pb-4">
       <div className="flex flex-col gap-2">
-        <h1 className="type-display text-strong">{section.name}</h1>
+        <h1 className="type-screen-title text-strong">{section.name}</h1>
         {description && <p className="max-w-read type-body text-body">{description}</p>}
         <p className="type-meta text-meta">
           {data.latestAt && (
@@ -172,10 +172,10 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
           {data.articles.length === 0 ? (
             <Empty data={data} filters={filters} />
           ) : (
-            <ol id="lista" className="flex flex-col">
-              {data.articles.map((a) => (
-                <li key={a.id}>
-                  <ArticleCard variant="list" article={a} />
+            <ol id="lista" className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
+              {data.articles.map((a, i) => (
+                <li key={a.id} className={i === 0 ? "md:col-span-2" : undefined}>
+                  <ArticleCard variant={i === 0 ? "lead" : "standard"} article={a} />
                 </li>
               ))}
             </ol>
@@ -200,16 +200,16 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             <h2 id="mais-lidas" className="type-section text-strong">
               {SECTION_PAGE.mostRead(data.section.name)}
             </h2>
-            <ol className="flex flex-col gap-3">
+            <ol className="flex flex-col">
               {data.mostRead.map((a, i) => (
                 <li key={a.id} className="flex items-start gap-3">
                   <span
                     aria-hidden="true"
-                    className="w-6 shrink-0 pt-3 font-sans text-24 font-black leading-none text-meta tabular-nums"
+                    className="w-6 shrink-0 pt-4 font-sans text-24 font-black leading-none text-meta tabular-nums"
                   >
                     {i + 1}
                   </span>
-                  <ArticleCard variant="compact" article={a} className="min-w-0 flex-1" />
+                  <ArticleCard variant="list" article={a} className="min-w-0 flex-1" />
                 </li>
               ))}
             </ol>
@@ -248,15 +248,29 @@ function Failure({ name, retryHref }: { name: string; retryHref: string }) {
 function SectionLoading({ name }: { name: string }) {
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
-      <header className="flex flex-col gap-3 border-b-2 border-line-strong pb-5">
-        <h1 className="type-display text-strong">{name}</h1>
+      <header className="flex flex-col gap-3 border-b border-line-strong pb-4">
+        <h1 className="type-screen-title text-strong">{name}</h1>
         <Skeleton lines={1} className="max-w-md" />
       </header>
-      <div aria-busy="true" aria-live="polite" className="flex flex-col gap-6">
-        <p className="sr-only">{SECTION_PAGE.loading}</p>
-        {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} media lines={3} />
-        ))}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)]">
+        <div
+          aria-busy="true"
+          aria-live="polite"
+          className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2"
+        >
+          <p className="sr-only">{SECTION_PAGE.loading}</p>
+          {/* Mesma forma da lista pronta: lead em largura total e depois standard em 2 colunas. */}
+          <div
+            aria-hidden="true"
+            className="flex flex-col gap-4 motion-safe:animate-pulse md:col-span-2"
+          >
+            <div className="aspect-video w-full bg-section" />
+            <Skeleton lines={3} />
+          </div>
+          {Array.from({ length: 4 }, (_, i) => (
+            <Skeleton key={i} media lines={3} />
+          ))}
+        </div>
       </div>
     </div>
   );

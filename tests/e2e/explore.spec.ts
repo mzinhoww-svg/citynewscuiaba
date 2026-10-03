@@ -6,7 +6,7 @@ test("explorar leva a editorias, assuntos, coleções, fontes e agenda", async (
   for (const n of ["Cidade", "Assuntos em destaque", "Coleções", "Fontes", "Agenda"])
     await expect(page.getByRole("link", { name: new RegExp(n) }).first()).toBeVisible();
   const sections = page.getByRole("region", { name: "Editorias" });
-  await expect(sections.getByText(/hoje/).first()).toBeVisible();
+  await expect(sections.getByRole("link").first()).toBeVisible();
   await expect(page.getByRole("region", { name: "Guia Cuiabá" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Mais lidas da semana" })).toBeVisible();
 });
@@ -28,4 +28,25 @@ test("coleção mostra capa, itens em ordem e agregado que abre no original", as
 test("coleção inexistente responde 404", async ({ page }) => {
   const r = await page.goto("/colecoes/nao-existe");
   expect(r!.status()).toBe(404);
+});
+
+test("editoria sem matéria hoje não vira atalho com 'Nenhuma matéria hoje'", async ({ page }) => {
+  await page.goto("/explorar");
+  await expect(page.getByText("Nenhuma matéria hoje")).toHaveCount(0);
+  const sections = page.getByRole("region", { name: "Editorias" });
+  // Todas as editorias seguem alcançáveis (atalho com contagem ou link simples).
+  expect(await sections.getByRole("link").count()).toBeGreaterThanOrEqual(8);
+  // Atalho com contagem sempre diz quantas há.
+  for (const tile of await sections.locator("article").all()) {
+    await expect(tile).toContainText(/\d matérias? hoje/);
+  }
+});
+
+test("título do Explorar é menor que a manchete lead", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/explorar");
+  const h1 = await page
+    .getByRole("heading", { level: 1 })
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(h1).toBeLessThanOrEqual(28);
 });

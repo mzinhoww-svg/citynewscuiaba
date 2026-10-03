@@ -5,10 +5,7 @@ import { expect, test } from "@playwright/test";
 test("resultado destaca termo e mantém filtros na URL", async ({ page }) => {
   await page.goto("/busca?q=viaduto&origem=citynews");
   await expect(page.locator("mark", { hasText: /viaduto/i }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Só CityNews" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByLabel("Origem")).toHaveValue("citynews");
   // Só CityNews: nenhum item de outro veículo.
   await expect(
     page.getByTestId("origin-label").and(page.locator('[data-kind="aggregated"]')),
@@ -28,13 +25,11 @@ test("sem acento encontra com acento e agrupa por assunto", async ({ page }) => 
 test("filtro de origem vai para a URL e só mostra outros veículos", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
   await expect(page.locator("mark").first()).toBeVisible();
-  await page.getByRole("button", { name: "Outros veículos" }).click();
+  await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
+  await page.getByLabel("Origem").selectOption("outros");
   await expect(page).toHaveURL(/origem=outros/);
   await expect(page).toHaveURL(/q=viaduto/);
-  await expect(page.getByRole("button", { name: "Outros veículos" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(page.getByLabel("Origem")).toHaveValue("outros");
   const labels = page.getByTestId("origin-label");
   await expect(labels.first()).toBeVisible();
   for (const l of await labels.all()) await expect(l).toHaveAttribute("data-kind", "aggregated");
@@ -107,4 +102,68 @@ test("atalho Perguntar ao CityNews leva o mesmo texto", async ({ page }) => {
     "href",
     "/pergunte?q=viaduto",
   );
+});
+
+test("filtros aplicam na hora, sem botão Aplicar, e ficam na URL", async ({ page }) => {
+  await page.goto("/busca?q=viaduto");
+  await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
+  await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
+  await page.getByLabel("Período").selectOption("30d");
+  await expect(page).toHaveURL(/periodo=30d/);
+  await expect(page).toHaveURL(/q=viaduto/);
+  await expect(page.getByLabel("Período")).toHaveValue("30d");
+  await page.getByRole("link", { name: "Limpar filtros" }).click();
+  await expect(page).not.toHaveURL(/periodo=/);
+});
+
+test("abas do tipo são chips, com a ativa marcada", async ({ page }) => {
+  await page.goto("/busca?q=cpa");
+  const tabs = page.getByRole("navigation", { name: "Tipo de resultado" });
+  const all = tabs.getByRole("link", { name: "Tudo" });
+  await expect(all).toHaveAttribute("aria-current", "page");
+  const radius = await all.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius));
+  const underline = await all.evaluate((el) => parseFloat(getComputedStyle(el).borderBottomWidth));
+  expect(radius).toBeGreaterThan(12);
+  expect(underline).toBe(0);
+  expect((await all.boundingBox())!.height).toBeGreaterThanOrEqual(36);
+});
+
+test("resultados de matéria têm miniatura (foto ou capa tipográfica)", async ({ page }) => {
+  await page.goto("/busca?q=onibus+cpa&tipo=materias");
+  const articles = page.getByRole("region", { name: /resultados/i }).locator("article");
+  await expect(articles.first()).toBeVisible();
+  for (const card of await articles.all()) {
+    await expect(card.locator('img, [data-testid="typographic-cover"]').first()).toBeAttached();
+  }
+});
+
+test("Perguntar ao CityNews é a linha de destaque no topo, acima dos filtros", async ({ page }) => {
+  await page.goto("/busca?q=viaduto");
+  const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
+  await expect(ask).toHaveAttribute("href", "/pergunte?q=viaduto");
+  const askBox = (await ask.boundingBox())!;
+  const tabsBox = (await page
+    .getByRole("navigation", { name: "Tipo de resultado" })
+    .boundingBox())!;
+  const heading = (await page.getByRole("heading", { name: /resultados? para/ }).boundingBox())!;
+  expect(askBox.y).toBeLessThan(tabsBox.y);
+  expect(askBox.y).toBeLessThan(heading.y);
+  // Linha inteira: ocupa a largura da coluna, não um botão pequeno.
+  const column = (await page.getByRole("heading", { level: 1 }).locator("xpath=..").boundingBox())!;
+  expect(askBox.width).toBeGreaterThan(column.width * 0.9);
+});
+
+test("título da busca é menor que a manchete de card lead", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/busca?q=viaduto");
+  const h1 = await page
+    .getByRole("heading", { level: 1 })
+    .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  expect(h1).toBeLessThanOrEqual(28);
+});
+
+test("busca a 360 px sem rolagem horizontal", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/busca?q=viaduto");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
