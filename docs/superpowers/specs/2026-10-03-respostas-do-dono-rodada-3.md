@@ -17,3 +17,4 @@ Origem: respostas numeradas às perguntas BTN/ART, TICK, LOGO, FD, TXT, HOT, CON
 - **R35 (UI-T12):** login com Google sempre disponível como opção, com "Agora não".
 - **R36 (UI-T13):** o Pergunte não recusa; responde direto. Quando houver fontes, cita; sem fontes, responde com ressalva textual. Substitui a regra 5 de CLAUDE.md §5 por decisão expressa do dono.
 - **R37 (AGE-T1):** a Agenda da home e de `/agenda` nunca fica vazia nem escondida: coletor de eventos da internet (prefeitura, casas de show, Sympla, sites oficiais e feeds) com aprovação automática dentro dos checks.
+- **R38 (GUIA, TripAdvisor):** o dono forneceu uma chave temporária do TripAdvisor Content API; ela está só como variável de ambiente `TRIPADVISOR_API_KEY` (sensível, produção e preview) na Vercel, nunca em código, teste ou fixture. O dono vai rotacioná-la depois; o código lê só o ambiente, e sem a variável o Guia cai no modo de pesquisa web (R33). Google Places segue sem chave.
