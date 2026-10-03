@@ -27,6 +27,11 @@ export interface ButtonProps {
   download?: boolean;
   /** Estado alternável (Seguir/Seguindo, Salvar). */
   pressed?: boolean;
+  /**
+   * Com `icon`, abaixo de 640 px vira botão só de ícone: o texto fica para leitor de tela e
+   * continua sendo o nome acessível. A partir de 640 px mostra ícone e texto.
+   */
+  collapseLabel?: boolean;
   /** Botão de envio com outra Server Action no mesmo formulário (ex.: "Receber link por e-mail"). */
   formAction?: (formData: FormData) => void | Promise<void>;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -82,6 +87,7 @@ export function Button({
   href,
   download = false,
   pressed,
+  collapseLabel = false,
   formAction,
   onClick,
   children,
@@ -97,6 +103,7 @@ export function Button({
     "items-center justify-center gap-2.5 whitespace-nowrap rounded-pill font-semibold leading-none",
     "cursor-pointer transition-[transform,background-color,color] duration-(--dur-fast) ease-(--ease-standard) motion-safe:active:scale-98",
     inline ? "min-h-tap px-0 text-16" : s.box,
+    collapseLabel && icon && "max-sm:w-tap max-sm:gap-0 max-sm:px-0",
     disabled
       ? cx(
           "cursor-not-allowed border border-transparent text-placeholder",
@@ -109,7 +116,7 @@ export function Button({
     <>
       {leading}
       {icon && <Icon name={icon} size={s.icon} />}
-      {children}
+      {collapseLabel && icon ? <span className="max-sm:sr-only">{children}</span> : children}
       {iconRight && <Icon name={iconRight} size={s.icon} />}
     </>
   );

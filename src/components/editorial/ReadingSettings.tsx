@@ -48,7 +48,14 @@ export function ReadingSettings({ className }: { className?: string }) {
 
   return (
     <>
-      <Button variant="outline" size="md" icon="type" onClick={openSheet} className={className}>
+      <Button
+        variant="outline"
+        size="md"
+        icon="type"
+        collapseLabel
+        onClick={openSheet}
+        className={className}
+      >
         {ARTICLE.adjust}
       </Button>
       <BottomSheet

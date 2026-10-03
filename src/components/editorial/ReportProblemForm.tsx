@@ -45,6 +45,7 @@ export function ReportProblemForm({ contentRef, action, className }: ReportProbl
         variant="outline"
         size="md"
         icon="flag"
+        collapseLabel
         onClick={() => setOpen(true)}
         className={className}
       >
