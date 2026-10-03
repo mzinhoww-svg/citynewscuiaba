@@ -93,7 +93,8 @@ as $$
                where am.article_id = a.id and am.role = 'inline'),
     'bodyParagraphs', (select count(*) from jsonb_array_elements(
                          case when jsonb_typeof(a.body -> 'content') = 'array' then a.body -> 'content' else '[]'::jsonb end) n
-                       where n ->> 'type' = 'paragraph'),
+                       where n ->> 'type' = 'paragraph'
+                         and trim(coalesce(jsonb_path_query_first(n, '$.**.text') #>> '{}', '')) <> ''),
     'humanMedia', exists (select 1 from article_media am where am.article_id = a.id and am.chosen_by not like 'pipeline%'),
     'humanEdited', exists (select 1 from article_versions v where v.article_id = a.id and v.origin = 'human'),
     'items', coalesce(jsonb_agg(jsonb_build_object(
@@ -117,3 +118,95 @@ as $$
   where a.id = p_article
   group by a.id, s.autonomy_category;
 $$;
+
+-- Checklist de publicação (0026): ativo bloqueado não trava; crédito cai para o nome da fonte.
+create or replace function public.studio_publish_blockers(p_id uuid)
+returns text[]
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  a articles%rowtype;
+  cat text;
+  req boolean;
+  out text[] := '{}';
+begin
+  select * into a from articles where id = p_id;
+  if not found then
+    return array['not_found'];
+  end if;
+  select coalesce(s.autonomy_category, a.section_slug) into cat from sections s where s.slug = a.section_slug;
+  cat := coalesce(cat, a.section_slug);
+  if (select count(*) from rules r where r.active) = 1 then
+    select coalesce((r.body->'categories'->cat->>'requirePrimary')::boolean, false) into req
+      from rules r where r.active;
+  else
+    req := true;
+  end if;
+
+  if public.studio_fallback_pending(p_id) then out := out || 'ai_fallback'::text; end if;
+  if coalesce(trim(a.title), '') = '' or coalesce(trim(a.dek), '') = '' then out := out || 'title_dek'::text; end if;
+  if a.section_slug is null
+     or not exists (select 1 from unnest(a.tags) t where trim(t) <> '')
+     or not exists (select 1 from unnest(a.neighborhoods) t where trim(t) <> '') then
+    out := out || 'taxonomy'::text;
+  end if;
+  if req and not exists (select 1 from article_sources s where s.article_id = p_id and s.role = 'primary' and s.confirmed) then
+    out := out || 'primary_source'::text;
+  end if;
+  -- Crédito: o do ativo ou, na reprodução, o nome da fonte. Ativo removido a pedido não conta.
+  if exists (select 1 from article_media am join media_assets m on m.id = am.media_id
+             where am.article_id = p_id and m.status <> 'blocked'
+               and (coalesce(nullif(trim(m.credit), ''), nullif(trim(m.source_name), ''), '') = ''
+                    or am.alt is null
+                    or (am.alt <> '' and trim(am.alt) = ''))) then
+    out := out || 'images'::text;
+  end if;
+  if coalesce(trim(a.seo_title), '') = '' or coalesce(trim(a.seo_description), '') = ''
+     or length(trim(a.seo_title)) > 70 or length(trim(a.seo_description)) > 160 then
+    out := out || 'seo'::text;
+  end if;
+  if exists (select 1 from article_suggestions g where g.article_id = p_id and g.status = 'open') then
+    out := out || 'ai_suggestions'::text;
+  end if;
+  return out;
+end
+$$;
+
+-- Reprocesso de imagens (spec §4.10): matérias publicadas que ainda podem ganhar capa ou imagem do
+-- texto, das mais recentes às mais antigas, paginadas por (published_at, id). Fora: escolha ou
+-- edição de pessoa, ativo removido a pedido, capa que não é de fonte, imagem do texto já gravada,
+-- sem fontes de imagem suficientes (1 sem capa; 2 de fontes distintas com capa) e corpo curto.
+create or replace function media_reprocess_candidates(p_limit int, p_after_at timestamptz default null, p_after_id uuid default null)
+returns table (id uuid, published_at timestamptz)
+language sql
+stable
+set search_path = public
+as $$
+  select a.id, a.published_at
+  from articles a
+  where a.status in ('published', 'updated') and a.published_at is not null
+    and (p_after_at is null or (a.published_at, a.id) < (p_after_at, p_after_id))
+    and not exists (select 1 from article_media am where am.article_id = a.id and am.chosen_by not like 'pipeline%')
+    and not exists (select 1 from article_versions v where v.article_id = a.id and v.origin = 'human')
+    and not exists (select 1 from article_media am join media_assets m on m.id = am.media_id
+                    where am.article_id = a.id and (am.role = 'inline' or m.status = 'blocked'
+                          or (am.role = 'cover' and m.kind not in ('original', 'reproduction'))))
+    and (select count(distinct ci.source_id)
+         from collected_items ci join sources so on so.id = ci.source_id
+         where a.topic_id is not null and ci.topic_id = a.topic_id and ci.duplicate_of is null
+           and ci.quarantined_at is null and ci.image_url is not null and so.status <> 'blocked'
+           and so.image_policy in ('reproduction', 'with_agreement'))
+        >= case when exists (select 1 from article_media am where am.article_id = a.id) then 2 else 1 end
+    and (not exists (select 1 from article_media am where am.article_id = a.id)
+         or (select count(*) from jsonb_array_elements(
+               case when jsonb_typeof(a.body -> 'content') = 'array' then a.body -> 'content' else '[]'::jsonb end) n
+             where n ->> 'type' = 'paragraph'
+               and trim(coalesce(jsonb_path_query_first(n, '$.**.text') #>> '{}', '')) <> '') >= 2)
+  order by a.published_at desc, a.id desc
+  limit greatest(p_limit, 0);
+$$;
+revoke execute on function media_reprocess_candidates(int, timestamptz, uuid) from public, anon, authenticated;
+grant execute on function media_reprocess_candidates(int, timestamptz, uuid) to service_role;

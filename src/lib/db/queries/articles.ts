@@ -140,7 +140,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       ? db
           .from("article_media")
           .select(
-            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, license, credit, status)",
+            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_name, license, credit, status)",
           )
           .in("article_id", ids)
           .then(many)
@@ -185,10 +185,14 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
             ? asset.license
             : (asset.credit ?? undefined),
       author:
-        kind === "reproduction" && asset.credit && asset.credit !== hostOf(asset.origin_url)
+        kind === "reproduction" &&
+        asset.credit &&
+        asset.credit !== hostOf(asset.origin_url) &&
+        asset.credit !== asset.source_name
           ? asset.credit
           : undefined,
-      originUrl: kind === "reproduction" ? (asset.origin_url ?? undefined) : undefined,
+      // "Ver original" vai para a PÁGINA da matéria da fonte, nunca para o arquivo da imagem.
+      originUrl: kind === "reproduction" ? (asset.page_url ?? undefined) : undefined,
     };
     if (inline) inlineImages.set(m.article_id, { ...image, position: m.position ?? 0 });
     else images.set(m.article_id, image);

@@ -185,37 +185,51 @@ export async function retryQuarantined(
   return ok(outcome);
 }
 
+/** Cursor do reprocesso de imagens: `published_at` e id da última matéria do lote. */
+export interface ImageReprocessCursor {
+  publishedAt: string;
+  id: string;
+}
+
 /** Banco do reprocesso de imagens (UI-T16). */
 export interface ImageReprocessRepo {
   /**
-   * Matérias publicadas, sem escolha nem edição de pessoa, que têm só a capa ou nenhuma imagem
-   * (e ainda podem ganhar a imagem do texto ou a capa), das mais recentes às mais antigas.
+   * Matérias publicadas que ainda podem ganhar capa ou imagem do texto, das mais recentes às mais
+   * antigas, depois de `after`. Ficam de fora: escolha ou edição de pessoa, ativo removido a pedido,
+   * capa que não é de fonte, imagem do texto já gravada e assunto sem fontes de imagem suficientes.
+   * `next` é o cursor do lote seguinte (`null` = acabou).
    */
-  articlesNeedingImages(limit: number): Promise<string[]>;
+  articlesNeedingImages(
+    limit: number,
+    after?: ImageReprocessCursor | null,
+  ): Promise<{ ids: string[]; next: ImageReprocessCursor | null }>;
 }
 
 export interface ImageReprocessOutcome {
   targets: number;
   enqueued: number;
   alreadyQueued: number;
+  next: ImageReprocessCursor | null;
 }
 
 /**
  * Depois da implantação da capa e da imagem no texto (spec 2026-10-02 §4.10): reenfileira o passo
  * `image` das matérias publicadas que só têm capa ou não têm imagem. O passo é idempotente e não
  * toca em escolha de pessoa nem em matéria editada por pessoa; a matéria publicada não volta a
- * passar pelas regras de publicação (a etapa `rules` ignora quem já saiu de rascunho).
+ * passar pelas regras de publicação (a etapa `rules` ignora quem já saiu de rascunho). Chame de
+ * novo com `after: next` até `next` vir `null`.
  */
 export async function reprocessImages(
   deps: { queue: Queue; repo: ImageReprocessRepo; now: () => Date },
-  input: { limit: number },
+  input: { limit: number; after?: ImageReprocessCursor | null },
 ): Promise<ImageReprocessOutcome> {
   const limit = Math.min(Math.floor(input.limit), MAX_REPROCESS_TARGETS);
-  const empty = { targets: 0, enqueued: 0, alreadyQueued: 0 };
+  const empty: ImageReprocessOutcome = { targets: 0, enqueued: 0, alreadyQueued: 0, next: null };
   if (!Number.isFinite(limit) || limit < 1) return empty;
-  const ids = [...new Set(await deps.repo.articlesNeedingImages(limit))].slice(0, limit);
+  const page = await deps.repo.articlesNeedingImages(limit, input.after ?? null);
+  const ids = [...new Set(page.ids)].slice(0, limit);
   const runId = reprocessRunRef(deps.now());
-  const outcome = { ...empty, targets: ids.length };
+  const outcome = { ...empty, targets: ids.length, next: page.next };
   for (const id of ids) {
     const msg: PipelineMessage = { runId, step: "image", itemRef: `article:${id}`, attempt: 1 };
     if (await deps.queue.enqueue(queueFor("image"), msg)) outcome.enqueued++;

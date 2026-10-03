@@ -299,3 +299,10 @@ describe("drain", () => {
     expect(queueFor("publish")).toBe("pipeline");
   });
 });
+
+describe("STEP_MIN_MS.image", () => {
+  it("comporta robots.txt e imagem de até 2 fontes (4 requisições de 10 s, com folga parcial)", async () => {
+    const { STEP_MIN_MS } = await import("./drain");
+    expect(STEP_MIN_MS.image).toBeGreaterThanOrEqual(30_000);
+  });
+});

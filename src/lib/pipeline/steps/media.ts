@@ -176,6 +176,17 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     });
   };
 
+  const fixedCover = (ctx: MediaContext) =>
+    ctx.cover
+      ? {
+          cover: {
+            ...(ctx.cover.sourceId ? { sourceId: ctx.cover.sourceId } : {}),
+            ...(ctx.cover.originUrl ? { imageUrl: ctx.cover.originUrl } : {}),
+            ...(ctx.cover.phash !== null ? { phash: ctx.cover.phash } : {}),
+          },
+        }
+      : undefined;
+
   /**
    * Avalia até `MAX_SOURCE_IMAGES` imagens de fontes diferentes do assunto (política, flag,
    * `robots.txt` e limite da fonte como sempre) e devolve as que passam em `checkImage`. Uma
@@ -187,7 +198,8 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     reproductionEnabled: boolean,
     notes: string[],
     signal: AbortSignal | undefined,
-    skip?: { sourceId: string | null; originUrl: string | null },
+    skip: { sourceId: string | null; originUrl: string | null } | undefined,
+    need: { cover: boolean; inline: boolean },
   ): Promise<Prepared[]> => {
     const now = deps.now();
     let tried = 0;
@@ -195,6 +207,8 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     const passed: Prepared[] = [];
     const doneSources = new Set<string>();
     for (const item of ctx.items) {
+      // Prazo do passo estourou: o que falta volta à fila (o chamador decide).
+      if (signal?.aborted) break;
       if (!item.imageUrl) continue;
       if (skip?.sourceId && item.source.id === skip.sourceId) continue;
       if (skip?.originUrl && item.imageUrl === skip.originUrl) continue;
@@ -217,6 +231,12 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       }
       passed.push(p.value);
       doneSources.add(item.source.id);
+      // Já dá para fechar o par (capa + texto, outra fonte e outra foto): não gasta mais downloads.
+      const pair = pickCoverAndInline(
+        passed.map((x) => x.candidate),
+        fixedCover(ctx),
+      );
+      if (need.inline ? pair.inline !== undefined : pair.cover !== undefined || !need.cover) break;
     }
     if (reproductionOff) notes.push("Imagem da fonte não usada: reprodução desligada.");
     return passed;
@@ -247,7 +267,8 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         kind === "reproduction"
           ? REPRODUCTION_LICENSE
           : `Acordo com ${s.name} vigente até ${s.agreementUntil ?? "?"}.`,
-      credit: p.candidate.author ?? null,
+      // Sem autor, o crédito é o nome da fonte (o checklist do Estúdio exige crédito).
+      credit: p.candidate.author ?? s.name,
       allowedUse: kind === "reproduction" ? `article:${articleId}` : "editorial",
       width: analysis.width,
       height: analysis.height,
@@ -282,7 +303,9 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
 
     const position = inlinePosition(ctx.bodyParagraphs);
     const coverFromSource =
-      ctx.cover !== null && (ctx.cover.kind === "original" || ctx.cover.kind === "reproduction");
+      ctx.cover !== null &&
+      ctx.cover.status === "approved" &&
+      (ctx.cover.kind === "original" || ctx.cover.kind === "reproduction");
     const wantCover = ctx.cover === null;
     // A imagem do texto só vem de fonte, ao lado de uma capa que também veio de fonte, e só entra
     // se o corpo comporta (≥ 2 parágrafos).
@@ -297,19 +320,16 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       notes,
       step?.signal,
       ctx.cover ? { sourceId: ctx.cover.sourceId, originUrl: ctx.cover.originUrl } : undefined,
+      { cover: wantCover, inline: wantInline },
     );
+    // Prazo do drain estourado antes de achar qualquer imagem: volta à fila em vez de gravar capa
+    // de acervo (ou nada) para sempre.
+    if (step?.signal?.aborted && prepared.length === 0)
+      return err(stepError.transient("prazo do passo de imagem esgotado", { articleId }));
     const byCandidate = new Map(prepared.map((p) => [p.candidate, p]));
     const picked = pickCoverAndInline(
       prepared.map((p) => p.candidate),
-      ctx.cover
-        ? {
-            cover: {
-              ...(ctx.cover.sourceId ? { sourceId: ctx.cover.sourceId } : {}),
-              ...(ctx.cover.originUrl ? { imageUrl: ctx.cover.originUrl } : {}),
-              ...(ctx.cover.phash !== null ? { phash: ctx.cover.phash } : {}),
-            },
-          }
-        : undefined,
+      fixedCover(ctx),
     );
     const scores = prepared.map((p) => ({
       source: p.item.source.name,

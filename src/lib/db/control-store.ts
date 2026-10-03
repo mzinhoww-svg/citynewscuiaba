@@ -279,28 +279,24 @@ export function createRunNowRepo(db: DbClient): RunNowRepo {
   };
 }
 
-/** Matérias publicadas que só têm capa ou não têm imagem, para `reprocessImages` (service role). */
+/** Matérias publicadas que ainda podem ganhar imagem, para `reprocessImages` (service role). */
 export function createImageReprocessRepo(db: DbClient): ImageReprocessRepo {
   return {
-    async articlesNeedingImages(limit) {
-      const { data, error } = await db
-        .from("articles")
-        .select("id, article_media(role, chosen_by, media_assets(status))")
-        .in("status", ["published", "updated"])
-        .order("published_at", { ascending: false })
-        .limit(Math.min(limit * 4, 2000));
+    async articlesNeedingImages(limit, after) {
+      const { data, error } = await db.rpc("media_reprocess_candidates", {
+        p_limit: limit,
+        ...(after ? { p_after_at: after.publishedAt, p_after_id: after.id } : {}),
+      });
       check("articlesNeedingImages", error);
-      const out: string[] = [];
-      for (const a of data ?? []) {
-        const media = a.article_media ?? [];
-        // Escolha de pessoa não se mexe; imagem removida a pedido (bloqueada) também fica como está.
-        if (media.some((m) => !m.chosen_by.startsWith("pipeline"))) continue;
-        if (media.some((m) => m.media_assets?.status === "blocked")) continue;
-        if (media.some((m) => m.role === "inline")) continue;
-        out.push(a.id);
-        if (out.length >= limit) break;
-      }
-      return out;
+      const rows = data ?? [];
+      const last = rows.at(-1);
+      return {
+        ids: rows.map((r) => r.id),
+        next:
+          rows.length === limit && last && last.published_at
+            ? { publishedAt: last.published_at, id: last.id }
+            : null,
+      };
     },
   };
 }

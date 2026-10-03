@@ -25,7 +25,7 @@ export interface ArticleImage {
   credit?: string;
   /** Autor da foto, quando a fonte informa (política reproduction). */
   author?: string;
-  /** Página original da foto (política reproduction), para "Ver original". */
+  /** Página da matéria da fonte (`media_assets.page_url`), para "Ver original"; ausente = sem link. */
   originUrl?: string;
 }
 

@@ -445,6 +445,43 @@ describe("capa e imagem no texto (UI-T16)", () => {
     expect(none.repo.links().map((l) => l.role)).toEqual(["cover"]);
   });
 
+  it("para de avaliar quando já há capa e imagem do texto (2 fontes); sem inline, 1 só", async () => {
+    const two = multi(3);
+    await two.step(msg);
+    expect(two.calls.filter((c) => c.url.endsWith(".jpg"))).toHaveLength(2);
+    const one = multi(3, { paragraphs: 1 });
+    await one.step(msg);
+    expect(one.calls.filter((c) => c.url.endsWith(".jpg"))).toHaveLength(1);
+  });
+
+  it("aborto do prazo sem nada gravado: erro transitório, sem capa de acervo", async () => {
+    const h = multi(3);
+    h.repo.addArchive({ id: "acervo-1", tags: ["cultura"] });
+    const ac = new AbortController();
+    ac.abort();
+    const r = await h.step(msg, { signal: ac.signal } as never);
+    expect(r).toEqual({ ok: false, error: expect.objectContaining({ kind: "transient" }) });
+    expect(h.repo.links()).toEqual([]);
+    expect(h.repo.decisions()).toEqual([]);
+  });
+
+  it("reprodução sem autor usa o nome da fonte como crédito do ativo", async () => {
+    const { repo, step } = multi(3);
+    await step(msg);
+    const mta = repo.assets().find((a) => a.sourceId === "src-mta");
+    expect(mta?.credit).toBe("MT Agora");
+    expect(repo.assets().find((a) => a.sourceId === "src-folha")?.credit).toBe("Ana Prado");
+  });
+
+  it("capa removida a pedido (bloqueada): não acrescenta imagem do texto", async () => {
+    const h = multi(3);
+    h.repo.addAsset({ id: "m-capa", originUrl: `${FOLHA}/img/foto-1.jpg`, sourceId: "src-folha" });
+    h.repo.link("a1", "m-capa", "pipeline:image");
+    await h.repo.blockAsset("m-capa", "pedido", NOW);
+    await h.step(msg);
+    expect(h.repo.links().map((l) => l.role)).toEqual(["cover"]);
+  });
+
   it("é idempotente: rodar de novo não baixa nem liga nada", async () => {
     const { repo, step, calls } = multi(3);
     await step(msg);

@@ -4046,6 +4046,13 @@ export type Database = {
           distance: number;
         }[];
       };
+      media_reprocess_candidates: {
+        Args: { p_after_at?: string; p_after_id?: string; p_limit: number };
+        Returns: {
+          id: string;
+          published_at: string;
+        }[];
+      };
       notify_once: { Args: { p: Json; p_window_sec: number }; Returns: boolean };
       peek_rate_limit: {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };

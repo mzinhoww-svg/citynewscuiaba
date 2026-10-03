@@ -29,7 +29,8 @@ export const STEP_MIN_MS: Partial<Record<JobStep, number>> = {
   locate: 10_000,
   verify: 20_000,
   summarize: 30_000,
-  image: 15_000,
+  /** Até 2 fontes avaliadas (robots.txt + imagem, 10 s cada) para capa e imagem do texto. */
+  image: 30_000,
   index: 8_000,
   /** Lote de até 100 entregas de push com concorrência 10 e 10 s por envio (spec §12.3). */
   push_deliver: 15_000,

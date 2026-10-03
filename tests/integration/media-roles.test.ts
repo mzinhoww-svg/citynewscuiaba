@@ -52,7 +52,15 @@ async function links() {
   return data ?? [];
 }
 
+let flagBefore = true;
+
 beforeAll(async () => {
+  const prev = await db
+    .from("feature_flags")
+    .select("enabled")
+    .eq("key", "image_reproduction_enabled")
+    .single();
+  flagBefore = prev.data?.enabled ?? true;
   await db.from("feature_flags").update({ enabled: true }).eq("key", "image_reproduction_enabled");
   const topic = await db
     .from("topics")
@@ -111,6 +119,10 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await db
+    .from("feature_flags")
+    .update({ enabled: flagBefore })
+    .eq("key", "image_reproduction_enabled");
   await db.from("article_media").delete().eq("article_id", ids.article);
   await db.from("decisions").delete().eq("object_ref", `article:${ids.article}`);
   await db.from("articles").delete().eq("id", ids.article);
@@ -156,7 +168,7 @@ describe("papéis das imagens da matéria (banco real)", () => {
 
   it("matéria publicada sem imagem entra no reprocesso; o passo grava capa e imagem do texto", async () => {
     const needing = await createImageReprocessRepo(db).articlesNeedingImages(500);
-    expect(needing).toContain(ids.article);
+    expect(needing.ids).toContain(ids.article);
 
     const before = await repo.mediaContext(ids.article);
     expect(before).toMatchObject({ hasMedia: false, cover: null, inline: null, bodyParagraphs: 4 });
@@ -181,7 +193,7 @@ describe("papéis das imagens da matéria (banco real)", () => {
     expect(typeof ctx!.cover?.phash).toBe("bigint");
 
     // Já tem as duas: sai da lista do reprocesso e rodar de novo não muda nada.
-    expect(await createImageReprocessRepo(db).articlesNeedingImages(500)).not.toContain(
+    expect((await createImageReprocessRepo(db).articlesNeedingImages(500)).ids).not.toContain(
       ids.article,
     );
     await step(msg());
@@ -263,6 +275,52 @@ describe("papéis das imagens da matéria (banco real)", () => {
     expect(ctx!.inline?.status).toBe("blocked");
   });
 
+  it("reprocesso pagina por cursor sem repetir e exclui matéria com versão de pessoa", async () => {
+    const r = createImageReprocessRepo(db);
+    const seen: string[] = [];
+    let after: Awaited<ReturnType<typeof r.articlesNeedingImages>>["next"] = null;
+    for (let i = 0; i < 100; i++) {
+      const page = await r.articlesNeedingImages(2, after);
+      seen.push(...page.ids);
+      if (!page.next) break;
+      after = page.next;
+    }
+    expect(new Set(seen).size).toBe(seen.length);
+    // Corpo de 4 parágrafos vazios não conta como corpo: sem inline possível, fora da lista.
+    await db.from("article_media").delete().eq("article_id", ids.article);
+    await db
+      .from("articles")
+      .update({ body: { type: "doc", content: [para(""), para(" "), para("Um.")] } })
+      .eq("id", ids.article);
+    await step(msg());
+    const ctx = await repo.mediaContext(ids.article);
+    expect(ctx!.bodyParagraphs).toBe(1);
+    expect(ctx!.inline).toBeNull();
+    await db.from("article_versions").insert({
+      article_id: ids.article,
+      number: 1,
+      snapshot: {},
+      origin: "human",
+    });
+    expect((await r.articlesNeedingImages(500)).ids).not.toContain(ids.article);
+    await db.from("article_versions").delete().eq("article_id", ids.article);
+  });
+
+  it("checklist: crédito cai para o nome da fonte e ativo removido a pedido não bloqueia", async () => {
+    await db.from("article_media").update({ alt: "Foto da feira" }).eq("article_id", ids.article);
+    const rows = await links();
+    const mids = rows.map((r) => r.media_id);
+    await db.from("media_assets").update({ credit: null, source_name: "Fonte X" }).in("id", mids);
+    const ok = await db.rpc("studio_publish_blockers", { p_id: ids.article });
+    expect(ok.data).not.toContain("images");
+    await db.from("media_assets").update({ source_name: null }).in("id", mids);
+    const bad = await db.rpc("studio_publish_blockers", { p_id: ids.article });
+    expect(bad.data).toContain("images");
+    await db.from("media_assets").update({ status: "blocked" }).in("id", mids);
+    const blocked = await db.rpc("studio_publish_blockers", { p_id: ids.article });
+    expect(blocked.data).not.toContain("images");
+  });
+
   it("escolha de pessoa trava o reprocesso", async () => {
     await db
       .from("article_media")
@@ -271,7 +329,7 @@ describe("papéis das imagens da matéria (banco real)", () => {
       .eq("role", "cover");
     const ctx = await repo.mediaContext(ids.article);
     expect(ctx!.humanMedia).toBe(true);
-    expect(await createImageReprocessRepo(db).articlesNeedingImages(500)).not.toContain(
+    expect((await createImageReprocessRepo(db).articlesNeedingImages(500)).ids).not.toContain(
       ids.article,
     );
     const before = await links();

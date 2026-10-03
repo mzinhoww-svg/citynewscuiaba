@@ -270,7 +270,7 @@ test.describe("capa e imagem no texto", () => {
     await expect(cover.locator("figcaption")).toContainText("Foto: Ana Prado");
     await expect(cover.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
-      "https://folhadocerrado.example/img/feira.jpg",
+      "https://folhadocerrado.example/feira",
     );
     // A capa vem depois do título e antes do corpo do texto.
     const order = await page.evaluate(() => {
@@ -295,7 +295,7 @@ test.describe("capa e imagem no texto", () => {
     await expect(inline.locator("figcaption")).toContainText("Foto: Rui Lopes");
     await expect(inline.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
-      "https://mtagora.example/img/orla.jpg",
+      "https://mtagora.example/orla",
     );
     // Posição: depois do 3º parágrafo, antes do 4º; nunca antes do lide.
     const kids = await body.locator(":scope > *").evaluateAll((els) => els.map((e) => e.tagName));

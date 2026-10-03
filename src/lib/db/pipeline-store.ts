@@ -1036,6 +1036,8 @@ export function createMediaRepo(db: DbClient): MediaRepo {
         },
         { onConflict: "article_id,media_id", ignoreDuplicates: true },
       );
+      // Corrida entre dois workers: o índice único do papel já está ocupado. Não é erro.
+      if (error && (error as { code?: string }).code === "23505") return;
       check("linkArticleMedia", error);
     },
 

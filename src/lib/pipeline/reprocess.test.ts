@@ -154,13 +154,23 @@ describe("retryQuarantined", () => {
 });
 
 describe("reprocessImages (UI-T16)", () => {
-  const imageRepo = (ids: string[]): ImageReprocessRepo & { asked: number[] } => {
-    const asked: number[] = [];
+  /** Repo fake paginado por cursor: devolve as matérias na ordem, `limit` por vez. */
+  const imageRepo = (ids: string[]): ImageReprocessRepo & { asked: [number, unknown][] } => {
+    const asked: [number, unknown][] = [];
     return {
       asked,
-      articlesNeedingImages: async (limit) => {
-        asked.push(limit);
-        return ids.slice(0, limit);
+      articlesNeedingImages: async (limit, after) => {
+        asked.push([limit, after ?? null]);
+        const start = after ? ids.indexOf(after.id) + 1 : 0;
+        const page = ids.slice(start, start + limit);
+        const last = page.at(-1);
+        return {
+          ids: page,
+          next:
+            page.length === limit && last
+              ? { publishedAt: "2026-10-01T00:00:00Z", id: last }
+              : null,
+        };
       },
     };
   };
@@ -169,10 +179,8 @@ describe("reprocessImages (UI-T16)", () => {
     const q = createMemoryQueue();
     const repo = imageRepo(["a1", "a2"]);
     const r = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 50 });
-    expect(r).toEqual({ targets: 2, enqueued: 2, alreadyQueued: 0 });
-    expect(repo.asked).toEqual([50]);
-    const msgs = q.messages("media");
-    expect(msgs.map((m) => [m.step, m.itemRef])).toEqual([
+    expect(r).toEqual({ targets: 2, enqueued: 2, alreadyQueued: 0, next: null });
+    expect(q.messages("media").map((m) => [m.step, m.itemRef])).toEqual([
       ["image", "article:a1"],
       ["image", "article:a2"],
     ]);
@@ -183,19 +191,32 @@ describe("reprocessImages (UI-T16)", () => {
     const deps = { queue: q, repo: imageRepo(["a1"]), now: NOW };
     await reprocessImages(deps, { limit: 10 });
     const again = await reprocessImages(deps, { limit: 10 });
-    expect(again).toEqual({ targets: 1, enqueued: 0, alreadyQueued: 1 });
+    expect(again).toMatchObject({ targets: 1, enqueued: 0, alreadyQueued: 1 });
+  });
+
+  it("avança por cursor: o próximo lote começa depois do anterior, sem repetir", async () => {
+    const q = createMemoryQueue();
+    const repo = imageRepo(["a1", "a2", "a3"]);
+    const deps = { queue: q, repo, now: NOW };
+    const first = await reprocessImages(deps, { limit: 2 });
+    expect(first.targets).toBe(2);
+    expect(first.next).toEqual({ publishedAt: "2026-10-01T00:00:00Z", id: "a2" });
+    const second = await reprocessImages(deps, { limit: 2, after: first.next! });
+    expect(second).toMatchObject({ targets: 1, enqueued: 1, next: null });
+    expect(q.messages("media").map((m) => m.itemRef)).toEqual([
+      "article:a1",
+      "article:a2",
+      "article:a3",
+    ]);
   });
 
   it("limita o lote e recusa limite inválido", async () => {
     const q = createMemoryQueue();
     const repo = imageRepo(["a1", "a2", "a3"]);
-    const r = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 2 });
-    expect(r.targets).toBe(2);
-    const huge = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 10_000 });
-    expect(repo.asked.at(-1)).toBe(MAX_REPROCESS_TARGETS);
-    expect(huge.targets).toBeLessThanOrEqual(3);
+    await reprocessImages({ queue: q, repo, now: NOW }, { limit: 10_000 });
+    expect(repo.asked.at(-1)?.[0]).toBe(MAX_REPROCESS_TARGETS);
     const bad = await reprocessImages({ queue: q, repo, now: NOW }, { limit: 0 });
-    expect(bad.targets).toBe(0);
-    expect(repo.asked.length).toBe(2);
+    expect(bad).toEqual({ targets: 0, enqueued: 0, alreadyQueued: 0, next: null });
+    expect(repo.asked).toHaveLength(1);
   });
 });
