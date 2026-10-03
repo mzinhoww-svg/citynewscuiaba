@@ -47,6 +47,21 @@
 - [ ] **Step 4: Rodar tudo:** vitest `src/components`, e2e `article` e `keyboard` em desktop e mobile, axe da matéria. Esperado: verde.
 - [ ] **Step 5: Commit** `fix(ui): barra de ações da matéria enxuta [BTN-T1]`.
 
+### Task ART-T1: Foto e legenda coladas à matéria
+
+**Files:**
+- Modify: `src/components/editorial/ArticleFigure.tsx`, `ImageCaption.tsx`, `src/app/(public)/materia/[slug]/page.tsx`, `src/lib/db/queries/articles.ts` (nome do crédito), `src/content/pt-BR/portal-card.ts`
+- Test: `src/components/editorial/ArticleFigure.test.tsx`, `tests/e2e/article.spec.ts`
+
+**Interfaces:**
+- Produces: `ArticleFigure` renderiza `<figure>` com a imagem e a legenda no mesmo bloco: legenda a 8 px da foto (`mt-2`), foto a 16 px da linha fina e do texto seguinte (`my-4`), largura igual à coluna do texto (sem sangria nem vão lateral), `figcaption` com `Reprodução web · {nome do veículo}` e "Ver original"; o crédito usa o nome de exibição da fonte (`display_name`/`name`), nunca o host do CDN.
+
+- [ ] **Step 1: Testes (vermelho).** Unit: a legenda é filha do mesmo `<figure>` e vem logo depois da `<img>`; o crédito mostra "RDNews" para imagem de `cdn.rdnews.com.br`, não o host. e2e (1280, 800, 390): distância vertical entre a base da foto e o topo da legenda ≤ 16 px; entre a base da legenda e o próximo bloco ≤ 32 px; entre o fim do cabeçalho e o topo da foto ≤ 32 px; a foto tem a mesma largura da coluna do texto; foto e título aparecem juntos na primeira dobra em 390 e 1280.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/components/editorial/ArticleFigure.test.tsx` e `pnpm exec playwright test tests/e2e/article.spec.ts --project=desktop --grep figura`.
+- [ ] **Step 3: Implementar** com tokens de espaço do `tokens.css` (sem px crus), ordem do cabeçalho: categoria e título, linha fina, assinatura e data, barra de ações, foto com legenda, resumo e texto.
+- [ ] **Step 4: Rodar** vitest `src/components`, e2e `article`, `keyboard`, `vocabulary` e axe em desktop e mobile, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `fix(ui): foto e legenda coladas à matéria, crédito com o nome do veículo [ART-T1]`.
+
 ### Task FD-T1: Banco e domínio dos destaques
 
 **Files:**
