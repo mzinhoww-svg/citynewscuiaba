@@ -81,7 +81,13 @@ export function SaveButton({ contentRef, title, href, section, targetId }: SaveB
       data-ready={ready ? "true" : undefined}
       className="inline-flex flex-wrap items-center gap-2"
     >
-      <Button variant="outline" size="md" icon="bookmark" pressed={saved} onClick={toggle}>
+      <Button
+        variant={saved ? "outline-strong" : "primary"}
+        size="md"
+        icon="bookmark"
+        pressed={saved}
+        onClick={toggle}
+      >
         {SAVE_TEXT.save}
       </Button>
       <span aria-live="polite" className="type-meta text-meta">

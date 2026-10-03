@@ -32,9 +32,12 @@ export function AiSummaryBlock({ items, reviewer, className }: AiSummaryBlockPro
   return (
     <section
       aria-labelledby={id}
-      className={cx("flex flex-col gap-3 border-l-2 border-ai bg-ia-soft px-5 py-4", className)}
+      className={cx(
+        "flex flex-col gap-3 border-l-2 border-line-strong bg-section px-5 py-4",
+        className,
+      )}
     >
-      <h2 id={id} className="type-eyebrow text-ai">
+      <h2 id={id} className="type-eyebrow text-strong">
         {ARTICLE.aiTitle}
       </h2>
       <ul className="flex list-disc flex-col gap-1.5 pl-5 type-body text-strong">

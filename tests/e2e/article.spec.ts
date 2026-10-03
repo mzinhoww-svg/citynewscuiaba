@@ -28,8 +28,11 @@ test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ pag
   );
   await expect(page.getByRole("heading", { name: "Resumo em poucos segundos" })).toBeVisible();
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
-  const sources = page.getByRole("region", { name: "Fontes" }).getByRole("link");
+  await expect(page.getByRole("heading", { name: /^Fontes/ })).toBeVisible();
+  const sourcesRegion = page.getByRole("region", { name: /^Fontes/ });
+  await expect(sourcesRegion.locator("details")).not.toHaveAttribute("open", "");
+  await sourcesRegion.locator("summary").click();
+  const sources = sourcesRegion.getByRole("link");
   await expect(sources.first()).toBeVisible();
   expect(await sources.count()).toBeGreaterThanOrEqual(3);
   for (const link of await sources.all()) {
@@ -42,13 +45,124 @@ test("matéria mostra resumo em poucos segundos, fontes e JSON-LD", async ({ pag
   expect(ld["@type"]).toBe("NewsArticle");
   expect(ld.dateModified).toBeTruthy();
   expect(ld.citation.length).toBeGreaterThan(0);
-  await expect(page.getByRole("region", { name: "Como esta matéria foi feita" })).toBeVisible();
+  const made = page.getByRole("region", { name: "Como esta matéria foi feita" });
+  await expect(made).toBeVisible();
+  // Recolhido no celular; aberto de 1024 px em diante.
+  if (await made.locator("details:not([open])").count()) await made.locator("summary").click();
   await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toHaveAttribute(
     "href",
     `/materia/${SLUG}/historico`,
   );
   await expect(page.getByRole("complementary", { name: "Atualização" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Semelhantes" })).toBeVisible();
+});
+
+/*
+ * UI-T6 · matéria como leitura: cabeçalho enxuto, autoria em frase, ações em uma linha.
+ */
+test("antes do h1 só kicker e status, sem plaqueta nem faixa de rótulos", async ({ page }) => {
+  await page.goto(`/materia/${SLUG}`);
+  const before = await page.evaluate(() => {
+    const h1 = document.querySelector("article h1")!;
+    const prev = h1.previousElementSibling as HTMLElement | null;
+    return { items: prev ? prev.children.length : 0, text: prev?.textContent ?? "" };
+  });
+  expect(before.items).toBeLessThanOrEqual(2);
+  expect(before.text).not.toMatch(/ORIGINAL CITYNEWS|AGREGADO|Revisado|Feito a partir/);
+});
+
+test("autoria diz origem e revisão em frase, sem plaqueta", async ({ page }) => {
+  await page.goto(`/materia/${SLUG}`);
+  const header = page.locator("article > header");
+  await expect(header).toContainText(
+    /Feito a partir de \d+ fontes? · Revisado (por .+|automaticamente)/,
+  );
+  await expect(header.locator("[data-origin-label], [data-plaque]")).toHaveCount(0);
+});
+
+test("resumo e telas públicas sem rótulo de IA", async ({ page }) => {
+  await page.goto(`/materia/${SLUG}`);
+  const text = await page.locator("main").innerText();
+  expect(text).not.toMatch(
+    /\bIA\b|inteligência artificial|normalizado|resumo por IA|gerado por IA/i,
+  );
+});
+
+test("ações em uma linha: Salvar em destaque e demais só com ícone no celular", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`/materia/${SLUG}`);
+  const group = page.getByRole("group", { name: "Ações da matéria" });
+  const names = ["Salvar", "Compartilhar", "Ajustar leitura", "Informar problema"];
+  const boxes = [];
+  for (const name of names) {
+    const btn = group.getByRole("button", { name });
+    await expect(btn).toBeVisible();
+    boxes.push((await btn.boundingBox())!);
+  }
+  expect(Math.max(...boxes.map((b) => b.y)) - Math.min(...boxes.map((b) => b.y))).toBeLessThan(2);
+  for (const b of boxes.slice(1)) expect(b.width).toBeLessThanOrEqual(48);
+  await expect(group.getByRole("button", { name: "Salvar" })).toContainText("Salvar");
+  // sr-only: o texto existe para leitor de tela, mas ocupa 1 px.
+  const label = group.getByText("Compartilhar", { exact: true });
+  expect((await label.boundingBox())!.width).toBeLessThanOrEqual(2);
+  await page.setViewportSize({ width: 800, height: 900 });
+  await expect.poll(async () => (await label.boundingBox())!.width).toBeGreaterThan(20);
+  await expect(group.getByText("Informar problema", { exact: true })).toBeVisible();
+});
+
+test("'Como esta matéria foi feita' abre sozinho no desktop e recolhe no celular", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/materia/${SLUG}`);
+  await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 800 });
+  await page.goto(`/materia/${SLUG}`);
+  const summary = page
+    .getByRole("region", { name: "Como esta matéria foi feita" })
+    .locator("summary");
+  await expect(page.getByRole("link", { name: "Ver histórico de versões" })).not.toBeVisible();
+  await summary.click();
+  await expect(page.getByRole("link", { name: "Ver histórico de versões" })).toBeVisible();
+});
+
+test("texto no tamanho máximo e modo escuro: sem sobreposição nem rolagem horizontal", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.addInitScript(() => localStorage.setItem("cn_reading_size", "xl"));
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto(`/materia/${SLUG}`);
+  await expect(page.locator("html")).toHaveAttribute("data-reading-size", "xl");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const overlap = await page.evaluate(() => {
+    const els = [
+      ...document.querySelectorAll<HTMLElement>(
+        "article > header > *, article > header [role=group] button",
+      ),
+    ].filter((e) => e.getBoundingClientRect().height > 0);
+    const rects = els
+      .filter((e) => !e.contains(els.find((o) => o !== e && e.contains(o)) ?? null))
+      .map((e) => e.getBoundingClientRect());
+    for (let i = 0; i < rects.length; i++)
+      for (let j = i + 1; j < rects.length; j++) {
+        const a = rects[i]!;
+        const b = rects[j]!;
+        const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+        const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+        if (x > 1 && y > 1) return true;
+      }
+    return false;
+  });
+  expect(overlap).toBe(false);
+  // Texto de leitura no escuro com contraste reforçado (7:1).
+  const results = await new AxeBuilder({ page })
+    .include(".reading-body")
+    .withRules(["color-contrast-enhanced"])
+    .analyze();
+  expect(results.violations).toEqual([]);
 });
 
 test("informar problema funciona sem login", async ({ page }) => {

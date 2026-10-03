@@ -22,7 +22,7 @@ export interface ArticleActionBarProps {
 
 /**
  * Barra fixa no pé do leitor de matéria: linha de progresso de leitura (Urucum) e as ações
- * Salvar, Compartilhar, Ajustar leitura, Útil e Informar problema (R8).
+ * Salvar (em destaque), Compartilhar, Ajustar leitura, Útil e Informar problema (R8).
  *
  * ```tsx
  * <ArticleActionBar progress={0.35} saved onShare={openShare} onAdjust={openReading} onReport={openReport} />
@@ -47,8 +47,16 @@ export function ArticleActionBar({
     icon: IconName;
     onClick?: () => void;
     pressed?: boolean;
+    primary?: boolean;
   }[] = [
-    { label: UI.save, short: UI.save, icon: "bookmark", onClick: onSave, pressed: saved },
+    {
+      label: UI.save,
+      short: UI.save,
+      icon: "bookmark",
+      onClick: onSave,
+      pressed: saved,
+      primary: true,
+    },
     { label: UI.share, short: UI.share, icon: "share-2", onClick: onShare },
     { label: UI.adjustReading, short: UI.adjustReadingShort, icon: "type", onClick: onAdjust },
     { label: UI.useful, short: UI.useful, icon: "thumbs-up", onClick: onUseful, pressed: useful },
@@ -76,10 +84,15 @@ export function ArticleActionBar({
             type="button"
             aria-label={a.label}
             aria-pressed={a.pressed}
+            data-emphasis={a.primary ? "primary" : undefined}
             onClick={a.onClick}
             className={cx(
               "flex flex-1 cursor-pointer flex-col items-center justify-center gap-1 rounded-md text-12 font-medium leading-none",
-              a.pressed ? "text-link" : "text-meta hover:text-strong",
+              a.primary
+                ? "mx-1 my-1.5 bg-action-primary font-semibold text-on-inverse"
+                : a.pressed
+                  ? "text-link"
+                  : "text-meta hover:text-strong",
             )}
           >
             <Icon name={a.icon} size={22} fill={a.pressed ? "currentColor" : "none"} />

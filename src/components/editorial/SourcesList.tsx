@@ -22,15 +22,32 @@ export interface SourcesListProps {
  */
 export function SourcesList({ sources, ownReporting, className }: SourcesListProps) {
   const id = useId();
-  return (
-    <section aria-labelledby={id} className={cx("flex flex-col gap-3", className)}>
-      <h2 id={id} className="type-section text-strong">
-        {ARTICLE.sourcesTitle}
-      </h2>
-      {sources.length === 0 ? (
+  if (sources.length === 0) {
+    return (
+      <section aria-labelledby={id} className={cx("flex flex-col gap-3", className)}>
+        <h2 id={id} className="type-section text-strong">
+          {ARTICLE.sourcesTitle}
+        </h2>
         <p className="type-body text-body">{ARTICLE.ownReporting}</p>
-      ) : (
-        <>
+      </section>
+    );
+  }
+  const count = new Set(sources.map((s) => s.sourceSlug)).size;
+  return (
+    <section aria-labelledby={id} className={cx("flex flex-col", className)}>
+      <details className="group border-y border-line-subtle">
+        <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 py-3 [&::-webkit-details-marker]:hidden">
+          <h2 id={id} className="type-section text-strong">
+            {ARTICLE.sourcesTitle}
+            {<span className="type-meta font-normal text-meta"> · {count}</span>}
+          </h2>
+          <Icon
+            name="chevron-down"
+            size={20}
+            className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+          />
+        </summary>
+        <div className="flex flex-col gap-3 pb-4">
           <p className="type-meta text-meta">{ARTICLE.sourcesIntro}</p>
           <ol className="flex flex-col">
             {sources.map((s) => (
@@ -69,11 +86,9 @@ export function SourcesList({ sources, ownReporting, className }: SourcesListPro
               </li>
             ))}
           </ol>
-        </>
-      )}
-      {ownReporting && sources.length > 0 && (
-        <p className="type-meta text-meta">{ARTICLE.ownReporting}</p>
-      )}
+          {ownReporting && <p className="type-meta text-meta">{ARTICLE.ownReporting}</p>}
+        </div>
+      </details>
     </section>
   );
 }

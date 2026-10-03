@@ -16,7 +16,6 @@ import {
   GoneState,
   JsonLd,
   MadeHow,
-  OriginLabel,
   ReadingProgress,
   ReadingSettings,
   ReadTracker,
@@ -29,7 +28,6 @@ import {
   UpdatedWhileReading,
   NotificationInviteSlot,
 } from "@/components";
-import { LABEL_TEXT } from "@/content/pt-BR/labels";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { CARD } from "@/content/pt-BR/portal-card";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
@@ -116,12 +114,6 @@ function Byline({ a }: { a: ArticleView }) {
         )}
         <span aria-hidden="true">·</span>
         <span>{ARTICLE.readMinutes(a.readMinutes)}</span>
-        {a.sources.length > 0 && (
-          <>
-            <span aria-hidden="true">·</span>
-            <span>{ARTICLE.sources(new Set(a.sources.map((s) => s.sourceSlug)).size)}</span>
-          </>
-        )}
       </p>
     </div>
   );
@@ -198,18 +190,14 @@ function Article({ a }: { a: ArticleView }) {
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag>{a.section.name}</CategoryTag>
                 {a.topic && <TopicStatus state={a.topic.state} />}
-                {publicLabels(a).plaque === "original" && (
-                  <OriginLabel label={{ kind: "original", text: LABEL_TEXT.original }} />
-                )}
               </div>
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
-              <ConfidenceMeter level={a.confidence.level} />
               <Byline a={a} />
               <div
                 role="group"
                 aria-label={ARTICLE.actions}
-                className="flex flex-wrap gap-2 border-y border-line-subtle py-3"
+                className="flex flex-wrap items-center gap-2 border-y border-line-subtle py-3"
               >
                 <SaveButton
                   contentRef={`article:${a.id}`}
@@ -218,7 +206,7 @@ function Article({ a }: { a: ArticleView }) {
                   section={a.section.name}
                   targetId="materia"
                 />
-                <ShareSheet title={a.title} url={a.href} />
+                <ShareSheet title={a.title} url={a.href} collapseLabel />
                 <ReadingSettings />
                 <ReportProblemForm contentRef={`article:${a.id}`} action={reportProblemAction} />
               </div>
@@ -325,7 +313,13 @@ function Article({ a }: { a: ArticleView }) {
           </article>
 
           <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
-            <MadeHow article={a} agentVersion={a.agentId ?? undefined} versionsHref={historyHref} />
+            <MadeHow
+              article={a}
+              agentVersion={a.agentId ?? undefined}
+              versionsHref={historyHref}
+              collapsible
+            />
+            <ConfidenceMeter level={a.confidence.level} />
           </aside>
         </div>
 

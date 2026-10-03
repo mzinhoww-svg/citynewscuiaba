@@ -4,6 +4,8 @@ import type { ImageKind, PublicLabelInput } from "@/lib/labels";
 import { PUBLIC_EXPLAIN } from "@/content/pt-BR/labels";
 import { MADE_HOW } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
+import { Icon } from "../ui/Icon";
+import { OpenOnDesktop } from "./OpenOnDesktop";
 
 export interface MadeHowProps {
   /** Dados da matéria: de quantas fontes veio, quem revisou, qual a imagem. */
@@ -13,6 +15,8 @@ export interface MadeHowProps {
   versionsHref: string;
   /** Nível do título (padrão h2). */
   as?: "h2" | "h3";
+  /** Recolhível: fechado no celular, aberto de 1024 px em diante. */
+  collapsible?: boolean;
   className?: string;
 }
 
@@ -65,6 +69,7 @@ export function MadeHow({
   agentVersion,
   versionsHref,
   as: Heading = "h2",
+  collapsible = false,
   className,
 }: MadeHowProps) {
   const id = useId();
@@ -77,11 +82,13 @@ export function MadeHow({
     rows.push({ title: PUBLIC_EXPLAIN.imageTitle, text: imageText(article.image) });
   const linkClass =
     "inline-flex min-h-tap items-center text-14 font-semibold text-link underline underline-offset-4 hover:text-strong";
-  return (
-    <section aria-labelledby={id} className={cx("flex flex-col gap-4 bg-section p-5", className)}>
-      <Heading id={id} className="type-section text-strong">
-        {MADE_HOW.title}
-      </Heading>
+  const title = (
+    <Heading id={id} className="type-section text-strong">
+      {MADE_HOW.title}
+    </Heading>
+  );
+  const body = (
+    <>
       <dl className="flex flex-col gap-3">
         {rows.map((r) => (
           <div key={r.title} className="flex flex-col gap-0.5">
@@ -105,6 +112,33 @@ export function MadeHow({
           {MADE_HOW.methodology}
         </Link>
       </div>
+    </>
+  );
+  if (collapsible) {
+    return (
+      <section aria-labelledby={id} className={cx("bg-section", className)}>
+        <OpenOnDesktop
+          className="group flex flex-col"
+          summary={
+            <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-3 p-5 [&::-webkit-details-marker]:hidden">
+              {title}
+              <Icon
+                name="chevron-down"
+                size={20}
+                className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+              />
+            </summary>
+          }
+        >
+          <div className="flex flex-col gap-4 px-5 pb-5">{body}</div>
+        </OpenOnDesktop>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby={id} className={cx("flex flex-col gap-4 bg-section p-5", className)}>
+      {title}
+      {body}
     </section>
   );
 }
