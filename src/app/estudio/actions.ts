@@ -23,6 +23,7 @@ import { PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
 import { createServerClient } from "@/lib/db/client";
 import { createPushAdminStore } from "@/lib/db/push-admin-store";
 import { formatDateTime } from "@/lib/format/date";
+import { asScope, isEligibleForFeature } from "@/lib/geo/news-scope";
 import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
 import { PUSH_ADMIN_PATH } from "./nav";
 import type { StudioResult } from "@/lib/studio/action";
@@ -238,10 +239,18 @@ async function requestUrgentPush(articleId: string, justification: string) {
   const db = await createServerClient();
   const { data: a } = await db
     .from("articles")
-    .select("title, dek")
+    .select("title, dek, news_scope, national_commotion")
     .eq("id", articleId)
     .maybeSingle();
   if (!a) return { ok: false as const, error: "article_invalid" as const };
+  // Urgência só local ou regional (A15): nacional sem comoção não gera push urgente.
+  if (
+    !isEligibleForFeature({
+      newsScope: asScope(a.news_scope),
+      nationalCommotion: a.national_commotion,
+    })
+  )
+    return { ok: false as const, error: "national_scope" as const };
   return createPushAdminStore(db).request({
     kind: "urgent",
     articleId,

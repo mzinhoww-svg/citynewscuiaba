@@ -20,6 +20,9 @@ export interface MemoryTopicItem {
   sectionSlug?: string | null;
   /** Fonte confiável (`sources.trusted`) neste item. */
   trusted?: boolean;
+  /** Bairro e município localizados no item (etapa `locate`). */
+  neighborhood?: string | null;
+  municipality?: string | null;
 }
 
 export interface MemoryTopic {
@@ -47,13 +50,18 @@ interface ArticleRow {
   version: number;
   humanEdited: boolean;
   urgent: boolean;
+  newsScope: "cuiaba" | "mt" | "national" | null;
+  nationalCommotion: boolean;
   imageApproved: boolean;
   indexed: { embedding: number[] | null } | null;
 }
 
 /** Assuntos, matérias, decisões e notificações em memória para as etapas 11 a 20 (só testes). */
 export function createMemoryPublishRepo(
-  sources: Record<string, { reliability: SourceReliability; name: string }>,
+  sources: Record<
+    string,
+    { reliability: SourceReliability; name: string; locality?: "cuiaba" | "mt" | "nacional" }
+  >,
   categories: Record<string, string> = {},
 ) {
   const topics = new Map<string, MemoryTopic>();
@@ -133,6 +141,8 @@ export function createMemoryPublishRepo(
           version: 0,
           humanEdited: false,
           urgent: false,
+          newsScope: null,
+          nationalCommotion: false,
           imageApproved: false,
           indexed: null,
         };
@@ -176,6 +186,12 @@ export function createMemoryPublishRepo(
         imageApproved: a.imageApproved,
         dubious: t.dubious ?? false,
         sourceTrusted: items.some((i) => i.trusted ?? false),
+        neighborhoods: [...new Set(items.flatMap((i) => (i.neighborhood ? [i.neighborhood] : [])))],
+        municipalities: [
+          ...new Set(items.flatMap((i) => (i.municipality ? [i.municipality] : []))),
+        ],
+        sourceLocalities: [...new Set(items.map((i) => src(i.sourceSlug).locality ?? "cuiaba"))],
+        nationalCommotion: a.nationalCommotion,
       };
     },
     async setStatus(articleId, p) {
@@ -186,6 +202,9 @@ export function createMemoryPublishRepo(
       if (p.publishedAt !== undefined) a.publishedAt = p.publishedAt;
       if (p.rulesVersion !== undefined) a.rulesVersion = p.rulesVersion;
       if (p.reviewReason !== undefined) a.reviewReason = p.reviewReason;
+      if (p.newsScope !== undefined) a.newsScope = p.newsScope;
+      if (p.nationalCommotion !== undefined) a.nationalCommotion = p.nationalCommotion;
+      if (p.urgent !== undefined) a.urgent = p.urgent;
     },
     async articleText(articleId) {
       const a = articles.get(articleId);

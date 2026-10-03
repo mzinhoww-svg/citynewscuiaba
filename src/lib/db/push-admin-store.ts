@@ -17,6 +17,7 @@ export type PushAdminError =
   | "not_pending"
   | "invalid"
   | "article_invalid"
+  | "national_scope"
   | "conflict"
   | "unavailable";
 

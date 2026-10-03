@@ -61,6 +61,9 @@ export interface ArticleSummary {
   topicId: string | null;
   urgent: boolean;
   sponsored: boolean;
+  /** Escopo regional (A15); ausente em dado antigo. */
+  newsScope?: "cuiaba" | "mt" | "national";
+  nationalCommotion?: boolean;
 }
 
 export type ArticleBlock =

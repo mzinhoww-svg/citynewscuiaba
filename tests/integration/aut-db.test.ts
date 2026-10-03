@@ -66,6 +66,8 @@ async function scenario(opts: { sourceTrusted: boolean; verify?: { [k: string]: 
       topic_id: topic.data.id,
       sensitive: true,
       tags: ["crime"],
+      neighborhood: "Goiabeiras",
+      locality: "cuiaba",
     })
     .select("id")
     .single();
@@ -141,5 +143,38 @@ describe("AUT-T1 · segurança publicada automaticamente", () => {
       .eq("id", id);
     const t = await service.from("topics").select("visibility").eq("id", topicId).single();
     expect(t.data?.visibility).toBe("public");
+  });
+});
+
+describe("AUT-T3 · escopo regional", () => {
+  it("o contexto de decisão traz bairros, municípios, localidades da fonte e comoção", async () => {
+    const id = await scenario({ sourceTrusted: true });
+    const ctx = (await service.rpc("pipeline_decision_context", { p_article: id })).data as {
+      neighborhoods: string[];
+      municipalities: string[];
+      sourceLocalities: string[];
+      nationalCommotion: boolean;
+    };
+    expect(ctx.neighborhoods).toEqual(["Goiabeiras"]);
+    expect(ctx.municipalities).toEqual(["cuiaba"]);
+    expect(ctx.sourceLocalities.length).toBeGreaterThan(0);
+    expect(ctx.nationalCommotion).toBe(false);
+  });
+
+  it("articles.news_scope aceita cuiaba, mt e national e recusa outro valor", async () => {
+    const id = await scenario({ sourceTrusted: true });
+    for (const v of ["cuiaba", "mt", "national"]) {
+      const r = await service.from("articles").update({ news_scope: v }).eq("id", id);
+      expect(r.error).toBeNull();
+    }
+    const bad = await service.from("articles").update({ news_scope: "mundo" }).eq("id", id);
+    expect(bad.error).not.toBeNull();
+    const flag = await service
+      .from("articles")
+      .update({ national_commotion: true })
+      .eq("id", id)
+      .select("national_commotion")
+      .single();
+    expect(flag.data?.national_commotion).toBe(true);
   });
 });

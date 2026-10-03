@@ -1195,6 +1195,11 @@ const DecisionContextSchema = z.object({
   // Campos da migration 0074; ausentes (banco antigo) valem como falso.
   dubious: z.boolean().default(false),
   sourceTrusted: z.boolean().default(false),
+  // Campos da migration 0072; ausentes (banco antigo) valem como vazios.
+  neighborhoods: z.array(z.string()).default([]),
+  municipalities: z.array(z.string()).default([]),
+  sourceLocalities: z.array(z.string()).default([]),
+  nationalCommotion: z.boolean().default(false),
 });
 
 /** Banco das etapas 11 a 20 e da despublicação (service role). */
@@ -1237,6 +1242,9 @@ export function createPublishRepo(db: DbClient): PublishRepo {
           ...(p.publishedAt !== undefined ? { published_at: p.publishedAt } : {}),
           ...(p.rulesVersion !== undefined ? { rules_version: p.rulesVersion } : {}),
           ...(p.reviewReason !== undefined ? { review_reason: p.reviewReason } : {}),
+          ...(p.newsScope !== undefined ? { news_scope: p.newsScope } : {}),
+          ...(p.nationalCommotion !== undefined ? { national_commotion: p.nationalCommotion } : {}),
+          ...(p.urgent !== undefined ? { urgent: p.urgent } : {}),
         })
         .eq("id", articleId);
       check("setStatus", error);

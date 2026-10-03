@@ -1,4 +1,11 @@
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
+import {
+  isEligibleForFeature,
+  mostLocal,
+  NATIONAL_COMMOTION_TAG,
+  newsScope,
+  type NewsScope,
+} from "@/lib/geo/news-scope";
 import { err, ok, type Result } from "@/lib/result";
 import {
   decidePublication,
@@ -31,6 +38,50 @@ export function isBreaking(ctx: Pick<DecisionContext, "urgent" | "tags">): boole
   return ctx.urgent || ctx.tags.some((t) => BREAKING_TAGS.has(fold(t)));
 }
 
+/** Comoção nacional marcada na matéria ou pela classificação dos itens (A15). */
+export function hasNationalCommotion(
+  ctx: Pick<DecisionContext, "nationalCommotion" | "tags">,
+): boolean {
+  return ctx.nationalCommotion || ctx.tags.some((t) => fold(t) === NATIONAL_COMMOTION_TAG);
+}
+
+/** Escopo da notícia (A15) pelos bairros, municípios e fontes dos itens e pelo título. */
+export function newsScopeOf(
+  ctx: Pick<DecisionContext, "neighborhoods" | "municipalities" | "sourceLocalities" | "title">,
+): NewsScope {
+  return newsScope({
+    neighborhoods: ctx.neighborhoods,
+    municipality: mostLocal(ctx.municipalities),
+    sourceLocality: mostLocal(ctx.sourceLocalities) ?? "cuiaba",
+    text: ctx.title,
+  });
+}
+
+/**
+ * Urgente e destaque só para o que é local ou regional, ou nacional de comoção (A15). Notícia
+ * nacional sem comoção perde o marcador `urgent` (e, sem ele, não gera push urgente).
+ */
+export function urgentDemoted(
+  ctx: Pick<
+    DecisionContext,
+    | "urgent"
+    | "neighborhoods"
+    | "municipalities"
+    | "sourceLocalities"
+    | "title"
+    | "nationalCommotion"
+    | "tags"
+  >,
+): boolean {
+  return (
+    ctx.urgent &&
+    !isEligibleForFeature({
+      newsScope: newsScopeOf(ctx),
+      nationalCommotion: hasNationalCommotion(ctx),
+    })
+  );
+}
+
 /** Assunto grave (A3/A6): segurança, ou item marcado sensível (acusação, saúde individual, tragédia). */
 export function isGrave(ctx: Pick<DecisionContext, "category" | "sensitive" | "tags">): boolean {
   return (
@@ -54,6 +105,7 @@ export function candidateOf(ctx: DecisionContext): Candidate {
     dubious: ctx.dubious,
     sourceTrusted: ctx.sourceTrusted,
     grave: isGrave(ctx),
+    newsScope: newsScopeOf(ctx),
   };
 }
 
@@ -148,7 +200,16 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
       autoPublish: await deps.flags.isEnabled("auto_publish"),
       readOnly: await deps.flags.isEnabled("read_only"),
     };
-    const d = routeArticle(ctx, loaded, flags);
+    // Escopo regional (A15): grava o escopo e rebaixa `urgent` de notícia nacional sem comoção.
+    const scope = newsScopeOf(ctx);
+    const demote = urgentDemoted(ctx);
+    await deps.repo.setStatus(articleId, {
+      status: ctx.status,
+      newsScope: scope,
+      nationalCommotion: hasNationalCommotion(ctx),
+      ...(demote ? { urgent: false } : {}),
+    });
+    const d = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
     const hash = inputHash(
       "rules",
       ctx.version,

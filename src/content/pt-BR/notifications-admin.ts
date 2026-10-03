@@ -72,6 +72,8 @@ export const PUSH_ADMIN_TEXT = {
     not_pending: "Este pedido já foi decidido.",
     invalid: "Revise os campos destacados.",
     article_invalid: "Só matéria publicada e não patrocinada vira aviso.",
+    national_scope:
+      "Notícia nacional sem comoção não vira urgente. Urgente é só para Cuiabá e Mato Grosso.",
     conflict: "O pedido mudou depois que você abriu. Recarregue e tente de novo.",
     unavailable: "Não foi possível concluir agora. Tente de novo em instantes.",
     rateLimited: "Você fez muitas ações na última hora. Tente de novo mais tarde.",
@@ -216,6 +218,7 @@ export type PushAdminErrorKey = keyof Pick<
   | "not_pending"
   | "invalid"
   | "article_invalid"
+  | "national_scope"
   | "conflict"
   | "unavailable"
 >;

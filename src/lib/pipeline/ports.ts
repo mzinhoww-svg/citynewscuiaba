@@ -691,10 +691,23 @@ export interface DecisionContext {
   dubious: boolean;
   /** Alguma fonte do assunto é confiável (`sources.trusted`). */
   sourceTrusted: boolean;
+  /** Bairros do dicionário citados nos itens do assunto. */
+  neighborhoods: string[];
+  /** Municípios apontados pelo localizador nos itens (`collected_items.locality`). */
+  municipalities: string[];
+  /** Localidades cadastradas das fontes do assunto. */
+  sourceLocalities: string[];
+  /** Comoção nacional marcada na matéria (`articles.national_commotion`). */
+  nationalCommotion: boolean;
 }
 
 export interface StatusPatch {
   status: ArticleStatus;
+  /** Escopo da notícia (A15), gravado pela etapa de regras. */
+  newsScope?: "cuiaba" | "mt" | "national";
+  nationalCommotion?: boolean;
+  /** Rebaixa (false) ou marca (true) a matéria como urgente. */
+  urgent?: boolean;
   publishMode?: "auto" | null;
   publishedAt?: string;
   rulesVersion?: number | null;

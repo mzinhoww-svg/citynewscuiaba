@@ -513,7 +513,9 @@ export type Database = {
           gone_reason: string | null;
           id: string;
           kind: Database["public"]["Enums"]["content_kind"];
+          national_commotion: boolean;
           neighborhoods: string[];
+          news_scope: string | null;
           publish_destinations: string[];
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
@@ -551,7 +553,9 @@ export type Database = {
           gone_reason?: string | null;
           id?: string;
           kind: Database["public"]["Enums"]["content_kind"];
+          national_commotion?: boolean;
           neighborhoods?: string[];
+          news_scope?: string | null;
           publish_destinations?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
@@ -588,7 +592,9 @@ export type Database = {
           gone_reason?: string | null;
           id?: string;
           kind?: Database["public"]["Enums"]["content_kind"];
+          national_commotion?: boolean;
           neighborhoods?: string[];
+          news_scope?: string | null;
           publish_destinations?: string[];
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;

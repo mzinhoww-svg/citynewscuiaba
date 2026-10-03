@@ -27,6 +27,10 @@ const ctx: DecisionContext = {
   imageApproved: false,
   dubious: false,
   sourceTrusted: true,
+  neighborhoods: ["Goiabeiras"],
+  municipalities: ["cuiaba"],
+  sourceLocalities: ["cuiaba"],
+  nationalCommotion: false,
 };
 const ON = { autoPublish: true, readOnly: false };
 
