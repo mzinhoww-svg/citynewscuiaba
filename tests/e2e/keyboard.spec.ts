@@ -423,7 +423,7 @@ test("diálogo Informar problema: foco preso, Esc fecha e o foco volta ao botão
   page,
 }) => {
   await page.goto("/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro");
-  const trigger = page.getByRole("button", { name: "Informar problema" });
+  const trigger = page.locator("#materia").getByRole("button", { name: "Informar problema" });
   await expectHydrated(trigger);
   await trigger.focus();
   await page.keyboard.press("Enter");

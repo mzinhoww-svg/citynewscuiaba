@@ -18,6 +18,12 @@ export interface SaveButtonProps {
   section?: string;
   /** Elemento da matéria (progresso de leitura do salvo). */
   targetId: string;
+  buttonSize?: "md" | "sm";
+  /**
+   * Quando informado, a mensagem "Salvo" não é desenhada aqui: quem chama a exibe fora da linha
+   * dos botões (recebe `true` ao salvar e `false` ao desfazer).
+   */
+  onJustSaved?: (visible: boolean) => void;
 }
 
 function readPct(el: HTMLElement): number {
@@ -32,7 +38,15 @@ function readPct(el: HTMLElement): number {
  * progresso de leitura ("lido 60%") e deixa as 20 últimas para ler offline. O convite de login
  * (P2-T10) é só avisado pelo ponto de extensão.
  */
-export function SaveButton({ contentRef, title, href, section, targetId }: SaveButtonProps) {
+export function SaveButton({
+  contentRef,
+  title,
+  href,
+  section,
+  targetId,
+  buttonSize = "md",
+  onJustSaved,
+}: SaveButtonProps) {
   const { profile, ready, act } = useAnonProfile();
   const send = useTrack();
   const [justSaved, setJustSaved] = useState(false);
@@ -41,6 +55,9 @@ export function SaveButton({ contentRef, title, href, section, targetId }: SaveB
   useEffect(() => {
     savedRef.current = saved;
   }, [saved]);
+  useEffect(() => {
+    onJustSaved?.(justSaved && saved);
+  }, [justSaved, saved, onJustSaved]);
 
   useEffect(() => {
     const el = document.getElementById(targetId);
@@ -80,29 +97,31 @@ export function SaveButton({ contentRef, title, href, section, targetId }: SaveB
     <span data-ready={ready ? "true" : undefined} className="contents">
       <Button
         variant={saved ? "outline-strong" : "primary"}
-        size="md"
+        size={buttonSize}
         icon="bookmark"
         pressed={saved}
         onClick={toggle}
       >
         {SAVE_TEXT.save}
       </Button>
-      <span
-        aria-live="polite"
-        className={justSaved && saved ? "order-last basis-full type-meta text-meta" : "sr-only"}
-      >
-        {justSaved && saved && (
-          <>
-            {SAVE_TEXT.saved}{" "}
-            <Link
-              href="/favoritos"
-              className="font-semibold text-link underline underline-offset-4"
-            >
-              {SAVE_TEXT.seeFavorites}
-            </Link>
-          </>
-        )}
-      </span>
+      {!onJustSaved && (
+        <span
+          aria-live="polite"
+          className={justSaved && saved ? "order-last basis-full type-meta text-meta" : "sr-only"}
+        >
+          {justSaved && saved && (
+            <>
+              {SAVE_TEXT.saved}{" "}
+              <Link
+                href="/favoritos"
+                className="font-semibold text-link underline underline-offset-4"
+              >
+                {SAVE_TEXT.seeFavorites}
+              </Link>
+            </>
+          )}
+        </span>
+      )}
     </span>
   );
 }

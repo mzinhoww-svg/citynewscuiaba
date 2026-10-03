@@ -8,6 +8,7 @@ import {
   REPORT_KINDS,
   type ReportState,
 } from "@/lib/reports/form-state";
+import { cx } from "../cx";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
@@ -18,6 +19,8 @@ export interface ReportProblemFormProps {
   contentRef: string;
   /** Server Action com limite de 5/h por IP e honeypot. */
   action: (state: ReportState, form: FormData) => Promise<ReportState>;
+  /** `link`: texto discreto (barra da matéria e painel "De onde veio"). */
+  variant?: "button" | "link";
   className?: string;
 }
 
@@ -29,7 +32,12 @@ export interface ReportProblemFormProps {
  * <ReportProblemForm contentRef={`article:${a.id}`} action={reportProblemAction} />
  * ```
  */
-export function ReportProblemForm({ contentRef, action, className }: ReportProblemFormProps) {
+export function ReportProblemForm({
+  contentRef,
+  action,
+  variant = "button",
+  className,
+}: ReportProblemFormProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, pending] = useActionState(action, REPORT_IDLE);
   const id = useId();
@@ -41,16 +49,28 @@ export function ReportProblemForm({ contentRef, action, className }: ReportProbl
 
   return (
     <>
-      <Button
-        variant="outline"
-        size="md"
-        icon="flag"
-        collapseLabel
-        onClick={() => setOpen(true)}
-        className={className}
-      >
-        {REPORT.open}
-      </Button>
+      {variant === "link" ? (
+        <Button
+          variant="text"
+          size="sm"
+          icon="flag"
+          onClick={() => setOpen(true)}
+          className={cx("min-h-button-sm! hit-area text-14!", className)}
+        >
+          {REPORT.open}
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size="md"
+          icon="flag"
+          collapseLabel
+          onClick={() => setOpen(true)}
+          className={className}
+        >
+          {REPORT.open}
+        </Button>
+      )}
       <BottomSheet open={open} title={REPORT.title} onClose={() => setOpen(false)}>
         {state.status === "success" ? (
           <div className="flex flex-col gap-6">

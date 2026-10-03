@@ -16,7 +16,7 @@ async function ownIp(page: Page) {
 
 async function report(page: Page) {
   await page.goto(`/materia/${SLUG}`);
-  await page.getByRole("button", { name: "Informar problema" }).click();
+  await page.getByRole("button", { name: "Informar problema" }).first().click();
   await page.getByLabel("Informação errada").check();
   await page.getByRole("button", { name: "Enviar" }).click();
 }
@@ -87,41 +87,85 @@ test("resumo e telas públicas sem rótulo de IA", async ({ page }) => {
   );
 });
 
-test("ações em uma linha: Salvar em destaque e demais só com ícone no celular", async ({
+const ACTIONS = ["Salvar", "Compartilhar", "Ajustar leitura"];
+
+async function barBox(page: Page) {
+  const group = page.getByRole("group", { name: "Ações da matéria" });
+  const bar = group.locator("xpath=ancestor::div[contains(@class,'border-y')][1]");
+  return { group, bar, box: (await bar.boundingBox())! };
+}
+
+for (const width of [1280, 800]) {
+  test(`barra de ações em uma linha e mais baixa que o resumo (${width} px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/materia/${SLUG}`);
+    const { group, box } = await barBox(page);
+    expect(box.height).toBeLessThanOrEqual(56);
+    const boxes = [];
+    for (const name of ACTIONS)
+      boxes.push((await group.getByRole("button", { name }).boundingBox())!);
+    expect(
+      Math.max(...boxes.map((b) => b.height)) - Math.min(...boxes.map((b) => b.height)),
+    ).toBeLessThan(1);
+    expect(Math.max(...boxes.map((b) => b.y)) - Math.min(...boxes.map((b) => b.y))).toBeLessThan(2);
+    for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(34);
+    const summary = page.getByRole("heading", { name: "Resumo em poucos segundos" });
+    const block = (await summary
+      .locator("xpath=ancestor::*[self::section or self::div][1]")
+      .boundingBox())!;
+    expect(box.height).toBeLessThan(block.height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    );
+  });
+}
+
+for (const width of [390, 360]) {
+  test(`barra de ações em até 2 linhas, sem scroll horizontal (${width} px)`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(`/materia/${SLUG}`);
+    const { group, box } = await barBox(page);
+    expect(box.height).toBeLessThanOrEqual(56 * 2);
+    for (const name of ACTIONS) {
+      const btn = group.getByRole("button", { name });
+      await expect(btn).toBeVisible();
+      // alvo de toque de 44 px (padding invisível): o ::before cobre a área.
+      const hit = await btn.evaluate((el) => {
+        const r = getComputedStyle(el, "::before");
+        return [parseFloat(r.width), parseFloat(r.height)];
+      });
+      expect(hit[0]).toBeGreaterThanOrEqual(44);
+      expect(hit[1]).toBeGreaterThanOrEqual(44);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      width,
+    );
+  });
+}
+
+test("depois de salvar, a mensagem fica abaixo dos botões e não quebra a linha (360 px)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto(`/materia/${SLUG}`);
-  const group = page.getByRole("group", { name: "Ações da matéria" });
-  const names = ["Salvar", "Compartilhar", "Ajustar leitura", "Informar problema"];
-  const boxes = [];
-  for (const name of names) {
-    const btn = group.getByRole("button", { name });
-    await expect(btn).toBeVisible();
-    boxes.push((await btn.boundingBox())!);
-  }
-  expect(Math.max(...boxes.map((b) => b.y)) - Math.min(...boxes.map((b) => b.y))).toBeLessThan(2);
-  for (const b of boxes.slice(1)) expect(b.width).toBeLessThanOrEqual(48);
-  await expect(group.getByRole("button", { name: "Salvar" })).toContainText("Salvar");
-  // sr-only: o texto existe para leitor de tela, mas ocupa 1 px.
-  const label = group.getByText("Compartilhar", { exact: true });
-  expect((await label.boundingBox())!.width).toBeLessThanOrEqual(2);
-  await page.setViewportSize({ width: 800, height: 900 });
-  await expect.poll(async () => (await label.boundingBox())!.width).toBeGreaterThan(20);
-  await expect(group.getByText("Informar problema", { exact: true })).toBeVisible();
+  const { group } = await barBox(page);
+  await group.getByRole("button", { name: "Salvar" }).click();
+  const status = page.getByRole("status").filter({ hasText: "Salvo" });
+  await expect(status.getByRole("link", { name: "Ver Favoritos" })).toBeVisible();
+  const ys = [];
+  for (const name of ACTIONS) ys.push((await group.getByRole("button", { name }).boundingBox())!.y);
+  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(2);
+  const sy = (await status.boundingBox())!.y;
+  expect(sy).toBeGreaterThan(Math.max(...ys));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
 
-test("depois de salvar, a mensagem não quebra a linha de ações (360 px)", async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 800 });
+test("Informar problema é link discreto fora do grupo de botões", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/materia/${SLUG}`);
-  const group = page.getByRole("group", { name: "Ações da matéria" });
-  await group.getByRole("button", { name: "Salvar" }).click();
-  await expect(group.getByRole("link", { name: "Ver favoritos" })).toBeVisible();
-  const ys = [];
-  for (const name of ["Salvar", "Compartilhar", "Ajustar leitura", "Informar problema"])
-    ys.push((await group.getByRole("button", { name }).boundingBox())!.y);
-  expect(Math.max(...ys) - Math.min(...ys)).toBeLessThan(2);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  const { group } = await barBox(page);
+  await expect(group.getByRole("button", { name: "Informar problema" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Informar problema" }).first()).toBeVisible();
 });
 
 test("'De onde veio' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
@@ -189,13 +233,15 @@ test("texto no tamanho máximo e modo escuro: sem sobreposição nem rolagem hor
 test("informar problema funciona sem login", async ({ page }) => {
   await ownIp(page);
   await report(page);
-  await expect(page.getByRole("status")).toContainText("Resposta da redação em até 24 h");
+  await expect(page.getByRole("dialog").getByRole("status")).toContainText(
+    "Resposta da redação em até 24 h",
+  );
 });
 
 test("informar problema exige o tipo e explica com exemplo", async ({ page }) => {
   await ownIp(page);
   await page.goto(`/materia/${SLUG}`);
-  await page.getByRole("button", { name: "Informar problema" }).click();
+  await page.getByRole("button", { name: "Informar problema" }).first().click();
   await page.getByRole("button", { name: "Enviar" }).click();
   await expect(page.getByText(/Escolha o tipo de problema\. Exemplo:/)).toBeVisible();
 });
@@ -288,7 +334,7 @@ for (const url of [`/materia/${SLUG}`, `/materia/${CORRECTED}/historico`]) {
 
 test("informar problema aberto sem violações do axe @a11y", async ({ page }) => {
   await page.goto(`/materia/${SLUG}`);
-  await page.getByRole("button", { name: "Informar problema" }).click();
+  await page.getByRole("button", { name: "Informar problema" }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations).toEqual([]);

@@ -6,6 +6,7 @@ import { Fragment } from "react";
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AiSummaryBlock,
+  ArticleActions,
   ArticleCard,
   ArticleFigure,
   Button,
@@ -16,11 +17,8 @@ import {
   JsonLd,
   MadeHow,
   ReadingProgress,
-  ReadingSettings,
   ReadTracker,
   ReportProblemForm,
-  SaveButton,
-  ShareSheet,
   SourcesList,
   TopicStatus,
   UpdateNote,
@@ -193,23 +191,12 @@ function Article({ a }: { a: ArticleView }) {
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
               <Byline a={a} />
-              <div
-                role="group"
-                aria-label={ARTICLE.actions}
-                className="flex flex-wrap items-center gap-2 border-y border-line-subtle py-3"
-              >
-                <SaveButton
-                  contentRef={`article:${a.id}`}
-                  title={a.title}
-                  href={a.href}
-                  section={a.section.name}
-                  targetId="materia"
-                />
-                <ShareSheet title={a.title} url={a.href} collapseLabel />
-                <ReadingSettings />
-                <ReportProblemForm contentRef={`article:${a.id}`} action={reportProblemAction} />
-              </div>
             </header>
+
+            <ArticleActions
+              article={{ id: a.id, title: a.title, href: a.href, section: a.section.name }}
+              reportAction={reportProblemAction}
+            />
 
             {a.aiSummary && <AiSummaryBlock items={a.aiSummary} className="max-w-read" />}
 
@@ -310,7 +297,18 @@ function Article({ a }: { a: ArticleView }) {
           </article>
 
           <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
-            <MadeHow article={a} versionsHref={historyHref} collapsible />
+            <MadeHow
+              article={a}
+              versionsHref={historyHref}
+              collapsible
+              report={
+                <ReportProblemForm
+                  contentRef={`article:${a.id}`}
+                  action={reportProblemAction}
+                  variant="link"
+                />
+              }
+            />
           </aside>
         </div>
 

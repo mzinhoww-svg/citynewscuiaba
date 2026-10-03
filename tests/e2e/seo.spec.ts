@@ -98,7 +98,7 @@ test("CSP não bloqueia nada e a página hidrata", async ({ page }) => {
     if (/Content Security Policy|Refused to/i.test(m.text())) violations.push(m.text());
   });
   await page.goto(ARTICLE);
-  await page.getByRole("button", { name: "Informar problema" }).click();
+  await page.getByRole("button", { name: "Informar problema" }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(violations).toEqual([]);
 });

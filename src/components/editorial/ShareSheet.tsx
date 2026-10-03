@@ -14,6 +14,7 @@ export interface ShareSheetProps {
   sheetTitle?: string;
   /** Abaixo de 640 px o botão mostra só o ícone (barra de ações da matéria). */
   collapseLabel?: boolean;
+  buttonSize?: "md" | "sm";
   className?: string;
 }
 
@@ -28,7 +29,14 @@ const linkClass =
  * <ShareSheet title={article.title} url={article.href} />
  * ```
  */
-export function ShareSheet({ title, url, sheetTitle, collapseLabel, className }: ShareSheetProps) {
+export function ShareSheet({
+  title,
+  url,
+  sheetTitle,
+  collapseLabel,
+  buttonSize = "md",
+  className,
+}: ShareSheetProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [full, setFull] = useState(url);
@@ -53,7 +61,7 @@ export function ShareSheet({ title, url, sheetTitle, collapseLabel, className }:
     <>
       <Button
         variant="outline"
-        size="md"
+        size={buttonSize}
         icon="share-2"
         collapseLabel={collapseLabel}
         onClick={onShare}

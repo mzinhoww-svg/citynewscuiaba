@@ -34,7 +34,13 @@ function save(key: string, value: string) {
  * <ReadingSettings />
  * ```
  */
-export function ReadingSettings({ className }: { className?: string }) {
+export function ReadingSettings({
+  className,
+  buttonSize = "md",
+}: {
+  className?: string;
+  buttonSize?: "md" | "sm";
+}) {
   const [open, setOpen] = useState(false);
   const [size, setSize] = useState<Size>("md");
   const [theme, setTheme] = useState<Theme>("light");
@@ -50,7 +56,7 @@ export function ReadingSettings({ className }: { className?: string }) {
     <>
       <Button
         variant="outline"
-        size="md"
+        size={buttonSize}
         icon="type"
         collapseLabel
         onClick={openSheet}
