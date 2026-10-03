@@ -8,6 +8,8 @@ export interface ServiceTileProps {
   description?: string;
   icon: IconName;
   as?: "h2" | "h3";
+  /** Home no celular: sem a descrição (outras telas mostram sempre). */
+  compactOnMobile?: boolean;
   className?: string;
 }
 
@@ -24,6 +26,7 @@ export function ServiceTile({
   description,
   icon,
   as: Heading = "h3",
+  compactOnMobile,
   className,
 }: ServiceTileProps) {
   return (
@@ -46,7 +49,11 @@ export function ServiceTile({
             {title}
           </Link>
         </Heading>
-        {description && <p className="type-meta text-meta">{description}</p>}
+        {description && (
+          <p className={cx("type-meta text-meta", compactOnMobile && "max-sm:hidden")}>
+            {description}
+          </p>
+        )}
       </div>
     </article>
   );

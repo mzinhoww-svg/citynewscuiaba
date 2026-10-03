@@ -37,26 +37,30 @@ export function NowList({ items, now, className }: NowListProps) {
           return (
             <li
               key={a.id}
-              className="relative flex flex-col gap-1.5 border-b border-line-subtle py-3 [--card-radius:var(--r-0)]"
+              className="relative flex flex-col gap-1.5 border-b border-line-subtle py-2 [--card-radius:var(--r-0)]"
             >
               <p className="type-meta text-meta">
                 <time dateTime={a.publishedAt} className="font-bold tabular-nums text-strong">
                   {formatHour(a.publishedAt)}
                 </time>
                 <span aria-hidden="true"> · </span>
-                <span>{formatWhen(a.publishedAt, reference)}</span>
+                <span className="max-sm:hidden">{formatWhen(a.publishedAt, reference)}</span>
+                {/* Celular: a revisão vai na linha do horário (o horário já está dito). */}
+                {reviewText && <span className="sm:hidden">{reviewText}</span>}
               </p>
               <h3 className="type-headline-sm text-strong">
                 <Link href={a.href} className="card-link no-underline">
                   {a.title}
                 </Link>
               </h3>
-              {reviewText && <p className="type-meta text-meta">{reviewText}</p>}
+              {reviewText && <p className="type-meta text-meta max-sm:hidden">{reviewText}</p>}
             </li>
           );
         })}
       </ol>
-      <p className="pt-3 type-meta text-meta">{CARD.nextCycle(nextCycleMinutes(reference))}</p>
+      <p className="hidden pt-3 type-meta text-meta lg:block">
+        {CARD.nextCycle(nextCycleMinutes(reference))}
+      </p>
     </section>
   );
 }

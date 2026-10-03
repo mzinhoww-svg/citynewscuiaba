@@ -131,6 +131,8 @@ export {
 
 /* fontes em destaque (P2-T6, DESIGN.md §6) */
 export { DismissMenu, type DismissMenuProps } from "./editorial/DismissMenu";
+export { SectionTabs, type SectionTabsProps } from "./editorial/SectionTabs";
+export { Rail, type RailProps } from "./editorial/Rail";
 export { PopularSourcesRail, type PopularSourcesRailProps } from "./editorial/PopularSourcesRail";
 export {
   RecommendationReason,

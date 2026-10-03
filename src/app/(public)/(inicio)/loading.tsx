@@ -11,13 +11,23 @@ export default function Loading() {
       className="mx-auto flex w-full max-w-page flex-col gap-6 px-gutter py-10 motion-safe:animate-pulse"
     >
       <p className="sr-only">{HOME.loading}</p>
-      <div className="aspect-video w-full max-w-3xl bg-section" />
-      <div className="h-10 w-3/4 max-w-2xl bg-section" />
-      <div className="h-5 w-1/2 max-w-xl bg-section" />
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="h-32 bg-section" />
-        <div className="h-32 bg-section" />
-        <div className="h-32 bg-section" />
+      <div className="grid gap-8 lg:grid-cols-12 lg:gap-10">
+        <div className="flex flex-col gap-4 lg:col-span-8">
+          <div className="aspect-video w-full bg-section" />
+          <div className="h-10 w-3/4 bg-section" />
+          <div className="h-5 w-1/2 bg-section" />
+        </div>
+        <div className="flex flex-col gap-3 lg:col-span-4">
+          <div className="h-6 w-24 bg-section" />
+          <div className="h-16 bg-section" />
+          <div className="h-16 bg-section" />
+          <div className="h-16 bg-section" />
+        </div>
+      </div>
+      <div className="flex gap-3 overflow-hidden">
+        <div className="h-32 w-72 shrink-0 bg-section" />
+        <div className="h-32 w-72 shrink-0 bg-section" />
+        <div className="h-32 w-72 shrink-0 bg-section" />
       </div>
     </div>
   );

@@ -188,7 +188,7 @@ export function ArticleCard({
       {lead && article.aiSummary && (
         <section
           aria-labelledby={summaryId}
-          className="relative mt-1 flex flex-col gap-2 border-l-2 border-ai bg-ia-soft px-4 py-3"
+          className="relative mt-1 hidden flex-col gap-2 border-l-2 border-ai bg-ia-soft px-4 py-3 lg:flex"
         >
           <SummaryHeading id={summaryId} className="type-eyebrow text-ai">
             {CARD.summary20s}

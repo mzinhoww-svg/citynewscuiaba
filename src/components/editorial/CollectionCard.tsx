@@ -7,6 +7,8 @@ import { Icon } from "../ui/Icon";
 export interface CollectionCardProps {
   collection: CollectionView;
   as?: "h2" | "h3";
+  /** Home no celular: sem a descrição, para a página caber (outras telas mostram sempre). */
+  compactOnMobile?: boolean;
   className?: string;
 }
 
@@ -17,7 +19,12 @@ export interface CollectionCardProps {
  * <CollectionCard collection={c} />
  * ```
  */
-export function CollectionCard({ collection, as: Heading = "h3", className }: CollectionCardProps) {
+export function CollectionCard({
+  collection,
+  as: Heading = "h3",
+  compactOnMobile,
+  className,
+}: CollectionCardProps) {
   return (
     <article
       className={cx(
@@ -34,7 +41,9 @@ export function CollectionCard({ collection, as: Heading = "h3", className }: Co
           {collection.title}
         </Link>
       </Heading>
-      <p className="line-clamp-2 type-body text-body">{collection.description}</p>
+      <p className={cx("line-clamp-2 type-body text-body", compactOnMobile && "max-sm:hidden")}>
+        {collection.description}
+      </p>
       <p className="mt-auto type-meta text-meta">{CARD.collectionItems(collection.itemCount)}</p>
     </article>
   );

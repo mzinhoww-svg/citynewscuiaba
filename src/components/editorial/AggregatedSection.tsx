@@ -5,6 +5,7 @@ import { HOME } from "@/content/pt-BR/portal-home";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { AggregatedCard } from "./AggregatedCard";
+import { Rail } from "./Rail";
 
 export interface AggregatedSectionProps {
   items: AggregatedView[];
@@ -50,13 +51,11 @@ export function AggregatedSection({
           {HOME.aggregatedMore}
         </Link>
       </div>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <Rail label={HOME.aggregatedTitle} desktop="grid" bleed={false}>
         {items.map((item) => (
-          <li key={item.id} className="flex min-w-0">
-            <AggregatedCard item={item} surface="white" className="min-w-0 flex-1" />
-          </li>
+          <AggregatedCard key={item.id} item={item} surface="white" className="min-w-0 flex-1" />
         ))}
-      </ul>
+      </Rail>
     </section>
   );
 }

@@ -10,6 +10,8 @@ export interface TopicSummaryCardProps {
   topic: TopicView;
   as?: "h2" | "h3";
   now?: Date;
+  /** Home no celular: resumo em 2 linhas em vez de 3. */
+  compactOnMobile?: boolean;
   className?: string;
 }
 
@@ -25,6 +27,7 @@ export function TopicSummaryCard({
   topic,
   as: Heading = "h3",
   now,
+  compactOnMobile,
   className,
 }: TopicSummaryCardProps) {
   return (
@@ -40,7 +43,16 @@ export function TopicSummaryCard({
           {topic.title}
         </Link>
       </Heading>
-      {topic.summary && <p className="line-clamp-3 type-body text-body">{topic.summary}</p>}
+      {topic.summary && (
+        <p
+          className={cx(
+            "type-body text-body",
+            compactOnMobile ? "line-clamp-2 sm:line-clamp-3" : "line-clamp-3",
+          )}
+        >
+          {topic.summary}
+        </p>
+      )}
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1">
         <ConfidenceMeter level={topic.confidence.level} />
         <p className="type-meta text-meta">

@@ -173,7 +173,7 @@ describe("ArticleCard", () => {
     render(<ArticleCard variant="lead" article={baseArticle} as="h1" />);
     expect(screen.getByRole("heading", { level: 1, name: baseArticle.title })).toBeInTheDocument();
     expect(screen.getByText("Confiança alta")).toBeInTheDocument();
-    const summary = screen.getByRole("region", { name: "Resumo em 20 s" });
+    const summary = screen.getByRole("region", { name: "Resumo em poucos segundos" });
     expect(within(summary).getAllByRole("listitem")).toHaveLength(2);
   });
 
@@ -384,7 +384,10 @@ describe("demais cards", () => {
     render(<NowList items={items} now={new Date("2026-09-27T18:12:00Z")} />);
     const region = screen.getByRole("region", { name: "Agora" });
     expect(within(region).getAllByRole("listitem")).toHaveLength(6);
-    expect(within(region).getAllByText("Revisado por Marina Couto")).toHaveLength(6);
+    // Cada item traz a revisão uma vez por largura (linha do horário no celular, parágrafo acima).
+    for (const li of within(region).getAllByRole("listitem")) {
+      expect(within(li).getAllByText("Revisado por Marina Couto").length).toBeGreaterThanOrEqual(1);
+    }
     expect(within(region).getByText("Próximo ciclo em 18 min")).toBeInTheDocument();
   });
 
@@ -415,5 +418,56 @@ describe("SectionTile", () => {
     render(<SectionTile href="/cidade" name="Cidade" meta="3 matérias hoje" icon="house" />);
     expect(screen.getByRole("link", { name: "Cidade" })).toHaveAttribute("href", "/cidade");
     expect(screen.getByText("3 matérias hoje")).toBeInTheDocument();
+  });
+});
+
+describe("compactOnMobile (só a home)", () => {
+  it("sem a prop, descrição de coleção e de serviço não ganham classe de ocultação", () => {
+    render(
+      <>
+        <CollectionCard
+          collection={
+            {
+              id: "c",
+              title: "Guia",
+              description: "Descrição da coleção",
+              itemCount: 2,
+              href: "/colecoes/guia",
+            } as never
+          }
+        />
+        <ServiceTile href="/servicos" title="Vagas" description="Mutirão" icon="users" />
+      </>,
+    );
+    expect(screen.getByText("Descrição da coleção").className).not.toMatch(/hidden/);
+    expect(screen.getByText("Mutirão").className).not.toMatch(/hidden/);
+  });
+
+  it("com a prop, as descrições somem só no celular (max-sm)", () => {
+    render(
+      <>
+        <CollectionCard
+          compactOnMobile
+          collection={
+            {
+              id: "c",
+              title: "Guia",
+              description: "Descrição da coleção",
+              itemCount: 2,
+              href: "/colecoes/guia",
+            } as never
+          }
+        />
+        <ServiceTile
+          compactOnMobile
+          href="/servicos"
+          title="Vagas"
+          description="Mutirão"
+          icon="users"
+        />
+      </>,
+    );
+    expect(screen.getByText("Descrição da coleção").className).toMatch(/max-sm:hidden/);
+    expect(screen.getByText("Mutirão").className).toMatch(/max-sm:hidden/);
   });
 });
