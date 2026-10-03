@@ -21,7 +21,6 @@ const ROUTES = [
   "/entrar",
   "/perfil",
   "/sobre",
-  "/como-usamos-ia",
 ];
 
 for (const route of ROUTES) {

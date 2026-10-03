@@ -50,8 +50,6 @@ export const PUBLIC_ROUTES: string[] = [
   "/privacidade", // P22
   "/sobre", // P24
   "/principios-editoriais",
-  "/metodologia",
-  "/como-usamos-ia",
   "/correcoes",
   "/direito-de-resposta",
   "/termos",

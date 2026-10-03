@@ -50,15 +50,12 @@ test("assunto inexistente responde 404", async ({ page }) => {
   expect((await page.goto("/assunto/nao-existe"))!.status()).toBe(404);
 });
 
-test("lista de assuntos só oferece o filtro Corrigidos entre as situações", async ({ page }) => {
+test("lista de assuntos não oferece filtro de situação, nem Corrigidos (R34)", async ({ page }) => {
   await page.goto("/assuntos");
   await expect(page.getByRole("heading", { level: 1, name: "Assuntos" })).toBeVisible();
   await expect(page.locator("main article")).toHaveCount(3);
-  for (const name of ["Em apuração", "Confirmados", "Encerrados"])
+  for (const name of ["Em apuração", "Confirmados", "Corrigidos", "Encerrados"])
     await expect(page.getByRole("link", { name })).toHaveCount(0);
-  await page.getByRole("link", { name: "Corrigidos" }).click();
-  await expect(page).toHaveURL(/situacao=corrigidos/);
-  await expect(page.getByText("Nenhum assunto com esses filtros")).toBeVisible();
 });
 
 test("lista de assuntos vazia oferece ver todos e ignora filtro inválido", async ({ page }) => {

@@ -43,7 +43,6 @@ const ROUTES = [
   "/entrar",
   "/perfil",
   "/sobre",
-  "/como-usamos-ia",
   ARTICLE,
 ];
 const VIEWPORTS = [

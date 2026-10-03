@@ -1,4 +1,10 @@
-import { NEWS_WINDOW_HOURS, newsSitemapXml, sitemapIndexXml, urlsetXml } from "./sitemap";
+import {
+  NEWS_WINDOW_HOURS,
+  STATIC_PATHS,
+  newsSitemapXml,
+  sitemapIndexXml,
+  urlsetXml,
+} from "./sitemap";
 
 const base = "https://citynews.example";
 const now = new Date("2026-09-27T18:00:00Z");
@@ -53,4 +59,8 @@ it("índice aponta para os sitemaps filhos", () => {
   const xml = sitemapIndexXml(["/sitemap-news.xml", "/sitemap-topics.xml"], base);
   expect(xml).toContain("<sitemapindex");
   expect(xml).toContain("<loc>https://citynews.example/sitemap-news.xml</loc>");
+});
+
+it("o sitemap não lista as páginas ocultas do público (R34)", () => {
+  expect(STATIC_PATHS.filter((p) => /como-usamos-ia|metodologia/.test(p))).toEqual([]);
 });

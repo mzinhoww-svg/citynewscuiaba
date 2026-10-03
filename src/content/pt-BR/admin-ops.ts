@@ -224,10 +224,8 @@ export const ADMIN_OPS_TEXT = {
     principles: "Princípios e políticas",
     links: [
       { href: "/principios-editoriais", label: "Princípios editoriais" },
-      { href: "/como-usamos-ia", label: "Como usamos IA" },
       { href: "/correcoes", label: "Política de correções" },
       { href: "/direito-de-resposta", label: "Direito de resposta" },
-      { href: "/metodologia", label: "Metodologia de fontes e confiança" },
     ],
     queues: "Filas",
     queueLinks: [

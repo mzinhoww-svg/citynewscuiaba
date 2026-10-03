@@ -34,7 +34,6 @@ const PAGES = [
   "/explorar",
   "/pergunte",
   "/sobre",
-  "/metodologia",
   "/privacidade",
   ARTICLE,
   "/materia/defesa-civil-mantem-alerta-de-baixa-umidade",

@@ -126,7 +126,7 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 - Aparece após 3 leituras qualificadas na sessão, como painel lateral não modal: "Personalize suas fontes e receba uma experiência mais relevante." Ações "Escolher fontes agora" (abre seletor com 12 fontes: 6 locais, 3 estaduais, 3 temáticas), "Continuar sem personalizar", "Entrar ou criar conta".
 
 ### P24 · Institucionais · **Novas**
-- `/sobre`, `/principios-editoriais`, `/metodologia` (confiança, rótulos, regras de autonomia públicas em linguagem simples), `/como-usamos-ia`, `/correcoes` (lista pública de correções com data e link), `/direito-de-resposta` (formulário), `/anuncie`, `/contato`, `/termos`.
+- `/sobre`, `/principios-editoriais`, `/correcoes` (lista pública de correções com data e link), `/direito-de-resposta` (formulário), `/anuncie`, `/contato`, `/termos`.
 
 ### P25 · Erros e sistema · **Novas**
 - `404` ("A matéria pode ter sido movida. Busque pelo título ou volte ao início." + busca), `410` (despublicada, com motivo), `500` (mensagem e status), offline (`/offline.html`, spec 2026-09-28 §8.3: "Sem conexão" com as listas Páginas, Salvas e Lidas recentemente do próprio cache; CSS e textos gerados de `src/offline-page`), manutenção (modo leitura).
@@ -263,3 +263,5 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 ## F. Contagem
 
 Portal público 25 · Conta 6 · Estúdio 14 · Control Center 18 · Administração 15 · **Total 78 telas e componentes de tela**. As marcadas como **Nova** não têm artboard; a especificação acima é a referência de implementação, com o DESIGN.md.
+
+> R34: `/metodologia` e `/como-usamos-ia` saíram do público (404, sem link, fora do sitemap; abrem só com `CN_SHOW_LEGAL_PAGES=1`). O rótulo "Corrigido" também saiu das telas públicas; fica só no Estúdio.

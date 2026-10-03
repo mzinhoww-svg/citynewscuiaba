@@ -37,7 +37,6 @@ const PUBLIC: { name: string; path: string; full?: boolean }[] = [
   { name: "06-busca", path: "/busca?q=viaduto" },
   { name: "07-agenda", path: "/agenda" },
   { name: "08-explorar", path: "/explorar" },
-  { name: "09-como-usamos-ia", path: "/como-usamos-ia" },
   { name: "10-instalar-app", path: "/app" },
   { name: "11-alertas", path: "/alertas" },
   { name: "12-privacidade", path: "/privacidade" },

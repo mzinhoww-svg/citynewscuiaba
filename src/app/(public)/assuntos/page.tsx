@@ -25,8 +25,6 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
-/** Só "Corrigidos" é filtro público (R16); a URL antiga com outra situação ainda funciona. */
-const STATES: Array<keyof typeof TOPIC.listStates> = ["corrigido"];
 
 type Props = { searchParams: Promise<SearchParamsInput> };
 
@@ -43,16 +41,6 @@ function Filters({ f }: { f: TopicListQuery }) {
               {TOPIC.listAll}
             </Chip>
           </li>
-          {STATES.map((s) => (
-            <li key={s}>
-              <Chip
-                href={topicListHref(f, { state: f.state === s ? undefined : s })}
-                active={f.state === s}
-              >
-                {TOPIC.listStates[s]}
-              </Chip>
-            </li>
-          ))}
           <li>
             <Chip href={topicListHref(f, { week: !f.week })} active={f.week}>
               {TOPIC.listWeek}

@@ -29,9 +29,6 @@ export const TOPIC = {
   listMeta: "Assuntos · CityNews Cuiabá",
   listFilters: "Filtrar assuntos",
   listAll: "Todos",
-  listStates: {
-    corrigido: "Corrigidos",
-  },
   listWeek: "Da semana",
   listSection: "Editoria",
   listAllSections: "Todas as editorias",
