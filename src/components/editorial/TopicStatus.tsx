@@ -16,8 +16,8 @@ const LOOK: Record<TopicState, { classes: string; icon: IconName }> = {
 };
 
 /**
- * Selo de situação do assunto para o público: só "Corrigido" (spec 2026-10-03 R16). Os demais
- * estados (Em apuração, Confirmado, Encerrado) não renderizam nada; ficam no Estúdio.
+ * Selo de situação do assunto: hoje nenhum estado aparece para o público (R16, R34); "Corrigido",
+ * "Em apuração", "Confirmado" e "Encerrado" ficam só no Estúdio. Renderiza só se houver texto.
  *
  * ```tsx
  * <TopicStatus state="corrigido" />

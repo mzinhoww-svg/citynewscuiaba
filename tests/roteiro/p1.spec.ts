@@ -56,10 +56,12 @@ test("2 · manchete: resumo por IA com revisor, fontes e informar problema sem l
   await expect(page.getByText(/Resumo revisado por/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Fontes" })).toBeVisible();
   await shot(page, info, "04-materia-resumo-ia");
-  await page.getByRole("button", { name: "Informar problema" }).click();
+  await page.getByRole("button", { name: "Informar problema" }).first().click();
   await page.getByLabel("Informação errada").check();
   await page.getByRole("button", { name: "Enviar" }).click();
-  await expect(page.getByRole("status")).toContainText("Resposta da redação em até 24 h");
+  await expect(page.getByRole("dialog").getByRole("status")).toContainText(
+    "Resposta da redação em até 24 h",
+  );
   await shot(page, info, "05-informar-problema-enviado");
 });
 

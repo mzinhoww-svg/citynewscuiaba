@@ -15,7 +15,7 @@ export interface TopicSummaryCardProps {
 }
 
 /**
- * Assunto em destaque (P01, P06): situação "Corrigido" (quando houver), título, resumo e
+ * Assunto em destaque (P01, P06): título, resumo e
  * contagem de matérias e fontes. Não confundir com `TopicCard` (seguir tema, do kit).
  *
  * ```tsx

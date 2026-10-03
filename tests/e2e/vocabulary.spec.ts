@@ -6,10 +6,10 @@ import { forwardedFor } from "./own-ip";
  * tela pública diz que o conteúdo é revisado, gerado ou tratado por IA: nada de "normalizado",
  * "IA", "inteligência artificial", "resumo por IA", "publicado automaticamente", "gerado",
  * "revisado", "automático", "manipulado", "agente" nem "autonomia", e os selos de estado do assunto
- * "Em apuração", "Confirmado" e "Encerrado" ficam só no Estúdio ("Corrigido" permanece). Vale para o
+ * "Em apuração", "Confirmado", "Encerrado" e "Corrigido" ficam só no Estúdio (R34). Vale para o
  * texto visível, aria-label, alt, title, placeholder e para `<title>`, `<meta>` e JSON-LD.
  * O nível de confiança (CONF-T1, R13) também não aparece: fica só no Estúdio.
- * Exceção: páginas legais (/como-usamos-ia, /metodologia, termos, privacidade, princípios).
+ * Exceção: páginas legais (termos, privacidade, princípios).
  */
 const FORBIDDEN = new RegExp(
   [
@@ -65,13 +65,7 @@ const ROUTES = [
 ];
 
 /** Páginas legais: o vocabulário legal sobre o uso de IA fica como está. */
-const ALLOWLIST = new Set([
-  "/privacidade",
-  "/termos",
-  "/metodologia",
-  "/principios-editoriais",
-  "/como-usamos-ia",
-]);
+const ALLOWLIST = new Set(["/privacidade", "/termos", "/principios-editoriais"]);
 
 async function visibleStrings(page: Page): Promise<string[]> {
   const body = await page.innerText("body");
@@ -180,22 +174,7 @@ test("assunto: sem apuração, confiança, convergência nem placeholder, e sem 
   expect(html).toContain("Seguir");
 });
 
-test("metodologia descreve em texto simples, sem níveis de confiança (R13, R18)", async ({
-  page,
-}) => {
-  await page.goto("/metodologia");
-  const text = await page.innerText("body");
-  expect(text).not.toMatch(/confian[cç]a/i);
-  await expect(page.getByRole("heading", { level: 1, name: "Metodologia" })).toBeVisible();
-});
-
 test("a allowlist cobre só as páginas legais", () => {
-  expect([...ALLOWLIST].sort()).toEqual([
-    "/como-usamos-ia",
-    "/metodologia",
-    "/principios-editoriais",
-    "/privacidade",
-    "/termos",
-  ]);
+  expect([...ALLOWLIST].sort()).toEqual(["/principios-editoriais", "/privacidade", "/termos"]);
   for (const route of ROUTES) expect(ALLOWLIST.has(route)).toBe(false);
 });

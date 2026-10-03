@@ -418,7 +418,5 @@ export const CORRECTIONS_PAGE = {
 /** Links institucionais relacionados, no fim de cada página. */
 export const RELATED_LINKS = [
   { href: "/principios-editoriais", label: "Princípios editoriais" },
-  { href: "/metodologia", label: "Metodologia" },
-  { href: "/como-usamos-ia", label: "Como funciona o CityNews" },
   { href: "/correcoes", label: "Correções" },
 ] as const;

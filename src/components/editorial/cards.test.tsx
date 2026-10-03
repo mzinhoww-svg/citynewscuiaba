@@ -364,9 +364,9 @@ describe("demais cards", () => {
     expect(screen.getByText(/1 matéria · 4 fontes/)).toBeInTheDocument();
   });
 
-  it("TopicSummaryCard mantém só o selo Corrigido", () => {
+  it("TopicSummaryCard não mostra o selo Corrigido ao público (R34)", () => {
     render(<TopicSummaryCard topic={{ ...topic, state: "corrigido" }} now={now} />);
-    expect(screen.getByText("Corrigido")).toBeInTheDocument();
+    expect(screen.queryByText("Corrigido")).toBeNull();
   });
 
   it("CollectionCard é link com contagem de itens", () => {

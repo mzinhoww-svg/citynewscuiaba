@@ -56,8 +56,6 @@ test("correções públicas listam a do seed", async ({ page }) => {
 const PAGES = [
   ["/sobre", "Sobre o CityNews", true],
   ["/principios-editoriais", "Princípios editoriais", false],
-  ["/metodologia", "Metodologia", false],
-  ["/como-usamos-ia", "Como usamos IA", false],
   ["/correcoes", "Correções", false],
   ["/direito-de-resposta", "Direito de resposta", false],
   ["/privacidade", "Privacidade", true],
@@ -75,13 +73,20 @@ for (const [path, title, pending] of PAGES) {
   });
 }
 
-test("metodologia explica rótulos e regras em tabela", async ({ page }) => {
-  await page.goto("/metodologia");
-  await expect(page.getByText("RESUMO POR IA").first()).toBeVisible();
-  const table = page.getByRole("table", { name: /Regras de autonomia/ });
-  await expect(table.getByRole("rowheader", { name: "Segurança" })).toBeVisible();
-  await expect(table.getByRole("row", { name: /Política/ })).toContainText("Sempre revisado");
-});
+for (const path of ["/metodologia", "/como-usamos-ia"]) {
+  test(`${path} não é público: responde 404 e não aparece em links nem no sitemap (R34)`, async ({
+    page,
+    request,
+  }) => {
+    expect((await page.goto(path))!.status()).toBe(404);
+    await page.goto("/sobre");
+    await expect(page.locator(`a[href="${path}"]`)).toHaveCount(0);
+    await page.goto("/principios-editoriais");
+    await expect(page.locator(`a[href="${path}"]`)).toHaveCount(0);
+    const xml = await (await request.get("/sitemap-pages.xml")).text();
+    expect(xml).not.toContain(path);
+  });
+}
 
 test("direito de resposta sem login: erros por campo e envio", async ({ page }) => {
   await ownIp(page);

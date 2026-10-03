@@ -119,12 +119,9 @@ for (const [name, mod] of Object.entries(MODULES)) {
   });
 }
 
-it("os links para a página legal de uso de IA se chamam 'Como funciona o CityNews'", () => {
-  const links = [...nav.FOOTER_NAV, ...institutional.RELATED_LINKS].filter(
-    (l) => l.href === "/como-usamos-ia",
-  );
-  expect(links.length).toBe(2);
-  for (const l of links) expect(l.label).toBe("Como funciona o CityNews");
+it("as páginas /como-usamos-ia e /metodologia não têm link público (R34)", () => {
+  const links = [...nav.FOOTER_NAV, ...institutional.RELATED_LINKS];
+  expect(links.filter((l) => /como-usamos-ia|metodologia/.test(l.href))).toEqual([]);
 });
 
 it("a página de assunto não tem textos de apuração, confiança nem placeholder vazio", () => {
@@ -134,7 +131,7 @@ it("a página de assunto não tem textos de apuração, confiança nem placehold
   expect(found).toEqual([]);
 });
 
-it("o único selo de estado do assunto que o público vê é 'Corrigido' (R16)", () => {
-  expect(Object.keys(portalCard.TOPIC_STATE_TEXT)).toEqual(["corrigido"]);
-  expect(portalCard.TOPIC_STATE_TEXT.corrigido).toBe("Corrigido");
+it("nenhum selo de estado do assunto, nem 'Corrigido', aparece para o público (R34)", () => {
+  expect(Object.keys(portalCard.TOPIC_STATE_TEXT)).toEqual([]);
+  expect(JSON.stringify(portalTopic.TOPIC)).not.toMatch(/Corrigido/);
 });

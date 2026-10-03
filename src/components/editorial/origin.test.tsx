@@ -40,13 +40,8 @@ describe("OriginLabel", () => {
 });
 
 describe("TopicStatus", () => {
-  it("corrigido mostra o selo Corrigido (transparência de correção)", () => {
-    render(<TopicStatus state="corrigido" />);
-    expect(screen.getByText("Corrigido")).toBeInTheDocument();
-  });
-
-  it.each(["em_apuracao", "confirmado", "encerrado"] as const)(
-    "%s não aparece para o público (R16)",
+  it.each(["em_apuracao", "confirmado", "corrigido", "encerrado"] as const)(
+    "%s não aparece para o público (R16, R34)",
     (state) => {
       const { container } = render(<TopicStatus state={state} />);
       expect(container).toBeEmptyDOMElement();

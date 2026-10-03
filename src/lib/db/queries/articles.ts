@@ -1,4 +1,5 @@
 import "server-only";
+import { creditName, type CreditSource } from "@/lib/media/credit";
 import { mediaHref } from "@/lib/media/serve";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
@@ -140,7 +141,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       ? db
           .from("article_media")
           .select(
-            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_name, license, credit, status)",
+            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_id, source_name, license, credit, status)",
           )
           .in("article_id", ids)
           .then(many)
@@ -162,6 +163,24 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
     sourceSlugs.set(l.article_id, set);
   }
 
+  // Crédito da foto de terceiros: nome do veículo (pequena tabela pública, só quando há reprodução).
+  const reproductions = media.some((m) => m.media_assets?.kind === "reproduction");
+  const creditSources: CreditSource[] = reproductions
+    ? await db
+        .from("public_sources")
+        .select("id, name, base_url")
+        .then(many)
+        .then((rows) =>
+          rows.flatMap((s) =>
+            s.id && s.name && s.base_url ? [{ id: s.id, name: s.name, baseUrl: s.base_url }] : [],
+          ),
+        )
+        .then(
+          (v) => v,
+          () => [],
+        )
+    : [];
+
   const images = new Map<string, ArticleImage>();
   const inlineImages = new Map<string, ArticleInlineImage>();
   for (const m of media) {
@@ -180,7 +199,17 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
       kind,
       credit:
         kind === "reproduction"
-          ? (hostOf(asset.origin_url) ?? asset.credit ?? undefined)
+          ? (creditName(
+              {
+                sourceName: asset.source_name,
+                sourceId: asset.source_id,
+                originUrl: asset.origin_url,
+                pageUrl: asset.page_url,
+              },
+              creditSources,
+            ) ??
+            asset.credit ??
+            undefined)
           : kind === "licensed"
             ? asset.license
             : (asset.credit ?? undefined),
@@ -188,6 +217,7 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
         kind === "reproduction" &&
         asset.credit &&
         asset.credit !== hostOf(asset.origin_url) &&
+        asset.credit !== hostOf(asset.page_url) &&
         asset.credit !== asset.source_name
           ? asset.credit
           : undefined,

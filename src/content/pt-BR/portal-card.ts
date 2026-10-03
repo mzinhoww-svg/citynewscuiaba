@@ -11,12 +11,10 @@ export const BYLINE = {
 } as const;
 
 /**
- * Selos de estado do assunto que o público vê (R16): só "Corrigido", por transparência de
- * correção. "Em apuração", "Confirmado" e "Encerrado" ficam no Estúdio.
+ * Selos de estado do assunto que o público vê (R16, R34): nenhum. "Em apuração", "Confirmado",
+ * "Corrigido" e "Encerrado" ficam só no Estúdio.
  */
-export const TOPIC_STATE_TEXT: Partial<Record<TopicState, string>> = {
-  corrigido: "Corrigido",
-};
+export const TOPIC_STATE_TEXT: Partial<Record<TopicState, string>> = {};
 
 export const MADE_HOW = {
   title: "De onde veio",

@@ -27,7 +27,7 @@ export function ImageCaption({
   return (
     <Tag
       className={cx(
-        "relative flex flex-wrap items-center gap-x-3 gap-y-1 type-meta text-meta",
+        "relative flex flex-wrap items-center gap-x-3 gap-y-0 type-meta text-meta",
         className,
       )}
     >
@@ -40,7 +40,7 @@ export function ImageCaption({
           href={image.originUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex min-h-tap items-center underline"
+          className="hit-area inline-flex items-center underline"
         >
           {CARD.viewOriginal}
           <VisuallyHidden> ({CARD.newTab})</VisuallyHidden>

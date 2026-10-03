@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { DocPage } from "@/components";
 import { AI_USE as DOC } from "@/content/pt-BR/institutional";
@@ -12,5 +13,7 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default function Page() {
+  /* R34: oculta do público; abre só com CN_SHOW_LEGAL_PAGES=1 (código mantido). */
+  if (process.env.CN_SHOW_LEGAL_PAGES !== "1") notFound();
   return <DocPage title={DOC.title} intro={DOC.intro} sections={DOC.sections} path={DOC.path} />;
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { DocPage, OriginLabel } from "@/components";
 import { METHOD } from "@/content/pt-BR/institutional";
@@ -17,6 +18,8 @@ export const metadata: Metadata = pageMetadata({
 const pct = (n: number | null) => (n === null ? METHOD.none : n.toFixed(2).replace(".", ","));
 
 export default function MethodologyPage() {
+  /* R34: oculta do público; abre só com CN_SHOW_LEGAL_PAGES=1 (código mantido). */
+  if (process.env.CN_SHOW_LEGAL_PAGES !== "1") notFound();
   const kinds = Object.keys(LABEL_TEXT) as LabelKind[];
   const rules = Object.entries(DEFAULT_RULES.categories);
   return (

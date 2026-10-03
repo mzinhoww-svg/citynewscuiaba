@@ -128,6 +128,7 @@ export { SourceAvatar, type SourceAvatarProps } from "./editorial/SourceAvatar";
 export { BrokenLinkReport, type BrokenLinkReportProps } from "./editorial/BrokenLinkReport";
 export { SourceFollow, type SourceFollowProps } from "./editorial/SourceFollow";
 export { SaveButton, type SaveButtonProps } from "./editorial/SaveButton";
+export { ArticleActions, type ArticleActionsProps } from "./editorial/ArticleActions";
 export { FollowTopicButton, type FollowTopicButtonProps } from "./editorial/FollowTopicButton";
 export { AlertWatcher } from "./editorial/AlertWatcher";
 export {

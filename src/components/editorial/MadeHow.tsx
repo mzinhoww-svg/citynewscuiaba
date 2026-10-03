@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import type { ImageKind, PublicLabelInput } from "@/lib/labels";
 import { PUBLIC_EXPLAIN } from "@/content/pt-BR/labels";
 import { MADE_HOW } from "@/content/pt-BR/portal-card";
@@ -12,6 +12,8 @@ export interface MadeHowProps {
   versionsHref: string;
   /** Link para a página legal de metodologia; sem ele, o painel não a menciona (R18). */
   methodologyHref?: string;
+  /** Ação "Informar problema" (link), já ligada ao formulário. */
+  report?: ReactNode;
   /** Nível do título (padrão h2). */
   as?: "h2" | "h3";
   /** Recolhível: fechado no celular, aberto de 1024 px em diante. */
@@ -56,6 +58,7 @@ export function MadeHow({
   article,
   versionsHref,
   methodologyHref,
+  report,
   as: Heading = "h2",
   collapsible = false,
   className,
@@ -98,6 +101,7 @@ export function MadeHow({
             {MADE_HOW.methodology}
           </Link>
         )}
+        {report}
       </div>
     </>
   );

@@ -1,0 +1,201 @@
+<title>Campos de banner CityNews</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Conceito: pranchas de wireframe em papel neutro; campos de banner em hachura laranja para destacar o que é novo. */
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --fg:#14213d; --muted:#5b6475; --line:#cfd4dd;
+  --accent:#b5381a; --ad-bg:#fbe9e2; --ad-line:#b5381a; --ink-block:#0c1220; --ink-fg:#e8ecf4;
+  --serif:"Source Serif 4",Georgia,serif; --sans:"Public Sans",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1220; --panel:#151c2e; --fg:#e8ecf4; --muted:#9aa4b8; --line:#2a3550;
+  --accent:#ff8a6b; --ad-bg:#3a1f18; --ad-line:#ff8a6b; --ink-block:#05080f; --ink-fg:#e8ecf4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1220; --panel:#151c2e; --fg:#e8ecf4; --muted:#9aa4b8; --line:#2a3550;
+  --accent:#ff8a6b; --ad-bg:#3a1f18; --ad-line:#ff8a6b; --ink-block:#05080f; --ink-fg:#e8ecf4; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);margin:0;padding-inline:16px;padding-block:24px 48px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:32px}
+h1{font-family:var(--serif);font-size:2rem;margin:0;text-wrap:balance}
+h2{font-family:var(--serif);font-size:1.35rem;margin:0 0 4px;text-wrap:balance}
+p{margin:0;max-width:68ch}
+.lede{color:var(--muted)}
+.board{background:var(--panel);border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:14px}
+.cap{color:var(--muted);font-size:.9rem}
+.frame{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg);min-width:0}
+.bar{height:26px;background:var(--line);opacity:.7}
+.row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.blk{border:1px dashed var(--line);padding:10px;font-size:.8rem;color:var(--muted);min-height:54px}
+.blk.hero{min-height:140px}
+.ad{background:repeating-linear-gradient(45deg,var(--ad-bg),var(--ad-bg) 8px,transparent 8px,transparent 16px);border:2px solid var(--ad-line);color:var(--accent);font-weight:700;font-size:.78rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6px;letter-spacing:.04em}
+.ad small{font-weight:500;color:var(--muted);letter-spacing:0}
+.ad.top{min-height:84px}.ad.rail-a{min-height:110px}.ad.rail-b{min-height:230px}.ad.mid{min-height:64px}
+.ad.art1{min-height:56px}.ad.art2{min-height:96px}
+.hub{background:var(--ink-block);color:var(--ink-fg);padding:14px;display:flex;flex-direction:column;gap:10px}
+.hub .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.hub .card{background:#1b2540;min-height:72px;padding:8px;font-size:.75rem}
+.tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.hub .tag{color:#9aa4b8}
+.phones{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.phone{border:2px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:8px;background:var(--bg);min-width:0}
+.sticky{position:static;border-top:2px solid var(--ad-line)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.88rem;font-variant-numeric:tabular-nums}
+th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.opt{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.opt b{font-family:var(--serif)}
+.rec{color:var(--accent);font-weight:700;font-size:.8rem}
+.admin{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.field{border:1px solid var(--line);padding:8px;font-size:.82rem;display:flex;justify-content:space-between;gap:8px}
+@media (max-width:640px){.row,.admin{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Campos de banner do CityNews</h1>
+    <p class="lede">Pranchas para analisar posições e tamanhos. A hachura laranja é um campo de banner; o resto é a página atual. Referência: Olhar Direto (faixa larga no topo, banner lateral, faixas entre blocos e hub de vídeos de parceiros).</p>
+  </header>
+
+  <section class="board">
+    <div><h2>1. Home no desktop</h2><p class="cap">Cinco campos, sempre com o rótulo "Publicidade". A manchete, o "Agora" e as editorias seguem como hoje.</p></div>
+    <div class="frame">
+      <div class="bar"></div>
+      <div class="blk" style="min-height:30px">Ticker "Última hora"</div>
+      <div class="ad top">TOP · 970×250<small>Publicidade</small></div>
+      <div class="row">
+        <div class="col">
+          <div class="blk hero">Manchete com foto (sempre com imagem)</div>
+          <div class="blk">Assuntos em destaque (sem repetir a manchete)</div>
+          <div class="ad mid">MID 1 · 970×120<small>Publicidade</small></div>
+          <div class="blk">Economia · Cultura · Esportes</div>
+        </div>
+        <div class="col">
+          <div class="ad rail-a">RAIL-A · 300×250<small>Publicidade</small></div>
+          <div class="blk" style="min-height:120px">Agora</div>
+          <div class="ad rail-b">RAIL-B · 300×600<small>fixo ao rolar</small></div>
+        </div>
+      </div>
+      <div class="hub">
+        <span class="tag">Conteúdo de parceiro</span>
+        <b>Estúdio CityNews</b>
+        <div class="cards"><div class="card">Vídeo / entrevista 1</div><div class="card">Vídeo / entrevista 2</div></div>
+      </div>
+      <div class="ad mid">MID 2 · 970×120<small>Publicidade</small></div>
+      <div class="blk">Mais lidas em Cuiabá</div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>2. Página da matéria</h2><p class="cap">Dois campos no texto e um na lateral. Nenhum em política, urgência, segurança ou saúde sensível.</p></div>
+    <div class="frame">
+      <div class="row">
+        <div class="col">
+          <div class="blk">Título, linha fina, foto com legenda colada</div>
+          <div class="blk" style="min-height:90px">Parágrafos 1 a 4</div>
+          <div class="ad art1">ART-1 · 728×90<small>Publicidade, após o 4º parágrafo</small></div>
+          <div class="blk" style="min-height:90px">Parágrafos 5 em diante</div>
+          <div class="ad art2">ART-2 · 728×250<small>Publicidade, antes de Relacionadas</small></div>
+          <div class="blk">Relacionadas</div>
+        </div>
+        <div class="col">
+          <div class="ad rail-a">RAIL-A · 300×250<small>Publicidade</small></div>
+          <div class="blk" style="min-height:120px">Agora</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>3. Celular</h2><p class="cap">Lateral some. Sobe uma faixa por tela, e o rodapé fixo é dispensável e só aparece depois de 40% de rolagem.</p></div>
+    <div class="phones">
+      <div class="phone"><span class="tag">Home</span><div class="blk" style="min-height:28px">Ticker</div><div class="ad top" style="min-height:60px">TOP · 320×100<small>Publicidade</small></div><div class="blk">Manchete</div><div class="blk">Assuntos</div><div class="ad mid" style="min-height:60px">MID · 320×100</div><div class="blk">Editorias</div></div>
+      <div class="phone"><span class="tag">Matéria</span><div class="blk">Título e foto</div><div class="blk">Parágrafos 1 a 4</div><div class="ad art1" style="min-height:60px">ART-1 · 320×100</div><div class="blk">Parágrafos 5+</div><div class="ad art2" style="min-height:80px">ART-2 · 300×250</div></div>
+      <div class="phone"><span class="tag">Rodapé fixo</span><div class="blk" style="min-height:160px">Conteúdo rolando</div><div class="ad sticky" style="min-height:40px">STICKY · 320×50<small>Publicidade · dispensar ✕</small></div></div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>4. Catálogo de formatos</h2><p class="cap">Tamanhos padrão de mercado, para o anunciante enviar uma peça por campo.</p></div>
+    <div class="scroll"><table>
+      <thead><tr><th>Campo</th><th>Desktop</th><th>Celular</th><th>Onde</th><th>Máx. por tela</th></tr></thead>
+      <tbody>
+        <tr><td>TOP</td><td>970×250</td><td>320×100</td><td>Abaixo do ticker</td><td>1</td></tr>
+        <tr><td>RAIL-A</td><td>300×250</td><td>vira MID</td><td>Lateral, topo</td><td>1</td></tr>
+        <tr><td>RAIL-B</td><td>300×600</td><td>some</td><td>Lateral, fixo</td><td>1</td></tr>
+        <tr><td>MID</td><td>970×120</td><td>320×100</td><td>Entre blocos da home</td><td>2</td></tr>
+        <tr><td>ART-1 / ART-2</td><td>728×90 / 728×250</td><td>320×100 / 300×250</td><td>Dentro da matéria</td><td>2</td></tr>
+        <tr><td>STICKY</td><td>não tem</td><td>320×50</td><td>Rodapé, dispensável</td><td>1</td></tr>
+        <tr><td>HUB</td><td>2 a 4 cards</td><td>carrossel</td><td>Home, abaixo das editorias</td><td>1</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="board">
+    <div><h2>5. Três jeitos de começar</h2><p class="cap">Escolha a intensidade. O padrão que recomendo é B.</p></div>
+    <div class="opts">
+      <div class="opt"><b>A · Enxuto</b><p>TOP, RAIL-A e ART-1. Poucos campos, páginas limpas, receita menor.</p></div>
+      <div class="opt"><b>B · Equilibrado</b><span class="rec">Recomendado</span><p>TOP, RAIL-A, RAIL-B, MID 1, ART-1, ART-2 e STICKY no celular. O HUB entra quando houver parceiro.</p></div>
+      <div class="opt"><b>C · Portal cheio</b><p>Todos os campos, MID 2 e HUB fixo. Mais receita, mais risco para a leitura e para o desempenho.</p></div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>6. Estúdio · Painel de Publicidade</h2><p class="cap">Visão geral dos campos, alertas e o interruptor geral. Abas: Painel, Campanhas, Peças, Calendário, Relatórios, House ads, Auditoria.</p></div>
+    <div class="frame">
+      <div class="tag">Painel · Campanhas · Peças · Calendário · Relatórios · House ads · Auditoria</div>
+      <div class="field"><span>Interruptor geral</span><b>Anúncios no ar · Pausar tudo (confirma 2 vezes)</b></div>
+      <div class="opts">
+        <div class="field"><span>TOP</span><b>Cheio · Ginco</b></div>
+        <div class="field"><span>RAIL-A</span><b>Parcial · 2 peças</b></div>
+        <div class="field"><span>RAIL-B</span><b>Vazio · house ad</b></div>
+        <div class="field"><span>MID 1</span><b>Cheio · Unimed</b></div>
+        <div class="field"><span>ART-1</span><b>Vazio há 26 h</b></div>
+        <div class="field"><span>STICKY</span><b>Cheio · Sicredi</b></div>
+      </div>
+      <div class="blk"><b>Alertas</b> · Campanha "Ginco" termina em 3 dias · ART-1 sem peça há 26 h · Peça "Unimed 300×250" com CTR 60% abaixo da média</div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>7. Estúdio · Campanha e peças</h2><p class="cap">Um formulário só, com validação na hora e prévia por dispositivo.</p></div>
+    <div class="frame">
+      <div class="admin">
+        <div class="col">
+          <div class="field"><span>Anunciante</span><b>Ginco Incorporadora</b></div>
+          <div class="field"><span>Campos</span><b>TOP, RAIL-A, MID 1</b></div>
+          <div class="field"><span>Período</span><b>05/10 a 31/10</b></div>
+          <div class="field"><span>Dias e horários</span><b>Todos · 6h às 23h</b></div>
+          <div class="field"><span>Editorias e bairros</span><b>Todas, menos Política · Cuiabá</b></div>
+          <div class="field"><span>Peso e limite diário</span><b>2 de 5 · 20 mil impressões</b></div>
+          <div class="field"><span>Link com UTM</span><b>https://ginco.com.br/irreplicavel</b></div>
+        </div>
+        <div class="col">
+          <div class="ad top" style="min-height:110px">Arraste a peça aqui<small>PNG, JPG, WebP · 970×250 · até 200 KB · texto alternativo obrigatório</small></div>
+          <div class="field"><span>Checagem automática</span><b>Tamanho ok · alt ok · link ok · editoria ok</b></div>
+          <div class="field"><span>Prévia</span><b>Desktop · Celular · Claro · Escuro · Ver no site</b></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="board">
+    <div><h2>8. Estúdio · Calendário e relatórios</h2><p class="cap">Linha do tempo por campo, para ver buracos e conflitos; relatório simples por campanha.</p></div>
+    <div class="frame">
+      <div class="scroll"><table>
+        <thead><tr><th>Campo</th><th>S1 05/10</th><th>S2 12/10</th><th>S3 19/10</th><th>S4 26/10</th></tr></thead>
+        <tbody>
+          <tr><td>TOP</td><td>Ginco</td><td>Ginco</td><td>Ginco</td><td>Ginco</td></tr>
+          <tr><td>RAIL-A</td><td>Ginco</td><td>Ginco + Unimed</td><td>Unimed</td><td>buraco · house</td></tr>
+          <tr><td>RAIL-B</td><td>house</td><td>house</td><td>Sicredi</td><td>Sicredi</td></tr>
+          <tr><td>ART-1</td><td>buraco</td><td>buraco</td><td>Unimed</td><td>Unimed</td></tr>
+        </tbody></table></div>
+      <div class="opts">
+        <div class="field"><span>Impressões</span><b>42.100</b></div>
+        <div class="field"><span>Cliques</span><b>318</b></div>
+        <div class="field"><span>CTR</span><b>0,75%</b></div>
+        <div class="field"><span>Exportar</span><b>CSV · link do anunciante</b></div>
+      </div>
+    </div>
+  </section>
+</div>
