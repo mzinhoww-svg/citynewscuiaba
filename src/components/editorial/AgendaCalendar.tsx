@@ -23,6 +23,10 @@ export interface AgendaCalendarProps {
   nextHref: string;
   /** Hoje (AAAA-MM-DD), destacado com borda. */
   today?: string;
+  /** Mini-calendário lateral (desktop): células baixas, só a contagem em número. */
+  compact?: boolean;
+  /** Nome da região (padrão: o título do mês). */
+  label?: string;
   className?: string;
 }
 
@@ -41,6 +45,8 @@ export function AgendaCalendar({
   prevHref,
   nextHref,
   today,
+  compact = false,
+  label,
   className,
 }: AgendaCalendarProps) {
   const [y, m] = month.split("-").map(Number);
@@ -58,12 +64,22 @@ export function AgendaCalendar({
     "inline-flex size-tap items-center justify-center rounded-pill border border-line-control bg-card-white text-strong hover:bg-section";
 
   return (
-    <section aria-labelledby="calendario-titulo" className={cx("flex flex-col gap-4", className)}>
+    <section
+      aria-labelledby={compact ? undefined : "calendario-titulo"}
+      aria-label={compact ? label : undefined}
+      className={cx("flex flex-col", compact ? "gap-2" : "gap-4", className)}
+    >
       <div className="flex items-center justify-between gap-4">
         <Link href={prevHref} aria-label={AGENDA.prevMonth} className={navClass}>
           <Icon name="chevron-left" size={20} />
         </Link>
-        <h2 id="calendario-titulo" className="type-section text-strong first-letter:uppercase">
+        <h2
+          id={compact ? undefined : "calendario-titulo"}
+          className={cx(
+            "text-strong first-letter:uppercase",
+            compact ? "type-label text-16" : "type-section",
+          )}
+        >
           {title}
         </h2>
         <Link href={nextHref} aria-label={AGENDA.nextMonth} className={navClass}>
@@ -97,7 +113,9 @@ export function AgendaCalendar({
                   <td
                     key={i}
                     className={cx(
-                      "h-16 border border-line-subtle p-0 align-top sm:h-20",
+                      compact
+                        ? "h-11 border border-line-subtle p-0 align-top"
+                        : "h-16 border border-line-subtle p-0 align-top sm:h-20",
                       info ? "bg-cerrado-soft" : "bg-card-white",
                     )}
                   >
@@ -112,8 +130,10 @@ export function AgendaCalendar({
                       >
                         <span className="text-14 font-bold tabular-nums">{day}</span>
                         <span className="text-12 font-semibold text-service tabular-nums">
-                          <span className="sm:hidden">{info.count}</span>
-                          <span className="hidden sm:inline">{AGENDA.dayEvents(info.count)}</span>
+                          <span className={compact ? undefined : "sm:hidden"}>{info.count}</span>
+                          {!compact && (
+                            <span className="hidden sm:inline">{AGENDA.dayEvents(info.count)}</span>
+                          )}
                         </span>
                       </Link>
                     ) : (

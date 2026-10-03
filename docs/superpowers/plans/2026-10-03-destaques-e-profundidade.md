@@ -162,6 +162,67 @@
 - [ ] **Step 4: Rodar** vitest, integração, `pnpm typecheck`.
 - [ ] **Step 5: Commit** `feat(pipeline): aprofundar matérias curtas publicadas [TXT-T3]`.
 
+### Task LAB-T1: Varrer rótulos de revisão, geração e IA do público
+
+**Files:**
+- Modify: `src/lib/labels/index.ts` (`publicLabels` deixa de devolver rótulo de revisão), `src/content/pt-BR/{labels,portal-card,portal-topic,ask,institutional,newsletter,notifications}.ts`, `src/components/editorial/{ArticleByline,MadeHow,OriginNotes,ArticleCard,SummaryBox,AggregatedCard}.tsx`, `src/app/(public)/materia/[slug]/page.tsx`, metadados (`generateMetadata`, JSON-LD), RSS (`src/app/**/rss*`), e-mails (`src/lib/email/*`), push (`src/lib/push/*`), cartões de compartilhamento
+- Test: `tests/e2e/vocabulary.spec.ts`, `src/lib/labels/index.test.ts`, `src/components/editorial/*.test.tsx`
+
+**Interfaces:**
+- Produces: `publicLabels(article)` devolve só `{ origin: "Feito a partir de n fontes" | null; plaque: "ORIGINAL CITYNEWS" | "AGREGADO · fonte" | null; sponsored: boolean; photoCredit: string | null }`; `MadeHow` vira "De onde veio" (fontes, imagens, histórico de versões, link para metodologia só se a página legal estiver ativa).
+
+- [ ] **Step 1: Varredura e testes (vermelho).** Rodar `rg -i "revisad|gerad|automátic|automatic|inteligência|\bIA\b|agente|manipulad|autonomia" src/content src/components src/app/(public) src/lib/{labels,email,push}` e listar cada ocorrência pública num arquivo `.superpowers/sdd/2026-10-03-destaques/lab-sweep.md` (arquivo:linha, texto, destino: remover ou manter por ser Estúdio/legal). Testes: `vocabulary.spec.ts` com a lista de proibidos do R16 em home, editoria, matéria, assunto, busca, explorar, agenda, fontes, panorama, newsletter, entrar, perfil, resposta do Pergunte e nos `<title>`, `<meta>` e JSON-LD de matéria e home; unit de `publicLabels`.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec playwright test tests/e2e/vocabulary.spec.ts --project=desktop` e `pnpm exec vitest run src/lib/labels`.
+- [ ] **Step 3: Implementar** remoções e renomeações; o texto "Resumo em poucos segundos" fica sem rodapé de revisão; Estúdio e Control Center intocados (testes que os cobrem continuam).
+- [ ] **Step 4: Rodar** vitest `src/components src/lib`, e2e `vocabulary`, `article`, `home`, `newsletter`, `ask`, `seo` em desktop e mobile, axe, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `fix(ui): nenhum rótulo público de revisão, geração ou IA [LAB-T1]`.
+
+### Task CONF-T1: Tirar a confiança da tela pública
+
+**Files:**
+- Modify: `src/components/editorial/ArticleCard.tsx:194`, `TopicSummaryCard.tsx:57`, `src/app/(public)/materia/[slug]/page.tsx:322`, `src/app/(public)/assunto/[slug]/page.tsx:67,168-174`, `src/app/(public)/metodologia/page.tsx:27-31,103-108`, `src/components/ai/AiAnswer.tsx:63,68-69`, `src/content/pt-BR/{portal-card,portal-topic,institutional,ask}.ts`, `src/components/index.ts` (`ConfidenceMeter` fica só para o Estúdio: mover para `src/components/studio/`)
+- Test: `tests/e2e/vocabulary.spec.ts`, `src/components/editorial/*.test.tsx`
+
+**Interfaces:**
+- Produces: nenhum componente público exibe o nível; `ConfidenceMeter` passa a viver em `src/components/studio/ConfidenceMeter.tsx` (mesma API `{ level }`); `/metodologia` descreve em texto simples como as matérias são feitas, sem níveis.
+
+- [ ] **Step 1: Testes (vermelho):** `vocabulary.spec.ts` ganha "confiança" e "confianca" na lista de termos proibidos nas rotas públicas (home, editoria, matéria, assunto, metodologia, pergunte com resposta); testes de `ArticleCard` lead, `TopicSummaryCard` e `AiAnswer` afirmam que não existe `role="img"` de confiança nem o texto "Confiança".
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/components/editorial src/components/ai` e `pnpm exec playwright test tests/e2e/vocabulary.spec.ts --project=desktop`.
+- [ ] **Step 3: Implementar** a remoção e a mudança do componente; ajustar importações do Estúdio.
+- [ ] **Step 4: Rodar** vitest `src/components`, e2e `vocabulary`, `home`, `article`, `topic`, `ask` e `a11y` em desktop e mobile, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `fix(ui): confiança sai da tela pública [CONF-T1]`.
+
+### Task CONF-T2: Painel "Por que esta verificação" no Estúdio
+
+**Files:**
+- Modify: `src/lib/confidence/index.ts` (`explainConfidence`), `src/components/studio/SourcesEditor.tsx:106-115`, `src/app/estudio/materias/[id]/page.tsx:121,249-259`, `src/app/estudio/fila/[id]/page.tsx:97`, `src/content/pt-BR/studio.ts`
+- Create: `src/components/studio/ConfidenceExplainer.tsx`, `ConfidenceExplainer.test.tsx`
+- Test: `src/lib/confidence/index.test.ts`, `tests/e2e/studio-confidence.spec.ts`
+
+**Interfaces:**
+- Produces: `explainConfidence(input: ConfidenceInput, rule: { minSources: number; requirePrimary: boolean; minScore: number | null }): { level; score; factors: { key: "sources"|"primary"|"conflict"|"freshness"; label: string; weight: number; earned: number }[]; reasons: string[]; checks: { key: "min_sources"|"primary"|"min_score"|"conflict"; ok: boolean; need: string; have: string }[]; suggestions: string[] }`; `computeConfidence` não muda.
+
+- [ ] **Step 1: Testes (vermelho):** 1 fonte sem primária fresca: score 0,40 (0,10+0+0,25+0,15), nível baixa, `suggestions` inclui "Confirmar uma fonte primária" e "Esperar uma segunda fonte"; 2 fontes + 1 primária fresca: 0,80 alta; conflito central: baixa e `checks.conflict.ok = false`; soma de `earned` = score; `checks` comparam com a regra da editoria. Componente: mostra cada fator com barra e texto (sem depender só de cor), lista de cumprimento e sugestões; e2e: o editor vê o painel na matéria e na revisão da fila.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/lib/confidence src/components/studio/ConfidenceExplainer.test.tsx`.
+- [ ] **Step 3: Implementar** `explainConfidence` e o painel dentro do `SourcesEditor` (recalcula ao vivo ao mudar papéis).
+- [ ] **Step 4: Rodar** vitest `src/lib/confidence`, `src/components/studio`, e2e e axe do Estúdio, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `feat(estudio): painel que explica a verificação da matéria [CONF-T2]`.
+
+### Task CONF-T3: Revisão do padrão de confiável
+
+**Files:**
+- Modify: `src/lib/confidence/index.ts` (`levelFromScore`), `src/lib/pipeline/steps/verify.ts:124-159` (fontes independentes por veículo), `src/lib/media/fetch-image.ts` (reutilizar `registrableDomain`, mover para `src/lib/url/registrable-domain.ts`)
+- Test: `src/lib/confidence/index.test.ts`, `src/lib/pipeline/steps/verify.test.ts`, `src/lib/rules/rules.test.ts` (garantir que `decidePublication` não mudou)
+
+**Interfaces:**
+- Produces: `levelFromScore(score: number, centralConflict: boolean): "alta"|"média"|"baixa"` (alta ≥ 0,80, média ≥ 0,55, baixa < 0,55; conflito → baixa); `countIndependentOutlets(sources: { id: string; baseUrl: string }[]): number` (por domínio registrável); `computeConfidence` usa os dois sem mudar a fórmula do score.
+
+- [ ] **Step 1: Testes (vermelho):** cortes 0,80 e 0,55 exatos; conflito força baixa; Olhar Direto e Olhar Conceito contam 1 veículo; `decidePublication` dá a mesma decisão que antes para um conjunto fixo de candidatos (teste de regressão); relatório de impacto: função `simulateLevelChange` conta quantas matérias publicadas mudam de nível.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/lib/confidence src/lib/pipeline/steps/verify.test.ts src/lib/rules`.
+- [ ] **Step 3: Implementar** e rodar a simulação no banco de produção só de leitura (contagem por nível antes e depois) para o relatório.
+- [ ] **Step 4: Rodar** vitest completo de `src/lib`, integração, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `feat(verificacao): nível pelo score e fontes por veículo [CONF-T3]`.
+
 ### Task HOT-T1: Sinal de destaque dos portais (banco e domínio)
 
 **Files:**

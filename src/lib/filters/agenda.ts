@@ -3,7 +3,7 @@ import { addDays, dayStart, localDateKey, localWeekday } from "@/lib/format/date
 import { firstParam, type SearchParamsInput } from "./section";
 
 /** Filtros da agenda (P09) na URL. Valor desconhecido é descartado. */
-export type AgendaWhen = "today" | "weekend" | "7d" | "30d";
+export type AgendaWhen = "today" | "tomorrow" | "weekend" | "7d" | "30d";
 export type AgendaOrigin = "official" | "organizer" | "reader";
 
 export interface AgendaFilters {
@@ -34,6 +34,7 @@ export const AGENDA_CATEGORIES = [
 
 const WHEN_PARAM: Record<AgendaWhen, string> = {
   today: "hoje",
+  tomorrow: "amanha",
   weekend: "fim-de-semana",
   "7d": "7-dias",
   "30d": "30-dias",
@@ -122,6 +123,10 @@ export function agendaRange(
   switch (f.when) {
     case "today":
       return { from: iso(now), to: iso(dayStart(addDays(today, 1))) };
+    case "tomorrow": {
+      const tomorrow = addDays(today, 1);
+      return { from: iso(dayStart(tomorrow)), to: iso(dayStart(addDays(tomorrow, 1))) };
+    }
     case "weekend": {
       const wd = localWeekday(now);
       const saturday = wd === 6 || wd === 0 ? null : addDays(today, 6 - wd);
