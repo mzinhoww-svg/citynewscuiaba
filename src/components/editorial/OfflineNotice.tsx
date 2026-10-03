@@ -14,7 +14,7 @@ export interface OfflineNoticeProps {
 }
 
 /**
- * Faixa de cópia antiga (spec 2026-09-28 §7.8): em página servida do cache, "Salva às 14h32,
+ * Linha fina de cópia antiga (spec 2026-09-28 §7.8): em página servida do cache, "Salva às 14h32,
  * pode estar desatualizada." no topo; ao voltar a conexão, "Conexão de volta." + Atualizar.
  * Página que veio da rede não mostra nada.
  */
@@ -47,7 +47,7 @@ export function OfflineNotice({
   return (
     <div
       role="status"
-      className="flex flex-wrap items-center justify-between gap-3 border-b border-section bg-section px-gutter py-3 type-meta text-meta"
+      className="flex flex-wrap items-center justify-between gap-x-3 border-b border-section bg-section px-gutter py-1.5 type-meta text-meta"
     >
       {online ? (
         <>

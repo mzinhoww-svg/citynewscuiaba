@@ -17,6 +17,14 @@ describe("OfflineNotice", () => {
     expect(screen.getByRole("button", { name: "Atualizar" })).toBeVisible();
   });
 
+  it("é uma linha fina, sem a altura de um banner", async () => {
+    const query = vi.fn().mockResolvedValue("2026-09-28T18:32:00Z");
+    render(<OfflineNotice now={() => new Date("2026-09-28T20:00:00Z")} query={query} />);
+    const bar = await screen.findByRole("status");
+    expect(bar).toHaveClass("py-1.5");
+    expect(bar).not.toHaveClass("py-3");
+  });
+
   it("página da rede não mostra nada", async () => {
     const query = vi.fn().mockResolvedValue(null);
     render(<OfflineNotice query={query} />);

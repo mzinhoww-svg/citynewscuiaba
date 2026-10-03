@@ -339,6 +339,9 @@
 @utility pb-tabbar-safe {
   padding-bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
 }
+@utility h-tabbar-safe {
+  height: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
+}
 @utility bottom-tabbar-safe {
   bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
 }
