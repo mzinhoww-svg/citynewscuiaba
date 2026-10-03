@@ -358,7 +358,7 @@ test.describe("capa e imagem no texto", () => {
   const para = (text: string) => ({ type: "paragraph", content: [{ type: "text", text }] });
 
   /** Matéria publicada com capa e imagem no texto; `blockInline` simula remoção a pedido. */
-  async function seed(opts: { blockInline?: boolean } = {}) {
+  async function seed(opts: { blockInline?: boolean; cdnCredit?: boolean } = {}) {
     const db = service();
     const t = tag();
     const id = await createArticle({
@@ -378,7 +378,13 @@ test.describe("capa e imagem no texto", () => {
     });
     created.articles.push(id);
     const { data: row } = await db.from("articles").select("slug").eq("id", id).single();
-    const mk = async (origin: string, credit: string, page: string, status = "approved") => {
+    const mk = async (
+      origin: string,
+      credit: string,
+      page: string,
+      status = "approved",
+      sourceName: string | null = null,
+    ) => {
       const mid = crypto.randomUUID();
       const { error } = await db.from("media_assets").insert({
         id: mid,
@@ -388,6 +394,7 @@ test.describe("capa e imagem no texto", () => {
         page_url: page,
         license: "Reprodução (teste)",
         credit,
+        source_name: sourceName,
         allowed_use: `article:${id}`,
         width: 1600,
         height: 900,
@@ -398,9 +405,13 @@ test.describe("capa e imagem no texto", () => {
       return mid;
     };
     const cover = await mk(
-      "https://folhadocerrado.example/img/feira.jpg",
+      opts.cdnCredit
+        ? "https://cdn.rdnews.com.br/img/feira.jpg"
+        : "https://folhadocerrado.example/img/feira.jpg",
       "Ana Prado",
-      "https://folhadocerrado.example/feira",
+      opts.cdnCredit ? "https://www.rdnews.com.br/feira" : "https://folhadocerrado.example/feira",
+      "approved",
+      opts.cdnCredit ? "RDNews" : null,
     );
     const inline = await mk(
       "https://mtagora.example/img/orla.jpg",
@@ -445,9 +456,7 @@ test.describe("capa e imagem no texto", () => {
 
     const cover = figures.nth(0);
     await expect(cover.getByRole("img", { name: "Barracas da feira na Orla" })).toBeAttached();
-    await expect(cover.locator("figcaption")).toContainText(
-      "Reprodução web · folhadocerrado.example",
-    );
+    await expect(cover.locator("figcaption")).toContainText("Reprodução web · Folha do Cerrado");
     await expect(cover.locator("figcaption")).toContainText("Foto: Ana Prado");
     await expect(cover.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -472,7 +481,7 @@ test.describe("capa e imagem no texto", () => {
     const inline = body.locator("figure");
     await expect(inline).toHaveCount(1);
     await expect(inline.getByRole("img", { name: "Artesã trabalha na feira" })).toBeAttached();
-    await expect(inline.locator("figcaption")).toContainText("Reprodução web · mtagora.example");
+    await expect(inline.locator("figcaption")).toContainText("Reprodução web · MT Agora");
     await expect(inline.locator("figcaption")).toContainText("Foto: Rui Lopes");
     await expect(inline.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -482,6 +491,43 @@ test.describe("capa e imagem no texto", () => {
     const kids = await body.locator(":scope > *").evaluateAll((els) => els.map((e) => e.tagName));
     expect(kids).toEqual(["P", "P", "P", "FIGURE", "P"]);
   });
+
+  for (const [width, height] of [
+    [1280, 800],
+    [800, 900],
+    [390, 844],
+  ] as const) {
+    test(`figura colada à matéria: legenda, espaços e largura da coluna (${width} px)`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto(`/materia/${await seed({ cdnCredit: true })}`);
+      const fig = page.locator("article figure").first();
+      const photo = (await fig.getByRole("img").locator("xpath=..").boundingBox())!;
+      const cap = (await fig.locator("figcaption").boundingBox())!;
+      const next = (await page.locator("article .reading-body").boundingBox())!;
+      const bar = (await page
+        .getByRole("group", { name: "Ações da matéria" })
+        .locator("xpath=ancestor::div[contains(@class,'border-y')][1]")
+        .boundingBox())!;
+      // legenda colada: base da foto até o topo da legenda
+      expect(cap.y - (photo.y + photo.height)).toBeLessThanOrEqual(16);
+      // base da legenda até o próximo bloco; fim da barra de ações até a foto
+      if (next.y > cap.y) expect(next.y - (cap.y + cap.height)).toBeLessThanOrEqual(32);
+      expect(photo.y - (bar.y + bar.height)).toBeLessThanOrEqual(32);
+      // mesma largura da coluna do texto
+      const body = (await page.locator("article .reading-body").boundingBox())!;
+      expect(Math.abs(photo.width - body.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(photo.x - body.x)).toBeLessThanOrEqual(1);
+      // legenda e foto no mesmo <figure>, crédito com o nome do veículo (nunca o host da CDN)
+      await expect(fig.locator("figcaption")).toContainText("Reprodução web · RDNews");
+      await expect(fig.locator("figcaption")).not.toContainText("cdn.rdnews");
+      // foto e título na primeira dobra
+      const h1 = (await page.getByRole("heading", { level: 1 }).boundingBox())!;
+      expect(h1.y + h1.height).toBeLessThan(height);
+      if (width !== 800) expect(photo.y).toBeLessThan(height);
+    });
+  }
 
   test("as duas fotos têm proporção fixa (sem salto de layout) e legenda fora da área recortada", async ({
     page,
@@ -506,6 +552,6 @@ test.describe("capa e imagem no texto", () => {
   test("uma das duas removida a pedido: a outra continua na página", async ({ page }) => {
     await page.goto(`/materia/${await seed({ blockInline: true })}`);
     await expect(page.locator("article figure")).toHaveCount(1);
-    await expect(page.locator("article figure figcaption")).toContainText("folhadocerrado.example");
+    await expect(page.locator("article figure figcaption")).toContainText("Folha do Cerrado");
   });
 });

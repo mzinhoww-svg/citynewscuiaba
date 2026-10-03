@@ -65,4 +65,35 @@ describe("ArticleFigure", () => {
     rerender(<ArticleFigure image={repro} />);
     expect(screen.getByRole("img")).toHaveAttribute("loading", "lazy");
   });
+
+  it("legenda colada: filha do mesmo <figure>, logo depois da foto, a 8 px (mt-2), sem alvo alto no link", () => {
+    const { container } = render(
+      <ArticleFigure
+        image={{
+          src: "/x",
+          alt: "Orla",
+          kind: "reproduction",
+          credit: "RDNews",
+          originUrl: "https://www.rdnews.com.br/feira",
+        }}
+      />,
+    );
+    const fig = container.querySelector("figure")!;
+    const kids = [...fig.children];
+    expect(kids.map((k) => k.tagName)).toEqual(["DIV", "FIGCAPTION"]);
+    expect(kids[0]!.querySelector("img")).not.toBeNull();
+    expect(fig.className).not.toMatch(/(^|\s)gap-/);
+    expect(kids[1]!.className).toContain("mt-2");
+    const link = screen.getByRole("link", { name: /Ver original/ });
+    expect(link.className).not.toContain("min-h-tap");
+    expect(link.className).toContain("hit-area");
+  });
+
+  it("o crédito mostra o nome do veículo, não o host da CDN", () => {
+    render(
+      <ArticleFigure image={{ src: "/x", alt: "Orla", kind: "reproduction", credit: "RDNews" }} />,
+    );
+    expect(screen.getByText("Reprodução web · RDNews")).toBeInTheDocument();
+    expect(screen.queryByText(/cdn\./)).toBeNull();
+  });
 });

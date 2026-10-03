@@ -198,9 +198,9 @@ function Article({ a }: { a: ArticleView }) {
               reportAction={reportProblemAction}
             />
 
-            {a.aiSummary && <AiSummaryBlock items={a.aiSummary} className="max-w-read" />}
+            {a.image && <ArticleFigure image={a.image} priority className="-my-2 max-w-read" />}
 
-            {a.image && <ArticleFigure image={a.image} priority />}
+            {a.aiSummary && <AiSummaryBlock items={a.aiSummary} className="max-w-read" />}
 
             {a.notes.length > 0 && (
               <div className="flex max-w-read flex-col gap-3">
