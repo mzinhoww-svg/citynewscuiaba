@@ -32,6 +32,16 @@ Sucesso: (1) a barra cabe em uma linha de altura de botão pequeno em 1280 px e 
   5. **Aprofundar** matérias já publicadas e curtas (< 250 palavras, sem edição humana): ação no Control Center que reprocessa `enrich` e `write` e grava nova versão (`updated`), registrada no histórico; limite de lote 20.
 - **R7 Sem texto de IA na tela pública** e vocabulário da §4.1 da spec de UI valem para tudo isto.
 
+### Emenda de 03/10/2026 — pauta quente (pedido do dono)
+
+O dono pediu: quando uma matéria for quente ou estiver em destaque nos outros portais, o CityNews acompanha automaticamente; se **pelo menos 3 portais locais** destacam o mesmo assunto, ele reflete aqui com a mesma lógica. A automação atual continua; o admin só acrescenta destaque manual.
+
+- **R8 Ordem de precedência por posição:** (1) pino manual do admin; (2) pauta quente (automática, por sinal dos portais); (3) automático por janela de 3 h (R1). Urgência continua na frente de tudo na home, como hoje. O admin pode dispensar uma pauta quente (fica registrado) e pode desligar a pauta quente inteira no Interruptores (`hot_featured_enabled`, ligado por padrão).
+- **R9 Sinal de destaque dos portais:** um passo novo `frontpage` lê a página inicial de cada fonte ativa com `consumption.frontpage = true` (GET identificado como CityNewsBot, respeitando `robots.txt`, termos e o limite por hora da fonte, a cada 20 min) e extrai os primeiros 3 links de matéria do topo da página (dentro de `main`/primeiro bloco, na ordem do documento, só do domínio da fonte). Cada link casado com um item coletado (URL canônica) vira um sinal `(topic, source, rank, seen_at)`. Nada da página é guardado além do link e da posição.
+- **R10 Pauta quente:** um assunto é quente quando ≥ **3 fontes locais distintas** o mantêm no topo (rank ≤ 3) dentro de **6 h**; limite configurável (`hot_min_sources`, padrão 3). Sem sinal direto (fonte sem `frontpage`), conta como apoio uma cobertura simultânea de ≥ 3 fontes distintas do mesmo assunto em 3 h, mas **sozinha só eleva a pontuação** e nunca fixa. Segurança e *breaking news* continuam sujeitas às regras de publicação (CLAUDE.md §5.8): a pauta quente só eleva matéria **já publicada**, nunca publica nem tira de revisão.
+- **R11 Histerese:** quando um assunto vira quente e tem matéria publicada, o pipeline grava um pino `kind = 'hot'` por 3 h (renovável enquanto o sinal durar, teto de 12 h). Ocupa `home.lead` (a melhor matéria publicada do assunto), `editoria.lead` da editoria dela e, se houver vaga, `home.destaques`. Sem matéria publicada do assunto, nada é pinado e o assunto segue o fluxo normal até a matéria sair.
+- **R12 Rótulo e transparência:** o admin vê "Em alta · 4 portais" no quadro; ao público aparece só "Em alta em Cuiabá" (sem citar quais portais). Sem texto de IA.
+
 ## 4. Arquitetura
 
 - Banco (migrations 0053 e 0054): `featured_slots`, `featured_items` (manual, com `starts_at`, `ends_at`, `position`, `slot_key`, `section_slug` opcional, `article_id`, `created_by`, `note`, `ended_at`), RLS pública de leitura só das linhas ativas e de matéria publicada, escrita só por função com checagem de papel; coluna `collected_items.body_text`.

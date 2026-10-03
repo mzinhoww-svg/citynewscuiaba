@@ -91,7 +91,7 @@ footer{margin-top:56px;color:var(--mute);font-size:13px;border-top:1px solid var
   <h1>Destaques, matéria mais funda e barra de ações enxuta</h1>
   <p class="lede">Cinco pranchas do que foi planejado: a barra de ações da matéria, a matéria com mais texto, as posições de destaque em cada página, a tela de gestão no admin e a regra que mantém o destaque estável. O laranja marca o que muda.</p>
   <nav class="idx" aria-label="Pranchas">
-    <a href="#barra">1 Barra de ações</a><a href="#texto">2 Matéria mais funda</a><a href="#posicoes">3 Posições</a><a href="#admin">4 Admin</a><a href="#janela">5 Estabilidade</a>
+    <a href="#barra">1 Barra de ações</a><a href="#texto">2 Matéria mais funda</a><a href="#posicoes">3 Posições</a><a href="#admin">4 Admin</a><a href="#janela">5 Estabilidade</a><a href="#quente">6 Pauta quente</a>
   </nav>
 </header>
 
@@ -247,6 +247,39 @@ footer{margin-top:56px;color:var(--mute);font-size:13px;border-top:1px solid var
     <div class="card"><b>AUTOMÁTICO</b><p>Troca no máximo a cada 3 horas, com a melhor matéria publicada antes da janela.</p></div>
     <div class="card"><b>URGENTE</b><p>Passa na frente na hora, como já acontece hoje.</p></div>
     <div class="card"><b>SAIU DO AR</b><p>Se a matéria fixada é despublicada, o automático assume e o admin vê o aviso no quadro.</p></div>
+  </div>
+</section>
+
+<section id="quente">
+  <h2>6. Pauta quente: quando 3 portais destacam, o CityNews acompanha</h2>
+  <p class="why">A automação atual fica como está. Entra uma camada que observa o topo da página inicial dos portais locais ativos. Se pelo menos 3 deles mantêm o mesmo assunto nas 3 primeiras posições dentro de 6 horas, a nossa matéria sobre o assunto, já publicada, assume o destaque por 3 horas, renovando enquanto o sinal durar.</p>
+  <div class="pair">
+    <div class="sheet">
+      <span class="tag new">Sinal dos portais (a cada 20 min)</span>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Portal local</th><th>Topo da página inicial</th><th>Posição</th></tr></thead>
+        <tbody>
+          <tr><td>Portal A</td><td>Assunto X</td><td>1</td></tr>
+          <tr><td>Portal B</td><td>Assunto X</td><td>2</td></tr>
+          <tr><td>Portal C</td><td>Assunto X</td><td>1</td></tr>
+          <tr><td>Portal D</td><td>Assunto Y</td><td>1</td></tr>
+        </tbody></table></div>
+      <div class="call"><b>3 portais</b> no mesmo assunto, posição até 3, em 6 h: o assunto X é quente. Só vale para matéria nossa já publicada; nada é publicado por causa do sinal.</div>
+    </div>
+    <div class="sheet">
+      <span class="tag new">Quem manda na posição</span>
+      <div class="card"><h3>1 · Fixação do admin</h3><div class="note">Sempre vence, até o prazo.</div></div>
+      <div class="card"><h3>2 · Pauta quente</h3><div class="note">Automática por sinal dos portais. O admin pode dispensar ou desligar.</div></div>
+      <div class="card"><h3>3 · Automático por janela de 3 h</h3><div class="note">O que existe hoje, sem mudança.</div></div>
+      <div class="note">Urgência continua passando na frente na home.</div>
+    </div>
+    <div class="sheet">
+      <span class="tag new">No quadro do admin</span>
+      <div class="card"><h3>Início · manchete</h3><span class="pill man">Em alta · 4 portais</span>
+        <div class="b t1"></div><div class="note">renova até 12h40 · teto 12 h</div>
+        <div class="rowflex"><span class="btn sm">Dispensar</span><span class="btn sm pri">Fixar outra</span></div></div>
+      <div class="note">Para o leitor aparece só "Em alta em Cuiabá", sem citar portais. Interruptor <code>hot_featured_enabled</code> desliga tudo.</div>
+    </div>
   </div>
 </section>
 

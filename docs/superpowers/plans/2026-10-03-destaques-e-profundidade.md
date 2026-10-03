@@ -162,11 +162,59 @@
 - [ ] **Step 4: Rodar** vitest, integração, `pnpm typecheck`.
 - [ ] **Step 5: Commit** `feat(pipeline): aprofundar matérias curtas publicadas [TXT-T3]`.
 
+### Task HOT-T1: Sinal de destaque dos portais (banco e domínio)
+
+**Files:**
+- Create: `supabase/migrations/0056_hot_signals.sql`, `src/lib/featured/hot.ts`, `hot.test.ts`, `tests/integration/hot-signals.test.ts`
+- Modify: `featured_items` (coluna `kind text not null default 'manual' check (kind in ('manual','hot'))`, `topic_id uuid null`, `dismissed_at timestamptz null`), flag `hot_featured_enabled` (padrão ligada) e `hot_min_sources` (padrão 3) em `feature_flags`/regras
+
+**Interfaces:**
+- Produces (SQL): tabela `front_signals(id, source_id fk, topic_id fk null, item_id fk null, url text, rank int, seen_at timestamptz)` com índice `(topic_id, seen_at)`; toda leitura ignora linhas com mais de 7 dias. A limpeza (`front_signals_purge()`, com `delete`) vai num arquivo separado `0057_front_signals_purge.sql`, agendado por `pg_cron`; o conector Supabase retém instruções com `DELETE`, então esse arquivo é aplicado pelo dono no SQL Editor e a pauta quente não depende dele.
+- Produces (TS): `type FrontSignal = { sourceId: string; topicId: string; rank: number; seenAt: Date }`; `detectHot(signals: FrontSignal[], now: Date, opts: { minSources: number; windowHours: number; maxRank: number }): HotTopic[]` com `HotTopic = { topicId: string; sources: number; lastSeenAt: Date }` (fontes distintas com `rank ≤ maxRank` dentro da janela; padrão 3, 6 h, 3); `supportScore(coverage: { topicId: string; sources: number }[], now): Map<string, number>` (apoio por cobertura simultânea ≥ 3 fontes em 3 h, só pontuação).
+
+- [ ] **Step 1: Testes (vermelho):** 3 fontes distintas no rank 1 a 3 dentro de 6 h → quente; 2 fontes não; a mesma fonte repetida conta 1; rank 4 não conta; sinal de 7 h atrás não conta; `minSources = 4` exige 4; apoio por cobertura nunca devolve `HotTopic`. Integração: anon não lê `front_signals`; escrita só service role.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/lib/featured/hot.test.ts`.
+- [ ] **Step 3: Implementar** o domínio puro e a migration idempotente.
+- [ ] **Step 4: Rodar** vitest, `pnpm db:reset` e integração, `pnpm typecheck`.
+- [ ] **Step 5: Commit** `feat(destaques): sinal de portais e pauta quente no domínio [HOT-T1]`.
+
+### Task HOT-T2: Passo `frontpage` (ler o topo da página inicial das fontes)
+
+**Files:**
+- Create: `src/lib/pipeline/steps/frontpage.ts`, `frontpage.test.ts`, `src/app/api/ingest/frontpage/route.ts` (Bearer `CRON_SECRET`), migration de cron (`ingest-frontpage` a cada 20 min, via `pg_net` como as demais)
+- Modify: `src/lib/pipeline/types.ts` (`STEP_NAMES` com `frontpage`), `src/lib/pipeline/deps.ts`, `src/lib/pipeline/drain.ts` (`STEP_MIN_MS`), regras do Painel de Fontes (campo `consumption.frontpage`)
+
+**Interfaces:**
+- Produces: `parseFrontTop(html: string, baseUrl: string, take = 3): { url: string; rank: number }[]` (links de matéria do mesmo domínio, no topo da página, na ordem do documento, sem repetidos; ignora menu, rodapé, tags e links de editoria curtos); `createFrontpageStep(deps): StepHandler` (por fonte com `consumption.frontpage === true` e status ativa: robots permite `/`, atraso e limite por hora da fonte, 1 GET de até 512 KB; casa cada URL canônica com `collected_items` e grava `front_signals`; não grava nada além de URL, posição e hora).
+
+- [ ] **Step 1: Testes (vermelho):** HTML de portal fictício com menu, hero e lista: os 3 primeiros links de matéria saem em ordem e o menu é ignorado; link de outro domínio ignorado; sem `frontpage` na fonte nada acontece; `robots.txt` que proíbe `/` pula; 429 e limite por hora da fonte pulam sem erro; URL sem item coletado grava só com `item_id` nulo e é descartada na detecção.
+- [ ] **Step 2: Rodar e ver falhar:** `pnpm exec vitest run src/lib/pipeline/steps/frontpage.test.ts`.
+- [ ] **Step 3: Implementar** com `linkedom`, reaproveitando `checkRobots`, `crawlGet`, limites de `enrich.ts` e o canonicalizador de URL do `normalize`.
+- [ ] **Step 4: Rodar** vitest `src/lib/pipeline`, rota com `CRON_SECRET` inválido → 401, `pnpm typecheck`, `pnpm lint`.
+- [ ] **Step 5: Commit** `feat(pipeline): lê o topo da página inicial das fontes [HOT-T2]`.
+
+### Task HOT-T3: Pauta quente vira destaque (precedência e admin)
+
+**Files:**
+- Create: `src/lib/featured/hot-pin.ts`, `hot-pin.test.ts`
+- Modify: `src/lib/featured/resolve.ts` (precedência manual > quente > automático), `src/lib/db/queries/featured.ts`, `src/lib/studio/featured.ts` (`dismissHot(id)`), `src/components/studio/featured/FeaturedBoard.tsx` (pílula "Em alta · n portais", botão Dispensar), `src/lib/studio/switches.ts` e `src/content/pt-BR/switches.ts` (`hot_featured_enabled`), rótulo público "Em alta em Cuiabá"
+- Test: `tests/e2e/featured-hot.spec.ts`
+
+**Interfaces:**
+- Consumes: `detectHot`, `front_signals` (HOT-T1), `getFeatured`/`resolveSlot` (FD-T1/T2), ações do admin (FD-T3).
+- Produces: `applyHotPins(deps: { db; now: () => Date }): Promise<{ pinned: number; renewed: number; skipped: number }>` (roda após cada coleta e após a publicação; para cada assunto quente com matéria publicada e não patrocinada, grava `featured_items` `kind='hot'` por 3 h, renova enquanto o sinal durar, teto de 12 h, ocupa `home.lead`, `editoria.lead` e vagas livres de `home.destaques`; respeita `hot_featured_enabled`, `dismissed_at` e pino manual vigente; nunca publica nem altera status de matéria).
+
+- [ ] **Step 1: Testes (vermelho):** assunto quente com matéria publicada vira lead; sem matéria publicada nada é pinado; matéria em revisão nunca; pino manual vigente vence o quente; quente dispensado não volta pelo mesmo sinal; `hot_featured_enabled = false` desliga; renovação respeita o teto de 12 h; assunto sensível/segurança sem matéria publicada não é forçado; e2e: com 3 fontes sinalizando, a home mostra a matéria como lead com "Em alta em Cuiabá" em dois reloads seguidos; sem sinal, volta ao automático da janela.
+- [ ] **Step 2: Rodar e ver falhar.**
+- [ ] **Step 3: Implementar** `applyHotPins` e a precedência; chamar no fim de `tick` e de `publish` (idempotente).
+- [ ] **Step 4: Rodar** vitest `src/lib/featured`, `src/lib/studio`, integração, e2e `featured-hot` e `featured-public`, axe do quadro.
+- [ ] **Step 5: Commit** `feat(destaques): pauta quente com precedência e admin [HOT-T3]`.
+
 ### Task GATE: Fechamento
 
 **Files:** `docs/reports/destaques-e-profundidade.md`, `.planning/DECISIONS.md` (A-106 a A-109), `.planning/STATE.md`, `.planning/progress.json`
 
 - [ ] **Step 1:** `pnpm db:reset && pnpm verify` e e2e do conjunto (home, editorias, explorar, matéria, admin-featured, keyboard, vocabulary), axe das telas novas, claro e escuro.
-- [ ] **Step 2:** aplicar as migrations 0053, 0054 e 0055 em produção (hash conferido) e, depois do deploy, pinar um destaque de teste, conferir que dois reloads trazem o mesmo lead e remover o pino.
+- [ ] **Step 2:** aplicar as migrations 0053, 0054, 0055 e 0056 em produção (hash conferido; a 0057, com `delete`, fica para o dono) e ligar `consumption.frontpage` nas fontes ativas com robots permitindo `/` e, depois do deploy, pinar um destaque de teste, conferir que dois reloads trazem o mesmo lead e remover o pino.
 - [ ] **Step 3:** rodar "Aprofundar matérias curtas" em produção (lote de 20 por vez) e medir antes e depois (palavras por matéria).
 - [ ] **Step 4:** relatório com medidas (altura da barra, palavras antes e depois, trocas de lead por dia antes e depois), decisões e pendências; commit `docs: gate de destaques e profundidade [GATE]`.
