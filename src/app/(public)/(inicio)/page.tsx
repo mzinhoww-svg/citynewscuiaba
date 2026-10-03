@@ -13,6 +13,7 @@ import {
   NewsletterForm,
   NowList,
   Rail,
+  RecurringDates,
   SectionHeader,
   SectionTabs,
   ServiceTile,
@@ -20,6 +21,7 @@ import {
   TopicSummaryCard,
   UrgentBar,
 } from "@/components";
+import { upcomingRecurring } from "@/lib/agenda/recurring";
 import { HOME, HOME_SERVICES } from "@/content/pt-BR/portal-home";
 import { NEWSLETTER } from "@/content/pt-BR/newsletter";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
@@ -177,43 +179,43 @@ function Module_nearby() {
   );
 }
 
+/** Poucos eventos próximos: menos de 3 nos próximos 14 dias. */
+const NEAR_DAYS = 14;
+const MIN_NEAR_EVENTS = 3;
+
 function Module_agenda_services({ data }: { data: HomeData }) {
+  const now = new Date();
+  const near = data.events.filter(
+    (e) => Date.parse(e.startsAt) <= now.getTime() + NEAR_DAYS * 86_400_000,
+  );
+  const recurring = near.length < MIN_NEAR_EVENTS ? upcomingRecurring(now, 4) : [];
   return (
     <>
-      <div
-        className={
-          data.events.length > 0
-            ? "grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10"
-            : "grid grid-cols-1 gap-8"
-        }
-      >
-        {data.events.length > 0 && (
-          <section aria-labelledby="home-agenda" className="flex min-w-0 flex-col gap-4">
-            <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
-            {data.events.length === 0 ? (
-              <p className="type-body text-meta">{HOME.agendaEmpty}</p>
-            ) : (
-              <Rail label={HOME.agenda} desktop="grid">
-                {data.events.map((e) => (
-                  <article
-                    key={e.id}
-                    className="relative flex w-full items-center gap-3 border border-line-section p-3 [--card-radius:var(--r-0)]"
-                  >
-                    <EventDateBadge startsAt={e.startsAt} />
-                    <div className="flex min-w-0 flex-col gap-1">
-                      <h3 className="type-headline-sm line-clamp-2 text-strong">
-                        <Link href={e.href} className="card-link no-underline">
-                          {e.title}
-                        </Link>
-                      </h3>
-                      <p className="type-meta text-meta">{eventMeta(e)}</p>
-                    </div>
-                  </article>
-                ))}
-              </Rail>
-            )}
-          </section>
-        )}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10">
+        <section aria-labelledby="home-agenda" className="flex min-w-0 flex-col gap-4">
+          <SectionHeader id="home-agenda" title={HOME.agenda} actionHref={HOME.agendaMore} />
+          {data.events.length > 0 && (
+            <Rail label={HOME.agenda} desktop="grid">
+              {data.events.map((e) => (
+                <article
+                  key={e.id}
+                  className="relative flex w-full items-center gap-3 border border-line-section p-3 [--card-radius:var(--r-0)]"
+                >
+                  <EventDateBadge startsAt={e.startsAt} />
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <h3 className="type-headline-sm line-clamp-2 text-strong">
+                      <Link href={e.href} className="card-link no-underline">
+                        {e.title}
+                      </Link>
+                    </h3>
+                    <p className="type-meta text-meta">{eventMeta(e)}</p>
+                  </div>
+                </article>
+              ))}
+            </Rail>
+          )}
+          <RecurringDates items={recurring} id="home-agenda-recorrentes" />
+        </section>
 
         <section aria-labelledby="home-services" className="flex min-w-0 flex-col gap-4">
           <SectionHeader id="home-services" title={HOME.services} actionHref={HOME.servicesMore} />

@@ -3,6 +3,30 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      agenda_collect_runs: {
+        Row: {
+          finished_at: string | null;
+          id: string;
+          report: Json | null;
+          started_at: string;
+          trigger: string;
+        };
+        Insert: {
+          finished_at?: string | null;
+          id?: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Update: {
+          finished_at?: string | null;
+          id?: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Relationships: [];
+      };
       ai_agents: {
         Row: {
           daily_budget_brl: number;
@@ -1101,7 +1125,9 @@ export type Database = {
           accessibility: string | null;
           age_rating: string;
           category: string;
+          collected_at: string | null;
           confirmed_at: string | null;
+          dedupe_key: string | null;
           description: string | null;
           ends_at: string | null;
           id: string;
@@ -1109,7 +1135,10 @@ export type Database = {
           neighborhood: string | null;
           origin: string;
           price_cents: number | null;
+          price_unknown: boolean;
           slug: string;
+          source_id: string | null;
+          source_url: string | null;
           starts_at: string;
           title: string;
           tsv: unknown;
@@ -1119,7 +1148,9 @@ export type Database = {
           accessibility?: string | null;
           age_rating?: string;
           category: string;
+          collected_at?: string | null;
           confirmed_at?: string | null;
+          dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
           id?: string;
@@ -1127,7 +1158,10 @@ export type Database = {
           neighborhood?: string | null;
           origin: string;
           price_cents?: number | null;
+          price_unknown?: boolean;
           slug: string;
+          source_id?: string | null;
+          source_url?: string | null;
           starts_at: string;
           title: string;
           tsv?: unknown;
@@ -1137,7 +1171,9 @@ export type Database = {
           accessibility?: string | null;
           age_rating?: string;
           category?: string;
+          collected_at?: string | null;
           confirmed_at?: string | null;
+          dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
           id?: string;
@@ -1145,7 +1181,10 @@ export type Database = {
           neighborhood?: string | null;
           origin?: string;
           price_cents?: number | null;
+          price_unknown?: boolean;
           slug?: string;
+          source_id?: string | null;
+          source_url?: string | null;
           starts_at?: string;
           title?: string;
           tsv?: unknown;
@@ -4279,6 +4318,7 @@ export type Database = {
           version: number;
         }[];
       };
+      schedule_agenda_cron: { Args: Record<PropertyKey, never>; Returns: string };
       schedule_pipeline_cron: { Args: Record<PropertyKey, never>; Returns: string };
       schedule_push_cron: { Args: Record<PropertyKey, never>; Returns: string };
       scrub_field_origins: { Args: { p: Json; p_person?: string }; Returns: Json };

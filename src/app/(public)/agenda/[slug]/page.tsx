@@ -131,7 +131,11 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
                 </a>
               </Fact>
               <Fact icon="ticket" label={AGENDA.priceLabel}>
-                {e.isFree ? AGENDA.free : AGENDA.price(e.priceCents ?? 0)}
+                {e.priceUnknown
+                  ? AGENDA.priceUnknown
+                  : e.isFree
+                    ? AGENDA.free
+                    : AGENDA.price(e.priceCents ?? 0)}
               </Fact>
               <Fact icon="users" label={AGENDA.ageLabel}>
                 {AGENDA.age(e.ageRating)}
@@ -142,6 +146,20 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
                 </Fact>
               )}
             </dl>
+            {e.sourceUrl && (
+              <p>
+                <a
+                  href={e.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-tap items-center gap-1.5 text-16 font-semibold text-link underline underline-offset-4"
+                >
+                  {AGENDA.sourceLink}
+                  <Icon name="external-link" size={16} />
+                  <span className="sr-only"> ({AGENDA.newTab})</span>
+                </a>
+              </p>
+            )}
             {e.description && (
               <section aria-labelledby="sobre-evento" className="flex flex-col gap-2">
                 <h2 id="sobre-evento" className="type-section text-strong">

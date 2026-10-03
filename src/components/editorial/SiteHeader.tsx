@@ -68,9 +68,15 @@ export function SiteHeader({
       style={style}
     >
       <div className="mx-auto flex h-14 max-w-page items-center gap-6 px-gutter motion-safe:transition-[height] motion-safe:duration-(--dur-fast) group-data-[scrolled=true]/header:h-tap lg:gap-10">
-        <Link href="/" aria-label={NAV_TEXT.homeLink} className="-ml-2.5 shrink-0 rounded-xs">
-          <Logo size="sm" decorative className="lg:hidden" />
-          <Logo size="md" decorative className="hidden lg:block" />
+        <Link
+          href="/"
+          aria-label={NAV_TEXT.homeLink}
+          className="-ml-2.5 flex shrink-0 items-center rounded-xs px-2.5"
+        >
+          {/* Sem área de proteção vertical: o logo (h-10) cabe na linha principal (h-14, e h-tap
+              ao rolar) e não invade a fileira de editorias. A folga lateral vem do `px-2.5`. */}
+          <Logo size="sm" decorative clearSpace={false} className="lg:hidden" />
+          <Logo size="md" decorative clearSpace={false} className="hidden lg:block" />
         </Link>
         <nav aria-label={NAV_TEXT.mainNav} className="hidden flex-1 justify-center lg:flex">
           <ul className="flex items-center gap-1">

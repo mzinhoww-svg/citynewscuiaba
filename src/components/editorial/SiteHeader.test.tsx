@@ -24,6 +24,17 @@ afterEach(() => {
 });
 
 describe("SiteHeader", () => {
+  it("o logo não leva padding vertical que o faça passar da altura da linha principal", () => {
+    const { container } = render(<SiteHeader active="home" />);
+    const logos = container.querySelectorAll("a[aria-label] svg");
+    expect(logos.length).toBe(2);
+    logos.forEach((svg) => {
+      const cls = svg.getAttribute("class") ?? "";
+      expect(cls).not.toContain("box-content");
+      expect(cls).not.toMatch(/\bp-\d/);
+    });
+  });
+
   it("tem 4 destinos principais, Busca, Favoritos, Perfil e AGORA", () => {
     render(<SiteHeader active="home" />);
     const main = screen.getByRole("navigation", { name: "Principal" });
