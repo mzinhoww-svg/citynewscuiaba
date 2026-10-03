@@ -7,8 +7,8 @@ export interface RailProps {
   /** Nome da lista, lido por leitores de tela. */
   label: string;
   children: ReactNode;
-  /** sm = 14 rem · md = 18 rem (padrão). */
-  itemWidth?: "sm" | "md";
+  /** sm = 14 rem · md = 18 rem (padrão) · auto = largura do conteúdo (avatares). */
+  itemWidth?: "sm" | "md" | "auto";
   /** No desktop o trilho vira grade sem rolagem (padrão: continua rolando). */
   desktop?: "scroll" | "grid";
   /** Sangra até a borda da tela no celular (padrão). Dentro de uma superfície com padding, false. */
@@ -16,7 +16,7 @@ export interface RailProps {
   className?: string;
 }
 
-const WIDTH = { sm: "w-56", md: "w-72" } as const;
+const WIDTH = { sm: "w-56", md: "w-72", auto: "w-auto" } as const;
 
 /**
  * Trilho horizontal da home (assuntos, coleções, agenda, serviços): lista nomeada que rola com
@@ -36,6 +36,7 @@ export function Rail({
   className,
 }: RailProps) {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return;
     const el = e.currentTarget;
     const smooth = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const behavior = smooth ? "smooth" : "auto";

@@ -63,7 +63,8 @@ function DateStrip({ generatedAt }: { generatedAt?: string }) {
     <div className="bg-section">
       <p className={`${CONTAINER} flex flex-wrap justify-between gap-x-4 py-2 type-meta text-meta`}>
         <span>
-          {HOME.place} · {formatLongDate(iso)}
+          <span className="max-sm:hidden">{HOME.place} · </span>
+          {formatLongDate(iso)}
         </span>
         {generatedAt && <span>{HOME.updatedAt(formatHour(generatedAt))}</span>}
       </p>
@@ -125,7 +126,7 @@ function Module_topics({ data }: { data: HomeData }) {
           <SectionHeader id="home-topics" title={HOME.topics} actionHref={HOME.topicsMore} />
           <Rail label={HOME.topics} desktop="grid">
             {data.topics.map((t) => (
-              <TopicSummaryCard key={t.id} topic={t} className="flex-1" />
+              <TopicSummaryCard key={t.id} topic={t} compactOnMobile className="flex-1" />
             ))}
           </Rail>
         </section>
@@ -146,7 +147,7 @@ function Module_collections({ data }: { data: HomeData }) {
           />
           <Rail label={HOME.collections} itemWidth="sm" desktop="grid">
             {data.collections.map((c) => (
-              <CollectionCard key={c.id} collection={c} className="flex-1" />
+              <CollectionCard key={c.id} collection={c} compactOnMobile className="flex-1" />
             ))}
           </Rail>
         </section>
@@ -216,6 +217,7 @@ function Module_agenda_services({ data }: { data: HomeData }) {
                 title={s.title}
                 description={s.description}
                 icon={s.icon}
+                compactOnMobile
                 className="flex-1"
               />
             ))}
@@ -311,7 +313,7 @@ function Module_sources({ data }: { data: HomeData }) {
       {data.sources.length > 0 && (
         <section aria-labelledby="home-sources" className="flex flex-col gap-3">
           <SectionHeader id="home-sources" title={HOME.sources} actionHref={HOME.sourcesMore} />
-          <Rail label={HOME.sources} itemWidth="sm" className="lg:flex lg:justify-between">
+          <Rail label={HOME.sources} itemWidth="auto" className="lg:flex lg:justify-between">
             {data.sources.map((s) => (
               <SourceAvatar key={s.slug} name={s.name} href={s.href} size={64} />
             ))}

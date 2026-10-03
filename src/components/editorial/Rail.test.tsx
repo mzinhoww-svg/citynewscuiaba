@@ -48,6 +48,8 @@ describe("Rail", () => {
     expect(scrollBy.mock.calls[1]![0].left).toBeLessThanOrEqual(0);
     fireEvent.keyDown(list, { key: "Home" });
     expect(scrollTo).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(screen.getByRole("button", { name: "Segundo" }), { key: "ArrowRight" });
+    expect(scrollBy).toHaveBeenCalledTimes(2);
     fireEvent.keyDown(list, { key: "a" });
     expect(scrollBy).toHaveBeenCalledTimes(2);
   });

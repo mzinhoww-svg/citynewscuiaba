@@ -44,14 +44,16 @@ export function NowList({ items, now, className }: NowListProps) {
                   {formatHour(a.publishedAt)}
                 </time>
                 <span aria-hidden="true"> · </span>
-                <span>{formatWhen(a.publishedAt, reference)}</span>
+                <span className="max-sm:hidden">{formatWhen(a.publishedAt, reference)}</span>
+                {/* Celular: a revisão vai na linha do horário (o horário já está dito). */}
+                {reviewText && <span className="sm:hidden">{reviewText}</span>}
               </p>
               <h3 className="type-headline-sm text-strong">
                 <Link href={a.href} className="card-link no-underline">
                   {a.title}
                 </Link>
               </h3>
-              {reviewText && <p className="hidden type-meta text-meta lg:block">{reviewText}</p>}
+              {reviewText && <p className="type-meta text-meta max-sm:hidden">{reviewText}</p>}
             </li>
           );
         })}
