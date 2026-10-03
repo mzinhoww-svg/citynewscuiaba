@@ -714,4 +714,18 @@ export const MODERATION_TEXT = {
   openCorrection: "Abrir correção",
   correctionOpened: "Pedido de correção aberto",
   unknownContent: "Conteúdo não encontrado",
+  /** Matéria com 3 denúncias em 24 h (A9): item urgente e banner público até alguém resolver. */
+  escalation: {
+    title: "Urgente: matéria com várias denúncias",
+    intro:
+      'Três denúncias em 24 h na mesma matéria. A matéria segue no ar com o aviso "Esta matéria está em revisão" até você encerrar a revisão.',
+    caption: "Matérias em revisão por denúncias",
+    reports: (n: number) => `${n} denúncias`,
+    openedAt: "Aberto em",
+    openArticle: "Abrir matéria",
+    resolve: "Encerrar revisão",
+    resolveNote: "Nota (opcional, fica na auditoria)",
+    resolved: "Revisão encerrada: o aviso saiu da matéria",
+    alreadyResolved: "Esta revisão já foi encerrada.",
+  },
 } as const;

@@ -59,6 +59,13 @@ export default async function GovernancePage() {
                 href: "/estudio/denuncias",
               },
               {
+                label: G.escalationsOpen,
+                value: v.escalationsOpen,
+                icon: "flag",
+                href: "/estudio/denuncias",
+                attention: v.escalationsOpen > 0,
+              },
+              {
                 label: G.approvalsPending,
                 value: v.approvalsPending,
                 icon: "file-check",

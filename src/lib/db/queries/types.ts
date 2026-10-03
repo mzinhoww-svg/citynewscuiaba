@@ -64,6 +64,8 @@ export interface ArticleSummary {
   /** Escopo regional (A15); ausente em dado antigo. */
   newsScope?: "cuiaba" | "mt" | "national";
   nationalCommotion?: boolean;
+  /** Matéria com 3 denúncias em 24 h: banner público "em revisão" (A9). */
+  reviewBanner?: boolean;
 }
 
 export type ArticleBlock =

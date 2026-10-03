@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { err, ok, type Result } from "@/lib/result";
+import { revalidateTags } from "@/lib/pipeline/revalidate";
 import { createServiceClient, type DbClient } from "./client";
 import { SupabaseEnvError } from "./env";
 
@@ -252,7 +253,34 @@ export async function saveReport(r: {
       contact_email: r.contactEmail,
     });
     if (error) throw new Error(error.message);
+    await refreshIfEscalated(db, r.contentRef);
   });
+}
+
+/**
+ * Terceira denúncia em 24 h (gatilho `report_escalate`, 0140): o banner "em revisão" já está
+ * ligado no banco; aqui só se invalida o cache da matéria para ele aparecer. Nunca derruba a
+ * denúncia (fora de uma requisição do Next a invalidação não existe).
+ */
+async function refreshIfEscalated(db: DbClient, contentRef: string): Promise<void> {
+  const id = /^article:([0-9a-f-]{36})$/.exec(contentRef)?.[1];
+  if (!id) return;
+  try {
+    const { data } = await db
+      .from("articles")
+      .select("review_banner, slug, topic_id, section_slug")
+      .eq("id", id)
+      .maybeSingle();
+    if (!data?.review_banner) return;
+    await revalidateTags([
+      `article:${id}`,
+      `article-slug:${data.slug}`,
+      ...(data.topic_id ? [`topic:${data.topic_id}`] : []),
+      `section:${data.section_slug}`,
+    ]);
+  } catch {
+    /* o cache expira sozinho em 300 s */
+  }
 }
 
 /** Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h. */

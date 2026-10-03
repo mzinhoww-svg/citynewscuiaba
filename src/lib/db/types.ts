@@ -544,6 +544,7 @@ export type Database = {
           short_reason: string | null;
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
+          review_banner: boolean;
           review_reason: string | null;
           rules_version: number | null;
           scheduled_for: string | null;
@@ -585,6 +586,7 @@ export type Database = {
           short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
@@ -625,6 +627,7 @@ export type Database = {
           short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
@@ -2750,6 +2753,42 @@ export type Database = {
           },
         ];
       };
+      review_escalations: {
+        Row: {
+          article_id: string;
+          id: string;
+          kind: string;
+          opened_at: string;
+          report_count: number;
+          resolution: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: string;
+        };
+        Insert: {
+          article_id: string;
+          id?: string;
+          kind?: string;
+          opened_at?: string;
+          report_count?: number;
+          resolution?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          article_id?: string;
+          id?: string;
+          kind?: string;
+          opened_at?: string;
+          report_count?: number;
+          resolution?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       reports: {
         Row: {
           contact_email: string | null;
@@ -3990,6 +4029,7 @@ export type Database = {
       consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
+      report_escalation_resolve: { Args: { p_id: string; p_note?: string }; Returns: Json };
       publish_counts: { Args: { p_now?: string }; Returns: Json };
       publish_breaker_trip: { Args: { p_reason: string; p_detail?: Json }; Returns: boolean };
       publish_breaker_reset: { Args: { p_ctx?: Json }; Returns: undefined };

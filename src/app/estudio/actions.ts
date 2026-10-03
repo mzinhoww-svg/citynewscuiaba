@@ -46,6 +46,7 @@ import {
   type ImageTextInput,
 } from "@/lib/studio/media";
 import { approveSubmission, rejectSubmission, respondReport } from "@/lib/studio/moderation";
+import { resolveEscalation } from "@/lib/studio/report-escalate";
 import {
   forcedPublishStatus,
   previewForcedPublish,
@@ -439,6 +440,14 @@ export async function respondReportAction(input: {
   response: string;
 }): Promise<ActionReply> {
   return reply(await respondReport(input), MODERATION_TEXT.answered);
+}
+
+/** Encerra a revisão por denúncias (A9): o item sai da fila e o banner some da matéria. */
+export async function resolveEscalationAction(formData: FormData): Promise<void> {
+  const id = String(formData.get("id") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  const r = await resolveEscalation({ id, note: note || undefined });
+  redirect(r.ok ? "/estudio/denuncias?encerrada=1" : "/estudio/denuncias");
 }
 
 /** Denúncia de informação errada ou direito de resposta → pedido de correção vinculado. */

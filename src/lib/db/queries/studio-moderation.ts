@@ -100,3 +100,43 @@ export async function listReports(kind?: string): Promise<ReportRow[]> {
     };
   });
 }
+
+export interface EscalationRow {
+  id: string;
+  articleId: string;
+  title: string | null;
+  href: string;
+  reportCount: number;
+  openedAt: string;
+}
+
+/** Matérias em revisão por denúncias (A9), mais antigas primeiro. */
+export async function listEscalations(): Promise<EscalationRow[]> {
+  const ctx = await studioContext();
+  const { data, error } = await ctx.db
+    .from("review_escalations")
+    .select("id, article_id, report_count, opened_at")
+    .eq("status", "open")
+    .order("opened_at", { ascending: true })
+    .limit(100);
+  if (error) throw new Error(`escaladas: ${error.message}`);
+  const rows = data ?? [];
+  const { data: arts } = rows.length
+    ? await ctx.db
+        .from("articles")
+        .select("id, title")
+        .in(
+          "id",
+          rows.map((e) => e.article_id),
+        )
+    : { data: [] as { id: string; title: string }[] };
+  const titles = new Map((arts ?? []).map((a) => [a.id, a.title]));
+  return rows.map((e) => ({
+    id: e.id,
+    articleId: e.article_id,
+    title: titles.get(e.article_id) ?? null,
+    href: `/estudio/materias/${e.article_id}`,
+    reportCount: e.report_count,
+    openedAt: e.opened_at,
+  }));
+}
