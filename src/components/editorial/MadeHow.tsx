@@ -9,8 +9,8 @@ import { Icon } from "../ui/Icon";
 export interface MadeHowProps {
   /** Dados da matéria: de quantas fontes veio, quem revisou, qual a imagem. */
   article: PublicLabelInput & { image?: { kind: ImageKind; credit?: string } };
-  /** Agente e versão de prompt que prepararam o texto, quando houve. */
-  agentVersion?: string;
+  /** Matéria publicada pelas regras de revisão (sem autor humano), quando for o caso. */
+  byRules?: boolean;
   versionsHref: string;
   /** Nível do título (padrão h2). */
   as?: "h2" | "h3";
@@ -56,7 +56,7 @@ function imageText(image: NonNullable<MadeHowProps["article"]["image"]>): string
 
 /**
  * Bloco "Como esta matéria foi feita": em linguagem simples, de quantas fontes veio, quem
- * revisou e de onde vêm as imagens (spec 2026-10-02 §4.1), mais agente e link para o histórico
+ * revisou e de onde vêm as imagens (spec 2026-10-02 §4.1), mais link para o histórico
  * público de versões. Sem plaquetas: o texto carrega o sentido.
  *
  * ```tsx
@@ -65,7 +65,7 @@ function imageText(image: NonNullable<MadeHowProps["article"]["image"]>): string
  */
 export function MadeHow({
   article,
-  agentVersion,
+  byRules,
   versionsHref,
   as: Heading = "h2",
   collapsible = false,
@@ -102,7 +102,7 @@ export function MadeHow({
           </div>
         )}
       </dl>
-      {agentVersion && <p className="type-body text-body">{MADE_HOW.agent(agentVersion)}</p>}
+      {byRules && <p className="type-body text-body">{MADE_HOW.rules}</p>}
       <div className="flex flex-wrap gap-x-6">
         <Link href={versionsHref} className={linkClass}>
           {MADE_HOW.versions}

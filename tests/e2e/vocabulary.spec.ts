@@ -8,7 +8,7 @@ import { forwardedFor } from "./own-ip";
  * e a página /como-usamos-ia (conteúdo legal sobre o uso de IA permanece).
  */
 const FORBIDDEN =
-  /normaliz|\bIA\b|inteligência artificial|resumo por ia|publicado automaticamente|gerad[oa] por ia/i;
+  /normaliz|\bagente\b|\bIA\b|inteligência artificial|resumo por ia|publicado automaticamente|gerad[oa] por ia/i;
 
 const ARTICLE = "/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const TOPIC = "/assunto/plano-de-onibus-cpa-centro";

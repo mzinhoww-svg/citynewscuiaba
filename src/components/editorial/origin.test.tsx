@@ -88,16 +88,17 @@ describe("MadeHow", () => {
     expect(region.textContent).not.toMatch(/normaliz|\bIA\b|inteligência artificial/i);
   });
 
-  it("revisão por pessoa mostra o nome; agente e histórico continuam", () => {
+  it("revisão por pessoa mostra o nome; texto das regras e histórico continuam", () => {
     render(
       <MadeHow
         article={{ kind: "original", publishMode: "human", reviewer: "Marina Couto" }}
-        agentVersion="redator v3"
+        byRules
         versionsHref="/materia/x/historico"
       />,
     );
     expect(screen.getByText(/Marina Couto/)).toBeInTheDocument();
-    expect(screen.getByText(/redator v3/)).toBeInTheDocument();
+    expect(screen.getByText(/dentro das regras de revisão/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/agente/i);
     expect(screen.getByText(/apurada e escrita pela redação/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ver histórico de versões" })).toHaveAttribute(
       "href",
