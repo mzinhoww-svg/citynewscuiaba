@@ -157,3 +157,31 @@ Fontes `kind = 'sitemap'` leem só o prefixo de 512 KiB do arquivo (o servidor i
 ## A-104 · Home no celular: o dek basta como resumo da manchete (03/10/2026)
 
 UI-T5: no celular o bloco "Resumo em poucos segundos" do lead fica oculto (aparece a partir de `lg`) e o dek faz o papel de resumo na 1ª dobra, para a home caber em 4.700 px (medido: 4.673 px no Chromium, folga de ~25 px; o teto não é checado no WebKit). Vale até o dono dizer o contrário. Outras compactações do celular (descrições de coleção e serviço, intro da newsletter, 3 mais lidas, 2 itens por editoria) vêm da prop `compactOnMobile` e de classes `max-sm`, só na home.
+
+## A-106 · Regras v3 de autonomia alta: portões e proposta inativa (03/10/2026)
+
+AUT-T1. Por decisão expressa do dono (spec `2026-10-03-autonomia-de-publicacao-design.md`, A1 a A8; v3 pré-aprovada na rodada 3), segurança, política, saúde, sensível e urgente local publicam sozinhos nas regras v3: score mínimo 0,30, `minSources` 1, todas as editorias em `auto`, `neverAuto = []`. `decidePublication` passa a ter, em ordem, invalid_input, breaking e sensível (só se a regra os mantém), forceReview, `neverAuto` (hold), conflito confirmado, `dubious`, fonte não confiável com assunto grave e sem segunda fonte, fontes mínimas, imagem, score e modo. Para o deploy não abrir portões antes da ativação, o corpo de regras sem o campo `neverAuto` (v1 e v2 em produção) é lido como antes (`neverAuto: ["seguranca"]`, `breakingReview` e `sensitiveFlagReview` ligados); só um corpo v3 explícito os libera. A v3 nasce como proposta inativa em `supabase/bootstrap/rules-v3-proposal.sql` (proponente de sistema, pedido `safety.disable` pendente); a ativação é do dono, no painel de governança. A CLAUDE.md §5 regra 8 foi atualizada. Custo se errado: desativar a v3 (rollback de regras) ou desligar `auto_publish`.
+
+## A-107 · Fonte confiável e atribuição obrigatória (03/10/2026)
+
+AUT-T2. `sources.trusted` (backfill `primary` e `verified`), editável no Painel de Fontes (mudança comum, não crítica, auditada pelo gatilho da tabela). Toda matéria do pipeline termina com "Com informações de {fonte}" com link (parágrafo `attrs.credit` no corpo, renderizado por `CreditLine`); o `write` ganha as regras de redação (presunção de inocência, sem menor ou vítima, sem método de suicídio, saúde sem orientação clínica, "segundo {fonte}"), reforçadas em segurança, política e saúde. O verify passa a marcar `dubious` e `unattributable`.
+
+## A-108 · Escopo regional da notícia (03/10/2026)
+
+AUT-T3. `articles.news_scope` (cuiaba, mt, national) e `national_commotion`. Várzea Grande conta como `cuiaba` (região metropolitana que o portal cobre). Escopo calculado em `src/lib/geo/news-scope.ts` por bairro, município do localizador, lugares no texto e localidade da fonte. Notícia nacional sem comoção perde o marcador `urgent` na etapa de regras, não gera push urgente (recusado nas duas portas do Estúdio) e não ocupa a faixa Urgente da home; o `classify` marca comoção nacional com a etiqueta `comocao-nacional`. A faixa Urgente da home passa a aceitar matéria automática local.
+
+## A-109 · Completude, matéria curta e checklist automático (03/10/2026)
+
+AUT-T4, A16 e R41. Antes de publicar, o `publish` conserta alt da capa, SEO e taxonomia (só falta de fonte e de título barram) e confere a completude: mínimo de 30 linhas do corpo renderizado (75 caracteres por linha), sem parágrafo cortado, fonte citada e capa decidida. Corpo curto com material de fonte suficiente volta ao `write` até 2 vezes (`topic:<id>#rewrite<n>`) e, depois, publica com `articles.short_reason = 'insufficient_source'`; material de fonte abaixo de 1.500 caracteres publica direto com o motivo; corpo cortado após as refações vai para revisão. Capa pendente espera (retentativas de 1, 4 e 10 min, ou seja, até cerca de 15 min no pior caso) e cai no cartão tipográfico. O trecho do plano que mandava o corpo curto ao revisor automático foi substituído pela R41.
+
+## A-110 · Disjuntor da publicação automática (03/10/2026)
+
+AUT-T4, A8. 60 por hora e 800 por dia (dia civil de Cuiabá), 10 denúncias na hora, 15 falhas de IA com taxa acima de 50%: aberto, `publish_breaker_trip` desliga `auto_publish`, manda o resto do ciclo para revisão (`contingency_pause_cycle`), audita e avisa o plantão. Limites editáveis e reset manual só por admin (`switches.ts`); religar `auto_publish` continua com duas pessoas e o reset zera a janela de contagem. Não é freio editorial.
+
+## A-111 · Migrations 0070 a 0073 (03/10/2026)
+
+Numeradas a partir de 0070 por combinação com o outro agente (0053+ é da agenda). 0070 libera a constraint de Segurança e a abertura do assunto por publicação automática (remove a trava D12 do gatilho) e põe `dubious` no contexto de decisão; 0071 `sources.trusted` e `source_admin_update`; 0072 `news_scope` e `national_commotion`; 0073 `short_reason` e o disjuntor. As quatro substituem `pipeline_decision_context` por inteiro (aditivo). Aplicar TODAS antes do deploy do app (o código lê as colunas novas). O plano citava 0061 a 0065 para tarefas AUT-T1 a T6; T5 a T7 não foram feitas neste lote.
+
+## A-112 · Script de liberação do acúmulo (03/10/2026)
+
+AUT-T8 (parte de script). `scripts/release-backlog.mjs`: ensaio por padrão; `--apply` explícito e, fora do banco local, `--confirm-host=<host>`; recusa liberar com as regras antigas ativas, com `auto_publish` desligado, com o disjuntor aberto ou em modo leitura; lotes de 50 pela fila `pipeline`, limitados pelo teto da hora e do dia; relatório de publicadas por hora. A ativação da v3 e a execução em produção ficam com o dono.
