@@ -169,7 +169,7 @@ describe("etapa de imagem (13 e 14)", () => {
         sourceItem({}, { itemId: "i2" }),
       ],
       routes: {
-        "https://folhadocerrado.example/img/pequena.jpg": jpeg("baixa-resolucao-800x450.jpg"),
+        "https://folhadocerrado.example/img/pequena.jpg": jpeg("baixa-resolucao-500x281.jpg"),
       },
     });
     await step(msg);

@@ -1,7 +1,7 @@
 import type { ImageIssue, MediaChoiceKind } from "./types";
 
-/** Lado maior mínimo (spec §6.5). */
-export const MIN_LONG_SIDE_PX = 1200;
+/** Lado maior mínimo. A spec §6.5 pedia 1200; o dono relaxou para 600 em 03/10/2026. */
+export const MIN_LONG_SIDE_PX = 600;
 /** Distância de Hamming do dHash (64 bits) até a qual duas imagens são a mesma foto. */
 export const DUPLICATE_MAX_DISTANCE = 8;
 
