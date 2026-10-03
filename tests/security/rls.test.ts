@@ -78,6 +78,11 @@ const SENSITIVE = [
   "push_batches",
   "push_send_counters",
   "push_funnel_daily",
+  // Guia Cuiabá: modelos, propostas, reclamações e execuções nunca são públicos
+  "guide_templates",
+  "guide_proposals",
+  "venue_reports",
+  "guide_runs",
 ] as const;
 
 /** Funções que existem e nunca podem ser executadas por anon (nome, argumentos válidos). */
@@ -220,12 +225,16 @@ describe("estrutura: RLS ligada e políticas para anon só de leitura pública",
       "corrections",
       "event_listings",
       "feature_flags",
+      "guide_list_items",
+      "guide_lists",
       "home_layouts",
       "media_assets",
       "places",
       "redirects",
       "sections",
       "topics",
+      "venue_media",
+      "venues",
     ]);
   });
 

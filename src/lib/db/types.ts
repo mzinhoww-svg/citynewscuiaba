@@ -1439,6 +1439,275 @@ export type Database = {
         };
         Relationships: [];
       };
+      guide_list_items: {
+        Row: {
+          editor_note: string | null;
+          list_id: string;
+          position: number;
+          score: number | null;
+          score_breakdown: Json;
+          venue_id: string;
+        };
+        Insert: {
+          editor_note?: string | null;
+          list_id: string;
+          position: number;
+          score?: number | null;
+          score_breakdown?: Json;
+          venue_id: string;
+        };
+        Update: {
+          editor_note?: string | null;
+          list_id?: string;
+          position?: number;
+          score?: number | null;
+          score_breakdown?: Json;
+          venue_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guide_list_items_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_lists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guide_list_items_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guide_lists: {
+        Row: {
+          category: string;
+          created_at: string;
+          created_by: string | null;
+          criteria: string;
+          id: string;
+          intro: string | null;
+          neighborhood: string | null;
+          next_refresh_at: string | null;
+          origin: string;
+          published_at: string | null;
+          published_by: string | null;
+          refreshed_at: string | null;
+          slug: string;
+          sponsor_kind: string | null;
+          sponsor_name: string | null;
+          sponsored: boolean;
+          status: string;
+          subcategory: string | null;
+          suspended_at: string | null;
+          suspended_reason: string | null;
+          take: number;
+          template_id: string | null;
+          title: string;
+          updated_at: string;
+          weights: Json | null;
+        };
+        Insert: {
+          category: string;
+          created_at?: string;
+          created_by?: string | null;
+          criteria?: string;
+          id?: string;
+          intro?: string | null;
+          neighborhood?: string | null;
+          next_refresh_at?: string | null;
+          origin?: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          refreshed_at?: string | null;
+          slug: string;
+          sponsor_kind?: string | null;
+          sponsor_name?: string | null;
+          sponsored?: boolean;
+          status?: string;
+          subcategory?: string | null;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          take?: number;
+          template_id?: string | null;
+          title: string;
+          updated_at?: string;
+          weights?: Json | null;
+        };
+        Update: {
+          category?: string;
+          created_at?: string;
+          created_by?: string | null;
+          criteria?: string;
+          id?: string;
+          intro?: string | null;
+          neighborhood?: string | null;
+          next_refresh_at?: string | null;
+          origin?: string;
+          published_at?: string | null;
+          published_by?: string | null;
+          refreshed_at?: string | null;
+          slug?: string;
+          sponsor_kind?: string | null;
+          sponsor_name?: string | null;
+          sponsored?: boolean;
+          status?: string;
+          subcategory?: string | null;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
+          take?: number;
+          template_id?: string | null;
+          title?: string;
+          updated_at?: string;
+          weights?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guide_lists_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guide_proposals: {
+        Row: {
+          analysis: Json;
+          created_at: string;
+          created_by: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          id: string;
+          list_id: string | null;
+          origin: string;
+          source_url: string | null;
+          status: string;
+          template_id: string | null;
+        };
+        Insert: {
+          analysis?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          list_id?: string | null;
+          origin: string;
+          source_url?: string | null;
+          status?: string;
+          template_id?: string | null;
+        };
+        Update: {
+          analysis?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          list_id?: string | null;
+          origin?: string;
+          source_url?: string | null;
+          status?: string;
+          template_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "guide_proposals_list_id_fkey";
+            columns: ["list_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_lists";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guide_proposals_template_id_fkey";
+            columns: ["template_id"];
+            isOneToOne: false;
+            referencedRelation: "guide_templates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guide_runs: {
+        Row: {
+          finished_at: string | null;
+          id: string;
+          kind: string;
+          report: Json | null;
+          started_at: string;
+          trigger: string;
+        };
+        Insert: {
+          finished_at?: string | null;
+          id?: string;
+          kind: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Update: {
+          finished_at?: string | null;
+          id?: string;
+          kind?: string;
+          report?: Json | null;
+          started_at?: string;
+          trigger?: string;
+        };
+        Relationships: [];
+      };
+      guide_templates: {
+        Row: {
+          active: boolean;
+          category: string;
+          created_at: string;
+          id: string;
+          last_proposed_at: string | null;
+          min_venues: number;
+          neighborhood: string | null;
+          noun: string;
+          slug: string;
+          subcategory: string | null;
+          take: number;
+          title: string;
+          weights: Json | null;
+        };
+        Insert: {
+          active?: boolean;
+          category: string;
+          created_at?: string;
+          id?: string;
+          last_proposed_at?: string | null;
+          min_venues?: number;
+          neighborhood?: string | null;
+          noun?: string;
+          slug: string;
+          subcategory?: string | null;
+          take?: number;
+          title: string;
+          weights?: Json | null;
+        };
+        Update: {
+          active?: boolean;
+          category?: string;
+          created_at?: string;
+          id?: string;
+          last_proposed_at?: string | null;
+          min_venues?: number;
+          neighborhood?: string | null;
+          noun?: string;
+          slug?: string;
+          subcategory?: string | null;
+          take?: number;
+          title?: string;
+          weights?: Json | null;
+        };
+        Relationships: [];
+      };
       home_layouts: {
         Row: {
           created_at: string;
@@ -3573,6 +3842,182 @@ export type Database = {
           },
         ];
       };
+      venue_media: {
+        Row: {
+          created_at: string;
+          credit: string;
+          id: string;
+          media_id: string;
+          origin_url: string;
+          position: number;
+          venue_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          credit: string;
+          id?: string;
+          media_id: string;
+          origin_url: string;
+          position?: number;
+          venue_id: string;
+        };
+        Update: {
+          created_at?: string;
+          credit?: string;
+          id?: string;
+          media_id?: string;
+          origin_url?: string;
+          position?: number;
+          venue_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "venue_media_media_id_fkey";
+            columns: ["media_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "venue_media_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      venue_reports: {
+        Row: {
+          contact: string | null;
+          created_at: string;
+          decided_at: string | null;
+          decided_by: string | null;
+          decision_note: string | null;
+          id: string;
+          reason: string;
+          status: string;
+          venue_id: string;
+        };
+        Insert: {
+          contact?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          reason: string;
+          status?: string;
+          venue_id: string;
+        };
+        Update: {
+          contact?: string | null;
+          created_at?: string;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          decision_note?: string | null;
+          id?: string;
+          reason?: string;
+          status?: string;
+          venue_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "venue_reports_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      venues: {
+        Row: {
+          address: string | null;
+          category: string;
+          created_at: string;
+          data_sources: string[];
+          data_updated_at: string | null;
+          hours: string | null;
+          id: string;
+          instagram: string | null;
+          lat: number | null;
+          lng: number | null;
+          name: string;
+          neighborhood: string | null;
+          phone: string | null;
+          place_ids: Json;
+          price_level: number | null;
+          rating: number | null;
+          rating_count: number | null;
+          rating_source: string | null;
+          slug: string;
+          status: string;
+          status_reason: string | null;
+          subcategory: string | null;
+          tripadvisor_rank: number | null;
+          tripadvisor_url: string | null;
+          updated_at: string;
+          website: string | null;
+        };
+        Insert: {
+          address?: string | null;
+          category: string;
+          created_at?: string;
+          data_sources?: string[];
+          data_updated_at?: string | null;
+          hours?: string | null;
+          id?: string;
+          instagram?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          name: string;
+          neighborhood?: string | null;
+          phone?: string | null;
+          place_ids?: Json;
+          price_level?: number | null;
+          rating?: number | null;
+          rating_count?: number | null;
+          rating_source?: string | null;
+          slug: string;
+          status?: string;
+          status_reason?: string | null;
+          subcategory?: string | null;
+          tripadvisor_rank?: number | null;
+          tripadvisor_url?: string | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Update: {
+          address?: string | null;
+          category?: string;
+          created_at?: string;
+          data_sources?: string[];
+          data_updated_at?: string | null;
+          hours?: string | null;
+          id?: string;
+          instagram?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string;
+          neighborhood?: string | null;
+          phone?: string | null;
+          place_ids?: Json;
+          price_level?: number | null;
+          rating?: number | null;
+          rating_count?: number | null;
+          rating_source?: string | null;
+          slug?: string;
+          status?: string;
+          status_reason?: string | null;
+          subcategory?: string | null;
+          tripadvisor_rank?: number | null;
+          tripadvisor_url?: string | null;
+          updated_at?: string;
+          website?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       audit_log_view: {
@@ -3982,6 +4427,7 @@ export type Database = {
       };
       can_approve_media: { Args: { media: string; uid: string }; Returns: boolean };
       can_edit_section: { Args: { section: string; uid: string }; Returns: boolean };
+      can_manage_guide: { Args: { uid: string }; Returns: boolean };
       claim_source_fetch: {
         Args: { p_run: string; p_since: string; p_source: string };
         Returns: boolean;
@@ -4116,6 +4562,14 @@ export type Database = {
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
       hamming64: { Args: { a: number; b: number }; Returns: number };
+      guide_report_venue: {
+        Args: { p_contact?: string; p_reason: string; p_venue: string };
+        Returns: Json;
+      };
+      guide_resolve_report: {
+        Args: { p_decision: string; p_note?: string; p_report: string };
+        Returns: Json;
+      };
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][]; uid: string };
         Returns: boolean;
