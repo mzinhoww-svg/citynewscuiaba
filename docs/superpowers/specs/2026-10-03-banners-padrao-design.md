@@ -34,6 +34,19 @@ Suposições (a corrigir no retorno dos wireframes): receita vem de anunciantes 
 - Estúdio: painel A07 ganha abas Campos, Peças, Calendário e Relatórios; prévia por slot; upload validado; conflito de reserva avisado; metas e relatório simples (impressões, cliques, CTR por campo).
 - Registra CLS e peso de página no CI (orçamento por slot).
 
+## 4b. Administração no Estúdio (A07 reformulado)
+Rota `/estudio/admin/publicidade`, permissão `site.manage` (editar) e `ads.view` (só relatório). Abas:
+1. **Painel:** mapa de ocupação dos campos (cheio, parcial, vazio, house), alertas (campanha que termina em 3 dias, campo vazio há mais de 24 h, peça reprovada, CTR muito abaixo da média, falha de carga) e atalho "Pausar tudo" (interruptor geral, com dupla confirmação e registro).
+2. **Campanhas:** lista com anunciante, campos, período, status (rascunho, agendada, no ar, pausada, encerrada), entrega e CTR; filtros e busca; ações duplicar, pausar, encerrar e arquivar. Formulário único: anunciante, campos, período, editorias e bairros permitidos, dias e horários, peso de rotação, limite de impressões por dia, link com UTM, observação interna.
+3. **Peças (biblioteca):** envio por arrastar e soltar com validação na hora (tipo PNG, JPG, WebP ou MP4 curto só no HUB; dimensões exatas do campo; peso máximo por campo; texto alternativo obrigatório; link `https`), versões por peça, prévia por dispositivo e tema, reaproveitamento em várias campanhas.
+4. **Calendário:** linha do tempo por campo (semana, mês) para ver buracos e conflitos; arrastar para mudar datas; aviso de sobreposição que exceda o peso.
+5. **Prévia na página real:** botão "Ver no site" abre a home ou a matéria com a peça no campo (modo prévia, só para a sessão do Estúdio), desktop e celular.
+6. **Relatórios:** impressões, cliques e CTR por campanha, campo e dia; comparação de períodos; exportação CSV; relatório do anunciante em link com validade (somente leitura), sem dado pessoal.
+7. **House ads e regras:** peças do próprio CityNews para preencher vazios (newsletter, app, "Anuncie"); lista de editorias proibidas (política, urgência, segurança, saúde sensível, bloqueada por código); limites de campos por tela.
+8. **Auditoria:** quem criou, trocou, pausou ou encerrou, com data e valores antes e depois.
+
+Fluxo: rascunho → revisão automática (tamanho, alt, link, editoria permitida) → agendada → no ar. Peça reprovada pela checagem mostra o motivo e não vai ao ar. Duas pessoas só para o interruptor geral religado e para mudar a lista de editorias proibidas (mesma regra A13).
+
 ## 5. Testes
 `selectCreative` por tabela de casos (período, editoria proibida, peso, vazio→house); componente (altura reservada, rótulo, sem espaço em branco); axe; e2e das páginas com campo e sem campo; Lighthouse sem regressão de CLS.
 
