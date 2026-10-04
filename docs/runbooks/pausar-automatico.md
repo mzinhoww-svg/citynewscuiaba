@@ -16,7 +16,7 @@
 
 ## Como voltar ao normal
 
-Religar é mudança crítica (autonomia para automático, spec §8): "Retomar publicação automática" abre um pedido `safety.disable` (`flag:auto_publish=true`); **outra pessoa admin** aprova em Control Center → Aprovações. A aprovação expira em 24 h se não for aplicada. Direto no banco, uma pessoa só não consegue religar (`guard_feature_flags`, migration 0035).
+Religar é ação direta do admin (decisão do dono A-122, 04/10/2026): "Retomar publicação automática" em Control Center → Contingência, ou o interruptor em Interruptores, religa na hora, zera o disjuntor (`publish_breaker_reset`) e grava `flag.set` na auditoria. Não há segunda pessoa; o gatilho `guard_feature_flags` de 0035 foi removido em 0143.
 
 ## Verificação
 

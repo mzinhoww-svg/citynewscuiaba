@@ -1,4 +1,4 @@
-import { createFlagsService, needsApproval, type FlagRow, type FlagsPort } from "./index";
+import { createFlagsService, type FlagRow, type FlagsPort } from "./index";
 
 function memoryPort(initial: Partial<Record<FlagRow["key"], boolean>> = {}) {
   const rows = new Map<string, FlagRow>();
@@ -61,17 +61,14 @@ describe("flags de contingência", () => {
     expect(m.writes).toHaveLength(1);
   });
 
-  it("religar a publicação automática nunca passa por setFlag: exige aprovação", async () => {
+  it("religar a publicação automática é ação direta do admin (sem segunda pessoa)", async () => {
     const m = memoryPort();
     const f = createFlagsService(m.port);
-    expect(needsApproval("auto_publish", true)).toBe(true);
-    expect(needsApproval("auto_publish", false)).toBe(false);
-    expect(needsApproval("read_only", false)).toBe(false);
     expect(await f.setFlag("auto_publish", true, "helena")).toEqual({
-      ok: false,
-      error: "needs_approval",
+      ok: true,
+      value: { changed: true },
     });
-    expect(m.writes).toEqual([]);
+    expect(m.writes).toHaveLength(1);
   });
 
   it("flag inexistente é not_found", async () => {

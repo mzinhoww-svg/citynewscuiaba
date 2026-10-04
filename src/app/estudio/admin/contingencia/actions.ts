@@ -20,7 +20,7 @@ export async function contingencyAction(i: {
         message: v.changed ? T.result.pause_auto_publish(v.movedToReview) : T.result.unchanged,
       };
     case "resume_auto_publish":
-      return { ok: true, message: v.existing ? T.error.pending : T.result.resume_auto_publish };
+      return { ok: true, message: v.changed ? T.result.resume_auto_publish : T.result.unchanged };
     case "rollback_rules":
       return { ok: true, message: T.result.rollback_rules(v.from, v.to) };
     default:

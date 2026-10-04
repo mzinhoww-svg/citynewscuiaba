@@ -51,7 +51,7 @@ export const CONTINGENCY_TEXT = {
       pauseBody:
         "Pausa a etapa de publicação. Itens do ciclo em andamento que já tinham decisão de publicar vão para revisão; nada é despublicado.",
       resumeBody:
-        "Religar é mudança crítica (autonomia para automático): abre um pedido para outra pessoa aprovar na caixa de aprovações.",
+        "Religa a publicação automática na hora e zera o disjuntor. Fica registrado na auditoria.",
       runbook:
         "https://github.com/mzinhoww-svg/citynewscuiaba/blob/main/docs/runbooks/pausar-automatico.md",
     },
@@ -105,8 +105,7 @@ export const CONTINGENCY_TEXT = {
       moved === 0
         ? "Publicação automática pausada. Nenhum item do ciclo em andamento precisou ir para revisão."
         : `Publicação automática pausada. ${moved} ${plural(moved, "item do ciclo em andamento foi", "itens do ciclo em andamento foram")} para revisão.`,
-    resume_auto_publish:
-      "Pedido aberto. Outra pessoa (admin) precisa aprovar na caixa de aprovações.",
+    resume_auto_publish: "Publicação automática religada. O disjuntor foi zerado.",
     read_only_on: "Modo leitura ligado. O Estúdio não grava nada até ser desligado aqui.",
     read_only_off: "Modo leitura desligado.",
     ai_off: "Busca com IA desligada. /pergunte oferece a busca tradicional.",
@@ -117,7 +116,7 @@ export const CONTINGENCY_TEXT = {
   error: {
     typed: "Confirme digitando o nome exato da ação.",
     forbidden: "Só a administração usa a contingência.",
-    needs_approval: "Religar a publicação automática exige aprovação de outra pessoa.",
+    needs_approval: "Esta mudança exige aprovação de outra pessoa.",
     no_previous: "Não há versão aprovada anterior para voltar.",
     rollback_loosens:
       "A versão anterior é mais frouxa que a ativa (revisão, temas sensíveis ou exigências menores). Rollback direto não vale: proponha essa versão como nova em Regras, com aprovação de outra pessoa.",
