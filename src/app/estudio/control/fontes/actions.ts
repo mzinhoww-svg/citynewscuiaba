@@ -765,14 +765,14 @@ async function recordCrawlDelay(ctx: Ctx, row: Row, crawlDelaySec: number | null
 }
 
 /**
- * Ativar/retomar (§7.3): termos revisados, robots.txt e teste de conexão antes de `active`; o
- * `Crawl-delay` lido fica gravado. Devolve o problema (texto) ou a versão para o `setStatus`.
+ * Ativar/retomar (§7.3): robots.txt e teste de conexão antes de `active`; o `Crawl-delay` lido
+ * fica gravado. Termos revisados deixaram de ser exigidos (A-127): a caixa só registra quando
+ * foram revisados. Devolve o problema (texto) ou a versão para o `setStatus`.
  */
 async function activationCheck(
   ctx: Ctx,
   row: Row,
 ): Promise<{ problem: string } | { version: number }> {
-  if (!row.terms_reviewed_at) return { problem: T.termsRequired };
   const result = await runTest(ctx, row);
   if (!result.ok) return { problem: result.message };
   return { version: await recordCrawlDelay(ctx, row, result.crawlDelaySec) };
@@ -908,8 +908,6 @@ export async function activateSourceAction(form: FormData): Promise<ActionState>
     version = r.value.version;
     row = (await sourceRow(ctx, id)) ?? row;
   }
-  if (!row.terms_reviewed_at) return fail(T.termsRequired, { termsReviewed: T.termsRequired });
-
   const checked = await activationCheck(ctx, row);
   if ("problem" in checked) return fail(checked.problem);
   const r = await ctx.store.setStatus(id, checked.version, "activate", null, auditCtx(ctx));
