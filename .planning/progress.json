@@ -865,8 +865,8 @@
     "migrations": "0130_guide_core (tabelas, RLS e funções), 0131_guide_sync, 0132_guide_templates_seed, 0133_guide_cron: aplicadas em produção em 04/10",
     "decision": "A-124",
     "next": [
-      "merge e deploy do PR #34",
-      "B-025: TRIPADVISOR_API_KEY"
+      "primeira coleta de lugares (cron 03h23 UTC)",
+      "dono rotaciona a TRIPADVISOR_API_KEY"
     ]
   },
   "segurancaP1": {
