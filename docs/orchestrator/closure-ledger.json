@@ -597,6 +597,20 @@
    "status": "REVIEWED",
    "evidence": "revisao adversarial; achados corrigidos em f110605",
    "next_action": "-"
+  },
+  {
+   "id": "L-025",
+   "categoria": "CI/e2e",
+   "status": "TESTED_LOCALLY",
+   "evidence": "c8e49db; 6 causas, mesmas falhas do main",
+   "next_action": "CI do PR #41"
+  },
+  {
+   "id": "L-026",
+   "categoria": "performance",
+   "status": "IDENTIFIED",
+   "evidence": "home JS 171597 > 170000; falha tambem sem mudanca de cliente",
+   "next_action": "cortar JS da home com medicao"
   }
  ]
 }
