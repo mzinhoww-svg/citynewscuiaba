@@ -21,6 +21,22 @@
 alter table public.rules drop constraint if exists rules_check;
 alter table public.rec_weights drop constraint if exists rec_weights_check;
 alter table public.approvals drop constraint if exists approvals_check;
+-- Em produção o nome gerado pode ser outro: remove pelo conteúdo qualquer CHECK que ainda proíba
+-- aprovador igual a quem pede ou propõe.
+do $$
+declare r record;
+begin
+  for r in
+    select c.conrelid::regclass as tbl, c.conname
+      from pg_constraint c
+     where c.contype = 'c'
+       and c.conrelid in ('public.rules'::regclass, 'public.rec_weights'::regclass, 'public.approvals'::regclass)
+       and pg_get_constraintdef(c.oid) ~ 'approved_by <> (proposed_by|requested_by)'
+  loop
+    execute format('alter table %s drop constraint %I', r.tbl, r.conname);
+  end loop;
+end
+$$;
 
 -- ---------------------------------------------------------------------------
 -- two_person_error: Nome mantido (é chamado em todo o banco); só a dica deixa de falar em duas pessoas.
