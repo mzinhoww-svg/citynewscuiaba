@@ -27,16 +27,32 @@ export const metadata: Metadata = pageMetadata({
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 
-const ANCHORS = [
-  { id: "editorias", label: EXPLORE.sections },
-  { id: "assuntos", label: EXPLORE.topics },
-  { id: "colecoes", label: EXPLORE.collections },
-  { id: "mais-lidas", label: EXPLORE.mostRead },
-  { id: "fontes-agenda", label: EXPLORE.shortcuts },
-  { id: "guia", label: EXPLORE.guide },
-] as const;
+type Anchor = { id: string; label: string };
 
-function Header() {
+/** Atalhos e serviços não dependem do banco: sempre na página. */
+const STATIC_ANCHORS: readonly Anchor[] = [
+  { id: "atalhos", label: EXPLORE.shortcuts },
+  { id: "servicos", label: EXPLORE.guide },
+];
+
+/**
+ * Âncoras "Nesta página" só das seções que de fato renderizam (UX-W4-T3, item 67), na ordem
+ * em que aparecem: com o banco fora, editorias, assuntos e coleções somem; sem mais lidas, ela
+ * também.
+ */
+function anchorsFor(data: ExploreData | null): Anchor[] {
+  const fromData: Anchor[] = data
+    ? [
+        { id: "editorias", label: EXPLORE.sections },
+        { id: "assuntos", label: EXPLORE.topics },
+        { id: "colecoes", label: EXPLORE.collections },
+        ...(data.mostRead.length > 0 ? [{ id: "mais-lidas", label: EXPLORE.mostRead }] : []),
+      ]
+    : [];
+  return [...fromData, ...STATIC_ANCHORS];
+}
+
+function Header({ anchors }: { anchors: readonly Anchor[] }) {
   return (
     <header className="flex flex-col gap-4 border-b border-line-strong pb-4">
       <div className="flex max-w-read flex-col gap-3">
@@ -45,7 +61,7 @@ function Header() {
       </div>
       <nav aria-label={EXPLORE.onThisPage}>
         <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
-          {ANCHORS.map((a) => (
+          {anchors.map((a) => (
             <li key={a.id} className="snap-start">
               <TagLink href={`#${a.id}`}>{a.label}</TagLink>
             </li>
@@ -56,17 +72,29 @@ function Header() {
   );
 }
 
-/** Links que não dependem do banco: aparecem mesmo com o banco fora. */
+/**
+ * Links que não dependem do banco: aparecem mesmo com o banco fora. Cada atalho leva aonde o
+ * texto diz (item 68); o Perguntar ao CityNews tem entrada própria aqui (item 66).
+ */
 function Shortcuts() {
   return (
     <>
       <section
-        id="fontes-agenda"
-        aria-labelledby="explorar-fontes-agenda"
+        id="atalhos"
+        aria-labelledby="explorar-atalhos"
         className="flex scroll-mt-32 flex-col gap-4"
       >
-        <SectionHeader id="explorar-fontes-agenda" title={EXPLORE.shortcuts} action={null} />
+        <SectionHeader id="explorar-atalhos" title={EXPLORE.shortcuts} action={null} />
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <li className="flex">
+            <SectionTile
+              href="/pergunte"
+              name={EXPLORE.ask}
+              meta={EXPLORE.askText}
+              icon="message-circle"
+              className="flex-1"
+            />
+          </li>
           <li className="flex">
             <SectionTile
               href="/fontes"
@@ -97,12 +125,16 @@ function Shortcuts() {
         </ul>
       </section>
       <section
-        id="guia"
-        aria-labelledby="explorar-guia"
+        id="servicos"
+        aria-labelledby="explorar-servicos"
         className="flex scroll-mt-32 flex-col gap-4"
       >
-        <SectionHeader id="explorar-guia" title={EXPLORE.guide} actionHref={EXPLORE.guideMore} />
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SectionHeader
+          id="explorar-servicos"
+          title={EXPLORE.guide}
+          actionHref={EXPLORE.guideMore}
+        />
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {GUIDE_LINKS.map((g) => (
             <li key={g.href} className="flex">
               <ServiceTile
@@ -246,7 +278,7 @@ export default async function ExploreRoute() {
   }
   return (
     <div className={`${CONTAINER} flex flex-col gap-12 py-8 lg:py-10`}>
-      <Header />
+      <Header anchors={anchorsFor(r.ok ? r.value : null)} />
       {r.ok ? (
         <Explore data={r.value} />
       ) : (
