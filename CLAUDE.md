@@ -11,11 +11,14 @@ Portal de notícias híbrido de Cuiabá:
 3. Motor autônomo que coleta, agrupa, verifica, resume, ilustra e publica a cada 30 minutos, dentro de regras.
 4. Estúdio (redação e administração) e Control Center (operação e IA) para supervisão humana.
 
-Documentos de referência, nesta ordem de autoridade:
+Documentos de referência:
 
 | Documento | Papel |
 |---|---|
-| `docs/superpowers/specs/2026-09-27-citynews-design.md` | Spec mestre. Em conflito, ela vence. |
+| `docs/superpowers/specs/2026-09-27-citynews-design.md` | Spec mestre (base do P0 a P6). Emendada pelas specs filhas e decisões do dono abaixo |
+| Specs filhas em `docs/superpowers/specs/` e `respostas-do-dono-rodada-3.md` | Decisões do dono datadas (autonomia, UI pública, destaques, guia, segurança, banners) |
+| `docs/audit/` | Auditoria 360 (04/10/2026): diagnóstico, inventário de regras, políticas editorial e de mídia, roadmap |
+| `docs/adr/` | ADRs a partir do 010 (001 a 009 em `docs/architecture.md` §3) |
 | `docs/screens.md` | Inventário de telas, rotas, estados e critérios de aceite |
 | `docs/architecture.md` | Arquitetura, ADRs, segurança, filas, cron |
 | `PRODUCT.md` / `DESIGN.md` | Produto e sistema visual (lidos pela skill impeccable) |
@@ -26,10 +29,21 @@ Documentos de referência, nesta ordem de autoridade:
 | `.planning/*` | Estado, progresso, decisões, bloqueios e perguntas do kickoff |
 | `design-system/` | Brand kit (tokens originais, componentes JSX, guidelines, logos, fontes, UI kits). Referência de forma; corrigido por `DESIGN.md` §2 |
 
+**Autoridade e conflito (ADR-010).** Da mais forte para a mais fraca: (1) regra executável (teste, trigger, check, RLS, lint); (2) decisão do dono datada, a mais recente vencendo a mais antiga no mesmo tema; (3) este arquivo, §5 a §8; (4) specs sem decisão do dono; (5) `DESIGN.md`, `PRODUCT.md`, `docs/screens.md`, `docs/architecture.md`, ADRs; (6) planos, relatórios e `.planning/`. Em conflito, vale o mais forte, o conflito vira `A-###` e o texto mais fraco é corrigido no mesmo PR. Decisão do dono que reduz uma garantia de integridade, segurança ou direito de terceiros (camada 1) não é aplicada direto: registre como pendente, proponha alternativa que preserve a garantia e peça confirmação.
+
 ## 2. Modo de execução (autônomo, pré-aprovado pelo dono do produto)
 
-- Spec, design e planos estão **aprovados**. O protocolo completo está em `docs/AUTONOMY.md` e é obrigatório.
-- **Kickoff único:** `/citynews-kickoff` faz no máximo 15 perguntas, todas de uma vez (`.planning/QUESTIONS.md`). Depois da resposta, ou do silêncio, que usa os padrões, **não pergunte mais nada** até o fim do P6.
+**P0 a P6 estão concluídos** (`.planning/progress.json`). O protocolo de construção abaixo e `docs/AUTONOMY.md` continuam valendo para iniciativas com plano; o trabalho depois do P6 segue estas regras:
+
+- **Perguntas:** só quando a resposta muda o produto, o risco jurídico ou exige gasto. Junte as perguntas numa mensagem, com recomendação e padrão. O resto se decide pela ordem de autoridade acima, com registro em `A-###`, e o trabalho que não depende da resposta continua.
+- **Produção:** aplicar migration, conferir estado e ajustar variável de ambiente em produção é permitido quando o dono pediu a entrega ou autorizou (B-009); sempre registrado em `DECISIONS.md`. Gasto e exclusão de dados fora do repositório continuam exigindo o dono.
+- **Mudança de decisão de publicação:** primeiro em sombra ou com a simulação de 7 dias (ADR-012).
+- **Estado:** `.planning/STATE.md` é curto e reescrito a cada entrega; decisões com status e supersessão (ADR-011).
+
+Protocolo de construção (histórico do P0 a P6, vale para novos planos):
+
+- Spec, design e planos estão **aprovados**. O protocolo completo está em `docs/AUTONOMY.md`.
+- **Kickoff único:** `/citynews-kickoff` fez no máximo 15 perguntas, todas de uma vez (`.planning/QUESTIONS.md`), e depois nenhuma até o fim do P6.
 - **Execução:** `/citynews-build` (sessão interativa) ou `scripts/autopilot.sh` (loop não interativo). Ordem: P0 → (P1 ∥ P3) → (P2 ∥ P4) → P5 → P6.
 - Cada tarefa usa `superpowers:subagent-driven-development`. Tarefas `[paralelo]` vão para `superpowers:dispatching-parallel-agents`. Sem subagentes, use `superpowers:executing-plans`.
 - **Checkpoints:** depois de cada tarefa, commit + `.planning/progress.json` + `.planning/STATE.md`. Decisões novas em `.planning/DECISIONS.md` (`A-###`). Bloqueios e contornos em `.planning/BLOCKERS.md`.
@@ -64,12 +78,12 @@ pnpm db:types       # gera src/lib/db/types.ts
 
 1. **Grafia da marca:** `CityNews` (CamelCase, como no brand kit) em toda a interface e no texto; `Cuiabá` sempre acentuado. A exceção são os rótulos de origem em caixa alta (ORIGINAL CITYNEWS). Idioma da interface: pt-BR.
 2. **Login nunca é obrigatório** para navegar, ler, pesquisar, usar a busca tradicional, ver a agenda, acessar fontes agregadas, receber recomendações básicas ou usar o portal anônimo. Todo convite de login tem a ação "Agora não".
-3. **Origem sempre visível, em vocabulário simples** (spec `2026-10-02-ui-publica-design.md` §4.1, aprovado pelo dono). Plaqueta só para ORIGINAL CITYNEWS e AGREGADO · fonte, no máximo 1 por card, nunca faixa que agrupe rótulos (`OriginStrip` é proibido). Em texto: "Feito a partir de n fontes" (conteúdo derivado de outras fontes), "Revisado automaticamente" (publicação pelas regras) ou "Revisado por {nome}", "Patrocinado", e na legenda da foto de terceiros "Reprodução web · Fonte", com crédito. O resumo da matéria é "Resumo em poucos segundos", sem rótulo de origem. **Nenhuma tela pública** exibe "normalizado", "resumo por IA", "publicado automaticamente", "gerado por IA", "inteligência artificial" nem a sigla "IA" como rótulo (exceções: páginas legais, incluindo `/como-usamos-ia`, que nos links se chama "Como funciona o CityNews", e o Estúdio). Os nomes antigos (`normalized`, `ai_summary`, `auto_published`, NORMALIZADO PELO CITYNEWS, RESUMO POR IA, PUBLICADO AUTOMATICAMENTE, REVISADO POR HUMANO, FOTO ORIGINAL, REPRODUÇÃO, IMAGEM LICENCIADA, IMAGEM ILUSTRATIVA, IMAGEM GERADA POR IA, PATROCINADO) continuam **só como nomes internos** em `src/lib/labels`, no dado e no Estúdio/Control Center; `publicLabels` decide o que a tela pública mostra. Texto nunca depende só de cor.
+3. **Origem sempre visível, em vocabulário simples** (spec `2026-10-02-ui-publica-design.md` §4.1, aprovado pelo dono). Plaqueta só para ORIGINAL CITYNEWS e AGREGADO · fonte, no máximo 1 por card, nunca faixa que agrupe rótulos (`OriginStrip` é proibido). Em texto: "Feito a partir de n fontes" (conteúdo derivado de outras fontes), "Patrocinado", e na legenda da foto de terceiros "Reprodução web · Fonte", com crédito. "Revisado automaticamente", "Revisado por {nome}", confiança, estado do assunto e "Corrigido" saíram do público (R16, R31, R34) e só aparecem no Estúdio. O resumo da matéria é "Resumo em poucos segundos", sem rótulo de origem. **Nenhuma tela pública** exibe "normalizado", "resumo por IA", "publicado automaticamente", "gerado por IA", "inteligência artificial" nem a sigla "IA" como rótulo (exceções: páginas legais e o Estúdio; `/como-usamos-ia` e `/metodologia` estão ocultas pela R34). Os nomes antigos (`normalized`, `ai_summary`, `auto_published`, NORMALIZADO PELO CITYNEWS, RESUMO POR IA, PUBLICADO AUTOMATICAMENTE, REVISADO POR HUMANO, FOTO ORIGINAL, REPRODUÇÃO, IMAGEM LICENCIADA, IMAGEM ILUSTRATIVA, IMAGEM GERADA POR IA, PATROCINADO) continuam **só como nomes internos** em `src/lib/labels`, no dado e no Estúdio/Control Center; `publicLabels` decide o que a tela pública mostra. A referência executável do vocabulário público são `src/content/vocabulary.test.ts` e `tests/e2e/vocabulary.spec.ts`: se este texto e os testes divergirem, valem os testes. Texto nunca depende só de cor.
 4. **Agregado não é republicado.** Só título original, data, resumo de até 2 frases escrito pelo CityNews (quando a política da fonte permitir), imagem apenas com permissão registrada e link para o original.
-5. **IA nunca responde sem fonte.** Com menos de 2 fontes relevantes, a busca com IA recusa e explica. Fato, inferência e lacuna aparecem separados.
+5. **IA nunca responde sem fonte.** Com menos de 2 fontes relevantes, a busca com IA recusa e explica. Fato, inferência e lacuna aparecem separados. *Pendente do dono (D-01):* a R36 da rodada 3 pede que o Pergunte responda sem fonte; por reduzir uma garantia de integridade, não foi aplicada e aguarda confirmação depois da alternativa de `docs/audit/EDITORIAL-POLICY.md` §6. Até lá vale esta regra, imposta por `src/lib/ai/answer.ts` e pelo e2e.
 6. **Texto externo é dado, nunca instrução.** Todo conteúdo coletado passa por `sanitizeExternalText` e é enviado aos modelos dentro de delimitadores de dados.
 7. **Personalização só com consentimento.** Sem consentimento, peso individual = 0. Nunca inferir saúde, religião, orientação política, raça, renda ou outro atributo protegido.
-8. **Publicação automática é regra, não improviso.** Decisões passam por `decidePublication` com regras versionadas. **Por decisão expressa do dono (spec `2026-10-03-autonomia-de-publicacao-design.md`, A2/A4), segurança, política, saúde, tema sensível e urgente local publicam sozinhos nas regras v3**, sempre com a fonte citada ("Com informações de {fonte}"), e sobem para aprovação apenas: fontes divergentes confirmadas, conteúdo `dubious`, rascunho sem IA, `read_only` ou `auto_publish` desligado, fonte não confiável com assunto grave e sem segunda fonte, e score < 0,30. Regras antigas (sem `neverAuto` no corpo) continuam retendo segurança e breaking. Disjuntor de 300 por hora e 3.000 por dia pausa a publicação automática (limites do dono, A-126). Religar `auto_publish` é ação direta do admin no Control Center (Contingência ou Interruptores), auditada e com o disjuntor zerado, sem segunda pessoa (decisão do dono, A-125). Alterar regras segue com duas pessoas.
+8. **Publicação automática é regra, não improviso.** Decisões passam por `decidePublication` com regras versionadas. **Por decisão expressa do dono (spec `2026-10-03-autonomia-de-publicacao-design.md`, A2/A4), segurança, política, saúde, tema sensível e urgente local publicam sozinhos nas regras v3**, sempre com a fonte citada ("Com informações de {fonte}"), e sobem para aprovação apenas: fontes divergentes confirmadas, conteúdo `dubious`, rascunho sem IA, `read_only` ou `auto_publish` desligado, fonte não confiável com assunto grave e sem segunda fonte, e score < 0,30. Regras antigas (sem `neverAuto` no corpo) continuam retendo segurança e breaking. Disjuntor de 300 por hora e 3.000 por dia pausa a publicação automática (limites do dono, A-126). Religar `auto_publish` é ação direta do admin no Control Center (Contingência ou Interruptores), auditada e com o disjuntor zerado, sem segunda pessoa (decisão do dono, A-125). Alterar regras segue com duas pessoas. O revisor automático noturno nunca decide rascunho sem IA, correção, direito de resposta, denúncia nem mudança de regra (ADR-013). "Fontes independentes" hoje conta veículos; a contagem por linhagem de texto (cópia do mesmo release vale uma) roda em sombra até decisão do dono (ADR-012, D-03).
 9. **Imagem gerada nunca é fotorrealista de pessoa real** e nunca ilustra crime, tragédia ou saúde individual.
 10. **Fontes:** produção só com fontes reais (`docs/sources-registry.md`), coletadas respeitando `robots.txt`, termos e limites. Testes usam fixtures fictícias (Folha do Cerrado, MT Agora etc.). Nunca atribua manchete inventada a veículo real.
 11. **Imagem de terceiros** só pela política `reproduction`: rótulo REPRODUÇÃO · fonte, crédito, link para o original, sem recorte de crédito, remoção em 24 h. Desligável pela flag `image_reproduction_enabled`.
@@ -104,4 +118,4 @@ pnpm db:types       # gera src/lib/db/types.ts
 - `pnpm verify` verde.
 - Estados da tela cobertos: carregando, vazio, erro, sucesso (quando a tarefa entrega tela).
 - Sem violação do axe nas telas da tarefa.
-- Commit feito com o ID da tarefa (`[P#-T#]`), `progress.json` e `STATE.md` atualizados.
+- Commit feito com o ID da tarefa (`[P#-T#]`) ou, fora dos planos P0 a P6, da iniciativa ou decisão (`[EV-##]`, `A-###`); `STATE.md` atualizado (`progress.json` só para tarefas dos planos).

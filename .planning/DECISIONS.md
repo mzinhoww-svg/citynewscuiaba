@@ -1,6 +1,6 @@
 # Registro de decisões
 
-Decisões de produto e arquitetura D1 a D18 estão em `docs/superpowers/specs/2026-09-27-citynews-design.md` §2 e não são reabertas. Refinamentos visuais R1 a R14 estão em `DESIGN.md` §2.
+Decisões de produto e arquitetura D1 a D18 estão em `docs/superpowers/specs/2026-09-27-citynews-design.md` §2. Só o dono as reabre, por decisão datada (como fez com D11 e D12 na spec de autonomia), e a emenda é registrada aqui (ADR-010, ADR-011). Refinamentos visuais R1 a R14 estão em `DESIGN.md` §2.
 
 Decisões autônomas tomadas durante a execução recebem `A-###`:
 
@@ -212,3 +212,37 @@ Pedido do dono (print do celular): abaixo de `lg` a casca do Estúdio empilhava 
 ## A-124 · Guia Cuiabá em produção: migrations 0130 a 0133 (04/10/2026)
 
 Aplicadas em `citynews-prod`: 0130 (tabelas, RLS, políticas, funções, ações de auditoria, flag `guide_auto_publish`), 0131 (colunas de conferência e cron de lugares), 0132 (30 modelos) e 0133 (crons `guide-propose` e `guide-refresh`). No Supabase o histórico ficou como `0130_guide_core_security_and_functions`, `0130_guide_core_tables` (reaplicação idempotente só para registrar), `0131_guide_sync`, `0132_guide_templates_seed`, `0133_guide_cron`. Incidente: as 8 tabelas da 0130 foram criadas primeiro por `execute_sql`, sem RLS, e ficaram assim por alguns minutos (vazias, sem dado exposto); corrigido em seguida com `apply_migration` e conferido (RLS ligada, políticas e grants, `anon` só lê listas publicadas). Regra para o futuro: DDL de produção só por `apply_migration` com o arquivo inteiro, com RLS no mesmo script. Os crons chamam rotas que só existem após o deploy do PR #34 (404 até lá, sem efeito).
+
+## Convenção a partir de A-127 (ADR-011)
+
+Toda decisão nova traz **Status**: `vigente`, `superada por A-###` ou `pendente do dono`. Número = maior `A-###` em `main` + 1; colisão no merge, quem chegou depois renumera e cita o número antigo. As linhas antigas não são reescritas: o que foi superado está na lista abaixo.
+
+### Supersessões e colisões conhecidas (levantadas na auditoria 360)
+
+| Decisão antiga | Superada por | Tema |
+|---|---|---|
+| D11, D12 (spec mestre: revisão de 100% no início, breaking sempre humano) | spec de autonomia A2/A4, A-106 | Publicação automática em segurança, política, saúde, breaking |
+| A-103 (regras v2, score 0,5) | A-106 (regras v3, score 0,30) | Portões de publicação |
+| A-067, A-110 (religar automático com duas pessoas; disjuntor 60/h e 800/dia) | A-125 (uma pessoa), A-126 (300/h e 3.000/dia) | Disjuntor e contingência |
+| A-101 | A-102 | Merge da PR #1 |
+| R29 (15 linhas) | R41 (30 linhas), A-109 | Tamanho mínimo |
+| Spec de autonomia A8 e A13 | A-126, A-125 | Mesmos temas acima |
+| CLAUDE.md §5 regra 5 | R36 **não aplicada**, pendente do dono (A-130) | Pergunte sem fonte |
+
+Colisões de número: A-123 aparece em commits da reescrita ao vivo (`69762a3`, `37a75cf`), que virou A-126; aqui A-123 é o Estúdio no celular. A-117 é citado em `STATE.md` antigo para ADS-T1, cuja decisão é A-119. `progress.json` cita A-124 para MS-T2, cuja decisão é A-118.
+
+## A-127 · Revisor automático nunca decide rascunho sem IA (04/10/2026)
+
+**Status:** vigente. Auditoria 360, achado P0-01 (`docs/audit/AUDIT-REPORT.md`). `isReviewable` e `review_due_articles` não olhavam `ai_fallback`: à noite o revisor podia publicar a lista de trechos das fontes, o que republicaria texto de terceiros (regra 4). Agora o código recusa (`auto-reviewer.ts`) e a migration 0148 filtra na função, para esses itens não ocuparem o lote. O contexto do revisor passa a dizer se há fontes divergentes confirmadas e conteúdo duvidoso. ADR-013. Testes: `auto-reviewer.test.ts` (2 novos), `tests/integration/aut-t6-reviewer.test.ts` (1 novo, roda no CI). **Falta aplicar 0148 em produção.** Reversível: reaplicar a função de 0141.
+
+## A-128 · Linhagens independentes em sombra (04/10/2026)
+
+**Status:** vigente (fase 1). Auditoria 360, achado P0-02. "Fontes independentes" conta veículos distintos, então o mesmo release em três portais vale três confirmações. `src/lib/confidence/lineage.ts` agrupa itens do mesmo veículo ou com trechos copiados (≥ 80% das sequências de 4 palavras do menor, trechos ≥ 15 palavras) e o `verify` grava `independentLineages` na decisão, sem mudar confiança nem portão. Ligar às regras é a decisão D-03 do dono, depois de 2 semanas de dados. ADR-012.
+
+## A-129 · Governança: ordem de autoridade, protocolo pós-P6, STATE curto (04/10/2026)
+
+**Status:** vigente. Auditoria 360, achado P1-01. `CLAUDE.md` §1 troca "a spec mestre vence" pela ordem do ADR-010 (regra executável → decisão do dono datada → CLAUDE.md → specs → design e arquitetura → planos); §2 ganha regras para depois do P6 (perguntas só de produto, risco jurídico ou gasto; produção autorizada registrada; sombra antes de portão); §5 regra 3 alinhada aos testes de vocabulário e às R16, R31 e R34; §9 aceita ID de iniciativa. `STATE.md` reescrito. `docs/architecture.md` anotado onde diverge do código (fila `jobs`, migrations à mão, alertas). Reversível.
+
+## A-130 · R36 (Pergunte sem fonte) fica pendente do dono (04/10/2026)
+
+**Status:** pendente do dono (D-01). A R36 da rodada 3 substitui a regra 5 ("IA nunca responde sem fonte"). Por reduzir uma garantia de integridade (camada 1, ADR-010 §4), não foi aplicada: o código e o e2e continuam recusando com menos de 2 veículos. Alternativa proposta em `docs/audit/EDITORIAL-POLICY.md` §6: com 1 fonte, responde só o que ela diz, atribuído; com 0, mostra a busca tradicional e oferece alerta; nunca afirma sem fonte.
