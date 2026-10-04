@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import { GUIDE } from "@/content/pt-BR/guide";
 import { Button } from "../../ui/Button";
+import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
 
 type State = "idle" | "sending" | "done" | "invalid" | "rate_limited" | "error";
@@ -69,20 +70,16 @@ export function ReportVenueForm({ venueId }: { venueId: string }) {
       </summary>
       <form onSubmit={submit} className="mt-3 flex max-w-read flex-col gap-4" noValidate>
         <p className="type-body text-body">{T.intro}</p>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`${uid}-motivo`} className="type-meta font-semibold text-strong">
-            {T.reason}
-          </label>
-          <textarea
-            id={`${uid}-motivo`}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            rows={4}
-            maxLength={1000}
-            required
-            className="w-full rounded-md border border-line-control bg-card-white p-3 type-body text-strong"
-          />
-        </div>
+        <TextArea
+          id={`${uid}-motivo`}
+          name="motivo"
+          label={T.reason}
+          value={reason}
+          onChange={setReason}
+          rows={4}
+          maxLength={1000}
+          required
+        />
         <TextField
           id={`${uid}-contato`}
           label={T.contact}
