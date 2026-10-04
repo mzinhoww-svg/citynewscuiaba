@@ -205,6 +205,12 @@ export {
 export { AiAnswer, type AiAnswerProps } from "./ai/AiAnswer";
 export { AiStatusPanel, type AiStatusPanelProps } from "./ai/AiStatusPanel";
 export { AnswerFeedback } from "./ai/AnswerFeedback";
+export { AskChatLazy } from "./ai/AskChatLazy";
+export type { AskChatProps } from "./ai/AskChat";
+export type { ChatComposerProps } from "./ai/ChatComposer";
+export type { ChatMessageProps } from "./ai/ChatMessage";
+export type { ChatSourcesProps } from "./ai/ChatSources";
+export type { ChatThreadProps } from "./ai/ChatThread";
 export { Citation, type CitationProps } from "./ai/Citation";
 export { SourceRail, type SourceRailProps } from "./ai/SourceRail";
 export { SuggestionChip, type SuggestionChipProps } from "./ai/SuggestionChip";

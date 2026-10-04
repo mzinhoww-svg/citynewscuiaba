@@ -13,6 +13,10 @@ export interface SourceRailProps {
   /** Prefixo dos ids (`fonte` → `fonte-1`), alvo das citações. */
   idPrefix?: string;
   now?: Date;
+  /** Fonte em destaque (1 = primeira), pela citação clicada no chat (UI-T13). */
+  active?: number;
+  /** Nível do título (o chat usa 3, dentro da resposta). */
+  headingLevel?: 2 | 3;
   className?: string;
 }
 
@@ -29,20 +33,28 @@ export function SourceRail({
   title = ASK.sourcesTitle,
   idPrefix = "fonte",
   now,
+  active,
+  headingLevel = 2,
   className,
 }: SourceRailProps) {
   const id = useId();
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
     <section aria-labelledby={id} className={cx("flex flex-col gap-3", className)}>
-      <h2 id={id} className="type-section text-strong">
+      <Heading id={id} className="type-section text-strong">
         {title}
-      </h2>
+      </Heading>
       <ol className="flex flex-col divide-y divide-line-section border-y border-line-section">
         {sources.map((s, i) => (
           <li
             key={`${s.kind}:${s.id}`}
             id={`${idPrefix}-${i + 1}`}
-            className="flex scroll-mt-24 gap-3 py-3 target:bg-ia-soft"
+            aria-current={active === i + 1 ? "true" : undefined}
+            tabIndex={active === i + 1 ? -1 : undefined}
+            className={cx(
+              "flex scroll-mt-24 gap-3 py-3 target:bg-ia-soft",
+              active === i + 1 && "bg-ia-soft",
+            )}
           >
             <span
               aria-hidden="true"

@@ -30,6 +30,8 @@
 /* Medidas de layout descritas em DESIGN.md §1 que ainda não tinham token. */
 :root {
   --layout-rail: 300px; /* barra lateral da web (agenda) e navegação do Estúdio */
+  --layout-chat: 720px; /* conversa do Pergunte ao CityNews (spec ui-publica §4.8) */
+  --layout-chat-history: 240px; /* histórico local do chat no desktop */
 }
 
 @theme inline {
@@ -116,6 +118,7 @@
   --spacing-rail: var(--layout-rail);
   --container-page: var(--container-max);
   --container-read: var(--measure-read);
+  --container-chat: var(--layout-chat);
 
   /* Tipografia auxiliar */
   --leading-tight: var(--lh-tight);
@@ -411,6 +414,20 @@
 }
 :root[data-consent-open] body {
   padding-bottom: var(--cn-consent-h, 0px);
+}
+
+/*
+ * Chat do Pergunte (UI-T13): no celular o campo de envio fica fixo acima da barra inferior; a
+ * página ganha no fim a altura dele (`--cn-chat-h`, medida pelo AskChat) e o foco rola para
+ * acima dele. No desktop o campo é `sticky` dentro da coluna e nada muda.
+ */
+@media (max-width: 1023.98px) {
+  :root:root[data-chat-open] {
+    scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-chat-h, 0px) + var(--tap-min));
+  }
+  :root[data-chat-open] body {
+    padding-bottom: var(--cn-chat-h, 0px);
+  }
 }
 
 /* Slider nativo (input range): trilho com preenchimento Urucum até --cn-range-fill. */
