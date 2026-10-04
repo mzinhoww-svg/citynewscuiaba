@@ -43,10 +43,13 @@ export const viewport: Viewport = {
   // A página ocupa a tela inteira do iPhone (atrás do entalhe e da barra de gestos); o cabeçalho
   // (`pt-safe-top`) e as barras inferiores (`*-safe`) devolvem a área segura.
   viewportFit: "cover",
+  // Cor da barra do navegador: metadado em hex por exigência do HTML (`<meta name="theme-color">`).
+  /* eslint-disable no-restricted-syntax */
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1320" },
   ],
+  /* eslint-enable no-restricted-syntax */
 };
 
 /* Aplica o tema salvo (cn_theme) ou o do sistema e o tamanho de leitura (cn_reading_size) antes da primeira pintura. */

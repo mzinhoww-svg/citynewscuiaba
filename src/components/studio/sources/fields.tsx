@@ -5,7 +5,6 @@ import { FIELD_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { cx } from "../../cx";
 import { describedBy, FieldShell } from "../../ui/Field";
 import { Icon } from "../../ui/Icon";
-import { SelectControl } from "../../ui/Select";
 import { StatusBadge } from "../../ui/StatusBadge";
 import { TextArea } from "../../ui/TextArea";
 
@@ -13,7 +12,7 @@ import { TextArea } from "../../ui/TextArea";
  * Peças internas dos formulários do painel de fontes (assistente e aba Configuração): rótulo
  * visível, dica e erro ligados por `aria-describedby`, controle com a borda de controle do kit
  * (R4). Controladas (o formulário precisa do valor para o diff de mudança crítica e para a prévia
- * da frequência). As listas de opções usam o controle do `Select` do kit.
+ * da frequência). As listas de opções usam `Select`/`SelectControl` do kit direto.
  */
 
 export const CONTROL_CLASS =
@@ -34,99 +33,6 @@ export interface OptionLike {
 export interface OptionGroupLike {
   label: string;
   options: readonly OptionLike[];
-}
-
-/**
- * Temporário (removido na W2-T11): mesma API de antes, agora sobre o controle do `Select` do kit
- * no tamanho compacto (`size="sm"`), sem rótulo próprio (quem chama já tem o rótulo).
- */
-export function NativeSelect({
-  id,
-  name,
-  value,
-  onChange,
-  options,
-  groups,
-  hint,
-  error,
-  disabled,
-}: {
-  id: string;
-  name: string;
-  value: string;
-  onChange: (value: string) => void;
-  options?: readonly OptionLike[];
-  groups?: readonly OptionGroupLike[];
-  hint?: ReactNode;
-  error?: string | null;
-  disabled?: boolean;
-}) {
-  return (
-    <SelectControl
-      id={id}
-      name={name}
-      size="sm"
-      value={value}
-      onChange={onChange}
-      options={options}
-      groups={groups}
-      hint={hint}
-      error={error}
-      disabled={disabled}
-    />
-  );
-}
-
-/**
- * Rótulo + controle do `Select` do kit no tamanho de formulário: dica e erro informados uma vez só
- * (o `FieldShell` renderiza os elementos; o `<select>` recebe o `aria-describedby`
- * correspondente). `children` entra depois do controle e antes da dica (prévia da frequência).
- */
-export function SelectField({
-  id,
-  name,
-  label,
-  value,
-  onChange,
-  options,
-  groups,
-  hint,
-  error,
-  aside,
-  disabled,
-  className,
-  children,
-}: {
-  id: string;
-  name: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options?: readonly OptionLike[];
-  groups?: readonly OptionGroupLike[];
-  hint?: ReactNode;
-  error?: string | null;
-  aside?: ReactNode;
-  disabled?: boolean;
-  className?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <FieldShell id={id} label={label} hint={hint} error={error} aside={aside} className={className}>
-      <SelectControl
-        id={id}
-        name={name}
-        value={value}
-        onChange={onChange}
-        options={options}
-        groups={groups}
-        hint={hint}
-        error={error}
-        disabled={disabled}
-      />
-      {children}
-    </FieldShell>
-  );
 }
 
 /** Selo de campo crítico: ícone + texto, nunca só cor. */

@@ -235,14 +235,7 @@ export {
   type PushTabsNavProps,
 } from "./studio/push/PushTabsNav";
 export { FunnelChart, type FunnelChartProps } from "./studio/push/FunnelChart";
-export {
-  ActionMessage,
-  CheckboxField,
-  FieldShell,
-  NativeSelect,
-  SelectField,
-  TextInput,
-} from "./studio/sources/fields";
+export { ActionMessage, CheckboxField, FieldShell, TextInput } from "./studio/sources/fields";
 export {
   AgentTable,
   type AgentEditInput,
