@@ -42,7 +42,7 @@ export const NECESSARY_ONLY: Consent = Object.freeze({
   decided: true,
 });
 
-/** "Aceitar recomendações": métricas e personalização. */
+/** "Aceitar métricas e recomendações": métricas e personalização. */
 export const ACCEPT_ALL: Consent = Object.freeze({
   version: CONSENT_VERSION,
   metrics: true,

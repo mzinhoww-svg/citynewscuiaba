@@ -7,7 +7,7 @@ export const CONSENT_TEXT = {
   learnMoreShort: "Saiba mais",
   necessaryOnly: "Só o necessário",
   choose: "Escolher",
-  acceptAll: "Aceitar recomendações",
+  acceptAll: "Aceitar métricas e recomendações",
   panelTitle: "Escolha o que o CityNews pode usar",
   panelIntro: "Você pode mudar isso quando quiser na página de Privacidade.",
   save: "Salvar escolhas",
