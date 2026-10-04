@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { UI } from "@/content/pt-BR/ui";
 import { cx } from "../cx";
 import { IconButton } from "./IconButton";
-import { useModalDialog } from "./useModalDialog";
+import { closedByUser, useModalDialog } from "./useModalDialog";
 
 export interface DialogProps {
   open?: boolean;
@@ -89,7 +89,9 @@ export function Dialog({
       tabIndex={-1}
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
-      onClose={() => onClose?.()}
+      onClose={(e) => {
+        if (closedByUser(e.currentTarget)) onClose?.();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}

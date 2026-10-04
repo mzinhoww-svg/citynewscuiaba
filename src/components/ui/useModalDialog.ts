@@ -34,3 +34,13 @@ export function useModalDialog({ lockScroll = false }: ModalDialogOptions = {}) 
     [lockScroll],
   );
 }
+
+/**
+ * O evento `close` chega numa tarefa seguinte ao `close()`. Só conta como fechamento pela pessoa
+ * (Esc, botão do navegador) quando o diálogo continua no documento e fechado: o `close()` da
+ * desmontagem gera um evento num nó já fora da página, e no StrictMode o React remonta o
+ * diálogo (aberto de novo) antes de o evento chegar.
+ */
+export function closedByUser(el: HTMLDialogElement): boolean {
+  return el.isConnected && !el.open;
+}
