@@ -160,6 +160,8 @@ export interface TopicView extends TopicRef {
   updatedAt: string;
   articleCount: number;
   sourceCount: number;
+  /** Capa aprovada de uma matéria do assunto (home: "Assuntos em destaque" só exibe com foto, R40). */
+  cover?: ArticleImage;
 }
 
 export interface TimelineEntry {
@@ -252,7 +254,9 @@ export interface ExploreData {
   sections: SectionShortcut[];
   topics: TopicView[];
   collections: CollectionView[];
-  /** Mais lidas dos últimos 7 dias. */
+  /** `explorar.topo`: matéria em evidência (pino ou automático, com capa); `null` sem candidata. */
+  featured: ArticleSummary | null;
+  /** Mais lidas dos últimos 7 dias (sem repetir a matéria em evidência). */
   mostRead: ArticleSummary[];
 }
 
@@ -267,6 +271,8 @@ export interface HomeData {
   generatedAt: string;
   urgent: ArticleSummary | null;
   lead: ArticleSummary | null;
+  /** `home.destaques`: até 3 matérias com capa, sem repetir a manchete (FD-T2). */
+  highlights: ArticleSummary[];
   now: ArticleSummary[];
   topics: TopicView[];
   collections: CollectionView[];

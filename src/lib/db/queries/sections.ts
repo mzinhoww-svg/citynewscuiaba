@@ -4,6 +4,7 @@ import type { SectionFilters, SectionPeriod } from "@/lib/filters/section";
 import { startOfDay } from "@/lib/format/date";
 import type { Result } from "@/lib/result";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, summarize } from "./articles";
+import { getFeatured } from "./featured";
 import { many, readPublic } from "./run";
 import type { ArticleSummary, QueryError, SectionRef } from "./types";
 
@@ -26,7 +27,9 @@ export interface SectionPage {
   subsections: SectionRef[];
   /** Subeditoria aplicada (a da URL só vale se for filha desta editoria). */
   activeSub: SectionRef | null;
-  /** Matérias da página 1 até `page` (carregar mais acumula). */
+  /** Destaque da editoria (`editoria.lead`), com capa aprovada; `null` sem posição ou fora da visão padrão. */
+  featured: ArticleSummary | null;
+  /** Matérias da página 1 até `page` (carregar mais acumula), sem o destaque. */
   articles: ArticleSummary[];
   total: number;
   page: number;
@@ -160,6 +163,19 @@ export async function listSection(
     if (res.error) throw new Error(res.error.message);
     if (today.error) throw new Error(today.error.message);
     const total = res.count ?? 0;
+
+    // Destaque da editoria (editoria.lead, FD-T2): pino manual ou automático com capa aprovada.
+    // Só na visão padrão (sem subeditoria, bairro, origem nem ordenação por relevância); sem a
+    // posição ou com a leitura falhando, a lista segue como antes.
+    const defaultView =
+      !filters.sub &&
+      !filters.neighborhood &&
+      (filters.origin ?? "all") === "all" &&
+      (filters.order ?? "recent") === "recent";
+    const featured = defaultView
+      ? ((await getFeatured(db, "editoria.lead", { section: slug, now })).items[0] ?? null)
+      : null;
+    const listed = await summarize(db, res.data);
     return {
       section: {
         slug: scope.section.slug,
@@ -168,7 +184,8 @@ export async function listSection(
       },
       subsections: scope.subsections,
       activeSub: scope.activeSub,
-      articles: await summarize(db, res.data),
+      featured,
+      articles: listed.filter((a) => a.id !== featured?.id),
       total,
       page: current,
       pageSize: SECTION_PAGE_SIZE,

@@ -130,6 +130,14 @@ function Explore({ data }: { data: ExploreData }) {
   const quiet = data.sections.filter((s) => s.todayCount === 0);
   return (
     <>
+      {/* Posição explorar.topo: pino do admin ou automático, sempre com capa aprovada. */}
+      {data.featured && (
+        <section aria-labelledby="explorar-topo" className="flex flex-col gap-4">
+          <SectionHeader id="explorar-topo" title={EXPLORE.featured} action={null} />
+          <ArticleCard variant="lead" article={data.featured} />
+        </section>
+      )}
+
       <section
         id="editorias"
         aria-labelledby="explorar-editorias"

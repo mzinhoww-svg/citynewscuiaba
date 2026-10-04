@@ -380,6 +380,20 @@ function Home({ data }: { data: HomeData }) {
           <NowList items={data.now} className="lg:col-span-4" />
         </div>
 
+        {/* Posição home.destaques: até 3 matérias com capa, sem repetir a manchete (R39 e R40). */}
+        {data.highlights.length > 0 && (
+          <section aria-labelledby="home-highlights" className="flex flex-col gap-4">
+            <SectionHeader id="home-highlights" title={HOME.highlights} action={null} />
+            <ul className="grid grid-cols-1 gap-6 md:grid-cols-3 max-md:[&>li:nth-child(n+2)]:hidden">
+              {data.highlights.map((a) => (
+                <li key={a.id} className="flex min-w-0">
+                  <ArticleCard variant="standard" article={a} className="flex-1" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {data.modules
           .filter((m) => m.enabled)
           .map((m) => {

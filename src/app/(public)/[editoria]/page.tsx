@@ -153,6 +153,8 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
   const since = data.articles[0]?.publishedAt ?? data.latestAt ?? new Date().toISOString();
   const qs = serializeSectionFilters({ ...filters, sub: data.activeSub?.slug, page: 1 });
   const pillEndpoint = `/api/editoria/${slug}/novas?desde=${encodeURIComponent(since)}${qs ? `&${qs}` : ""}`;
+  // O destaque da editoria (pino ou automático, sempre com capa) abre a lista.
+  const listed = data.featured ? [data.featured, ...data.articles] : data.articles;
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
       <Header data={data} filters={filters} />
@@ -169,11 +171,11 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             )}
           </div>
           <NewItemsPill endpoint={pillEndpoint} targetId="lista-titulo" />
-          {data.articles.length === 0 ? (
+          {listed.length === 0 ? (
             <Empty data={data} filters={filters} />
           ) : (
             <ol id="lista" className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-              {data.articles.map((a, i) => (
+              {listed.map((a, i) => (
                 <li key={a.id} className={i === 0 ? "md:col-span-2" : undefined}>
                   <ArticleCard variant={i === 0 ? "lead" : "standard"} article={a} />
                 </li>
