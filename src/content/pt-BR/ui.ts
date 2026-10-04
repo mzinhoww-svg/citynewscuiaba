@@ -31,4 +31,13 @@ export const UI = {
   /** Contador de caracteres do `TextArea` com `maxLength` ("12/120"). */
   charCount: (used: number, max: number) => `${used}/${max}`,
   charCountLabel: (used: number, max: number) => `${used} de ${max} caracteres`,
+  /** Paginação numerada (`ui/Pagination`). */
+  pagination: {
+    prev: "Anterior",
+    next: "Próxima",
+    prevLabel: "Página anterior",
+    nextLabel: "Próxima página",
+    of: (page: number, total: number) => `Página ${page} de ${total}`,
+    page: (page: number) => `Página ${page}`,
+  },
 } as const;

@@ -2,6 +2,7 @@
 
 import { cx } from "../../cx";
 import { Icon } from "../../ui/Icon";
+import { Table } from "../../ui/Table";
 
 export interface AdminReply {
   ok: boolean;
@@ -93,7 +94,10 @@ export function CheckList({
   );
 }
 
-/** Tabela de dados das telas de administração: cabeçalhos `<th scope="col">` e rolagem horizontal. */
+/**
+ * Tabela de dados das telas de administração. Wrapper de `ui/Table` que mantém a API antiga
+ * (largura mínima como classe); código novo usa `Table` com `minWidth` por token.
+ */
 export function AdminTable({
   caption,
   headers,
@@ -106,25 +110,8 @@ export function AdminTable({
   minWidth?: string;
 }) {
   return (
-    <div
-      role="region"
-      aria-label={caption}
-      tabIndex={0}
-      className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
-    >
-      <table className={cx("w-full border-collapse text-left", minWidth)}>
-        <caption className="sr-only">{caption}</caption>
-        <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} scope="col" className="px-3 py-3 font-semibold">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>{children}</tbody>
-      </table>
-    </div>
+    <Table caption={caption} headers={headers} tableClassName={minWidth}>
+      {children}
+    </Table>
   );
 }
