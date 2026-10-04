@@ -28,34 +28,43 @@ export const DISPLAY_SLOTS = [
 ] as const;
 export type DisplaySlot = (typeof DISPLAY_SLOTS)[number];
 
+export type Device = "desktop" | "tablet" | "mobile";
+export const DEVICES: readonly Device[] = ["desktop", "tablet", "mobile"];
+
 export interface SlotFormat {
   width: number;
   height: number;
-  /** Onde o formato aparece: desktop (lg+) ou celular. */
-  device: "desktop" | "mobile";
+  /**
+   * Aparelhos onde o formato aparece: desktop a partir de `lg` (1024), tablet de `md` (768) a
+   * `lg`, celular abaixo de `md`. O tablet tem formato próprio (decisão do dono, 04/10/2026):
+   * a faixa larga de 728 cabe no container de 768 sem a coluna lateral.
+   */
+  devices: readonly Device[];
 }
 
+/** Ordem importa: para cada aparelho vale o primeiro formato que tiver peça (CLS 0). */
 export const SLOT_FORMATS: Record<DisplaySlot, readonly SlotFormat[]> = {
   TOP: [
-    { width: 970, height: 250, device: "desktop" },
-    { width: 728, height: 90, device: "desktop" },
-    { width: 320, height: 100, device: "mobile" },
+    { width: 970, height: 250, devices: ["desktop"] },
+    { width: 728, height: 90, devices: ["tablet", "desktop"] },
+    { width: 320, height: 100, devices: ["mobile"] },
   ],
-  "RAIL-A": [{ width: 300, height: 250, device: "desktop" }],
-  "RAIL-B": [{ width: 300, height: 600, device: "desktop" }],
+  "RAIL-A": [{ width: 300, height: 250, devices: ["desktop"] }],
+  "RAIL-B": [{ width: 300, height: 600, devices: ["desktop"] }],
   MID: [
-    { width: 970, height: 120, device: "desktop" },
-    { width: 320, height: 100, device: "mobile" },
+    { width: 970, height: 120, devices: ["desktop"] },
+    { width: 728, height: 90, devices: ["tablet"] },
+    { width: 320, height: 100, devices: ["mobile"] },
   ],
   "ART-1": [
-    { width: 728, height: 90, device: "desktop" },
-    { width: 320, height: 100, device: "mobile" },
+    { width: 728, height: 90, devices: ["desktop", "tablet"] },
+    { width: 320, height: 100, devices: ["mobile"] },
   ],
   "ART-2": [
-    { width: 728, height: 250, device: "desktop" },
-    { width: 300, height: 250, device: "mobile" },
+    { width: 728, height: 250, devices: ["desktop", "tablet"] },
+    { width: 300, height: 250, devices: ["mobile"] },
   ],
-  STICKY: [{ width: 320, height: 50, device: "mobile" }],
+  STICKY: [{ width: 320, height: 50, devices: ["mobile"] }],
 };
 
 /** Peso máximo da peça por campo, em KB (spec banners-padrão, ADS-T3: <= 200 KB). */

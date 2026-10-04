@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { HomeModuleId } from "@/lib/admin/home-layout";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import {
+  AdSlot,
   AggregatedSection,
   ArticleCard,
   Button,
@@ -370,15 +371,23 @@ const MODULES: Record<HomeModuleId, (p: { data: HomeData }) => ReactNode> = {
 function Home({ data }: { data: HomeData }) {
   const { lead } = data;
   if (!lead) return <HomeFallback title={HOME.emptyTitle} text={HOME.emptyText} />;
+  const modules = data.modules.filter((m) => m.enabled);
+  const midAfter = (modules.find((m) => m.id === "topics") ?? modules[0])?.id;
   return (
     <>
       {data.urgent && <UrgentBar article={data.urgent} />}
       <DateStrip generatedAt={data.generatedAt} />
       <div className={`${CONTAINER} flex flex-col gap-7 py-4 lg:gap-14 lg:py-10`}>
+        {/* Faixa de topo (TOP): abaixo do ticker; some sem peça (banners-padrão, ADS-T2). */}
+        <AdSlot code="TOP" />
         {/* Manchete + Agora: 100% CityNews na primeira dobra */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
           <ArticleCard variant="lead" as="h1" article={lead} className="lg:col-span-8" />
-          <NowList items={data.now} className="lg:col-span-4" />
+          {/* Retângulo lateral abaixo do "Agora" (decisão do dono, 04/10/2026): o Agora fica no topo. */}
+          <div className="flex flex-col gap-8 lg:col-span-4">
+            <NowList items={data.now} />
+            <AdSlot code="RAIL-A" />
+          </div>
         </div>
 
         {/* Posição home.destaques: até 3 matérias com capa, sem repetir a manchete (R39 e R40). */}
@@ -395,13 +404,18 @@ function Home({ data }: { data: HomeData }) {
           </section>
         )}
 
-        {data.modules
-          .filter((m) => m.enabled)
-          .map((m) => {
-            const Block = MODULES[m.id];
-            return <Block key={m.id} data={data} />;
-          })}
+        {modules.map((m) => {
+          const Block = MODULES[m.id];
+          return (
+            <Fragment key={m.id}>
+              <Block data={data} />
+              {/* Faixa entre blocos (MID): uma só, depois de "Assuntos em destaque". */}
+              {m.id === midAfter && <AdSlot code="MID" />}
+            </Fragment>
+          );
+        })}
       </div>
+      <AdSlot code="STICKY" />
     </>
   );
 }

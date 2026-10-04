@@ -6,6 +6,7 @@ import { Fragment } from "react";
 
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
+  AdSlot,
   AiSummaryBlock,
   ArticleActions,
   ArticleCard,
@@ -122,6 +123,10 @@ function Byline({ a }: { a: ArticleView }) {
 function Article({ a }: { a: ArticleView }) {
   const historyHref = `${a.href}/historico`;
   const blocks = withInlineFigure(a.body, a.inlineImage?.position);
+  // Campos de banner (ADS-T2): nunca em matéria urgente nem patrocinada; editoria proibida o
+  // `AdSlot` recusa sozinho. ART-1 entra depois do 4º parágrafo (sem 4 parágrafos, não entra).
+  const ads = !a.urgent && !a.sponsored;
+  const art1After = blocks.filter((x) => x.b.type === "paragraph")[3]?.i;
   const questions = ARTICLE.askQuestions(a.title, a.topic?.title);
   const ld = articleJsonLd({
     slug: a.slug,
@@ -203,7 +208,7 @@ function Article({ a }: { a: ArticleView }) {
               reportAction={reportProblemAction}
             />
 
-            {a.image && <ArticleFigure image={a.image} priority className="-my-2 max-w-read" />}
+            {a.image && <ArticleFigure image={a.image} priority className="reading-column -my-2" />}
 
             {a.aiSummary && <AiSummaryBlock items={a.aiSummary} className="max-w-read" />}
 
@@ -241,7 +246,10 @@ function Article({ a }: { a: ArticleView }) {
                     <h2 className="type-headline text-strong">{b.text}</h2>
                   )}
                   {figureAfter && a.inlineImage && (
-                    <ArticleFigure image={a.inlineImage} className="my-2" />
+                    <ArticleFigure image={a.inlineImage} className="reading-column my-2" />
+                  )}
+                  {ads && i === art1After && (
+                    <AdSlot code="ART-1" sectionSlug={a.section.slug} className="my-2" />
                   )}
                 </Fragment>
               ))}
@@ -316,8 +324,11 @@ function Article({ a }: { a: ArticleView }) {
                 />
               }
             />
+            {ads && <AdSlot code="RAIL-A" sectionSlug={a.section.slug} />}
           </aside>
         </div>
+
+        {ads && <AdSlot code="ART-2" sectionSlug={a.section.slug} className="mt-12" />}
 
         {a.related.length > 0 && (
           <section
@@ -336,6 +347,7 @@ function Article({ a }: { a: ArticleView }) {
             </ul>
           </section>
         )}
+        {ads && <AdSlot code="STICKY" sectionSlug={a.section.slug} />}
       </div>
     </>
   );

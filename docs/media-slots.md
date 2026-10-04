@@ -278,20 +278,20 @@ Estimativas em horas de implementação com testes (sem espera de aprovação do
 - [ ] Comando: `pnpm vitest run src/lib/ads && pnpm db:reset && pnpm verify`.
 - [ ] Commit: `feat: flag e trava do patrocinado nativo [MS-T1]`.
 
-#### Task MS-T2: Creative tipado e anunciante estruturado (6 h) · concluída em 04/10 (migration 0081, A-116)
+#### Task MS-T2: Creative tipado e anunciante estruturado (6 h) · concluída em 04/10 (migration 0081, A-118)
 **Files:** `supabase/migrations/00NN_creative_kinds.sql`, `src/lib/ads/creative.ts` + `.test.ts`, `src/lib/studio/admin-ops.ts`, `src/components/studio/admin/CampaignsPanel.tsx`, `src/content/pt-BR/admin-ops.ts`.
 **Interfaces:** `CreativeSchema` (zod, união discriminada por `kind`: `native | display | tile | newsletter | video`, com `slot`, `width`, `height`, `alt`, `href` https, `weight`, `maxImpressionsPerDay`); coluna `advertiser_id` + tabela `advertisers`; migração dos `creative` atuais para `kind = "native"`. `ADS-T1` herda este schema em `ad_creatives`.
 - [ ] Testes: cada `kind` aceita o válido e recusa dimensão errada, `alt` vazio e `href` http.
 - [ ] Comando: `pnpm vitest run src/lib/ads src/lib/studio && pnpm verify`.
 - [ ] Commit: `feat: creative tipado e anunciante [MS-T2]`.
 
-#### Task ADS-T1: Banco, seleção e componente (14 h; já planejada) · concluída em 04/10 (migration 0082, A-117)
+#### Task ADS-T1: Banco, seleção e componente (14 h; já planejada) · concluída em 04/10 (migration 0082, A-119)
 Acréscimo deste inventário: `selectCreative` aplica `weight` e `maxImpressionsPerDay`; `AdSlot` recusa render em editoria bloqueada **no servidor**, não só no painel; altura reservada medida por CLS no Playwright.
 
-#### Task ADS-T2: Posições no site (12 h; já planejada)
+#### Task ADS-T2: Posições no site (12 h; já planejada) · concluída em 04/10 (migration 0083, A-120)
 Acréscimo: tabela de breakpoints deste inventário (incluindo 768), RAIL-A/RAIL-B na home exige novo grid (o NowList hoje ocupa a coluna), `STICKY` empilhado acima da `BottomNav`; HUB no mobile com carrossel manual.
 
-#### Task ADS-T3: Peças genéricas (10 h; já planejada)
+#### Task ADS-T3: Peças genéricas (10 h; já planejada) · concluída em 04/10 (A-121)
 Sem acréscimo.
 
 #### Task MS-T3: Eventos de anúncio e viewability (10 h)
@@ -301,7 +301,7 @@ Sem acréscimo.
 - [ ] Comando: `pnpm vitest run src/lib/ads src/lib/events && pnpm test:e2e --grep @ads && pnpm verify`.
 - [ ] Commit: `feat: impressão, viewability e clique de anúncio [MS-T3]`.
 
-#### Task ADS-T4: Administração e métricas (24 h; já planejada)
+#### Task ADS-T4: Administração e métricas (24 h; já planejada) · concluída em 04/10 (A-122)
 Acréscimo: A07 passa a ler `ad_stats`; "Pausar tudo" usa a mesma regra de duas pessoas do A13.
 
 #### Task MS-T4: Relatório mensal por anunciante (12 h)
@@ -353,11 +353,11 @@ Mínimo para **vender banner de forma defensável**: MS-T1, MS-T2, ADS-T1, ADS-T
 
 Nenhuma pergunta foi feita durante o trabalho; estas ficam para a próxima reunião.
 
-1. **Tablet (768):** seguir o layout mobile (proposto) ou criar um terceiro formato (728×90)?
+1. **Tablet (768):** seguir o layout mobile (proposto) ou criar um terceiro formato (728×90)? **Decidido em 04/10: formato próprio no tablet** (TOP e MID 728×90, ART-1 728×90, ART-2 728×250; laterais só no desktop).
 2. **Justiça:** não existe editoria Justiça e `NEVER_SECTIONS` não a cobre. Confirmar o nome do slug e se matéria de tribunal dentro de Cidade também fica sem anúncio (o código só bloqueia por editoria, não por tema).
-3. **RAIL-A e RAIL-B na home:** o NowList hoje ocupa a coluna direita ao lado da manchete. Empurrar o Agora para baixo (como no wireframe) muda a primeira dobra, que a spec quer 100% editorial (`docs/screens.md` P01). Aceitar, ou deixar RAIL só abaixo da primeira dobra?
+3. **RAIL-A e RAIL-B na home:** o NowList hoje ocupa a coluna direita ao lado da manchete. Empurrar o Agora para baixo (como no wireframe) muda a primeira dobra, que a spec quer 100% editorial (`docs/screens.md` P01). Aceitar, ou deixar RAIL só abaixo da primeira dobra? **Decidido em 04/10: abaixo do "Agora".**
 4. **RAIL-B "fixo ao rolar":** convive com o `aside` sticky da matéria? Proposta: sem RAIL-B na matéria.
-5. **STICKY:** empilhar acima da `BottomNav` (perde ~50 px) ou substituir a barra? Nunca junto com TOP.
+5. **STICKY:** empilhar acima da `BottomNav` (perde ~50 px) ou substituir a barra? Nunca junto com TOP. **Decidido em 04/10: empilhar acima da barra inferior.**
 6. **Consentimento e contagem de anúncio:** o padrão é "Só o necessário", que hoje não envia nenhum evento. Contagem agregada sem identificador para faturar cabe na categoria "Métricas agregadas" (opt-in) ou pode ser tratada como necessária? Precisa de parecer jurídico (B-001, B-002 já abertos).
 7. **Banner em `pergunte` e `panorama`:** recomendado manter `VETADO`. Confirmar.
 8. **Tile em Serviços/Explorar e `AGENDA-RAIL-A`:** são candidatos deste inventário, fora da spec. Entram no mídia kit ou ficam de fora?

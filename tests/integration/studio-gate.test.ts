@@ -4,7 +4,7 @@
 // (JWT do navegador + anon key), e confere que o banco recusa.
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { POST as revalidatePOST } from "@/app/api/jobs/revalidate/route";
 import type { Json } from "@/lib/db/types";
 import { createMemoryMediaStore } from "@/lib/media/store";
@@ -677,6 +677,99 @@ describe("mídia: remoção de reprodução e aprovação", () => {
     const db = await clientOf("marina");
     const direct = await db.from("media_assets").update({ status: "approved" }).eq("id", id);
     expect(direct.error?.code).toBe("42501");
+  });
+
+  const gateSources: string[] = [];
+  afterEach(async () => {
+    if (media.length) await service.from("article_media").delete().in("media_id", media);
+  });
+  afterAll(async () => {
+    // Imagens primeiro (FK para a fonte), depois as fontes criadas aqui.
+    if (media.length) await service.from("media_assets").delete().in("id", media);
+    if (gateSources.length) await service.from("sources").delete().in("id", gateSources);
+  });
+
+  async function link(mediaId: string, articleId: string) {
+    const { error } = await service.from("article_media").insert({
+      article_id: articleId,
+      media_id: mediaId,
+      rationale: "t",
+      chosen_by: "t",
+      alt: "Teste",
+    });
+    if (error) throw error;
+  }
+  async function freshSource(): Promise<string> {
+    const { data: base } = await service.from("sources").select("*").limit(1).single();
+    const { data, error } = await service
+      .from("sources")
+      .insert({ ...base!, id: undefined, slug: `gate-${randomUUID()}`, name: "Fonte de teste" })
+      .select("id")
+      .single();
+    if (error) throw error;
+    gateSources.push(data!.id);
+    return data!.id;
+  }
+  const statusOfMedia = async (id: string) =>
+    (await service.from("media_assets").select("status").eq("id", id).single()).data?.status;
+
+  it("editor de editoria não remove todas da fonte", async () => {
+    const sourceId = await freshSource();
+    const id = await asset({ source_id: sourceId });
+    await link(id, ids.draft);
+    const r = await asUser(
+      "otavio",
+      () => takedownImage({ id, reason: "Pedido", allFromSource: true }),
+      { mediaStore: createMemoryMediaStore() },
+    );
+    expect(r).toEqual({ ok: false, error: "forbidden" });
+    expect(await statusOfMedia(id)).toBe("approved");
+  });
+
+  it("editor de editoria sem matéria ligada também não remove todas da fonte", async () => {
+    const sourceId = await freshSource();
+    const id = await asset({ source_id: sourceId });
+    const r = await asUser(
+      "otavio",
+      () => takedownImage({ id, reason: "Pedido", allFromSource: true }),
+      { mediaStore: createMemoryMediaStore() },
+    );
+    expect(r).toEqual({ ok: false, error: "forbidden" });
+    expect(await statusOfMedia(id)).toBe("approved");
+  });
+
+  it("editor remove só a imagem da própria editoria", async () => {
+    const sourceId = await freshSource();
+    const id = await asset({ source_id: sourceId });
+    await link(id, ids.draft);
+    const r = await asUser(
+      "otavio",
+      () => takedownImage({ id, reason: "Pedido", allFromSource: false }),
+      { mediaStore: createMemoryMediaStore(), revalidate: async () => {} },
+    );
+    expect(r).toMatchObject({ ok: true, value: { blocked: 1 } });
+    expect(await statusOfMedia(id)).toBe("blocked");
+  });
+
+  it("editora-chefe remove todas da fonte", async () => {
+    const sourceId = await freshSource();
+    const a = await asset({ source_id: sourceId });
+    const b = await asset({ source_id: sourceId });
+    const { data: pol } = await service
+      .from("articles")
+      .select("id")
+      .eq("section_slug", "politica")
+      .limit(1)
+      .single();
+    await link(a, ids.draft);
+    await link(b, pol!.id);
+    const r = await asUser(
+      "marina",
+      () => takedownImage({ id: a, reason: "Pedido", allFromSource: true }),
+      { mediaStore: createMemoryMediaStore(), revalidate: async () => {} },
+    );
+    expect(r).toMatchObject({ ok: true, value: { blocked: 2 } });
+    expect(await statusOfMedia(b)).toBe("blocked");
   });
 
   it("jornalista não remove reprodução", async () => {

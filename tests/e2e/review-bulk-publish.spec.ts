@@ -13,7 +13,7 @@ import { createArticle, removeArticles, service, STAFF, tag } from "./studio";
 const SECTION: Record<string, string> = {
   desktop: "gastronomia",
   mobile: "entretenimento",
-  "mobile-webkit": "mobilidade",
+  "mobile-webkit": "clima",
 };
 const created: string[] = [];
 const jobs: string[] = [];

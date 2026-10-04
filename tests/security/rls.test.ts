@@ -218,7 +218,6 @@ describe("estrutura: RLS ligada e políticas para anon só de leitura pública",
     expect(rows.map((r) => r[0])).toEqual([
       "article_media",
       "article_sources",
-      "article_versions",
       "articles",
       "collection_items",
       "collections",

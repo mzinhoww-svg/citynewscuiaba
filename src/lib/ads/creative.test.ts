@@ -43,6 +43,8 @@ describe("creative tipado (MS-T2)", () => {
     };
     expect(ok({ ...base, width: 970, height: 250 }).kind).toBe("display");
     expect(ok({ ...base, width: 320, height: 100 }).kind).toBe("display");
+    expect(ok({ ...base, width: 728, height: 90 }).kind).toBe("display");
+    expect(ok({ ...base, slot: "MID", width: 728, height: 90 }).kind).toBe("display");
     expect(bad({ ...base, width: 300, height: 250 })).toMatch(/dimens/i);
     bad({ ...base, width: 970, height: 250, alt: "" });
     bad({ ...base, width: 970, height: 250, href: "http://padaria.example" });

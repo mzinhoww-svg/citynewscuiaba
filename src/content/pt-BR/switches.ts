@@ -10,6 +10,7 @@ export const SWITCH_KEYS = [
   "image_reproduction_enabled",
   "source_link_analysis",
   "sponsored_native_enabled",
+  "ads_enabled",
 ] as const satisfies readonly FlagKey[];
 
 export interface SwitchInfo {
@@ -67,6 +68,13 @@ export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
       "Matéria patrocinada na home, com o texto Patrocinado. Nunca em Política, Justiça, Segurança ou Saúde.",
     on: "Ligado: a matéria patrocinada aparece em Mais lidas da home.",
     off: "Desligado: matéria patrocinada só aparece na própria página.",
+  },
+  ads_enabled: {
+    title: "Banners",
+    about:
+      "Campos de banner do portal (topo, lateral, no texto, rodapé). Nunca em Política, Justiça, Segurança ou Saúde.",
+    on: "Ligado: os campos mostram as peças no ar, pagas ou da casa.",
+    off: "Desligado: nenhum banner aparece no portal.",
   },
 };
 

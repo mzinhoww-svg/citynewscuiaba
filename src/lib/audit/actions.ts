@@ -137,6 +137,10 @@ export const AUDIT_ACTIONS = [
   "featured.pin",
   "featured.unpin",
   "featured.update",
+  // Banners (ADS-T4, 0144)
+  "ads.banner.create",
+  "ads.placement.status",
+  "ads.report.export",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

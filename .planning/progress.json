@@ -809,16 +809,31 @@
       "MS-T2": {
         "status": "done",
         "migration": "0081_advertisers.sql",
-        "decision": "A-116"
+        "decision": "A-123"
       },
       "ADS-T1": {
         "status": "done",
         "migration": "0082_ad_slots.sql",
-        "decision": "A-117"
+        "decision": "A-119"
+      },
+      "ADS-T2": {
+        "status": "done",
+        "migration": "0083_ad_slots_tablet.sql",
+        "decision": "A-120"
+      },
+      "ADS-T3": {
+        "status": "done",
+        "decision": "A-121",
+        "assets": "public/ads (48 PNG)"
+      },
+      "ADS-T4": {
+        "status": "done",
+        "migration": "0144_ads_admin.sql",
+        "decision": "A-122"
       }
     },
     "next": [
-      "ADS-T2 (depende das decisões do dono: tablet, coluna da home, STICKY)"
+      "MS-T4 (relatório mensal por anunciante)"
     ]
   },
   "guia": {
@@ -848,10 +863,27 @@
       }
     },
     "migrations": "0130_guide_core (tabelas, RLS e funções), 0131_guide_sync, 0132_guide_templates_seed, 0133_guide_cron: aplicadas em produção em 04/10",
-    "decision": "A-118",
+    "decision": "A-123",
     "next": [
       "merge e deploy do PR #34",
-      "B-023: TRIPADVISOR_API_KEY"
+      "B-025: TRIPADVISOR_API_KEY"
     ]
+  },
+  "segurancaP1": {
+    "spec": "docs/superpowers/specs/2026-10-04-seguranca-p1-design.md",
+    "status": "done_pending_owner",
+    "findings": {
+      "C1-01": "af13470",
+      "C1-03": "59f7d70",
+      "C3-01": "1e26999",
+      "C1-02": "d9c5196",
+      "C4-01": "bb408fd"
+    },
+    "migration": "0143_security_p1.sql (produção: pendente)",
+    "tests": {
+      "verify": 3509,
+      "p1Integration": 14
+    },
+    "pendingOwner": "B-023"
   }
 }

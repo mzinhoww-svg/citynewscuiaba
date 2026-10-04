@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import {
+  AdSlot,
   ArticleCard,
   Button,
   Chip,
@@ -155,9 +156,12 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
   const pillEndpoint = `/api/editoria/${slug}/novas?desde=${encodeURIComponent(since)}${qs ? `&${qs}` : ""}`;
   // O destaque da editoria (pino ou automático, sempre com capa) abre a lista.
   const listed = data.featured ? [data.featured, ...data.articles] : data.articles;
+  const adSection = data.activeSub?.slug ?? slug;
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
       <Header data={data} filters={filters} />
+      {/* Campos de banner (ADS-T2): Política, Justiça, Segurança e Saúde nunca recebem peça. */}
+      <AdSlot code="TOP" sectionSlug={adSection} />
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)]">
         <section aria-labelledby="lista-titulo" className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -197,27 +201,35 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             </div>
           )}
         </section>
-        {data.mostRead.length > 0 && (
-          <aside aria-labelledby="mais-lidas" className="flex flex-col gap-3">
-            <h2 id="mais-lidas" className="type-section text-strong">
-              {SECTION_PAGE.mostRead(data.section.name)}
-            </h2>
-            <ol className="flex flex-col">
-              {data.mostRead.map((a, i) => (
-                <li key={a.id} className="flex items-start gap-3">
-                  <span
-                    aria-hidden="true"
-                    className="w-6 shrink-0 pt-4 font-sans text-24 font-black leading-none text-meta tabular-nums"
-                  >
-                    {i + 1}
-                  </span>
-                  <ArticleCard variant="list" article={a} className="min-w-0 flex-1" />
-                </li>
-              ))}
-            </ol>
-          </aside>
-        )}
+        <div className="flex flex-col gap-8">
+          {data.mostRead.length > 0 && (
+            <aside aria-labelledby="mais-lidas" className="flex flex-col gap-3">
+              <h2 id="mais-lidas" className="type-section text-strong">
+                {SECTION_PAGE.mostRead(data.section.name)}
+              </h2>
+              <ol className="flex flex-col">
+                {data.mostRead.map((a, i) => (
+                  <li key={a.id} className="flex items-start gap-3">
+                    <span
+                      aria-hidden="true"
+                      className="w-6 shrink-0 pt-4 font-sans text-24 font-black leading-none text-meta tabular-nums"
+                    >
+                      {i + 1}
+                    </span>
+                    <ArticleCard variant="list" article={a} className="min-w-0 flex-1" />
+                  </li>
+                ))}
+              </ol>
+            </aside>
+          )}
+          {/* Lateral abaixo de "Mais lidas": retângulo e arranha-céu (este fixo ao rolar). */}
+          <AdSlot code="RAIL-A" sectionSlug={adSection} />
+          <div className="lg:sticky lg:top-6">
+            <AdSlot code="RAIL-B" sectionSlug={adSection} />
+          </div>
+        </div>
       </div>
+      <AdSlot code="STICKY" sectionSlug={adSection} />
     </div>
   );
 }

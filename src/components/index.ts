@@ -83,6 +83,7 @@ export {
   type SearchResultItemProps,
 } from "./editorial/SearchResults";
 export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
+export { AdSlot, type AdSlotProps } from "./editorial/AdSlot";
 export { AccountShell, type AccountShellProps } from "./editorial/AccountShell";
 export { SignInForm, type SignInFormProps } from "./editorial/SignInForm";
 export { SignUpForm, type SignUpFormProps } from "./editorial/SignUpForm";

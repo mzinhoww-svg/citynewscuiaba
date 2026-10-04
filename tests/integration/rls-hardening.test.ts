@@ -233,7 +233,7 @@ describe("funções auxiliares", () => {
     const articles = await anon.from("articles").select("id").eq("status", "published");
     expect(articles.error).toBeNull();
     expect(articles.data?.length).toBeGreaterThan(0);
-    const versions = await anon.from("article_versions").select("id");
+    const versions = await anon.from("public_article_versions").select("article_id");
     expect(versions.error).toBeNull();
     expect(versions.data?.length).toBeGreaterThan(0);
     const sources = await anon.from("article_sources").select("article_id");

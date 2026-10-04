@@ -118,7 +118,9 @@ type TakedownInput = z.infer<typeof TakedownInput>;
  */
 export const takedownImage = studioAction(
   "media.approve",
-  (i: TakedownInput, ctx) => mediaScope(ctx, i.id),
+  // Remover todas da fonte atinge imagens de qualquer editoria: exige escopo total (SEC-C3-01).
+  (i: TakedownInput, ctx) =>
+    i.allFromSource ? Promise.resolve({ section: MULTI_SECTION }) : mediaScope(ctx, i.id),
   async (i, ctx) => {
     const { data: m } = await ctx.db
       .from("media_assets")

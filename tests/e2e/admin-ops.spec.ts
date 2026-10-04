@@ -56,7 +56,7 @@ test("A07 · campanha com selo PATROCINADO; Política não é opção", async ({
   const mark = tag();
   const db = service();
   try {
-    await loginAs(page, "marina", "/estudio/admin/publicidade");
+    await loginAs(page, "marina", "/estudio/admin/publicidade/patrocinados");
     await expect(page.getByText("Rótulo PATROCINADO sempre visível")).toBeVisible();
     await page.getByRole("button", { name: "Nova campanha" }).click();
     const dialog = page.getByRole("dialog");
