@@ -77,7 +77,7 @@ export function AnalysisProgress({ phase, analysis, message, className }: Analys
         className,
       )}
     >
-      {!empty && <p className="type-label text-16 text-strong">{T.title}</p>}
+      {!empty && <p className="type-label text-strong">{T.title}</p>}
       {message}
       {lines.length > 0 && (
         <ul className="flex flex-col gap-1.5">

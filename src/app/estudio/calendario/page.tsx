@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Icon, type IconName } from "@/components";
 import { ARTICLE_STATUS_LABEL, CALENDAR_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { calendarItems, type CalendarItem } from "@/lib/db/queries/studio-corrections";
@@ -18,10 +18,11 @@ export const dynamic = "force-dynamic";
 
 type Params = Record<string, string | string[] | undefined>;
 
-const KIND_STYLE: Record<CalendarItem["kind"], string> = {
-  scheduled: "border-line-strong",
-  due: "border-warn",
-  published: "border-service",
+/** Tipo do item como ícone + texto (item 44): sem faixa lateral, e a cor nunca fala sozinha. */
+const KIND_MARK: Record<CalendarItem["kind"], { icon: IconName; tone: string }> = {
+  scheduled: { icon: "clock", tone: "text-meta" },
+  due: { icon: "triangle-alert", tone: "text-warn" },
+  published: { icon: "check", tone: "text-service" },
 };
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<Params> }) {
@@ -103,20 +104,27 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <ol className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
             {days.map((d) => {
               const list = byDay.get(d) ?? [];
+              const isToday = d === today;
               return (
                 <li
                   key={d}
                   aria-labelledby={`dia-${d}`}
-                  className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-3"
+                  aria-current={isToday ? "date" : undefined}
+                  className={
+                    isToday
+                      ? "flex flex-col gap-2 rounded-lg border-2 border-line-strong bg-card-white p-3"
+                      : "flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-3"
+                  }
                 >
                   <h2
                     id={`dia-${d}`}
                     className={
-                      d === today
-                        ? "type-label text-16 text-eyebrow"
-                        : "type-label text-16 text-strong"
+                      isToday ? "flex flex-col type-label text-eyebrow" : "type-label text-strong"
                     }
                   >
+                    {isToday && (
+                      <span className="type-meta font-semibold uppercase">{T.todayLabel}</span>
+                    )}
                     {formatLongDate(dayStart(d).toISOString())}
                   </h2>
                   {list.length === 0 ? (
@@ -124,12 +132,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   ) : (
                     <ul className="flex flex-col gap-2">
                       {list.map((it) => (
-                        <li
-                          key={`${it.kind}:${it.id}`}
-                          className={`border-l-4 pl-2 ${KIND_STYLE[it.kind]}`}
-                        >
-                          <p className="type-meta text-meta">
-                            {T.kind[it.kind]} · {formatHour(it.at)}
+                        <li key={`${it.kind}:${it.id}`} className="flex flex-col">
+                          <p className="flex items-center gap-1.5 type-meta text-meta">
+                            <Icon
+                              name={KIND_MARK[it.kind].icon}
+                              size={16}
+                              className={`shrink-0 ${KIND_MARK[it.kind].tone}`}
+                            />
+                            <span>
+                              {T.kind[it.kind]} · {formatHour(it.at)}
+                            </span>
                           </p>
                           <Link
                             href={it.href}

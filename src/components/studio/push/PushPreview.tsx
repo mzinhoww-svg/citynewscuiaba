@@ -37,7 +37,7 @@ export function PushPreview({ title, body, originLabel, className }: PushPreview
           >
             <figcaption className="type-eyebrow text-meta">{T.previewOf[b.key]}</figcaption>
             <div className="flex items-center gap-2 type-meta text-meta">
-              <span className="inline-flex size-5 items-center justify-center rounded-xs bg-tinta text-branco">
+              <span className="inline-flex size-5 items-center justify-center plate-edge rounded-xs border bg-tinta text-branco">
                 <Icon name="bell" size={14} />
               </span>
               <span className="truncate">{T.previewApp}</span>

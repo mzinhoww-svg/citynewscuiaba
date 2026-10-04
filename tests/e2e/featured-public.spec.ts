@@ -217,9 +217,15 @@ test.describe("posições com dados de teste", () => {
     await reloadUntil(
       page,
       "/",
-      async () => (await page.getByRole("alert").filter({ hasText: urgent.title }).count()) > 0,
+      async () =>
+        (await page
+          .getByRole("region", { name: "Urgente" })
+          .filter({ hasText: urgent.title })
+          .count()) > 0,
     );
-    await expect(page.getByRole("alert").filter({ hasText: urgent.title })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Urgente" }).filter({ hasText: urgent.title }),
+    ).toBeVisible();
     expect(await h1Text(page)).toBe(pinned.title);
   });
 

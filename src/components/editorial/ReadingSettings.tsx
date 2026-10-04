@@ -76,7 +76,7 @@ export function ReadingSettings({
       >
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <p className="type-label text-16 text-strong">{ARTICLE.textSize}</p>
+            <p className="type-label text-strong">{ARTICLE.textSize}</p>
             <SegmentedToggle
               label={ARTICLE.textSize}
               value={size}
@@ -94,7 +94,7 @@ export function ReadingSettings({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <p className="type-label text-16 text-strong">{ARTICLE.theme}</p>
+            <p className="type-label text-strong">{ARTICLE.theme}</p>
             <SegmentedToggle
               label={ARTICLE.theme}
               value={theme}

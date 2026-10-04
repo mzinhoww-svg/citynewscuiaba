@@ -1,4 +1,4 @@
--- SQL para o dono rodar no SQL Editor do Supabase (projeto citynews-prod), 04/10/2026, A-146.
+-- SQL para o dono rodar no SQL Editor do Supabase (projeto citynews-prod), 04/10/2026, A-152.
 -- O conector do Supabase usado pelo agente trava em qualquer instrução com DELETE (pede uma
 -- confirmação humana que a sessão não consegue dar), então estas duas partes ficam para o editor.
 -- As duas são idempotentes: rodar de novo não muda nada. Rode o arquivo inteiro de uma vez.

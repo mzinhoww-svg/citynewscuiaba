@@ -75,6 +75,53 @@ describe("proposeNextTemplate", () => {
     expect(marked).toEqual(["t1"]);
   });
 
+  it("modelo sem lugares não gasta a vez: segue para o próximo modelo na mesma chamada", async () => {
+    const BARES: TemplateRow = { ...TPL, id: "t0", slug: "bares-centro-norte", category: "bar" };
+    const queue = [BARES, TPL];
+    const created: ProposalWrite[] = [];
+    const marked: string[] = [];
+    const s: EngineStore = {
+      // Como no banco: o modelo marcado vai para o fim da fila.
+      nextTemplate: async () => queue[0] ?? null,
+      venuesFor: async (t) => (t.category === "padaria" ? good() : []),
+      mentions: async () => new Map(),
+      createProposal: async (w) => {
+        created.push(w);
+        return { listId: "l1", proposalId: "p1" };
+      },
+      markProposed: async (id) => {
+        marked.push(id);
+        const i = queue.findIndex((t) => t.id === id);
+        if (i >= 0) queue.push(...queue.splice(i, 1));
+      },
+    };
+    const r = await proposeNextTemplate({ store: s, now: () => NOW });
+    expect(r).toMatchObject({ status: "proposed", template: "padarias-cuiaba" });
+    expect(marked).toEqual(["t0", "t1"]);
+    expect(created).toHaveLength(1);
+  });
+
+  it("para depois de tentar cada modelo uma vez quando nenhum tem lugares", async () => {
+    const queue: TemplateRow[] = [
+      { ...TPL, id: "a" },
+      { ...TPL, id: "b" },
+    ];
+    const marked: string[] = [];
+    const s: EngineStore = {
+      nextTemplate: async () => queue[0] ?? null,
+      venuesFor: async () => [],
+      mentions: async () => new Map(),
+      createProposal: async () => ({ listId: "l1", proposalId: "p1" }),
+      markProposed: async (id) => {
+        marked.push(id);
+        const i = queue.findIndex((t) => t.id === id);
+        if (i >= 0) queue.push(...queue.splice(i, 1));
+      },
+    };
+    expect(await proposeNextTemplate({ store: s, now: () => NOW })).toEqual({ status: "none" });
+    expect(marked).toEqual(["a", "b"]);
+  });
+
   it("proposta com 4 lugares é criada, mas não é publicável sozinha", async () => {
     const { s } = store(good().slice(0, 4));
     const r = await proposeNextTemplate({ store: s, now: () => NOW });

@@ -1,5 +1,7 @@
 /** Navegação do portal público (docs/screens.md; DESIGN.md R10). */
 
+import { ASK_NAME } from "./ask";
+
 export interface NavItem {
   id: string;
   label: string;
@@ -47,6 +49,7 @@ export const SECTIONS: readonly NavItem[] = [
 export const FOOTER_NAV: readonly NavItem[] = [
   { id: "sobre", label: "Sobre", href: "/sobre" },
   { id: "panorama", label: "Panorama de fontes", href: "/panorama" },
+  { id: "pergunte", label: ASK_NAME, href: "/pergunte" },
   { id: "newsletter", label: "Newsletters", href: "/newsletter" },
   { id: "alertas", label: "Alertas", href: "/alertas" },
   { id: "app", label: "Baixar o app", href: "/app" },

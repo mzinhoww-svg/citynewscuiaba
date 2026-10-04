@@ -151,7 +151,7 @@ test.describe("recusou tudo", () => {
     await page.setExtraHTTPHeaders(forwardedFor());
     const seen = await watchEvents(context);
     await page.goto("/");
-    await page.getByRole("button", { name: "Aceitar recomendações" }).click();
+    await page.getByRole("button", { name: "Aceitar métricas e recomendações" }).click();
     await page.goto("/cidade", { waitUntil: "load" });
     await expect.poll(() => seen.requests.length).toBeGreaterThan(0);
     expect(seen.attempts.length).toBeGreaterThan(0);

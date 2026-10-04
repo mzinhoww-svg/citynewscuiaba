@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { EmptyState, Button } from "@/components";
+import { EmptyState, Button, LoadMore, loadMoreAnchor } from "@/components";
 import { QueueFilters, QueueTable, QueueTabs } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, CONFIDENCE_LABEL, QUEUE_TEXT as T } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import {
   listAssignees,
   listQueue,
+  listQueueThrough,
   listReviewable,
   listSectionOptions,
   QUEUE_ORIGINS,
@@ -58,22 +59,42 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     due: values.prazo === "vencido" ? "overdue" : values.prazo === "hoje" ? "today" : undefined,
   };
 
+  // "Carregar mais": o cursor marca o último item já mostrado; a página mostra tudo até ele e
+  // a próxima página, com o foco no primeiro item novo (#mais-<n>).
+  const cursor = /^[A-Za-z0-9_-]{1,512}$/.test(one(sp.cursor)) ? one(sp.cursor) : undefined;
   let rows: QueueRow[] | null = null;
+  let firstNew = -1;
+  let total = 0;
+  let nextCursor: string | null = null;
   let reviewTotal = 0;
   let sections: { value: string; label: string }[] = [];
   let people: { id: string; name: string }[] = [];
   try {
     let review: { total: number };
-    [rows, sections, people, review] = await Promise.all([
-      listQueue(filter),
+    let page: { rows: QueueRow[]; total: number; nextCursor: string | null };
+    let head: QueueRow[];
+    [page, head, sections, people, review] = await Promise.all([
+      listQueue(filter, { cursor }),
+      cursor ? listQueueThrough(filter, cursor) : Promise.resolve([]),
       listSectionOptions(),
       listAssignees(),
       listReviewable(filter, 1),
     ]);
+    rows = [...head, ...page.rows];
+    firstNew = head.length > 0 && page.rows.length > 0 ? head.length : -1;
+    total = page.total;
+    nextCursor = page.nextCursor;
     reviewTotal = review.total;
   } catch {
     rows = null;
   }
+
+  const moreHref = (next: string, shown: number) => {
+    const p = new URLSearchParams({ aba: tab });
+    for (const [k, v] of Object.entries(values)) if (v) p.set(k, v);
+    p.set("cursor", next);
+    return `/estudio/fila?${p.toString()}#${loadMoreAnchor(shown)}`;
+  };
 
   // Mesmas abas e filtros da tela, para "Selecionar todas as N em revisão" (todas as páginas).
   const forceFilter: Record<string, string> = { tab };
@@ -137,34 +158,47 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           {T.errorBody}
         </EmptyState>
       ) : (
-        <QueueTable
-          empty={
-            <EmptyState title={T.emptyTitle} icon="check">
-              {T.empty[tab]}
-            </EmptyState>
-          }
-          rows={rows.map((r) => toTableRow(r, session, now))}
-          unpublish={canUnpublishAny ? unpublishAutoAction : undefined}
-          bulk={
-            manageDesk
-              ? {
-                  assignees: people,
-                  assign: assignAction,
-                  requestReview: requestReviewAction,
-                  unpublishMany: canUnpublishAny ? unpublishManyAction : undefined,
-                  forcePublish: {
-                    reviewTotal,
-                    filter: forceFilter,
-                    api: {
-                      preview: previewForcedPublishAction,
-                      start: forcePublishAction,
-                      status: forcedPublishStatusAction,
+        <>
+          <QueueTable
+            empty={
+              <EmptyState title={T.emptyTitle} icon="check">
+                {T.empty[tab]}
+              </EmptyState>
+            }
+            rows={rows.map((r, i) => ({
+              ...toTableRow(r, session, now),
+              anchorId: i === firstNew ? loadMoreAnchor(i) : undefined,
+            }))}
+            unpublish={canUnpublishAny ? unpublishAutoAction : undefined}
+            bulk={
+              manageDesk
+                ? {
+                    assignees: people,
+                    assign: assignAction,
+                    requestReview: requestReviewAction,
+                    unpublishMany: canUnpublishAny ? unpublishManyAction : undefined,
+                    forcePublish: {
+                      reviewTotal,
+                      filter: forceFilter,
+                      api: {
+                        preview: previewForcedPublishAction,
+                        start: forcePublishAction,
+                        status: forcedPublishStatusAction,
+                      },
                     },
-                  },
-                }
-              : undefined
-          }
-        />
+                  }
+                : undefined
+            }
+          />
+          {rows.length > 0 && (
+            <LoadMore
+              href={nextCursor ? moreHref(nextCursor, rows.length) : null}
+              shown={rows.length}
+              total={total}
+              label={T.loadMore}
+            />
+          )}
+        </>
       )}
     </section>
   );

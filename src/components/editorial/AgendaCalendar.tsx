@@ -21,7 +21,7 @@ export interface AgendaCalendarProps {
   days: CalendarDay[];
   prevHref: string;
   nextHref: string;
-  /** Hoje (AAAA-MM-DD), destacado com borda. */
+  /** Hoje (AAAA-MM-DD): borda, `aria-current="date"` e "hoje" no texto acessível. */
   today?: string;
   /** Mini-calendário lateral (desktop): células baixas, só a contagem em número. */
   compact?: boolean;
@@ -77,7 +77,7 @@ export function AgendaCalendar({
           id={compact ? undefined : "calendario-titulo"}
           className={cx(
             "text-strong first-letter:uppercase",
-            compact ? "type-label text-16" : "type-section",
+            compact ? "type-label" : "type-section",
           )}
         >
           {title}
@@ -109,6 +109,7 @@ export function AgendaCalendar({
                 if (day === null) return <td key={i} className="border border-line-subtle" />;
                 const key = `${month}-${String(day).padStart(2, "0")}`;
                 const info = byKey.get(key);
+                const isToday = key === today;
                 return (
                   <td
                     key={i}
@@ -122,13 +123,23 @@ export function AgendaCalendar({
                     {info ? (
                       <Link
                         href={info.href}
-                        aria-label={AGENDA.dayLink(info.label, info.count)}
+                        aria-label={
+                          isToday
+                            ? `${AGENDA.dayLink(info.label, info.count)}, ${AGENDA.todayDay}`
+                            : AGENDA.dayLink(info.label, info.count)
+                        }
+                        aria-current={isToday ? "date" : undefined}
                         className={cx(
                           "flex h-full min-h-tap flex-col justify-between p-1.5 text-strong no-underline hover:bg-card-white sm:p-2",
-                          key === today && "outline-2 -outline-offset-2 outline-line-strong",
+                          // Fora do foco: o anel de foco global (camada base) assume no foco.
+                          isToday &&
+                            "not-focus-visible:outline-2 not-focus-visible:-outline-offset-2 not-focus-visible:outline-line-strong",
                         )}
                       >
-                        <span className="text-14 font-bold tabular-nums">{day}</span>
+                        <span className="text-14 font-bold tabular-nums">
+                          {day}
+                          {isToday && <span className="sr-only">, {AGENDA.todayDay}</span>}
+                        </span>
                         <span className="text-12 font-semibold text-service tabular-nums">
                           <span className={compact ? undefined : "sm:hidden"}>{info.count}</span>
                           {!compact && (
@@ -138,12 +149,14 @@ export function AgendaCalendar({
                       </Link>
                     ) : (
                       <span
+                        aria-current={isToday ? "date" : undefined}
                         className={cx(
                           "flex h-full flex-col p-1.5 text-14 tabular-nums text-meta sm:p-2",
-                          key === today && "outline-2 -outline-offset-2 outline-line-strong",
+                          isToday && "outline-2 -outline-offset-2 outline-line-strong",
                         )}
                       >
                         {day}
+                        {isToday && <span className="sr-only">, {AGENDA.todayDay}</span>}
                         <span className="sr-only">, {AGENDA.noEventsDay}</span>
                       </span>
                     )}

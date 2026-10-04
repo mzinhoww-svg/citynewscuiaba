@@ -374,7 +374,7 @@ Branch: `claude/ux-w2`. Ordem: **W2-T1 sozinha** (mexe em muitos arquivos), depo
 
 **Escopo:** `src/app/(public)/**`, `src/components/editorial/**`, `src/app/global-error-body.tsx`.
 
-- [ ] Pílulas de link → `TagLink`; pílulas primárias feitas à mão → `Button`; `LoginInvite` e `IosInstallSteps` → `Dialog`/`BottomSheet`; formulários de conta (`SignInForm`, `SignUpForm`, `AccountForms`) com `FormStatus`; `DismissMenu`/`SourceRowMenu` → `Menu`; `TopicCoverage` select → `Select`; `FilterBar` mantém o select em pílula (decisão registrada em A-142: é o controle de filtro público, com variante `Select size="pill"` se a migração couber sem mudar o visual).
+- [ ] Pílulas de link → `TagLink`; pílulas primárias feitas à mão → `Button`; `LoginInvite` e `IosInstallSteps` → `Dialog`/`BottomSheet`; formulários de conta (`SignInForm`, `SignUpForm`, `AccountForms`) com `FormStatus`; `DismissMenu`/`SourceRowMenu` → `Menu`; `TopicCoverage` select → `Select`; `FilterBar` mantém o select em pílula (decisão registrada em A-149: é o controle de filtro público, com variante `Select size="pill"` se a migração couber sem mudar o visual).
 - [ ] `pnpm verify` + `pnpm test:e2e --project=mobile --grep "busca|agenda|editoria|fontes|conta"` quando a pilha local estiver de pé; commit `refactor(portal): portal nas primitivas do kit [UX-W2-T13]`.
 
 ### Task W2-T14: Migração — gráficos, guia e restante `[paralelo, após T2–T10]`
@@ -481,7 +481,7 @@ Branch: `claude/ux-w3`. Tarefas `[paralelo]` com arquivos disjuntos.
 - Create: `supabase/migrations/0154_role_grant_self_approval.sql` (para `approvals.kind = 'role.grant'` e `'role.revoke'`, aceitar `approved_by = requested_by` quando o solicitante tem `users.manage`; mantém auditoria; demais tipos inalterados — B-026 continua para eles)
 - Modify: `src/app/estudio/admin/usuarios/actions.ts` (conceder/revogar: valida papel, grava `approvals` com quem pediu e aprovou, aplica e audita numa transação)
 - Modify: `src/components/studio/admin/StaffTable.tsx` (um botão "Conceder papel" com `ConfirmDialog`)
-- Modify: `.planning/DECISIONS.md` (A-143) e `.planning/BLOCKERS.md` (B-026: `role.grant` resolvido)
+- Modify: `.planning/DECISIONS.md` (A-150) e `.planning/BLOCKERS.md` (B-026: `role.grant` resolvido)
 - Test: `tests/integration/role-grant.test.ts`, `StaffTable.test.tsx`
 
 - [ ] **Step 1:** integração: admin concede `editor` a outro usuário numa chamada; `approvals` tem `requested_by = approved_by = admin`; `studio_audit` tem `role.grant`; usuário sem `users.manage` recebe erro e nada muda.

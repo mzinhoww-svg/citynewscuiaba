@@ -1,6 +1,7 @@
 import { PUSH_HISTORY_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import type { HistoryDetail } from "@/lib/db/queries/push-admin";
 import { cx } from "../../cx";
+import { Table } from "../../ui/Table";
 
 export interface PushBreakdownProps {
   rows: HistoryDetail["byDevice"];
@@ -62,29 +63,27 @@ export function PushBreakdown({ rows, className }: PushBreakdownProps) {
           </div>
         ))}
       </div>
-      <table className="w-full border-collapse type-body">
-        <caption className="sr-only">{T.detail.breakdown}</caption>
-        <thead>
-          <tr className="border-b border-line-section text-left type-meta text-meta">
-            {Object.values(T.detail.columns).map((h) => (
-              <th key={h} scope="col" className="py-2 pr-3 font-semibold">
-                {h}
-              </th>
-            ))}
+      <Table
+        caption={T.detail.breakdown}
+        headers={[
+          T.detail.columns.device,
+          T.detail.columns.browser,
+          { label: T.detail.columns.sent, align: "right" },
+          { label: T.detail.columns.delivered, align: "right" },
+          { label: T.detail.columns.clicked, align: "right" },
+        ]}
+        className="type-body"
+      >
+        {rows.map((r) => (
+          <tr key={`${r.device}|${r.browser}`} className="border-b border-line-section">
+            <td className="px-3 py-2 text-strong">{deviceName(r.device)}</td>
+            <td className="px-3 py-2 text-strong">{browserName(r.browser)}</td>
+            <td className="px-3 py-2 text-right text-strong">{r.sent}</td>
+            <td className="px-3 py-2 text-right text-strong">{r.delivered}</td>
+            <td className="px-3 py-2 text-right text-strong">{r.clicked}</td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={`${r.device}|${r.browser}`} className="border-b border-line-section">
-              <td className="py-2 pr-3 text-strong">{deviceName(r.device)}</td>
-              <td className="py-2 pr-3 text-strong">{browserName(r.browser)}</td>
-              <td className="py-2 pr-3 text-right text-strong">{r.sent}</td>
-              <td className="py-2 pr-3 text-right text-strong">{r.delivered}</td>
-              <td className="py-2 text-right text-strong">{r.clicked}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </Table>
     </figure>
   );
 }

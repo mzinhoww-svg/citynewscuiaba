@@ -27,7 +27,7 @@ it("primeira visita: região com as três escolhas, sem ser modal", () => {
   renderBanner();
   const region = screen.getByRole("region", { name: "Sua privacidade" });
   expect(region).not.toHaveAttribute("aria-modal");
-  for (const name of ["Só o necessário", "Escolher", "Aceitar recomendações"])
+  for (const name of ["Só o necessário", "Escolher", "Aceitar métricas e recomendações"])
     expect(screen.getByRole("button", { name })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Saiba mais sobre privacidade" })).toHaveAttribute(
     "href",
@@ -53,9 +53,9 @@ it("Só o necessário grava m0|p0, fecha e devolve o foco ao conteúdo", async (
   expect(document.activeElement?.id).toBe("conteudo");
 });
 
-it("Aceitar recomendações grava m1|p1 e cria o anonId; Só o necessário apaga", async () => {
+it("Aceitar métricas e recomendações grava m1|p1 e cria o anonId; Só o necessário apaga", async () => {
   const { unmount } = renderBanner();
-  await userEvent.click(screen.getByRole("button", { name: "Aceitar recomendações" }));
+  await userEvent.click(screen.getByRole("button", { name: "Aceitar métricas e recomendações" }));
   expect(readConsentCookie(document.cookie)).toMatchObject({
     metrics: true,
     personalization: true,

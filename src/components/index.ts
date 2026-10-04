@@ -9,19 +9,47 @@ export { BottomSheet, type BottomSheetProps } from "./ui/BottomSheet";
 export { Button, type ButtonProps, type ButtonVariant } from "./ui/Button";
 export { Chip, ChipGroup, type ChipGroupProps, type ChipProps } from "./ui/Chip";
 export { Dialog, type DialogProps } from "./ui/Dialog";
+export { ConfirmDialog, type ConfirmDialogProps } from "./ui/ConfirmDialog";
+export { SubmitButton, type SubmitButtonProps } from "./ui/SubmitButton";
+export { Drawer, type DrawerProps } from "./ui/Drawer";
+export { Menu, type MenuItem, type MenuProps } from "./ui/Menu";
+export {
+  Popover,
+  type PopoverControls,
+  type PopoverProps,
+  type PopoverTriggerProps,
+  type PopoverTriggerRender,
+} from "./ui/Popover";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
-export { Icon, type IconName, type IconProps } from "./ui/Icon";
+export { Icon, type IconName, type IconProps, type IconSize } from "./ui/Icon";
 export { ICON_NAMES } from "./ui/icon-names";
 export { IconSprite } from "./ui/IconSprite";
 export { IconButton, type IconButtonProps } from "./ui/IconButton";
 export { InlineAlert, type InlineAlertProps } from "./ui/InlineAlert";
+export { Pagination, paginationSlots, type PaginationProps } from "./ui/Pagination";
+export { Table, type TableHeader, type TableMinWidth, type TableProps } from "./ui/Table";
+export { LoadMore, loadMoreAnchor, type LoadMoreProps } from "./ui/LoadMore";
 export { ListRow, type ListRowProps } from "./ui/ListRow";
 export { NavHeader, type NavHeaderProps } from "./ui/NavHeader";
 export { NavLink, isCurrentPath, type NavLinkProps } from "./ui/NavLink";
+export { Panel, type PanelProps } from "./ui/Panel";
 export { SearchBar, type SearchBarProps } from "./ui/SearchBar";
 export { CollapsibleFilters, type CollapsibleFiltersProps } from "./ui/CollapsibleFilters";
 export { SectionHeader, type SectionHeaderProps } from "./ui/SectionHeader";
-export { Select, type SelectOption, type SelectProps } from "./ui/Select";
+export {
+  Select,
+  SelectControl,
+  type SelectControlProps,
+  type SelectOption,
+  type SelectOptionGroup,
+  type SelectProps,
+  type SelectSize,
+} from "./ui/Select";
+export { FieldShell, FieldError, describedBy, type FieldShellProps } from "./ui/Field";
+export { TextArea, type TextAreaProps } from "./ui/TextArea";
+export { DateField, type DateFieldProps } from "./ui/DateField";
+export { Checkbox, type CheckboxProps } from "./ui/Checkbox";
+export { RadioGroup, type RadioGroupProps, type RadioOption } from "./ui/RadioGroup";
 export {
   SegmentedToggle,
   type SegmentedToggleOption,
@@ -29,11 +57,22 @@ export {
 } from "./ui/SegmentedToggle";
 export { Skeleton, type SkeletonProps } from "./ui/Skeleton";
 export { Slider, type SliderProps } from "./ui/Slider";
+export { StatGrid, type StatGridItem, type StatGridProps } from "./ui/StatGrid";
+export {
+  StatusBadge,
+  STATUS_TONE_CLASSES,
+  type StatusBadgeProps,
+  type StatusTone,
+} from "./ui/StatusBadge";
 export { TabBar, DEFAULT_TABS, type TabBarItem, type TabBarProps } from "./ui/TabBar";
 export { Tabs, type TabsProps } from "./ui/Tabs";
 export { TextField, type TextFieldProps } from "./ui/TextField";
 export { Toggle, type ToggleProps } from "./ui/Toggle";
+export { ToastProvider, useToast, type ToastApi, type ToastInput } from "./ui/Toast";
+export { FormStatus, type FormStatusProps } from "./ui/FormStatus";
 export { VisuallyHidden } from "./ui/VisuallyHidden";
+export { TagLink, type TagLinkProps } from "./ui/TagLink";
+export { LinkTabs, type LinkTabItem, type LinkTabsProps } from "./ui/LinkTabs";
 
 /* editorial: notícia, descoberta e marca */
 export { AggregatedCard, type AggregatedCardProps } from "./editorial/AggregatedCard";
@@ -265,3 +304,4 @@ export {
   type VenueCardProps,
 } from "./editorial/guide/VenueCard";
 export { VenueCover, type VenueCoverProps } from "./editorial/guide/VenueCover";
+export { FirstVisitGate } from "./editorial/DeferredShell";

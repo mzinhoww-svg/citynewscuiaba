@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, StatGrid, Table } from "@/components";
 import { PhaseChart, ReprocessForm } from "@/components/estudio";
 import {
   CONTROL_TEXT as T,
@@ -98,14 +98,7 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
         <h2 id="resumo" className="type-section text-strong">
           {R.summaryTitle}
         </h2>
-        <dl className="grid grid-cols-2 gap-3 md:grid-cols-3">
-          {facts.map(([k, v]) => (
-            <div key={k} className="rounded-lg border border-line-subtle bg-card-white p-3">
-              <dt className="type-meta text-meta">{k}</dt>
-              <dd className="type-body font-semibold tabular-nums text-strong">{v}</dd>
-            </div>
-          ))}
-        </dl>
+        <StatGrid columns={3} items={facts.map(([k, v]) => ({ label: k, value: v }))} />
         {can.costs && <p className="type-meta text-meta">{T.runs.costNote}</p>}
       </section>
 
@@ -125,52 +118,33 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           <h2 id="etapas" className="type-section text-strong">
             {R.stepsTitle}
           </h2>
-          <div
-            role="region"
-            aria-label={R.stepsCaption}
-            tabIndex={0}
-            className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+          <Table
+            caption={R.stepsCaption}
+            minWidth="sm"
+            headers={[
+              R.stepsCol.step,
+              { label: R.stepsCol.ok, align: "right" },
+              { label: R.stepsCol.warn, align: "right" },
+              { label: R.stepsCol.error, align: "right" },
+              R.stepsCol.window,
+            ]}
           >
-            <table className="w-full min-w-[36rem] border-collapse text-left">
-              <caption className="sr-only">{R.stepsCaption}</caption>
-              <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                <tr>
-                  <th scope="col" className="px-3 py-3">
-                    {R.stepsCol.step}
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-right">
-                    {R.stepsCol.ok}
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-right">
-                    {R.stepsCol.warn}
-                  </th>
-                  <th scope="col" className="px-3 py-3 text-right">
-                    {R.stepsCol.error}
-                  </th>
-                  <th scope="col" className="px-3 py-3">
-                    {R.stepsCol.window}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ordered.map((s) => (
-                  <tr key={s.step} className="border-b border-line-subtle last:border-b-0">
-                    <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
-                      {stepLabel(s.step)}
-                    </th>
-                    <td className="px-3 py-2 text-right type-body tabular-nums">{s.ok}</td>
-                    <td className="px-3 py-2 text-right type-body tabular-nums">{s.warn}</td>
-                    <td className="px-3 py-2 text-right type-body tabular-nums">
-                      {s.error + s.security}
-                    </td>
-                    <td className="px-3 py-2 type-meta tabular-nums text-body">
-                      {formatDateTime(s.firstAt)} – {formatDateTime(s.lastAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {ordered.map((s) => (
+              <tr key={s.step} className="border-b border-line-subtle last:border-b-0">
+                <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
+                  {stepLabel(s.step)}
+                </th>
+                <td className="px-3 py-2 text-right type-body tabular-nums">{s.ok}</td>
+                <td className="px-3 py-2 text-right type-body tabular-nums">{s.warn}</td>
+                <td className="px-3 py-2 text-right type-body tabular-nums">
+                  {s.error + s.security}
+                </td>
+                <td className="px-3 py-2 type-meta tabular-nums text-body">
+                  {formatDateTime(s.firstAt)} – {formatDateTime(s.lastAt)}
+                </td>
+              </tr>
+            ))}
+          </Table>
         </section>
       )}
 

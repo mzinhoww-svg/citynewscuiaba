@@ -1,3 +1,4 @@
+import { ASK_NAME } from "./ask";
 import type { SearchOrigin, SearchPeriod, SearchType } from "@/lib/search/query";
 
 /** Busca tradicional (docs/screens.md P12). */
@@ -11,7 +12,7 @@ export const SEARCH = {
   suggestions: "Sugestões",
   recent: "Buscas recentes",
   removeRecent: (q: string) => `Remover “${q}” das buscas recentes`,
-  askAi: "Perguntar ao CityNews",
+  askAi: ASK_NAME,
   askAiHint: "com o mesmo texto",
   tabs: "Tipo de resultado",
   types: {
@@ -51,7 +52,7 @@ export const SEARCH = {
   emptyText:
     "Confira a grafia, use menos palavras ou tire os filtros. A busca já ignora acentos e maiúsculas.",
   emptyWiden: "Buscar sem filtros",
-  emptyAsk: "Perguntar ao CityNews",
+  emptyAsk: ASK_NAME,
   emptyExplore: "Explorar assuntos",
   errorTitle: "A busca não respondeu agora",
   errorText:
