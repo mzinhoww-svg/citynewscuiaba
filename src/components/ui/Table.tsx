@@ -14,10 +14,10 @@ export type TableMinWidth = "sm" | "md" | "lg" | "xl";
 
 /** Largura mínima da tabela antes de rolar na horizontal (36, 44, 52 e 64 rem). */
 const MIN_WIDTH: Record<TableMinWidth, string> = {
-  sm: "min-w-[36rem]",
-  md: "min-w-[44rem]",
-  lg: "min-w-[52rem]",
-  xl: "min-w-[64rem]",
+  sm: "table-sm",
+  md: "table-md",
+  lg: "table-lg",
+  xl: "table-xl",
 };
 
 export interface TableProps {

@@ -71,13 +71,13 @@ describe("Table", () => {
         <Row />
       </Table>,
     );
-    expect(screen.getByRole("table")).toHaveClass("min-w-[36rem]");
+    expect(screen.getByRole("table")).toHaveClass("table-sm");
     rerender(
       <Table caption="Fontes" headers={["Fonte"]} minWidth="xl">
         <Row />
       </Table>,
     );
-    expect(screen.getByRole("table")).toHaveClass("min-w-[64rem]");
+    expect(screen.getByRole("table")).toHaveClass("table-xl");
   });
 
   it("texto de 80 caracteres numa célula quebra em vez de estourar", () => {
