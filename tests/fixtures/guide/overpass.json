@@ -1,0 +1,60 @@
+{
+  "version": 0.6,
+  "generator": "fixture fictícia (nenhum estabelecimento real)",
+  "elements": [
+    {
+      "type": "node",
+      "id": 9000001,
+      "lat": -15.6012,
+      "lon": -56.0971,
+      "tags": {
+        "name": "Padaria Pão Dourado",
+        "shop": "bakery",
+        "addr:street": "Rua das Acácias",
+        "addr:housenumber": "120",
+        "addr:suburb": "Centro Sul",
+        "phone": "+55 65 3000-1111",
+        "opening_hours": "Mo-Sa 06:00-20:00"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9000002,
+      "lat": -15.6105,
+      "lon": -56.1032,
+      "tags": {
+        "name": "Padaria Lua Nova",
+        "shop": "bakery",
+        "addr:street": "Avenida do Cerrado",
+        "addr:housenumber": "845",
+        "addr:suburb": "Coxipó",
+        "phone": "+55 65 3000-2222"
+      }
+    },
+    {
+      "type": "way",
+      "id": 9000003,
+      "center": { "lat": -15.5987, "lon": -56.0944 },
+      "tags": {
+        "name": "Confeitaria Estrela do Sul",
+        "shop": "bakery",
+        "addr:street": "Rua Sete de Setembro",
+        "addr:housenumber": "30",
+        "addr:suburb": "Centro Sul"
+      }
+    },
+    {
+      "type": "node",
+      "id": 9000004,
+      "lat": -15.6201,
+      "lon": -56.1114,
+      "tags": {
+        "name": "Panificadora Cerrado Vivo",
+        "shop": "bakery",
+        "addr:street": "Rua do Porto",
+        "addr:housenumber": "12",
+        "addr:suburb": "Porto"
+      }
+    }
+  ]
+}

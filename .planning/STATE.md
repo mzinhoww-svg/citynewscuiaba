@@ -3,6 +3,10 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · GUIA-T1..T7 (A-124): Guia Cuiabá integrado à main (PR #34, rascunho); migrations 0130–0133 aplicadas em produção (30 modelos, 3 crons agendados). Lint e typecheck verdes; testes de integração rodam no CI (sem pilha Supabase local aqui). Falta: merge/deploy do PR #34 (as rotas `/api/ingest/guide` e `/api/ingest/venues` só existem após o deploy), `TRIPADVISOR_API_KEY` na Vercel (B-025).
+
+> 2026-10-04 · ADS-T1 (A-117): campos de banner, seleção, `AdSlot` e contagem (impressão, visualização >= 50% por 1 s, clique), migration 0082. Verify verde (3198 testes). Ainda sem campo montado nas páginas (ADS-T2).
+
 > 2026-10-04 · Estúdio no celular (A-123): menu em gaveta com busca, cabeçalho com a tela atual. Testes unitários verdes (2569) e build verde; integração depende da pilha local (não subiu neste container).
 
 > 2026-10-04 · ADS-T4 (A-122): Publicidade no Estúdio em 4 abas (Campos, Banners com envio de imagem ao Storage, Relatório com CSV, Patrocinados); interruptor `ads_enabled` (migration 0144). Peças da casa no ar em produção (78 veiculações).

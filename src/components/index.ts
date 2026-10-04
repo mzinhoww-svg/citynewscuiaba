@@ -218,3 +218,15 @@ export { SuggestionChip, type SuggestionChipProps } from "./ai/SuggestionChip";
 // Regras de autonomia O05 (P5-T2)
 
 // Administração (P5-T8)
+
+/* guia: listas e lugares de Cuiabá */
+export { CriteriaNote, type CriteriaNoteProps } from "./editorial/guide/CriteriaNote";
+export { ListCard, type ListCardProps } from "./editorial/guide/ListCard";
+export { ReportVenueForm } from "./editorial/guide/ReportVenueForm";
+export {
+  VenueCard,
+  categoryLabel,
+  ratingText,
+  type VenueCardProps,
+} from "./editorial/guide/VenueCard";
+export { VenueCover, type VenueCoverProps } from "./editorial/guide/VenueCover";
