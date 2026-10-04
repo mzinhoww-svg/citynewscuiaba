@@ -13,6 +13,7 @@ import {
   createClusterRepo,
   createEventSink,
   createFlags,
+  createFrontpageRepo,
   createIngestRepo,
   createMediaRepo,
   createPublishRepo,
@@ -44,7 +45,9 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import { runHotPins } from "./hot-pins";
 import type { ReviewTickDeps } from "./steps/auto-reviewer";
+import type { FrontpageDeps } from "./steps/frontpage";
 import type { StatusDeps } from "./status";
 import type { TickDeps } from "./tick";
 
@@ -105,6 +108,7 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       now: () => new Date(),
       copyGuard: process.env.AI_PROVIDER !== "fake",
       breaker: createBreakerStore(db),
+      afterPublish: () => runHotPins("publish"),
     }),
     // Publicação forçada da fila de revisão (REV-T1): lote de até 50 por mensagem.
     ...createForcedPublishHandlers({
@@ -232,6 +236,16 @@ export function defaultReviewDeps(): ReviewTickDeps {
     breaker: createBreakerStore(db),
     now: () => new Date(),
   };
+}
+
+/**
+ * Passo `frontpage` (HOT-T2): rota `/api/ingest/frontpage`, a cada 20 min. Mesmo `crawlDeps` do
+ * painel e da coleta (fixtures `*.example` com `CRAWLER_FIXTURES=1` fora de produção). `signal` é
+ * o prazo duro da rota (`maxDuration` 60 s menos a folga).
+ */
+export function defaultFrontpageDeps(signal?: AbortSignal): FrontpageDeps {
+  const repo = createFrontpageRepo(createServiceClient());
+  return { ...crawlDeps({ repo }), repo, signal };
 }
 
 /** Varredura dos assuntos sem novidade há 7 dias (AUT-T7, `topic_close_stale`). */

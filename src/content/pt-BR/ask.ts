@@ -30,10 +30,10 @@ export const ASK = {
   singleSource: (name: string) =>
     `Baseada em uma única fonte (${name}), ainda sem confirmação de outro veículo.`,
   staleSince: (day: string) => `Informação de ${day}: pode ter mudado desde então.`,
-  factsTitle: "O que as fontes confirmam",
+  factsTitle: "O que se sabe",
   inferencesTitle: "Inferência",
   inferencesHint: "Conclusão a partir das fontes, não confirmada por elas.",
-  gapsTitle: "O que ainda não se sabe",
+  gapsTitle: "Ainda não se sabe",
   conflictsTitle: "Onde as fontes divergem",
   disclaimer: "Pode conter erros. Confira nas fontes.",
   sourcesTitle: "Fontes consultadas",
@@ -49,7 +49,7 @@ export const ASK = {
   report: "Reportar erro",
   refineTitle: "Continue por aqui",
   traditional: "Ver na busca tradicional",
-  insufficientTitle: "Não encontramos fontes suficientes para responder",
+  insufficientTitle: "Não encontramos fontes para responder",
   insufficientText: (n: number) =>
     n === 0
       ? "O Perguntar ao CityNews só responde com fontes, e não achamos nenhuma sobre isso."
@@ -78,4 +78,36 @@ export const ASK = {
   fallbackTitle: "Resultados da busca tradicional",
   fallbackAll: "Ver todos os resultados",
   fallbackEmpty: "A busca tradicional também não encontrou nada com essas palavras.",
+  /** Formato de conversa (UI-T13, spec 2026-10-02-ui-publica-design §4.8). */
+  chat: {
+    welcomeTitle: "Respostas só com fontes",
+    welcomeText:
+      "Pergunte sobre Cuiabá. O CityNews responde com o que as fontes publicaram e mostra de onde veio cada frase.",
+    startersLabel: "Perguntas para começar",
+    you: "Você",
+    youAsked: "Você perguntou:",
+    citynews: "CityNews",
+    label: "Sua pergunta",
+    placeholder: "Pergunte sobre Cuiabá…",
+    send: "Enviar pergunta",
+    counter: (n: number, max: number) => `${n} de ${max}`,
+    steps: { sources: "Buscando fontes", comparing: "Comparando", writing: "Escrevendo" },
+    ready: "Resposta pronta.",
+    readyRefused: "O CityNews não encontrou fontes suficientes.",
+    readyProblem: "Não foi possível responder agora.",
+    traditional: "Buscar do jeito tradicional",
+    networkTitle: "A conexão caiu antes da resposta",
+    networkText: "Confira a internet e tente de novo. A busca tradicional também está à mão.",
+    sourcesCount: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
+    foundCount: (n: number) => (n === 1 ? "1 fonte encontrada" : `${n} fontes encontradas`),
+    panelTitle: "Fontes da resposta",
+    panelEmpty: "As fontes da resposta aparecem aqui, numeradas como no texto.",
+    historyTitle: "Conversas neste aparelho",
+    historyHint: "Ficam só neste aparelho, porque você aceitou a personalização.",
+    historyEmpty: "Nenhuma conversa salva ainda.",
+    newConversation: "Nova conversa",
+    conversationLabel: "Conversa com o CityNews",
+  },
+  /** Modo simples (sem JavaScript): formulário GET `?q=&modo=simples` respondido no servidor. */
+  simpleMode: "simples",
 } as const;

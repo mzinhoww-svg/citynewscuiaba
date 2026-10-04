@@ -4,6 +4,7 @@ import { READ_ONLY_MESSAGE } from "./read-only";
 import { runWithStudioContext } from "./context";
 import {
   currentBoard,
+  dismissHot,
   featuredTags,
   pinArticle,
   reorder,
@@ -269,6 +270,54 @@ describe("unpin", () => {
       ok: false,
       error: "invalid",
     });
+  });
+});
+
+describe("dismissHot (HOT-T3)", () => {
+  const hotRow = {
+    slot_key: "home.lead",
+    section_slug: null,
+    article_id: ART,
+    topic_id: "t1",
+    kind: "hot",
+    hot_sources: 3,
+  };
+  const tables = () => ({ ...okTables(), featured_items: [hotRow] });
+  const rpcs = { ...okRpcs, featured_dismiss_hot: { data: 2 } };
+
+  it("dispensa pela função do banco, audita featured.dismiss_hot e invalida a home", async () => {
+    const f = fake(tables(), rpcs);
+    const r = await run(f, ADMIN, () => dismissHot({ id: PIN }));
+    expect(r).toEqual({ ok: true, value: { id: PIN, count: 2 } });
+    expect(f.calls.find((c) => c.name === "featured_dismiss_hot")?.args[0]).toEqual({ p_id: PIN });
+    expect(f.audits).toEqual(["featured.dismiss_hot"]);
+    expect(f.tags).toEqual([["home"]]);
+    expect(f.calls.some((c) => c.method === "delete")).toBe(false);
+  });
+
+  it("papel sem permissão: forbidden com rastro; modo leitura bloqueia", async () => {
+    const f = fake(tables(), rpcs);
+    expect(await run(f, JORNALISTA, () => dismissHot({ id: PIN }))).toEqual({
+      ok: false,
+      error: "forbidden",
+    });
+    expect(f.audits).toEqual(["featured.dismiss_hot.denied"]);
+    const ro = fake({ ...tables(), feature_flags: [{ enabled: true }] }, rpcs);
+    expect(await run(ro, ADMIN, () => dismissHot({ id: PIN }))).toEqual({
+      ok: false,
+      error: "conflict",
+      message: READ_ONLY_MESSAGE,
+    });
+    expect(ro.calls.some((c) => c.name === "featured_dismiss_hot")).toBe(false);
+  });
+
+  it("pino manual (ou inexistente) não se dispensa: not_found", async () => {
+    const manual = fake({ ...okTables(), featured_items: [{ ...hotRow, kind: "manual" }] }, rpcs);
+    expect(await run(manual, ADMIN, () => dismissHot({ id: PIN }))).toMatchObject({
+      ok: false,
+      error: "not_found",
+    });
+    expect(manual.calls.some((c) => c.name === "featured_dismiss_hot")).toBe(false);
   });
 });
 

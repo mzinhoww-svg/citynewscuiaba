@@ -4,7 +4,13 @@ import type { AdminReply, PinPayload, SearchHit } from "@/components/estudio";
 import { FEATURED_TEXT as T } from "@/content/pt-BR/featured";
 import { hasApprovedCover } from "@/lib/featured";
 import type { StudioResult } from "@/lib/studio/action";
-import { pinArticle, reorder, searchEligibleArticles, unpin } from "@/lib/studio/featured";
+import {
+  dismissHot,
+  pinArticle,
+  reorder,
+  searchEligibleArticles,
+  unpin,
+} from "@/lib/studio/featured";
 
 /* Server Actions dos destaques (FD-T4): camada fina sobre src/lib/studio/featured. */
 
@@ -26,6 +32,10 @@ export async function pinAction(i: PinPayload): Promise<AdminReply> {
 
 export async function unpinAction(i: { id: string }): Promise<AdminReply> {
   return reply(await unpin(i), T.success.removed);
+}
+
+export async function dismissHotAction(i: { id: string }): Promise<AdminReply> {
+  return reply(await dismissHot(i), T.success.dismissed);
 }
 
 export async function reorderAction(i: { slotKey: string; ids: string[] }): Promise<AdminReply> {

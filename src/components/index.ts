@@ -85,7 +85,16 @@ export {
 export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
 export { AdSlot, type AdSlotProps } from "./editorial/AdSlot";
 export { AccountShell, type AccountShellProps } from "./editorial/AccountShell";
+export { AccountInvite, type AccountInviteProps } from "./editorial/AccountInvite";
+export {
+  PAGE_CONTAINER,
+  PageHeader,
+  PageLoading,
+  type PageHeaderProps,
+  type PageLoadingProps,
+} from "./editorial/PageHeader";
 export { SignInForm, type SignInFormProps } from "./editorial/SignInForm";
+export { EmailDivider, GoogleButton, type GoogleButtonProps } from "./editorial/GoogleButton";
 export { SignUpForm, type SignUpFormProps } from "./editorial/SignUpForm";
 export { EmailLinkForm, type EmailLinkFormProps } from "./editorial/EmailLinkForm";
 export { NewPasswordForm, type NewPasswordFormProps } from "./editorial/NewPasswordForm";
@@ -122,7 +131,26 @@ export {
 export { ErrorState, type ErrorStateProps } from "./editorial/ErrorState";
 export { LazyErrorState } from "./editorial/LazyErrorState";
 export { RightOfReplyForm, type RightOfReplyFormProps } from "./editorial/RightOfReplyForm";
-export { DocPage, type DocPageProps } from "./editorial/DocPage";
+export {
+  DocBreadcrumb,
+  DocPage,
+  DocRelated,
+  PendingText,
+  type DocPageProps,
+} from "./editorial/DocPage";
+export {
+  Benefits,
+  Cta,
+  Faq,
+  Hero,
+  type BenefitItem,
+  type BenefitsProps,
+  type CtaProps,
+  type FaqItem,
+  type FaqProps,
+  type HeroProps,
+  type MarketingAction,
+} from "./editorial/marketing";
 export { JsonLd, type JsonLdProps } from "./editorial/JsonLd";
 export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
@@ -205,6 +233,12 @@ export {
 export { AiAnswer, type AiAnswerProps } from "./ai/AiAnswer";
 export { AiStatusPanel, type AiStatusPanelProps } from "./ai/AiStatusPanel";
 export { AnswerFeedback } from "./ai/AnswerFeedback";
+export { AskChatLazy } from "./ai/AskChatLazy";
+export type { AskChatProps } from "./ai/AskChat";
+export type { ChatComposerProps } from "./ai/ChatComposer";
+export type { ChatMessageProps } from "./ai/ChatMessage";
+export type { ChatSourcesProps } from "./ai/ChatSources";
+export type { ChatThreadProps } from "./ai/ChatThread";
 export { Citation, type CitationProps } from "./ai/Citation";
 export { SourceRail, type SourceRailProps } from "./ai/SourceRail";
 export { SuggestionChip, type SuggestionChipProps } from "./ai/SuggestionChip";

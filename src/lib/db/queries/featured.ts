@@ -34,6 +34,8 @@ export interface FeaturedResult {
   /** Pinos que não puderam ocupar a posição (saiu do ar, sem capa), para o aviso do admin. */
   dropped: Resolved["dropped"];
   needsImage: string[];
+  /** Matérias que ocupam a posição pela pauta quente (HOT-T3): a tela pública diz "Em alta em Cuiabá". */
+  hot: string[];
   /** Mensagem quando a leitura falhou (a página cai no comportamento anterior). */
   error?: string;
 }
@@ -54,6 +56,7 @@ export const EMPTY_FEATURED: FeaturedResult = {
   until: null,
   dropped: [],
   needsImage: [],
+  hot: [],
 };
 
 /** Resumo de matéria → candidata do domínio (capa aprovada, escopo, confiança, fontes). */
@@ -73,6 +76,9 @@ export function toCandidate(a: ArticleSummary): Candidate {
 
 export interface PinRow {
   id: string;
+  /** `manual` (admin) ou `hot` (pauta quente); ausente = manual. */
+  kind?: string;
+  dismissed_at?: string | null;
   slot_key: string;
   section_slug: string | null;
   article_id: string;
@@ -95,11 +101,23 @@ export function toPin(r: PinRow): Pin {
   };
 }
 
+/** Pino vigente em `now` (não encerrado, já começado, não vencido). */
+function pinActive(p: Pin, now: Date): boolean {
+  return (
+    p.endedAt === null &&
+    p.startsAt.getTime() <= now.getTime() &&
+    (p.endsAt === null || now.getTime() < p.endsAt.getTime())
+  );
+}
+
 /** Parte pura: quem ocupa a posição, dadas as linhas já lidas. */
 export function resolveFeatured(input: {
   slot: Slot;
   section?: string;
+  /** Pinos manuais (`kind = 'manual'`). */
   pins: readonly Pin[];
+  /** Pinos da pauta quente (`kind = 'hot'`, não dispensados), na ordem de posição. */
+  hot?: readonly Pin[];
   pool: readonly ArticleSummary[];
   now: Date;
   exclude?: readonly string[];
@@ -107,20 +125,33 @@ export function resolveFeatured(input: {
   const skip = new Set(input.exclude ?? []);
   const articles = input.pool.filter((a) => !skip.has(a.id));
   const byId = new Map(articles.map((a) => [a.id, a]));
+  const candidates = articles.map(toCandidate);
+  const candidateById = new Map(candidates.map((c) => [c.id, c]));
+  const hot = (input.hot ?? [])
+    .filter((p) => p.slotKey === input.slot.key && p.sectionSlug === (input.section ?? null))
+    .filter((p) => pinActive(p, input.now))
+    .sort((a, b) => a.position - b.position || a.startsAt.getTime() - b.startsAt.getTime())
+    .flatMap((p) => candidateById.get(p.articleId) ?? []);
   const r = resolveSlot({
     slot: input.slot,
     section: input.section,
     pins: input.pins,
-    candidates: articles.map(toCandidate),
+    candidates,
+    hot,
     now: input.now,
     eligible: (id) => byId.has(id),
   });
+  const manualIds = new Set(
+    input.pins.filter((p) => pinActive(p, input.now)).map((p) => p.articleId),
+  );
+  const hotIds = new Set(hot.map((c) => c.id));
   return {
     items: r.items.flatMap((c) => byId.get(c.id) ?? []),
     source: r.source,
     until: r.until,
     dropped: r.dropped,
     needsImage: r.needsImage,
+    hot: r.items.filter((c) => hotIds.has(c.id) && !manualIds.has(c.id)).map((c) => c.id),
   };
 }
 
@@ -183,17 +214,22 @@ export async function getFeatured(
 
     let pinQuery = db
       .from("featured_items")
-      .select("id, slot_key, section_slug, article_id, position, starts_at, ends_at, ended_at")
+      .select(
+        "id, kind, slot_key, section_slug, article_id, position, starts_at, ends_at, ended_at, dismissed_at",
+      )
       .eq("slot_key", slot.key)
       .is("ended_at", null);
     pinQuery = opts.section
       ? pinQuery.eq("section_slug", opts.section)
       : pinQuery.is("section_slug", null);
-    const pins = (await pinQuery.then(many)).map(toPin);
+    const rows = await pinQuery.then(many);
+    // Manual como hoje; pauta quente (HOT-T3) só não dispensada. A vigência é conferida na parte pura.
+    const pins = rows.filter((r) => r.kind !== "hot").map(toPin);
+    const hot = rows.filter((r) => r.kind === "hot" && !r.dismissed_at).map(toPin);
 
     const pool = [...(opts.pool ?? (await loadPool(db, slot, opts.section)))];
     // Matéria pinada pode ser mais antiga que a lista lida: traz só as que faltam.
-    const missing = [...new Set(pins.map((p) => p.articleId))].filter(
+    const missing = [...new Set([...pins, ...hot].map((p) => p.articleId))].filter(
       (id) => !pool.some((a) => a.id === id),
     );
     if (missing.length) {
@@ -210,6 +246,7 @@ export async function getFeatured(
       slot,
       section: opts.section,
       pins,
+      hot,
       pool,
       now,
       exclude: opts.exclude,

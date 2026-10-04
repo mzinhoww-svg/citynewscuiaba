@@ -6,3 +6,4 @@ export * from "./validate";
 export * from "./used";
 export * from "./cover";
 export * from "./labels";
+export * from "./hot";

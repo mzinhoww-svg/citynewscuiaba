@@ -1,7 +1,8 @@
 import type { AggregatedView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
-import { plaqueOf } from "@/lib/labels";
+import { PUBLIC_LABEL } from "@/content/pt-BR/labels";
+import type { Label } from "@/lib/labels";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { OriginLabel } from "./OriginLabel";
@@ -19,6 +20,21 @@ export interface AggregatedCardProps {
    */
   cta?: "source" | "original";
   className?: string;
+}
+
+/**
+ * A plaqueta única de um item agregado: sempre AGREGADO · fonte (regras 3 e 4 do produto), mesmo
+ * que o dado traga outros rótulos (ORIGINAL, resumo etc. nunca aparecem aqui).
+ */
+function aggregatedPlaque(item: AggregatedView): Label {
+  const fromData = [...item.labels.shown, ...item.labels.hidden].find(
+    (l) => l.kind === "aggregated",
+  );
+  return {
+    kind: "aggregated",
+    text: PUBLIC_LABEL.plaque.aggregated,
+    detail: fromData?.detail ?? item.sourceName,
+  };
 }
 
 /**
@@ -41,7 +57,7 @@ export function AggregatedCard({
   className,
 }: AggregatedCardProps) {
   const when = item.publishedAt ? formatWhen(item.publishedAt, now) : "";
-  const plaque = plaqueOf(item.labels);
+  const plaque = aggregatedPlaque(item);
   return (
     <article
       className={cx(
@@ -51,11 +67,9 @@ export function AggregatedCard({
         className,
       )}
     >
-      {plaque && (
-        <div className="relative flex">
-          <OriginLabel label={plaque} />
-        </div>
-      )}
+      <div className="relative flex">
+        <OriginLabel label={plaque} />
+      </div>
       {cta === "source" ? (
         <Heading className="line-clamp-3 type-headline-sm text-strong">
           <a
@@ -74,7 +88,7 @@ export function AggregatedCard({
       ) : (
         <Heading className="line-clamp-3 type-headline-sm text-strong">{item.title}</Heading>
       )}
-      {item.summary && <p className="line-clamp-3 type-body text-body">{item.summary}</p>}
+      {item.summary && <p className="line-clamp-2 type-body text-body">{item.summary}</p>}
       <p className="mt-auto flex flex-wrap items-center gap-x-1.5 type-meta text-meta">
         {when && (
           <>

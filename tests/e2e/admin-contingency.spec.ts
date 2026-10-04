@@ -73,11 +73,17 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
     await expect(page.getByText(/Desligada: \/pergunte/)).toBeVisible();
 
     const visitor = await context.browser()!.newPage();
+    // Chat (UI-T13): a mensagem do CityNews diz que o assistente está pausado e oferece a busca
+    // tradicional, nunca "Tentar de novo".
     await visitor.goto("/pergunte?q=obras+no+CPA");
     await expect(visitor.getByText("Assistente indisponível")).toBeVisible();
     await expect(visitor.getByText(/A redação pausou o assistente/)).toBeVisible();
-    // Sem o assistente, a página mostra a busca tradicional logo abaixo (com "Ver todos os resultados"
+    await expect(visitor.getByRole("link", { name: "Buscar do jeito tradicional" })).toBeVisible();
+    await expect(visitor.getByRole("button", { name: "Tentar de novo" })).toHaveCount(0);
+    // Modo simples (sem JS): a busca tradicional logo abaixo (com "Ver todos os resultados"
     // quando há resultado, ou o aviso de vazio) e nunca o botão "Tentar de novo".
+    await visitor.goto("/pergunte?q=obras+no+CPA&modo=simples");
+    await expect(visitor.getByText("Assistente indisponível")).toBeVisible();
     await expect(
       visitor.getByText(/Resultados da busca tradicional|também não encontrou/),
     ).toBeVisible();

@@ -11,6 +11,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 - **P0 a P6 concluídos** (69/70 tarefas; P6-T4, exercício de restauração, degradado por falta de 2º projeto Supabase, B-021). Painel de Fontes, PWA, UI pública, autonomia de publicação (regras v3), destaques, publicidade (ADS-T1..T4), Guia Cuiabá e segurança P1 entregues depois.
 - **Produção:** https://citynewscuiaba.vercel.app, projeto Supabase `citynews-prod`. Pipeline com regras v3 e disjuntor.
+- **Retomada (A-140, 04/10):** UI-T12 (login), UI-T13 (chat), HOT-T1..T3 (pauta quente), UI-T10, UI-T11, UI-T14 e fechamentos em execução pelo plano `docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md` (branch `claude/peaceful-turing-6oaw2k`, PR #43). TXT-T1..T3 encerradas por outro caminho.
 - **Closure (04/10, PR #41, `docs/orchestrator/`):** 0146 a 0150 aplicadas e verificadas; disjuntor 300/3.000 e `auto_publish` ligado (A-126). **0143 segue NÃO aplicada.**
 - **Auditoria 360 (PR #42) e decisões do dono D-01 a D-06 (A-133 a A-138, PR #44):** relatório em `docs/reports/decisoes-auditoria-360.md`.
   - D-01 Pergunte responde com uma fonte relevante, atribuída; sem fonte informa.

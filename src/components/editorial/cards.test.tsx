@@ -121,7 +121,55 @@ describe("AggregatedCard", () => {
   });
 });
 
+describe("AggregatedCard · plaqueta única", () => {
+  it("sem rótulo AGREGADO nos dados, ainda mostra 1 plaqueta AGREGADO · fonte e nunca ORIGINAL", () => {
+    const item: AggregatedView = {
+      ...fixtureAgg,
+      labels: {
+        shown: [
+          { kind: "original", text: "ORIGINAL CITYNEWS" },
+          { kind: "ai_summary", text: "RESUMO POR IA" },
+        ],
+        hidden: [],
+      },
+    };
+    const { container } = render(<AggregatedCard item={item} now={now} />);
+    const plaques = screen.getAllByTestId("origin-label");
+    expect(plaques).toHaveLength(1);
+    expect(plaques[0]).toHaveTextContent("AGREGADO");
+    expect(plaques[0]).toHaveTextContent("Folha do Cerrado");
+    expect(container.textContent).not.toMatch(/ORIGINAL CITYNEWS|\bIA\b|intelig|normaliz/i);
+  });
+
+  it("resumo curto em texto simples, sem rótulo", () => {
+    render(<AggregatedCard item={fixtureAgg} now={now} />);
+    const summary = screen.getByText(fixtureAgg.summary!);
+    expect(summary.tagName).toBe("P");
+    expect(summary.className).toMatch(/line-clamp-2/);
+  });
+});
+
 describe("ArticleCard", () => {
+  it("pauta quente: 'Em alta em Cuiabá' em texto sobre o título, sem plaqueta e sem tirar a origem", () => {
+    const original: ArticleSummary = { ...baseArticle, kind: "original" };
+    render(<ArticleCard variant="lead" as="h1" article={original} kicker="Em alta em Cuiabá" />);
+    const kicker = screen.getByTestId("card-kicker");
+    expect(kicker).toHaveTextContent("Em alta em Cuiabá");
+    expect(kicker.tagName).toBe("P");
+    // Vem antes do título, no fluxo do texto.
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(kicker.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // A plaqueta continua sendo só a de origem.
+    expect(screen.getAllByTestId("origin-label")).toHaveLength(1);
+    expect(screen.getByTestId("origin-label")).toHaveTextContent("ORIGINAL CITYNEWS");
+  });
+
+  it("sem kicker, nada de 'Em alta'", () => {
+    const { container } = render(<ArticleCard variant="lead" article={baseArticle} />);
+    expect(screen.queryByTestId("card-kicker")).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/Em alta/);
+  });
+
   it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e a origem em texto", () => {
     const article: ArticleSummary = {
       ...baseArticle,

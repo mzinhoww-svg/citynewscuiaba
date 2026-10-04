@@ -54,14 +54,14 @@ it("resposta separa fato, inferência, conflito e lacuna, com citações e aviso
   expect(screen.getByRole("heading", { name: "Resposta do CityNews" })).toBeInTheDocument();
   expect(screen.queryByText(/RESUMO POR IA|gerada por IA/i)).not.toBeInTheDocument();
   expect(screen.getByText("Pode conter erros. Confira nas fontes.")).toBeInTheDocument();
-  const facts = screen.getByRole("region", { name: "O que as fontes confirmam" });
+  const facts = screen.getByRole("region", { name: "O que se sabe" });
   expect(within(facts).getByRole("link", { name: "Fonte 1" })).toHaveAttribute("href", "#fonte-1");
   expect(within(facts).getByRole("link", { name: "Fonte 2" })).toHaveAttribute("href", "#fonte-2");
   expect(screen.getByRole("region", { name: "Inferência" })).toHaveTextContent(/não confirmada/);
   expect(screen.getByRole("region", { name: "Onde as fontes divergem" })).toHaveTextContent(
     "Intervalo no pico",
   );
-  expect(screen.getByRole("region", { name: "O que ainda não se sabe" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Ainda não se sabe" })).toBeInTheDocument();
 });
 
 it("resposta não mostra nível de confiança, nem medidor nem aviso de baixa confiança (R13)", () => {

@@ -95,6 +95,36 @@ test("link expirado ou inválido explica e oferece novo link", async ({ page }) 
   );
 });
 
+// UI-T11: Newsletter, Anuncie, App e Sobre em blocos de marketing (hero, benefícios, CTA, FAQ).
+test("newsletter em blocos: hero leva ao formulário e FAQ abre pelo teclado", async ({ page }) => {
+  await page.goto("/newsletter");
+  await expect(page.getByRole("heading", { level: 1, name: "Newsletters" })).toBeVisible();
+  await page.getByRole("link", { name: "Escolher e inscrever" }).click();
+  await expect(page).toHaveURL(/#inscrever$/);
+  await expect(page.getByRole("region", { name: "Inscrever" })).toBeInViewport();
+  const faq = page.getByRole("region", { name: "Perguntas frequentes" });
+  await faq.locator("summary").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(faq.getByText("Não. Só pedimos o e-mail, mais nada.")).toBeVisible();
+});
+
+for (const [path, title] of [
+  ["/anuncie", "Anuncie no CityNews"],
+  ["/sobre", "Sobre o CityNews"],
+  ["/app", "Baixar o app"],
+] as const) {
+  test(`${path} em blocos de marketing, sem a sigla IA @a11y`, async ({ page }) => {
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Perguntas frequentes" })).toBeVisible();
+    expect(await page.locator("main").innerText()).not.toMatch(/\bIA\b|inteligência artificial/i);
+    await page.evaluate(() => document.fonts.ready);
+    const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+    const bad = r.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
+    expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
+  });
+}
+
 test("newsletter sem violações graves de acessibilidade @a11y", async ({ page }) => {
   await page.goto("/newsletter");
   await page.evaluate(() => document.fonts.ready);

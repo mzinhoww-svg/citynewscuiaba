@@ -51,6 +51,11 @@ export const consumptionSchema = z.object({
    * entre `normalize` e `dedupe`. Desligado por padrão; fonte sem a flag nunca paga a requisição.
    */
   enrich: z.boolean().optional(),
+  /**
+   * Leitura do topo da página inicial (passo `frontpage`, HOT-T2, a cada 20 min): só URL e posição
+   * dos 3 primeiros links de matéria, para a pauta quente. Desligado por padrão (ausente = falso).
+   */
+  frontpage: z.boolean().optional(),
   robots: z
     .object({
       crawlDelaySec: z.number().int().nonnegative().nullable(),

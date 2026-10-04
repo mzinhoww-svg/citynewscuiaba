@@ -8,10 +8,6 @@ export const FAVORITES_TEXT = {
   deviceOnly: "Salvos só neste aparelho",
   deviceOnlyText:
     "Seus favoritos ficam guardados neste navegador. Se limpar os dados do navegador, eles somem.",
-  sync: "Sincronizar (opcional)",
-  /** Texto fixo de "ação que exige conta" (spec §5.4). */
-  syncSoon:
-    "Para sincronizar essa preferência entre dispositivos, é necessário entrar ou criar uma conta. Você pode continuar usando o CityNews sem cadastro.",
   tabsLabel: "Seus favoritos",
   tabs: {
     saved: "Salvos",
@@ -45,6 +41,7 @@ export const FAVORITES_TEXT = {
   collectionsEmptyText: "Crie coleções para organizar o que você salvou.",
   newCollection: "Nome da nova coleção",
   newCollectionPlaceholder: "Ex.: Para ler no fim de semana",
+  collectionNameError: "Digite um nome para a coleção. Exemplo: Para ler no fim de semana",
   create: "Criar coleção",
   rename: "Renomear",
   renameLabel: (name: string) => `Renomear ${name}`,

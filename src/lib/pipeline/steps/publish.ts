@@ -206,6 +206,13 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
       reviewReason: null,
       ...(shortReason !== input.shortReason ? { shortReason } : {}),
     });
+    if (deps.afterPublish) {
+      try {
+        await deps.afterPublish();
+      } catch {
+        /* pauta quente é melhor esforço: a publicação já está gravada */
+      }
+    }
     const kind = route === "publish_notify" ? "auto_published_notify" : "auto_published";
     return ok([index, nextMessage(msg, "notify", `${msg.itemRef}#${kind}`)]);
   };
