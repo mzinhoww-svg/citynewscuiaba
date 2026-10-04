@@ -19,6 +19,7 @@ export { LoadMore, loadMoreAnchor, type LoadMoreProps } from "./ui/LoadMore";
 export { ListRow, type ListRowProps } from "./ui/ListRow";
 export { NavHeader, type NavHeaderProps } from "./ui/NavHeader";
 export { NavLink, isCurrentPath, type NavLinkProps } from "./ui/NavLink";
+export { Panel, type PanelProps } from "./ui/Panel";
 export { SearchBar, type SearchBarProps } from "./ui/SearchBar";
 export { CollapsibleFilters, type CollapsibleFiltersProps } from "./ui/CollapsibleFilters";
 export { SectionHeader, type SectionHeaderProps } from "./ui/SectionHeader";
@@ -30,6 +31,7 @@ export {
 } from "./ui/SegmentedToggle";
 export { Skeleton, type SkeletonProps } from "./ui/Skeleton";
 export { Slider, type SliderProps } from "./ui/Slider";
+export { StatGrid, type StatGridItem, type StatGridProps } from "./ui/StatGrid";
 export { TabBar, DEFAULT_TABS, type TabBarItem, type TabBarProps } from "./ui/TabBar";
 export { Tabs, type TabsProps } from "./ui/Tabs";
 export { TextField, type TextFieldProps } from "./ui/TextField";
