@@ -127,9 +127,10 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
   const remove = (a: LocalAlert) => void act((s) => s.removeAlert(a.id));
 
   return (
-    // Ordem de leitura no celular: o que já existe, o formulário de criar (a ação da página), a
-    // nota de avisos do navegador e o convite de conta. No desktop o formulário vai para a coluna
-    // lateral, ocupando as duas linhas; a segunda linha (1fr) absorve a sobra de altura.
+    // Ordem de leitura no celular: o que já existe e os avisos do navegador, o formulário de criar
+    // (a ação da página) e o convite de conta. Os avisos ficam antes do formulário: ao ativá-los a
+    // página rola até eles, e o formulário abaixo não fica sob o cabeçalho fixo. No desktop o
+    // formulário vai para a coluna lateral, ocupando as duas linhas; a segunda (1fr) absorve a sobra.
     <div
       data-ready={ready ? "true" : undefined}
       className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-6"
@@ -187,6 +188,10 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
             </ul>
           )}
         </section>
+        <div className="flex flex-col gap-2">
+          <p className="type-meta text-meta">{T.whileOpen}</p>
+          <PushSettings />
+        </div>
       </div>
 
       <section
@@ -239,7 +244,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
                   value={f}
                   checked={frequency === f}
                   onChange={() => setFrequency(f)}
-                  className="size-5 accent-(--action-primary)"
+                  className="size-6 accent-(--action-primary)"
                 />
                 {T.frequencies[f]}
               </label>
@@ -258,7 +263,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
                   value={c}
                   checked={channel === c}
                   onChange={() => setChannel(c)}
-                  className="size-5 accent-(--action-primary)"
+                  className="size-6 accent-(--action-primary)"
                 />
                 {T.channels[c]}
               </label>
@@ -297,10 +302,6 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
       </section>
 
       <div className="flex min-w-0 flex-col gap-6 self-start lg:col-span-8 lg:row-start-2">
-        <div className="flex flex-col gap-2">
-          <p className="type-meta text-meta">{T.whileOpen}</p>
-          <PushSettings />
-        </div>
         <AccountInvite next="/alertas" />
       </div>
     </div>
