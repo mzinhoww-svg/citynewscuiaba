@@ -20,6 +20,8 @@ export const HOME = {
   agenda: "Agenda",
   agendaMore: "/agenda",
   agendaEmpty: "Nenhum evento confirmado nos próximos dias.",
+  /** "Agora" sem matérias recentes (UX-W4-T4, item 72). */
+  nowEmpty: "Nenhuma matéria nova por enquanto. A lista se atualiza a cada ciclo.",
   free: "Gratuito",
   price: (cents: number) =>
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }),

@@ -53,6 +53,7 @@ export const FAVORITES_TEXT = {
   items: (n: number) => (n === 1 ? "1 item" : `${n} itens`),
   removed: (title: string) => `Removido: ${title}`,
   undo: "Desfazer",
+  undoLabel: (title: string) => `Desfazer a remoção de ${title}`,
   loading: "Carregando seus favoritos",
 } as const;
 

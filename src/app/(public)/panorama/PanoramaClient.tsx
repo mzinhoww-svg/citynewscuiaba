@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, useSyncExternalStore } from "react";
-import { AggregatedCard, Checkbox, Chip, EmptyState, SegmentedToggle } from "@/components";
+import { AggregatedCard, Button, Checkbox, Chip, EmptyState, SegmentedToggle } from "@/components";
 import { PANORAMA_TEXT as T } from "@/content/pt-BR/sources";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import type { AggregatedView } from "@/lib/db/queries/types";
@@ -82,6 +82,10 @@ export function PanoramaClient({ items, sources }: PanoramaClientProps) {
     return null;
   }, [mode, followed, custom]);
 
+  const shownSources = selected
+    ? sources.filter((s) => selected.has(s.slug)).length
+    : sources.length;
+
   const popularity = new Map(sources.map((s) => [s.slug, s.popularity]));
   const shown = items
     .filter((i) => !selected || selected.has(i.sourceSlug))
@@ -101,6 +105,8 @@ export function PanoramaClient({ items, sources }: PanoramaClientProps) {
     const slugs = base.includes(slug) ? base.filter((s) => s !== slug) : [...base, slug];
     change({ mode: "custom", slugs });
   };
+  /** "Todas" no seletor e "Mostrar todas" no vazio. */
+  const showAll = () => change({ mode: "all", slugs: [] });
 
   return (
     <section
@@ -124,12 +130,15 @@ export function PanoramaClient({ items, sources }: PanoramaClientProps) {
       </div>
       <details className="border border-line-section bg-card-white p-4">
         <summary className="inline-flex min-h-tap cursor-pointer items-center type-body font-semibold text-strong">
-          {T.picker}
+          <span>{T.picker}</span>
+          <span className="ml-2 type-meta font-normal text-meta">
+            {T.pickerCount(shownSources, sources.length)}
+          </span>
         </summary>
         <fieldset className="mt-2 flex flex-col gap-3">
           <legend className="type-meta text-meta">{T.pickerHint}</legend>
           <div className="flex flex-wrap gap-2">
-            <Chip active={mode === "all"} onClick={() => change({ mode: "all", slugs: [] })}>
+            <Chip active={mode === "all"} onClick={showAll}>
               {T.pickerAll}
             </Chip>
             {followed.length > 0 && (
@@ -157,7 +166,14 @@ export function PanoramaClient({ items, sources }: PanoramaClientProps) {
         </fieldset>
       </details>
       {shown.length === 0 ? (
-        <EmptyState title={T.latestEmpty}>
+        <EmptyState
+          title={T.latestEmpty}
+          actions={
+            <Button size="md" variant="outline" onClick={showAll}>
+              {T.showAll}
+            </Button>
+          }
+        >
           <p>{T.latestEmptyText}</p>
         </EmptyState>
       ) : (

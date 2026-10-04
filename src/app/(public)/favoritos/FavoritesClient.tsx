@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useState } from "react";
 import {
   AccountInvite,
@@ -24,18 +25,27 @@ import { cacheSaved } from "@/lib/offline/sw";
 
 type Tab = keyof typeof T.tabs;
 const TABS: Tab[] = ["saved", "sources", "topics", "collections"];
+/** Aba no endereço (`?aba=`), para voltar ou compartilhar a aba aberta (item 71). */
+const TAB_SLUG: Record<Tab, string> = {
+  saved: "salvos",
+  sources: "fontes",
+  topics: "assuntos",
+  collections: "colecoes",
+};
+const tabFromSlug = (slug?: string): Tab => TABS.find((t) => TAB_SLUG[t] === slug) ?? "saved";
 const sectionName = (slug?: string) => SECTIONS.find((s) => s.id === slug)?.label ?? slug ?? "";
 
 export interface FavoritesClientProps {
   sourceNames: Record<string, string>;
+  /** Valor de `?aba=` lido pela página (salvos, fontes, assuntos, colecoes). */
+  initialTab?: string;
 }
 
-type Undo = { text: string; undo: () => void } | null;
-
-export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
+export function FavoritesClient({ sourceNames, initialTab }: FavoritesClientProps) {
   const { profile, degraded, ready, act } = useAnonProfile();
-  const [tab, setTab] = useState<Tab>("saved");
-  const [notice, setNotice] = useState<Undo>(null);
+  const [tab, setTab] = useState<Tab>(() => tabFromSlug(initialTab));
+  const router = useRouter();
+  const pathname = usePathname();
   const id = useId();
 
   const savedPaths = (profile?.saved ?? []).flatMap((s) => (s.href ? [s.href] : [])).join("|");
@@ -69,31 +79,15 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
             const next = TABS.find((t) => T.tabs[t] === label);
             if (next) {
               setTab(next);
-              setNotice(null);
+              const slug = TAB_SLUG[next];
+              router.replace(next === "saved" ? pathname : `${pathname}?aba=${slug}`, {
+                scroll: false,
+              });
             }
           }}
           idPrefix={id}
           layout="scroll"
         />
-        {notice && (
-          <InlineAlert
-            tone="success"
-            action={
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  notice.undo();
-                  setNotice(null);
-                }}
-              >
-                {T.undo}
-              </Button>
-            }
-          >
-            <p>{notice.text}</p>
-          </InlineAlert>
-        )}
         {TABS.map((t, i) =>
           i === tabIndex ? (
             <div
@@ -110,7 +104,7 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
                   <Skeleton lines={2} />
                 </div>
               ) : t === "saved" ? (
-                <Saved profile={profile} act={act} onNotice={setNotice} />
+                <Saved profile={profile} act={act} />
               ) : t === "sources" ? (
                 <Sources profile={profile} act={act} names={sourceNames} />
               ) : t === "topics" ? (
@@ -136,17 +130,29 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
 
 type Act = ReturnType<typeof useAnonProfile>["act"];
 
-function Saved({
-  profile,
-  act,
-  onNotice,
-}: {
-  profile: AnonProfile;
-  act: Act;
-  onNotice: (u: Undo) => void;
-}) {
+type SavedItem = AnonProfile["saved"][number];
+
+/**
+ * Remoção com "Desfazer" no lugar do item (item 71, Review Focus 3). O "Desfazer" fica inline,
+ * não no toast: o toast é uma região viva fixa que some sozinha e, ao fechar, devolveria o foco
+ * ao conteúdo principal, longe da lista. Aqui o foco vai ao "Desfazer" na mesma posição do item
+ * e, ao desfazer, ao botão "Remover" do item devolvido: nunca cai no `body`.
+ */
+type Pending = { item: SavedItem; index: number; state: "removed" | "restored" } | null;
+
+function Saved({ profile, act }: { profile: AnonProfile; act: Act }) {
   const [section, setSection] = useState<string | null>(null);
-  if (profile.saved.length === 0)
+  const [pending, setPending] = useState<Pending>(null);
+  const baseId = useId();
+  const focusId = `${baseId}-foco`;
+
+  // Depois de remover ou desfazer, o foco vai ao botão que ocupa o lugar do item.
+  useEffect(() => {
+    if (pending) document.getElementById(focusId)?.focus();
+  }, [pending, focusId]);
+
+  const rest = profile.saved.filter((s) => s.ref !== pending?.item.ref);
+  if (rest.length === 0 && !pending)
     return (
       <EmptyState
         title={T.savedEmpty}
@@ -161,7 +167,28 @@ function Saved({
       </EmptyState>
     );
   const sections = [...new Set(profile.saved.flatMap((s) => (s.section ? [s.section] : [])))];
-  const list = profile.saved.filter((s) => !section || s.section === section);
+  const inSection = (s: SavedItem) => !section || s.section === section;
+  const list: { item: SavedItem; placeholder: boolean }[] = rest
+    .filter(inSection)
+    .map((item) => ({ item, placeholder: false }));
+  if (pending && inSection(pending.item))
+    list.splice(Math.min(pending.index, list.length), 0, {
+      item: pending.item,
+      placeholder: pending.state === "removed",
+    });
+
+  const remove = (s: SavedItem, index: number) => {
+    void act((st) => st.unsave(s.ref));
+    setPending({ item: s, index, state: "removed" });
+  };
+  const undo = (p: NonNullable<Pending>) => {
+    const s = p.item;
+    void act((st) =>
+      st.save(s.ref, s.progress, { title: s.title, href: s.href, section: s.section }),
+    );
+    setPending({ ...p, state: "restored" });
+  };
+
   return (
     <>
       {sections.length > 1 && (
@@ -177,8 +204,27 @@ function Saved({
         </div>
       )}
       <ul className="flex flex-col">
-        {list.map((s) => {
+        {list.map(({ item: s, placeholder }, index) => {
           const title = s.title ?? T.untitled;
+          const isPending = pending?.item.ref === s.ref;
+          if (placeholder && pending)
+            return (
+              <li
+                key={s.ref}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-subtle py-3 last:border-b"
+              >
+                <p className="min-w-0 flex-1 basis-60 type-body text-meta">{T.removed(title)}</p>
+                <Button
+                  id={focusId}
+                  size="sm"
+                  variant="outline"
+                  aria-label={T.undoLabel(title)}
+                  onClick={() => undo(pending)}
+                >
+                  {T.undo}
+                </Button>
+              </li>
+            );
           return (
             <li
               key={s.ref}
@@ -206,24 +252,12 @@ function Saved({
                 </p>
               </div>
               <Button
+                id={isPending ? focusId : undefined}
                 size="sm"
                 variant="outline"
                 icon="trash-2"
                 aria-label={T.removeLabel(title)}
-                onClick={() => {
-                  void act((st) => st.unsave(s.ref));
-                  onNotice({
-                    text: T.removed(title),
-                    undo: () =>
-                      void act((st) =>
-                        st.save(s.ref, s.progress, {
-                          title: s.title,
-                          href: s.href,
-                          section: s.section,
-                        }),
-                      ),
-                  });
-                }}
+                onClick={() => remove(s, index)}
               >
                 {T.remove}
               </Button>
