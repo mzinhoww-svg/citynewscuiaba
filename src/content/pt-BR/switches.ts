@@ -9,6 +9,7 @@ export const SWITCH_KEYS = [
   "personalization_enabled",
   "image_reproduction_enabled",
   "source_link_analysis",
+  "sponsored_native_enabled",
 ] as const satisfies readonly FlagKey[];
 
 export interface SwitchInfo {
@@ -60,6 +61,13 @@ export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
     on: "Ligada: links são analisados.",
     off: "Desligada: links não são analisados.",
   },
+  sponsored_native_enabled: {
+    title: "Patrocinado nativo",
+    about:
+      "Matéria patrocinada na home, com o texto Patrocinado. Nunca em Política, Justiça, Segurança ou Saúde.",
+    on: "Ligado: a matéria patrocinada aparece em Mais lidas da home.",
+    off: "Desligado: matéria patrocinada só aparece na própria página.",
+  },
 };
 
 export const SWITCH_TEXT = {
@@ -106,4 +114,25 @@ export const SWITCH_TEXT = {
   errorTitle: "Não foi possível carregar os interruptores",
   errorBody: "O banco não respondeu agora. Tente de novo em instantes.",
   retry: "Tentar de novo",
+} as const;
+
+/** Revisor automático (AUT-T6): modo `off`, `night` (20h às 6h em Cuiabá, padrão) ou `always`. */
+export const REVIEWER_TEXT = {
+  title: "Revisor automático",
+  about:
+    "Decide sozinho o que ficou em revisão além do prazo (urgente 10 min, demais 30 min): publicar, manter para uma pessoa ou arquivar, sempre com justificativa na decisão. Nunca decide correção, direito de resposta, denúncia nem mudança de regra, e respeita o orçamento de IA.",
+  modes: {
+    off: {
+      label: "Desligado",
+      about: "Tudo o que vence o prazo fica na fila para uma pessoa decidir.",
+    },
+    night: {
+      label: "À noite",
+      about: "Decide das 20h às 6h, horário de Cuiabá. Padrão.",
+    },
+    always: { label: "Sempre", about: "Decide a qualquer hora do dia." },
+  },
+  choose: (label: string) => `Usar o modo ${label}`,
+  dialogTitle: (label: string) => `Mudar o revisor automático para "${label}"?`,
+  result: (label: string) => `Revisor automático: ${label}.`,
 } as const;

@@ -1,6 +1,6 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
 import type { BreakerStore } from "../breaker";
-import { copiedRun } from "@/lib/ai/schemas/aggregate-summary";
+import { copiedPhrase } from "@/lib/ai/schemas/aggregate-summary";
 import { WriteSchema, type WriteOutput } from "@/lib/ai/schemas/write";
 import type { AiError } from "@/lib/ai/types";
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
@@ -90,7 +90,14 @@ export function toDoc(paragraphs: Paragraph[]): Doc {
   };
 }
 
-const itemText = (i: DraftItem) => (i.excerpt ? `${i.title}\n${i.excerpt}` : i.title);
+/**
+ * Material do redator para um item: o título e o corpo inteiro da página (`enrich`) quando existe,
+ * senão o trecho do feed. Uma frase de RSS não sustenta 30 linhas; o corpo da fonte sustenta.
+ */
+export function materialOf(i: DraftItem): string {
+  const text = i.sourceText?.trim() || i.excerpt;
+  return text ? `${i.title}\n${text}` : i.title;
+}
 
 function roleOf(ctx: DraftContext, item: DraftItem): "primary" | "secondary" | "context" {
   if (item.reliability === "primary") return "primary";
@@ -111,8 +118,9 @@ export function citedParagraphs(
         citations: [...new Set(p.citations)].filter((c) => ids.has(c)),
       }))
       .filter((p) => p.text.length > 0 && p.citations.length > 0)
-      // Texto de terceiros não é republicado: parágrafo que copia 8 palavras seguidas cai.
-      .filter((p) => !sourceTexts.some((t) => copiedRun(p.text, t) !== null))
+      // Texto de terceiros não é republicado: parágrafo que copia 8 palavras seguidas cai
+      // (nome próprio e número são fato e quebram a sequência).
+      .filter((p) => !sourceTexts.some((t) => copiedPhrase(p.text, t) !== null))
   );
 }
 
@@ -174,7 +182,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       "write",
       {
         system,
-        data: ctx.items.map((i) => ({ id: i.id, text: itemText(i) })),
+        data: ctx.items.map((i) => ({ id: i.id, text: materialOf(i) })),
         task: [
           writeTaskFor(
             section,
@@ -191,7 +199,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     let failure: AiError | "citations" | null = r.ok ? null : r.error;
     let draft: { title: string; dek: string; body: Paragraph[]; summary: string[] | null };
     if (r.ok) {
-      const body = citedParagraphs(r.value, ids, deps.copyGuard ? ctx.items.map(itemText) : []);
+      const body = citedParagraphs(r.value, ids, deps.copyGuard ? ctx.items.map(materialOf) : []);
       if (body.length > 0)
         draft = { title: r.value.title, dek: r.value.dek, body, summary: r.value.summary };
       else {
@@ -227,7 +235,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     };
     const saved = await deps.repo.saveDraft(input);
     // R41: o texto precisa de 30 linhas; só fica menor se as fontes não trazem conteúdo.
-    const materialShort = insufficientMaterial(ctx.items.map(itemText));
+    const materialShort = insufficientMaterial(ctx.items.map(materialOf));
     await deps.repo.recordDecision({
       objectRef: topicRef,
       step: "summarize",

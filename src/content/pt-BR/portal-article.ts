@@ -34,6 +34,9 @@ export const REPORT = {
 
 /** Matéria (P03), histórico (P04) e ações de leitura. */
 export const ARTICLE = {
+  /** Banner da matéria com 3 denúncias em 24 h (A9): texto simples, sem explicação. */
+  reviewBanner: "Esta matéria está em revisão",
+  reviewBannerLabel: "Aviso sobre a matéria",
   breadcrumb: "Você está em",
   home: "Início",
   published: "Publicado em",

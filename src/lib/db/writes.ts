@@ -1,6 +1,8 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { err, ok, type Result } from "@/lib/result";
+import { revalidateTags } from "@/lib/pipeline/revalidate";
+import { autoApproveSubmission } from "./event-auto";
 import { createServiceClient, type DbClient } from "./client";
 import { SupabaseEnvError } from "./env";
 
@@ -252,10 +254,41 @@ export async function saveReport(r: {
       contact_email: r.contactEmail,
     });
     if (error) throw new Error(error.message);
+    await refreshIfEscalated(db, r.contentRef);
   });
 }
 
-/** Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h. */
+/**
+ * Terceira denúncia em 24 h (gatilho `report_escalate`, 0140): o banner "em revisão" já está
+ * ligado no banco; aqui só se invalida o cache da matéria para ele aparecer. Nunca derruba a
+ * denúncia (fora de uma requisição do Next a invalidação não existe).
+ */
+async function refreshIfEscalated(db: DbClient, contentRef: string): Promise<void> {
+  const id = /^article:([0-9a-f-]{36})$/.exec(contentRef)?.[1];
+  if (!id) return;
+  try {
+    const { data } = await db
+      .from("articles")
+      .select("review_banner, slug, topic_id, section_slug")
+      .eq("id", id)
+      .maybeSingle();
+    if (!data?.review_banner) return;
+    await revalidateTags([
+      `article:${id}`,
+      `article-slug:${data.slug}`,
+      ...(data.topic_id ? [`topic:${data.topic_id}`] : []),
+      `section:${data.section_slug}`,
+    ]);
+  } catch {
+    /* o cache expira sozinho em 300 s */
+  }
+}
+
+/**
+ * Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h, salvo a
+ * aprovação automática (A14): data futura, local conhecido, sem link nem palavrão e dentro do
+ * limite diário entram na agenda na hora (`approved`).
+ */
 export async function saveEventSubmission(s: {
   title: string;
   startsAt: string;
@@ -267,13 +300,22 @@ export async function saveEventSubmission(s: {
   link: string | null;
   description: string | null;
   contactEmail: string;
-}): Promise<Result<void, WriteError>> {
+}): Promise<Result<{ approved: boolean }, WriteError>> {
   return withService(async (db) => {
     const { contactEmail, ...payload } = s;
-    const { error } = await db
+    const { data, error } = await db
       .from("event_submissions")
-      .insert({ payload, contact_email: contactEmail });
+      .insert({ payload, contact_email: contactEmail })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+    // Aprovação automática (A14): falha aqui nunca perde a sugestão, que segue na fila humana.
+    try {
+      const r = await autoApproveSubmission(db, data.id, s);
+      return { approved: r.approved };
+    } catch {
+      return { approved: false }; // fica pendente para a redação
+    }
   });
 }
 

@@ -6,6 +6,7 @@ export const EXPLORE = {
   metaDescription:
     "Editorias, assuntos em destaque, coleções, agenda e serviços de Cuiabá, sem precisar de conta.",
   title: "Explorar",
+  featured: "Em evidência",
   intro: "Tudo o que o CityNews cobre em Cuiabá e Várzea Grande, sem personalização.",
   onThisPage: "Nesta página",
   sections: "Editorias",

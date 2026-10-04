@@ -552,6 +552,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       const update = {
         ...(patch.originalTitle !== undefined ? { original_title: patch.originalTitle } : {}),
         ...(patch.excerpt !== undefined ? { excerpt: patch.excerpt } : {}),
+        ...(patch.sourceText !== undefined ? { source_text: patch.sourceText } : {}),
         ...(patch.publishedAt !== undefined ? { published_at: patch.publishedAt } : {}),
         ...(patch.imageUrl !== undefined ? { image_url: patch.imageUrl } : {}),
       };
@@ -811,7 +812,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
     async topicBundle(topicId) {
       const topic = await db
         .from("topics")
-        .select("id, updated_at")
+        .select("id, updated_at, state")
         .eq("id", topicId)
         .maybeSingle();
       check("topicBundle", topic.error);
@@ -829,6 +830,7 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
       return {
         topicId,
         updatedAt: topic.data.updated_at,
+        state: topic.data.state,
         items: (data ?? []).map((r) => ({
           id: r.id,
           sourceId: r.source_id,
@@ -846,7 +848,11 @@ export function createUnderstandRepo(db: DbClient): UnderstandRepo {
     async updateTopic(topicId, patch) {
       const { error } = await db
         .from("topics")
-        .update({ confidence: patch.confidence, confidence_score: patch.confidenceScore })
+        .update({
+          confidence: patch.confidence,
+          confidence_score: patch.confidenceScore,
+          ...(patch.state ? { state: patch.state } : {}),
+        })
         .eq("id", topicId);
       check("updateTopic", error);
       if (patch.sectionSlug) {
@@ -1146,6 +1152,7 @@ const DraftContextSchema = z.object({
       reliability: z.enum(RELIABILITIES),
       title: z.string(),
       excerpt: z.string().nullable(),
+      sourceText: z.string().nullable().optional(),
       publishedAt: z.string().nullable(),
       sectionSlug: z.string().nullable(),
       canonicalUrl: z.string(),

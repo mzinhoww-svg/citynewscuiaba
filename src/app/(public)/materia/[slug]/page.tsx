@@ -21,6 +21,7 @@ import {
   ReadingProgress,
   ReadTracker,
   ReportProblemForm,
+  ReviewBanner,
   SourcesList,
   TopicStatus,
   UpdateNote,
@@ -194,6 +195,8 @@ function Article({ a }: { a: ArticleView }) {
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
               <Byline a={a} />
             </header>
+
+            {a.reviewBanner && <ReviewBanner className="max-w-read" />}
 
             <ArticleActions
               article={{ id: a.id, title: a.title, href: a.href, section: a.section.name }}

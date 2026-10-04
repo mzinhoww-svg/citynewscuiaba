@@ -317,6 +317,8 @@ export interface GovernanceOverview {
   correctionsOverdue: number;
   rightOfReplyOpen: number;
   reportsOpen: number;
+  /** Matérias com 3 denúncias em 24 h aguardando revisão (A9). */
+  escalationsOpen: number;
   approvalsPending: number;
   publishedHuman7d: number;
   publishedAuto7d: number;
@@ -341,6 +343,7 @@ export async function governanceOverview(now = new Date()): Promise<GovernanceOv
       correctionsOverdue,
       rightOfReplyOpen,
       reportsOpen,
+      escalationsOpen,
       approvalsPending,
       human,
       auto,
@@ -352,6 +355,7 @@ export async function governanceOverview(now = new Date()): Promise<GovernanceOv
         db.from("reports").select("id", head).eq("status", "open").eq("kind", "right_of_reply"),
       ),
       count(db.from("reports").select("id", head).eq("status", "open")),
+      count(db.from("review_escalations").select("id", head).eq("status", "open")),
       count(db.from("approvals").select("id", head).eq("status", "pending")),
       count(
         db
@@ -376,6 +380,7 @@ export async function governanceOverview(now = new Date()): Promise<GovernanceOv
       correctionsOverdue,
       rightOfReplyOpen,
       reportsOpen,
+      escalationsOpen,
       approvalsPending,
       publishedHuman7d: human,
       publishedAuto7d: auto,

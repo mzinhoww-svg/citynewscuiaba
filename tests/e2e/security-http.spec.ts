@@ -82,6 +82,7 @@ test.describe("cron e worker sem segredo", () => {
   const cron: [string, "get" | "post"][] = [
     ["/api/ingest/tick", "post"],
     ["/api/ingest/fast-tick", "post"],
+    ["/api/ingest/review-tick", "post"],
     ["/api/ingest/status", "get"],
     ["/api/jobs/drain", "post"],
     ["/api/jobs/revalidate", "post"],

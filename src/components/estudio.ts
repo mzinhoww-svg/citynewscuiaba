@@ -10,6 +10,7 @@ export {
   type StudioShellProps,
   type StudioUser,
 } from "./studio/StudioShell";
+export { NotificationBell, type NotificationBellProps } from "./studio/NotificationBell";
 export { KpiStrip, type KpiItem, type KpiStripProps } from "./studio/KpiStrip";
 export { QueueTabs, type QueueTabItem, type QueueTabsProps } from "./studio/QueueTabs";
 export { QueueFilters, type QueueFiltersProps } from "./studio/QueueFilters";
@@ -198,6 +199,8 @@ export { SourceRecForm, type SourceRecFormProps } from "./studio/sources/SourceR
 export { SourceRunsTable, type SourceRunsTableProps } from "./studio/sources/SourceRunsTable";
 export { SourceSectionNav, type SourceSectionNavProps } from "./studio/sources/SourceSectionNav";
 export { SuggestionField, type SuggestionFieldProps } from "./studio/sources/SuggestionField";
+export { PushHomeCard, type PushHomeCardProps } from "./studio/push/PushHomeCard";
+export { StaffUrgentOptIn, type StaffUrgentOptInProps } from "./studio/push/StaffUrgentOptIn";
 export { PushBanners, type PushBannersProps } from "./studio/push/PushBanners";
 export { PushPreview, type PushPreviewProps } from "./studio/push/PushPreview";
 export { ArticlePicker, type ArticlePickerProps } from "./studio/push/ArticlePicker";
@@ -283,9 +286,24 @@ export { StaffTable, type StaffTableProps } from "./studio/admin/StaffTable";
 export { TeamsEditor, type TeamsEditorProps } from "./studio/admin/TeamsEditor";
 export { TaxonomyPanel, type TaxonomyPanelProps } from "./studio/admin/TaxonomyPanel";
 export { HomeModulesEditor, type HomeModulesEditorProps } from "./studio/admin/HomeModulesEditor";
+export { FeaturedBoard, type FeaturedBoardProps } from "./studio/featured/FeaturedBoard";
+export { PinForm, type PinFormProps } from "./studio/featured/PinForm";
+export { PinHistory, type PinHistoryProps } from "./studio/featured/PinHistory";
+export type {
+  FeaturedApi,
+  PinDurationChoice,
+  PinPayload,
+  SearchHit,
+} from "./studio/featured/types";
 export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
 export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
 export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";
+
+export {
+  ReviewerModeCard,
+  type ReviewerModeCardProps,
+  type ReviewerModeValue,
+} from "./studio/ReviewerModeCard";

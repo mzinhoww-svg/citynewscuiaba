@@ -41,12 +41,12 @@ export interface PlacedCard<T extends AdCard = AdCard> {
   };
 }
 
-export const NEVER_SECTIONS: readonly string[] = ["politica", "seguranca", "saude"];
+export const NEVER_SECTIONS: readonly string[] = ["politica", "justica", "seguranca", "saude"];
 
 /**
  * A editoria (ou a categoria de autonomia dela, `sections.autonomy_category`) é Política,
- * Segurança ou Saúde? Subeditoria herda: vale a categoria e também o prefixo do slug
- * (`politica-municipal`). O banco confere a mesma coisa em `guard_sponsored_sections` (0048).
+ * Justiça, Segurança ou Saúde? Subeditoria herda: vale a categoria e também o prefixo do slug
+ * (`politica-municipal`). O banco confere a mesma coisa em `is_never_sponsored_section` (0075).
  */
 export function isNeverSection(
   slug: string,
@@ -56,6 +56,25 @@ export function isNeverSection(
   return keys.some((k) => NEVER_SECTIONS.some((n) => k === n || k.startsWith(`${n}-`)));
 }
 export const SLOT_EVERY = 6;
+
+/**
+ * Matéria patrocinada da home (MS-T1): só com `sponsored_native_enabled` ligada, nunca em
+ * editoria proibida (nem subeditoria) e nunca urgente. O banco recusa os dois casos
+ * (`guard_article_sponsored`, 0075); aqui a home não confia só nele.
+ */
+export function pickHomeSponsored<
+  T extends { sponsored: boolean; urgent: boolean; section: { slug: string } },
+>(
+  articles: readonly T[],
+  opts: { enabled: boolean; categoryOf?: (slug: string) => string | undefined },
+): T | null {
+  if (!opts.enabled) return null;
+  return (
+    articles.find(
+      (a) => a.sponsored && !a.urgent && !isNeverSection(a.section.slug, opts.categoryOf),
+    ) ?? null
+  );
+}
 
 /** Campanha vale hoje (dentro do período e ativa). */
 export function campaignLive(c: Campaign, now: Date): boolean {

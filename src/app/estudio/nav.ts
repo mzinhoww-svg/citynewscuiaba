@@ -21,6 +21,13 @@ export interface StudioNavOptions {
 
 export const PUSH_ADMIN_PATH = "/estudio/admin/notificacoes";
 
+/** Destino de "Notificações push" conforme o papel (analista vai direto ao Funil do app, G11). */
+export function pushHrefFor(roles: RoleGrant[]): string {
+  return PUSH_ACTIONS.filter((a) => a !== "push.metrics").some((a) => canAccess(roles, a))
+    ? PUSH_ADMIN_PATH
+    : `${PUSH_ADMIN_PATH}/funil`;
+}
+
 const GROUPS: { label: string; items: Entry[] }[] = [
   {
     label: "Redação",
@@ -52,6 +59,25 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "article.publish",
       },
       { href: "/estudio/denuncias", label: "Denúncias", icon: "flag", action: "reports.moderate" },
+      {
+        href: "/estudio/notificacoes",
+        label: "Notificações da equipe",
+        icon: "list",
+      },
+      // A09 (PW-T11..T14): item de primeiro nível para quem tem alguma ação de push, com a
+      // contagem de pedidos aguardando aprovação para quem aprova.
+      {
+        href: PUSH_ADMIN_PATH,
+        label: "Notificações push",
+        icon: "bell",
+        anyOf: PUSH_ACTIONS,
+        // Só métricas (analista): o item leva direto ao Funil do app.
+        hrefFor: (roles) => pushHrefFor(roles),
+        labelFor: (roles, { pendingPush }) =>
+          pendingPush && pendingPush > 0 && canAccess(roles, "push.approve")
+            ? `Notificações push (${pendingPush})`
+            : "Notificações push",
+      },
     ],
   },
   {
@@ -138,29 +164,9 @@ const GROUPS: { label: string; items: Entry[] }[] = [
   },
   {
     label: "Governança",
-    items: withNotifications(ADMIN_NAV, {
-      href: PUSH_ADMIN_PATH,
-      label: "Notificações",
-      icon: "bell",
-      anyOf: PUSH_ACTIONS,
-      // Só métricas (analista): o item leva direto ao Funil do app.
-      hrefFor: (roles) =>
-        PUSH_ACTIONS.filter((a) => a !== "push.metrics").some((a) => canAccess(roles, a))
-          ? PUSH_ADMIN_PATH
-          : `${PUSH_ADMIN_PATH}/funil`,
-      labelFor: (roles, { pendingPush }) =>
-        pendingPush && pendingPush > 0 && canAccess(roles, "push.approve")
-          ? `Notificações (${pendingPush})`
-          : "Notificações",
-    }),
+    items: ADMIN_NAV,
   },
 ];
-
-/** A09 entra entre SEO e Auditoria (ordem do docs/screens.md §E). */
-function withNotifications(list: readonly Entry[], entry: Entry): Entry[] {
-  const at = list.findIndex((it) => it.href === "/estudio/admin/auditoria");
-  return at < 0 ? [...list, entry] : [...list.slice(0, at), entry, ...list.slice(at)];
-}
 
 function visible(it: Entry, roles: RoleGrant[]): boolean {
   if (it.anyOf) return it.anyOf.some((a) => canAccess(roles, a));

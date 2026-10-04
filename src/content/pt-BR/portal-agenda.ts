@@ -66,6 +66,8 @@ export const SUGGEST = {
   submit: "Enviar sugestão",
   sending: "Enviando…",
   success: "Sugestão recebida. A equipe de Agenda revisa em até 48 h e avisa por e-mail.",
+  /** Evento que cumpre os critérios entra na agenda na hora (A14). */
+  successPublished: "Evento publicado na Agenda. Obrigado por avisar!",
   another: "Sugerir outro evento",
   backAgenda: "Voltar para a agenda",
   rateLimited:

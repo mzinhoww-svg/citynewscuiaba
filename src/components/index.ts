@@ -168,6 +168,7 @@ export { VideoLowerThird, type VideoLowerThirdProps } from "./editorial/VideoLow
 
 export { AiSummaryBlock, type AiSummaryBlockProps } from "./editorial/AiSummaryBlock";
 export { CorrectionNote, UpdateNote, type NoteProps } from "./editorial/ArticleNotes";
+export { ReviewBanner, type ReviewBannerProps } from "./editorial/ReviewBanner";
 export { ReadingProgress, type ReadingProgressProps } from "./editorial/ReadingProgress";
 export { ReadingSettings } from "./editorial/ReadingSettings";
 export { ReadTracker, type ReadTrackerProps } from "./editorial/ReadTracker";

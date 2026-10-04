@@ -13,6 +13,7 @@ export const FLAG_KEYS = [
   "personalization_enabled",
   "image_reproduction_enabled",
   "source_link_analysis",
+  "sponsored_native_enabled",
 ] as const;
 export type FlagKey = (typeof FLAG_KEYS)[number];
 
