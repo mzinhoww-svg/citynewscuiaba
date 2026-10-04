@@ -283,11 +283,8 @@ function SectionLoading({ name }: { name: string }) {
         >
           <p className="sr-only">{SECTION_PAGE.loading}</p>
           {/* Mesma forma da lista pronta: lead em largura total e depois standard em 2 colunas. */}
-          <div
-            aria-hidden="true"
-            className="flex flex-col gap-4 motion-safe:animate-pulse md:col-span-2"
-          >
-            <div className="aspect-video w-full bg-section" />
+          <div className="flex flex-col gap-4 md:col-span-2">
+            <Skeleton shape="block" className="aspect-video w-full" />
             <Skeleton lines={3} />
           </div>
           {Array.from({ length: 4 }, (_, i) => (

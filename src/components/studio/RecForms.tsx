@@ -102,7 +102,7 @@ export function CampaignForm({ sources, create, className }: CampaignFormProps) 
                       e.target.checked ? [...c, s.id].slice(0, 20) : c.filter((x) => x !== s.id),
                     )
                   }
-                  className="size-5 shrink-0 accent-action-primary"
+                  className="size-5 shrink-0 accent-(--action-primary)"
                 />
                 {s.name}
               </label>

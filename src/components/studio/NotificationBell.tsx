@@ -198,7 +198,7 @@ export function NotificationBell({
         }}
         className="relative inline-flex size-tap cursor-pointer items-center justify-center rounded-pill border border-transparent text-strong transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-section"
       >
-        <Icon name="bell" size={22} />
+        <Icon name="bell" size={24} />
         {badge && (
           <span
             aria-hidden="true"

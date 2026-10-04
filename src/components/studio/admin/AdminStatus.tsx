@@ -82,7 +82,7 @@ export function CheckList({
                   else next.delete(o.value);
                   onChange(options.filter((x) => next.has(x.value)).map((x) => x.value));
                 }}
-                className="size-5 shrink-0 accent-action-primary"
+                className="size-5 shrink-0 accent-(--action-primary)"
               />
               {o.label}
             </label>

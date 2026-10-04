@@ -63,7 +63,7 @@ export function IconButton({
   );
   const content = (
     <>
-      <Icon name={icon} size={size === 48 ? 24 : 22} color={iconColor} />
+      <Icon name={icon} size={size === 48 ? 24 : 20} color={iconColor} />
       {badge && (
         <span
           aria-hidden="true"

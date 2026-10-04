@@ -81,7 +81,7 @@ export function BulkFrequencyDialog({
             name={name}
             checked={mode === "padrao"}
             onChange={() => setMode("padrao")}
-            className="size-5 accent-action-primary"
+            className="size-5 accent-(--action-primary)"
           />
           {T.bulkFrequency.followDefault(formatMinutes(defaultFrequencyMinutes))}
         </label>
@@ -91,7 +91,7 @@ export function BulkFrequencyDialog({
             name={name}
             checked={mode === "rapida"}
             onChange={() => setMode("rapida")}
-            className="size-5 accent-action-primary"
+            className="size-5 accent-(--action-primary)"
           />
           {T.bulkFrequency.fastLane}
           <select
@@ -116,7 +116,7 @@ export function BulkFrequencyDialog({
             name={name}
             checked={mode === "normal"}
             onChange={() => setMode("normal")}
-            className="size-5 accent-action-primary"
+            className="size-5 accent-(--action-primary)"
           />
           {T.bulkFrequency.normalCycle}
           <select

@@ -174,7 +174,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
                       aria-label={T.form.field(name, F.requirePrimary)}
                       checked={c.requirePrimary}
                       onChange={(e) => setCat(key, { requirePrimary: e.target.checked })}
-                      className="size-5 accent-action-primary"
+                      className="size-5 accent-(--action-primary)"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -183,7 +183,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
                       aria-label={T.form.field(name, F.requireApprovedImage)}
                       checked={c.requireApprovedImage}
                       onChange={(e) => setCat(key, { requireApprovedImage: e.target.checked })}
-                      className="size-5 accent-action-primary"
+                      className="size-5 accent-(--action-primary)"
                     />
                   </td>
                   <td className="px-3 py-2">
@@ -245,7 +245,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
                 setSim(null);
                 setDraft((d) => ({ ...d, forceReview: e.target.checked }));
               }}
-              className="size-5 shrink-0 accent-action-primary"
+              className="size-5 shrink-0 accent-(--action-primary)"
             />
             {T.form.forceReview}
           </label>

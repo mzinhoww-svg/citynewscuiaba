@@ -104,7 +104,7 @@ export function StudioMobileNav({ nav, user, className }: StudioMobileNavProps) 
                 onClick={() => close(true)}
                 className="inline-flex size-tap shrink-0 cursor-pointer items-center justify-center rounded-pill text-meta hover:bg-section active:bg-section"
               >
-                <Icon name="x" size={22} />
+                <Icon name="x" size={24} />
               </button>
             </div>
             <div className="px-4 py-3">
@@ -112,7 +112,7 @@ export function StudioMobileNav({ nav, user, className }: StudioMobileNavProps) 
                 {STUDIO_TEXT.menuSearch}
               </label>
               <div className="border-control control-field flex h-input items-center gap-3 rounded-lg bg-input px-4">
-                <Icon name="search" color="var(--text-placeholder)" />
+                <Icon name="search" className="text-placeholder" />
                 <input
                   id={searchId}
                   type="search"

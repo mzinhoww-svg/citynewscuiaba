@@ -84,7 +84,7 @@ export function TextField({
           disabled && "opacity-60",
         )}
       >
-        {icon && <Icon name={icon} color="var(--text-placeholder)" />}
+        {icon && <Icon name={icon} className="text-placeholder" />}
         <input
           id={id}
           name={name}
