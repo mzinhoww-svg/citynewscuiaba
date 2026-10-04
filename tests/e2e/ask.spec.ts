@@ -189,8 +189,13 @@ test("duas perguntas seguidas rápidas: a segunda é ignorada enquanto a primeir
   page,
 }) => {
   let calls = 0;
+  // A primeira resposta só sai depois do segundo Enter: sem isso, num navegador rápido ela chega
+  // antes e a segunda pergunta passa a ser legítima (o teste dependia de tempo).
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
   await page.route("**/api/ask", async (route) => {
     calls += 1;
+    await held;
     await route.fallback();
   });
   await page.goto("/pergunte");
@@ -198,6 +203,7 @@ test("duas perguntas seguidas rápidas: a segunda é ignorada enquanto a primeir
   await field(page).press("Enter");
   await field(page).fill("Segunda pergunta");
   await field(page).press("Enter");
+  release();
   await expect(reply(page)).toBeVisible();
   await expect(page.locator("[data-author='person']")).toHaveCount(1);
   await expect(field(page)).toHaveValue("Segunda pergunta");

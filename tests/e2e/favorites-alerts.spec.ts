@@ -240,8 +240,12 @@ for (const path of ["/perfil", "/favoritos", "/alertas"]) {
     ).toBeLessThanOrEqual(28);
     const notNow = invite.getByRole("button", { name: "Agora não" });
     expect((await notNow.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    await notNow.click();
-    await expect(invite).toBeHidden();
+    // O convite vem no HTML do servidor; o toque só vale depois da hidratação (no WebKit, mais
+    // lenta), então toca de novo até o convite recolher.
+    await expect(async () => {
+      if (await notNow.isVisible()) await notNow.click();
+      await expect(invite).toBeHidden({ timeout: 1000 });
+    }).toPass();
     await expect(page.getByText("Tudo bem: você continua sem conta.")).toBeFocused();
     await page.reload();
     await expect(page.getByRole("region", { name: "Por que criar uma conta" })).toHaveCount(0);
