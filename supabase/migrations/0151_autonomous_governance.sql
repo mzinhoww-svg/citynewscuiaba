@@ -139,9 +139,12 @@ create table if not exists public.governance_decisions (
   model text,
   prompt text,
   fallback_level smallint,
-  approval_id uuid references public.approvals(id) on delete set null,
+  -- Sem chave estrangeira: a trilha é somente-inserção e sobrevive ao pedido apagado.
+  approval_id uuid,
   check (decision in ('auto_approved', 'auto_review', 'human_exception', 'rejected', 'expired', 'auto_rollback'))
 );
+-- Bancos que já criaram a tabela com a chave estrangeira (pré-produção) ficam iguais.
+alter table public.governance_decisions drop constraint if exists governance_decisions_approval_id_fkey;
 create index if not exists governance_decisions_at_idx on public.governance_decisions (at desc);
 create index if not exists governance_decisions_subject_idx on public.governance_decisions (subject_ref, at desc);
 alter table public.governance_decisions enable row level security;

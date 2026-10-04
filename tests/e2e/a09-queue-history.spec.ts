@@ -169,11 +169,12 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
     await otavio.getByRole("option", { name: new RegExp(mine) }).click();
     await otavio.getByLabel("Título").fill(`Destaque cidade ${t}`);
     await otavio.getByRole("button", { name: "Enviar para aprovação" }).click();
-    await expect(otavio.getByRole("status").filter({ hasText: "Pedido criado." })).toBeVisible();
+    // A política de avisos decide na hora (A-133): o Destaque da própria editoria entra na fila.
+    await expect(otavio.getByRole("status").filter({ hasText: "Aplicado." })).toBeVisible();
     await gotoSettled(otavio, `${URL}/fila`);
     await expect(otavio.getByText(`Destaque cidade ${t}`)).toBeVisible();
     await expect(otavio.getByText(`Destaque esportes ${t}`)).toHaveCount(0);
-    // Editor (sem push.approve) não aprova o próprio pedido e pode cancelar.
+    // Já na fila: não há o que aprovar; quem pediu pode cancelar.
     await expect(otavio.getByRole("button", { name: `Aprovar Destaque cidade ${t}` })).toHaveCount(
       0,
     );

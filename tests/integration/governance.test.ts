@@ -59,6 +59,34 @@ describe("nada fica parado (no-stuck)", () => {
     expect(late.error ?? late.data).not.toEqual([{ id: ins.data!.id }]);
   });
 
+  it("apagar um pedido não quebra a trilha (sem chave estrangeira na trilha imutável)", async () => {
+    const m = await clientOf("marina");
+    const ins = await m
+      .from("approvals")
+      .insert({
+        kind: "rules.activate",
+        target_ref: "rules:999999",
+        requested_by: SEED_USERS.marina.id,
+        justification: "teste de trilha",
+      })
+      .select("id")
+      .single();
+    expect(ins.error).toBeNull();
+    await service.rpc("governance_sweep", {});
+    await service
+      .from("approvals")
+      .update({ expires_at: new Date(Date.now() - 1000).toISOString() })
+      .eq("id", ins.data!.id);
+    await service.rpc("governance_sweep", {});
+    const del = await service.from("approvals").delete().eq("id", ins.data!.id);
+    expect(del.error).toBeNull();
+    const trail = await service
+      .from("governance_decisions")
+      .select("decision")
+      .eq("approval_id", ins.data!.id);
+    expect(trail.data).toEqual([{ decision: "expired" }]);
+  });
+
   it("governance_decisions é somente inserção", async () => {
     const { data } = await service.from("governance_decisions").select("id").limit(1).single();
     const up = await service
