@@ -106,16 +106,31 @@ test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([{ name: "cn_consent", value: "v1|m0|p0", url: baseURL! }]);
 });
 
-/** Recarrega até o campo aparecer (cache de 60 s dos campos). */
+// Página em ISR (60 s na editoria) + lista de peças em cache (60 s): peça nova aparece em até
+// ~2 min, como em produção. Os testes esperam esse tempo, sem mexer no cache.
+test.setTimeout(240_000);
+const CACHE_WAIT = { timeout: 200_000, intervals: [3_000, 5_000, 10_000] };
+
+/** Recarrega até o campo aparecer. */
 async function openWithSlot(page: Page, url: string, slot: string) {
   await expect
-    .poll(
-      async () => {
-        await page.goto(url);
-        return page.locator(`[data-ad-slot="${slot}"]`).count();
-      },
-      { timeout: 90_000, intervals: [2_000, 5_000, 10_000] },
-    )
+    .poll(async () => {
+      await page.goto(url);
+      return page.locator(`[data-ad-slot="${slot}"]`).count();
+    }, CACHE_WAIT)
+    .toBeGreaterThan(0);
+}
+
+/** Recarrega e rola até o fim até o rodapé fixo aparecer. */
+async function openWithSticky(page: Page, url: string) {
+  await expect
+    .poll(async () => {
+      await page.goto(url);
+      await page.waitForLoadState("networkidle");
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(300);
+      return page.locator("[data-ad-sticky]").count();
+    }, CACHE_WAIT)
     .toBeGreaterThan(0);
 }
 
@@ -212,9 +227,10 @@ test.describe("celular", () => {
     const mobile = page.locator('[data-ad-slot="ART-1"] [data-ad-device="mobile"]');
     await expect(mobile).toBeVisible();
     expect(await mobile.evaluate((e) => (e as HTMLElement).style.aspectRatio)).toBe("320 / 100");
-
+    // Antes de rolar, o rodapé não existe (só depois de 40% da página).
     await expect(page.locator("[data-ad-sticky]")).toHaveCount(0);
-    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+
+    await openWithSticky(page, `/materia/${slug}`);
     const sticky = page.locator("[data-ad-sticky]");
     await expect(sticky).toBeVisible();
     const bar = await sticky.boundingBox();
