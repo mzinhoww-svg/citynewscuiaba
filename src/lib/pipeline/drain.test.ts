@@ -67,6 +67,24 @@ describe("drain", () => {
     expect(events.events.map((e) => e.step)).toEqual(["fetch", "validate"]);
   });
 
+  it("nota da etapa (ctx.note) entra nos detalhes do evento ok", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("item:1", "enrich"));
+    const runStep = createRunStep({
+      enrich: async (_msg, ctx) => {
+        ctx?.note?.({ enrich: "skipped", reason: "http_403" });
+        return { ok: true, value: [] };
+      },
+    });
+    const events = sink();
+    await drain({ queue, runStep, events, now: () => 0 });
+    expect(events.events[0]).toMatchObject({
+      level: "info",
+      message: "ok",
+      details: { next: 0, enrich: "skipped", reason: "http_403" },
+    });
+  });
+
   it("falha transitória reagenda com espera de 1 min", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("source:a"));
