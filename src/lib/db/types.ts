@@ -3,6 +3,33 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      advertisers: {
+        Row: {
+          contact_email: string | null;
+          created_at: string;
+          created_by: string | null;
+          document: string | null;
+          id: string;
+          name: string;
+        };
+        Insert: {
+          contact_email?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          document?: string | null;
+          id?: string;
+          name: string;
+        };
+        Update: {
+          contact_email?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          document?: string | null;
+          id?: string;
+          name?: string;
+        };
+        Relationships: [];
+      };
       agenda_collect_runs: {
         Row: {
           finished_at: string | null;
@@ -3361,6 +3388,7 @@ export type Database = {
       sponsored_campaigns: {
         Row: {
           advertiser: string;
+          advertiser_id: string | null;
           allowed_sections: string[];
           created_by: string | null;
           creative: NonNullable<Json>;
@@ -3373,6 +3401,7 @@ export type Database = {
         };
         Insert: {
           advertiser: string;
+          advertiser_id?: string | null;
           allowed_sections: string[];
           created_by?: string | null;
           creative: NonNullable<Json>;
@@ -3385,6 +3414,7 @@ export type Database = {
         };
         Update: {
           advertiser?: string;
+          advertiser_id?: string | null;
           allowed_sections?: string[];
           created_by?: string | null;
           creative?: NonNullable<Json>;
@@ -3396,6 +3426,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "sponsored_campaigns_advertiser_id_fkey";
+            columns: ["advertiser_id"];
+            isOneToOne: false;
+            referencedRelation: "advertisers";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "sponsored_campaigns_created_by_fkey";
             columns: ["created_by"];

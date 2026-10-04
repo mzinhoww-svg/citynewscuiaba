@@ -278,7 +278,7 @@ Estimativas em horas de implementação com testes (sem espera de aprovação do
 - [ ] Comando: `pnpm vitest run src/lib/ads && pnpm db:reset && pnpm verify`.
 - [ ] Commit: `feat: flag e trava do patrocinado nativo [MS-T1]`.
 
-#### Task MS-T2: Creative tipado e anunciante estruturado (6 h)
+#### Task MS-T2: Creative tipado e anunciante estruturado (6 h) · concluída em 04/10 (migration 0081, A-116)
 **Files:** `supabase/migrations/00NN_creative_kinds.sql`, `src/lib/ads/creative.ts` + `.test.ts`, `src/lib/studio/admin-ops.ts`, `src/components/studio/admin/CampaignsPanel.tsx`, `src/content/pt-BR/admin-ops.ts`.
 **Interfaces:** `CreativeSchema` (zod, união discriminada por `kind`: `native | display | tile | newsletter | video`, com `slot`, `width`, `height`, `alt`, `href` https, `weight`, `maxImpressionsPerDay`); coluna `advertiser_id` + tabela `advertisers`; migração dos `creative` atuais para `kind = "native"`. `ADS-T1` herda este schema em `ad_creatives`.
 - [ ] Testes: cada `kind` aceita o válido e recusa dimensão errada, `alt` vazio e `href` http.

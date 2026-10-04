@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · MS-T2 (A-116): peça tipada por `kind` e anunciante estruturado (migration 0081). Verify verde (3174 testes). Próxima: ADS-T1.
+
 > 2026-10-04 · MS-T1 (A-115): flag `sponsored_native_enabled` e trava do patrocinado nativo (migration 0075), Justiça bloqueada, editoria e assunto sem matéria patrocinada, patrocinado visível no celular. Verify verde (3110 testes); 0075 aplicada em produção em 04/10. Inventário de mídia em `docs/media-slots.md`.
 
 > 2026-10-04 · correção A-114: matéria da HNT com 2 frases. O redator passa a receber o corpo da página da fonte (`enrich` automático para feed curto, `collected_items.source_text`, migration 0074). Branch `claude/fonte-texto-completo`; verify verde (3101 testes). Falta aplicar 0074 em produção junto com o deploy.

@@ -805,11 +805,15 @@
         "status": "done",
         "migration": "0075_sponsored_guard.sql (produção: 04/10)",
         "decision": "A-115"
+      },
+      "MS-T2": {
+        "status": "done",
+        "migration": "0081_advertisers.sql",
+        "decision": "A-116"
       }
     },
     "next": [
-      "ADS-T1",
-      "MS-T2"
+      "ADS-T1"
     ]
   }
 }

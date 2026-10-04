@@ -63,7 +63,9 @@ export const ADMIN_OPS_TEXT = {
       remove: "Apagar campanha",
       saved: (name: string) => `Campanha de ${name} salva.`,
       removed: "Campanha apagada.",
-      forbiddenSection: "Política, Segurança e Saúde nunca recebem patrocinado.",
+      forbiddenSection: "Política, Justiça, Segurança e Saúde nunca recebem patrocinado.",
+      invalidCreative:
+        "A peça não passou na checagem: confira o link https e o texto alternativo da imagem.",
       period: "O fim precisa ser igual ou depois do início.",
     },
   },
