@@ -12,13 +12,13 @@ import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import type { PrivacyRequestRow, SecurityOverview } from "@/lib/db/queries/admin-ops";
 import { formatDate, formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
-import { ConfirmDialog } from "./ConfirmDialog";
 
 export interface SecurityPanelProps {
   data: SecurityOverview;
@@ -281,11 +281,12 @@ export function SecurityPanel({
 
       {confirming?.kind === "policy" && (
         <ConfirmDialog
-          busy={busy}
+          open
+          pending={busy}
           title={C.policyTitle}
-          effect={C.policyEffect(Number(sessionHours), Number(retentionDays))}
+          body={C.policyEffect(Number(sessionHours), Number(retentionDays))}
           confirmLabel={C.policyConfirm}
-          onCancel={() => setConfirming(null)}
+          onClose={() => setConfirming(null)}
           onConfirm={() =>
             start(async () =>
               done(
@@ -300,11 +301,12 @@ export function SecurityPanel({
       )}
       {confirming?.kind === "rotate" && (
         <ConfirmDialog
-          busy={busy}
+          open
+          pending={busy}
           title={C.rotateTitle(confirming.key)}
-          effect={C.rotateEffect}
+          body={C.rotateEffect}
           confirmLabel={C.rotateConfirm(confirming.key)}
-          onCancel={() => setConfirming(null)}
+          onClose={() => setConfirming(null)}
           onConfirm={() => {
             const { key } = confirming;
             start(async () => done(await rotateKey({ key })));

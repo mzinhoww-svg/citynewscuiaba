@@ -9,6 +9,8 @@ export { BottomSheet, type BottomSheetProps } from "./ui/BottomSheet";
 export { Button, type ButtonProps, type ButtonVariant } from "./ui/Button";
 export { Chip, ChipGroup, type ChipGroupProps, type ChipProps } from "./ui/Chip";
 export { Dialog, type DialogProps } from "./ui/Dialog";
+export { ConfirmDialog, type ConfirmDialogProps } from "./ui/ConfirmDialog";
+export { SubmitButton, type SubmitButtonProps } from "./ui/SubmitButton";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
 export { Icon, type IconName, type IconProps } from "./ui/Icon";
 export { ICON_NAMES } from "./ui/icon-names";

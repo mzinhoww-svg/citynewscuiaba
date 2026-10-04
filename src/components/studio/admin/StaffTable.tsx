@@ -9,12 +9,12 @@ import { ROLES, type Role, type RoleGrant } from "@/lib/auth/permissions";
 import type { StaffMember } from "@/lib/db/queries/admin";
 import { formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, AdminTable, CheckList, type AdminReply } from "./AdminStatus";
-import { ConfirmDialog } from "./ConfirmDialog";
 
 export interface StaffTableProps {
   staff: StaffMember[];
@@ -171,19 +171,21 @@ export function StaffTable({
       )}
       {confirming && (
         <ConfirmDialog
-          busy={busy}
+          open
+          pending={busy}
           {...(confirming.kind === "revoke"
             ? {
+                destructive: true,
                 title: C.revokeTitle(confirming.person.name),
-                effect: C.revokeEffect(confirming.person.name),
+                body: C.revokeEffect(confirming.person.name),
                 confirmLabel: C.revokeConfirm(confirming.person.name),
               }
             : {
                 title: C.grantTitle(confirming.person.name),
-                effect: C.grantEffect(confirming.person.name),
+                body: C.grantEffect(confirming.person.name),
                 confirmLabel: C.grantConfirm(confirming.person.name),
               })}
-          onCancel={() => setConfirming(null)}
+          onClose={() => setConfirming(null)}
           onConfirm={() => {
             const { kind, person } = confirming;
             const apply = kind === "revoke" ? applyAdminRevoke : applyAdmin;

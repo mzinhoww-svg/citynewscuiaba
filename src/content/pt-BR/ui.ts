@@ -40,4 +40,7 @@ export const UI = {
     of: (page: number, total: number) => `Página ${page} de ${total}`,
     page: (page: number) => `Página ${page}`,
   },
+  /** Texto padrão do botão em carregamento (`Button loading`, `SubmitButton`). */
+  saving: "Salvando…",
+  cancel: "Cancelar",
 } as const;
