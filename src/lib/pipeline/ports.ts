@@ -248,6 +248,39 @@ export interface EnrichmentPatch {
   imageUrl?: string;
 }
 
+/**
+ * Um link no topo da página inicial de uma fonte (HOT-T2, `front_signals`). Só URL canônica,
+ * posição e fonte; o item e o assunto vêm do `collected_items` casado pela URL (nulos sem item).
+ * A hora (`seen_at`) é a do banco.
+ */
+export interface FrontSignalInput {
+  sourceId: string;
+  itemId: string | null;
+  topicId: string | null;
+  url: string;
+  rank: number;
+}
+
+/** Grava sinais em `front_signals` (service role). */
+export interface FrontSignalRepo {
+  record(signals: FrontSignalInput[]): Promise<void>;
+}
+
+/** Item coletado casado por URL canônica (passo `frontpage`). */
+export interface FrontItemMatch {
+  id: string;
+  canonicalUrl: string;
+  topicId: string | null;
+}
+
+/** Banco do passo `frontpage`. */
+export interface FrontpageRepo extends FrontSignalRepo, Pick<IngestRepo, "hitRateLimit"> {
+  /** Fontes ativas com `consumption.frontpage = true`. */
+  frontpageSources(): Promise<SourceRecord[]>;
+  /** Itens coletados (não duplicados) cujas URLs canônicas estão na lista. */
+  itemsByUrls(urls: string[]): Promise<FrontItemMatch[]>;
+}
+
 /** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize, enrich). */
 export interface IngestRepo {
   sourceBySlug(slug: string): Promise<SourceRecord | null>;
