@@ -204,7 +204,6 @@ function Article({ a }: { a: ArticleView }) {
 
             <ArticleActions
               article={{ id: a.id, title: a.title, href: a.href, section: a.section.name }}
-              reportAction={reportProblemAction}
             />
 
             {a.image && <ArticleFigure image={a.image} priority className="reading-column -my-2" />}

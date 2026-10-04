@@ -248,9 +248,10 @@ test("só teclado: da home até ler uma matéria, com foco sempre visível", asy
   await expect(page).toHaveURL(/\/materia\//);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-  // Na matéria o Next leva o foco ao conteúdo novo; seguimos só com Tab até os controles da
-  // matéria (Informar problema), conferindo o foco a cada parada.
-  await tabUntil(page, (x) => x.text === "Informar problema", { max: 80 });
+  // Na matéria o Next leva o foco ao conteúdo novo; seguimos só com Tab até "Informar problema"
+  // (entrada única, no bloco "De onde veio" depois do texto: UX item 74), conferindo o foco a
+  // cada parada.
+  await tabUntil(page, (x) => x.text === "Informar problema", { max: 160 });
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -447,7 +448,11 @@ test("diálogo Informar problema: foco preso, Esc fecha e o foco volta ao botão
   page,
 }) => {
   await page.goto("/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro");
-  const trigger = page.locator("#materia").getByRole("button", { name: "Informar problema" });
+  // Entrada única (UX item 74): no bloco "De onde veio"; a versão visível na largura atual.
+  const trigger = page
+    .getByRole("region", { name: "De onde veio" })
+    .getByRole("button", { name: "Informar problema" })
+    .first();
   await expectHydrated(trigger);
   await trigger.focus();
   await page.keyboard.press("Enter");

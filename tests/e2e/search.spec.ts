@@ -140,7 +140,10 @@ test("resultados de matéria têm miniatura (foto ou capa tipográfica)", async 
   }
 });
 
-test("Perguntar ao CityNews é a linha de destaque no topo, acima dos filtros", async ({ page }) => {
+test("desktop: Perguntar ao CityNews é a linha de destaque no topo, acima dos filtros", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/busca?q=viaduto");
   const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
   await expect(ask).toHaveAttribute("href", "/pergunte?q=viaduto");
@@ -169,4 +172,26 @@ test("busca a 360 px sem rolagem horizontal", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/busca?q=viaduto");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+// UX item 76: no celular, os primeiros resultados vêm antes da linha do Pergunte (compacta).
+test("celular: resultados antes da linha do Pergunte, que vem compacta", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/busca?q=onibus");
+  const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
+  // Só uma linha visível por largura (a do topo some no celular).
+  await expect(ask).toHaveCount(1);
+  await expect(ask).toHaveAttribute("href", "/pergunte?q=onibus");
+  await expect(ask).toHaveAttribute("data-ask-row", "compact");
+  const askBox = (await ask.boundingBox())!;
+  const results = page.locator("#resultados-titulo ~ ol").first().locator(":scope > li");
+  const n = await results.count();
+  expect(n).toBeGreaterThan(0);
+  expect(n).toBeLessThanOrEqual(3);
+  const last = (await results.nth(n - 1).boundingBox())!;
+  expect(askBox.y).toBeGreaterThanOrEqual(last.y + last.height - 1);
+  // Compacta: uma linha, alvo de toque de 44 px.
+  expect(askBox.height).toBeGreaterThanOrEqual(44);
+  expect(askBox.height).toBeLessThan(64);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
