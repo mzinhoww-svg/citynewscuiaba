@@ -57,6 +57,18 @@ describe("tripadvisor provider", () => {
     expect(blank.enabled).toBe(false);
   });
 
+  it("envia o Referer do site: a chave da Content API é restrita ao domínio cadastrado", async () => {
+    const http = vi.fn<HttpFetch>(async () => json(SEARCH));
+    const p = createTripadvisorProvider({
+      apiKey: FAKE_KEY,
+      http,
+      referer: "https://citynews.example",
+    });
+    await p.search({ category: "padaria", area: "Cuiabá" });
+    const init = http.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get("Referer")).toBe("https://citynews.example/");
+  });
+
   it("busca por categoria perto de Cuiabá e descarta lugares de outras cidades", async () => {
     const http = vi.fn<HttpFetch>(async () => json(SEARCH));
     const p = createTripadvisorProvider({ apiKey: FAKE_KEY, http });

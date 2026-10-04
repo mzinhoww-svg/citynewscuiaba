@@ -40,7 +40,7 @@ test("assunto tem resumo sem selo de revisão, linha do tempo e perguntas", asyn
 
 test("filtro de origem esconde a outra cobertura", async ({ page }) => {
   await page.goto(TOPIC);
-  // A-140: o filtro de origem fica no painel recolhível (fechado no celular).
+  // A-140: o filtro da cobertura fica recolhido no celular.
   await openFilters(page);
   await page.getByRole("radio", { name: "Do CityNews" }).click();
   await expect(page.getByRole("region", { name: "Cobertura de outros veículos" })).toBeHidden();
