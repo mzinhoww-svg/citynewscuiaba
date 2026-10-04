@@ -1,5 +1,7 @@
+import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { err, ok } from "@/lib/result";
+import { removeHiddenElements } from "@/lib/security/hidden";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { isAllowedByRobots } from "../crawl";
 import { checkRobots, crawlGet } from "../http";
@@ -12,8 +14,12 @@ import type { IngestDeps } from "./fetch";
 
 /** Atraso entre duas páginas da mesma fonte (concorrência 1). */
 export const ENRICH_DELAY_MS = 1000;
-/** Só o começo da página: os metadados vivem no `<head>`. */
-export const ENRICH_HTML_BYTES = 256 * 1024;
+/** Só o começo da página: os metadados vivem no `<head>` e o corpo da matéria vem logo depois. */
+export const ENRICH_HTML_BYTES = 1024 * 1024;
+/** Teto do corpo guardado (`collected_items.source_text`), o mesmo do `callAgent` por item. */
+export const SOURCE_TEXT_MAX = 6_000;
+/** Trecho do feed abaixo disto é só a abertura: sem a flag, o `enrich` busca o corpo na página. */
+export const SHORT_EXCERPT_CHARS = 600;
 /** Novas tentativas depois da primeira (2): no total 3 tentativas, depois segue sem enriquecer. */
 export const ENRICH_MAX_RETRIES = 2;
 /** Item mais velho que isto não é enriquecido (primeira coleta de um sitemap com muito histórico). */
@@ -24,11 +30,19 @@ const DAY_MS = 24 * 60 * 60_000;
 
 const HTML_ACCEPT = "text/html, application/xhtml+xml;q=0.9, */*;q=0.1";
 
-/** `consumption.enrich === true`: o único jeito de ligar o passo (padrão desligado). */
-export function enrichEnabled(consumption: unknown): boolean {
-  if (typeof consumption !== "object" || consumption === null || Array.isArray(consumption))
-    return false;
-  return (consumption as Record<string, unknown>)["enrich"] === true;
+/**
+ * O item passa pelo `enrich`? `consumption.enrich === true` liga sempre e `false` desliga sempre.
+ * Sem a flag, liga quando o feed trouxe só a abertura (menos de `SHORT_EXCERPT_CHARS`) ou nada:
+ * uma frase de RSS não sustenta uma matéria, e o corpo da página é a base da redação.
+ */
+export function enrichEnabled(consumption: unknown, excerpt?: string | null): boolean {
+  const flag =
+    typeof consumption === "object" && consumption !== null && !Array.isArray(consumption)
+      ? (consumption as Record<string, unknown>)["enrich"]
+      : undefined;
+  if (flag === true) return true;
+  if (flag === false) return false;
+  return (excerpt?.trim().length ?? 0) < SHORT_EXCERPT_CHARS;
 }
 
 /** Mesmo site: igual ao `baseUrl` da fonte, ignorando um `www.` na frente. */
@@ -58,8 +72,10 @@ export interface Enrichment {
   imageUrl: string | null;
   publishedAt: string | null;
   lead: string | null;
+  /** Corpo da matéria (Readability, sem texto oculto), até `SOURCE_TEXT_MAX`: só material da IA. */
+  body: string | null;
   /** Campos descartados por instrução embutida no texto (o texto externo é dado, nunca ordem). */
-  rejected: ("title" | "lead" | "image")[];
+  rejected: ("title" | "lead" | "image" | "body")[];
 }
 
 const EMPTY: Enrichment = {
@@ -67,8 +83,17 @@ const EMPTY: Enrichment = {
   imageUrl: null,
   publishedAt: null,
   lead: null,
+  body: null,
   rejected: [],
 };
+
+/** Corta no último espaço antes do teto, para não deixar palavra pela metade. */
+function capText(s: string, max: number): string {
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  return `${cut.slice(0, space > max * 0.8 ? space : max).trimEnd()}…`;
+}
 
 function httpUrl(raw: string, base: string): string | null {
   try {
@@ -139,7 +164,26 @@ export function parseEnrichment(html: string, pageUrl: string, siteName: string)
   );
   const publishedAt = rawDate ? parseFeedDate(rawDate.slice(0, 64)) : null;
 
-  return { title, imageUrl, publishedAt, lead, rejected };
+  // Corpo por último: a Readability altera o documento. Texto oculto sai antes (regra 6).
+  let body: string | null = null;
+  try {
+    removeHiddenElements(document);
+    const article = new Readability(document).parse();
+    const raw = (article?.textContent ?? "")
+      .split(/\n\s*\n|\n/)
+      .map((l) => l.replace(/\s+/g, " ").trim())
+      .filter(Boolean)
+      .join("\n");
+    if (raw) {
+      const s = sanitizeExternalText(raw);
+      if (s.injection) rejected.push("body");
+      else if (s.text.trim()) body = capText(s.text.trim(), SOURCE_TEXT_MAX);
+    }
+  } catch {
+    body = null;
+  }
+
+  return { title, imageUrl, publishedAt, lead, body, rejected };
 }
 
 export interface EnrichDeps extends IngestDeps {
@@ -252,7 +296,7 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
     const item = await deps.repo.collectedForEnrich(id);
     if (!item) return err(stepError.notFound(`item ${id} não encontrado`));
     const source = await deps.repo.sourceById(item.sourceId);
-    if (!source || !enrichEnabled(source.consumption)) return next;
+    if (!source || !enrichEnabled(source.consumption, item.excerpt)) return next;
 
     const now = deps.now();
     if (item.publishedAt && Date.parse(item.publishedAt) < now.getTime() - ENRICH_MAX_AGE_MS)
@@ -281,6 +325,9 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
     if (found.title && item.originalTitle.toLowerCase() === slugTitle.text.toLowerCase())
       patch.originalTitle = found.title;
     if (found.lead && !item.excerpt) patch.excerpt = found.lead;
+    // Corpo da página: o material completo da redação, quando rende mais que o trecho do feed.
+    if (found.body && found.body.length > (item.excerpt?.length ?? 0))
+      patch.sourceText = found.body;
     if (found.imageUrl && !item.imageUrl) patch.imageUrl = found.imageUrl;
     if (found.publishedAt && Date.parse(found.publishedAt) <= now.getTime() + DAY_MS)
       patch.publishedAt = found.publishedAt;

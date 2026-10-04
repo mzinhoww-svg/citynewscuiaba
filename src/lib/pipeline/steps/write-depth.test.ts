@@ -1,4 +1,5 @@
-import { citedParagraphs, WRITE_TASK } from "./write";
+import type { DraftItem } from "../ports";
+import { citedParagraphs, materialOf, WRITE_TASK } from "./write";
 
 const src =
   "A Prefeitura de Cuiabá anunciou nesta terça a interdição parcial da avenida do CPA para obras de drenagem";
@@ -27,5 +28,29 @@ describe("write: profundidade e título", () => {
     const r = citedParagraphs(out, new Set(["a"]), [src]);
     expect(r).toHaveLength(1);
     expect(r[0]!.text).toMatch(/ficará fechada/);
+  });
+
+  it("o material do redator é o corpo da página quando o feed só trouxe a abertura", () => {
+    const item: DraftItem = {
+      id: "a",
+      sourceId: "s",
+      sourceSlug: "folha-do-cerrado",
+      reliability: "standard",
+      title: "Júri popular julga 15 casos em outubro",
+      excerpt: "A Primeira Vara Criminal realiza 15 sessões em outubro.",
+      sourceText:
+        "A Primeira Vara Criminal realiza 15 sessões em outubro.\nNo dia 8 vão a júri dois acusados de integrar um grupo de extermínio.",
+      publishedAt: null,
+      sourceName: "Folha do Cerrado",
+      canonicalUrl: "https://folhadocerrado.example/juri",
+      tags: [],
+      sensitive: false,
+    };
+    expect(materialOf(item)).toContain("grupo de extermínio");
+    expect(materialOf(item).startsWith("Júri popular julga 15 casos em outubro\n")).toBe(true);
+    expect(materialOf({ ...item, sourceText: null })).toBe(
+      "Júri popular julga 15 casos em outubro\nA Primeira Vara Criminal realiza 15 sessões em outubro.",
+    );
+    expect(materialOf({ ...item, sourceText: undefined, excerpt: null })).toBe(item.title);
   });
 });
