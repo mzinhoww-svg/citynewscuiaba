@@ -25,7 +25,7 @@ export interface PushSettingsFormProps {
   settings: PushSettingsView;
   pendingResume: PendingResume | null;
   currentUserId: string;
-  /** `push.approve`: pode aprovar a retomada pedida por outra pessoa. */
+  /** `push.approve`: pode aprovar a retomada (inclusive a que a própria pessoa pediu, A-128). */
   canApprove: boolean;
   actions: {
     save: ActionFn;
@@ -43,7 +43,7 @@ const hourOptions = (a: number, b: number) =>
 /**
  * Configurações de A09 (spec §10.5): limite diário (1–3), silêncio (18–22h / 7–10h, sempre
  * contém 22h–7h), até 20 modelos com `{titulo}` e `{linha_fina}`, contingência (pausar com
- * PAUSAR digitado; retomar cria pedido para outra pessoa) e estado das chaves VAPID (só nomes).
+ * PAUSAR digitado; retomar vale na hora para quem pode aprovar; senão vira pedido) e estado das chaves VAPID (só nomes).
  */
 export function PushSettingsForm({
   settings,
@@ -306,7 +306,7 @@ export function PushSettingsForm({
             tone="info"
             role="none"
             action={
-              canApprove && pendingResume.requestedBy?.id !== currentUserId ? (
+              canApprove ? (
                 <Button size="sm" variant="outline-strong" onClick={approveResume} disabled={busy}>
                   {T.resume.approve}
                 </Button>

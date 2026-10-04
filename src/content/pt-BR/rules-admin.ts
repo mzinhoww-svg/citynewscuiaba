@@ -60,7 +60,7 @@ export const RULES_TEXT = {
   sectionLabel: "Control Center",
   title: "Regras de autonomia",
   intro:
-    "O que publica sozinho, o que vai para revisão e o que fica bloqueado. Toda versão nova é proposta por uma pessoa e ativada por outra; antes de propor, simule com os últimos 7 dias.",
+    "O que publica sozinho, o que vai para revisão e o que fica bloqueado. Quem tem o papel de aprovar (admin ou editor-chefe) propõe e aplica a versão nova numa ação só, e o histórico registra quem fez; antes de propor, simule com os últimos 7 dias.",
   activeTitle: (v: number) => `Versão ativa: v${v}`,
   noActive: "Nenhuma versão ativa: tudo vai para revisão (falha fechada).",
   forceReviewOn: "Revisão obrigatória ligada: nada é publicado sozinho.",
@@ -87,7 +87,7 @@ export const RULES_TEXT = {
   form: {
     title: "Propor nova versão",
     intro:
-      "Edite a matriz a partir da versão ativa. A proposta só entra em vigor depois da aprovação de outra pessoa (admin ou editor-chefe).",
+      "Edite a matriz a partir da versão ativa. Com papel de admin ou editor-chefe, a versão entra em vigor ao propor; os outros papéis deixam a proposta na caixa de aprovações.",
     editCaption: "Proposta: regras por categoria",
     field: (category: string, field: string) => `${field} de ${category}`,
     sensitiveTopics: "Temas sensíveis (um por linha)",
@@ -111,14 +111,13 @@ export const RULES_TEXT = {
         ? "Nenhum item decidido nos últimos 7 dias: a simulação não tem amostra."
         : `${changed} de ${total} ${plural(total, "item mudaria", "itens mudariam")} de destino.`,
     resultLine: (from: string, to: string, count: number) => `${count} de ${from} para ${to}`,
+    applied: (v: number) => `Versão v${v} aplicada. Fica registrado no histórico.`,
     proposed: (v: number) =>
-      `Versão v${v} proposta. Aguardando a aprovação de outra pessoa na caixa de aprovações.`,
+      `Versão v${v} proposta. Seu papel não aplica regras: o pedido fica na caixa de aprovações.`,
     invalid: "A proposta tem valores fora da faixa.",
-    conflict: "Outra pessoa propôs uma versão agora. Recarregue e tente de novo.",
+    conflict: "Uma versão nova foi proposta agora. Recarregue e tente de novo.",
     forbidden: "Seu papel não propõe regras.",
     genericError: "Não foi possível enviar a proposta. Tente de novo.",
-    approvalFailed:
-      "Versão gravada, mas o pedido de aprovação não foi criado. Peça pela caixa de aprovações.",
   },
   errorTitle: "Não foi possível carregar as regras",
   errorBody: "O banco não respondeu agora. Tente de novo em instantes.",

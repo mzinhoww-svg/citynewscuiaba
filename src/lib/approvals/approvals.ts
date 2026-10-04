@@ -1,7 +1,8 @@
 /**
  * Aprovações de mudança crítica (spec mestre §8, plano P5-T1; painel de fontes D-F3/D-F4/D-F5).
- * Quem pede nunca decide; decisão só em nome próprio, por papel com a segunda assinatura, e
- * final. As mesmas regras valem no banco (`guard_approvals` e RLS `approvals_decide`, 0002); este
+ * Decisão só em nome próprio, por papel que aprova o tipo, e final; quem pede pode decidir o
+ * próprio pedido (A-128: uma pessoa pede, aprova e aplica; `requested_by` e `approved_by` ficam
+ * registrados). As mesmas regras valem no banco (`guard_approvals` e RLS `approvals_decide`); este
  * módulo só traduz os resultados em `Result` com erros tipados. Nada aqui aplica a mudança: quem
  * aplica é o dono do alvo (ex.: `source_admin_update`, que consome a aprovação no trigger).
  */
@@ -41,7 +42,7 @@ export interface ApprovalRow {
   createdAt: string;
 }
 
-export type DecideOutcome = "ok" | "self" | "forbidden" | "not_pending";
+export type DecideOutcome = "ok" | "forbidden" | "not_pending";
 
 /** Acesso ao armazenamento das aprovações (Supabase na produção, memória nos testes). */
 export interface ApprovalsPort {
@@ -71,7 +72,7 @@ export type ApplyOutcome =
         "already_applied" | "not_approved" | "expired" | "forbidden" | "not_found" | "unsupported";
     };
 
-export type ApproveError = "self_approval" | "forbidden" | "not_pending";
+export type ApproveError = "forbidden" | "not_pending";
 export type ApplyError = Exclude<ApplyOutcome, { applied: true }>["reason"];
 
 export interface Approvals {
@@ -89,11 +90,6 @@ export interface Approvals {
 
 const isKind = (k: string): k is CriticalKind => (CRITICAL_KINDS as readonly string[]).includes(k);
 
-function toError(outcome: Exclude<DecideOutcome, "ok">): ApproveError {
-  if (outcome === "self") return "self_approval";
-  return outcome;
-}
-
 export function createApprovalsWith(port: ApprovalsPort): Approvals {
   const decide = async (
     id: string,
@@ -103,11 +99,9 @@ export function createApprovalsWith(port: ApprovalsPort): Approvals {
     if (!me) return err("forbidden");
     const row = await port.get(id);
     if (!row) return err("not_pending");
-    // Autoaprovação primeiro: a mesma pessoa recebe a mensagem certa mesmo sem o papel.
-    if (row.requestedBy === me) return err("self_approval");
     if (row.status !== "pending") return err("not_pending");
     const outcome = await port.decide(id, status, me);
-    return outcome === "ok" ? ok(undefined) : err(toError(outcome));
+    return outcome === "ok" ? ok(undefined) : err(outcome);
   };
 
   return {
@@ -207,13 +201,12 @@ export function supabaseApprovalsPort(db: DbClient): ApprovalsPort {
         .eq("status", "pending")
         .select("id");
       if (error) {
-        if (/quem pede não decide/.test(error.message)) return "self";
         if (/decisão já tomada/.test(error.message)) return "not_pending";
         if (error.code === "42501") return "forbidden";
         throw new Error(`approvals: ${error.message}`);
       }
-      // 0 linhas: a RLS `approvals_decide` escondeu o pedido (papel sem segunda assinatura) ou
-      // outra pessoa decidiu no meio tempo.
+      // 0 linhas: a RLS `approvals_decide` escondeu o pedido (papel sem permissão de aprovar) ou
+      // alguém decidiu no meio tempo.
       if ((data ?? []).length > 0) return "ok";
       const now = await this.get(id);
       return now && now.status !== "pending" ? "not_pending" : "forbidden";

@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
-import { createApprovals, supabaseApprovalsPort } from "@/lib/approvals";
+import { createApprovals, supabaseApprovalsPort, type ApprovalRow } from "@/lib/approvals";
 import { createProductionAi } from "@/lib/ai/server";
 import { createServerClient, createServiceClient, type DbClient } from "@/lib/db/client";
 import { createSupabaseMediaStore } from "@/lib/db/media-store";
@@ -362,18 +362,24 @@ function targetParts(ref: string) {
 }
 
 interface CriticalOutcome {
+  /** Campos (snake) aprovados e aplicados nesta ação (A-128: quem pede e pode aprovar aplica). */
+  applied: string[];
   /** Campos (snake) com pedido pendente (novo ou já existente). */
   pending: string[];
-  /** Campos (snake) cujo pedido não pôde ser gravado. */
+  /** Campos (snake) cujo pedido não pôde ser gravado ou aplicado. */
   failed: string[];
 }
 
+const NO_CRITICAL: CriticalOutcome = { applied: [], pending: [], failed: [] };
+
 /**
- * Pede segunda aprovação para cada mudança crítica (D-F3), sem duplicar um pedido pendente
- * idêntico, e audita `source.approval_requested` com o valor de antes (a checagem de pedido
- * obsoleto só confia nessa linha quando ela é da própria pessoa que pediu). Nunca pula uma falha
- * em silêncio nem lança depois de outras escritas: devolve o que ficou pendente e o que falhou
- * (achado 5 da revisão FS-T6).
+ * Registra o pedido de cada mudança crítica (D-F3), sem duplicar um pedido pendente idêntico, e
+ * audita `source.approval_requested` com o valor de antes (a checagem de pedido obsoleto só
+ * confia nessa linha quando ela é da própria pessoa que pediu). A-128: quem tem
+ * `source.approve_critical` aprova e aplica na mesma ação (`approveAndApplyCritical`), e a
+ * auditoria guarda quem pediu e quem aprovou. Nunca pula uma falha em silêncio nem lança depois
+ * de outras escritas: devolve o que foi aplicado, o que ficou pendente e o que falhou (achado 5
+ * da revisão FS-T6).
  */
 async function requestCritical(
   ctx: Ctx,
@@ -381,8 +387,27 @@ async function requestCritical(
   changes: { targetRef: string; from: unknown }[],
   justification: string,
 ): Promise<CriticalOutcome> {
-  const out: CriticalOutcome = { pending: [], failed: [] };
+  const out: CriticalOutcome = { applied: [], pending: [], failed: [] };
   const approvals = createApprovals(ctx.db);
+  const port = supabaseApprovalsPort(ctx.db);
+  const canApprove = can(ctx.roles, "source.approve_critical");
+  const settle = async (field: string, approvalId: string) => {
+    if (!canApprove) {
+      out.pending.push(field);
+      return;
+    }
+    let row: ApprovalRow | null = null;
+    try {
+      row = await port.get(approvalId);
+    } catch (e) {
+      console.error("painel de fontes: leitura da aprovação falhou", approvalId, e);
+    }
+    const r = row ? await approveAndApplyCritical(ctx, row) : null;
+    if (r?.ok) out.applied.push(field);
+    else if (row && (await port.get(approvalId).catch(() => null))?.status === "pending")
+      out.pending.push(field);
+    else out.failed.push(field);
+  };
   let open: { id: string; targetRef: string }[] = [];
   try {
     open = await approvals.pending(`source:${sourceId}:`);
@@ -391,8 +416,9 @@ async function requestCritical(
   }
   for (const c of changes) {
     const { field, value } = targetParts(c.targetRef);
-    if (open.some((a) => a.targetRef === c.targetRef)) {
-      out.pending.push(field);
+    const existing = open.find((a) => a.targetRef === c.targetRef);
+    if (existing) {
+      await settle(field, existing.id);
       continue;
     }
     let approvalId: string | null = null;
@@ -410,7 +436,6 @@ async function requestCritical(
       out.failed.push(field);
       continue;
     }
-    out.pending.push(field);
     await safeAudit(ctx, {
       actor: ctx.userId,
       action: "source.approval_requested",
@@ -418,17 +443,20 @@ async function requestCritical(
       details: { approvalId, field, from: c.from, to: value, justification },
       ipHash: ctx.ipHash,
     });
+    await settle(field, approvalId);
   }
   return out;
 }
 
-/** Mensagem exata do que foi salvo, do que aguarda aprovação e do que falhou. */
+/** Mensagem exata do que foi salvo ou aplicado, do que aguarda aprovação e do que falhou. */
 function criticalMessage(saved: boolean, outcome: CriticalOutcome): ActionState["message"] {
   const parts: string[] = [];
   const pending = outcome.pending.length;
+  const applied = outcome.applied.length > 0;
   if (saved && pending > 0) parts.push(T.savedWithPending(pending));
-  else if (saved) parts.push(T.saved);
   else if (pending > 0) parts.push(T.pendingApproval(pending));
+  else if (applied) parts.push(T.appliedCritical);
+  else if (saved) parts.push(T.saved);
   const msg = parts.join("");
   if (outcome.failed.length === 0) return msg;
   const names = outcome.failed.map((f) => CRITICAL_FIELD_TEXT[f] ?? f).join(", ");
@@ -489,13 +517,18 @@ export async function updateSourceAction(form: FormData): Promise<ActionState> {
           critical.map((c) => ({ targetRef: targetRefFor(id, c), from: c.from })),
           justification,
         )
-      : { pending: [], failed: [] };
+      : NO_CRITICAL;
+  if (outcome.applied.length > 0) {
+    const fresh = await sourceRow(ctx, id);
+    if (fresh) newVersion = fresh.version;
+  }
   refresh(id);
-  if (nonCritical.length > 0) await refreshPortal();
+  if (nonCritical.length > 0 || outcome.applied.length > 0) await refreshPortal();
   const message = criticalMessage(nonCritical.length > 0, outcome);
   const data = {
     version: newVersion,
     saved: nonCritical.map((c) => c.field),
+    applied: outcome.applied,
     pending: outcome.pending.length,
     failed: outcome.failed,
   };
@@ -518,47 +551,24 @@ function currentText(row: Record<string, unknown>, field: string): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
-export async function decideApprovalAction(form: FormData): Promise<ActionState> {
-  const ctx = await context();
-  if (!(await allow(ctx, LIMITS.approve))) return fail(T.rateLimited);
-  const id = text(form, "id") ?? "";
-  const decision = text(form, "decision");
-  if (!UUID.test(id) || (decision !== "approve" && decision !== "reject")) return fail(T.invalid);
-
-  const port = supabaseApprovalsPort(ctx.db);
-  const approval = await port.get(id);
-  if (!approval || approval.kind !== "source.critical")
-    return fail(APPROVAL_ERROR_TEXT.not_pending);
-  // Autoaprovação primeiro: a mesma pessoa recebe a mensagem certa, com ou sem o papel.
-  if (approval.requestedBy === ctx.userId) return fail(APPROVAL_ERROR_TEXT.self_approval);
-  if (!can(ctx.roles, "source.approve_critical")) return fail(APPROVAL_ERROR_TEXT.forbidden);
-
+/**
+ * Aprova (se pendente) e aplica uma mudança crítica de fonte. O trigger `guard_source_changes`
+ * consome a aprovação (`applied`). Quem pediu pode ser quem aprova (A-128); a auditoria
+ * `source.approval_applied` guarda os dois. Recusa o pedido obsoleto (§7.5.5).
+ */
+async function approveAndApplyCritical(
+  ctx: Ctx,
+  approval: ApprovalRow,
+): Promise<{ ok: true; version: number } | { ok: false; message: string }> {
   const target = parseSourceTarget(approval.targetRef);
-  if (!target) return fail(T.invalid);
+  if (!target) return { ok: false, message: T.invalid };
   const approvals = createApprovals(ctx.db);
   const objectRef = `source:${target.sourceId}`;
-
-  if (decision === "reject") {
-    const reason = text(form, "reason")?.trim() ?? "";
-    if (!reason) return fail(T.reasonRequired, { reason: T.reasonRequired });
-    const r = await approvals.reject({ id, reason });
-    if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
-    await safeAudit(ctx, {
-      actor: ctx.userId,
-      action: "source.approval_rejected",
-      objectRef,
-      details: { approvalId: id, field: target.field, to: target.value, reason },
-      ipHash: ctx.ipHash,
-    });
-    refresh(target.sourceId);
-    return finish(ctx, T.approval.rejected);
-  }
-
   const row = await sourceRow(ctx, target.sourceId);
-  if (!row) return fail(T.notFound);
+  if (!row) return { ok: false, message: T.notFound };
 
   if (approval.status !== "pending" && approval.status !== "approved")
-    return fail(APPROVAL_ERROR_TEXT.not_pending);
+    return { ok: false, message: APPROVAL_ERROR_TEXT.not_pending };
 
   {
     // Obsoleto (§7.5.5): o campo mudou entre o pedido e a aprovação. Vale também para um pedido
@@ -570,9 +580,9 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       .select("details")
       .eq("object_ref", objectRef)
       .eq("action", "source.approval_requested")
-      .eq("details->>approvalId", id)
+      .eq("details->>approvalId", approval.id)
       // Só a linha da própria pessoa que pediu (a política de audit_log exige actor = auth.uid()):
-      // outra pessoa do Estúdio não consegue forjar o "valor de antes" (achado 6).
+      // ninguém mais no Estúdio consegue forjar o "valor de antes" (achado 6).
       .eq("actor", approval.requestedBy)
       .order("id")
       .limit(1)
@@ -584,25 +594,31 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
       const reason = T.approval.obsoleteReason;
       // Decisão já tomada é final no banco (`guard_approvals`): um pedido aprovado obsoleto só
       // deixa de ser aplicado (e expira em 24 h); o pendente é recusado de vez.
-      if (approval.status === "pending") await approvals.reject({ id, reason });
+      if (approval.status === "pending") await approvals.reject({ id: approval.id, reason });
       await safeAudit(ctx, {
         actor: ctx.userId,
         action: "source.approval_rejected",
         objectRef,
-        details: { approvalId: id, field: target.field, to: target.value, reason, obsolete: true },
+        details: {
+          approvalId: approval.id,
+          field: target.field,
+          to: target.value,
+          reason,
+          obsolete: true,
+        },
         ipHash: ctx.ipHash,
       });
       refresh(target.sourceId);
-      return fail(T.approval.obsolete);
+      return { ok: false, message: T.approval.obsolete };
     }
     if (approval.status === "pending") {
-      const r = await approvals.approve({ id });
-      if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
+      const r = await approvals.approve({ id: approval.id });
+      if (!r.ok) return { ok: false, message: APPROVAL_ERROR_TEXT[r.error] };
     }
   }
 
   // Aplica com a aprovação: o trigger `guard_source_changes` consome (`applied`).
-  const ctxAudit = auditCtx(ctx, { reason: approval.justification, approvalId: id });
+  const ctxAudit = auditCtx(ctx, { reason: approval.justification, approvalId: approval.id });
   const apply = async (version: number) =>
     target.field === "status"
       ? ctx.store.setStatus(target.sourceId, version, "unblock", null, ctxAudit)
@@ -622,14 +638,14 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     const fresh = await sourceRow(ctx, target.sourceId);
     if (fresh) applied = await apply(fresh.version);
   }
-  if (!applied.ok) return fail(T.approval.notApplied);
+  if (!applied.ok) return { ok: false, message: T.approval.notApplied };
 
   await safeAudit(ctx, {
     actor: ctx.userId,
     action: "source.approval_applied",
     objectRef,
     details: {
-      approvalId: id,
+      approvalId: approval.id,
       requestedBy: approval.requestedBy,
       approvedBy: ctx.userId,
       field: target.field,
@@ -639,7 +655,44 @@ export async function decideApprovalAction(form: FormData): Promise<ActionState>
     ipHash: ctx.ipHash,
   });
   refresh(target.sourceId);
-  return finish(ctx, T.approval.approved, { version: applied.value.version });
+  return { ok: true, version: applied.value.version };
+}
+
+export async function decideApprovalAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  if (!(await allow(ctx, LIMITS.approve))) return fail(T.rateLimited);
+  const id = text(form, "id") ?? "";
+  const decision = text(form, "decision");
+  if (!UUID.test(id) || (decision !== "approve" && decision !== "reject")) return fail(T.invalid);
+
+  const port = supabaseApprovalsPort(ctx.db);
+  const approval = await port.get(id);
+  if (!approval || approval.kind !== "source.critical")
+    return fail(APPROVAL_ERROR_TEXT.not_pending);
+  if (!can(ctx.roles, "source.approve_critical")) return fail(APPROVAL_ERROR_TEXT.forbidden);
+
+  const target = parseSourceTarget(approval.targetRef);
+  if (!target) return fail(T.invalid);
+
+  if (decision === "reject") {
+    const reason = text(form, "reason")?.trim() ?? "";
+    if (!reason) return fail(T.reasonRequired, { reason: T.reasonRequired });
+    const r = await createApprovals(ctx.db).reject({ id, reason });
+    if (!r.ok) return fail(APPROVAL_ERROR_TEXT[r.error]);
+    await safeAudit(ctx, {
+      actor: ctx.userId,
+      action: "source.approval_rejected",
+      objectRef: `source:${target.sourceId}`,
+      details: { approvalId: id, field: target.field, to: target.value, reason },
+      ipHash: ctx.ipHash,
+    });
+    refresh(target.sourceId);
+    return finish(ctx, T.approval.rejected);
+  }
+
+  const r = await approveAndApplyCritical(ctx, approval);
+  if (!r.ok) return fail(r.message);
+  return finish(ctx, T.approval.approved, { version: r.version });
 }
 
 // ---------------------------------------------------------------------------
@@ -751,6 +804,11 @@ export async function sourceStatusAction(form: FormData): Promise<ActionState> {
     );
     refresh(id);
     if (outcome.failed.length > 0) return fail(criticalMessage(false, outcome));
+    if (outcome.applied.length > 0) {
+      await refreshPortal();
+      const fresh = await sourceRow(ctx, id);
+      return finish(ctx, T.status.unblocked, { pending: 0, version: fresh?.version });
+    }
     return finish(ctx, T.status.unblockRequested, { pending: 1 });
   }
 
@@ -1412,7 +1470,11 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
           critical.map((c) => ({ targetRef: targetRefFor(id, c), from: c.from })),
           justification,
         )
-      : { pending: [], failed: [] };
+      : NO_CRITICAL;
+  if (outcome.applied.length > 0) {
+    const fresh = await sourceRow(ctx, id);
+    if (fresh) version = fresh.version;
+  }
 
   let message: string = T.created;
   if (toBool(text(form, "activate") ?? "")) {
@@ -1427,7 +1489,9 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
   }
   if (outcome.pending.length > 0)
     message = `${message} ${T.pendingApproval(outcome.pending.length)}.`;
-  if (outcome.failed.length > 0) problems.push(criticalMessage(false, { ...outcome, pending: [] }));
+  else if (outcome.applied.length > 0) message = `${message} ${T.appliedCritical}`;
+  if (outcome.failed.length > 0)
+    problems.push(criticalMessage(false, { ...outcome, pending: [], applied: [] }));
   refresh(id);
   const data = { id, version, pending: outcome.pending.length, failed: outcome.failed };
   // A fonte foi criada: com falha depois disso, a mensagem diz o que ficou faltando.

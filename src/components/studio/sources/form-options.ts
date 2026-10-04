@@ -125,7 +125,7 @@ const BASE: SourceConfig = {
   trusted: false,
 };
 
-/** Campos que AFROUXAM direitos (D-F3) e por isso exigem segunda aprovação. */
+/** Campos que AFROUXAM direitos (D-F3) e por isso são mudança crítica (pedido e aprovação registrados). */
 export function looseningFields(before: RightsFields, after: RightsFields): string[] {
   return criticalChanges({ ...BASE, ...before }, { ...BASE, ...after }).map((c) => c.field);
 }

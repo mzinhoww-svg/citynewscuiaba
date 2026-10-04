@@ -23,20 +23,13 @@ export interface WeightsHistoryItem {
 
 export interface WeightsHistoryProps {
   rows: WeightsHistoryItem[];
-  currentUserId: string;
   canApprove: boolean;
   activate: (i: { approvalId: string }) => Promise<RecReply>;
   className?: string;
 }
 
-/** Histórico de pesos (O17) com ativação por quem aprovou (outra pessoa). */
-export function WeightsHistory({
-  rows,
-  currentUserId,
-  canApprove,
-  activate,
-  className,
-}: WeightsHistoryProps) {
+/** Histórico de pesos (O17) com ativação por quem tem o papel de aprovar (A-128: pode ser quem propôs). */
+export function WeightsHistory({ rows, canApprove, activate, className }: WeightsHistoryProps) {
   const router = useRouter();
   const [status, setStatus] = useState<RecReply | null>(null);
   const [busy, start] = useTransition();
@@ -92,7 +85,6 @@ export function WeightsHistory({
           <tbody>
             {rows.map((r) => {
               const ap = r.approval;
-              const requester = ap?.requestedBy === currentUserId;
               return (
                 <tr key={r.version} className="border-b border-line-subtle last:border-0 align-top">
                   <th
@@ -122,10 +114,10 @@ export function WeightsHistory({
                     {formatDateTime(r.createdAt)}
                   </td>
                   <td className="px-3 py-2">
-                    {ap && ap.status === "pending" && requester && (
-                      <span className="type-meta text-strong">{T.waitOther}</span>
+                    {ap && ap.status === "pending" && !canApprove && (
+                      <span className="type-meta text-strong">{T.waitApprover}</span>
                     )}
-                    {ap && ap.status === "pending" && !requester && canApprove && (
+                    {ap && ap.status === "pending" && canApprove && (
                       <Button
                         size="sm"
                         disabled={busy}
@@ -140,7 +132,7 @@ export function WeightsHistory({
                         {T.approveAndActivate(r.version)}
                       </Button>
                     )}
-                    {ap && ap.status === "approved" && !requester && canApprove && (
+                    {ap && ap.status === "approved" && canApprove && (
                       <Button
                         size="sm"
                         disabled={busy}

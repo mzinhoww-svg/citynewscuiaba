@@ -1,6 +1,6 @@
 // @vitest-environment node
 // P5-T8 · Administração (A02–A06): convite cria conta, papel e "Convite pendente"; conceder
-// admin abre pedido `role.admin` e só aplica depois de outra pessoa aprovar; mesclar tags
+// admin passa pelo pedido `role.admin`, aprovado e aplicado pela mesma admin (A-128); mesclar tags
 // duplicadas preserva vínculos; rascunho da home publica com uma só versão publicada.
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
@@ -23,21 +23,18 @@ const mark = randomUUID().slice(0, 8);
 const invitedIds: string[] = [];
 const articleIds: string[] = [];
 
-let cleanupExtraAdmin = false;
-
 afterAll(async () => {
-  if (cleanupExtraAdmin)
-    await service
-      .from("user_roles")
-      .delete()
-      .eq("user_id", SEED_USERS.carlos.id)
-      .eq("role", "admin");
   for (const id of invitedIds) {
     await service.from("user_roles").delete().eq("user_id", id);
     await service.from("profiles").delete().eq("id", id);
     await service.auth.admin.deleteUser(id).catch(() => undefined);
   }
   await service.from("user_roles").delete().eq("user_id", SEED_USERS.thiago.id).eq("role", "admin");
+  await service
+    .from("approvals")
+    .delete()
+    .eq("kind", "role.admin")
+    .in("target_ref", [SEED_USERS.thiago.id, `revoke:${SEED_USERS.thiago.id}`]);
   await service
     .from("approvals")
     .delete()
@@ -123,8 +120,9 @@ describe("administração (banco real)", () => {
     expect(self).toMatchObject({ ok: false, error: "forbidden" });
   });
 
-  it("conceder admin abre pedido role.admin; só aplica depois de outra pessoa aprovar", async () => {
+  it("A-128: admin concede e revoga admin numa ação só; approvals e auditoria registram quem fez", async () => {
     const thiago = SEED_USERS.thiago.id;
+    const helena = SEED_USERS.helena.id;
     const noJust = await asUser("helena", () =>
       setRolesCommand({
         userId: thiago,
@@ -149,47 +147,43 @@ describe("administração (banco real)", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.value.adminApprovalId).toBeTruthy();
-    expect(r.value.granted).toEqual([]);
-    const roles = await service.from("user_roles").select("role").eq("user_id", thiago);
-    expect(roles.data?.map((x) => x.role)).toEqual(["analista"]);
-    const staff = await asUser("helena", () => listStaff());
-    expect(staff.find((s) => s.id === thiago)?.adminApproval).toMatchObject({ status: "pending" });
-
-    // Sem aprovação decidida, aplicar é recusado pelo banco.
-    const early = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
-    expect(early).toMatchObject({ ok: false, error: "conflict" });
-
-    // Gate do P5 (achado 4): quem aprova `role.admin` precisa ser admin no banco. O seed tem uma
-    // só admin; Carlos vira admin de fixture para dar a segunda assinatura e volta ao papel dele.
-    await service
-      .from("user_roles")
-      .insert({ user_id: SEED_USERS.carlos.id, role: "admin", sections: [] });
-    cleanupExtraAdmin = true;
-    await service
-      .from("approvals")
-      .update({
-        status: "approved",
-        approved_by: SEED_USERS.carlos.id,
-        decided_at: new Date().toISOString(),
-      })
-      .eq("id", r.value.adminApprovalId!);
-    // Quem pediu foi Helena e quem aprovou Carlos; Helena aplica e o trigger consome o pedido.
-    const applied = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
-    expect(applied.ok).toBe(true);
+    expect(r.value.adminApplied).toBe(true);
+    expect(r.value.granted).toEqual(["admin"]);
     const after = await service
       .from("user_roles")
       .select("role")
       .eq("user_id", thiago)
       .order("role");
     expect(after.data?.map((x) => x.role)).toEqual(["admin", "analista"]);
-    const consumed = await service
+    // O pedido fica registrado com quem pediu e quem aprovou (a mesma pessoa) e consumido.
+    const grantRow = await service
       .from("approvals")
-      .select("status")
+      .select("kind, target_ref, status, requested_by, approved_by")
       .eq("id", r.value.adminApprovalId!)
       .single();
-    expect(consumed.data?.status).toBe("applied");
+    expect(grantRow.data).toEqual({
+      kind: "role.admin",
+      target_ref: thiago,
+      status: "applied",
+      requested_by: helena,
+      approved_by: helena,
+    });
+    const grantAudit = await service
+      .from("audit_log")
+      .select("actor, action")
+      .eq("details->>approvalId", r.value.adminApprovalId!);
+    expect(grantAudit.data).toEqual(
+      expect.arrayContaining([
+        { actor: helena, action: "approval.requested" },
+        { actor: helena, action: "approval.approved" },
+        { actor: helena, action: "user.role.grant" },
+      ]),
+    );
+    const staff = await asUser("helena", () => listStaff());
+    expect(staff.find((s) => s.id === thiago)?.adminApproval ?? null).toBeNull();
 
-    // Gate do P5 (achado 5): revogar admin também é pedido de duas pessoas.
+    // Revogar admin também passa pelo pedido `role.admin` (gate do P5, achado 5), agora aplicado
+    // na mesma ação.
     const noReason = await asUser("helena", () =>
       setRolesCommand({ userId: thiago, roles: [{ role: "analista", sections: [] }] }),
     );
@@ -203,22 +197,78 @@ describe("administração (banco real)", () => {
     );
     expect(revoke.ok).toBe(true);
     if (!revoke.ok) return;
-    expect(revoke.value.revoked).toEqual([]);
-    expect(revoke.value.adminRevokeApprovalId).toBeTruthy();
+    expect(revoke.value.revoked).toEqual(["admin"]);
+    expect(revoke.value.adminRevokeApplied).toBe(true);
     expect(
-      (await service.from("user_roles").select("role").eq("user_id", thiago).eq("role", "admin"))
-        .data,
-    ).toHaveLength(1);
-    const early2 = await asUser("helena", () => applyAdminRevokeCommand({ userId: thiago }));
-    expect(early2).toMatchObject({ ok: false, error: "conflict" });
+      (
+        await service.from("user_roles").select("role").eq("user_id", thiago).order("role")
+      ).data?.map((x) => x.role),
+    ).toEqual(["analista"]);
+    const revokeRow = await service
+      .from("approvals")
+      .select("target_ref, status, requested_by, approved_by")
+      .eq("id", revoke.value.adminRevokeApprovalId!)
+      .single();
+    expect(revokeRow.data).toEqual({
+      target_ref: `revoke:${thiago}`,
+      status: "applied",
+      requested_by: helena,
+      approved_by: helena,
+    });
+
+    // Ninguém mexe no próprio papel (autopromoção segue proibida).
+    const self = await asUser("helena", () =>
+      setRolesCommand({ userId: helena, roles: [], justification: "x" }),
+    );
+    expect(self).toMatchObject({ ok: false, error: "forbidden" });
+  });
+
+  it("pedido role.admin aprovado e ainda não aplicado se aplica pelo botão Aplicar; sem aprovação é recusado", async () => {
+    const thiago = SEED_USERS.thiago.id;
+    const helena = SEED_USERS.helena.id;
+    // Sem aprovação registrada, aplicar é recusado pelo banco.
+    const early = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
+    expect(early).toMatchObject({ ok: false, error: "conflict" });
+
+    const grant = await service
+      .from("approvals")
+      .insert({
+        kind: "role.admin",
+        target_ref: thiago,
+        requested_by: helena,
+        justification: "Aplicação pendente",
+      })
+      .select("id")
+      .single();
+    if (grant.error) throw grant.error;
     await service
       .from("approvals")
-      .update({
-        status: "approved",
-        approved_by: SEED_USERS.carlos.id,
-        decided_at: new Date().toISOString(),
+      .update({ status: "approved", approved_by: helena, decided_at: new Date().toISOString() })
+      .eq("id", grant.data.id);
+    const applied = await asUser("helena", () => applyAdminRoleCommand({ userId: thiago }));
+    expect(applied.ok).toBe(true);
+    expect(
+      (await service.from("approvals").select("status").eq("id", grant.data.id).single()).data
+        ?.status,
+    ).toBe("applied");
+
+    const early2 = await asUser("helena", () => applyAdminRevokeCommand({ userId: thiago }));
+    expect(early2).toMatchObject({ ok: false, error: "conflict" });
+    const revoke = await service
+      .from("approvals")
+      .insert({
+        kind: "role.admin",
+        target_ref: `revoke:${thiago}`,
+        requested_by: helena,
+        justification: "Revogação pendente",
       })
-      .eq("id", revoke.value.adminRevokeApprovalId!);
+      .select("id")
+      .single();
+    if (revoke.error) throw revoke.error;
+    await service
+      .from("approvals")
+      .update({ status: "approved", approved_by: helena, decided_at: new Date().toISOString() })
+      .eq("id", revoke.data.id);
     const done = await asUser("helena", () => applyAdminRevokeCommand({ userId: thiago }));
     expect(done.ok).toBe(true);
     expect(

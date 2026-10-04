@@ -96,7 +96,7 @@ export const REC_TEXT = {
 
   weightsTitle: "Pesos do score",
   weightsIntro:
-    "A soma precisa ser exatamente 1,00. A proposta abre um pedido rec.weights: quem propõe não aprova. Sem consentimento, o individual pesa 0 e os demais são renormalizados.",
+    "A soma precisa ser exatamente 1,00. Quem pode aprovar ativa a proposta na hora; o pedido rec.weights fica no histórico com quem propôs e quem aprovou. Sem consentimento, o individual pesa 0 e os demais são renormalizados.",
   activeWeights: (version: string) => `Pesos ativos: ${version}`,
   sum: (s: string) => `Soma: ${s}`,
   sumOk: "Soma em 1,00: pode propor.",
@@ -106,14 +106,16 @@ export const REC_TEXT = {
   justificationRequired: "Explique por que os pesos mudam.",
   propose: "Propor pesos",
   proposing: "Propondo…",
-  proposed: (v: string) => `Versão ${v} proposta. A aprovação precisa ser de outra pessoa.`,
+  applied: (v: string) => `${v} em uso. Fica registrado no histórico.`,
+  proposed: (v: string) =>
+    `Versão ${v} proposta. Seu papel não ativa pesos: o pedido fica na caixa de aprovações.`,
   noChanges: "Os pesos são iguais aos ativos.",
   reset: "Voltar aos ativos",
   activate: (v: string) => `Ativar ${v}`,
   approveAndActivate: (v: string) => `Aprovar e ativar ${v}`,
   activated: (v: string) => `${v} em uso.`,
-  activateForbidden: "Só quem aprovou (outra pessoa) ativa.",
-  waitOther: "Seu pedido: a aprovação precisa ser de outra pessoa.",
+  activateForbidden: "Só quem aprovou ativa.",
+  waitApprover: "Aguarda quem tem o papel de aprovar pesos.",
   historyTitle: "Histórico de pesos",
   historyCaption: "Versões de pesos de recomendação, da mais recente para a mais antiga",
   historyCol: {
@@ -126,7 +128,7 @@ export const REC_TEXT = {
     actions: "Ações",
   },
   status: { active: "Ativa", approved: "Aprovada (inativa)", pending: "Aguardando aprovação" },
-  someone: "outra pessoa",
+  someone: "alguém da equipe",
 
   campaignsTitle: "Campanhas de descoberta",
   campaignsIntro:
@@ -160,7 +162,7 @@ export const REC_TEXT = {
 
   experimentsTitle: "Testes A/B",
   experimentsIntro:
-    "Cada leitor cai numa variante de forma estável (hash do anonId). O rótulo da variante vai nos eventos como versão do algoritmo; encerrar e promover a vencedora abre um pedido de pesos com duas aprovações.",
+    "Cada leitor cai numa variante de forma estável (hash do anonId). O rótulo da variante vai nos eventos como versão do algoritmo; encerrar e promover a vencedora propõe os pesos dela e, para quem pode aprovar, já os ativa.",
   experimentsCaption: "Testes A/B de pesos",
   experimentCol: {
     name: "Teste",
@@ -219,9 +221,10 @@ export const AB_TEXT = {
   ended_: "Teste encerrado.",
   promote: (name: string) => `Promover ${name}`,
   promoteJustification: "Justificativa para promover",
-  promoteHint: "Abre um pedido rec.weights com a versão da variante; outra pessoa aprova e ativa.",
+  promoteHint: "Propõe a versão da variante (pedido rec.weights); quem pode aprovar já ativa.",
+  promotedApplied: (v: string) => `${v} em uso. Fica registrado no histórico.`,
   promoted: (v: string) =>
-    `Pedido aberto para ativar ${v}. A aprovação precisa ser de outra pessoa.`,
+    `Versão ${v} proposta. Seu papel não ativa pesos: o pedido fica na caixa de aprovações.`,
   readOnly: "Seu papel vê o teste, mas não encerra nem promove.",
   errorTitle: "Não foi possível carregar",
   errorBody: "O banco não respondeu. Tente de novo em instantes.",

@@ -276,7 +276,7 @@ describe("achado 4 · role.admin aprovado expira e o aprovador precisa ser admin
   });
 });
 
-describe("achado 5 · revogar admin exige aprovação de outra pessoa", () => {
+describe("achado 5 · revogar admin exige aprovação role.admin registrada", () => {
   it("DELETE direto de um papel admin é recusado; com aprovação vale uma vez", async () => {
     const target = SEED_USERS.thiago.id;
     await service.from("user_roles").upsert({ user_id: target, role: "admin", sections: [] });

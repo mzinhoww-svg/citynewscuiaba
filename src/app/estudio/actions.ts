@@ -244,8 +244,10 @@ export async function reprocessAction(input: { id: string }): Promise<ActionRepl
 
 /**
  * E06: publica e, com "Push urgente" marcado (admin ou editor-chefe), cria o pedido Urgente em A09
- * já preenchido com título e linha fina da matéria (spec 2026-09-28 §10.7). A justificativa é
- * conferida antes de publicar; a falha do pedido não desfaz a publicação e vira mensagem.
+ * já preenchido com título e linha fina da matéria (spec 2026-09-28 §10.7) e, como quem pede tem
+ * `push.approve`, aprova na mesma ação (A-128; o histórico registra quem pediu e quem aprovou). A
+ * justificativa é conferida antes de publicar; a falha do pedido não desfaz a publicação e vira
+ * mensagem.
  */
 export async function publishAction(
   baseVersion: number,
@@ -273,7 +275,9 @@ export async function publishAction(
   if (outcome.ok)
     return {
       ok: true,
-      message: `${PUBLISH_TEXT.published}. ${PUBLISH_TEXT.pushRequested}`,
+      message: `${PUBLISH_TEXT.published}. ${
+        outcome.value.approved ? PUBLISH_TEXT.pushApproved : PUBLISH_TEXT.pushRequested
+      }`,
       pushQueueHref: `${PUSH_ADMIN_PATH}/fila`,
     };
   return { ok: true, message: PUBLISH_TEXT.pushFailed(PUSH_ADMIN_TEXT.errors[outcome.error]) };
@@ -295,7 +299,8 @@ async function requestUrgentPush(articleId: string, justification: string) {
     })
   )
     return { ok: false as const, error: "national_scope" as const };
-  return createPushAdminStore(db).request({
+  const store = createPushAdminStore(db);
+  const r = await store.request({
     kind: "urgent",
     articleId,
     title: sanitizeNotificationText(a.title, TITLE_MAX),
@@ -304,6 +309,11 @@ async function requestUrgentPush(articleId: string, justification: string) {
     when: { type: "now" },
     justification,
   });
+  if (!r.ok) return r;
+  // Urgente só é pedido por admin ou editor-chefe, que têm `push.approve`: aprova na hora. Se a
+  // aprovação falhar, o pedido fica na fila de notificações.
+  const approved = await store.approve(r.value.id);
+  return { ok: true as const, value: { id: r.value.id, approved: approved.ok } };
 }
 
 function conflictOr(r: StudioResult<unknown>): SaveReply {

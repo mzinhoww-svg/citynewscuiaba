@@ -264,7 +264,7 @@ describe("#1 restringir campo crítico aplica na hora (D-F3)", () => {
     );
     expect(r).toMatchObject({
       ok: true,
-      message: "Alterações salvas. 1 alteração aguarda segunda aprovação",
+      message: "Alterações salvas. 1 alteração aguarda aprovação de admin ou editor-chefe",
     });
     expect(await rowBySlug("diario-oficial-de-cuiaba")).toMatchObject({
       may_be_sole_source: false,
@@ -543,7 +543,7 @@ describe("#6 auditoria complementar e pedido obsoleto", () => {
       .single();
     expect(approved.data).toMatchObject({ status: "approved" });
     expect(approved.data?.decided_at).not.toBeNull();
-    // O campo mudou de novo no meio do caminho (pela service role: sem duas pessoas).
+    // O campo mudou de novo no meio do caminho (pela service role: sem pedido de aprovação).
     await svc.from("sources").update({ image_policy: changed }).eq("id", s.id);
     expect(
       await asUser(MARINA, () => decideApprovalAction(formFrom({ id: p.id, decision: "approve" }))),

@@ -130,7 +130,6 @@ export default async function PromptsPage({ params }: { params: Promise<{ id: st
               className="rounded-lg border border-warn bg-atencao-soft px-4 py-3 type-body font-medium text-strong"
             >
               {T.pendingBanner(v.version)}
-              {v.approval?.requestedBy === session.userId && ` ${T.waitOther}`}
             </p>
           ))}
           {approved.map((v) => (
