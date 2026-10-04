@@ -34,3 +34,6 @@ supabase/.branches/
 
 # capturas de tela e medições locais (pnpm design:shoot)
 /tmp/
+
+# venv do gerador do relatório de segurança
+docs/security-audit/.venv/
