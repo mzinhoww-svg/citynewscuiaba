@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
-import Link from "next/link";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import {
   ArticleCard,
@@ -11,6 +10,7 @@ import {
   SectionTile,
   ServiceTile,
   TopicSummaryCard,
+  TagLink,
 } from "@/components";
 import { EXPLORE, GUIDE_LINKS, SECTION_ICONS } from "@/content/pt-BR/explore";
 import { getExploreData, type ExploreData } from "@/lib/db/queries";
@@ -47,12 +47,7 @@ function Header() {
         <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
           {ANCHORS.map((a) => (
             <li key={a.id} className="snap-start">
-              <a
-                href={`#${a.id}`}
-                className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
-              >
-                {a.label}
-              </a>
+              <TagLink href={`#${a.id}`}>{a.label}</TagLink>
             </li>
           ))}
         </ul>
@@ -164,12 +159,7 @@ function Explore({ data }: { data: ExploreData }) {
           <ul aria-label={EXPLORE.otherSections} className="flex flex-wrap gap-2">
             {quiet.map((s) => (
               <li key={s.slug}>
-                <Link
-                  href={s.href}
-                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
-                >
-                  {s.name}
-                </Link>
+                <TagLink href={s.href}>{s.name}</TagLink>
               </li>
             ))}
           </ul>

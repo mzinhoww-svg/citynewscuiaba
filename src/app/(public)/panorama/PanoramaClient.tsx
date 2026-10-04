@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, useSyncExternalStore } from "react";
-import { AggregatedCard, EmptyState, SegmentedToggle } from "@/components";
+import { AggregatedCard, Checkbox, Chip, EmptyState, SegmentedToggle } from "@/components";
 import { PANORAMA_TEXT as T } from "@/content/pt-BR/sources";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import type { AggregatedView } from "@/lib/db/queries/types";
@@ -129,37 +129,28 @@ export function PanoramaClient({ items, sources }: PanoramaClientProps) {
         <fieldset className="mt-2 flex flex-col gap-3">
           <legend className="type-meta text-meta">{T.pickerHint}</legend>
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              aria-pressed={mode === "all"}
-              onClick={() => change({ mode: "all", slugs: [] })}
-              className="inline-flex min-h-tap items-center rounded-pill border border-line-control px-4 text-14 font-semibold text-strong aria-pressed:bg-action-primary aria-pressed:text-on-inverse"
-            >
+            <Chip active={mode === "all"} onClick={() => change({ mode: "all", slugs: [] })}>
               {T.pickerAll}
-            </button>
+            </Chip>
             {followed.length > 0 && (
-              <button
-                type="button"
-                aria-pressed={mode === "followed"}
+              <Chip
+                active={mode === "followed"}
                 onClick={() => change({ mode: "followed", slugs: [] })}
-                className="inline-flex min-h-tap items-center rounded-pill border border-line-control px-4 text-14 font-semibold text-strong aria-pressed:bg-action-primary aria-pressed:text-on-inverse"
               >
                 {T.pickerFollowed}
-              </button>
+              </Chip>
             )}
           </div>
           <ul className="grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
             {sources.map((s) => (
               <li key={s.slug}>
-                <label className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong">
-                  <input
-                    type="checkbox"
-                    checked={!selected || selected.has(s.slug)}
-                    onChange={() => toggle(s.slug)}
-                    className="size-5 accent-(--action-primary)"
-                  />
-                  {s.name}
-                </label>
+                <Checkbox
+                  name="fontes"
+                  value={s.slug}
+                  label={s.name}
+                  checked={!selected || selected.has(s.slug)}
+                  onChange={() => toggle(s.slug)}
+                />
               </li>
             ))}
           </ul>
