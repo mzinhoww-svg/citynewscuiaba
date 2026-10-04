@@ -671,6 +671,11 @@ export interface DraftInput {
   aiFallback: boolean;
   reviewReason: string | null;
   sources: { itemId: string; role: "primary" | "secondary" | "context" }[];
+  /**
+   * Reescrita de matéria publicada automaticamente e nunca editada por pessoa (A-123): grava a
+   * versão nova e mantém a matéria no ar (`status` é ignorado).
+   */
+  live?: boolean;
 }
 
 /** Matéria como as etapas de regra, publicação e índice a enxergam. */

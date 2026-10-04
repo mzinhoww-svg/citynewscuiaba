@@ -131,7 +131,13 @@ export function createMemoryPublishRepo(
     },
     async saveDraft(d) {
       let a = byTopic(d.topicId);
-      if (a && (a.humanEdited || (a.status !== "draft" && a.status !== "in_review")))
+      const live =
+        d.live === true &&
+        a !== undefined &&
+        !a.humanEdited &&
+        a.publishMode === "auto" &&
+        (a.status === "published" || a.status === "updated");
+      if (a && !live && (a.humanEdited || (a.status !== "draft" && a.status !== "in_review")))
         throw new Error("matéria já está com a redação");
       if (!a) {
         a = {
@@ -159,8 +165,10 @@ export function createMemoryPublishRepo(
         articles.set(a.id, a);
       }
       a.input = structuredClone(d);
-      a.status = d.status;
-      a.reviewReason = d.reviewReason;
+      if (!live) {
+        a.status = d.status;
+        a.reviewReason = d.reviewReason;
+      }
       a.version++;
       return { articleId: a.id, version: a.version };
     },

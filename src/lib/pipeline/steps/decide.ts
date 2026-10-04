@@ -182,12 +182,18 @@ export function notifyKindFor(d: Pick<Decision, "route" | "rule">): string {
  * grava regra, justificativa, versão das regras e confiança. Revisão → `in_review` com o motivo;
  * retenção → `draft`; publicar → etapa `publish`. Idempotente por (matéria, revisão, regras, flags).
  */
+const LIVE_STATUS = new Set(["published", "updated"]);
+
 export function createDecideStep(deps: PublishStepDeps): StepHandler {
   return async (msg) => {
     const articleId = articleIdFrom(msg.itemRef);
     if (!articleId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const ctx = await deps.repo.decisionContext(articleId);
     if (!ctx) return err(stepError.notFound(`matéria ${articleId} não encontrada`));
+    // Matéria no ar atualizada pela reescrita (A-123): as regras não decidem de novo o que já
+    // está publicado; segue para publicar, que reindexa e atualiza a página.
+    if (!ctx.humanEdited && ctx.publishMode === "auto" && LIVE_STATUS.has(ctx.status))
+      return ok([nextMessage(msg, "publish", msg.itemRef)]);
     if (ctx.humanEdited || (ctx.status !== "draft" && ctx.status !== "in_review")) return ok([]);
 
     let loaded: Result<RuleSet, string>;

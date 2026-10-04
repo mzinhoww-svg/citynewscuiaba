@@ -1,7 +1,8 @@
--- A-123 · Recuperação da vazão e das matérias retiradas (decisões do dono, 04/10/2026).
+-- A-123 · Recuperação da vazão e de todas as matérias finas (decisões do dono, 04/10/2026).
 -- Rode no SQL Editor do Supabase (citynews-prod) DEPOIS do deploy que traz o modo `#refetch` do
--- `enrich` e da migration 0145 (publicação forçada não é edição humana). Idempotente: as
--- mensagens têm chave de deduplicação, e as atualizações só mudam o que ainda não mudou.
+-- `enrich`, da migration 0145 (publicação forçada não é edição humana) e da 0146 (reescrita no
+-- ar). Idempotente: as mensagens têm chave de deduplicação, e as atualizações só mudam o que
+-- ainda não mudou.
 
 begin;
 
@@ -9,6 +10,16 @@ begin;
 update publish_breaker
    set hourly_limit = 300, daily_limit = 3000, updated_at = now()
  where id;
+
+-- 1b) Orçamento diário do redator: R$ 15 (antes R$ 9), dentro do teto global de R$ 30/dia (0036).
+--     Cerca de 1.280 reescritas com o texto completo da fonte custam de R$ 6 a R$ 13; sem folga, a
+--     recuperação pararia no meio. Sai de agentes parados: busca com IA (R$ 6 → 1,50, gasto 0),
+--     imagem (sem gerador configurado, R$ 2 → 1) e perfil de fonte (R$ 1 → 0,50). Primeiro reduz,
+--     depois aumenta, para a soma nunca passar do teto.
+update ai_agents set daily_budget_brl = 1.5 where id = 'answer' and daily_budget_brl > 1.5;
+update ai_agents set daily_budget_brl = 1 where id = 'image' and daily_budget_brl > 1;
+update ai_agents set daily_budget_brl = 0.5 where id = 'source_profiler' and daily_budget_brl > 0.5;
+update ai_agents set daily_budget_brl = 15 where id = 'write' and daily_budget_brl < 15;
 
 -- 2) Fontes pausadas voltam a coletar. Sai o `enrich: false` explícito: sem ele o `enrich` liga
 --    sozinho quando o feed traz menos de 600 caracteres (sitemap e página trazem 0), e busca o
@@ -24,16 +35,25 @@ update sources
 update sources set rate_limit_per_hour = 60
  where slug in ('olhar-conceito', 'agro-olhar') and rate_limit_per_hour < 60;
 
--- 3) Matérias retiradas por texto curto: cada item do assunto busca o texto completo e a foto
+-- 3) Todas as matérias do redator que nasceram finas: retiradas do ar por texto curto, em revisão
+--    ou rascunho, e publicadas com até 3 parágrafos. Ficam de fora as editadas por pessoa e as
+--    publicadas que já têm texto. Cada item do assunto busca o texto completo e a foto
 --    (`item:<id>#refetch`), espaçado pelo limite por hora da fonte (com folga de 6 para a coleta
---    normal); 15 minutos depois do último item, o assunto é reescrito (`#rewrite5`) e segue para
---    imagem, regras e publicação como qualquer matéria nova.
+--    normal); 15 minutos depois do último item, o assunto é reescrito (`#rewrite5`). A matéria
+--    publicada é atualizada no ar, sem sair do site (0146); as demais seguem para imagem, regras
+--    e publicação como qualquer matéria nova.
 with alvo as (
   select distinct a.topic_id
     from articles a
-   where a.agent_id = 'write' and a.status = 'in_review'
-     and a.review_reason like 'Retirada do ar%'
+   where a.agent_id = 'write'
      and a.topic_id is not null
+     and not exists (select 1 from article_versions v where v.article_id = a.id and v.origin = 'human')
+     and (
+       a.status in ('draft', 'in_review')
+       or (a.status in ('published', 'updated') and a.publish_mode = 'auto'
+           and (select count(*) from jsonb_array_elements(coalesce(a.body -> 'content', '[]'::jsonb)) p
+                 where not coalesce((p -> 'attrs' ->> 'credit')::boolean, false)) <= 3)
+     )
 ),
 itens as (
   select c.id, c.topic_id,
