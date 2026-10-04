@@ -10,6 +10,7 @@ import {
   Button,
   CategoryTag,
   CollectionCard,
+  FirstVisitGate,
   EventDateBadge,
   NewsletterForm,
   NowList,
@@ -416,6 +417,9 @@ function Home({ data }: { data: HomeData }) {
             </ul>
           </section>
         )}
+
+        {/* Convite da primeira visita (item 63): lugar próprio, abaixo da dobra, no fluxo. */}
+        <FirstVisitGate placement="home" />
 
         {modules.map((m) => {
           const Block = MODULES[m.id];

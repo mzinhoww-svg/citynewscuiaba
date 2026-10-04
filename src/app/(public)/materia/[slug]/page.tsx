@@ -16,6 +16,7 @@ import {
   CorrectionNote,
   CreditLine,
   EmptyState,
+  FirstVisitGate,
   GoneState,
   JsonLd,
   MadeHow,
@@ -303,6 +304,9 @@ function Article({ a }: { a: ArticleView }) {
                 ))}
               </ul>
             </section>
+
+            {/* Convite da primeira visita (item 63): só no fim da leitura, nunca sobre o texto. */}
+            <FirstVisitGate placement="article-end" />
           </article>
 
           <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
