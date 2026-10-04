@@ -828,12 +828,29 @@
       },
       "ADS-T4": {
         "status": "done",
-        "migration": "0143_ads_admin.sql",
+        "migration": "0144_ads_admin.sql",
         "decision": "A-122"
       }
     },
     "next": [
       "MS-T4 (relatório mensal por anunciante)"
     ]
+  },
+  "segurancaP1": {
+    "spec": "docs/superpowers/specs/2026-10-04-seguranca-p1-design.md",
+    "status": "done_pending_owner",
+    "findings": {
+      "C1-01": "af13470",
+      "C1-03": "59f7d70",
+      "C3-01": "1e26999",
+      "C1-02": "d9c5196",
+      "C4-01": "bb408fd"
+    },
+    "migration": "0143_security_p1.sql (produção: pendente)",
+    "tests": {
+      "verify": 3509,
+      "p1Integration": 14
+    },
+    "pendingOwner": "B-023"
   }
 }

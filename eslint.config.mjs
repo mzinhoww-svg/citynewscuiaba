@@ -71,6 +71,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "coverage/**",
+    "docs/security-audit/.venv/**",
+    ".impeccable/**",
   ]),
 ]);
 

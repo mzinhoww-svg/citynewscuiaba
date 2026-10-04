@@ -3,7 +3,9 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
-> 2026-10-04 · ADS-T4 (A-122): Publicidade no Estúdio em 4 abas (Campos, Banners com envio de imagem ao Storage, Relatório com CSV, Patrocinados); interruptor `ads_enabled` (migration 0143). Peças da casa no ar em produção (78 veiculações).
+> 2026-10-04 · ADS-T4 (A-122): Publicidade no Estúdio em 4 abas (Campos, Banners com envio de imagem ao Storage, Relatório com CSV, Patrocinados); interruptor `ads_enabled` (migration 0144). Peças da casa no ar em produção (78 veiculações).
+
+> 2026-10-04 · segurança P1 (spec `docs/superpowers/specs/2026-10-04-seguranca-p1-design.md`, branch `claude/saas-security-audit-v2-p5kwh9`): C1-01 `af13470`, C1-03 `59f7d70`, C3-01 `1e26999`, C1-02 `d9c5196` (migration 0143), C4-01 `bb408fd`; main mesclada (`ff028b1`) e CI de destaques/OfflineNotice estabilizado. Verify verde (3513 testes; provedores fora da allowlist cobertos; expurgo C1-02 no projeto de integração). Pendente do dono: B-023 (ligar Confirm email no Supabase de produção; só corrige contas novas). Contas legadas auto-confirmadas e só de magic-link/OTP nunca provam posse: exportação por e-mail null e expurgo mantém newsletter/alertas `email:` (fail-closed aceito); follow-up B-024 (reverificação própria), até lá pedidos LGPD dessas contas são atendidos manualmente. Falta aplicar 0143 em produção.
 
 > 2026-10-04 · ADS-T3 (A-121): 48 peças da casa em `public/ads` e cadastro por `scripts/ads/house-ads.mjs` (78 veiculações). Próxima: ADS-T4.
 
@@ -64,6 +66,7 @@
 | 2026-09-28 | P2-GATE | 8c4782b | 21 achados corrigidos; 1188 testes; e2e 620; 0020/0021 em produção |
 | 2026-09-28 | P4-GATE | 96a31b4 | 20 achados corrigidos; 1272 testes; e2e 722 |
 | 2026-09-28 | P5-T3, P5-T6 | 8e16648 (branch p5-control) | 1337 testes; e2e 791 — aguardando merge após o painel |
+| 2026-10-04 | SEC-P1 (C1-01..03, C3-01, C4-01) | ver nota do topo | 3509 testes; B-023 pendente do dono |
 
 ## Degradados abertos
 

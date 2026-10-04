@@ -108,7 +108,7 @@ test("Otávio vê só Destaque e só matérias de cidade, serviços, clima e age
   await expect(page.getByRole("option", { name: /Mutirão de emprego/ })).toContainText("Serviços");
   await page.getByRole("option", { name: /Mutirão de emprego/ }).click();
   await expect(page.getByRole("group", { name: "Matéria escolhida" })).toContainText(
-    /NORMALIZADO PELO CITYNEWS|ORIGINAL CITYNEWS/,
+    /Feito a partir de outras fontes|ORIGINAL CITYNEWS/,
   );
   await page.getByRole("radio", { name: "Agendar" }).check();
   const day = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
