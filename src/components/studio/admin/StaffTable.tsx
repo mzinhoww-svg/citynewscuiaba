@@ -14,6 +14,7 @@ import { EmptyState } from "../../ui/EmptyState";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, AdminTable, CheckList, type AdminReply } from "./AdminStatus";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export interface StaffTableProps {
   staff: StaffMember[];
@@ -35,6 +36,7 @@ export interface StaffTableProps {
 }
 
 const U = T.users;
+const C = T.confirm;
 const roleOptions = ROLES.map((r) => ({ value: r, label: ROLE_LABEL[r] }));
 const inviteRoles = roleOptions.filter((r) => r.value !== "admin");
 
@@ -42,7 +44,8 @@ const inviteRoles = roleOptions.filter((r) => r.value !== "admin");
  * Usuários (A02): tabela da equipe com papéis, situação ("Convite pendente" até o primeiro
  * acesso) e ações; convite por e-mail e edição de papéis em diálogos. Papel de administração
  * vira pedido `role.admin`, aprovado e aplicado na mesma ação (A-128); um pedido que ficou
- * aprovado sem aplicar mostra "Aplicar".
+ * aprovado sem aplicar mostra "Aplicar". Aplicar e revogar administração pedem confirmação com o
+ * nome da pessoa e o efeito (item 24).
  */
 export function StaffTable({
   staff,
@@ -57,10 +60,15 @@ export function StaffTable({
   const [status, setStatus] = useState<AdminReply | null>(null);
   const [inviting, setInviting] = useState(false);
   const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [confirming, setConfirming] = useState<{
+    kind: "grant" | "revoke";
+    person: StaffMember;
+  } | null>(null);
   const [busy, start] = useTransition();
 
   const done = (r: AdminReply) => {
     setStatus(r);
+    setConfirming(null);
     if (r.ok) {
       setInviting(false);
       setEditing(null);
@@ -140,7 +148,7 @@ export function StaffTable({
                       size="sm"
                       variant="outline-strong"
                       disabled={busy}
-                      onClick={() => start(async () => done(await applyAdmin({ userId: p.id })))}
+                      onClick={() => setConfirming({ kind: "grant", person: p })}
                     >
                       {U.rolesDialog.apply}
                     </Button>
@@ -150,9 +158,7 @@ export function StaffTable({
                       size="sm"
                       variant="outline-strong"
                       disabled={busy}
-                      onClick={() =>
-                        start(async () => done(await applyAdminRevoke({ userId: p.id })))
-                      }
+                      onClick={() => setConfirming({ kind: "revoke", person: p })}
                     >
                       {U.rolesDialog.revokeApply}
                     </Button>
@@ -162,6 +168,28 @@ export function StaffTable({
             </tr>
           ))}
         </AdminTable>
+      )}
+      {confirming && (
+        <ConfirmDialog
+          busy={busy}
+          {...(confirming.kind === "revoke"
+            ? {
+                title: C.revokeTitle(confirming.person.name),
+                effect: C.revokeEffect(confirming.person.name),
+                confirmLabel: C.revokeConfirm(confirming.person.name),
+              }
+            : {
+                title: C.grantTitle(confirming.person.name),
+                effect: C.grantEffect(confirming.person.name),
+                confirmLabel: C.grantConfirm(confirming.person.name),
+              })}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            const { kind, person } = confirming;
+            const apply = kind === "revoke" ? applyAdminRevoke : applyAdmin;
+            start(async () => done(await apply({ userId: person.id })));
+          }}
+        />
       )}
       {inviting && (
         <InviteDialog
