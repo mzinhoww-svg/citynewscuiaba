@@ -19,7 +19,7 @@ function hasPending(sections: readonly DocSection[]): boolean {
 }
 
 /** `[PREENCHER]` destacado em texto e com fundo de atenção (dado pendente, B-001). */
-function Text({ value }: { value: string }) {
+export function PendingText({ value }: { value: string }) {
   const parts = value.split(PENDING);
   return (
     <>
@@ -44,20 +44,9 @@ function Text({ value }: { value: string }) {
  * ```
  */
 export function DocPage({ title, intro, sections = [], children, path }: DocPageProps) {
-  const related = RELATED_LINKS.filter((l) => l.href !== path);
   return (
     <div className="mx-auto flex w-full max-w-page flex-col gap-8 px-gutter py-8 lg:py-12">
-      <nav aria-label={DOC_TEXT.breadcrumb}>
-        <ol className="flex flex-wrap items-center gap-x-2 type-meta text-meta">
-          <li>
-            <Link href="/" className="inline-flex min-h-tap items-center hover:text-strong">
-              {DOC_TEXT.home}
-            </Link>
-          </li>
-          <li aria-hidden="true">/</li>
-          <li aria-current="page">{title}</li>
-        </ol>
-      </nav>
+      <DocBreadcrumb title={title} />
       <header className="flex max-w-read flex-col gap-3 border-b-2 border-line-strong pb-6">
         <h1 className="type-display text-balance text-strong">{title}</h1>
         <p className="type-body-read text-body">{intro}</p>
@@ -70,14 +59,14 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
               <h2 className="type-section text-strong">{s.title}</h2>
               {s.paragraphs?.map((p) => (
                 <p key={p} className="type-body-read text-pretty text-body">
-                  <Text value={p} />
+                  <PendingText value={p} />
                 </p>
               ))}
               {s.items && (
                 <ul className="flex list-disc flex-col gap-2 pl-6 type-body-read text-body marker:text-meta">
                   {s.items.map((it) => (
                     <li key={it}>
-                      <Text value={it} />
+                      <PendingText value={it} />
                     </li>
                   ))}
                 </ul>
@@ -88,24 +77,49 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
         </div>
       )}
       {children}
-      <nav
-        aria-label={DOC_TEXT.related}
-        className="flex flex-col gap-3 border-t border-line-subtle pt-6"
-      >
-        <h2 className="type-eyebrow text-meta">{DOC_TEXT.related}</h2>
-        <ul className="flex flex-wrap gap-2">
-          {related.map((l) => (
-            <li key={l.href}>
-              <Link
-                href={l.href}
-                className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
-              >
-                {l.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <DocRelated path={path} />
     </div>
+  );
+}
+
+/** Trilha "Início / página" das páginas institucionais. */
+export function DocBreadcrumb({ title }: { title: string }) {
+  return (
+    <nav aria-label={DOC_TEXT.breadcrumb}>
+      <ol className="flex flex-wrap items-center gap-x-2 type-meta text-meta">
+        <li>
+          <Link href="/" className="inline-flex min-h-tap items-center hover:text-strong">
+            {DOC_TEXT.home}
+          </Link>
+        </li>
+        <li aria-hidden="true">/</li>
+        <li aria-current="page">{title}</li>
+      </ol>
+    </nav>
+  );
+}
+
+/** "Veja também": links institucionais, sem repetir a página atual. */
+export function DocRelated({ path }: { path: string }) {
+  const related = RELATED_LINKS.filter((l) => l.href !== path);
+  return (
+    <nav
+      aria-label={DOC_TEXT.related}
+      className="flex flex-col gap-3 border-t border-line-subtle pt-6"
+    >
+      <h2 className="type-eyebrow text-meta">{DOC_TEXT.related}</h2>
+      <ul className="flex flex-wrap gap-2">
+        {related.map((l) => (
+          <li key={l.href}>
+            <Link
+              href={l.href}
+              className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
+            >
+              {l.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
