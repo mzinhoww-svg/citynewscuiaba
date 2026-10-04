@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createProductionAi } from "@/lib/ai/server";
 import { createBreakerStore } from "@/lib/db/breaker-store";
+import { createReviewRepo } from "@/lib/db/review-store";
 import { createSupabaseMediaStore } from "@/lib/db/media-store";
 import { createPushSendStore } from "@/lib/db/push-send-store";
 import { pushSender } from "@/lib/push/deps";
@@ -43,6 +44,7 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import type { ReviewTickDeps } from "./steps/auto-reviewer";
 import type { StatusDeps } from "./status";
 import type { TickDeps } from "./tick";
 
@@ -213,5 +215,31 @@ export function defaultStatusDeps(): StatusDeps & { secret: string | undefined }
     queue: pipelineQueue(),
     now: () => new Date(),
     secret: process.env.CRON_SECRET,
+  };
+}
+
+/** Revisor automático (AUT-T6): rota `/api/ingest/review-tick`, a cada 5 min. */
+export function defaultReviewDeps(): ReviewTickDeps {
+  const db = createServiceClient();
+  const ai = createProductionAi();
+  return {
+    repo: createReviewRepo(db),
+    flags: createFlags(db),
+    callAgent: ai.callAgent,
+    promptVersion: () => ai.promptVersion("reviewer"),
+    queue: pipelineQueue(),
+    revalidate: revalidateTags,
+    breaker: createBreakerStore(db),
+    now: () => new Date(),
+  };
+}
+
+/** Varredura dos assuntos sem novidade há 7 dias (AUT-T7, `topic_close_stale`). */
+export function defaultTopicSweep(): () => Promise<number> {
+  const db = createServiceClient();
+  return async () => {
+    const { data, error } = await db.rpc("topic_close_stale");
+    if (error) throw new Error(`topic_close_stale: ${error.message}`);
+    return data ?? 0;
   };
 }

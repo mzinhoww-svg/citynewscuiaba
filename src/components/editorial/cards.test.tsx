@@ -364,6 +364,27 @@ describe("demais cards", () => {
     expect(screen.getByText(/1 matéria · 4 fontes/)).toBeInTheDocument();
   });
 
+  it("TopicSummaryCard mostra a foto da capa quando o assunto tem uma (R40) e sem ela segue sem foto", () => {
+    const cover = { src: "/api/media/m1", alt: "Rio Cuiabá", kind: "original" as const };
+    const { container, rerender } = render(
+      <TopicSummaryCard topic={{ ...topic, cover }} now={now} />,
+    );
+    expect(screen.getByRole("img", { name: "Rio Cuiabá" })).toBeInTheDocument();
+    rerender(<TopicSummaryCard topic={topic} now={now} />);
+    expect(container.querySelector("img")).toBeNull();
+  });
+
+  it("TopicSummaryCard com capa de reprodução traz a legenda com a fonte", () => {
+    const cover = {
+      src: "/api/media/m2",
+      alt: "Obra",
+      kind: "reproduction" as const,
+      credit: "Folha do Cerrado",
+    };
+    render(<TopicSummaryCard topic={{ ...topic, cover }} now={now} />);
+    expect(screen.getByText(/Reprodução web · Folha do Cerrado/)).toBeInTheDocument();
+  });
+
   it("TopicSummaryCard não mostra o selo Corrigido ao público (R34)", () => {
     render(<TopicSummaryCard topic={{ ...topic, state: "corrigido" }} now={now} />);
     expect(screen.queryByText("Corrigido")).toBeNull();

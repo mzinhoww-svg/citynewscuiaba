@@ -39,7 +39,8 @@ type SaveError = { kind: "unconfigured" | "unavailable" };
 
 export interface SubmitDeps {
   allow: () => Promise<Result<boolean, SaveError>>;
-  save: (s: EventSubmission) => Promise<Result<void, SaveError>>;
+  /** `approved`: a sugestão já entrou na agenda sem pessoa (A14). */
+  save: (s: EventSubmission) => Promise<Result<void | { approved: boolean }, SaveError>>;
   now?: () => Date;
 }
 
@@ -128,5 +129,11 @@ export async function submitEvent(form: FormData, deps: SubmitDeps): Promise<Sub
     contactEmail: email.data,
   });
   if (!saved.ok) return { status: "error", message: SUGGEST.error, errors: {}, values };
-  return { status: "success", message: SUGGEST.success, errors: {}, values: {} };
+  const published = saved.value !== undefined && saved.value.approved;
+  return {
+    status: "success",
+    message: published ? SUGGEST.successPublished : SUGGEST.success,
+    errors: {},
+    values: {},
+  };
 }

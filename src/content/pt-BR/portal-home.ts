@@ -7,6 +7,7 @@ export const HOME = {
   urgent: "Urgente",
   place: "Cuiabá e Várzea Grande",
   updatedAt: (hour: string) => `Atualizado às ${hour}`,
+  highlights: "Em destaque",
   topics: "Assuntos em destaque",
   topicsMore: "/assuntos",
   collections: "Coleções",

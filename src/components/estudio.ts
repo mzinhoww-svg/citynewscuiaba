@@ -286,9 +286,24 @@ export { StaffTable, type StaffTableProps } from "./studio/admin/StaffTable";
 export { TeamsEditor, type TeamsEditorProps } from "./studio/admin/TeamsEditor";
 export { TaxonomyPanel, type TaxonomyPanelProps } from "./studio/admin/TaxonomyPanel";
 export { HomeModulesEditor, type HomeModulesEditorProps } from "./studio/admin/HomeModulesEditor";
+export { FeaturedBoard, type FeaturedBoardProps } from "./studio/featured/FeaturedBoard";
+export { PinForm, type PinFormProps } from "./studio/featured/PinForm";
+export { PinHistory, type PinHistoryProps } from "./studio/featured/PinHistory";
+export type {
+  FeaturedApi,
+  PinDurationChoice,
+  PinPayload,
+  SearchHit,
+} from "./studio/featured/types";
 export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
 export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
 export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";
+
+export {
+  ReviewerModeCard,
+  type ReviewerModeCardProps,
+  type ReviewerModeValue,
+} from "./studio/ReviewerModeCard";

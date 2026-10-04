@@ -49,10 +49,11 @@ type ArticleRow = Pick<
   | "seo_description"
   | "news_scope"
   | "national_commotion"
+  | "review_banner"
 >;
 
 export const ARTICLE_COLUMNS =
-  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion";
+  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion, review_banner";
 
 /** Destinos escolhidos na publicação (E06): a home e a editoria só listam o que foi para elas. */
 export type PublicDestination = "home" | "section";
@@ -297,6 +298,7 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
     sponsored: row.sponsored,
     newsScope: asScope(row.news_scope) ?? undefined,
     nationalCommotion: row.national_commotion,
+    reviewBanner: row.review_banner === true ? true : undefined,
   };
 }
 

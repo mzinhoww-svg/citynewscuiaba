@@ -256,6 +256,19 @@ export const SOURCE_ACTION_TEXT = {
     small: "O logotipo deve ter pelo menos 96 px de lado.",
     unreadable: "Não foi possível ler a imagem.",
     unavailable: "O armazenamento de logotipos não está disponível agora.",
+    removed:
+      "Logotipo removido. O monograma volta a aparecer e a busca automática não repõe este logotipo.",
+    removeNone: "Esta fonte não tem logotipo.",
+    discover: {
+      found: (host: string) => `Logotipo encontrado em ${host} e salvo.`,
+      none: "Nenhum logotipo utilizável foi encontrado no site. Envie um arquivo.",
+      robots:
+        "O site não permite o acesso automático à página inicial (robots.txt). Envie um arquivo.",
+      unreachable: "Não foi possível abrir o site agora. Tente de novo mais tarde.",
+      error: "Não foi possível buscar o logotipo agora. Tente de novo.",
+      manual:
+        "O logotipo desta fonte é definido pelo painel (enviado ou removido por uma pessoa). Envie um arquivo para trocar.",
+    },
   },
   approval: {
     approved: "Mudança aprovada e aplicada",

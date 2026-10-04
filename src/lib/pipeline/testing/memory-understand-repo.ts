@@ -42,6 +42,7 @@ interface TopicRow {
   confidence: string;
   confidenceScore: number;
   sectionSlug: string | null;
+  state: "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
 }
 
 /** Itens, assuntos e decisões em memória para classify, locate e verify (só testes). */
@@ -110,6 +111,7 @@ export function createMemoryUnderstandRepo(
       return {
         topicId,
         updatedAt: t.updatedAt,
+        state: t.state,
         items: rows
           .filter((r) => r.topicId === topicId && !r.duplicateOf && r.quarantineReason === null)
           .map((r) => ({
@@ -129,6 +131,7 @@ export function createMemoryUnderstandRepo(
       if (!t) return;
       t.confidence = patch.confidence;
       t.confidenceScore = patch.confidenceScore;
+      if (patch.state) t.state = patch.state;
       if (t.sectionSlug === null && patch.sectionSlug) t.sectionSlug = patch.sectionSlug;
     },
   };
@@ -159,10 +162,15 @@ export function createMemoryUnderstandRepo(
           confidence: "baixa",
           confidenceScore: 0,
           sectionSlug: null,
+          state: "em_apuracao",
         });
     },
     item: (id: string) => find(id),
     topic: (id: string) => topics.get(id),
+    setTopicState(id: string, state: TopicRow["state"]) {
+      const t = topics.get(id);
+      if (t) t.state = state;
+    },
     decisions: () => decisions,
   });
 }

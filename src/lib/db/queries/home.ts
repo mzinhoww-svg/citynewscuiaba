@@ -1,12 +1,15 @@
 import "server-only";
 import { defaultHomeLayout, parseHomeLayout, type HomeModule } from "@/lib/admin/home-layout";
 import { pickHomeSponsored } from "@/lib/ads/rules";
+import { sourceLogoUrl } from "@/lib/sources/logo-path";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
+import { createUsed, hasApprovedCover, type Used } from "@/lib/featured";
 import { isEligibleForFeature } from "@/lib/geo/news-scope";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
+import { getFeatured } from "./featured";
 import { many, readPublic } from "./run";
 import { fetchActiveTopics } from "./topics";
 import type { Database } from "@/lib/db/types";
@@ -17,6 +20,7 @@ import type {
   HomeData,
   QueryError,
   SourceView,
+  TopicView,
 } from "./types";
 
 /** Blocos de editoria da home (docs/screens.md P01). */
@@ -26,6 +30,10 @@ export const HOME_SECTION_BLOCKS = ["politica", "economia", "cultura"] as const;
 export const HOME_REVALIDATE = 60;
 
 const NOW_COUNT = 6;
+const HIGHLIGHT_COUNT = 3;
+/** "Assuntos em destaque": assuntos lidos e quantos aparecem (só os com foto e sem repetição, R40). */
+const TOPIC_POOL = 12;
+const TOPIC_COUNT = 3;
 const MOST_READ_COUNT = 5;
 
 export async function fetchCollections(db: DbClient, limit: number): Promise<CollectionView[]> {
@@ -98,7 +106,7 @@ async function fetchHomeAggregated(db: DbClient, limit: number): Promise<Aggrega
 async function fetchFeaturedSources(db: DbClient, limit: number): Promise<SourceView[]> {
   const rows = await db
     .from("public_sources")
-    .select("slug, name, locality, rec_pinned, rec_local_highlight")
+    .select("slug, name, locality, logo_path, rec_pinned, rec_local_highlight")
     .eq("status", "active")
     .eq("rec_excluded", false)
     .order("rec_pinned", { ascending: false })
@@ -108,7 +116,15 @@ async function fetchFeaturedSources(db: DbClient, limit: number): Promise<Source
     .then(many);
   return rows.flatMap((s) =>
     s.slug && s.name
-      ? [{ slug: s.slug, name: s.name, href: `/fontes/${s.slug}`, locality: s.locality ?? "" }]
+      ? [
+          {
+            slug: s.slug,
+            name: s.name,
+            href: `/fontes/${s.slug}`,
+            locality: s.locality ?? "",
+            logo: sourceLogoUrl(s.logo_path),
+          },
+        ]
       : [],
   );
 }
@@ -133,6 +149,52 @@ export async function pickMostRead(
     if (!out.some((o) => o.id === a.id)) out.push(a);
   }
   return out;
+}
+
+/**
+ * Mais lidas na ordem de leitura: as lidas primeiro (ranking de `public_most_read`), depois o
+ * resto da lista por recência. Sem patrocinadas. A home aplica o registro de "já exibidos" (R40)
+ * por cima desta ordem.
+ */
+export async function rankMostRead(
+  db: DbClient,
+  pool: ArticleSummary[],
+  hours = 24,
+): Promise<ArticleSummary[]> {
+  const ranked = await db.rpc("public_most_read", { p_hours: hours, p_limit: 10 }).then(many);
+  const byId = new Map(pool.map((a) => [a.id, a]));
+  const fromReads = ranked.flatMap((r) => byId.get(r.article_id) ?? []);
+  const seen = new Set<string>();
+  return [...fromReads, ...pool].filter((a) => {
+    if (a.sponsored || seen.has(a.id)) return false;
+    seen.add(a.id);
+    return true;
+  });
+}
+
+/**
+ * Tópicos da home com capa (R40): só assunto com foto aprovada numa matéria dele ainda não
+ * exibida, nunca o assunto da manchete nem uma matéria que já saiu acima.
+ */
+export function topicsWithCover(
+  topics: readonly TopicView[],
+  pool: readonly ArticleSummary[],
+  used: Used,
+  take: number,
+): TopicView[] {
+  const coverOf = (t: TopicView): ArticleSummary | undefined =>
+    pool.find(
+      (a) =>
+        a.topicId === t.id && !a.sponsored && hasApprovedCover(a.image) && !used.hasArticle(a.id),
+    );
+  const covers = new Map<string, ArticleSummary>();
+  return used
+    .takeTopics(topics, take, (t) => {
+      const a = coverOf(t);
+      if (a) covers.set(t.id, a);
+      return a ? { id: a.id, topicId: a.topicId } : null;
+    })
+    .map((t) => ({ ...t, cover: covers.get(t.id)?.image }));
 }
 
 /**
@@ -183,10 +245,10 @@ export async function getHomeData(
 ): Promise<Result<HomeData, QueryError>> {
   return readPublic(
     async (db) => {
-      const [rows, topics, collections, events, sources, aggregated, modules, gate] =
+      const [rows, activeTopics, collections, events, sources, aggregated, modules, gate] =
         await Promise.all([
           fetchRecentArticles(db, 60, "home"),
-          fetchActiveTopics(db, 3),
+          fetchActiveTopics(db, TOPIC_POOL),
           fetchCollections(db, 4),
           fetchEvents(db, { limit: 3 }, now),
           fetchFeaturedSources(db, 8),
@@ -209,28 +271,66 @@ export async function getHomeData(
                 nationalCommotion: a.nationalCommotion ?? false,
               })),
         ) ?? null;
-      const lead = editorial.find((a) => a.id !== urgent?.id) ?? null;
-      const shown = new Set<string>([urgent?.id, lead?.id].filter((v): v is string => !!v));
-      const nowList = editorial.filter((a) => !shown.has(a.id)).slice(0, NOW_COUNT);
-      nowList.forEach((a) => shown.add(a.id));
 
-      const sectionBlocks = HOME_SECTION_BLOCKS.map((slug) => {
-        const inSection = editorial.filter((a) => a.section.slug === slug);
-        const section = inSection[0]?.section ?? { slug, name: slug };
-        const fresh = inSection.filter((a) => !shown.has(a.id));
-        return { section, articles: (fresh.length ? fresh : inSection).slice(0, 3) };
-      }).filter((b) => b.articles.length > 0);
+      // Registro de "já exibidos" (R40): cada módulo, na ordem em que a página o mostra, só leva o
+      // que ainda não saiu em outro lugar; módulo sem item novo some.
+      const used = createUsed();
+      if (urgent) used.add(urgent);
+
+      // Manchete (home.lead): pino manual > automático por janela, sempre com capa aprovada (R39).
+      // Sem a tabela ou sem candidata, cai no comportamento anterior preferindo a mais recente com
+      // capa; só sem nenhuma capa na lista a manchete sai sem foto.
+      const featuredLead = await getFeatured(db, "home.lead", {
+        now,
+        pool: articles,
+        exclude: urgent ? [urgent.id] : [],
+      });
+      const rest = editorial.filter((a) => a.id !== urgent?.id);
+      const lead =
+        featuredLead.items[0] ?? rest.find((a) => hasApprovedCover(a.image)) ?? rest[0] ?? null;
+      if (lead) used.add(lead);
+
+      // Destaques (home.destaques): até 3 com capa, nunca a manchete nem a urgência.
+      const featuredHighlights = await getFeatured(db, "home.destaques", {
+        now,
+        pool: articles,
+        exclude: [...(urgent ? [urgent.id] : []), ...(lead ? [lead.id] : [])],
+      });
+      const highlights = used.takeArticles(featuredHighlights.items, HIGHLIGHT_COUNT, (a) =>
+        hasApprovedCover(a.image),
+      );
+
+      const nowList = used.takeArticles(editorial, NOW_COUNT);
+
+      // Módulos abaixo da primeira dobra, na ordem publicada (A06).
+      let topics: TopicView[] = [];
+      let sectionBlocks: HomeData["sectionBlocks"] = [];
+      let mostRead: ArticleSummary[] = [];
+      for (const m of modules.filter((x) => x.enabled)) {
+        if (m.id === "topics") {
+          topics = topicsWithCover(activeTopics, editorial, used, TOPIC_COUNT);
+        } else if (m.id === "sections") {
+          sectionBlocks = HOME_SECTION_BLOCKS.map((slug) => {
+            const inSection = editorial.filter((a) => a.section.slug === slug);
+            const section = inSection[0]?.section ?? { slug, name: slug };
+            return { section, articles: used.takeArticles(inSection, 3) };
+          }).filter((b) => b.articles.length > 0);
+        } else if (m.id === "most_read") {
+          mostRead = used.takeArticles(await rankMostRead(db, editorial), MOST_READ_COUNT);
+        }
+      }
 
       return {
         generatedAt: now.toISOString(),
         urgent,
         lead,
+        highlights,
         now: nowList,
         topics,
         collections,
         events,
         sectionBlocks,
-        mostRead: await pickMostRead(db, editorial, shown),
+        mostRead,
         sponsored: pickHomeSponsored(articles, gate),
         sources,
         aggregated,

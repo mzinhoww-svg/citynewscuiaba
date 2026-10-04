@@ -13,6 +13,7 @@ export const AGENT_IDS = [
   "image",
   "aggregate_summary",
   "source_profiler",
+  "reviewer",
 ] as const;
 export type AgentId = (typeof AGENT_IDS)[number];
 

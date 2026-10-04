@@ -798,6 +798,7 @@ export type Database = {
           short_reason: string | null;
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
+          review_banner: boolean;
           review_reason: string | null;
           rules_version: number | null;
           scheduled_for: string | null;
@@ -839,6 +840,7 @@ export type Database = {
           short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
@@ -879,6 +881,7 @@ export type Database = {
           short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
@@ -1693,6 +1696,113 @@ export type Database = {
           risks?: NonNullable<Json>;
           status?: string;
           total?: number;
+        };
+        Relationships: [];
+      };
+      featured_image_requests: {
+        Row: {
+          article_id: string;
+          requested_at: string;
+        };
+        Insert: {
+          article_id: string;
+          requested_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          requested_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_image_requests_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: true;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      featured_items: {
+        Row: {
+          article_id: string;
+          created_at: string;
+          created_by: string | null;
+          ends_at: string | null;
+          ended_at: string | null;
+          id: string;
+          kind: string;
+          note: string;
+          position: number;
+          section_slug: string | null;
+          slot_key: string;
+          starts_at: string;
+        };
+        Insert: {
+          article_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key: string;
+          starts_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key?: string;
+          starts_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_items_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "featured_items_slot_key_fkey";
+            columns: ["slot_key"];
+            isOneToOne: false;
+            referencedRelation: "featured_slots";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
+      featured_slots: {
+        Row: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position: number;
+        };
+        Insert: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position?: number;
+        };
+        Update: {
+          capacity?: number;
+          key?: string;
+          label?: string;
+          page?: string;
+          position?: number;
         };
         Relationships: [];
       };
@@ -3121,6 +3231,63 @@ export type Database = {
           },
         ];
       };
+      ai_reviewer_settings: {
+        Row: {
+          id: boolean;
+          mode: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      review_escalations: {
+        Row: {
+          article_id: string;
+          id: string;
+          kind: string;
+          opened_at: string;
+          report_count: number;
+          resolution: string | null;
+          resolved_at: string | null;
+          resolved_by: string | null;
+          status: string;
+        };
+        Insert: {
+          article_id: string;
+          id?: string;
+          kind?: string;
+          opened_at?: string;
+          report_count?: number;
+          resolution?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Update: {
+          article_id?: string;
+          id?: string;
+          kind?: string;
+          opened_at?: string;
+          report_count?: number;
+          resolution?: string | null;
+          resolved_at?: string | null;
+          resolved_by?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       reports: {
         Row: {
           contact_email: string | null;
@@ -3456,6 +3623,30 @@ export type Database = {
           },
         ];
       };
+      source_logo_checks: {
+        Row: {
+          checked_at: string;
+          detail: string | null;
+          found_at: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Insert: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Update: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome?: string;
+          source_id?: string;
+        };
+        Relationships: [];
+      };
       sources: {
         Row: {
           agreement_note: string | null;
@@ -3485,6 +3676,8 @@ export type Database = {
           layer: number | null;
           locality: string;
           logo_path: string | null;
+          logo_origin_url: string | null;
+          logo_source: string | null;
           may_be_sole_source: boolean;
           name: string;
           owner_id: string | null;
@@ -3536,6 +3729,8 @@ export type Database = {
           layer?: number | null;
           locality: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name: string;
           owner_id?: string | null;
@@ -3587,6 +3782,8 @@ export type Database = {
           layer?: number | null;
           locality?: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name?: string;
           owner_id?: string | null;
@@ -4403,6 +4600,13 @@ export type Database = {
       consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
+      topic_close_stale: { Args: { p_now?: string; p_days?: number }; Returns: number };
+      ai_reviewer_set_mode: { Args: { p_mode: string; p_ctx?: Json }; Returns: string };
+      review_due_articles: {
+        Args: { p_now?: string; p_limit?: number };
+        Returns: { id: string }[];
+      };
+      report_escalation_resolve: { Args: { p_id: string; p_note?: string }; Returns: Json };
       publish_counts: { Args: { p_now?: string }; Returns: Json };
       publish_breaker_trip: { Args: { p_reason: string; p_detail?: Json }; Returns: boolean };
       publish_breaker_reset: { Args: { p_ctx?: Json }; Returns: undefined };
@@ -4541,6 +4745,22 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      featured_assert_role: { Args: never; Returns: undefined };
+      featured_has_cover: { Args: { p_article: string }; Returns: boolean };
+      featured_pin: {
+        Args: {
+          p_article: string;
+          p_ends_at: string | null;
+          p_note?: string;
+          p_replace?: string | null;
+          p_section: string | null;
+          p_slot: string;
+        };
+        Returns: string;
+      };
+      featured_reorder: { Args: { p_ids: string[]; p_slot: string }; Returns: number };
+      featured_request_images: { Args: { p_ids: string[] }; Returns: number };
+      featured_unpin: { Args: { p_id: string }; Returns: boolean };
       home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
@@ -4861,6 +5081,10 @@ export type Database = {
       source_discovery_link: {
         Args: { p_accepted?: string[]; p_id: string; p_source: string };
         Returns: boolean;
+      };
+      source_logo_auto_set: {
+        Args: { p_id: string; p_origin: string; p_path: string };
+        Returns: string;
       };
       source_discovery_save: { Args: { p: Json; p_ctx?: Json }; Returns: string };
       source_operational_columns: { Args: Record<PropertyKey, never>; Returns: string[] };

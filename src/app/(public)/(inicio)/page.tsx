@@ -329,7 +329,7 @@ function Module_sources({ data }: { data: HomeData }) {
           <SectionHeader id="home-sources" title={HOME.sources} actionHref={HOME.sourcesMore} />
           <Rail label={HOME.sources} itemWidth="auto" className="lg:flex lg:justify-between">
             {data.sources.map((s) => (
-              <SourceAvatar key={s.slug} name={s.name} href={s.href} size={64} />
+              <SourceAvatar key={s.slug} name={s.name} image={s.logo} href={s.href} size={64} />
             ))}
           </Rail>
         </section>
@@ -380,6 +380,20 @@ function Home({ data }: { data: HomeData }) {
           <ArticleCard variant="lead" as="h1" article={lead} className="lg:col-span-8" />
           <NowList items={data.now} className="lg:col-span-4" />
         </div>
+
+        {/* Posição home.destaques: até 3 matérias com capa, sem repetir a manchete (R39 e R40). */}
+        {data.highlights.length > 0 && (
+          <section aria-labelledby="home-highlights" className="flex flex-col gap-4">
+            <SectionHeader id="home-highlights" title={HOME.highlights} action={null} />
+            <ul className="grid grid-cols-1 gap-6 md:grid-cols-3 max-md:[&>li:nth-child(n+2)]:hidden">
+              {data.highlights.map((a) => (
+                <li key={a.id} className="flex min-w-0">
+                  <ArticleCard variant="standard" article={a} className="flex-1" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {data.modules
           .filter((m) => m.enabled)
