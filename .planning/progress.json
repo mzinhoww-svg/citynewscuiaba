@@ -937,10 +937,12 @@
         "commit": "85edf5b"
       },
       "UI-T10": {
-        "status": "pending"
+        "status": "done",
+        "commit": "c0fce06"
       },
       "UI-T11": {
-        "status": "pending"
+        "status": "done",
+        "commit": "e4c2298"
       },
       "UI-T12": {
         "status": "done",
@@ -948,10 +950,14 @@
         "note": "e2e auth.spec.ts roda no CI"
       },
       "UI-T13": {
-        "status": "pending"
+        "status": "done",
+        "commit": "b489499",
+        "note": "follow-up curto ('e no CPA?') sem contexto na rota; rótulo do campo só para leitor de tela"
       },
       "UI-T14": {
-        "status": "pending"
+        "status": "done",
+        "commit": "526bed8",
+        "fix": "Alertas sem zod no cliente (B-018)"
       },
       "UI-T15": {
         "status": "pending"
@@ -1019,7 +1025,9 @@
         "migrations": "0151_hot_signals (aplicar após merge), 0152_front_signals_purge (dono)"
       },
       "HOT-T2": {
-        "status": "pending"
+        "status": "done",
+        "commit": "341548b",
+        "note": "rota direta como review-tick, sem STEP_NAMES"
       },
       "HOT-T3": {
         "status": "pending"
