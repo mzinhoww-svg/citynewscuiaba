@@ -109,9 +109,9 @@ describe("fila de revisão · selecionar tudo", () => {
     expect(screen.queryByRole("button", { name: /Selecionar todas as/ })).toBeNull();
   });
 
-  it("'Publicar mesmo assim' fica desabilitado sem seleção", () => {
+  it("sem seleção não há barra de lote nem 'Publicar mesmo assim' (UX-W3-T1, item 56)", () => {
     setup();
-    expect(screen.getByRole("button", { name: "Publicar mesmo assim" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Publicar mesmo assim" })).toBeNull();
   });
 });
 
@@ -236,7 +236,9 @@ describe("Publicar mesmo assim · diálogo", () => {
       await vi.advanceTimersByTimeAsync(2100);
     });
     expect(screen.getByText("2 matérias publicadas; 1 ficou de fora.")).toBeVisible();
-    expect(screen.getByText(/Matéria c/, { selector: "span" })).toBeVisible();
+    expect(
+      within(screen.getByRole("dialog")).getByText(/Matéria c/, { selector: "span" }),
+    ).toBeVisible();
     expect(api.status).toHaveBeenCalledWith("j1");
   });
 

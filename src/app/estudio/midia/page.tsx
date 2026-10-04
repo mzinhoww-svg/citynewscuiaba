@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { listMedia, type MediaCardData } from "@/lib/db/queries/studio-media";
 import { formatDate, localDateKey } from "@/lib/format/date";
 import { labelsFor } from "@/lib/labels";
+import { approveImagesAction } from "../actions";
 
 export const metadata: Metadata = { title: "Biblioteca de mídia · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -69,6 +70,7 @@ export default async function MediaLibraryPage({
         </EmptyState>
       ) : (
         <MediaGrid
+          approveMany={tab === "pending" ? approveImagesAction : undefined}
           items={items.map((m) => {
             const label = labelsFor({
               kind: "original",

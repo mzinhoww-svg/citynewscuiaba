@@ -55,6 +55,7 @@ export interface QueueRow {
 
 const OPEN: Status[] = ["draft", "in_review", "changes_requested", "approved", "scheduled"];
 const PUBLIC: Status[] = ["published", "updated"];
+const DECIDABLE: Status[] = ["draft", "in_review", "changes_requested", "approved"];
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 type Row = Database["public"]["Views"]["studio_queue"]["Row"];
@@ -109,7 +110,10 @@ const AUTO_KEYS: KeySpec[] = [
   { col: "published_at", type: "ts", asc: false },
   { col: "id", type: "uuid", asc: true },
 ];
-const keysFor = (filter: QueueFilter) => (filter.tab === "auto24h" ? AUTO_KEYS : QUEUE_KEYS);
+/** Chave de ordenação da fila para a aba (a mesma de `listQueue`, usada por `nextQueueItem`). */
+export const queueKeys = (filter: QueueFilter): KeySpec[] =>
+  filter.tab === "auto24h" ? AUTO_KEYS : QUEUE_KEYS;
+const keysFor = queueKeys;
 
 export interface QueuePageOptions {
   /** Linhas por página (padrão 100, teto 200). */
@@ -181,8 +185,10 @@ export async function listReviewable(
   return { rows: r.rows, total: r.total };
 }
 
-interface QueryOptions {
+export interface QueryOptions {
   limit: number;
+  /** Só matérias ainda para decidir (rascunho, revisão, ajuste pedido, aprovada). */
+  openOnly?: boolean;
   /** Filtro keyset (conteúdo de `.or()`). */
   where?: string;
   /** Busca uma linha a mais para saber se há próxima página e devolve `nextCursor`. */
@@ -190,7 +196,8 @@ interface QueryOptions {
   countOnly?: boolean;
 }
 
-async function queryQueue(filter: QueueFilter, opts: QueryOptions): Promise<Page<QueueRow>> {
+/** Consulta da fila com abas, filtros e chave estável; base de `listQueue` e `nextQueueItem`. */
+export async function queryQueue(filter: QueueFilter, opts: QueryOptions): Promise<Page<QueueRow>> {
   const ctx = await studioContext();
   const me = ctx.session?.userId;
   const now = ctx.now();
@@ -198,6 +205,7 @@ async function queryQueue(filter: QueueFilter, opts: QueryOptions): Promise<Page
     .from("studio_queue")
     .select("*", { count: "exact", head: opts.countOnly === true });
   if (filter.reviewOnly) q = q.eq("status", "in_review");
+  if (opts.openOnly) q = q.in("status", DECIDABLE);
 
   switch (filter.tab) {
     case "exceptions":

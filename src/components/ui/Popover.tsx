@@ -40,6 +40,11 @@ export interface PopoverProps {
   label: string;
   /** Lado em que o painel se alinha ao gatilho a partir de `sm` (no celular ele é fixo). */
   align?: "start" | "end";
+  /**
+   * Lado do gatilho em que o painel abre a partir de `sm`: abaixo (padrão) ou acima (gatilho
+   * numa barra fixa no rodapé). No celular ele é fixo no topo nos dois casos.
+   */
+  side?: "bottom" | "top";
   /** Papel do painel: `dialog` (padrão) ou `menu` (usado por `Menu`). */
   role?: "dialog" | "menu";
   /** Controle externo (opcional); sem ele o popover guarda o próprio estado. */
@@ -72,6 +77,7 @@ export function Popover({
   children,
   label,
   align = "start",
+  side = "bottom",
   role = "dialog",
   open: controlled,
   onOpenChange,
@@ -159,7 +165,8 @@ export function Popover({
           className={cx(
             "fixed inset-x-4 top-16 z-dropdown flex max-h-[min(36rem,80dvh)] flex-col overflow-y-auto",
             "rounded-md border border-line-control bg-card-white shadow-dialog",
-            "sm:absolute sm:inset-x-auto sm:top-full sm:mt-2 sm:w-max sm:max-w-[26rem] sm:min-w-56",
+            "sm:absolute sm:inset-x-auto sm:w-max sm:max-w-[26rem] sm:min-w-56",
+            side === "top" ? "sm:top-auto sm:bottom-full sm:mb-2" : "sm:top-full sm:mt-2",
             align === "end" ? "sm:right-0" : "sm:left-0",
             "motion-safe:animate-fade-in",
             panelClassName,
