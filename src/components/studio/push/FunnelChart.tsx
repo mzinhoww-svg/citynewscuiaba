@@ -1,6 +1,7 @@
 import { FUNNEL_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { formatCount, formatPct, STAGE_LABEL, type FunnelRow } from "@/lib/push/funnel";
 import { cx } from "../../cx";
+import { Table } from "../../ui/Table";
 
 export interface FunnelChartProps {
   rows: FunnelRow[];
@@ -11,7 +12,7 @@ export interface FunnelChartProps {
 
 /**
  * Funil do app (spec §10.6): barras horizontais SVG, uma por etapa, com número e % da anterior;
- * cores dos tokens, sem gradiente; `role="img"` com o resumo textual e tabela equivalente.
+ * cores dos tokens, sem gradiente; `role="img"` com o resumo textual e tabela equivalente (`Table`).
  */
 export function FunnelChart({ rows, summary, className }: FunnelChartProps) {
   const max = Math.max(1, ...rows.map((r) => r.n));
@@ -51,35 +52,26 @@ export function FunnelChart({ rows, summary, className }: FunnelChartProps) {
           </div>
         ))}
       </div>
-      <table className="w-full border-collapse type-body">
-        <caption className="sr-only">{T.chart}</caption>
-        <thead>
-          <tr className="border-b border-line-section text-left type-meta text-meta">
-            <th scope="col" className="py-2 pr-3 font-semibold">
-              {T.columns.stage}
+      <Table
+        caption={T.chart}
+        headers={[
+          T.columns.stage,
+          { label: T.columns.n, align: "right" },
+          { label: T.columns.pct, align: "right" },
+        ]}
+      >
+        {rows.map((r, i) => (
+          <tr key={r.stage} className="border-b border-line-section type-body last:border-b-0">
+            <th scope="row" className="px-3 py-2 text-left font-normal text-strong">
+              {i + 1}. {STAGE_LABEL[r.stage]}
             </th>
-            <th scope="col" className="py-2 pr-3 text-right font-semibold">
-              {T.columns.n}
-            </th>
-            <th scope="col" className="py-2 text-right font-semibold">
-              {T.columns.pct}
-            </th>
+            <td className="px-3 py-2 text-right text-strong">{formatCount(r.n)}</td>
+            <td className="px-3 py-2 text-right text-strong">
+              {r.pctOfPrevious === null ? T.none : formatPct(r.pctOfPrevious)}
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.stage} className="border-b border-line-section">
-              <th scope="row" className="py-2 pr-3 text-left font-normal text-strong">
-                {i + 1}. {STAGE_LABEL[r.stage]}
-              </th>
-              <td className="py-2 pr-3 text-right text-strong">{formatCount(r.n)}</td>
-              <td className="py-2 text-right text-strong">
-                {r.pctOfPrevious === null ? T.none : formatPct(r.pctOfPrevious)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        ))}
+      </Table>
     </figure>
   );
 }
