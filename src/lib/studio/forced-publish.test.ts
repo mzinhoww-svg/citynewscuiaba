@@ -36,6 +36,7 @@ const rowOf = (n: number, over: Partial<ReviewRiskRow> = {}): ReviewRiskRow => (
   confidence: "média",
   reported: false,
   hasBody: true,
+  unwritten: false,
   ...over,
 });
 
@@ -119,6 +120,22 @@ describe("previewForcedPublish", () => {
         [uuid(4), "forbidden"],
       ].sort(),
     );
+  });
+});
+
+describe("rascunho sem redação", () => {
+  it("rascunho montado das fontes nunca entra no lote, mesmo com corpo", async () => {
+    const rows = [rowOf(1), rowOf(2, { title: "Assunto em apuração · Política", unwritten: true })];
+    const r = await previewForcedPublish(
+      { ids: rows.map((x) => x.id) },
+      { ctx: ctxFor("editor_chefe"), load: async () => rows },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.summary.publishableIds).toEqual([uuid(1)]);
+    expect(r.value.excluded).toEqual([
+      { id: uuid(2), title: "Assunto em apuração · Política", reason: "unwritten" },
+    ]);
   });
 });
 
