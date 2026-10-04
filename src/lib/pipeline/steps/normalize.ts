@@ -49,10 +49,9 @@ export function createNormalizeStep(deps: { repo: IngestRepo }): StepHandler {
     // Saúde da fonte (`source_health_daily.items_new`): só item de fato novo.
     if (created) await deps.repo.recordFetch(raw.sourceId, "items", null, 1, null);
     if (!created && !pending) return ok([]);
-    // Item novo de fonte com `consumption.enrich === true`: passa pelo enriquecimento antes do
-    // dedupe (só o delta; fonte sem a flag não paga nada). Retomada de item que já existia segue
-    // direto para o dedupe.
-    const step = created && enrichEnabled(source.consumption) ? "enrich" : "dedupe";
+    // Item novo que precisa da página (flag ligada, ou feed só com a abertura): passa pelo
+    // enriquecimento antes do dedupe. Retomada de item que já existia segue direto para o dedupe.
+    const step = created && enrichEnabled(source.consumption, entry.excerpt) ? "enrich" : "dedupe";
     return ok([nextMessage(msg, step, `item:${id}`)]);
   };
 }

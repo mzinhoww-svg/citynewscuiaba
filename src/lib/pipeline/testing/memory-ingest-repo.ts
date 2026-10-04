@@ -31,7 +31,7 @@ export function createMemoryIngestRepo(sources: SourceRecord[], opts: MemoryInge
     lastFetchRunId: null,
   }));
   const raws: (RawItemRecord & { error?: string })[] = [];
-  const collected: (CollectedInsert & { id: string })[] = [];
+  const collected: (CollectedInsert & { id: string; sourceText?: string })[] = [];
   const hits = new Map<string, number>();
   const advanced = new Set<string>();
   const health: {

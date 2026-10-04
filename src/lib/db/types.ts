@@ -710,6 +710,7 @@ export type Database = {
           duplicate_of: string | null;
           embedding: string | null;
           excerpt: string | null;
+          source_text: string | null;
           id: string;
           image_url: string | null;
           locality: string | null;
@@ -736,6 +737,7 @@ export type Database = {
           duplicate_of?: string | null;
           embedding?: string | null;
           excerpt?: string | null;
+          source_text?: string | null;
           id?: string;
           image_url?: string | null;
           locality?: string | null;
@@ -762,6 +764,7 @@ export type Database = {
           duplicate_of?: string | null;
           embedding?: string | null;
           excerpt?: string | null;
+          source_text?: string | null;
           id?: string;
           image_url?: string | null;
           locality?: string | null;

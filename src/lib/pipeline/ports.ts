@@ -242,6 +242,8 @@ export interface EnrichableItem {
 export interface EnrichmentPatch {
   originalTitle?: string;
   excerpt?: string;
+  /** Corpo da matéria na página da fonte (nunca público): material completo da redação. */
+  sourceText?: string;
   publishedAt?: string;
   imageUrl?: string;
 }
@@ -618,6 +620,8 @@ export type ConfidenceLevel = "alta" | "média" | "baixa";
 
 /** Item do assunto como a redação o enxerga. */
 export interface DraftItem extends TopicItem {
+  /** Corpo da matéria na página da fonte (`enrich`); nunca público, só material da redação. */
+  sourceText?: string | null;
   sourceName: string;
   canonicalUrl: string;
   tags: string[];
