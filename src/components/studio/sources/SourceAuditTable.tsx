@@ -8,6 +8,7 @@ import type { HistoryRow } from "@/lib/db/queries/sources-admin";
 import type { FieldChange } from "@/lib/sources/types";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { Icon } from "../../ui/Icon";
 import { NativeSelect } from "./fields";
 
@@ -139,33 +140,44 @@ export function SourceAuditTable({
 
   return (
     <div className={cx("flex flex-col gap-4", className)}>
-      <form method="get" action={basePath} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-        <div className="flex min-w-0 flex-col gap-2 sm:w-72">
-          <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
-            {T.filter}
-          </label>
-          <NativeSelect
-            id={`${uid}-tipo`}
-            name="tipo"
-            value={selected}
-            onChange={setSelected}
-            options={options}
-          />
-        </div>
-        <Button type="submit" size="md" variant="outline">
-          {T.apply}
-        </Button>
-        <Button
-          type="button"
-          size="md"
-          variant="outline"
-          icon="download"
-          onClick={exportCsv}
-          disabled={rows.length === 0}
+      <CollapsibleFilters
+        activeCount={filter ? 1 : 0}
+        clearHref={basePath}
+        actions={
+          <Button
+            type="button"
+            size="md"
+            variant="outline"
+            icon="download"
+            onClick={exportCsv}
+            disabled={rows.length === 0}
+          >
+            {T.export}
+          </Button>
+        }
+      >
+        <form
+          method="get"
+          action={basePath}
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
         >
-          {T.export}
-        </Button>
-      </form>
+          <div className="flex min-w-0 flex-col gap-2 sm:w-72">
+            <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
+              {T.filter}
+            </label>
+            <NativeSelect
+              id={`${uid}-tipo`}
+              name="tipo"
+              value={selected}
+              onChange={setSelected}
+              options={options}
+            />
+          </div>
+          <Button type="submit" size="md" variant="outline">
+            {T.apply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       <p className="type-meta text-meta">{T.ipMasked}</p>
 
       {rows.length === 0 ? (

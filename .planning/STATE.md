@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — auditoria 360 (`docs/audit/`), branch `claude/vigilant-babbage-ndnhwp`.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Filtros recolhíveis (A-133): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
+
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Onde o projeto está

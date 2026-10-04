@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { openFilters } from "./helpers/filters";
 
 const blocking = (impact: string | null | undefined) =>
   impact === "serious" || impact === "critical";
@@ -55,13 +56,15 @@ test("filtros aplicam na hora, sem botão Aplicar, vão para a URL e o Voltar re
   page,
 }) => {
   await page.goto("/cidade");
-  // Barra única, sempre visível, com rótulos; sem "Aplicar filtros".
+  // A-133: painel recolhível (fechado no celular); aberto, rótulos visíveis e sem "Aplicar filtros".
+  await openFilters(page);
   await expect(page.getByLabel("Período")).toBeVisible();
   await expect(page.getByLabel("Bairro")).toBeVisible();
   await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Período").selectOption("tudo");
   await expect(page).toHaveURL(/periodo=tudo/);
+  await openFilters(page);
   await page.getByLabel("Bairro").selectOption("cpa");
   await expect(page).toHaveURL(/bairro=cpa/);
   const list = page.getByRole("region", { name: "Matérias de Cidade" });

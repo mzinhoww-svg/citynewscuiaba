@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, Select } from "@/components";
+import { Button, CollapsibleFilters, EmptyState, InlineAlert, Select } from "@/components";
 import { ReportResponder } from "@/components/estudio";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
@@ -100,22 +100,24 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           {T.answered}
         </InlineAlert>
       )}
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <Select
-          id="filtro-tipo"
-          name="tipo"
-          label={T.kindLabel}
-          options={[
-            { value: "", label: T.filterAll },
-            ...KINDS.map((k) => ({ value: k, label: T.kind[k] ?? k })),
-          ]}
-          defaultValue={kind ?? ""}
-          className="min-w-56"
-        />
-        <Button type="submit" size="md" variant="outline">
-          {T.filterApply}
-        </Button>
-      </form>
+      <CollapsibleFilters activeCount={kind ? 1 : 0} clearHref="/estudio/denuncias">
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <Select
+            id="filtro-tipo"
+            name="tipo"
+            label={T.kindLabel}
+            options={[
+              { value: "", label: T.filterAll },
+              ...KINDS.map((k) => ({ value: k, label: T.kind[k] ?? k })),
+            ]}
+            defaultValue={kind ?? ""}
+            className="min-w-56"
+          />
+          <Button type="submit" size="md" variant="outline">
+            {T.filterApply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       {rows === null ? (
         <EmptyState
           tone="error"

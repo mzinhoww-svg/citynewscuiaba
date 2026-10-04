@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { skipInvite } from "./invite";
+import { openFilters } from "./helpers/filters";
 
 /*
  * Fontes em destaque (P14, spec §7.5, docs/testing.md §2 item 3, P2-T7): 7 listas, seguir sem
@@ -175,6 +176,7 @@ test("ocultar com 'Não quero recomendações personalizadas' desliga a personal
 test("filtros por tema e região na URL", async ({ page, context, baseURL }) => {
   await withConsent(context, baseURL!, "v1|m0|p0");
   await open(page);
+  await openFilters(page);
   const filters = page.getByRole("navigation", { name: "Filtrar fontes" });
   await filters.getByRole("link", { name: "Cultura", exact: true }).click();
   await expect(page).toHaveURL(/tema=cultura/);
@@ -185,10 +187,12 @@ test("filtros por tema e região na URL", async ({ page, context, baseURL }) => 
         .evaluateAll((els) => els.map((e) => e.getAttribute("data-slug"))),
     )
     .toEqual(["cena-cuiabana"]);
+  await openFilters(page);
   await filters.getByRole("link", { name: "Mato Grosso", exact: true }).click();
   await expect(page).toHaveURL(/regiao=mt/);
   await expect(panel(page).getByText("Nenhuma fonte nesta lista com esses filtros")).toBeVisible();
-  await filters.getByRole("link", { name: "Limpar filtros" }).click();
+  // A-133: o Limpar fica no cabeçalho do painel, à vista mesmo recolhido.
+  await page.getByRole("link", { name: "Limpar filtros" }).first().click();
   await expect(page).not.toHaveURL(/tema=/);
 });
 

@@ -5,6 +5,7 @@ import { gotoSettled } from "./helpers/nav";
 import { cronSecret, drain } from "./helpers/pipeline";
 import { loginAs, type StaffKey } from "./helpers/studio-login";
 import { createArticle, removeArticles, service, tag } from "./studio";
+import { openFilters } from "./helpers/filters";
 
 /*
  * A09 · Fila e aprovações e Histórico (spec 2026-09-28 §10.3, §10.4; critérios 20, 22; PW-T13).
@@ -116,6 +117,7 @@ test("Marina pede e aprova na mesma ação (A-128); histórico mostra quem pediu
 test("filtros do histórico ficam na URL; vazio mostra Sem envios no período", async ({ page }) => {
   await loginAs(page.context(), "helena");
   await gotoSettled(page, `${URL}/historico`);
+  await openFilters(page);
   await page.getByLabel("Período").selectOption("7");
   await page.getByLabel("Tipo").selectOption("highlight");
   await page.getByLabel("Estado").selectOption("expired");

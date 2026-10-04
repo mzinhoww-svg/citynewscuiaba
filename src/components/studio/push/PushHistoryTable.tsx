@@ -7,6 +7,7 @@ import { PUSH_ADMIN_TEXT, PUSH_HISTORY_TEXT as T } from "@/content/pt-BR/notific
 import type { HistoryFilter, HistoryRow } from "@/lib/db/queries/push-admin";
 import type { PushKind, SendStatus } from "@/lib/push/types";
 import { cx } from "../../cx";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { Button } from "../../ui/Button";
 import { EmptyState } from "../../ui/EmptyState";
 import { NativeSelect } from "../sources/fields";
@@ -70,69 +71,76 @@ export function PushHistoryTable({
 
   return (
     <div className={cx("flex flex-col gap-4", className)}>
-      <form
-        method="get"
-        action={basePath}
-        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+      <CollapsibleFilters
+        activeCount={[filter.days !== 30, filter.kind, filter.status].filter(Boolean).length}
+        clearHref={basePath}
+        actions={
+          <Button
+            href={`${basePath}/exportar?${historyQuery(filter, 1)}`}
+            download
+            size="md"
+            variant="outline"
+            icon="download"
+          >
+            {T.export}
+          </Button>
+        }
       >
-        <div className="flex min-w-0 flex-col gap-2 sm:w-40">
-          <label htmlFor={`${uid}-periodo`} className="type-label text-16 text-strong">
-            {T.filters.period}
-          </label>
-          <NativeSelect
-            id={`${uid}-periodo`}
-            name="periodo"
-            value={period}
-            onChange={setPeriod}
-            options={(["7", "30", "90", "tudo"] as const).map((v) => ({
-              value: v,
-              label: T.periods[v === "tudo" ? "tudo" : (Number(v) as 7 | 30 | 90)],
-            }))}
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 sm:w-52">
-          <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
-            {T.filters.kind}
-          </label>
-          <NativeSelect
-            id={`${uid}-tipo`}
-            name="tipo"
-            value={kind}
-            onChange={setKind}
-            options={[
-              { value: "", label: T.filters.all },
-              ...KINDS.map((k) => ({ value: k, label: PUSH_ADMIN_TEXT.kind[k] })),
-            ]}
-          />
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 sm:w-52">
-          <label htmlFor={`${uid}-estado`} className="type-label text-16 text-strong">
-            {T.filters.status}
-          </label>
-          <NativeSelect
-            id={`${uid}-estado`}
-            name="estado"
-            value={status}
-            onChange={setStatus}
-            options={[
-              { value: "", label: T.filters.all },
-              ...STATUSES.map((s) => ({ value: s, label: PUSH_ADMIN_TEXT.status[s] })),
-            ]}
-          />
-        </div>
-        <Button type="submit" size="md" variant="outline">
-          {T.filters.apply}
-        </Button>
-        <Button
-          href={`${basePath}/exportar?${historyQuery(filter, 1)}`}
-          download
-          size="md"
-          variant="outline"
-          icon="download"
+        <form
+          method="get"
+          action={basePath}
+          className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
         >
-          {T.export}
-        </Button>
-      </form>
+          <div className="flex min-w-0 flex-col gap-2 sm:w-40">
+            <label htmlFor={`${uid}-periodo`} className="type-label text-16 text-strong">
+              {T.filters.period}
+            </label>
+            <NativeSelect
+              id={`${uid}-periodo`}
+              name="periodo"
+              value={period}
+              onChange={setPeriod}
+              options={(["7", "30", "90", "tudo"] as const).map((v) => ({
+                value: v,
+                label: T.periods[v === "tudo" ? "tudo" : (Number(v) as 7 | 30 | 90)],
+              }))}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 sm:w-52">
+            <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
+              {T.filters.kind}
+            </label>
+            <NativeSelect
+              id={`${uid}-tipo`}
+              name="tipo"
+              value={kind}
+              onChange={setKind}
+              options={[
+                { value: "", label: T.filters.all },
+                ...KINDS.map((k) => ({ value: k, label: PUSH_ADMIN_TEXT.kind[k] })),
+              ]}
+            />
+          </div>
+          <div className="flex min-w-0 flex-col gap-2 sm:w-52">
+            <label htmlFor={`${uid}-estado`} className="type-label text-16 text-strong">
+              {T.filters.status}
+            </label>
+            <NativeSelect
+              id={`${uid}-estado`}
+              name="estado"
+              value={status}
+              onChange={setStatus}
+              options={[
+                { value: "", label: T.filters.all },
+                ...STATUSES.map((s) => ({ value: s, label: PUSH_ADMIN_TEXT.status[s] })),
+              ]}
+            />
+          </div>
+          <Button type="submit" size="md" variant="outline">
+            {T.filters.apply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       <p className="type-meta text-meta">
         {T.ctrNote} {T.exportNote}
       </p>
