@@ -1,9 +1,9 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-04 — governança autônoma e motor de autonomia (A-142, A-143), branch `claude/citynews-autonomous-governance-4vkloh`.
+**Última atualização:** 2026-10-04 — governança autônoma e motor de autonomia (A-150, A-151), branch `claude/citynews-autonomous-governance-4vkloh`.
 **Atualizado por:** Claude Code
 
-> 2026-10-04 · **Governança autônoma (A-142, 0157) e motor de autonomia (A-143, 0158):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** aplicar 0157 e 0158 antes do deploy.
+> 2026-10-04 · **Governança autônoma (A-150, 0170) e motor de autonomia (A-151, 0171):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** aplicar 0170 e 0171 antes do deploy.
 
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 
@@ -15,7 +15,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 - **P0 a P6 concluídos** (69/70 tarefas; P6-T4, exercício de restauração, degradado por falta de 2º projeto Supabase, B-021). Painel de Fontes, PWA, UI pública, autonomia de publicação (regras v3), destaques, publicidade (ADS-T1..T4), Guia Cuiabá e segurança P1 entregues depois.
 - **Produção:** https://citynewscuiaba.vercel.app, projeto Supabase `citynews-prod`. Pipeline com regras v3 e disjuntor.
-- **Retomada (A-140, 04/10):** UI-T12 (login), UI-T13 (chat), HOT-T1..T3 (pauta quente), UI-T10, UI-T11, UI-T14 e fechamentos em execução pelo plano `docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md` (branch `claude/peaceful-turing-6oaw2k`, PR #43). TXT-T1..T3 encerradas por outro caminho.
+- **Retomada (A-140, PR #43 mergeada, 04/10):** login e cadastro com o Google em destaque, Pergunte como chat, Fontes e Panorama, blocos de marketing, Conta e legais, pauta quente (HOT-T1..T3). Produção (A-142): 0154 e 0156 aplicadas; leitura das páginas iniciais ligada em 8 portais locais. Relatórios: `docs/reports/ui-publica.md` (fechamento) e `docs/reports/destaques-e-profundidade.md`. Pendentes: 0155 (dono, SQL Editor), capturas antes e depois, LCP da home (L-026), CONF-T2/T3.
 - **Closure (04/10, PR #41, `docs/orchestrator/`):** 0146 a 0150 aplicadas e verificadas; disjuntor 300/3.000 e `auto_publish` ligado (A-126). **0143 segue NÃO aplicada.**
 - **Auditoria 360 (PR #42) e decisões do dono D-01 a D-06 (A-133 a A-138, PR #44):** relatório em `docs/reports/decisoes-auditoria-360.md`.
   - D-01 Pergunte responde com uma fonte relevante, atribuída; sem fonte informa.
@@ -28,7 +28,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 ## Próximas ações
 
-1. **Produção:** aplicar `0157_autonomous_governance.sql` e `0158_autonomy_engine.sql` (A-142, A-143) antes do deploy do código.
+1. **Produção:** aplicar `0170_autonomous_governance.sql` e `0171_autonomy_engine.sql` (A-150, A-151) antes do deploy do código.
 2. **Merge do PR #44** (autorizado) assim que o CI ficar verde; o deploy da Vercel sai do merge.
 3. **Regras v4:** no painel de governança, conferir a simulação de 7 dias e aprovar o pedido `rules:4` (uma pessoa, A-128). Rollback: `rules_rollback()`.
 4. **Medir** por 2 semanas: `editorial_risk_daily` e `verify_lineage_daily`.

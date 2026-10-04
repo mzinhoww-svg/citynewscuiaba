@@ -208,7 +208,7 @@ describe("disjuntor no publish (AUT-T4)", () => {
     const r = await publish(s, id);
     expect(r).toEqual(ok([msg("notify", `article:${id}#breaker_open`)]));
     expect(trip).toHaveBeenCalledWith("hourly", expect.objectContaining({ limits }));
-    // Disjuntor não cria fila humana (A-143): rascunho com recuperação automática agendada.
+    // Disjuntor não cria fila humana (A-151): rascunho com recuperação automática agendada.
     expect(s.repo.article(id)).toMatchObject({ status: "draft" });
     expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "breaker_recovery" });
     expect(s.repo.article(id)!.reviewReason).toMatch(/Disjuntor de publicação aberto/);

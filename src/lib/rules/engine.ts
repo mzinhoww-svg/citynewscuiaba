@@ -1,5 +1,5 @@
 /**
- * Motor de decisão da publicação (A-143; "autonomia primeiro, exceção humana depois"). Recebe o
+ * Motor de decisão da publicação (A-151; "autonomia primeiro, exceção humana depois"). Recebe o
  * resultado de `decidePublication`/`routeArticle` (regra que decidiu e rota) e o estado do
  * conteúdo, calcula qualidade, confiança e risco (0 a 1), o nível de autonomia (A0 a A4) e uma
  * das saídas: PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION ou HOLD. Nunca

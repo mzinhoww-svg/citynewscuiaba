@@ -36,7 +36,7 @@ export interface RequestApprovalInput {
   objectRef?: string;
   details?: Record<string, unknown>;
   /**
-   * Decisão do motor de política (A-142, `evaluateGovernance`). `rejected` recusa sem criar
+   * Decisão do motor de política (A-150, `evaluateGovernance`). `rejected` recusa sem criar
    * pedido; `human_exception`/`auto_review` só pedem (com prazo); `auto_apply` pede, aprova e
    * aplica. Sempre registrada em `governance_decisions`.
    */

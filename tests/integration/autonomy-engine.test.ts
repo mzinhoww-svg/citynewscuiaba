@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Motor de autonomia no banco (A-143, 0158): disjuntor que se recupera sozinho, matérias com
+// Motor de autonomia no banco (A-151, 0171): disjuntor que se recupera sozinho, matérias com
 // próxima ação vencida, falha de IA que o modelo reserva recuperou não conta, saúde da fila.
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

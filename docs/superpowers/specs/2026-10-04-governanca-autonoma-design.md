@@ -1,8 +1,8 @@
-# Governança autônoma e motor de decisão de IA (A-142, A-143)
+# Governança autônoma e motor de decisão de IA (A-150, A-151)
 
 **Data:** 04/10/2026 · **Autor:** Claude Code · **Decisão do dono:** "AUTONOMY FIRST, HUMAN EXCEPTION SECOND"
 **Complementa:** A-125 (religar sem segunda pessoa), A-127 (ativar fonte sem termos revisados), A-128 (uma pessoa pede, aprova e aplica; 0149).
-**Migrations:** `0157_autonomous_governance.sql`, `0158_autonomy_engine.sql`.
+**Migrations:** `0170_autonomous_governance.sql`, `0171_autonomy_engine.sql`.
 
 ## 1. Modelo
 
@@ -32,7 +32,7 @@ Cada decisão automática vai para `governance_decisions` (somente-inserção, s
 |---|---|---|---|
 | CHECK `approved_by <> requested_by/proposed_by` (0001) | proibia autoaprovação | removido (0149) | REMOVE |
 | `guard_proposal` (regras, pesos) | "quem propõe não aprova" | papel, nome próprio, imutável depois de aprovado (0149) | REPLACE WITH SYSTEM RULE |
-| `guard_approvals` | "quem pede não decide" | decisão em nome próprio e final; colunas da política só pelo sistema (0149, 0157) | REPLACE WITH SYSTEM RULE |
+| `guard_approvals` | "quem pede não decide" | decisão em nome próprio e final; colunas da política só pelo sistema (0149, 0170) | REPLACE WITH SYSTEM RULE |
 | `guard_ai_prompts`, `prompt_publish` | 2ª assinatura de outra pessoa | checagens de segurança do motor (tamanho, instrução contra a regra 6, regressão quando houver) e assinatura de quem tem o papel | REPLACE WITH AUTO-APPROVAL |
 | `rec_weights_activate`, RLS `approvals_decide` | 2ª pessoa (admin) | validar → simular → ativar → auditar; mudança brusca (L1 > 0,6) recusada; operador de IA decide | REPLACE WITH AUTO-APPROVAL |
 | `approval_apply`, `rules_rollback` | outra pessoa; rollback que afrouxa recusado | regras válidas aplicam na hora; afrouxar segurança é ação do admin | REPLACE WITH SYSTEM RULE / KEEP AS HUMAN EXCEPTION (só sem papel de admin) |
@@ -40,7 +40,7 @@ Cada decisão automática vai para `governance_decisions` (somente-inserção, s
 | `require/consume_source_critical_approval` | outra pessoa | quem tem `source.approve_critical` aplica (0149); sem o papel, exceção com prazo | REPLACE WITH SYSTEM RULE |
 | `guard_push_approvals`, `guard_push_sends`, `push_dispatch_due` | aprovador com `push.approve` diferente de quem pede | política de avisos no `push_request` (papel, limite por hora/dia, matéria no ar); aprovação pelo sistema aceita no despacho | REPLACE WITH AUTO-APPROVAL |
 | `push_resume_*` | outra pessoa | quem tem `push.settings`/`push.approve` retoma | REPLACE WITH SYSTEM RULE |
-| `guard_feature_flags` (religar `auto_publish`) | duas pessoas | ação direta do admin (0145) + religamento automático do disjuntor (0158) | REMOVE |
+| `guard_feature_flags` (religar `auto_publish`) | duas pessoas | ação direta do admin (0145) + religamento automático do disjuntor (0171) | REMOVE |
 | Ativação de fonte (termos) | exigia termos revisados | termos em 3 estados (`unknown`, `acknowledged`, `restricted`); modo de uso `FULL`/`ATTRIBUTED`/`EXCERPT`/`BLOCKED`; só `restricted` impede ativar | REPLACE WITH SYSTEM RULE |
 
 Exceção humana fica restrita a: remoção legal, violação de política confirmada, fontes primárias divergentes sem resolução, conteúdo corrompido, falha irrecuperável de proveniência, anomalia de segurança e ação explícita do dono (inclui desbloquear fonte bloqueada por motivo legal ou pedido do veículo, só admin).

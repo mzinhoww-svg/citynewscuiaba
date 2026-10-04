@@ -171,7 +171,7 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
     await otavio.getByRole("option", { name: new RegExp(mine) }).click();
     await otavio.getByLabel("Título").fill(`Destaque cidade ${t}`);
     await otavio.getByRole("button", { name: "Enviar para aprovação" }).click();
-    // A política de avisos decide na hora (A-142): o Destaque da própria editoria entra na fila.
+    // A política de avisos decide na hora (A-150): o Destaque da própria editoria entra na fila.
     await expect(otavio.getByRole("status").filter({ hasText: "Aplicado." })).toBeVisible();
     await gotoSettled(otavio, `${URL}/fila`);
     await expect(otavio.getByText(`Destaque cidade ${t}`)).toBeVisible();

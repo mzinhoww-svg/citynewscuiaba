@@ -11,7 +11,7 @@ const DECISION: Record<GovernanceDecision["outcome"], string> = {
 
 /**
  * Registra a decisão do motor de política em `governance_decisions` (actor = system, política,
- * versão, regra, entradas com hash, confiança e motivo; 0157) e marca o pedido, quando há. Falha
+ * versão, regra, entradas com hash, confiança e motivo; 0170) e marca o pedido, quando há. Falha
  * de registro não desfaz a mudança: vai para o log do servidor e a auditoria do Estúdio continua.
  */
 export async function logGovernance(

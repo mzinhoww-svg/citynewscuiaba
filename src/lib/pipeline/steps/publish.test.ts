@@ -128,7 +128,7 @@ describe("write (etapas 11 e 12)", () => {
     expect(store.calls.at(-1)).toMatchObject({ fallback_used: true, ok: true });
   });
 
-  it("Review Focus 4: principal e fallback fora → rascunho sem IA, sem fila humana (A-143), nada se perde", async () => {
+  it("Review Focus 4: principal e fallback fora → rascunho sem IA, sem fila humana (A-151), nada se perde", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([{ error: "timeout" }, { error: "provider" }]);
@@ -350,7 +350,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
       const s = setup({ rules, flags: { auto_publish: true } });
       const id = await drafted(s);
       await s.handlers.rules!(msg("rules", `article:${id}`));
-      // Falha fechada sem fila humana (A-143): rascunho com reavaliação agendada.
+      // Falha fechada sem fila humana (A-151): rascunho com reavaliação agendada.
       expect(s.repo.article(id)!.status).toBe("draft");
       expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "reevaluate" });
       expect(s.repo.decisions().at(-1)).toMatchObject({
@@ -421,7 +421,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     expect(order).toEqual(["decision:publish", "status:published"]);
 
     // Publicação desligada: as regras gravam a decisão e só depois deixam o rascunho com a
-    // próxima ação (A-143).
+    // próxima ação (A-151).
     const b = setup({ rules: async () => ok(OPEN), flags: { auto_publish: false } });
     const idB = await drafted(b);
     const orderB: string[] = [];
@@ -527,7 +527,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     await s2.handlers.rules!(msg("rules", `article:${id2}`));
     s2.repo.addTopic(farmacias({ confidenceScore: 0.6 }));
     await s2.repo.saveDraft({ ...s2.repo.article(id2)!.input });
-    // Decisão desatualizada volta às regras (A-143), nunca publica e não vai para a fila humana.
+    // Decisão desatualizada volta às regras (A-151), nunca publica e não vai para a fila humana.
     const back = await unwrap(s2.handlers.publish!(msg("publish", `article:${id2}`)));
     expect(back).toEqual([msg("rules", `article:${id2}`)]);
     expect(s2.repo.article(id2)).toMatchObject({ status: "draft", publishMode: null });

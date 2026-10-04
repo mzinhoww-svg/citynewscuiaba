@@ -67,7 +67,7 @@ test("Por que esta recomendação: anonId vira pseudônimo e individual pesa 0 s
   await expect(table.getByText("Individual: peso 0,00 × sinal 0,00").first()).toBeVisible();
 });
 
-test("operador propõe e a política ativa (A-142); admin propõe e ativa direto; teste A/B", async ({
+test("operador propõe e a política ativa (A-150); admin propõe e ativa direto; teste A/B", async ({
   page,
 }, info) => {
   test.skip(info.project.name !== "desktop", "muda os pesos ativos: só no projeto desktop");
@@ -139,7 +139,7 @@ test("operador propõe e a política ativa (A-142); admin propõe e ativa direto
       .limit(6);
     expect(audit.data).toEqual(
       expect.arrayContaining([
-        // Cada proposta é validada e ativada pelo sistema na mesma ação (A-142).
+        // Cada proposta é validada e ativada pelo sistema na mesma ação (A-150).
         { actor: STAFF.diego.id, action: "rec.weights" },
         { actor: STAFF.helena.id, action: "rec.weights" },
         { actor: STAFF.helena.id, action: "rec.experiment.create" },
