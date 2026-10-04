@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { auditCsv, collectAuditRows, type AuditFilters } from "@/lib/admin/audit-export";
+import { parseCreative } from "@/lib/ads/creative";
 import { isNeverSection } from "@/lib/ads/rules";
 import { audit } from "@/lib/audit";
 import { canAccess, type Action } from "@/lib/auth/permissions";
@@ -62,11 +63,17 @@ export const saveCampaignCommand = studioAction(
     if (i.allowedSections.some((s) => isNeverSection(s, categoryOf)))
       throw new StudioFailure("invalid", T.ads.dialog.forbiddenSection);
     if (i.endsOn < i.startsOn) throw new StudioFailure("invalid", T.ads.dialog.period);
-    const creative: Record<string, string> = { title: i.creative.title, href: i.creative.href };
-    if (i.creative.imageUrl) {
-      creative.imageUrl = i.creative.imageUrl;
-      creative.imageAlt = i.creative.imageAlt ?? "";
-    }
+    // Peça tipada (MS-T2): o painel A07 só cria o card nativo; imagem exige texto alternativo.
+    const parsed = parseCreative({
+      kind: "native",
+      title: i.creative.title,
+      href: i.creative.href,
+      ...(i.creative.imageUrl
+        ? { imageUrl: i.creative.imageUrl, imageAlt: i.creative.imageAlt ?? "" }
+        : {}),
+    });
+    if (!parsed.ok) throw new StudioFailure("invalid", T.ads.dialog.invalidCreative);
+    const creative = parsed.value;
     const row = {
       advertiser: i.advertiser,
       starts_on: i.startsOn,
