@@ -125,7 +125,9 @@ export function AgendaCalendar({
                         aria-label={AGENDA.dayLink(info.label, info.count)}
                         className={cx(
                           "flex h-full min-h-tap flex-col justify-between p-1.5 text-strong no-underline hover:bg-card-white sm:p-2",
-                          key === today && "outline-2 -outline-offset-2 outline-line-strong",
+                          // Fora do foco: o anel de foco global (camada base) assume no foco.
+                          key === today &&
+                            "not-focus-visible:outline-2 not-focus-visible:-outline-offset-2 not-focus-visible:outline-line-strong",
                         )}
                       >
                         <span className="text-14 font-bold tabular-nums">{day}</span>

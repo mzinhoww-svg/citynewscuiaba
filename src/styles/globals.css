@@ -322,9 +322,8 @@
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
   & input:focus-visible {
-    outline: none !important;
+    outline: none;
   }
 }
 

@@ -141,12 +141,19 @@
   --focus-ring: 3px solid #f06a43;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+/*
+ * Padrões globais em `@layer base` (UX-W1-T9): fora de camada eles venciam qualquer utilitário
+ * do Tailwind (o anel duplo do `card-link`, o `truncate` desfeito em `<p>`, o `!important` do
+ * `control-field`). Na camada base, um utilitário explícito (`outline-none`, `truncate`) vence.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  :where(h1, h2, h3) { text-wrap: balance; }
+  :where(p) { text-wrap: pretty; }
 }
-:where(h1, h2, h3) { text-wrap: balance; }
-:where(p) { text-wrap: pretty; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
