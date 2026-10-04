@@ -72,7 +72,7 @@ export function BulkFrequencyDialog({
   return (
     <Dialog open={open} title={T.bulkFrequency.title(count)} onClose={onCancel}>
       <fieldset className="flex flex-col gap-3 border-0 p-0 text-left">
-        <legend className="type-label mb-1 text-16 font-semibold text-strong">
+        <legend className="type-label mb-1 font-semibold text-strong">
           {T.bulkFrequency.legend}
         </legend>
         <label className="flex items-center gap-2.5 type-body text-strong">

@@ -63,7 +63,7 @@ export function ProfileDetailsForm({ action, name, email, neighborhood }: Profil
         error={state.status === "invalid" ? T.account.nameError : undefined}
       />
       <div className="flex flex-col gap-2">
-        <span className="type-label text-16 text-strong">{T.account.email}</span>
+        <span className="type-label text-strong">{T.account.email}</span>
         <span className="type-body break-all text-body">{email}</span>
       </div>
       <div id="bairro" className="scroll-mt-8">

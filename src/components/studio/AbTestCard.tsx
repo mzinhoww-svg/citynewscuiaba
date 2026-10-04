@@ -120,10 +120,7 @@ export function AbTestCard({
           }
         >
           <p className="text-left type-meta text-meta">{T.promoteHint}</p>
-          <label
-            htmlFor={`${uid}-just`}
-            className="mt-3 block text-left type-label text-16 text-strong"
-          >
+          <label htmlFor={`${uid}-just`} className="mt-3 block text-left type-label text-strong">
             {T.promoteJustification}
           </label>
           <textarea

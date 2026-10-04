@@ -60,7 +60,7 @@ export function Select({
   return (
     <div className={cx("flex flex-col gap-2", className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="type-label text-16 text-strong">
+        <label htmlFor={id} className="type-label text-strong">
           {label}
         </label>
         {labelAside}

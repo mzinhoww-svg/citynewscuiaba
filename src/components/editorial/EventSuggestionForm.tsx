@@ -183,7 +183,7 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
         error={err("link")}
       />
       <div className="flex flex-col gap-2">
-        <label htmlFor={f("description")} className="type-label text-16 text-strong">
+        <label htmlFor={f("description")} className="type-label text-strong">
           {SUGGEST.fields.description} ({SUGGEST.optional})
         </label>
         <textarea

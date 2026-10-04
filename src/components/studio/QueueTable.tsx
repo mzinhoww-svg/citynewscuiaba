@@ -430,7 +430,7 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
         <div className="flex flex-col gap-3 text-left">
           <p>{target ? target.title : T.unpublishedMany(autoSelected.length)}</p>
           <p>{T.unpublishIntro}</p>
-          <label htmlFor={`${uid}-reason`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-reason`} className="type-label text-strong">
             {T.reason}
           </label>
           <textarea

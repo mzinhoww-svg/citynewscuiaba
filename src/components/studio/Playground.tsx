@@ -132,7 +132,7 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
             onChange={setModelId}
           />
         </div>
-        <label htmlFor={`${uid}-task`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-task`} className="type-label text-strong">
           {T.task}
         </label>
         <textarea
@@ -157,7 +157,7 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
             onChange={setCaseId}
           />
         )}
-        <label htmlFor={`${uid}-data`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-data`} className="type-label text-strong">
           {T.data}
         </label>
         <textarea
@@ -218,7 +218,7 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
               </div>
             ))}
           </dl>
-          <h3 className="type-label text-16 text-strong">{T.sanitized}</h3>
+          <h3 className="type-label text-strong">{T.sanitized}</h3>
           <ul className="flex flex-col gap-2">
             {reply.result.sanitizedInput.map((d) => (
               <li key={d.id} className="rounded-lg border border-line-subtle bg-card-white p-3">
@@ -234,7 +234,7 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
               </li>
             ))}
           </ul>
-          <h3 className="type-label text-16 text-strong">{T.output}</h3>
+          <h3 className="type-label text-strong">{T.output}</h3>
           <pre className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white p-3 type-body text-strong whitespace-pre-wrap break-words">
             {reply.result.output === null
               ? T.noOutput

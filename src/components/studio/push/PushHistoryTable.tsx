@@ -92,7 +92,7 @@ export function PushHistoryTable({
           className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
         >
           <div className="flex min-w-0 flex-col gap-2 sm:w-40">
-            <label htmlFor={`${uid}-periodo`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-periodo`} className="type-label text-strong">
               {T.filters.period}
             </label>
             <NativeSelect
@@ -107,7 +107,7 @@ export function PushHistoryTable({
             />
           </div>
           <div className="flex min-w-0 flex-col gap-2 sm:w-52">
-            <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-tipo`} className="type-label text-strong">
               {T.filters.kind}
             </label>
             <NativeSelect
@@ -122,7 +122,7 @@ export function PushHistoryTable({
             />
           </div>
           <div className="flex min-w-0 flex-col gap-2 sm:w-52">
-            <label htmlFor={`${uid}-estado`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-estado`} className="type-label text-strong">
               {T.filters.status}
             </label>
             <NativeSelect

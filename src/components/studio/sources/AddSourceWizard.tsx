@@ -216,7 +216,7 @@ export function AddSourceWizard({
         noValidate
       >
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <label htmlFor={urlId} className="type-label text-16 text-strong">
+          <label htmlFor={urlId} className="type-label text-strong">
             {WIZARD_TEXT.address.label}
           </label>
           <input

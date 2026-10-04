@@ -224,7 +224,7 @@ export function PublishDialog({
             ))}
             {mode === "schedule" && (
               <div className="flex flex-col gap-2">
-                <label htmlFor={`${uid}-hora`} className="type-label text-16 text-strong">
+                <label htmlFor={`${uid}-hora`} className="type-label text-strong">
                   {T.at}
                 </label>
                 <input
@@ -298,7 +298,7 @@ export function PublishDialog({
             </p>
             {wantsPush && (
               <div className="mt-2 flex flex-col gap-2">
-                <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
+                <label htmlFor={`${uid}-just`} className="type-label text-strong">
                   {T.pushJustification}
                 </label>
                 <textarea

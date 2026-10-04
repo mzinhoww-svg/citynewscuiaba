@@ -224,7 +224,7 @@ function Body({
                 </tbody>
               </table>
             </div>
-            <h3 className="type-label text-16 text-strong">{T.dismissTitle}</h3>
+            <h3 className="type-label text-strong">{T.dismissTitle}</h3>
             <div
               role="region"
               aria-label={T.dismissCaption}
@@ -283,7 +283,7 @@ function Body({
         ) : (
           <p className="type-body text-body">{T.activeWeights(panel.config.version)}</p>
         )}
-        <h3 className="type-label text-16 text-strong">{T.historyTitle}</h3>
+        <h3 className="type-label text-strong">{T.historyTitle}</h3>
         <WeightsHistory
           rows={panel.weights}
           canApprove={canApprove}
@@ -350,7 +350,7 @@ function Body({
         )}
         {canManage && (
           <>
-            <h3 className="type-label text-16 text-strong">{T.newCampaign}</h3>
+            <h3 className="type-label text-strong">{T.newCampaign}</h3>
             <CampaignForm sources={panel.sources} create={createCampaignAction} />
           </>
         )}
@@ -412,7 +412,7 @@ function Body({
         )}
         {canManage && (
           <>
-            <h3 className="type-label text-16 text-strong">{T.newExperiment}</h3>
+            <h3 className="type-label text-strong">{T.newExperiment}</h3>
             <ExperimentForm
               key={approvedVersions.map((w) => w.version).join(",")}
               versions={approvedVersions.map((w) => ({ version: w.version, active: w.active }))}

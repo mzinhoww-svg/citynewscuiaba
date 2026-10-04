@@ -48,7 +48,7 @@ export function AudienceField({
 
   return (
     <fieldset className={cx("flex flex-col gap-3", className)}>
-      <legend className="mb-1 type-label text-16 text-strong">{T.audience}</legend>
+      <legend className="mb-1 type-label text-strong">{T.audience}</legend>
       <label className="flex min-h-tap items-center gap-3 type-body text-strong">
         <input
           type="radio"

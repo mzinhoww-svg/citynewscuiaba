@@ -33,7 +33,7 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
         className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
       >
         <div className="flex min-w-0 flex-col gap-2 sm:w-44">
-          <label htmlFor={`${uid}-periodo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-periodo`} className="type-label text-strong">
             {T.filters.period}
           </label>
           <NativeSelect
@@ -71,7 +71,7 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
           </>
         )}
         <div className="flex min-w-0 flex-col gap-2 sm:w-44">
-          <label htmlFor={`${uid}-aparelho`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-aparelho`} className="type-label text-strong">
             {T.filters.device}
           </label>
           <NativeSelect
@@ -86,7 +86,7 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
           />
         </div>
         <div className="flex min-w-0 flex-col gap-2 sm:w-48">
-          <label htmlFor={`${uid}-navegador`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-navegador`} className="type-label text-strong">
             {T.filters.browser}
           </label>
           <NativeSelect

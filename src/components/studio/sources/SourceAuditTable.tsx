@@ -162,7 +162,7 @@ export function SourceAuditTable({
           className="flex flex-col gap-3 sm:flex-row sm:items-end"
         >
           <div className="flex min-w-0 flex-col gap-2 sm:w-72">
-            <label htmlFor={`${uid}-tipo`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-tipo`} className="type-label text-strong">
               {T.filter}
             </label>
             <NativeSelect

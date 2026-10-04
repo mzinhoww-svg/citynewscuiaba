@@ -103,7 +103,7 @@ export function ImageApproval({
 
       {replace && replace.articles.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-line-subtle pt-4">
-          <h3 className="type-label text-16 text-strong">{T.replace}</h3>
+          <h3 className="type-label text-strong">{T.replace}</h3>
           {replace.articles.map((a, i) => (
             <div key={a.id} className="flex flex-wrap items-end gap-2">
               <Select
@@ -174,7 +174,7 @@ export function ImageApproval({
         }
       >
         <div className="flex flex-col gap-2 text-left">
-          <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-motivo`} className="type-label text-strong">
             {asking === "takedown" ? T.takedownReason : T.blockReason}
           </label>
           <textarea

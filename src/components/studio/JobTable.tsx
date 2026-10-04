@@ -247,7 +247,7 @@ export function JobTable({ rows, actions, className }: JobTableProps) {
         >
           <div className="flex flex-col gap-3 text-left">
             <p>{T.discardText}</p>
-            <label htmlFor={`${uid}-reason`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-reason`} className="type-label text-strong">
               {T.reason}
             </label>
             <textarea

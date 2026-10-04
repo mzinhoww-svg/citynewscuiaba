@@ -118,9 +118,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                   <h2
                     id={`dia-${d}`}
                     className={
-                      isToday
-                        ? "flex flex-col type-label text-16 text-eyebrow"
-                        : "type-label text-16 text-strong"
+                      isToday ? "flex flex-col type-label text-eyebrow" : "type-label text-strong"
                     }
                   >
                     {isToday && (

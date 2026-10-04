@@ -82,7 +82,7 @@ export function ArticlePicker({ search, value, onChange, error, className }: Art
   if (value) {
     return (
       <div className={cx("flex flex-col gap-2", className)}>
-        <p className="type-label text-16 text-strong">{T.article}</p>
+        <p className="type-label text-strong">{T.article}</p>
         <div
           aria-label={T.articleChosen}
           role="group"

@@ -72,7 +72,7 @@ export function TextField({
 
   return (
     <div className={cx("flex flex-col gap-2", className)} style={style}>
-      <label htmlFor={id} className="type-label text-16 text-strong">
+      <label htmlFor={id} className="type-label text-strong">
         {label}
       </label>
       <div

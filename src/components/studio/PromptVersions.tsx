@@ -264,7 +264,7 @@ export function PromptVersions({
               });
             }}
           >
-            <label htmlFor={`${uid}-body`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-body`} className="type-label text-strong">
               {T.newBody}
             </label>
             <textarea
@@ -275,7 +275,7 @@ export function PromptVersions({
               onChange={(e) => setBody(e.target.value)}
               className="border-control min-h-32 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
             />
-            <label htmlFor={`${uid}-rationale`} className="type-label text-16 text-strong">
+            <label htmlFor={`${uid}-rationale`} className="type-label text-strong">
               {T.newRationale}
             </label>
             <textarea
@@ -327,7 +327,7 @@ export function PromptVersions({
             </>
           }
         >
-          <label htmlFor={`${uid}-just`} className="block text-left type-label text-16 text-strong">
+          <label htmlFor={`${uid}-just`} className="block text-left type-label text-strong">
             {T.requestJustification}
           </label>
           <textarea

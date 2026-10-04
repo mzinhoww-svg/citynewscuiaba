@@ -71,7 +71,7 @@ export function WeightSliders({ current, version, propose, className }: WeightSl
               key={k}
               className="flex flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-3"
             >
-              <label htmlFor={id} className="type-label text-16 text-strong">
+              <label htmlFor={id} className="type-label text-strong">
                 {WEIGHT_TEXT[k].label}
               </label>
               <p id={`${id}-hint`} className="type-meta text-meta">
@@ -116,7 +116,7 @@ export function WeightSliders({ current, version, propose, className }: WeightSl
         <Icon name={valid.ok ? "check" : "circle-alert"} size={18} />
         {T.sum(formatSum(valid.sum))} · {valid.ok ? T.sumOk : T.sumBad}
       </p>
-      <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
+      <label htmlFor={`${uid}-just`} className="type-label text-strong">
         {T.justification}
       </label>
       <textarea

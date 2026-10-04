@@ -303,7 +303,7 @@ export function SourceConfigForm({
             disabled
           />
           <div className="flex flex-col gap-2">
-            <p className="type-label text-16 text-strong">{FIELD_TEXT.owner}</p>
+            <p className="type-label text-strong">{FIELD_TEXT.owner}</p>
             <p className="type-body text-meta">{source.ownerName ?? FIELD_TEXT.ownerNone}</p>
           </div>
         </Section>
@@ -491,7 +491,7 @@ export function SourceConfigForm({
 
         <Section title={WIZARD_TEXT.review.importance}>
           <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 type-label text-16 text-strong">{FIELD_TEXT.score}</legend>
+            <legend className="mb-2 type-label text-strong">{FIELD_TEXT.score}</legend>
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <label

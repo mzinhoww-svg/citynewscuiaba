@@ -89,7 +89,7 @@ export function CampaignForm({ sources, create, className }: CampaignFormProps) 
         maxLength={120}
       />
       <fieldset className="flex flex-col gap-2">
-        <legend className="type-label text-16 text-strong">{T.campaignSources}</legend>
+        <legend className="type-label text-strong">{T.campaignSources}</legend>
         <ul className="grid gap-1 md:grid-cols-2">
           {sources.map((s) => (
             <li key={s.id}>
@@ -112,7 +112,7 @@ export function CampaignForm({ sources, create, className }: CampaignFormProps) 
       </fieldset>
       <div className="grid gap-4 md:grid-cols-4">
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-start`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-start`} className="type-label text-strong">
             {T.campaignStart}
           </label>
           <input
@@ -124,7 +124,7 @@ export function CampaignForm({ sources, create, className }: CampaignFormProps) 
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-end`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-end`} className="type-label text-strong">
             {T.campaignEnd}
           </label>
           <input
@@ -238,7 +238,7 @@ export function ExperimentForm({ versions, create, className }: ExperimentFormPr
           onChange={setB}
         />
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-split`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-split`} className="type-label text-strong">
             {T.splitLabel}
           </label>
           <input

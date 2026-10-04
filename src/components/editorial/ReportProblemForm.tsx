@@ -90,7 +90,7 @@ export function ReportProblemForm({
               aria-describedby={kindError ? `${id}-kind-erro` : undefined}
               className="flex flex-col gap-1"
             >
-              <legend className="mb-2 type-label text-16 text-strong">{REPORT.kindLegend}</legend>
+              <legend className="mb-2 type-label text-strong">{REPORT.kindLegend}</legend>
               {REPORT_KINDS.map((k) => (
                 <label
                   key={k}
@@ -116,7 +116,7 @@ export function ReportProblemForm({
               )}
             </fieldset>
             <div className="flex flex-col gap-2">
-              <label htmlFor={`${id}-msg`} className="type-label text-16 text-strong">
+              <label htmlFor={`${id}-msg`} className="type-label text-strong">
                 {REPORT.message}
               </label>
               <textarea

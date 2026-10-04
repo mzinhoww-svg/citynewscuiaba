@@ -181,7 +181,7 @@ export function DecisionPanel({
         }
       >
         <div className="flex flex-col gap-2 text-left">
-          <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-motivo`} className="type-label text-strong">
             {asking === "reject" ? T.reasonLabel : T.noteLabel}
           </label>
           <textarea

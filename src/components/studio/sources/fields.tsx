@@ -44,7 +44,7 @@ export function FieldShell({
   return (
     <div className={cx("flex min-w-0 flex-col gap-2", className)}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-        <label htmlFor={id} className="type-label text-16 text-strong">
+        <label htmlFor={id} className="type-label text-strong">
           {label}
         </label>
         {aside}

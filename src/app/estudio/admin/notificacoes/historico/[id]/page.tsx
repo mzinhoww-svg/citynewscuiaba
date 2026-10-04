@@ -85,14 +85,14 @@ export default async function PushHistoryDetailPage({
       </header>
 
       <section aria-labelledby="linha-do-tempo" className="flex flex-col gap-3">
-        <h3 id="linha-do-tempo" className="type-label text-16 text-strong">
+        <h3 id="linha-do-tempo" className="type-label text-strong">
           {T.detail.timeline}
         </h3>
         <PushTimeline items={d.timeline} />
       </section>
 
       <section aria-labelledby="numeros" className="flex flex-col gap-3">
-        <h3 id="numeros" className="type-label text-16 text-strong">
+        <h3 id="numeros" className="type-label text-strong">
           {T.detail.numbers}
         </h3>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -139,7 +139,7 @@ export default async function PushHistoryDetailPage({
       </section>
 
       <section aria-labelledby="detalhamento" className="flex flex-col gap-3">
-        <h3 id="detalhamento" className="type-label text-16 text-strong">
+        <h3 id="detalhamento" className="type-label text-strong">
           {T.detail.breakdown}
         </h3>
         <PushBreakdown rows={d.byDevice} />

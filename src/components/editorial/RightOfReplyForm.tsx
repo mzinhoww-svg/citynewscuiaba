@@ -113,7 +113,7 @@ export function RightOfReplyForm({ action }: RightOfReplyFormProps) {
         required
       />
       <div className="flex flex-col gap-2">
-        <label htmlFor={f("reply")} className="type-label text-16 text-strong">
+        <label htmlFor={f("reply")} className="type-label text-strong">
           {REPLY.fields.reply}
         </label>
         <textarea

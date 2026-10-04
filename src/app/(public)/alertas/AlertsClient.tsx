@@ -227,7 +227,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
             </InlineAlert>
           )}
           <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.frequency}</legend>
+            <legend className="mb-1 type-label text-strong">{T.frequency}</legend>
             {FREQS.map((f) => (
               <label
                 key={f}
@@ -246,7 +246,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
             ))}
           </fieldset>
           <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.channel}</legend>
+            <legend className="mb-1 type-label text-strong">{T.channel}</legend>
             {CHANNELS.map((c) => (
               <label
                 key={c}

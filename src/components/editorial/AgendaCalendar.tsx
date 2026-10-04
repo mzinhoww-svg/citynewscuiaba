@@ -77,7 +77,7 @@ export function AgendaCalendar({
           id={compact ? undefined : "calendario-titulo"}
           className={cx(
             "text-strong first-letter:uppercase",
-            compact ? "type-label text-16" : "type-section",
+            compact ? "type-label" : "type-section",
           )}
         >
           {title}

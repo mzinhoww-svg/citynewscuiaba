@@ -210,7 +210,7 @@ export function NewPushForm({
       )}
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 type-label text-16 text-strong">{T.kind}</legend>
+        <legend className="mb-1 type-label text-strong">{T.kind}</legend>
         {kinds.map((k) => (
           <label key={k} className="flex min-h-tap items-start gap-3 type-body text-strong">
             <input
@@ -329,7 +329,7 @@ export function NewPushForm({
       </div>
 
       <section aria-label={T.preview} className="flex flex-col gap-2">
-        <h3 className="type-label text-16 text-strong">{T.preview}</h3>
+        <h3 className="type-label text-strong">{T.preview}</h3>
         <PushPreview title={title} body={body} originLabel={originLabel} />
       </section>
 
@@ -342,7 +342,7 @@ export function NewPushForm({
       />
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 type-label text-16 text-strong">{T.when}</legend>
+        <legend className="mb-1 type-label text-strong">{T.when}</legend>
         {kind === "urgent" ? (
           <p className="flex flex-wrap items-center gap-2 type-body text-strong">
             <span>{T.now}</span>

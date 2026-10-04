@@ -64,7 +64,7 @@ export function Dialog({
         </span>
       )}
       {title && (
-        <h2 id={titleId} className="text-18 font-semibold leading-snug text-strong">
+        <h2 id={titleId} className="type-nav-title text-strong">
           {title}
         </h2>
       )}

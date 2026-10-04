@@ -77,7 +77,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 </p>
                 <form action={resolveEscalationAction} className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="id" value={e.id} />
-                  <label className="flex min-w-56 flex-col gap-1 type-label text-16 text-strong">
+                  <label className="flex min-w-56 flex-col gap-1 type-label text-strong">
                     {T.escalation.resolveNote}
                     <input
                       name="note"

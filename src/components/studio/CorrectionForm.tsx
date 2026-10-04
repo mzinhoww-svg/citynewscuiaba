@@ -90,7 +90,7 @@ export function CorrectionForm({
         onChange={(e) => setTitle(e.target.value)}
       />
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-linha`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-linha`} className="type-label text-strong">
           {T.fields.dek}
         </label>
         <textarea
@@ -104,7 +104,7 @@ export function CorrectionForm({
       </div>
       <RichEditor label={T.fields.body} value={body} userId={userId} onChange={setBody} />
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-nota`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-nota`} className="type-label text-strong">
           {correction ? C.publicNote : C.updateNote}
         </label>
         <textarea

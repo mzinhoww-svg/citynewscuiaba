@@ -218,7 +218,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
 
       <div className="grid gap-5 md:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <label htmlFor={`${uid}-topics`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-topics`} className="type-label text-strong">
             {T.form.sensitiveTopics}
           </label>
           <textarea
@@ -255,7 +255,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
               {T.form.forceReviewCritical}
             </p>
           )}
-          <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-just`} className="type-label text-strong">
             {T.form.justification}
           </label>
           <textarea

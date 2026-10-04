@@ -52,7 +52,7 @@ export function BlockSourceDialog({
           className="flex flex-col gap-1 border-0 p-0"
           aria-describedby={missing ? `${uid}-erro` : undefined}
         >
-          <legend className="mb-1 type-label text-16 text-strong">{T.reasonLegend}</legend>
+          <legend className="mb-1 type-label text-strong">{T.reasonLegend}</legend>
           {options.map((r) => (
             <label key={r} className="flex min-h-tap items-center gap-2.5 type-body text-strong">
               <input
