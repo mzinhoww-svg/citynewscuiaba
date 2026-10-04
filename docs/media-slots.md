@@ -248,6 +248,7 @@ O que falta para o **relatório mensal por anunciante** (impressões, cliques, C
 
 ### 5.4 Flag do patrocinado nativo e estado em produção
 
+- **Atualização 04/10 (MS-T1):** a flag `sponsored_native_enabled` agora existe (0075), nasce desligada e aparece nos Interruptores do Estúdio. O texto abaixo descreve o estado de 03/10.
 - **Não existe flag dedicada.** B-003 diz "`sponsored_campaigns` desligado por flag", mas nenhuma migration cria uma chave de patrocínio em `feature_flags`. Conferido em `supabase/migrations/*` e em `src`.
 - O que de fato mantém desligado: (a) `placeSponsored` não é chamada (B-022); (b) não há matéria com `sponsored = true`; (c) `ads.max_per_page` em `app_settings` (0 desliga a regra da lista, mas ela nem roda).
 - Estado em **produção** (`citynews-prod`, leitura SQL via conector Supabase em 03/10/2026): `feature_flags`: `read_only=false`, `ai_enabled=true`, `personalization_enabled=true`, `image_reproduction_enabled=true`, `source_link_analysis=true`, `auto_publish=true`. `app_settings`: `ads.max_per_page = 1`. `sponsored_campaigns`: nenhuma linha. `articles` com `sponsored = true`: 0. Nenhuma chave de patrocínio existe.
@@ -270,7 +271,7 @@ Passos e impactos:
 
 Estimativas em horas de implementação com testes (sem espera de aprovação do dono). Numeração `MS-T#`; ADS-T1..T4 são as tarefas já planejadas e aparecem aqui só com a estimativa e o delta que este inventário acrescenta. Ordem sugerida: MS-T1, ADS-T1, MS-T2, ADS-T2, ADS-T3, MS-T3, ADS-T4, MS-T4, MS-T5, MS-T6, MS-T7.
 
-#### Task MS-T1: Desligar de verdade e blindar o nativo que existe (5 h)
+#### Task MS-T1: Desligar de verdade e blindar o nativo que existe (5 h) · concluída em 04/10 (migration 0075, A-115)
 **Files:** `supabase/migrations/00NN_sponsored_guard.sql` (próximo número livre; 0054 a 0074 já existem), `src/lib/ads/rules.ts` + `rules.test.ts`, `src/lib/db/queries/home.ts`, `src/lib/db/queries/sections.ts`, `src/lib/db/queries/topics.ts`, `src/app/(public)/(inicio)/page.tsx`, `src/lib/flags/index.ts`.
 **Interfaces:** `feature_flags.sponsored_native_enabled` (padrão `false`); `NEVER_SECTIONS` ganha `justica`; trigger `guard_article_sponsored` recusa `articles.sponsored = true` em Política, Justiça, Segurança, Saúde, `urgent = true` ou subeditoria dessas categorias; `getHomeData` só devolve `sponsored` com a flag ligada, matéria fora das editorias bloqueadas e campanha `campaignLive`, e o card não fica escondido abaixo de 768 px; lista da editoria e linha do tempo do assunto passam a excluir `sponsored` (o patrocinado só entra pelo slot).
 - [ ] Testes primeiro: tabela de casos de `isNeverSection("justica")`; trigger recusa insert/update; home sem flag não renderiza o patrocinado; com flag, o patrocinado aparece em 390 px; `/politica` e o assunto não listam matéria patrocinada.

@@ -289,7 +289,7 @@ function Module_most_read({ data }: { data: HomeData }) {
               {HOME.mostRead}
             </h2>
           </div>
-          <ol className="grid grid-cols-1 gap-x-10 gap-y-4 max-md:[&>li:nth-child(n+4)]:hidden md:grid-cols-2">
+          <ol className="grid grid-cols-1 gap-x-10 gap-y-4 max-md:[&>li:nth-child(n+4):not([data-sponsored])]:hidden md:grid-cols-2">
             {/* Número par no desktop: a grade de duas colunas nunca fica com buraco no fim. */}
             {data.mostRead
               .slice(0, data.mostRead.length - (data.mostRead.length % 2))
@@ -305,7 +305,8 @@ function Module_most_read({ data }: { data: HomeData }) {
                 </li>
               ))}
             {data.sponsored && (
-              <li className="flex items-start gap-4 md:col-span-2">
+              // Fora do corte das 3 primeiras no celular: o patrocinado nunca fica escondido.
+              <li data-sponsored="" className="flex items-start gap-4 md:col-span-2">
                 <ArticleCard
                   variant="compact"
                   article={data.sponsored}
