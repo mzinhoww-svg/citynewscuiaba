@@ -167,7 +167,7 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 
 ## C. Estúdio (redação)
 
-Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada por papel; busca global (Ctrl K); notificações; troca de plantão.
+Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada por papel; busca global (Ctrl K); **sino de notificações da equipe** no cabeçalho de todas as páginas (E15, BELL-T1); troca de plantão.
 
 ### E01 · Newsroom · `/estudio` · Canvas (U01, E01)
 - KPIs do dia, fila com abas (Tudo, Fila de exceção, Publicadas automaticamente nas últimas 24 h, Minha fila, Temas sensíveis), recomendação da IA vs responsável, faixa de aviso sobre itens automáticos.
@@ -204,6 +204,12 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 
 ### E14 · Denúncias de leitores · `/estudio/denuncias` · **Nova** (resumo em W01)
 - Fila por tipo (informação errada, link quebrado, imagem, direito de resposta), prazo 24 h, vínculo com a matéria, resposta ao leitor.
+
+### E15 · Notificações da equipe · `/estudio/notificacoes` · **Nova** (BELL-T1, `docs/reports/central-notificacoes-estudio.md`)
+- **Sino** (`NotificationBell`) no cabeçalho de todas as páginas do Estúdio e da Administração: contador de não lidas, painel em popover agrupado por severidade (Urgentes, Pedem atenção, Informativas), "Marcar como lida", "Marcar todas", filtro "Só não lidas", atalho Alt + N, `aria-live` educado, estados carregando, vazio e erro, atalhos "Ver todas" e "Ver push" (só com ação de push). Atualiza a cada 30 s (pausa em aba oculta).
+- **Página completa** `/estudio/notificacoes`: histórico com filtros por tipo e por situação, "Abrir" leva à tela de ação, opt-in das urgências no navegador.
+- Cada pessoa vê só o que o papel dela pode agir (`studio_notifications.audience`, RLS); leitura por pessoa. Eventos: 3 denúncias na mesma matéria, aprovações duas-pessoas pendentes, disjuntor aberto, fonte pausada/bloqueada, revisão e denúncias vencidas, correção e direito de resposta, sugestão de evento, push urgente aguardando aprovação, publicação forçada concluída, falhas de IA em pico, backlog liberado.
+- **Aceite:** `tests/e2e/studio-notifications.spec.ts`, `tests/integration/studio-notifications.test.ts`.
 
 ## D. Control Center (operação e IA)
 
@@ -247,7 +253,7 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 ### A08 · SEO · `/estudio/admin/seo` · **Nova**
 - Modelos de título, sitemap de notícias, robots, redirecionamentos (arquivadas), dados estruturados, verificação de páginas sem meta description.
 ### A09 · Notificações · `/estudio/admin/notificacoes` · **Nova** (spec 2026-09-28 §10)
-- Guarda: qualquer ação de push (`push.request`, `push.approve`, `push.settings`, `push.metrics`); analista vai direto ao Funil; item "Notificações (n)" no menu para quem aprova.
+- Guarda: qualquer ação de push (`push.request`, `push.approve`, `push.settings`, `push.metrics`); analista vai direto ao Funil; item de primeiro nível **"Notificações push"** (com `(n)` para quem aprova) no grupo Redação do menu, cartão de estado do push na home (E01) e atalho "Ver push" no sino (BELL-T1).
 - Abas como subrotas (D-P23): **Novo envio** `/` (tipo, matéria com busca, título ≤ 60 e texto ≤ 120 com contadores, modelos, prévia Android/iPhone/computador com rótulo de origem, público com alcance estimado, quando, justificativa) · **Fila e aprovações** `/fila` (aprovação em texto, Revisar com prévia, Aprovar/Recusar/Cancelar com motivo, polling 10 s) · **Histórico** `/historico` e `/historico/[id]` (filtros na URL, CTR entre quem permite métricas, linha do tempo, pulos, falhas, detalhamento por aparelho e navegador, CSV sem dado de inscrição em `/historico/exportar`) · **Configurações** `/configuracoes` (limite 1–3, silêncio 18–22h/7–10h, modelos, pausar com PAUSAR digitado, retomar com aprovação de outra pessoa, estado das chaves VAPID) · **Funil do app** `/funil` (7 etapas, filtros na URL, gráfico SVG com resumo textual, "Fora do convite", "não são pessoas").
 - Faixas do cabeçalho: envios pausados (quem, quando, motivo), pendentes de aprovação, VAPID ausente (só nomes).
 - **Aceite:** `tests/e2e/a09-*.spec.ts`, `tests/a11y/pwa.spec.ts`, `docs/reports/pwa.md`.
@@ -262,6 +268,6 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 
 ## F. Contagem
 
-Portal público 25 · Conta 6 · Estúdio 14 · Control Center 18 · Administração 15 · **Total 78 telas e componentes de tela**. As marcadas como **Nova** não têm artboard; a especificação acima é a referência de implementação, com o DESIGN.md.
+Portal público 25 · Conta 6 · Estúdio 15 · Control Center 18 · Administração 15 · **Total 79 telas e componentes de tela**. As marcadas como **Nova** não têm artboard; a especificação acima é a referência de implementação, com o DESIGN.md.
 
 > R34: `/metodologia` e `/como-usamos-ia` saíram do público (404, sem link, fora do sitemap; abrem só com `CN_SHOW_LEGAL_PAGES=1`). O rótulo "Corrigido" também saiu das telas públicas; fica só no Estúdio.
