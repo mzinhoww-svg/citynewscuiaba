@@ -25,14 +25,12 @@ update ai_agents set daily_budget_brl = 15 where id = 'write' and daily_budget_b
 --    sozinho quando o feed traz menos de 600 caracteres (sitemap e página trazem 0), e busca o
 --    texto completo e a foto na página da fonte. Olhar Conceito e Agro Olhar (mesmo site do Olhar
 --    Direto, robots.txt sem restrição) vão de 30 para 60 páginas por hora.
---    Só volta a fonte com termos de uso revisados: o banco recusa ativar sem isso
---    (`guard_source_changes`, regra 10 do CLAUDE.md). As demais ficam pausadas e aparecem na
---    conferência do fim; revise os termos no Painel de Fontes e ative por lá. Fonte arquivada
---    não muda (o banco só aceita restaurar).
+--    Todas as pausadas voltam, com ou sem termos de uso revisados: o banco não recusa mais
+--    (0148, A-127). Fonte arquivada não muda (o banco só aceita restaurar).
 update sources
    set status = 'active', status_reason = null, consecutive_failures = 0,
        consumption = coalesce(consumption, '{}'::jsonb) - 'enrich'
- where status = 'paused' and archived_at is null and terms_reviewed_at is not null;
+ where status = 'paused' and archived_at is null;
 update sources
    set consumption = consumption - 'enrich'
  where consumption ->> 'enrich' = 'false' and archived_at is null;
@@ -89,8 +87,5 @@ select (select count(*) from refetch) as itens_na_fila,
 commit;
 
 -- Conferência (rode depois):
--- Fontes que continuam pausadas por falta de termos revisados:
--- select slug, name from sources
---  where status = 'paused' and archived_at is null and terms_reviewed_at is null order by slug;
 -- select message->>'step' etapa, count(*), min(visible_at), max(visible_at)
 --   from jobs where message->>'runId' = 'recuperacao-a126' group by 1;

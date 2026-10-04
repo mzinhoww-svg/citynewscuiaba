@@ -483,7 +483,7 @@ describe("transições de status inválidas são recusadas no trigger (Finding 5
     ).rejects.toThrow(/transição de status/);
   });
 
-  it("ativar (paused → active) exige termos revisados; 'activate' é sinônimo de 'resume'", async () => {
+  it("ativar (paused → active) sem termos revisados passa no banco (A-127); 'activate' é sinônimo de 'resume'", async () => {
     const created = await asService
       .from("sources")
       .insert({
@@ -501,23 +501,26 @@ describe("transições de status inválidas são recusadas no trigger (Finding 5
     const slug = created.data!.slug;
     createdSourceIds.push(id);
 
-    await expect(
-      rpc("source_admin_status", {
-        p_id: id,
-        p_version: created.data!.version,
-        p_action: "resume",
-        p_ctx: {},
-      }),
-    ).rejects.toThrow(/termos/);
-
-    await asService
-      .from("sources")
-      .update({ terms_reviewed_at: new Date().toISOString() })
-      .eq("id", id);
-    const withTerms = await sourceBySlug(slug);
+    // Termos revisados ficam com a aplicação (Painel de Fontes); o banco não recusa mais.
     await rpc("source_admin_status", {
       p_id: id,
-      p_version: withTerms.version,
+      p_version: created.data!.version,
+      p_action: "resume",
+      p_ctx: {},
+    });
+    const resumed = await sourceBySlug(slug);
+    expect(resumed.status).toBe("active");
+    expect(resumed.terms_reviewed_at).toBeNull();
+
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: resumed.version,
+      p_action: "pause",
+      p_ctx: {},
+    });
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: (await sourceBySlug(slug)).version,
       p_action: "activate",
       p_ctx: {},
     });
