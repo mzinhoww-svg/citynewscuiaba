@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — auditoria 360 (`docs/audit/`), branch `claude/vigilant-babbage-ndnhwp`.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
+
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Onde o projeto está
