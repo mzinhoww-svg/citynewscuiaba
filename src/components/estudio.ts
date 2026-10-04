@@ -289,3 +289,22 @@ export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExpl
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";
+
+/* Guia Cuiabá (admin) */
+export { ProposalsPanel, type ProposalsPanelProps } from "./studio/guide/ProposalsPanel";
+export { ListsPanel, type ListsPanelProps, type SponsorPayload } from "./studio/guide/ListsPanel";
+export { VenuesPanel, type VenuePayload, type VenuesPanelProps } from "./studio/guide/VenuesPanel";
+export {
+  TemplatesPanel,
+  type TemplatePayload,
+  type TemplatesPanelProps,
+} from "./studio/guide/TemplatesPanel";
+export type {
+  AdminList,
+  AdminListItem,
+  AdminProposal,
+  AdminReport,
+  AdminTemplate,
+  AdminVenue,
+  CategoryOption,
+} from "./studio/guide/types";

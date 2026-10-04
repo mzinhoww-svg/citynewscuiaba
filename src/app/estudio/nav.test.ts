@@ -42,3 +42,14 @@ it("editor com editoria entra por push.request; a contagem só aparece para quem
       ?.icon,
   ).toBe("bell");
 });
+
+it("Guia Cuiabá aparece para admin, editor-chefe e editor da editoria; não para jornalista nem editor de outra editoria", () => {
+  const guide = (roles: Parameters<typeof studioNav>[0]) =>
+    findItem(studioNav(roles), "Guia Cuiabá");
+  expect(guide([{ role: "admin", sections: [] }])?.href).toBe("/estudio/admin/guia");
+  expect(guide([{ role: "editor_chefe", sections: [] }])).toBeDefined();
+  expect(guide([{ role: "editor", sections: ["guia-cuiaba"] }])).toBeDefined();
+  expect(guide([{ role: "editor", sections: ["cidade"] }])).toBeUndefined();
+  expect(guide([{ role: "jornalista", sections: [] }])).toBeUndefined();
+  expect(guide([{ role: "leitura", sections: [] }])).toBeUndefined();
+});

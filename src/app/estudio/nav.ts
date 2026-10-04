@@ -1,5 +1,6 @@
 import type { StudioNavGroup, StudioNavItem } from "@/components/estudio";
-import { canAccess, type Action, type RoleGrant } from "@/lib/auth";
+import { can, canAccess, type Action, type RoleGrant } from "@/lib/auth";
+import { GUIDE_SECTION } from "@/lib/studio/guide-scope";
 import { PUSH_ACTIONS } from "@/lib/push/permissions";
 import { ADMIN_NAV } from "./admin/nav";
 
@@ -8,6 +9,8 @@ interface Entry extends StudioNavItem {
   action?: Action;
   /** Basta uma destas ações (A09: quem só tem `push.metrics` também entra). */
   anyOf?: readonly Action[];
+  /** Regra própria de visibilidade (Guia: `site.manage` ou `article.edit` na editoria do Guia). */
+  visibleFor?: (roles: RoleGrant[]) => boolean;
   /** Destino conforme o papel (analista vai direto ao Funil do app, G11). */
   hrefFor?: (roles: RoleGrant[]) => string;
   /** Rótulo conforme o papel e o estado (pendentes de aprovação, G10). */
@@ -45,6 +48,13 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         action: "correction.manage",
       },
       { href: "/estudio/midia", label: "Mídia", icon: "camera", action: "media.approve" },
+      {
+        href: "/estudio/admin/guia",
+        label: "Guia Cuiabá",
+        icon: "map-pin",
+        visibleFor: (roles) =>
+          can(roles, "site.manage") || can(roles, "article.edit", { section: GUIDE_SECTION }),
+      },
       {
         href: "/estudio/agenda/sugestoes",
         label: "Sugestões de evento",
@@ -163,6 +173,7 @@ function withNotifications(list: readonly Entry[], entry: Entry): Entry[] {
 }
 
 function visible(it: Entry, roles: RoleGrant[]): boolean {
+  if (it.visibleFor) return it.visibleFor(roles);
   if (it.anyOf) return it.anyOf.some((a) => canAccess(roles, a));
   return it.action === undefined || canAccess(roles, it.action);
 }
