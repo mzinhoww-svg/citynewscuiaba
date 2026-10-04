@@ -725,6 +725,8 @@ export interface StatusPatch {
   nationalCommotion?: boolean;
   /** Rebaixa (false) ou marca (true) a matéria como urgente. */
   urgent?: boolean;
+  /** Nível de risco editorial (D-05), gravado pela etapa de regras. */
+  riskLevel?: 1 | 2 | 3 | 4;
   publishMode?: "auto" | null;
   publishedAt?: string;
   rulesVersion?: number | null;

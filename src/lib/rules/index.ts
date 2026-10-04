@@ -2,6 +2,7 @@ import { RULE_RATIONALE as T } from "@/content/pt-BR/rules";
 import type { RuleSet } from "./types";
 
 export type { CategoryRule, Mode, RuleSet } from "./types";
+export { classifyRisk, type Risk, type RiskLevel, type RiskReason } from "./risk";
 
 export interface Candidate {
   category: string;
@@ -136,7 +137,11 @@ export function decidePublication(c: Candidate, rules: RuleSet): Decision {
 
   if (cat.mode === "blocked") return { route: "hold", rule: "blocked", rationale: T.blocked(key) };
 
-  if (c.centralConflict) return review("conflict", T.conflict());
+  // Regras v4 (D-05): divergência em assunto comum segue (o texto atribui as versões, nível 2);
+  // sobre fato central em assunto grave, revisão (nível 3). Sem `riskLevels`, toda divergência.
+  if (c.centralConflict && rules.riskLevels && c.grave)
+    return review("conflict_grave", T.conflictGrave());
+  if (c.centralConflict && !rules.riskLevels) return review("conflict", T.conflict());
   if (c.dubious) return review("dubious", T.dubious());
   if (c.grave && !c.sourceTrusted && c.independentSources < 2)
     return review("untrusted_grave", T.untrustedGrave());

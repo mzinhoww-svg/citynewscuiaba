@@ -18,6 +18,7 @@ const RuleBodySchema = z.object({
   neverAuto: z.array(z.string()).optional(),
   breakingReview: z.boolean().optional(),
   sensitiveFlagReview: z.boolean().optional(),
+  riskLevels: z.boolean().optional(),
   categories: z.record(z.string(), CategoryRuleSchema),
 });
 
@@ -42,6 +43,7 @@ export function parseRuleRow(row: {
     neverAuto: body.data.neverAuto ?? ["seguranca"],
     breakingReview: body.data.breakingReview ?? legacy,
     sensitiveFlagReview: body.data.sensitiveFlagReview ?? legacy,
+    riskLevels: body.data.riskLevels ?? false,
     sensitiveTopics: body.data.sensitiveTopics,
     categories: body.data.categories,
   });

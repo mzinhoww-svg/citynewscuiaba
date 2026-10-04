@@ -56,15 +56,22 @@ export const REDACTION_RULES =
   'REGRAS DE REDAÇÃO (obrigatórias): 1) presunção de inocência: use "suspeito", "acusado", "segundo a polícia" e nunca "culpado" ou "criminoso" antes de condenação; 2) nenhum menor de idade nem vítima de violência sexual é identificado (nome, foto, escola, endereço, parentesco); 3) em caso de suicídio, nenhum detalhe de método ou local; 4) saúde sem orientação clínica, dose, tratamento nem promessa de cura; 5) atribua sempre à fonte com "segundo {fonte}" ou "de acordo com {fonte}"; fato sem fonte no item não entra no texto.';
 const ATTRIBUTION_RULE =
   'ATRIBUIÇÃO: atribua o fato principal à fonte ("segundo {fonte}"). A linha final "Com informações de {fonte}" é acrescentada pelo sistema; não a escreva.';
+/**
+ * Divergência confirmada entre fontes (D-05, nível 2 ou 3): a matéria publica com as versões
+ * atribuídas em vez de esperar consenso, sem escolher um lado nem afirmar o que não está provado.
+ */
+export const DIVERGENCE_RULE =
+  'DIVERGÊNCIA: as fontes divergem sobre um dado do fato. Apresente cada versão atribuída à fonte que a dá ("segundo X, ...; já Y informa ..."), sem escolher uma nem afirmar o dado como confirmado. Número, estimativa ou balanço ainda em atualização sai como preliminar.';
 /** Editorias cujo texto publica sozinho com as regras de redação reforçadas. */
 const SENSITIVE_SECTIONS = new Set(["seguranca", "politica", "saude"]);
 
 /** Pedido ao agente `write` para a editoria: regras de redação reforçadas em segurança, política e saúde. */
-export function writeTaskFor(section: string, sensitive = false): string {
+export function writeTaskFor(section: string, sensitive = false, divergence = false): string {
   return [
     WRITE_TASK,
     ATTRIBUTION_RULE,
     ...(SENSITIVE_SECTIONS.has(section) || sensitive ? [REDACTION_RULES] : []),
+    ...(divergence ? [DIVERGENCE_RULE] : []),
   ].join("\n");
 }
 
@@ -196,6 +203,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
           writeTaskFor(
             section,
             ctx.items.some((i) => i.sensitive),
+            ctx.verify?.centralConflict === true,
           ),
           ...(rewrite > 0 ? [REWRITE_TASK] : []),
         ].join("\n"),

@@ -62,7 +62,7 @@ async function setFlagDirect(key: string, enabled: boolean) {
 async function article(id: string) {
   const { data } = await service
     .from("articles")
-    .select("status, review_reason")
+    .select("status, review_reason, risk_level")
     .eq("id", id)
     .single();
   return data!;
@@ -249,6 +249,8 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.value.map((m) => m.step)).toEqual(["notify"]);
     expect(await article(articles.pending)).toMatchObject({ status: "in_review" });
+    // D-05: a etapa de regras grava o nível de risco na matéria.
+    expect((await article(articles.pending)).risk_level).toEqual(expect.any(Number));
     const { data } = await service
       .from("decisions")
       .select("output")

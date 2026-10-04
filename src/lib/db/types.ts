@@ -800,6 +800,7 @@ export type Database = {
           published_at: string | null;
           review_banner: boolean;
           review_reason: string | null;
+          risk_level: number | null;
           rules_version: number | null;
           scheduled_for: string | null;
           section_slug: string;
@@ -842,6 +843,7 @@ export type Database = {
           published_at?: string | null;
           review_banner?: boolean;
           review_reason?: string | null;
+          risk_level?: number | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug: string;
@@ -883,6 +885,7 @@ export type Database = {
           published_at?: string | null;
           review_banner?: boolean;
           review_reason?: string | null;
+          risk_level?: number | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug?: string;

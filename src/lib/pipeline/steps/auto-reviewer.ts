@@ -5,7 +5,9 @@ import { err, ok, type Result } from "@/lib/result";
 import { check as checkBreaker, type BreakerStore } from "../breaker";
 import type { DecisionContext, Flags, PublishRepo, Queue, Revalidate } from "../ports";
 import { articleTags } from "./publish";
+import { classifyRisk, type Risk } from "@/lib/rules/risk";
 import { autoChecklist, endsCleanly, isComplete, type ShortReason } from "./auto-checklist";
+import { candidateOf } from "./decide";
 import { inputHash } from "./understanding";
 
 /*
@@ -72,14 +74,16 @@ export interface ReviewItem {
 
 /**
  * Fora do alcance do revisor: correção, direito de resposta, denúncia (e a escalada por
- * denúncias), edição de pessoa, matéria que não veio do pipeline e rascunho sem IA (lista de
- * trechos das fontes: publicá-lo republicaria texto de terceiros, regra 4 de CLAUDE.md §5).
+ * denúncias), edição de pessoa, matéria que não veio do pipeline e risco crítico (nível 4, D-05),
+ * que hoje é o rascunho sem IA: lista de trechos das fontes, cuja publicação republicaria texto de
+ * terceiros (regra 4 de CLAUDE.md §5). Mesmo critério de `review_due_articles` (0151).
  */
 export function isReviewable(i: ReviewItem): boolean {
   return (
     i.ctx.status === "in_review" &&
     i.fromPipeline &&
     !i.ctx.aiFallback &&
+    riskOf(i).level < 4 &&
     !i.ctx.humanEdited &&
     i.openReports === 0 &&
     i.openCorrections === 0 &&
@@ -97,6 +101,17 @@ export interface ReviewVerdictOut {
   degraded: boolean;
 }
 
+/** Nível de risco da matéria pela mesma regra da etapa de regras (D-05). */
+export const riskOf = (i: Pick<ReviewItem, "ctx">): Risk =>
+  classifyRisk(candidateOf(i.ctx), { aiFallback: i.ctx.aiFallback });
+
+const RISK_NAME: Record<Risk["level"], string> = {
+  1: "baixo",
+  2: "moderado",
+  3: "alto",
+  4: "crítico",
+};
+
 /** Arquivar por prazo ("expirou", "venceu") nunca vale: o prazo só passa a matéria ao revisor. */
 const EXPIRY = /\b(expir\w*|venc\w*|prazo|tempo\s+(?:esgotado|decorrido)|demor\w*|antig[ao])\b/i;
 
@@ -109,13 +124,21 @@ function systemOf(i: ReviewItem): string {
     `Urgente: ${c.urgent ? "sim" : "não"}; tema sensível: ${c.sensitive ? "sim" : "não"}.`,
     `Fontes divergentes confirmadas: ${c.centralConflict ? "sim" : "não"}.`,
     `Conteúdo marcado como duvidoso: ${c.dubious ? "sim" : "não"}.`,
+    (() => {
+      const r = riskOf(i);
+      return `Nível de risco: ${r.level} (${RISK_NAME[r.level]})${r.reasons.length ? `; motivos: ${r.reasons.join(", ")}` : ""}.`;
+    })(),
     `Fontes citadas: ${i.sourceNames.length > 0 ? i.sourceNames.join(", ") : "nenhuma"}.`,
     `Motivo pelo qual a matéria ficou em revisão: ${i.reviewReason ?? "não informado"}.`,
   ].join("\n");
 }
 
-const TASK =
-  "Decida publish, hold ou archive para a matéria em revisão e justifique em uma ou duas frases pelo conteúdo. Nunca arquive por prazo vencido.";
+const TASK = [
+  "Decida publish, hold ou archive para a matéria em revisão e justifique em uma ou duas frases pelo conteúdo. Nunca arquive por prazo vencido.",
+  "Privilegie publicar notícia relevante cujo núcleo factual está sustentado pelas fontes citadas.",
+  "Nível 2: publique se as versões divergentes e os dados preliminares estão atribuídos às fontes.",
+  "Nível 3: publique só se o texto relata apenas o que as fontes sustentam, atribui cada versão e não faz afirmação categórica contra pessoa ou empresa; senão, hold.",
+].join("\n");
 
 /**
  * Pede o veredito ao agente. Saída validada por zod; o texto da matéria vai como dado externo.

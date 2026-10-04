@@ -1322,6 +1322,7 @@ export function createPublishRepo(db: DbClient): PublishRepo {
           ...(p.nationalCommotion !== undefined ? { national_commotion: p.nationalCommotion } : {}),
           ...(p.urgent !== undefined ? { urgent: p.urgent } : {}),
           ...(p.shortReason !== undefined ? { short_reason: p.shortReason } : {}),
+          ...(p.riskLevel !== undefined ? { risk_level: p.riskLevel } : {}),
         })
         .eq("id", articleId);
       check("setStatus", error);
