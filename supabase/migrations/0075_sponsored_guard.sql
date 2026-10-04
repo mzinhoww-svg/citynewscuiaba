@@ -3,8 +3,8 @@
 -- 1. `feature_flags.sponsored_native_enabled` (padrão desligada): o portal só mostra matéria
 --    patrocinada fora da própria página com a flag ligada (B-003: nada é vendido no Hobby).
 -- 2. Justiça entra nas editorias sem patrocinado, ao lado de Política, Segurança e Saúde
---    (CLAUDE.md §5.8/§5.9 e pedido do dono). Vale para campanhas (constraint e trigger de 0048)
---    e, agora, para `articles.sponsored`.
+--    (CLAUDE.md §5.8/§5.9 e pedido do dono). Vale para campanhas (trigger de 0048) e, agora,
+--    para `articles.sponsored`. Sem `drop`: a migration só cria ou substitui.
 -- 3. `guard_article_sponsored`: matéria patrocinada nunca em editoria proibida (nem subeditoria
 --    pela `autonomy_category` ou pelo prefixo do slug) e nunca urgente.
 
@@ -30,9 +30,8 @@ as $$
 $$;
 revoke execute on function public.is_never_sponsored_section(text) from public, anon;
 
-alter table public.sponsored_campaigns drop constraint if exists sponsored_sections_allowed;
-alter table public.sponsored_campaigns add constraint sponsored_sections_allowed
-  check (not (allowed_sections && array['politica', 'justica', 'seguranca', 'saude']::text[]));
+-- Campanhas: a constraint `sponsored_sections_allowed` (0039) segue como está; Justiça entra
+-- pelo trigger `guard_sponsored_sections`, que passa a usar a função acima.
 
 create or replace function public.guard_sponsored_sections()
 returns trigger
@@ -76,7 +75,6 @@ end
 $$;
 revoke execute on function public.guard_article_sponsored() from public, anon;
 
-drop trigger if exists articles_sponsored_guard on public.articles;
-create trigger articles_sponsored_guard before insert or update of sponsored, section_slug, urgent
+create or replace trigger articles_sponsored_guard before insert or update of sponsored, section_slug, urgent
   on public.articles
   for each row execute function public.guard_article_sponsored();

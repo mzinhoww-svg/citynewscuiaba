@@ -803,7 +803,7 @@
     "tasks": {
       "MS-T1": {
         "status": "done",
-        "migration": "0075_sponsored_guard.sql",
+        "migration": "0075_sponsored_guard.sql (produção: 04/10)",
         "decision": "A-115"
       }
     },
