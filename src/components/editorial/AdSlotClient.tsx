@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore, type RefObject } from "react";
 import { ADS_TEXT } from "@/content/pt-BR/ads";
 import { useCurrentInvite } from "@/lib/app/slot";
 import { formatFor, pickCandidate, type AdPlacement } from "@/lib/ads/select";
@@ -192,8 +192,45 @@ function Sticky({
   const show = useSyncExternalStore(subscribeScroll, scrolledEnough, () => false);
   const invite = useCurrentInvite();
   if (!show || closed || invite !== null) return null;
+  return <StickyBar candidates={candidates} sectionSlug={sectionSlug} />;
+}
+
+/**
+ * Altura do rodapé fixo em `--cn-ad-h` e `data-ad-open` no `<html>` enquanto ele está na tela
+ * (item 64, mesmo padrão do banner de consentimento): a página ganha esse espaço no fim e no
+ * `scroll-padding-bottom`, então o anúncio nunca cobre o fim do texto nem o item focado. A partir
+ * de `md` o rodapé não aparece (`md:hidden`) e a altura medida é 0.
+ */
+function useReserveAdSpace(ref: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const apply = () => root.style.setProperty("--cn-ad-h", `${el.offsetHeight}px`);
+    apply();
+    root.setAttribute("data-ad-open", "");
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(apply);
+    ro?.observe(el);
+    return () => {
+      ro?.disconnect();
+      root.removeAttribute("data-ad-open");
+      root.style.removeProperty("--cn-ad-h");
+    };
+  }, [ref]);
+}
+
+function StickyBar({
+  candidates,
+  sectionSlug,
+}: {
+  candidates: readonly AdPlacement[];
+  sectionSlug: string | null;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useReserveAdSpace(ref);
   return (
     <div
+      ref={ref}
       data-ad-sticky=""
       className="fixed inset-x-0 bottom-tabbar-safe z-sticky flex items-center justify-center gap-2 border-t border-line-section bg-card-white px-gutter py-1 md:hidden"
     >
