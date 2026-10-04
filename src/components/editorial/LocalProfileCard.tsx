@@ -13,6 +13,11 @@ const T = PROFILE_TEXT.anon;
 export interface LocalProfileCardProps {
   /** Com conta, o convite para criar conta some. */
   signedIn: boolean;
+  /**
+   * Mostra "Criar conta para sincronizar" e "Entrar" no cartão (padrão). O Perfil desliga
+   * quando o convite com benefícios (`AccountInvite`) já está na página (UI-T14).
+   */
+  accountActions?: boolean;
 }
 
 /** Baixa um arquivo gerado no navegador (nada vai ao servidor). */
@@ -30,7 +35,7 @@ export function downloadJson(name: string, json: string) {
  * "Seu perfil neste navegador" (P20): identificador local, data de criação, contagens, aviso de
  * perda e, sem conta, "Criar conta para sincronizar". O download leva só o que está aqui.
  */
-export function LocalProfileCard({ signedIn }: LocalProfileCardProps) {
+export function LocalProfileCard({ signedIn, accountActions = true }: LocalProfileCardProps) {
   const { profile, degraded, ready } = useAnonProfile();
   if (!ready || !profile) {
     return (
@@ -75,7 +80,7 @@ export function LocalProfileCard({ signedIn }: LocalProfileCardProps) {
         <p className="type-meta text-meta">{T.loss}</p>
       )}
       <div className="flex flex-wrap gap-3">
-        {!signedIn && (
+        {!signedIn && accountActions && (
           <>
             <Button size="md" href="/criar-conta?next=%2Fperfil">
               {T.create}

@@ -86,3 +86,23 @@ test("login: ordem Entrar, Esqueci a senha e Entrar sem senha", async ({ page })
   expect(entrar.y).toBeLessThan(semSenha.y);
   await expect(main.getByRole("link", { name: "Esqueci a senha" })).toBeVisible();
 });
+
+/* UI-T14: recuperar senha no contêiner do portal, saída sem login e erro ligado ao campo. */
+test("recuperar senha: saída sem login de 44 px e erro com exemplo no campo", async ({ page }) => {
+  await page.goto("/recuperar-senha");
+  await accountFormReady(page);
+  const main = page.locator("main");
+  const skip = main.getByRole("link", { name: "Continuar sem login" });
+  expect((await skip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  const field = main.getByLabel("E-mail", { exact: true });
+  await field.fill("ana@");
+  await main.getByRole("button", { name: "Enviar link" }).click();
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(/Exemplo: ana@exemplo.com/);
+});
+
+test("recuperar senha sem violação séria do axe @a11y", async ({ page }) => {
+  await page.goto("/recuperar-senha");
+  await accountFormReady(page);
+  await expectNoSeriousViolations(page);
+});

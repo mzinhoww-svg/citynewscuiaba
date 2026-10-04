@@ -29,7 +29,7 @@ export default async function RecoverPage({ searchParams }: { searchParams: Sear
         <p>
           <Link
             href="/entrar"
-            className="font-semibold text-link underline underline-offset-4 hover:text-strong"
+            className="inline-flex min-h-tap items-center font-semibold text-link underline underline-offset-4 hover:text-strong"
           >
             {T.back}
           </Link>
