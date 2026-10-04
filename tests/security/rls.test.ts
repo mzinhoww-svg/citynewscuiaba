@@ -220,6 +220,8 @@ describe("estrutura: RLS ligada e políticas para anon só de leitura pública",
       "corrections",
       "event_listings",
       "feature_flags",
+      "featured_items",
+      "featured_slots",
       "home_layouts",
       "media_assets",
       "places",
@@ -245,6 +247,9 @@ describe("estrutura: RLS ligada e políticas para anon só de leitura pública",
           and has_function_privilege('anon', p.oid, 'execute') order by 1`,
     ).map((r) => r[0]);
     expect(rows).toEqual([
+      // FD-T1 (0090): só enfileira busca de imagem de matéria publicada sem capa (R39), no máximo
+      // uma por matéria a cada 3 h; não lê nem devolve dado.
+      "featured_request_images",
       "public_article_gone",
       "public_most_read",
       "search_did_you_mean",

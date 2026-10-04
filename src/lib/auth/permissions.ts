@@ -39,6 +39,8 @@ export const ACTIONS = [
   "push.metrics",
   /** Administração do site (P5-T8/T9): taxonomia, home, publicidade, SEO e governança editorial. */
   "site.manage",
+  /** Destaques por posição (FD-T3): fixar, remover e reordenar matérias em home, editorias e explorar. */
+  "featured.manage",
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -95,6 +97,7 @@ export const PERMISSIONS: Matrix = {
   "push.settings": { admin: "all", editor_chefe: "all" },
   "push.metrics": { admin: "all", editor_chefe: "all", analista: "all" },
   "site.manage": { admin: "all", editor_chefe: "all" },
+  "featured.manage": { admin: "all", editor_chefe: "all" },
 };
 
 export function grantOf(role: Role, action: Action): Grant | undefined {

@@ -7,6 +7,7 @@ import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, fetchRecentArticles, summarize } from "./articles";
 import { EVENT_COLUMNS, toEventView } from "./events";
+import { getFeatured } from "./featured";
 import { fetchCollections, pickMostRead } from "./home";
 import { many, one, readPublic } from "./run";
 import { TOPIC_COLUMNS, fetchActiveTopics, withCounts } from "./topics";
@@ -65,13 +66,23 @@ export async function getExploreData(
         href: s.href,
         todayCount: counts.get(s.id) ?? 0,
       }));
-      const pool = (await summarize(db, recent)).filter((a) => !a.sponsored);
+      const all = await summarize(db, recent);
+      const pool = all.filter((a) => !a.sponsored);
+      // Matéria em evidência (explorar.topo): pino manual ou automático com capa aprovada.
+      const featured =
+        (await getFeatured(db, "explorar.topo", { now, pool: all })).items[0] ?? null;
       return {
         generatedAt: now.toISOString(),
         sections,
         topics,
         collections,
-        mostRead: await pickMostRead(db, pool, new Set(), WEEK_HOURS),
+        featured,
+        mostRead: await pickMostRead(
+          db,
+          pool.filter((a) => a.id !== featured?.id),
+          new Set(),
+          WEEK_HOURS,
+        ),
       };
     },
     { tags: ["explore"], revalidate: EXPLORE_REVALIDATE },

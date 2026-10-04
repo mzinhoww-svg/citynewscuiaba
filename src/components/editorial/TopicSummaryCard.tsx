@@ -3,6 +3,8 @@ import type { TopicView } from "@/lib/db/queries/types";
 import { formatWhen } from "@/lib/format/date";
 import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
+import { ImageCaption } from "./ImageCaption";
+import { Photo } from "./Photo";
 import { TopicStatus } from "./TopicStatus";
 
 export interface TopicSummaryCardProps {
@@ -36,6 +38,19 @@ export function TopicSummaryCard({
         className,
       )}
     >
+      {topic.cover && (
+        <div className="flex flex-col gap-2">
+          <Photo
+            src={topic.cover.src}
+            alt={topic.cover.alt}
+            ratio="3/2"
+            radius="0"
+            sizes="(min-width: 64em) 30vw, 100vw"
+            className="w-full"
+          />
+          {topic.cover.kind === "reproduction" && <ImageCaption image={topic.cover} />}
+        </div>
+      )}
       <TopicStatus state={topic.state} className="self-start" />
       <Heading className="type-headline text-strong">
         <Link href={topic.href} className="card-link no-underline">
