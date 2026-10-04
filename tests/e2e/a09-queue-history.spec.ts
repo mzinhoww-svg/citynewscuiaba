@@ -89,11 +89,15 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
     await marina.keyboard.press("Escape");
     // Helena vê "Notificações push (n)" no menu e aprova.
     await gotoSettled(helena, `${URL}/fila`);
+    // No celular o menu fica na gaveta (botão "Abrir menu" no cabeçalho).
+    const menu = helena.getByRole("button", { name: "Abrir menu" });
+    if (await menu.isVisible()) await menu.click();
     await expect(
       helena
         .getByRole("navigation", { name: "Estúdio" })
         .getByRole("link", { name: /Notificações push \(\d+\)/ }),
     ).toBeVisible();
+    if (await menu.isVisible()) await helena.keyboard.press("Escape");
     await helena.getByRole("button", { name: `Aprovar ${PUSH_TITLE}` }).click();
     await helena.getByRole("dialog").getByRole("button", { name: "Aprovar" }).click();
     await expect(helena.getByRole("status").filter({ hasText: "Pedido aprovado" })).toBeVisible();

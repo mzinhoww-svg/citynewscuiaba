@@ -5,6 +5,7 @@ import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 import { Logo } from "../editorial/Logo";
 import type { IconName } from "../ui/Icon";
+import { StudioMobileNav, StudioPageTitle } from "./StudioMobileNav";
 import { StudioNav } from "./StudioNav";
 
 export interface StudioNavItem {
@@ -38,7 +39,9 @@ export interface StudioShellProps {
 
 /**
  * Casca do Estúdio: cabeçalho com a assinatura e a conta, navegação lateral por grupo e área
- * de trabalho. A navegação chega filtrada pelo papel; o componente não conhece o banco.
+ * de trabalho. Abaixo de `lg` a navegação vira gaveta (botão Menu) e o cabeçalho mostra o nome
+ * da tela atual; a conta fica dentro da gaveta. A navegação chega filtrada pelo papel; o
+ * componente não conhece o banco.
  */
 export function StudioShell({ nav, user, bell, children, className }: StudioShellProps) {
   return (
@@ -51,15 +54,22 @@ export function StudioShell({ nav, user, bell, children, className }: StudioShel
       </a>
       <header
         data-sticky="studio"
-        className="sticky top-0 z-sticky flex items-center gap-4 border-b border-line-subtle bg-page px-gutter py-1"
+        className="sticky top-0 z-sticky flex items-center gap-2 border-b border-line-subtle bg-page py-1 pr-2 pl-1 pt-[max(0.25rem,env(safe-area-inset-top))] sm:px-gutter lg:gap-4"
       >
-        <Link href="/estudio" className="flex items-center gap-2 rounded-xs no-underline">
+        <StudioMobileNav nav={nav} user={user} className="lg:hidden" />
+        <Link
+          href="/estudio"
+          className="flex min-h-tap shrink-0 items-center gap-2 rounded-xs px-1 no-underline"
+        >
           <Logo variant="symbol" size="sm" decorative />
-          <span className="type-nav-title text-strong">{STUDIO_TEXT.name}</span>
+          <span className="sr-only type-nav-title text-strong lg:not-sr-only">
+            {STUDIO_TEXT.name}
+          </span>
         </Link>
-        <div className="ml-auto flex items-center gap-3">
+        <StudioPageTitle nav={nav} className="min-w-0 flex-1 lg:hidden" />
+        <div className="ml-auto flex shrink-0 items-center gap-3">
           {bell}
-          <p className="flex flex-col items-end text-right type-meta text-meta">
+          <p className="hidden flex-col items-end text-right type-meta text-meta lg:flex">
             <span className="sr-only">{STUDIO_TEXT.signedInAs}</span>
             <span className="font-semibold text-strong">{user.name}</span>
             <span>{user.role}</span>
@@ -67,8 +77,8 @@ export function StudioShell({ nav, user, bell, children, className }: StudioShel
         </div>
       </header>
       <div className="lg:grid lg:grid-cols-[var(--spacing-rail)_minmax(0,1fr)]">
-        <StudioNav nav={nav} />
-        <main id="conteudo" className="min-w-0 px-gutter py-8">
+        <StudioNav nav={nav} className="hidden border-r border-line-subtle lg:block" />
+        <main id="conteudo" className="min-w-0 px-gutter py-6 lg:py-8">
           {children}
         </main>
       </div>

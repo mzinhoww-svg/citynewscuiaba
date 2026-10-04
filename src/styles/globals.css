@@ -148,6 +148,7 @@
   --blur-scrim: var(--blur-overlay);
   --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
+  --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
   --animate-ticker: cn-ticker var(--ticker-duration, 60s) linear infinite;
 }
@@ -168,6 +169,14 @@
   }
   to {
     transform: translateY(0);
+  }
+}
+@keyframes cn-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
   }
 }
 @keyframes cn-ticker {
@@ -302,8 +311,9 @@
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
+  /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
   & input:focus-visible {
-    outline: none;
+    outline: none !important;
   }
 }
 
