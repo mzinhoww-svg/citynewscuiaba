@@ -54,22 +54,23 @@ test("correções públicas listam a do seed", async ({ page }) => {
 });
 
 const PAGES = [
-  ["/sobre", "Sobre o CityNews", true],
-  ["/principios-editoriais", "Princípios editoriais", false],
-  ["/correcoes", "Correções", false],
-  ["/direito-de-resposta", "Direito de resposta", false],
-  ["/privacidade", "Privacidade", true],
-  ["/termos", "Termos de uso", true],
-  ["/anuncie", "Anuncie no CityNews", true],
-  ["/contato", "Contato", true],
+  ["/sobre", "Sobre o CityNews"],
+  ["/principios-editoriais", "Princípios editoriais"],
+  ["/correcoes", "Correções"],
+  ["/direito-de-resposta", "Direito de resposta"],
+  ["/privacidade", "Privacidade"],
+  ["/termos", "Termos de uso"],
+  ["/anuncie", "Anuncie no CityNews"],
+  ["/contato", "Contato"],
 ] as const;
 
-for (const [path, title, pending] of PAGES) {
+for (const [path, title] of PAGES) {
   test(`institucional ${path}`, async ({ page }) => {
     const r = await page.goto(path);
     expect(r!.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-    if (pending) await expect(page.getByText("[PREENCHER]").first()).toBeVisible();
+    // Dado institucional pendente nunca aparece ao leitor (A-143).
+    await expect(page.getByRole("main")).not.toContainText("PREENCHER");
   });
 }
 

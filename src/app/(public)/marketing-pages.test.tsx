@@ -37,7 +37,8 @@ describe("/sobre", () => {
       "href",
       "/principios-editoriais",
     );
-    expect(screen.getAllByText("[PREENCHER]").length).toBeGreaterThan(0);
+    // Dado institucional pendente não vai à tela (A-143).
+    expect(container.textContent).not.toMatch(/PREENCHER|aguardam dados oficiais/);
     expect(container.querySelectorAll("details").length).toBeGreaterThan(0);
     expect(container.querySelector('a[href="/como-usamos-ia"]')).toBeNull();
     expect(container.querySelector('a[href="/metodologia"]')).toBeNull();
@@ -58,7 +59,8 @@ describe("/anuncie", () => {
       "href",
       "mailto:contato@citynews.com.br",
     );
-    expect(within(contact).getByText("[PREENCHER]")).toBeVisible();
+    expect(within(contact).getByText("E-mail: contato@citynews.com.br")).toBeVisible();
+    expect(contact.textContent).not.toMatch(/PREENCHER|Telefone|aguardam dados oficiais/);
     // Sem dado inventado: nenhum número de audiência, cliente ou depoimento.
     expect(container.textContent).not.toMatch(/leitores por mês|visitantes|depoimento|clientes/i);
   });

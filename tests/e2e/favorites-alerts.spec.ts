@@ -36,7 +36,9 @@ test("salvos anônimos mostram aviso de aparelho e funcionam", async ({ page }) 
   await saveArticle(page);
   await page.goto("/favoritos");
   await ready(page);
-  await expect(page.getByText("Salvos só neste aparelho")).toBeVisible();
+  await expect(
+    page.getByText("Se você limpar os dados do navegador, os favoritos somem."),
+  ).toBeVisible();
   const link = page.getByRole("link", { name: TITLE });
   await expect(link).toBeVisible();
   await expect(page.getByText(/Mobilidade · (não lido|lido)/)).toBeVisible();

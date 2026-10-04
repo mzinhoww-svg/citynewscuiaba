@@ -5,9 +5,8 @@ export const FAVORITES_TEXT = {
     "Matérias salvas, fontes e assuntos seguidos e coleções pessoais, guardados neste aparelho sem precisar de conta.",
   title: "Favoritos",
   intro: "O que você guardou neste navegador. Não precisa de conta.",
-  deviceOnly: "Salvos só neste aparelho",
-  deviceOnlyText:
-    "Seus favoritos ficam guardados neste navegador. Se limpar os dados do navegador, eles somem.",
+  /** Nota do cabeçalho (antes uma caixa própria que repetia o texto de apoio). */
+  deviceOnlyText: "Se você limpar os dados do navegador, os favoritos somem.",
   tabsLabel: "Seus favoritos",
   tabs: {
     saved: "Salvos",

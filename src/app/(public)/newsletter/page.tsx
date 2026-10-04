@@ -59,7 +59,10 @@ export default async function NewsletterRoute() {
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14">
         <ul aria-label={T.listsTitle} className="flex flex-col gap-6">
           {NEWSLETTER_LISTS.map((l) => (
-            <li key={l.id} className="flex flex-col gap-3 border-t-2 border-line-strong pt-4">
+            <li
+              key={l.id}
+              className="flex flex-col gap-3 border-t-2 border-line-strong pt-4 first:border-t-0 first:pt-0"
+            >
               <div className="flex flex-col gap-1">
                 <h2 className="type-section text-strong">{l.name}</h2>
                 <p className="type-meta font-semibold text-meta">{l.when}</p>

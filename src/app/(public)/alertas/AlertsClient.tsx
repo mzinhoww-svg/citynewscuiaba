@@ -127,12 +127,14 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
   const remove = (a: LocalAlert) => void act((s) => s.removeAlert(a.id));
 
   return (
+    // Ordem de leitura no celular: o que já existe, o formulário de criar (a ação da página), a
+    // nota de avisos do navegador e o convite de conta. No desktop o formulário vai para a coluna
+    // lateral, ocupando as duas linhas; a segunda linha (1fr) absorve a sobra de altura.
     <div
       data-ready={ready ? "true" : undefined}
-      className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-x-6"
+      className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-6"
     >
-      <div className="flex min-w-0 flex-col gap-10 lg:col-span-8">
-        <PushSettings />
+      <div className="flex min-w-0 flex-col gap-10 lg:col-span-8 lg:row-start-1">
         <section aria-labelledby={`${id}-ativos`} className="flex min-w-0 flex-col gap-4">
           <h2 id={`${id}-ativos`} className="type-section text-strong">
             {T.activeTitle}
@@ -184,14 +186,12 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
               ))}
             </ul>
           )}
-          <p className="type-meta text-meta">{T.whileOpen}</p>
         </section>
-        <AccountInvite next="/alertas" />
       </div>
 
       <section
         aria-labelledby={`${id}-criar`}
-        className="flex min-w-0 flex-col gap-4 self-start border border-line-strong bg-card-white p-5 lg:col-span-4"
+        className="flex min-w-0 flex-col gap-4 self-start border border-line-strong bg-card-white p-5 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1"
       >
         <h2 id={`${id}-criar`} className="type-section text-strong">
           {T.createTitle}
@@ -295,6 +295,14 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
           <NotificationInviteSlot trigger="alert" />
         </form>
       </section>
+
+      <div className="flex min-w-0 flex-col gap-6 self-start lg:col-span-8 lg:row-start-2">
+        <div className="flex flex-col gap-2">
+          <p className="type-meta text-meta">{T.whileOpen}</p>
+          <PushSettings />
+        </div>
+        <AccountInvite next="/alertas" />
+      </div>
     </div>
   );
 }

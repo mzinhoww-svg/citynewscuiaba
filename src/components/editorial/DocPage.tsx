@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { DOC_TEXT, PENDING, RELATED_LINKS, type DocSection } from "@/content/pt-BR/institutional";
+import { DOC_TEXT, isFilled, RELATED_LINKS, type DocSection } from "@/content/pt-BR/institutional";
 import { PAGE_CONTAINER, PageHeader } from "./PageHeader";
 
 export interface DocPageProps {
@@ -16,10 +16,23 @@ export interface DocPageProps {
 /** A partir de quantas seções o índice "Nesta página" ajuda mais do que atrapalha. */
 const TOC_MIN = 3;
 
-function hasPending(sections: readonly DocSection[]): boolean {
-  return sections.some((s) =>
-    [...(s.paragraphs ?? []), ...(s.items ?? [])].some((t) => t.includes(PENDING)),
-  );
+/**
+ * Só o que já tem dado vai à tela (A-143): linha com `[PREENCHER]` some, e a seção que fica sem
+ * nenhum texto some junto (com o atalho do índice). O leitor nunca vê marcador de rascunho.
+ */
+export function filledSections(sections: readonly DocSection[]): DocSection[] {
+  return sections.flatMap((s) => {
+    const paragraphs = s.paragraphs?.filter(isFilled);
+    const items = s.items?.filter(isFilled);
+    if (!paragraphs?.length && !items?.length) return [];
+    return [
+      {
+        title: s.title,
+        ...(paragraphs?.length ? { paragraphs } : {}),
+        ...(items?.length ? { items } : {}),
+      },
+    ];
+  });
 }
 
 /** Âncora estável da seção: sem acento, minúscula, com hífens. */
@@ -33,34 +46,18 @@ function anchor(title: string): string {
   return `secao-${slug || "texto"}`;
 }
 
-/** `[PREENCHER]` destacado em texto e com fundo de atenção (dado pendente, B-001). */
-export function PendingText({ value }: { value: string }) {
-  const parts = value.split(PENDING);
-  return (
-    <>
-      {parts.map((p, i) => (
-        <span key={i}>
-          {p}
-          {i < parts.length - 1 && (
-            <mark className="bg-atencao-soft px-1 font-semibold text-strong">{PENDING}</mark>
-          )}
-        </span>
-      ))}
-    </>
-  );
-}
-
 /**
  * Página institucional e legal (P24, UI-T14): o mesmo contêiner e título de tela do portal,
  * texto corrido em coluna de leitura de 68ch e, com 3 seções ou mais, o índice "Nesta página"
  * (trilho de atalhos no celular, coluna lateral fixa a partir de 1024 px). O conteúdo jurídico
- * vem de `institutional.ts` e não muda aqui; dados pendentes aparecem marcados `[PREENCHER]`.
+ * vem de `institutional.ts` e não muda aqui; dado pendente (`[PREENCHER]`) não aparece (A-143).
  *
  * ```tsx
  * <DocPage title={TERMS.title} intro={TERMS.intro} sections={TERMS.sections} path="/termos" />
  * ```
  */
-export function DocPage({ title, intro, sections = [], children, path }: DocPageProps) {
+export function DocPage({ title, intro, sections: all = [], children, path }: DocPageProps) {
+  const sections = filledSections(all);
   const toc = sections.length >= TOC_MIN;
   return (
     <div className={`${PAGE_CONTAINER} flex flex-col gap-6 py-8 lg:py-10`}>
@@ -73,7 +70,7 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
             className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-6 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start"
           >
             <h2 className="type-eyebrow text-meta">{DOC_TEXT.onThisPage}</h2>
-            <ol className="-mx-gutter flex snap-x gap-2 overflow-x-auto px-gutter py-1 scrollbar-none lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0">
+            <ol className="-mx-gutter flex snap-x scroll-px-gutter gap-2 overflow-x-auto px-gutter py-1 scrollbar-none lg:mx-0 lg:scroll-px-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0">
               {sections.map((s) => (
                 <li key={s.title} className="snap-start lg:border-b lg:border-line-subtle">
                   <a
@@ -102,21 +99,18 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
               </h2>
               {s.paragraphs?.map((p) => (
                 <p key={p} className="type-body-read text-pretty text-body">
-                  <PendingText value={p} />
+                  {p}
                 </p>
               ))}
               {s.items && (
                 <ul className="flex list-disc flex-col gap-2 pl-6 type-body-read text-body marker:text-meta">
                   {s.items.map((it) => (
-                    <li key={it}>
-                      <PendingText value={it} />
-                    </li>
+                    <li key={it}>{it}</li>
                   ))}
                 </ul>
               )}
             </section>
           ))}
-          {hasPending(sections) && <p className="type-meta text-meta">{DOC_TEXT.pendingNote}</p>}
           {children}
           <DocRelated path={path} />
         </div>

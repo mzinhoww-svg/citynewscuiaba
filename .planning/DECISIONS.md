@@ -292,3 +292,16 @@ Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 
 ## A-140 · Filtros recolhíveis no portal e no Estúdio (04/10/2026)
 
 Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/components/ui`), usado pela `FilterBar` (busca, editorias, agenda, assuntos), pela cobertura do assunto, pelos filtros de /fontes e por todos os filtros do Estúdio (fila, fontes, logs, auditoria, histórico e funil de push, histórico da fonte, denúncias, banners e relatório de publicidade). Sem escolha da pessoa o estado vem só do CSS: recolhido abaixo de `lg`, aberto no desktop, sem salto de layout na hidratação; o botão "Filtros" alterna em qualquer tela e traz a contagem de ativos ("2 ativos"). "Limpar filtros" sai de dentro do formulário e fica no cabeçalho do painel, só com filtro ativo (antes aparecia sempre na fila, fontes, logs e auditoria; faltava no histórico e funil de push, histórico da fonte e denúncias). Exportar CSV fica à vista ao lado do botão. Sem JavaScript o corpo aparece sempre. Abas e atalhos (tipo da busca, abas da fila, Lista/Calendário, atalhos da agenda) não recolhem: são navegação. Os e2e usam `openFilters` (`tests/e2e/helpers/filters.ts`).
+
+## A-143 · Telas públicas no celular: faixa preta, dado pendente e ordem de leitura (04/10/2026)
+
+**Status:** vigente. Pedido do dono (capturas do iPhone de Favoritos, Guia, Serviços, Newsletters, Anuncie, Princípios e Alertas).
+
+- **Faixa preta sob o cabeçalho:** era a fileira de editorias. `mask-image` num contêiner com rolagem é pintado como bloco preto no Safari do iPhone. `scroll-fade` deixa de usar máscara: véus da cor da página em `::before`/`::after` do `<nav>`, com `data-fade` no `<nav>` (teste impede a volta da máscara na lista).
+- **Primeiro item colado na borda:** listas roláveis com `snap-x` e `px-gutter` ganham `scroll-px-gutter` (editorias e "Nesta página").
+- **`[PREENCHER]` em tela pública:** substitui a parte de A-014 que mostrava o marcador. Linha pendente não aparece (`isFilled`, como já fazia o rodapé); seção que fica vazia some com o atalho do índice (`filledSections`); a nota "aguardam dados oficiais" sai. O dado continua pendente em B-001.
+- **Ordem de leitura no celular:** Favoritos mostra abas e salvos antes do convite de conta; a caixa "Salvos só neste aparelho" vira nota do cabeçalho. Alertas: lista, formulário de criar, nota de avisos e convite, nessa ordem; sem suporte a push, uma linha de nota no lugar do bloco com título.
+- **Guia sem listas:** em vez de uma caixa "em breve", a página traz as 6 matérias mais recentes do Guia.
+- **Newsletters:** sem fio duplo entre o hero e a primeira newsletter.
+- Fora deste pacote, já no plano `2026-10-04-melhorias-ux-ui-tecnica`: foto quebrada (item 78), ticker sem movimento (13) e "Agora" pulsando só na home (69).
+- **Para o dono:** `/principios-editoriais` diz que crimes, violência, saúde e eleições "nunca são publicados sem revisão humana", o que não vale mais com as regras v3 (CLAUDE.md §5 regra 8). O texto não foi alterado: é compromisso público e a redação é do dono.
