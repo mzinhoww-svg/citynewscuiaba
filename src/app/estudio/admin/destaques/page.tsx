@@ -5,7 +5,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { currentBoard, pinHistory } from "@/lib/studio/featured";
 import { loadOrNull } from "../../load-error";
 import { AdminScreen } from "../screen";
-import { pinAction, reorderAction, searchAction, unpinAction } from "./actions";
+import { dismissHotAction, pinAction, reorderAction, searchAction, unpinAction } from "./actions";
 
 export const metadata: Metadata = { title: "Destaques · Administração · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -43,6 +43,7 @@ export default async function FeaturedPage() {
               unpin: unpinAction,
               reorder: reorderAction,
               search: searchAction,
+              dismiss: dismissHotAction,
             }}
           />
           {history && <PinHistory rows={history.value} slotLabel={slotLabel(board.value)} />}

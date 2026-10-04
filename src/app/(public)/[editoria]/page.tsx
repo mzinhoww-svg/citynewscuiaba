@@ -16,6 +16,7 @@ import {
 import { neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { SECTIONS } from "@/content/pt-BR/nav";
 import { SECTION_DESCRIPTION, SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { getSectionRef, listSection, type SectionPage } from "@/lib/db/queries";
 import {
   parseSectionFilters,
@@ -181,7 +182,15 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             <ol id="lista" className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
               {listed.map((a, i) => (
                 <li key={a.id} className={i === 0 ? "md:col-span-2" : undefined}>
-                  <ArticleCard variant={i === 0 ? "lead" : "standard"} article={a} />
+                  <ArticleCard
+                    variant={i === 0 ? "lead" : "standard"}
+                    article={a}
+                    kicker={
+                      i === 0 && data.featuredHot && a.id === data.featured?.id
+                        ? CARD.hot
+                        : undefined
+                    }
+                  />
                 </li>
               ))}
             </ol>

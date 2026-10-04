@@ -56,6 +56,12 @@ export function FeaturedBoard({ board, api, nowIso }: FeaturedBoardProps) {
     });
   };
 
+  const dismiss = (item: BoardItem) => {
+    if (!item.hot) return;
+    const id = item.hot.pinId;
+    start(async () => done(await api.dismiss({ id })));
+  };
+
   const askRemove = (slot: BoardSlot, item: BoardItem) => {
     if (removalNeedsTyping(item.endsAt, now)) {
       setTyped("");
@@ -153,8 +159,35 @@ export function FeaturedBoard({ board, api, nowIso }: FeaturedBoardProps) {
                                   {item.note ? ` · ${item.note}` : ""}
                                 </p>
                               )}
+                              {item.hot && (
+                                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 type-meta text-meta">
+                                  <span
+                                    data-testid="hot-pill"
+                                    className="inline-flex items-center rounded-pill border border-line-strong px-2.5 py-0.5 font-semibold text-strong"
+                                  >
+                                    {T.hot.pill(item.hot.portals)}
+                                  </span>
+                                  {item.hot.endsAt && (
+                                    <span>{T.until(untilText(item.hot.endsAt, now))}</span>
+                                  )}
+                                </p>
+                              )}
+                              {item.hot && <p className="type-meta text-meta">{T.hot.info}</p>}
                             </div>
                           </div>
+                          {item.hot && !item.pinId && (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline-strong"
+                                disabled={busy}
+                                aria-label={`${T.actions.dismiss}: ${item.title}`}
+                                onClick={() => dismiss(item)}
+                              >
+                                {T.actions.dismiss}
+                              </Button>
+                            </div>
+                          )}
                           {item.pinId && (
                             <div className="flex flex-wrap items-center gap-2">
                               <Button

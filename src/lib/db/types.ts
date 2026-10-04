@@ -1730,6 +1730,7 @@ export type Database = {
           dismissed_at: string | null;
           ends_at: string | null;
           ended_at: string | null;
+          hot_sources: number | null;
           id: string;
           kind: string;
           note: string;
@@ -1746,6 +1747,7 @@ export type Database = {
           dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -1762,6 +1764,7 @@ export type Database = {
           dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -5248,6 +5251,7 @@ export type Database = {
         Returns: boolean;
       };
       featured_assert_role: { Args: never; Returns: undefined };
+      featured_dismiss_hot: { Args: { p_id: string }; Returns: number };
       featured_has_cover: { Args: { p_article: string }; Returns: boolean };
       featured_pin: {
         Args: {

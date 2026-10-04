@@ -25,6 +25,11 @@ export const FEATURED_TEXT = {
     automatic: "Automático",
   } satisfies Record<FeaturedSource, string>,
   until: (when: string) => `até ${when}`,
+  /** Pauta quente no quadro (HOT-T3). */
+  hot: {
+    pill: (n: number) => `Em alta · ${n} ${n === 1 ? "portal" : "portais"}`,
+    info: "Vários portais de Cuiabá estão com este assunto no topo. Sai sozinho quando o sinal acaba (até 12 h).",
+  },
   untilRemoved: "até remover",
   pinnedBy: (name: string) => `Fixada por ${name}`,
   dropped: {
@@ -45,6 +50,7 @@ export const FEATURED_TEXT = {
     cancel: "Cancelar",
     submit: "Fixar",
     confirm: "Remover fixação",
+    dismiss: "Dispensar",
   },
   form: {
     title: "Fixar matéria",
@@ -88,6 +94,7 @@ export const FEATURED_TEXT = {
     pinned: "Matéria fixada. A página já mostra a nova posição.",
     removed: "Fixação removida. O automático voltou a ocupar a vaga.",
     reordered: "Ordem atualizada.",
+    dismissed: "Pauta quente dispensada. O mesmo sinal não a traz de volta.",
   },
   error: {
     generic: "Não foi possível concluir. Tente de novo.",
