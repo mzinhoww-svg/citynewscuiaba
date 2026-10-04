@@ -73,7 +73,7 @@ Decisões registradas, para o dono confirmar ao aprovar esta spec:
 4. Nomes internos no código (`normalized`, `ai_summary`) permanecem; mudam só os textos exibidos.
 
 ### 4.2 Chrome
-- `ConsentBanner`: faixa baixa compacta (celular ≤ 15% da altura; desktop barra de uma linha). Texto legal e as três escolhas iguais. Remove o `border-t-2` que o detector acusa.
+- `ConsentBanner`: faixa baixa compacta (celular ≤ 180 px, texto e botões em 14 px, emendado pela spec `2026-10-04-melhorias-ux-ui-tecnica-design.md` item 11; antes ≤ 15% da altura; desktop barra de uma linha). Texto legal e as três escolhas iguais. Remove o `border-t-2` que o detector acusa.
 - `SiteHeader`: uma linha principal e a linha de editorias; no celular, fade nas bordas da fileira rolável e a editoria ativa centralizada; altura reduz ao rolar.
 - `SiteFooter`: só renderiza campos institucionais preenchidos.
 

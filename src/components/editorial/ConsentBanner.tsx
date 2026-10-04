@@ -64,8 +64,10 @@ function useReserveSpace(ref: React.RefObject<HTMLElement | null>, open: boolean
 }
 
 /**
- * Banner de consentimento da primeira visita (spec §5.2, P22): região fixa no rodapé, compacta
- * (até 15% da altura no celular, acima da barra inferior; barra de uma linha no desktop).
+ * Banner de consentimento da primeira visita (spec §5.2, P22): região fixa no rodapé, acima da
+ * barra inferior no celular e barra de uma linha no desktop. Legível ao sol (UX-W1-T5): texto
+ * inteiro em 14 px, "Saiba mais" com alvo de 44 px e botões em 14 px; no celular o aceite ocupa
+ * a segunda linha de ações (até 180 px de altura, medido em tests/e2e/consent.spec.ts).
  * A página ganha respiro inferior enquanto ele está aberto. Não bloqueia a leitura (não é modal e não
  * prende o foco).
  * Sem resposta vale "Só o necessário". "Escolher" abre as categorias no próprio banner.
@@ -119,26 +121,26 @@ export function ConsentBanner() {
           <ConsentPanel draft={draft} onChange={setDraft} onBack={back} onSave={decideAndClose} />
         </Suspense>
       ) : (
-        <div className="mx-auto flex w-full max-w-page flex-col gap-1.5 px-gutter py-1.5 lg:flex-row lg:items-center lg:gap-4 lg:py-2">
-          <div className="flex min-w-0 flex-1 items-end gap-2">
-            {/* O título segue na árvore (a região já leva o mesmo nome); a barra fica numa linha. */}
-            <h2 className="sr-only">{CONSENT_TEXT.title}</h2>
-            <p className="line-clamp-2 min-w-0 flex-1 text-12 leading-4 text-body lg:line-clamp-none lg:text-13">
-              {CONSENT_TEXT.body}
-            </p>
+        <div className="mx-auto flex w-full max-w-page flex-col gap-1.5 px-gutter py-2 lg:flex-row lg:items-center lg:gap-4">
+          {/* O título segue na árvore (a região já leva o mesmo nome); a barra fica numa linha. */}
+          <h2 className="sr-only">{CONSENT_TEXT.title}</h2>
+          {/* 14 px e sem corte: o texto inteiro cabe em três linhas no celular de 360 px. */}
+          <p className="min-w-0 text-14 leading-snug text-body lg:flex-1">{CONSENT_TEXT.body}</p>
+          <div
+            ref={actions}
+            className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 lg:flex lg:shrink-0 lg:gap-2"
+          >
             <Link
               href="/privacidade"
               aria-label={CONSENT_TEXT.learnMore}
-              className="shrink-0 text-12 font-semibold leading-4 text-link underline underline-offset-4 lg:text-13"
+              className="flex min-h-tap items-center pr-1 text-14 font-semibold text-link underline underline-offset-4"
             >
               {CONSENT_TEXT.learnMoreShort}
             </Link>
-          </div>
-          <div ref={actions} className="grid grid-cols-3 gap-1.5 lg:flex lg:shrink-0 lg:gap-2">
             <Button
               variant="outline"
               size="md"
-              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
+              className="px-3! text-14! leading-tight lg:px-4!"
               onClick={() => decideAndClose({ metrics: false, personalization: false })}
             >
               {CONSENT_TEXT.necessaryOnly}
@@ -146,7 +148,7 @@ export function ConsentBanner() {
             <Button
               variant="outline"
               size="md"
-              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
+              className="px-3! text-14! leading-tight lg:px-4!"
               onClick={() => {
                 setDraft({ metrics: false, personalization: false });
                 setChoosing(true);
@@ -156,7 +158,7 @@ export function ConsentBanner() {
             </Button>
             <Button
               size="md"
-              className="px-2! text-12! leading-tight lg:px-4! lg:text-14!"
+              className="col-span-full px-3! text-14! leading-tight lg:px-4!"
               onClick={() => decideAndClose({ metrics: true, personalization: true })}
             >
               {CONSENT_TEXT.acceptAll}
