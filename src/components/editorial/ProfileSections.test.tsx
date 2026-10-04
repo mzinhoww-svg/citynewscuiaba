@@ -139,4 +139,19 @@ describe("BrowserDataDetails", () => {
     await user.click(summary);
     expect(screen.getByText("anon-123")).toBeVisible();
   });
+
+  it("com conta, o botão do navegador nunca fica desabilitado (sem transição presa no WebKit) e só baixa com o perfil", async () => {
+    const user = userEvent.setup();
+    state.profile = null;
+    const { rerender } = render(<BrowserDataDetails signedIn />);
+    await user.click(screen.getByText("Dados deste navegador"));
+    const button = screen.getByRole("button", { name: "Baixar dados deste navegador" });
+    expect(button).toBeEnabled();
+    await user.click(button);
+    expect(download).not.toHaveBeenCalled();
+    state.profile = PROFILE;
+    rerender(<BrowserDataDetails signedIn />);
+    await user.click(screen.getByRole("button", { name: "Baixar dados deste navegador" }));
+    expect(download).toHaveBeenCalledWith("citynews-este-navegador.json", expect.any(String));
+  });
 });

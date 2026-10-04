@@ -162,8 +162,9 @@ export function BrowserDataDetails({ signedIn }: { signedIn: boolean }) {
             variant="text"
             icon="download"
             className="self-start"
-            disabled={!profile}
-            onClick={() => downloadBrowserData(profile)}
+            // Sem `disabled` enquanto o perfil carrega: a troca de cor do botão dentro do
+            // <details> fechado deixa uma transição presa no WebKit (o axe espera para sempre).
+            onClick={() => profile && downloadBrowserData(profile)}
           >
             {T.anon.export}
           </Button>

@@ -170,7 +170,10 @@ test("conta: dados, bairro, exportar e sair", async ({ page }) => {
   await expect(page.getByText(/Você saiu dos outros aparelhos/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Senha e sessões" })).toBeVisible();
 
-  await page.goto("/perfil");
+  // Volta pelo link da tela, como a pessoa faria. Recarregar a página depois do download feito
+  // no navegador derrubava a aba no WebKit do Playwright ("Page crashed").
+  await page.locator("main").getByRole("link", { name: "Perfil", exact: true }).click();
+  await expect(page).toHaveURL(/\/perfil$/);
   await page.getByRole("button", { name: "Sair da conta" }).click();
   await expect(page.getByText(/Você saiu da conta/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta para sincronizar" })).toBeVisible();
