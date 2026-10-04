@@ -27,6 +27,30 @@ const row = (over: Partial<QueueTableRow> = {}): QueueTableRow => ({
   ...over,
 });
 
+describe("QueueTable · atalhos j/k (UX-W3-T5, item 53)", () => {
+  it("j e k movem o foco entre as linhas (link do título, que o Enter abre)", async () => {
+    const user = userEvent.setup();
+    render(
+      <QueueTable
+        rows={[
+          row({ id: "a1", title: "Primeira" }),
+          row({ id: "a2", title: "Segunda", href: "/estudio/fila/a2" }),
+        ]}
+      />,
+    );
+    const first = screen.getByRole("link", { name: "Primeira" });
+    const second = screen.getByRole("link", { name: "Segunda" });
+    await user.keyboard("j");
+    expect(document.activeElement).toBe(first);
+    await user.keyboard("j");
+    expect(document.activeElement).toBe(second);
+    await user.keyboard("j");
+    expect(document.activeElement).toBe(second);
+    await user.keyboard("k");
+    expect(document.activeElement).toBe(first);
+  });
+});
+
 describe("QueueTable · prazo vencido (UX-W1-T4, item 9)", () => {
   it("prazo no passado mostra 'Atrasada' em texto visível, não só cor", () => {
     render(<QueueTable rows={[row({ dueAt: "2026-10-01T12:00:00Z", overdue: true })]} />);

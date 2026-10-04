@@ -26,7 +26,9 @@ import {
   subscribeDrafts,
   type DraftData,
 } from "@/lib/studio/draft-store";
+import { useHotkeys } from "@/lib/studio/use-hotkeys";
 import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
+import { HOTKEYS_TEXT as H } from "@/content/pt-BR/hotkeys";
 import { cx } from "../cx";
 import { VersionDiff } from "../editorial/VersionDiff";
 import { Button } from "../ui/Button";
@@ -264,6 +266,17 @@ export function ArticleEditor({
       await persist();
     });
   };
+
+  // Ctrl/⌘+S (item 53) salva como o botão, também com o foco no campo; o navegador não abre
+  // o "Salvar página". Em modo leitura o atalho fica desligado.
+  useHotkeys(
+    {
+      "mod+s": () => {
+        if (!pending) submit();
+      },
+    },
+    { enabled: !disabled, help: [{ keys: ["Ctrl+S", "⌘+S"], label: H.save }] },
+  );
 
   // Conflito: guarda o texto local antes de trazer a versão atual (nada se perde).
   const reload = () => {

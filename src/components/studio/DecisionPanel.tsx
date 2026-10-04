@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { REVIEW_TEXT as T } from "@/content/pt-BR/studio";
 import { DECISION_FLOW_TEXT as F } from "@/content/pt-BR/studio-flow";
+import { HOTKEYS_TEXT as H } from "@/content/pt-BR/hotkeys";
+import { useHotkeys, type HotkeyHelpEntry } from "@/lib/studio/use-hotkeys";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
@@ -99,6 +101,23 @@ export function DecisionPanel({
       onSelect: () => setAsking("reject"),
     });
   more.push({ label: T.edit, icon: "pencil", onSelect: () => router.push(editHref) });
+  // a/r (item 53): as mesmas ações dos botões Aprovar e Pedir ajuste, com as mesmas travas
+  // (checklist, pendência). Pedir ajuste abre o diálogo do motivo, como o botão.
+  const canAsk = Boolean(actions?.requestChanges) && !pending;
+  const keyHelp: HotkeyHelpEntry[] = [];
+  if (actions?.approve) keyHelp.push({ keys: ["a"], label: H.approve });
+  if (actions?.requestChanges) keyHelp.push({ keys: ["r"], label: H.requestChanges });
+  useHotkeys(
+    {
+      a: () => {
+        if (canApprove) approve(false);
+      },
+      r: () => {
+        if (canAsk) setAsking("requestChanges");
+      },
+    },
+    { enabled: Boolean(actions), help: keyHelp },
+  );
   const close = () => {
     setAsking(null);
     setReason("");

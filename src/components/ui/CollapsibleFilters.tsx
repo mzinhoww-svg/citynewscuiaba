@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useId, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import { FILTERS_TEXT } from "@/content/pt-BR/filters";
+import { HOTKEYS_TEXT } from "@/content/pt-BR/hotkeys";
+import { useHotkeys } from "@/lib/studio/use-hotkeys";
 import { cx } from "../cx";
 import { Icon } from "./Icon";
 
@@ -28,7 +31,12 @@ export interface CollapsibleFiltersProps {
   className?: string;
   /** Classes do corpo (o formulário costuma trazer o próprio layout). */
   bodyClassName?: string;
+  /** Estúdio (item 53): `/` abre o painel, se recolhido, e foca o primeiro campo. */
+  focusHotkey?: boolean;
 }
+
+const FIELD =
+  "input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled])";
 
 /**
  * Painel de filtros recolhível, o mesmo no portal e no Estúdio. Sem escolha da pessoa, o estado
@@ -50,12 +58,25 @@ export function CollapsibleFilters({
   children,
   className,
   bodyClassName,
+  focusHotkey = false,
 }: CollapsibleFiltersProps) {
   const bodyId = useId();
   // null = padrão da tela (CSS); true/false = escolha da pessoa.
   const [choice, setChoice] = useState<boolean | null>(null);
   const desktop = useSyncExternalStore(subscribeDesktop, isDesktop, () => false);
   const open = choice ?? desktop;
+
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useHotkeys(
+    {
+      "/": () => {
+        // Recolhido: o painel aparece antes (render síncrono) para o campo poder receber o foco.
+        if (!open) flushSync(() => setChoice(true));
+        bodyRef.current?.querySelector<HTMLElement>(FIELD)?.focus();
+      },
+    },
+    { enabled: focusHotkey, help: [{ keys: ["/"], label: HOTKEYS_TEXT.filters }] },
+  );
 
   return (
     <div data-collapsible-filters="" className={className}>
@@ -99,6 +120,7 @@ export function CollapsibleFilters({
       </div>
       <div
         id={bodyId}
+        ref={bodyRef}
         data-filters-body=""
         className={cx(
           "pt-3",
