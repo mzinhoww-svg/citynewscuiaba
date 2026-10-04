@@ -1,0 +1,338 @@
+<title>Wireframes Telas no Celular CityNews</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap">
+<style>
+/* Conceito: pranchas de wireframe sobre fundo de papel técnico. Cinzas azulados, um único acento (laranja da marca) para o que muda nesta proposta. */
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#14181f; --mute:#566070; --line:#d3d8e0; --block:#e4e8ee; --block2:#cfd6e0;
+  --accent:#d9480f; --accent-soft:#fde8dc; --ok:#1f7a4d; --warn:#9a6700; --warn-soft:#fff3cc; --ok-soft:#dff3e7;
+  --serif:"Newsreader",Georgia,serif; --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1319; --panel:#171c24; --ink:#eef1f6; --mute:#9aa6b8; --line:#2c3441; --block:#242c38; --block2:#313b4a;
+  --accent:#ff8a57; --accent-soft:#3a2418; --ok:#6fd49c; --warn:#f2c14e; --warn-soft:#3a2f10; --ok-soft:#14301f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1319; --panel:#171c24; --ink:#eef1f6; --mute:#9aa6b8; --line:#2c3441; --block:#242c38; --block2:#313b4a;
+  --accent:#ff8a57; --accent-soft:#3a2418; --ok:#6fd49c; --warn:#f2c14e; --warn-soft:#3a2f10; --ok-soft:#14301f; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.55;padding-inline:clamp(16px,4vw,48px);padding-block:32px 72px}
+*{box-sizing:border-box}
+.wrap{max-width:1180px;margin-inline:auto}
+header.top{display:grid;gap:10px;margin-bottom:36px;max-width:760px}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{font:600 clamp(30px,5vw,46px)/1.08 var(--serif);margin:0;text-wrap:balance}
+.lede{color:var(--mute);margin:0;font-size:17px;max-width:62ch}
+nav.idx{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+nav.idx a{font:500 13px var(--mono);color:var(--ink);text-decoration:none;border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:6px}
+nav.idx a:hover,nav.idx a:focus-visible{border-color:var(--accent);outline:2px solid var(--accent);outline-offset:2px}
+section{margin-top:56px;display:grid;gap:18px}
+h2{font:600 clamp(22px,3.4vw,30px)/1.15 var(--serif);margin:0;text-wrap:balance}
+.why{margin:0;color:var(--mute);max-width:70ch}
+.pair{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:18px;align-items:start}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
+.tag{font:500 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.tag.new{color:var(--accent)} .tag.old{color:var(--warn)}
+/* blocos de wireframe */
+.b{background:var(--block);border-radius:4px;min-height:12px}
+.t1{height:20px;width:88%} .t2{height:20px;width:62%} .tx{height:9px} .tx.s{width:70%} .tx.m{width:90%} .tx.l{width:100%}
+.hero{aspect-ratio:16/8;background:var(--block2);border-radius:6px;display:grid;place-items:center;font:500 11px var(--mono);color:var(--mute)}
+.rowflex{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--ink);border-radius:999px;font:600 13px var(--sans);padding:0 14px;color:var(--ink);background:transparent;white-space:nowrap}
+.btn.md{height:44px;padding:0 20px;font-size:15px}
+.btn.sm{height:36px}
+.btn.pri{background:var(--ink);color:var(--panel)}
+.lnk{font:500 13px var(--sans);text-decoration:underline;color:var(--mute)}
+.note{font:400 13px var(--sans);color:var(--mute)}
+.call{border-left:3px solid var(--accent);padding-left:10px;font-size:13px;color:var(--ink)}
+.call b{color:var(--accent)}
+.measure{font:500 11px var(--mono);color:var(--accent);display:flex;gap:6px;align-items:center}
+.measure::before{content:"";width:22px;border-top:1.5px dashed var(--accent)}
+.sumbox{border-left:3px solid var(--block2);background:var(--block);padding:10px 12px;border-radius:0 4px 4px 0;display:grid;gap:6px}
+.sumbox .tx{background:var(--block2)}
+/* página + posições */
+.page{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px;min-width:0}
+.slot{border:2px dashed var(--accent);background:var(--accent-soft);border-radius:6px;padding:8px 10px;display:grid;gap:6px;position:relative}
+.slot .k{font:500 11px/1.2 var(--mono);color:var(--accent);letter-spacing:.04em}
+.slot .m{font:400 12px var(--sans);color:var(--ink)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.grid3 .slot{padding:6px 8px}
+.cols{display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.nav{height:22px;background:var(--block2);border-radius:4px}
+/* admin */
+.adm{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.card{border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:8px;background:var(--panel);min-width:0}
+.card h3{font:600 15px var(--sans);margin:0}
+.pill{display:inline-flex;font:600 11px var(--sans);padding:3px 9px;border-radius:999px;width:fit-content}
+.pill.man{background:var(--accent-soft);color:var(--accent)} .pill.aut{background:var(--ok-soft);color:var(--ok)} .pill.out{background:var(--warn-soft);color:var(--warn)}
+.field{border:1px solid var(--line);border-radius:6px;height:38px;display:flex;align-items:center;padding:0 10px;font:400 13px var(--sans);color:var(--mute);background:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);border-radius:6px;padding:7px 11px;font:500 13px var(--sans);background:var(--panel)}
+.chip.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tablewrap{overflow-x:auto}
+/* janela */
+.tl{display:grid;grid-template-columns:repeat(8,1fr);gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.tl div{padding:10px 6px;font:500 12px var(--mono);text-align:center;border-right:1px solid var(--line);min-width:0}
+.tl div:last-child{border-right:0}
+.tl .on{background:var(--accent-soft);color:var(--accent)}
+.tl small{display:block;font:400 11px var(--sans);color:var(--mute);margin-top:4px}
+@media (max-width:640px){.tl{grid-template-columns:repeat(4,1fr)} .tl div:nth-child(4){border-right:0}}
+.decisions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.decisions .card p{margin:0;font-size:14px;color:var(--mute)}
+.decisions .card b{font:600 12px var(--mono);color:var(--accent);letter-spacing:.06em}
+footer{margin-top:56px;color:var(--mute);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (prefers-reduced-motion:no-preference){a{transition:border-color .15s}}
+/* Celular: moldura de 390 px reduzida, cabeçalho do portal e linhas de lista. */
+.phone{max-width:360px;width:100%;justify-self:center;border:1px solid var(--line);border-radius:18px;padding:10px;background:var(--panel);display:grid;gap:8px;min-width:0}
+.shead{display:flex;justify-content:space-between;align-items:center;padding:4px 2px}
+.logo{height:16px;width:96px;background:var(--block2);border-radius:3px}
+.live{font:600 11px var(--mono);letter-spacing:.08em;color:var(--ink);display:flex;gap:6px;align-items:center}
+.live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.secrow{display:flex;gap:14px;font:500 12px var(--sans);color:var(--mute);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 0;overflow:hidden;white-space:nowrap}
+.secrow.gutter{padding-inline:10px}
+.secrow.edge span:first-child{margin-left:-6px}
+.blackbar{height:34px;background:#000;border-radius:2px}
+.ticker{height:24px;background:var(--block2);border-radius:2px}
+.ph1{font:600 22px/1.15 var(--sans);margin:0}
+.rule{border-top:2px solid var(--ink)}
+.rule.thin{border-top-width:1px;border-color:var(--line)}
+.box{border:1px solid var(--line);border-radius:6px;padding:10px;display:grid;gap:6px}
+.box.strong{border-color:var(--ink)}
+.lrow{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding:9px 0;min-width:0}
+.lrow:first-child{border-top:1px solid var(--line)}
+.av{width:32px;height:32px;border-radius:50%;background:var(--block2);flex:none}
+.av.lg{width:44px;height:44px}
+.grow{flex:1;min-width:0;display:grid;gap:5px}
+.tabs{display:flex;gap:6px;overflow:hidden}
+.tabs span{border-radius:999px;padding:6px 10px;font:500 12px var(--sans);background:var(--block);white-space:nowrap}
+.tabs span.on{background:var(--ink);color:var(--panel)}
+.mark{background:var(--warn-soft);color:var(--warn);font:600 12px var(--mono);padding:1px 4px;border-radius:2px}
+.strike{text-decoration:line-through;color:var(--mute)}
+.fold{font:500 11px var(--mono);color:var(--mute);text-align:center;border-top:1px dashed var(--block2);padding-top:4px}
+.ok{color:var(--ok);font:600 12px var(--sans)}
+.pend{border:1.5px dashed var(--warn);background:var(--warn-soft)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">PR #56 · 04/10/2026 · wireframes</div>
+  <h1>Telas públicas no celular: faixa preta, dado pendente e ordem de leitura</h1>
+  <p class="lede">Oito pranchas do que mudou a partir das capturas do iPhone, mais uma com o que ficou para decidir. Cada prancha mostra antes e depois em 390 px. O laranja marca o que muda; o tracejado amarelo, o que depende do dono.</p>
+  <nav class="idx" aria-label="Pranchas">
+    <a href="#faixa">1 Faixa preta</a><a href="#favoritos">2 Favoritos</a><a href="#alertas">3 Alertas</a><a href="#guia">4 Guia</a><a href="#pendente">5 Dado pendente</a><a href="#newsletters">6 Newsletters</a><a href="#principios">7 Nesta página</a><a href="#fontes">8 Fontes</a><a href="#decidir">9 Para decidir</a>
+  </nav>
+</header>
+
+<section id="faixa">
+  <h2>1. Faixa preta sob o cabeçalho (todas as telas)</h2>
+  <p class="why">A faixa preta é a fileira de editorias. O esmaecimento das bordas usava <code>mask-image</code> na própria lista rolável, e o Safari do iPhone pinta isso como um bloco preto, sem texto. Agora o esmaecimento é um véu da cor da página no <code>&lt;nav&gt;</code>, sem máscara.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes · Safari do iPhone</span>
+      <div class="shead"><span class="logo"></span><span class="live">AGORA</span></div>
+      <div class="blackbar" aria-label="faixa preta"></div>
+      <div class="ticker"></div>
+      <div class="call">Editorias somem: quem chega não tem como ir a Cidade, Política, Serviços.</div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois · todos os navegadores</span>
+      <div class="shead"><span class="logo"></span><span class="live">AGORA</span></div>
+      <div class="secrow gutter"><span>Cidade</span><span>Política</span><span>Economia</span><span>Cultura</span><span>Esp…</span></div>
+      <div class="ticker"></div>
+      <div class="call"><b>Véu da cor da página</b> só do lado que ainda tem itens. "Cidade" começa na margem de 24 px, não colado na borda.</div>
+    </div>
+  </div>
+</section>
+
+<section id="favoritos">
+  <h2>2. Favoritos</h2>
+  <p class="why">O subtítulo dizia "guardado neste navegador" e logo abaixo uma caixa repetia o mesmo aviso. Depois vinha o convite de conta, e só então as abas. O que a pessoa veio ver ficava abaixo da primeira tela.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes</span>
+      <p class="ph1">Favoritos</p>
+      <div class="b tx m"></div><div class="b tx s"></div>
+      <div class="rule"></div>
+      <div class="box"><b class="note">Salvos só neste aparelho</b><div class="b tx l"></div><div class="b tx m"></div></div>
+      <div class="box"><b class="note">Por que criar uma conta</b><div class="b tx m"></div><div class="b tx s"></div><div class="rowflex"><span class="btn sm pri">Criar conta</span><span class="btn sm">Entrar</span></div></div>
+      <div class="fold">fim da primeira tela</div>
+      <div class="tabs"><span class="on">Salvos</span><span>Fontes seguidas</span><span>Temas</span></div>
+      <div class="box"><b class="note">Nenhuma matéria salva</b></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <p class="ph1">Favoritos</p>
+      <div class="b tx m"></div><div class="b tx s"></div>
+      <div class="note">Se você limpar os dados do navegador, os favoritos somem.</div>
+      <div class="rule"></div>
+      <div class="tabs"><span class="on">Salvos</span><span>Fontes seguidas</span><span>Temas</span></div>
+      <div class="box"><b class="note">Nenhuma matéria salva</b><div class="b tx m"></div><span class="btn sm">Ir para a página inicial</span></div>
+      <div class="fold">fim da primeira tela</div>
+      <div class="box"><b class="note">Por que criar uma conta</b><div class="rowflex"><span class="btn sm pri">Criar conta</span><span class="btn sm">Entrar</span><span class="lnk">Agora não</span></div></div>
+      <div class="call"><b>Uma caixa a menos.</b> O aviso vira nota do cabeçalho; o convite vai para depois do conteúdo (no desktop, coluna lateral).</div>
+    </div>
+  </div>
+</section>
+
+<section id="alertas">
+  <h2>3. Alertas</h2>
+  <p class="why">A página abria com um bloco "Avisos no celular e no computador" que só dizia que o recurso não funciona neste navegador. O formulário de criar, a ação da página, ficava depois do convite de conta.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes</span>
+      <p class="ph1">Alertas</p><div class="b tx m"></div><div class="rule"></div>
+      <div class="box"><b class="note">Avisos no celular e no computador</b><div class="note">Ainda não disponíveis neste navegador.</div></div>
+      <b class="note">Alertas ativos</b>
+      <div class="box"><div class="note">Nenhum alerta ainda. Crie o primeiro abaixo.</div></div>
+      <div class="box"><b class="note">Por que criar uma conta</b><div class="b tx s"></div></div>
+      <div class="fold">fim da primeira tela</div>
+      <div class="box strong"><b class="note">Criar alerta</b><div class="field">Tipo</div><div class="field">Alvo</div><span class="btn sm pri">Criar alerta</span></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <p class="ph1">Alertas</p><div class="b tx m"></div><div class="rule"></div>
+      <b class="note">Alertas ativos</b>
+      <div class="box"><div class="note">Nenhum alerta ainda. Use Criar alerta para receber, por exemplo, os avisos do seu bairro.</div></div>
+      <div class="box strong"><b class="note">Criar alerta</b><div class="field">Tipo</div><div class="field">Alvo</div><span class="btn sm pri">Criar alerta</span></div>
+      <div class="fold">fim da primeira tela</div>
+      <div class="note">ⓘ Avisos pelo celular ainda não estão disponíveis neste navegador.</div>
+      <div class="box"><b class="note">Por que criar uma conta</b><div class="b tx s"></div></div>
+      <div class="call"><b>Formulário na primeira tela.</b> Sem suporte a push, uma linha de nota no lugar do bloco com título. No desktop o formulário fica na coluna lateral.</div>
+    </div>
+  </div>
+</section>
+
+<section id="guia">
+  <h2>4. Guia Cuiabá sem listas</h2>
+  <p class="why">Enquanto nenhuma lista foi publicada, a página era um cabeçalho e uma caixa "chegam em breve, leia as matérias", sem nenhuma matéria na tela.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes</span>
+      <p class="ph1">Guia Cuiabá</p><div class="b tx m"></div><span class="btn sm">Matérias do Guia</span><div class="rule"></div>
+      <div class="box"><b class="note">As primeiras listas do Guia chegam em breve</b><div class="note">Enquanto isso, leia as matérias do Guia Cuiabá.</div></div>
+      <div class="call">Página sem leitura: a pessoa precisa voltar ao botão do topo.</div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <p class="ph1">Guia Cuiabá</p><div class="b tx m"></div><span class="btn sm">Matérias do Guia</span><div class="rule"></div>
+      <b class="note">As primeiras listas do Guia chegam em breve</b>
+      <div class="note">Enquanto isso, as matérias mais recentes do Guia Cuiabá:</div>
+      <div class="hero">foto</div><div class="b t2"></div>
+      <div class="hero">foto</div><div class="b t2"></div>
+      <div class="measure">até 6 matérias</div>
+      <div class="call"><b>Sem caixa.</b> Quando a primeira lista for publicada, a página volta a mostrar as listas.</div>
+    </div>
+  </div>
+</section>
+
+<section id="pendente">
+  <h2>5. Dado institucional pendente (Anuncie, Sobre, Termos, Privacidade, Contato)</h2>
+  <p class="why">O marcador de rascunho aparecia ao leitor em destaque amarelo, com a nota "aguardam dados oficiais… antes do lançamento", e o site já está no ar. O rodapé já escondia esses campos; as páginas passam a seguir a mesma regra.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes · Anuncie, Contato comercial</span>
+      <div class="box"><b class="note">Contato comercial</b>
+        <div class="note">E-mail: contato@citynews.com.br</div>
+        <div class="note">Telefone: <span class="mark">[PREENCHER]</span></div>
+        <div class="note">Os campos marcados como [PREENCHER] aguardam dados oficiais da empresa…</div>
+        <span class="btn sm pri">Falar com o comercial</span></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <div class="box"><b class="note">Contato comercial</b>
+        <div class="note">E-mail: contato@citynews.com.br</div>
+        <span class="btn sm pri">Falar com o comercial</span></div>
+      <div class="call"><b>Linha pendente some.</b> Seção que ficaria vazia (ex.: "Foro" em Termos) some junto com o atalho do índice. O telefone volta sozinho quando o dado for preenchido (B-001).</div>
+    </div>
+  </div>
+</section>
+
+<section id="newsletters">
+  <h2>6. Newsletters</h2>
+  <p class="why">Entre o topo e a primeira newsletter havia dois fios grossos colados: o fim do hero e o começo do item.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes</span>
+      <p class="ph1">Newsletters</p><div class="b tx m"></div><span class="btn sm pri">Escolher e inscrever</span>
+      <div class="rule"></div><div class="rule"></div>
+      <b class="note">Cuiabá em 5 minutos</b><div class="b tx m"></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <p class="ph1">Newsletters</p><div class="b tx m"></div><span class="btn sm pri">Escolher e inscrever</span>
+      <div class="rule"></div>
+      <b class="note">Cuiabá em 5 minutos</b><div class="b tx m"></div>
+      <div class="rule"></div><b class="note">Agenda do fim de semana</b>
+      <div class="call"><b>Um fio só.</b> Os seguintes itens mantêm o fio de separação.</div>
+    </div>
+  </div>
+</section>
+
+<section id="principios">
+  <h2>7. "Nesta página" (Princípios, Termos, Privacidade, Contato)</h2>
+  <p class="why">Os atalhos roláveis se alinhavam pela borda da tela ao encaixar, e o primeiro chip ficava colado no canto. Agora o encaixe respeita a margem.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes</span>
+      <div class="tabs" style="margin-left:-10px"><span>Origem sempre visível</span><span>Fonte antes de tudo</span></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois</span>
+      <div class="tabs" style="padding-left:14px"><span>Origem sempre visível</span><span>Fonte antes de tudo</span></div>
+      <div class="measure">margem de 24 px</div>
+    </div>
+  </div>
+</section>
+
+<section id="fontes">
+  <h2>8. Fontes em destaque</h2>
+  <p class="why">No celular, cada fonte era um card com borda, avatar de 56, "Seguir", "Ver matérias", menu ⋯ e "Detalhes" com fio próprio. Doze cards assim davam uma página enorme. O DESIGN.md §6 já pedia lista com divisória no celular e grade de cards só a partir do tablet.</p>
+  <div class="pair">
+    <div class="phone">
+      <span class="tag old">Antes · cerca de 300 px por fonte</span>
+      <div class="box"><div class="rowflex"><span class="av lg"></span><div class="grow"><div class="b t2"></div><div class="b tx s"></div></div><span class="note">⋯</span></div>
+        <div class="note">Popular em Cuiabá</div>
+        <div class="rowflex"><span class="btn sm pri">+ Seguir</span><span class="btn sm">Ver matérias</span></div>
+        <div class="rule thin"></div><div class="note">Detalhes ⌄</div></div>
+      <div class="box"><div class="rowflex"><span class="av lg"></span><div class="grow"><div class="b t2"></div><div class="b tx s"></div></div><span class="note">⋯</span></div>
+        <div class="note">Popular em Cuiabá</div>
+        <div class="rowflex"><span class="btn sm pri">+ Seguir</span><span class="btn sm">Ver matérias</span></div>
+        <div class="rule thin"></div><div class="note">Detalhes ⌄</div></div>
+      <div class="box"><b class="note">Recomendações personalizadas</b><div class="b tx m"></div></div>
+    </div>
+    <div class="phone">
+      <span class="tag new">Depois · celular, lista com divisórias</span>
+      <div>
+        <div class="lrow"><span class="av"></span><div class="grow"><div class="b t2"></div><div class="b tx s"></div><div class="note">Popular em Cuiabá</div><div class="rowflex"><span class="btn sm pri">+ Seguir</span><span class="note">Detalhes ⌄</span></div></div><span class="note">⋯</span></div>
+        <div class="lrow"><span class="av"></span><div class="grow"><div class="b t2"></div><div class="b tx s"></div><div class="note">Em alta nesta semana</div><div class="rowflex"><span class="btn sm pri">+ Seguir</span><span class="note">Detalhes ⌄</span></div></div><span class="note">⋯</span></div>
+        <div class="lrow"><span class="av"></span><div class="grow"><div class="b t2"></div><div class="b tx s"></div><div class="note">Popular em Cuiabá</div><div class="rowflex"><span class="btn sm">✓ Seguindo</span><span class="note">Detalhes ⌄</span></div></div><span class="note">⋯</span></div>
+      </div>
+      <div class="call"><b>Avatar 40, sem moldura, sem "Ver matérias"</b> (o nome já leva à página da fonte). "Detalhes" sem fio próprio. Personalização entre fios, sem caixa.</div>
+    </div>
+    <div class="sheet">
+      <span class="tag">Tablet e desktop · sem mudança</span>
+      <div class="grid3" style="grid-template-columns:repeat(2,1fr)">
+        <div class="card"><div class="rowflex"><span class="av lg"></span><div class="grow"><div class="b t2"></div></div></div><div class="rowflex"><span class="btn sm pri">Seguir</span><span class="btn sm">Ver matérias</span></div><div class="note">Detalhes ⌄</div></div>
+        <div class="card"><div class="rowflex"><span class="av lg"></span><div class="grow"><div class="b t2"></div></div></div><div class="rowflex"><span class="btn sm pri">Seguir</span><span class="btn sm">Ver matérias</span></div><div class="note">Detalhes ⌄</div></div>
+      </div>
+      <div class="note">A partir de 640 px volta a grade de cards (2 colunas no tablet, 3 no desktop).</div>
+    </div>
+  </div>
+</section>
+
+<section id="decidir">
+  <h2>9. O que ficou para decidir ou para a próxima onda</h2>
+  <p class="why">Itens vistos nas capturas que não entraram no PR #56: ou dependem do dono, ou já estão no plano de melhorias aprovado.</p>
+  <div class="decisions">
+    <div class="card pend"><b>DONO · PRINCÍPIOS</b><h3>"Temas sensíveis" contradiz as regras v3</h3><p>A página diz que crimes, saúde e eleições "nunca são publicados sem revisão humana". Com a v3 eles publicam sozinhos, com a fonte citada. O texto é compromisso público; a nova redação cabe ao dono.</p></div>
+    <div class="card pend"><b>DONO · FONTES</b><h3>Fileira repete o topo da lista</h3><p>"Mais acessadas em Cuiabá" mostra as mesmas 4 fontes que abrem a aba "Mais acessadas" logo abaixo. Esconder a fileira nessa aba muda um critério de aceite do P14.</p></div>
+    <div class="card"><b>PRÓXIMA · FONTES</b><h3>Seguir quebra linha em Recomendadas</h3><p>Em 390 px o botão desce sozinho para a linha de baixo. Ajuste de largura do nome e do botão.</p></div>
+    <div class="card"><b>PLANO · ITEM 78</b><h3>Foto quebrada em Serviços</h3><p>Imagem que falha mostra a caixa cinza com legenda. O substituto da marca entra na onda W5.</p></div>
+    <div class="card"><b>PLANO · ITEM 13</b><h3>Ticker "Última hora"</h3><p>Sem rolagem automática por padrão, manchete em caixa de frase, botão Pausar.</p></div>
+    <div class="card"><b>PLANO · ITEM 69</b><h3>"Agora" pulsando</h3><p>O halo do ponto aparece como mancha rosa. Pulsa só na home e vira link para a lista Agora.</p></div>
+  </div>
+</section>
+
+<footer>Wireframes de baixa fidelidade das mudanças do PR #56 (decisão A-143). Medidas e textos finais estão no código; capturas de antes e depois em 390 px foram feitas no Chromium. A faixa preta só aparece no WebKit e precisa ser conferida num iPhone pelo preview da Vercel.</footer>
+</div>
