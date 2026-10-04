@@ -93,3 +93,65 @@ describe("C1-01 article_versions", () => {
     expect((r.data ?? []).length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("C1-03 push_audit", () => {
+  const ref = (s: string) => `push:p1-${run}-${s}`;
+  const approvalIds: string[] = [];
+
+  afterAll(async () => {
+    for (const id of approvalIds) await service.from("approvals").delete().eq("id", id);
+  });
+
+  it("leitor sem papel recebe 42501 e nada é gravado", async () => {
+    const r = await reader.rpc("push_audit", {
+      p_action: "push.approve",
+      p_object: ref("leitor"),
+      p_details: {},
+    });
+    expect(r.error?.code).toBe("42501");
+    const rows = await service.from("audit_log").select("id").eq("object_ref", ref("leitor"));
+    expect(rows.data ?? []).toHaveLength(0);
+  });
+
+  it("admin com p_details acima de 2 KB recebe 22023", async () => {
+    const r = await (
+      await staff("helena")
+    ).rpc("push_audit", {
+      p_action: "push.approve",
+      p_object: ref("grande"),
+      p_details: { s: "x".repeat(2100) },
+    });
+    expect(r.error?.code).toBe("22023");
+    const rows = await service.from("audit_log").select("id").eq("object_ref", ref("grande"));
+    expect(rows.data ?? []).toHaveLength(0);
+  });
+
+  it("admin grava com p_details nulo como {}", async () => {
+    const r = await (
+      await staff("helena")
+    ).rpc("push_audit", {
+      p_action: "push.approve",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- o tipo gerado não aceita null
+      p_details: null as any,
+      p_object: ref("nulo"),
+    });
+    expect(r.error).toBeNull();
+    const rows = await service.from("audit_log").select("details").eq("object_ref", ref("nulo"));
+    expect(rows.data).toHaveLength(1);
+    expect(rows.data?.[0]?.details).toEqual({});
+  });
+
+  it("push_resume_request por admin continua auditando", async () => {
+    const reason = `p1-${run}-retomada`;
+    const r = await (await staff("helena")).rpc("push_resume_request", { p_reason: reason });
+    expect(r.error).toBeNull();
+    const id = r.data as unknown as string;
+    approvalIds.push(id);
+    const rows = await service
+      .from("audit_log")
+      .select("details")
+      .eq("action", "push.resume_requested")
+      .contains("details", { approvalId: id });
+    expect(rows.data).toHaveLength(1);
+  });
+});
