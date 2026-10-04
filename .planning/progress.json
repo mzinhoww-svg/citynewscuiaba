@@ -1030,7 +1030,9 @@
         "note": "rota direta como review-tick, sem STEP_NAMES"
       },
       "HOT-T3": {
-        "status": "pending"
+        "status": "done",
+        "commit": "01b00c7",
+        "migration": "0153_hot_pins (aplicar após merge, depois da 0151)"
       },
       "GATE": {
         "status": "pending"
