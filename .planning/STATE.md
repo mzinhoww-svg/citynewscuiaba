@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — decisões D-01 a D-06 (PR #44); migrations 0151 a 0153 e proposta v4 aplicadas em produção com autorização do dono.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Logotipos das fontes (A-144): 12 fontes em destaque com o logotipo do pacote do dono, no ar em produção como `manual` (`assets/source-logos`, `scripts/sources/build-source-logos.mjs`). Pendente: aplicar 0157 (remove política temporária já neutralizada, B-029).
+
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 
 > 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.

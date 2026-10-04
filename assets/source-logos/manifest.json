@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "agencia-brasil",
+    "id": "13f750a5-71fe-42db-b526-89cf063c2e1a",
+    "original": "agencia-brasil.svg",
+    "path": "13f750a5-71fe-42db-b526-89cf063c2e1a/6c7f87f01a516488.png",
+    "bytes": 27807
+  },
+  {
+    "slug": "canal-rural",
+    "id": "0894833c-3b6b-4dc1-8236-b7e98bdfeacd",
+    "original": "canal-rural.png",
+    "path": "0894833c-3b6b-4dc1-8236-b7e98bdfeacd/5e15220b4df4c125.png",
+    "bytes": 117520
+  },
+  {
+    "slug": "circuito-mt",
+    "id": "592f618e-370f-481b-b833-fd1848e45082",
+    "original": "circuito-mato-grosso.png",
+    "path": "592f618e-370f-481b-b833-fd1848e45082/56dc6ddd76b79912.png",
+    "bytes": 22934
+  },
+  {
+    "slug": "folhamax",
+    "id": "61e93957-0953-4812-adc6-06b35ef2cb93",
+    "original": "folhamax.png",
+    "path": "61e93957-0953-4812-adc6-06b35ef2cb93/ab425ad07997b032.png",
+    "bytes": 40068
+  },
+  {
+    "slug": "gazeta-digital",
+    "id": "4e8d4a94-2ee7-4cd3-bd57-05ca03a8f658",
+    "original": "gazeta-digital.png",
+    "path": "4e8d4a94-2ee7-4cd3-bd57-05ca03a8f658/a3a56590243a8101.png",
+    "bytes": 84528
+  },
+  {
+    "slug": "hipernoticias",
+    "id": "586da643-c568-4984-bcbe-8a3ddabeefc8",
+    "original": "hipernoticias.png",
+    "path": "586da643-c568-4984-bcbe-8a3ddabeefc8/ed01bab7c6069076.png",
+    "bytes": 42620
+  },
+  {
+    "slug": "leiagora",
+    "id": "b2c3d404-8dbb-4bd6-b734-012b4e031be4",
+    "original": "leiagora.jpg",
+    "path": "b2c3d404-8dbb-4bd6-b734-012b4e031be4/548431f9d27d08bf.png",
+    "bytes": 140556
+  },
+  {
+    "slug": "o-documento",
+    "id": "0c7873f0-9238-43be-8058-1f4935a59ec9",
+    "original": "o-documento.png",
+    "path": "0c7873f0-9238-43be-8058-1f4935a59ec9/8ca690c4236e227c.png",
+    "bytes": 45094
+  },
+  {
+    "slug": "olhar-direto",
+    "id": "343ad011-5545-44fd-a7a8-d57da5d5d6cc",
+    "original": "olhardireto.png",
+    "path": "343ad011-5545-44fd-a7a8-d57da5d5d6cc/07efac5eda077fc3.png",
+    "bytes": 40916
+  },
+  {
+    "slug": "prefeitura-vg",
+    "id": "b10b15bd-d3b5-4d8e-8eee-5473e097ec27",
+    "original": "prefeitura-varzea-grande.png",
+    "path": "b10b15bd-d3b5-4d8e-8eee-5473e097ec27/116f78402527d537.png",
+    "bytes": 75292
+  },
+  {
+    "slug": "rdnews",
+    "id": "128c9fbc-2828-4ef6-8ef9-630eac945a60",
+    "original": "rdnews.png",
+    "path": "128c9fbc-2828-4ef6-8ef9-630eac945a60/93b33d7cdae3dcc0.png",
+    "bytes": 55196
+  },
+  {
+    "slug": "so-noticias",
+    "id": "2a7b0a33-da4f-49cd-97c7-1d2c756ed06b",
+    "original": "so-noticias.png",
+    "path": "2a7b0a33-da4f-49cd-97c7-1d2c756ed06b/fb7b4b7d07ca4d6b.png",
+    "bytes": 51355
+  }
+]
