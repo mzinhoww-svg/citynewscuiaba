@@ -1,5 +1,5 @@
 -- Recupera a foto das matérias publicadas sem capa porque o limite por hora da fonte acabou ou o
--- item não tinha a URL da foto (A-143). Pré-requisito: deploy com o passo de imagem que entende
+-- item não tinha a URL da foto (A-145). Pré-requisito: deploy com o passo de imagem que entende
 -- `article:<id>#photo<n>` (sem ele a mensagem falha como referência inválida).
 -- Para cada item sem URL de foto: `enrich` `#refetch` (lê og:image da página). Depois, a nova
 -- tentativa da foto. Os pedidos de cada fonte ficam espaçados dentro do limite por hora dela,

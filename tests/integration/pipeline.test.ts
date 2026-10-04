@@ -245,7 +245,7 @@ async function runCycle(opts: {
   trash.runIds.add(tick.runId);
 
   // Nova tentativa da foto (`#photo<n>`) e a página pedida de novo (`#refetch`) ficam agendadas
-  // para depois (A-143): não são trabalho pendente deste ciclo.
+  // para depois (A-145): não são trabalho pendente deste ciclo.
   const scheduled = async () => {
     const { data, error } = await db
       .from("jobs")
