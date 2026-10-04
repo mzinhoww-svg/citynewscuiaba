@@ -114,7 +114,8 @@ test("modo leitura bloqueia o Estúdio e a contingência continua valendo", asyn
     await expect(page.getByRole("status")).toContainText("Modo leitura ligado");
     expect(await flag("read_only")).toBe(true);
 
-    // Retomar publicação automática abre pedido de aprovação, mesmo em modo leitura.
+    // Retomar publicação automática religa na hora, sem segunda pessoa (A-125), mesmo em modo
+    // leitura.
     await page.getByRole("button", { name: "Retomar publicação automática" }).click();
     await page.getByRole("dialog").getByLabel("Motivo").fill("Incidente resolvido (teste)");
     await page
@@ -122,9 +123,8 @@ test("modo leitura bloqueia o Estúdio e a contingência continua valendo", asyn
       .getByLabel(/Digite RETOMAR/)
       .fill("RETOMAR PUBLICAÇÃO AUTOMÁTICA");
     await page.getByRole("dialog").getByRole("button", { name: "Confirmar" }).click();
-    await expect(page.getByRole("status")).toContainText("Pedido aberto");
-    await expect(page.getByText(/pedidos? aguardam? segunda aprovação/)).toBeVisible();
-    expect(await flag("auto_publish")).toBe(false);
+    await expect(page.getByRole("status")).toContainText("Publicação automática religada");
+    expect(await flag("auto_publish")).toBe(true);
 
     await page.getByRole("button", { name: "Sair do modo leitura" }).click();
     await page.getByRole("dialog").getByLabel("Motivo").fill("Migração concluída");
