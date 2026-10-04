@@ -49,7 +49,7 @@ export const ADMIN_TEXT = {
   users: {
     title: "Usuários",
     intro:
-      "Quem tem acesso ao Estúdio, com papel e editorias. Convite chega por e-mail; papel de administração passa por um pedido registrado, que o próprio admin aprova e aplica na hora.",
+      "Quem tem acesso ao Estúdio, com papel e editorias. Convite chega por e-mail; conceder ou revogar papel é uma ação só, registrada no histórico de aprovações e na auditoria com o nome de quem fez.",
     invite: "Convidar pessoa",
     table: "Pessoas da equipe",
     col: { name: "Nome", email: "E-mail", roles: "Papéis", status: "Situação", actions: "Ações" },
@@ -72,26 +72,14 @@ export const ADMIN_TEXT = {
     },
     rolesDialog: {
       title: (name: string) => `Papéis de ${name}`,
-      hint: "Marque os papéis. Editor precisa de pelo menos uma editoria. Administração pede justificativa e fica registrada no histórico de aprovações.",
+      hint: "Marque os papéis. Editor precisa de pelo menos uma editoria. Conceder ou revogar administração pede justificativa. Cada mudança fica registrada no histórico de aprovações.",
       submit: "Salvar papéis",
       saved: "Papéis atualizados.",
-      adminRequested:
-        "Pedido de papel de administração registrado. Ele aguarda aprovação na caixa de aprovações.",
       adminAppliedNow: "Papel de administração aplicado. Fica registrado no histórico.",
-      adminPending: "Pedido de administração aguardando aprovação",
-      adminApproved: "Aprovado: aplicar papel de administração",
-      apply: "Aplicar",
-      applied: "Papel de administração aplicado.",
-      revokeRequested:
-        "Pedido de revogação da administração registrado. Depois de aprovado, use “Aplicar revogação”.",
       revokeAppliedNow: "Papel de administração revogado. Fica registrado no histórico.",
-      revokePending: "Revogação de administração aguardando aprovação",
-      revokeApproved: "Revogação aprovada: aplicar",
-      revokeApply: "Aplicar revogação",
-      revokeApplied: "Papel de administração revogado.",
       self: "Ninguém altera os próprios papéis.",
       editorNeedsSection: "Editor precisa de pelo menos uma editoria.",
-      justification: "Justificativa (para o pedido de administração)",
+      justification: "Justificativa (mudança na administração)",
       justificationRequired: "Explique o motivo da mudança no papel de administração.",
     },
   },
