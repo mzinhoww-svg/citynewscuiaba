@@ -23,7 +23,7 @@ export interface IconButtonProps {
 
 const VARIANT = {
   outline: "bg-card-white text-strong border border-line-control hover:bg-section",
-  filled: "bg-card text-strong border border-transparent hover:bg-nevoa-2",
+  filled: "bg-card text-strong border border-transparent hover:bg-hover",
   inverse: "bg-branco/15 text-branco border border-branco/40 hover:bg-branco/25",
   ghost: "bg-transparent text-strong border border-transparent hover:bg-section",
 } as const;

@@ -43,7 +43,7 @@ export function GuideScreen({
                 className={
                   t.id === active
                     ? "inline-flex h-chip items-center rounded-pill bg-action-primary px-4.5 text-14 font-semibold text-on-inverse no-underline"
-                    : "inline-flex h-chip items-center rounded-pill bg-section px-4.5 text-14 text-meta no-underline hover:bg-nevoa-2 hover:text-strong"
+                    : "inline-flex h-chip items-center rounded-pill bg-section px-4.5 text-14 text-meta no-underline hover:bg-hover hover:text-strong"
                 }
               >
                 {t.label}

@@ -83,7 +83,7 @@ export function RichEditor({
       onClick={run}
       className={cx(
         "flex min-h-tap min-w-11 items-center justify-center rounded-sm px-2 text-14 text-strong",
-        "hover:bg-nevoa-2 aria-pressed:bg-nevoa-2 disabled:text-placeholder",
+        "hover:bg-hover aria-pressed:bg-hover disabled:text-placeholder",
         extra,
       )}
     >

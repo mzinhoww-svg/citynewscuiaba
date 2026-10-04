@@ -52,7 +52,7 @@ const SIZE = {
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
     "bg-action-primary text-on-inverse border border-transparent active:bg-action-primary-pressed hover:bg-action-primary-pressed",
-  secondary: "bg-action-secondary text-strong border border-transparent hover:bg-nevoa-2",
+  secondary: "bg-action-secondary text-strong border border-transparent hover:bg-hover",
   outline: "bg-card-white text-strong border border-line-control hover:bg-section",
   "outline-strong": "bg-transparent text-strong border border-line-strong hover:bg-section",
   /* R14: Tinta sobre Urgente (5,05:1); branco sobre Urucum reprova AA. */
@@ -107,7 +107,7 @@ export function Button({
     disabled
       ? cx(
           "cursor-not-allowed border border-transparent text-placeholder",
-          inline ? "bg-transparent" : "bg-nevoa-2",
+          inline ? "bg-transparent" : "bg-section",
         )
       : VARIANT[variant],
     className,

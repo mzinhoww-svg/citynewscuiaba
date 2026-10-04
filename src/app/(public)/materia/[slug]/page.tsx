@@ -269,7 +269,7 @@ function Article({ a }: { a: ArticleView }) {
                 <li>
                   <Link
                     href={`/${a.section.slug}`}
-                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
                   >
                     {a.section.name}
                   </Link>
@@ -278,7 +278,7 @@ function Article({ a }: { a: ArticleView }) {
                   <li>
                     <Link
                       href={`/assunto/${a.topic.slug}`}
-                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
                     >
                       {ARTICLE.topicTag(a.topic.title)}
                     </Link>

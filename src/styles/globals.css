@@ -45,6 +45,7 @@
   --color-photo: var(--surface-photo);
   --color-overlay: var(--surface-overlay);
   --color-aggregated: var(--surface-aggregated);
+  --color-hover: var(--surface-hover);
 
   /* Texto */
   --color-strong: var(--text-strong);
@@ -325,6 +326,19 @@
   /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
   & input:focus-visible {
     outline: none !important;
+  }
+}
+
+/*
+ * Placa Tinta (UX-W1-T1, D-18): no claro a borda é transparente (a placa já contrasta com a
+ * página); no escuro a Tinta quase some sobre o fundo, então a placa ganha a hairline do tema.
+ * Só a cor: a largura vem do componente (`border`, `border-t`), para não brigar com a ordem dos
+ * utilitários de largura do Tailwind.
+ */
+@utility plate-edge {
+  border-color: transparent;
+  :root[data-theme="dark"] & {
+    border-color: var(--border-subtle);
   }
 }
 

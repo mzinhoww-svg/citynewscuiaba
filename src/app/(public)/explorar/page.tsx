@@ -49,7 +49,7 @@ function Header() {
             <li key={a.id} className="snap-start">
               <a
                 href={`#${a.id}`}
-                className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
+                className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
               >
                 {a.label}
               </a>
@@ -166,7 +166,7 @@ function Explore({ data }: { data: ExploreData }) {
               <li key={s.slug}>
                 <Link
                   href={s.href}
-                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
+                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
                 >
                   {s.name}
                 </Link>

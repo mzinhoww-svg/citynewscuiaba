@@ -78,7 +78,7 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
                 <li key={s.title} className="snap-start lg:border-b lg:border-line-subtle">
                   <a
                     href={`#${anchor(s.title)}`}
-                    className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2 lg:flex lg:whitespace-normal lg:rounded-none lg:bg-transparent lg:px-0 lg:py-2 lg:hover:bg-transparent lg:hover:text-link"
+                    className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover lg:flex lg:whitespace-normal lg:rounded-none lg:bg-transparent lg:px-0 lg:py-2 lg:hover:bg-transparent lg:hover:text-link"
                   >
                     {s.title}
                   </a>
@@ -156,7 +156,7 @@ export function DocRelated({ path }: { path: string }) {
           <li key={l.href}>
             <Link
               href={l.href}
-              className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
+              className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
             >
               {l.label}
             </Link>
