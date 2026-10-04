@@ -61,9 +61,10 @@ export const APPROVER_ACTION: Record<CriticalKind, Action> = {
   "prompt.publish": "prompt.publish",
   "rec.weights": "rec.weights",
   "role.admin": "users.manage",
-  "push.urgent": "article.publish",
-  "push.highlight": "article.publish",
-  "push.resume": "article.publish",
+  // Mesma permissão que o banco exige para decidir push (`guard_push_approvals`: push.approve).
+  "push.urgent": "push.approve",
+  "push.highlight": "push.approve",
+  "push.resume": "push.approve",
   "source.critical": "source.approve_critical",
 };
 
@@ -75,9 +76,19 @@ export const APPLIED_HERE: ReadonlySet<CriticalKind> = new Set<CriticalKind>([
 ]);
 
 /** Onde a pessoa decide o pedido: na caixa de aprovações ou na tela do próprio alvo. */
+/**
+ * Tipos decididos na tela do próprio alvo, nunca pela caixa de aprovações: a decisão de push muda
+ * o envio junto (`push_sends` sai de `pending_approval`, `guard_push_sends`), e só a tela de
+ * notificações faz isso; aprovar pela caixa deixaria o envio parado até expirar.
+ */
+export function decidedElsewhere(kind: CriticalKind): boolean {
+  return kind === "source.critical" || kind.startsWith("push.");
+}
+
 export function approvalHref(kind: CriticalKind, target: ApprovalTarget): string {
   if (kind === "source.critical" && target.kind === "source")
     return `/estudio/control/fontes/${target.sourceId}`;
+  if (kind.startsWith("push.")) return "/estudio/admin/notificacoes";
   if (kind === "role.admin") return "/estudio/admin/usuarios";
   return "/estudio/control/aprovacoes";
 }

@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — auditoria 360 (`docs/audit/`), branch `claude/vigilant-babbage-ndnhwp`.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
+
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Onde o projeto está
@@ -10,11 +12,12 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 - **P0 a P6 concluídos** (69/70 tarefas; P6-T4, exercício de restauração, degradado por falta de 2º projeto Supabase, B-021). Painel de Fontes, PWA, UI pública, autonomia de publicação (regras v3), destaques, publicidade (ADS-T1..T4), Guia Cuiabá e segurança P1 entregues depois.
 - **Produção:** https://citynewscuiaba.vercel.app, projeto Supabase `citynews-prod`. Pipeline com regras v3 e disjuntor.
 - **Retomada (A-133, 04/10):** UI-T12 (login), UI-T13 (chat), HOT-T1..T3 (pauta quente), UI-T10, UI-T11, UI-T14 e fechamentos em execução pelo plano `docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md` (branch `claude/peaceful-turing-6oaw2k`, PR #43). TXT-T1..T3 encerradas por outro caminho.
+- **Closure (04/10, PR #41, `docs/orchestrator/`):** produção conferida por consulta. 0146, 0147, 0148 e 0149 aplicadas e verificadas; disjuntor 300/3.000 e `auto_publish` ligado pela recuperação A-126 do dono (13h39 UTC). **0143 segue NÃO aplicada.** HNT recebe o texto completo; RDNews ainda não (motivo registrado em `pipeline_events.details.note` depois do deploy da #41). Redator tenta de novo antes do rascunho sem IA.
 - **Auditoria 360 (04/10):** diagnóstico, inventário de regras, arquitetura-alvo e roadmap em `docs/audit/`; ADR-010 a ADR-014 em `docs/adr/`. Corrigido o revisor noturno que podia publicar rascunho sem IA (A-129, que também fecha a promessa de B-015 "nunca publica sozinho"); linhagens independentes medidas em sombra (A-130); governança (A-131).
 
 ## Próximas ações
 
-1. **Produção:** aplicar `0150_reviewer_skips_ai_fallback.sql` (depois das 0148 e 0149 da main, se ainda não aplicadas); conferir a linha de `publish_breaker` (60/800 ou 300/3.000? A migration 0146 mudou só o padrão da coluna); conferir se 0074 e 0143 já estão aplicadas; conferir qual chave do OpenRouter vence em 28/10.
+1. **Produção:** aplicar `0150_reviewer_skips_ai_fallback.sql` (0148 e 0149 já aplicadas; disjuntor já em 300/3.000); aplicar 0143 depois da pré-checagem (`docs/orchestrator/migration-matrix.md`); conferir qual chave do OpenRouter vence em 28/10.
 2. **Decisões do dono D-01 a D-06** (abaixo).
 3. **Roadmap** (`docs/audit/EVOLUTION-ROADMAP.md`): EV-03 conferência de afirmações em sombra, EV-04 alertas fora do banco, EV-05 avaliação por agente e portão de prompt, EV-07 deduplicação resiliente, EV-10 índice vetorial.
 
