@@ -32,6 +32,26 @@ function setup(over: Partial<DecisionPanelProps> = {}) {
   return { approve };
 }
 
+describe("DecisionPanel · atalhos (UX-W3-T5, item 53)", () => {
+  it("a aprova como o botão; r abre Pedir ajuste com motivo (sem pular a confirmação)", async () => {
+    const user = userEvent.setup();
+    const { approve } = setup();
+    await user.keyboard("a");
+    expect(approve).toHaveBeenCalledWith({ id: "a1" });
+
+    await user.keyboard("r");
+    const dialog = screen.getByRole("dialog", { hidden: true });
+    expect(within(dialog).getByRole("heading", { hidden: true })).toHaveTextContent("Pedir ajuste");
+  });
+
+  it("com checklist incompleto, a não aprova", async () => {
+    const user = userEvent.setup();
+    const { approve } = setup({ blocker: "Falta a fonte" });
+    await user.keyboard("a");
+    expect(approve).not.toHaveBeenCalled();
+  });
+});
+
 describe("DecisionPanel · ações ao alcance (UX-W3-T1, item 45)", () => {
   it("abaixo de xl, Aprovar e Pedir ajuste ficam numa barra fixa no rodapé com área segura", () => {
     setup();

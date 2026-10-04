@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition, type ReactNode } from "react";
+import { useId, useRef, useState, useTransition, type ReactNode } from "react";
 import {
   ARTICLE_STATUS_LABEL,
   CONFIDENCE_LABEL,
@@ -11,7 +11,9 @@ import {
 } from "@/content/pt-BR/studio";
 import { REVIEW_BULK_TEXT as R } from "@/content/pt-BR/studio-review";
 import { QUEUE_FLOW_TEXT as F } from "@/content/pt-BR/studio-flow";
+import { HOTKEYS_TEXT as H } from "@/content/pt-BR/hotkeys";
 import { formatDateTime } from "@/lib/format/date";
+import { useHotkeys } from "@/lib/studio/use-hotkeys";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -191,6 +193,31 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
   };
   const showBar = bulk !== undefined && selectionCount > 0;
 
+  // j/k (item 53): o foco anda pelos links de título das linhas; Enter, nativo do link, abre.
+  // Tabela e cartão do celular são a mesma marcação, então a linha em foco é sempre a visível.
+  const tableRef = useRef<HTMLTableElement>(null);
+  const moveRow = (step: 1 | -1) => {
+    const links = [
+      ...(tableRef.current?.querySelectorAll<HTMLAnchorElement>("tbody > tr > th a[href]") ?? []),
+    ];
+    if (links.length === 0) return;
+    const active = document.activeElement;
+    const at = links.findIndex((a) => a.closest("tr")?.contains(active));
+    const next = at < 0 ? 0 : Math.min(Math.max(at + step, 0), links.length - 1);
+    links[next]?.focus();
+  };
+  useHotkeys(
+    { j: () => moveRow(1), k: () => moveRow(-1) },
+    {
+      enabled: rows.length > 0,
+      help: [
+        { keys: ["j"], label: H.queueNext },
+        { keys: ["k"], label: H.queuePrev },
+        { keys: ["Enter"], label: H.queueOpen },
+      ],
+    },
+  );
+
   return (
     <div className={cx("flex flex-col gap-4", className)}>
       <p role="status" aria-live="polite" className="min-h-6 type-body">
@@ -225,7 +252,10 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
             tabIndex={0}
             className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
           >
-            <table className="w-full border-collapse text-left max-md:block md:min-w-[56rem]">
+            <table
+              ref={tableRef}
+              className="w-full border-collapse text-left max-md:block md:min-w-[56rem]"
+            >
               <caption className="sr-only">{T.caption}</caption>
               <thead
                 className={cx(

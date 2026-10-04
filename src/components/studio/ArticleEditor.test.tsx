@@ -292,3 +292,33 @@ describe("ArticleEditor · barra de salvar e rascunho automático (item 48, E-18
     confirm.mockRestore();
   });
 });
+
+describe("ArticleEditor · atalho de salvar (UX-W3-T5, item 53)", () => {
+  const ctrlS = (target: EventTarget, init: KeyboardEventInit = { ctrlKey: true }) => {
+    const ev = new KeyboardEvent("keydown", { key: "s", bubbles: true, cancelable: true, ...init });
+    target.dispatchEvent(ev);
+    return ev;
+  };
+
+  it("Ctrl+S salva mesmo com o foco no campo e impede o salvar do navegador", async () => {
+    const save = vi.fn().mockResolvedValue({ ok: true, message: "Salvo", version: 4 });
+    render(<ArticleEditor {...base} save={save} />);
+    const title = screen.getByRole("textbox", { name: "Título" });
+    title.focus();
+    let ev: KeyboardEvent | undefined;
+    await act(async () => {
+      ev = ctrlS(title);
+    });
+    expect(ev?.defaultPrevented).toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it("modo leitura: ⌘+S não salva", async () => {
+    const save = vi.fn();
+    render(<ArticleEditor {...base} save={save} readOnly />);
+    await act(async () => {
+      ctrlS(document.body, { metaKey: true });
+    });
+    expect(save).not.toHaveBeenCalled();
+  });
+});
