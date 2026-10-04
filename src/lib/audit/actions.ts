@@ -114,6 +114,10 @@ export const AUDIT_ACTIONS = [
   ...PUSH_AUDIT_ACTIONS,
   // Publicação forçada da fila de revisão (REV-T1, 0054)
   "article.force_publish",
+  // Destaques por posição (FD-T1, 0090): `featured.manage` vem de ACTIONS
+  "featured.pin",
+  "featured.unpin",
+  "featured.update",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

@@ -713,6 +713,7 @@ export type Database = {
           duplicate_of: string | null;
           embedding: string | null;
           excerpt: string | null;
+          source_text: string | null;
           id: string;
           image_url: string | null;
           locality: string | null;
@@ -739,6 +740,7 @@ export type Database = {
           duplicate_of?: string | null;
           embedding?: string | null;
           excerpt?: string | null;
+          source_text?: string | null;
           id?: string;
           image_url?: string | null;
           locality?: string | null;
@@ -765,6 +767,7 @@ export type Database = {
           duplicate_of?: string | null;
           embedding?: string | null;
           excerpt?: string | null;
+          source_text?: string | null;
           id?: string;
           image_url?: string | null;
           locality?: string | null;
@@ -1439,6 +1442,113 @@ export type Database = {
           risks?: NonNullable<Json>;
           status?: string;
           total?: number;
+        };
+        Relationships: [];
+      };
+      featured_image_requests: {
+        Row: {
+          article_id: string;
+          requested_at: string;
+        };
+        Insert: {
+          article_id: string;
+          requested_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          requested_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_image_requests_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: true;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      featured_items: {
+        Row: {
+          article_id: string;
+          created_at: string;
+          created_by: string | null;
+          ends_at: string | null;
+          ended_at: string | null;
+          id: string;
+          kind: string;
+          note: string;
+          position: number;
+          section_slug: string | null;
+          slot_key: string;
+          starts_at: string;
+        };
+        Insert: {
+          article_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key: string;
+          starts_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key?: string;
+          starts_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_items_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "featured_items_slot_key_fkey";
+            columns: ["slot_key"];
+            isOneToOne: false;
+            referencedRelation: "featured_slots";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
+      featured_slots: {
+        Row: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position: number;
+        };
+        Insert: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position?: number;
+        };
+        Update: {
+          capacity?: number;
+          key?: string;
+          label?: string;
+          page?: string;
+          position?: number;
         };
         Relationships: [];
       };
@@ -2283,6 +2393,117 @@ export type Database = {
           },
         ];
       };
+      studio_notifications: {
+        Row: {
+          audience: Json;
+          body: string;
+          created_at: string;
+          dedupe_key: string;
+          expires_at: string | null;
+          href: string;
+          id: string;
+          kind: string;
+          object_ref: string | null;
+          push_sent_at: string | null;
+          severity: string;
+          title: string;
+        };
+        Insert: {
+          audience?: Json;
+          body?: string;
+          created_at?: string;
+          dedupe_key: string;
+          expires_at?: string | null;
+          href: string;
+          id?: string;
+          kind: string;
+          object_ref?: string | null;
+          push_sent_at?: string | null;
+          severity?: string;
+          title: string;
+        };
+        Update: {
+          audience?: Json;
+          body?: string;
+          created_at?: string;
+          dedupe_key?: string;
+          expires_at?: string | null;
+          href?: string;
+          id?: string;
+          kind?: string;
+          object_ref?: string | null;
+          push_sent_at?: string | null;
+          severity?: string;
+          title?: string;
+        };
+        Relationships: [];
+      };
+      studio_notification_reads: {
+        Row: {
+          dismissed_at: string | null;
+          notification_id: string;
+          read_at: string | null;
+          user_id: string;
+        };
+        Insert: {
+          dismissed_at?: string | null;
+          notification_id: string;
+          read_at?: string | null;
+          user_id: string;
+        };
+        Update: {
+          dismissed_at?: string | null;
+          notification_id?: string;
+          read_at?: string | null;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      publish_breaker: {
+        Row: {
+          ai_failures_per_hour: number;
+          daily_limit: number;
+          hourly_limit: number;
+          id: boolean;
+          reports_per_hour: number;
+          reset_at: string | null;
+          reset_by: string | null;
+          trip_detail: Json;
+          trip_reason: string | null;
+          tripped_at: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          ai_failures_per_hour?: number;
+          daily_limit?: number;
+          hourly_limit?: number;
+          id?: boolean;
+          reports_per_hour?: number;
+          reset_at?: string | null;
+          reset_by?: string | null;
+          trip_detail?: Json;
+          trip_reason?: string | null;
+          tripped_at?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          ai_failures_per_hour?: number;
+          daily_limit?: number;
+          hourly_limit?: number;
+          id?: boolean;
+          reports_per_hour?: number;
+          reset_at?: string | null;
+          reset_by?: string | null;
+          trip_detail?: Json;
+          trip_reason?: string | null;
+          tripped_at?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: {
           auth: string;
@@ -2306,6 +2527,7 @@ export type Database = {
           quiet_end: number;
           quiet_start: number;
           targets: string[];
+          staff_alerts: boolean;
           user_id: string | null;
           want_follow: boolean;
           want_highlight: boolean;
@@ -2333,6 +2555,7 @@ export type Database = {
           quiet_end?: number;
           quiet_start?: number;
           targets?: string[];
+          staff_alerts?: boolean;
           user_id?: string | null;
           want_follow?: boolean;
           want_highlight?: boolean;
@@ -2360,6 +2583,7 @@ export type Database = {
           quiet_end?: number;
           quiet_start?: number;
           targets?: string[];
+          staff_alerts?: boolean;
           user_id?: string | null;
           want_follow?: boolean;
           want_highlight?: boolean;
@@ -3145,6 +3369,30 @@ export type Database = {
           },
         ];
       };
+      source_logo_checks: {
+        Row: {
+          checked_at: string;
+          detail: string | null;
+          found_at: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Insert: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Update: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome?: string;
+          source_id?: string;
+        };
+        Relationships: [];
+      };
       sources: {
         Row: {
           agreement_note: string | null;
@@ -3174,6 +3422,8 @@ export type Database = {
           layer: number | null;
           locality: string;
           logo_path: string | null;
+          logo_origin_url: string | null;
+          logo_source: string | null;
           may_be_sole_source: boolean;
           name: string;
           owner_id: string | null;
@@ -3225,6 +3475,8 @@ export type Database = {
           layer?: number | null;
           locality: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name: string;
           owner_id?: string | null;
@@ -3276,6 +3528,8 @@ export type Database = {
           layer?: number | null;
           locality?: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name?: string;
           owner_id?: string | null;
@@ -4195,6 +4449,22 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      featured_assert_role: { Args: never; Returns: undefined };
+      featured_has_cover: { Args: { p_article: string }; Returns: boolean };
+      featured_pin: {
+        Args: {
+          p_article: string;
+          p_ends_at: string | null;
+          p_note?: string;
+          p_replace?: string | null;
+          p_section: string | null;
+          p_slot: string;
+        };
+        Returns: string;
+      };
+      featured_reorder: { Args: { p_ids: string[]; p_slot: string }; Returns: number };
+      featured_request_images: { Args: { p_ids: string[] }; Returns: number };
+      featured_unpin: { Args: { p_id: string }; Returns: boolean };
       home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
@@ -4516,6 +4786,10 @@ export type Database = {
         Args: { p_accepted?: string[]; p_id: string; p_source: string };
         Returns: boolean;
       };
+      source_logo_auto_set: {
+        Args: { p_id: string; p_origin: string; p_path: string };
+        Returns: string;
+      };
       source_discovery_save: { Args: { p: Json; p_ctx?: Json }; Returns: string };
       source_operational_columns: { Args: Record<PropertyKey, never>; Returns: string[] };
       source_reliability_rank: {
@@ -4601,6 +4875,51 @@ export type Database = {
       studio_audit: {
         Args: { p_action: string; p_actor: string; p_details?: Json; p_object_ref: string };
         Returns: number;
+      };
+      studio_notifications_for: {
+        Args: {
+          p_limit?: number;
+          p_cursor?: string | null;
+          p_only_unread?: boolean;
+          p_kind?: string | null;
+          p_history?: boolean;
+        };
+        Returns: {
+          id: string;
+          kind: string;
+          severity: string;
+          title: string;
+          body: string;
+          href: string;
+          object_ref: string | null;
+          created_at: string;
+          read_at: string | null;
+        }[];
+      };
+      studio_unread_count: { Args: Record<PropertyKey, never>; Returns: number };
+      studio_notifications_mark_read: { Args: { p_ids: string[] }; Returns: number };
+      studio_notifications_mark_all_read: { Args: Record<PropertyKey, never>; Returns: number };
+      studio_notifications_sweep: { Args: { p_now?: string }; Returns: number };
+      studio_urgent_push_due: {
+        Args: { p_now?: string };
+        Returns: { id: string; title: string; body: string; href: string; subs: Json }[];
+      };
+      studio_urgent_push_done: { Args: { p_ids: string[] }; Returns: undefined };
+      studio_notify: {
+        Args: {
+          p_kind: string;
+          p_severity: string;
+          p_title: string;
+          p_body: string;
+          p_href: string;
+          p_object_ref: string;
+          p_roles: string[];
+          p_dedupe: string;
+          p_user_ids?: string[];
+          p_exclude_user_ids?: string[];
+          p_ttl?: string;
+        };
+        Returns: string;
       };
       studio_audit_actions: { Args: Record<PropertyKey, never>; Returns: string[] };
       studio_can_edit: {

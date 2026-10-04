@@ -14,6 +14,7 @@ export const FREE_SWITCHES = [
   "personalization_enabled",
   "image_reproduction_enabled",
   "source_link_analysis",
+  "sponsored_native_enabled",
 ] as const;
 
 const Input = z.object({

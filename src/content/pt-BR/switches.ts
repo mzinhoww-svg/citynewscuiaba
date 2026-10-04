@@ -9,6 +9,7 @@ export const SWITCH_KEYS = [
   "personalization_enabled",
   "image_reproduction_enabled",
   "source_link_analysis",
+  "sponsored_native_enabled",
 ] as const satisfies readonly FlagKey[];
 
 export interface SwitchInfo {
@@ -59,6 +60,13 @@ export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
     about: "Verifica os links das fontes antes de citar.",
     on: "Ligada: links são analisados.",
     off: "Desligada: links não são analisados.",
+  },
+  sponsored_native_enabled: {
+    title: "Patrocinado nativo",
+    about:
+      "Matéria patrocinada na home, com o texto Patrocinado. Nunca em Política, Justiça, Segurança ou Saúde.",
+    on: "Ligado: a matéria patrocinada aparece em Mais lidas da home.",
+    off: "Desligado: matéria patrocinada só aparece na própria página.",
   },
 };
 

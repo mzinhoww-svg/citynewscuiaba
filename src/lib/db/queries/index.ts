@@ -13,6 +13,7 @@ export { listAggregated, type AggregatedFilters } from "./aggregated";
 export { listAlertItems } from "./alerts";
 export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
 export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
+export { getFeatured, type FeaturedResult } from "./featured";
 export { getCollectionBySlug, getExploreData } from "./explore";
 export { listCorrections } from "./corrections";
 export { listArticleEntries, listNewsEntries, listPageEntries, listTopicEntries } from "./seo";

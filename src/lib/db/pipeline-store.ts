@@ -552,6 +552,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       const update = {
         ...(patch.originalTitle !== undefined ? { original_title: patch.originalTitle } : {}),
         ...(patch.excerpt !== undefined ? { excerpt: patch.excerpt } : {}),
+        ...(patch.sourceText !== undefined ? { source_text: patch.sourceText } : {}),
         ...(patch.publishedAt !== undefined ? { published_at: patch.publishedAt } : {}),
         ...(patch.imageUrl !== undefined ? { image_url: patch.imageUrl } : {}),
       };
@@ -1151,6 +1152,7 @@ const DraftContextSchema = z.object({
       reliability: z.enum(RELIABILITIES),
       title: z.string(),
       excerpt: z.string().nullable(),
+      sourceText: z.string().nullable().optional(),
       publishedAt: z.string().nullable(),
       sectionSlug: z.string().nullable(),
       canonicalUrl: z.string(),

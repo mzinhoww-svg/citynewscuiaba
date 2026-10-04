@@ -4,7 +4,12 @@ import { SourceConfigForm, SourceLogoForm } from "@/components/estudio";
 import { DETAIL_TEXT as T, LOGO_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { createServerClient } from "@/lib/db/client";
 import { many } from "@/lib/db/queries/run";
-import { updateSourceAction, uploadLogoAction } from "../../actions";
+import {
+  discoverLogoAction,
+  removeLogoAction,
+  updateSourceAction,
+  uploadLogoAction,
+} from "../../actions";
 import { loadSource, logoUrlOf } from "../detail";
 
 export const metadata: Metadata = {
@@ -50,6 +55,8 @@ export default async function SourceConfigPage({ params }: Props) {
             archived,
           }}
           action={uploadLogoAction}
+          discoverAction={discoverLogoAction}
+          removeAction={removeLogoAction}
         />
       </section>
       <SourceConfigForm

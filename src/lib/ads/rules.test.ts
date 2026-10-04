@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { campaignLive, isNeverSection, placeSponsored, type AdCard, type Campaign } from "./rules";
+import {
+  campaignLive,
+  isNeverSection,
+  pickHomeSponsored,
+  placeSponsored,
+  type AdCard,
+  type Campaign,
+} from "./rules";
 
 const now = new Date("2026-09-29T12:00:00Z");
 const camp: Campaign = {
@@ -113,5 +120,41 @@ describe("placeSponsored (A07)", () => {
     const cards = list(14, (i) => (i >= 4 && i <= 7 ? { sectionSlug: "delegacia-digital" } : {}));
     const r = placeSponsored(cards, wide, { sectionSlug: null, now, categoryOf });
     expect(ids(r).indexOf("AD")).toBeGreaterThan(7);
+  });
+});
+
+describe("pickHomeSponsored (MS-T1)", () => {
+  const art = (
+    id: string,
+    slug: string,
+    extra: { urgent?: boolean; sponsored?: boolean } = {},
+  ) => ({
+    id,
+    section: { slug },
+    urgent: extra.urgent ?? false,
+    sponsored: extra.sponsored ?? true,
+  });
+  const categoryOf = (slug: string) => ({ "tribunal-do-juri": "justica" })[slug];
+
+  it("Justiça entra na lista fixa de editorias sem patrocinado, com subeditorias", () => {
+    expect(isNeverSection("justica")).toBe(true);
+    expect(isNeverSection("justica-federal")).toBe(true);
+    expect(isNeverSection("tribunal-do-juri", categoryOf)).toBe(true);
+  });
+
+  it("com a flag desligada não devolve nada", () => {
+    expect(pickHomeSponsored([art("a", "cidade")], { enabled: false })).toBeNull();
+  });
+
+  it("pula editoria proibida, subeditoria proibida, urgente e não patrocinada", () => {
+    const list = [
+      art("p", "politica"),
+      art("j", "tribunal-do-juri"),
+      art("u", "cidade", { urgent: true }),
+      art("n", "cidade", { sponsored: false }),
+      art("ok", "cultura"),
+    ];
+    expect(pickHomeSponsored(list, { enabled: true, categoryOf })?.id).toBe("ok");
+    expect(pickHomeSponsored(list.slice(0, 4), { enabled: true, categoryOf })).toBeNull();
   });
 });
