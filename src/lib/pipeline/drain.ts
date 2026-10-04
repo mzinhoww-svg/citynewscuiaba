@@ -207,7 +207,12 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             let e: StepError;
             if (res.ok) {
               try {
-                for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+                for (const next of res.value)
+                  await queue.enqueue(
+                    queueFor(next.step),
+                    next,
+                    next.delaySec ? { delaySec: next.delaySec } : undefined,
+                  );
                 await queue.ack(name, q.msgId);
                 r.succeeded++;
                 await push(

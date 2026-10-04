@@ -67,6 +67,23 @@ describe("drain", () => {
     expect(events.events.map((e) => e.step)).toEqual(["fetch", "validate"]);
   });
 
+  it("próxima mensagem com delaySec só fica visível depois da espera", async () => {
+    let t = 0;
+    const queue = createMemoryQueue(() => t);
+    await queue.enqueue("pipeline", m("source:a"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: true,
+        value: [{ ...nextMessage(msg, "validate", "raw:1"), delaySec: 600 }],
+      }),
+      validate: async () => ({ ok: true, value: [] }),
+    });
+    const r = await drain({ queue, runStep, events: sink(), now: () => 0 });
+    expect(r).toMatchObject({ processed: 1, remaining: 1 });
+    t = 600_000;
+    expect(await queue.readBatch("pipeline", 10, 30)).toHaveLength(1);
+  });
+
   it("nota da etapa (ctx.note) entra nos detalhes do evento ok", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("item:1", "enrich"));
