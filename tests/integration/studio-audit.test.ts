@@ -125,6 +125,9 @@ describe("studio_audit", () => {
   });
 
   it("leitor: negações acima do limite por minuto não entram", async () => {
+    // O limite é por janela fixa de 60 s (hit_rate_limit): se o laço cruza a virada do minuto, são
+    // duas janelas de 20. O teto vale por janela tocada, sem afrouxar o caso normal (1 janela).
+    const firstWindow = Math.floor(Date.now() / 60_000);
     for (let i = 0; i < 40; i++) {
       await reader.rpc("studio_audit", {
         p_actor: readerId,
@@ -133,6 +136,7 @@ describe("studio_audit", () => {
         p_details: {},
       });
     }
-    expect(await count(readerId, "article.edit.denied")).toBeLessThanOrEqual(20);
+    const windows = Math.floor(Date.now() / 60_000) - firstWindow + 1;
+    expect(await count(readerId, "article.edit.denied")).toBeLessThanOrEqual(20 * windows);
   });
 });

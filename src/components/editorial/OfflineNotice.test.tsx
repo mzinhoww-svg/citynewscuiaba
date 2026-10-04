@@ -17,6 +17,24 @@ describe("OfflineNotice", () => {
     expect(screen.getByRole("button", { name: "Atualizar" })).toBeVisible();
   });
 
+  it("online antes de a consulta ao cache responder termina em Conexão de volta", async () => {
+    let resolve: (at: string | null) => void = () => {};
+    const query = vi.fn().mockReturnValue(
+      new Promise<string | null>((r) => {
+        resolve = r;
+      }),
+    );
+    render(<OfflineNotice now={() => new Date("2026-09-28T20:00:00Z")} query={query} />);
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    await act(async () => {
+      resolve("2026-09-28T18:32:00Z");
+      await Promise.resolve();
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Conexão de volta.");
+  });
+
   it("é uma linha fina, sem a altura de um banner", async () => {
     const query = vi.fn().mockResolvedValue("2026-09-28T18:32:00Z");
     render(<OfflineNotice now={() => new Date("2026-09-28T20:00:00Z")} query={query} />);

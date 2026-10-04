@@ -1,5 +1,6 @@
 design-system/
 docs/
+.impeccable/
 .planning/
 supabase/
 scripts/local-stack/

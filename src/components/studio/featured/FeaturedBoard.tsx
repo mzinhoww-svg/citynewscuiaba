@@ -136,7 +136,7 @@ export function FeaturedBoard({ board, api, nowIso }: FeaturedBoardProps) {
                             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                               <a
                                 href={item.href}
-                                className="type-body font-medium text-strong underline-offset-4 hover:underline"
+                                className="hit-area type-body font-medium text-strong underline-offset-4 hover:underline"
                               >
                                 {item.title}
                               </a>

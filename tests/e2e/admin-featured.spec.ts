@@ -199,7 +199,14 @@ test.describe("fixar, trocar, remover e reordenar", () => {
     const second = await pinViaDb("home.destaques", extra.id);
     await loginAs(page, "helena", PAGE);
     const card = page.getByRole("region", { name: "Início · destaques" });
-    const titles = () => card.getByRole("listitem").getByRole("link").allInnerTexts();
+    // Só os pinos: a posição pode ser completada pelo automático (ex.: a "Manchete do automático"
+    // desta suíte), que não é o que a reordenação mexe.
+    const titles = () =>
+      card
+        .getByRole("listitem")
+        .filter({ has: page.getByTestId("pin-info") })
+        .getByRole("link")
+        .allInnerTexts();
     await expect.poll(titles).toEqual([chosen.title, extra.title]);
     await card.getByRole("button", { name: `Subir: ${extra.title}` }).click();
     await expect(page.getByRole("status").filter({ hasText: "Ordem atualizada" })).toBeVisible();

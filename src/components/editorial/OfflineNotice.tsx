@@ -36,12 +36,13 @@ export function OfflineNotice({
     };
   }, [query]);
 
+  // O ouvinte nasce junto com o componente: um `online` que chegue enquanto a consulta ao cache
+  // ainda responde não pode se perder.
   useEffect(() => {
-    if (!cachedAt) return;
     const onOnline = () => setOnline(true);
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
-  }, [cachedAt]);
+  }, []);
 
   if (!cachedAt) return null;
   return (
