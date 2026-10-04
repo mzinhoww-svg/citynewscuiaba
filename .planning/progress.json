@@ -809,12 +809,12 @@
       "MS-T2": {
         "status": "done",
         "migration": "0081_advertisers.sql",
-        "decision": "A-116"
+        "decision": "A-118"
       },
       "ADS-T1": {
         "status": "done",
         "migration": "0082_ad_slots.sql",
-        "decision": "A-117"
+        "decision": "A-119"
       }
     },
     "next": [
