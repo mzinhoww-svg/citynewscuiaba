@@ -18,6 +18,7 @@ import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 export interface SecurityPanelProps {
   data: SecurityOverview;
@@ -34,10 +35,14 @@ export interface SecurityPanelProps {
 }
 
 const S = T.security;
+const C = ADMIN_TEXT.confirm;
 const KINDS = Object.entries(PRIVACY_KIND_LABEL).map(([value, label]) => ({ value, label }));
 const STATUSES = Object.entries(PRIVACY_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
-/** Segurança e privacidade (A11): políticas, pedidos LGPD com prazo, revisão de acessos e rotação de chaves. */
+/**
+ * Segurança e privacidade (A11): políticas, pedidos LGPD com prazo, revisão de acessos e rotação
+ * de chaves. Aplicar políticas e marcar uma chave como rotacionada pedem confirmação (item 24).
+ */
 export function SecurityPanel({
   data,
   now,
@@ -51,9 +56,13 @@ export function SecurityPanel({
   const [sessionHours, setSessionHours] = useState(String(data.settings.sessionHours));
   const [retentionDays, setRetentionDays] = useState(String(data.settings.retentionDays));
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState<
+    { kind: "policy" } | { kind: "rotate"; key: string } | null
+  >(null);
   const [busy, start] = useTransition();
   const done = (r: AdminReply) => {
     setStatus(r);
+    setConfirming(null);
     if (r.ok) {
       setOpen(false);
       router.refresh();
@@ -113,16 +122,7 @@ export function SecurityPanel({
           <Button
             size="md"
             disabled={busy || !dirty || !valid}
-            onClick={() =>
-              start(async () =>
-                done(
-                  await saveSettings({
-                    sessionHours: Number(sessionHours),
-                    retentionDays: Number(retentionDays),
-                  }),
-                ),
-              )
-            }
+            onClick={() => setConfirming({ kind: "policy" })}
           >
             {S.save}
           </Button>
@@ -268,7 +268,7 @@ export function SecurityPanel({
                     size="sm"
                     variant="outline"
                     disabled={busy}
-                    onClick={() => start(async () => done(await rotateKey({ key: k.key })))}
+                    onClick={() => setConfirming({ kind: "rotate", key: k.key })}
                   >
                     {S.rotate}
                   </Button>
@@ -279,6 +279,38 @@ export function SecurityPanel({
         </AdminTable>
       </section>
 
+      {confirming?.kind === "policy" && (
+        <ConfirmDialog
+          busy={busy}
+          title={C.policyTitle}
+          effect={C.policyEffect(Number(sessionHours), Number(retentionDays))}
+          confirmLabel={C.policyConfirm}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() =>
+            start(async () =>
+              done(
+                await saveSettings({
+                  sessionHours: Number(sessionHours),
+                  retentionDays: Number(retentionDays),
+                }),
+              ),
+            )
+          }
+        />
+      )}
+      {confirming?.kind === "rotate" && (
+        <ConfirmDialog
+          busy={busy}
+          title={C.rotateTitle(confirming.key)}
+          effect={C.rotateEffect}
+          confirmLabel={C.rotateConfirm(confirming.key)}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            const { key } = confirming;
+            start(async () => done(await rotateKey({ key })));
+          }}
+        />
+      )}
       {open && (
         <PrivacyDialog
           busy={busy}
