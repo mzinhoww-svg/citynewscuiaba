@@ -1439,6 +1439,113 @@ export type Database = {
         };
         Relationships: [];
       };
+      featured_image_requests: {
+        Row: {
+          article_id: string;
+          requested_at: string;
+        };
+        Insert: {
+          article_id: string;
+          requested_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          requested_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_image_requests_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: true;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      featured_items: {
+        Row: {
+          article_id: string;
+          created_at: string;
+          created_by: string | null;
+          ends_at: string | null;
+          ended_at: string | null;
+          id: string;
+          kind: string;
+          note: string;
+          position: number;
+          section_slug: string | null;
+          slot_key: string;
+          starts_at: string;
+        };
+        Insert: {
+          article_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key: string;
+          starts_at?: string;
+        };
+        Update: {
+          article_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          ends_at?: string | null;
+          ended_at?: string | null;
+          id?: string;
+          kind?: string;
+          note?: string;
+          position?: number;
+          section_slug?: string | null;
+          slot_key?: string;
+          starts_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "featured_items_article_id_fkey";
+            columns: ["article_id"];
+            isOneToOne: false;
+            referencedRelation: "articles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "featured_items_slot_key_fkey";
+            columns: ["slot_key"];
+            isOneToOne: false;
+            referencedRelation: "featured_slots";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
+      featured_slots: {
+        Row: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position: number;
+        };
+        Insert: {
+          capacity: number;
+          key: string;
+          label: string;
+          page: string;
+          position?: number;
+        };
+        Update: {
+          capacity?: number;
+          key?: string;
+          label?: string;
+          page?: string;
+          position?: number;
+        };
+        Relationships: [];
+      };
       home_layouts: {
         Row: {
           created_at: string;
@@ -4128,6 +4235,22 @@ export type Database = {
         Args: { p_bucket: string; p_key_hash: string; p_limit: number; p_window_seconds: number };
         Returns: boolean;
       };
+      featured_assert_role: { Args: never; Returns: undefined };
+      featured_has_cover: { Args: { p_article: string }; Returns: boolean };
+      featured_pin: {
+        Args: {
+          p_article: string;
+          p_ends_at: string | null;
+          p_note?: string;
+          p_replace?: string | null;
+          p_section: string | null;
+          p_slot: string;
+        };
+        Returns: string;
+      };
+      featured_reorder: { Args: { p_ids: string[]; p_slot: string }; Returns: number };
+      featured_request_images: { Args: { p_ids: string[] }; Returns: number };
+      featured_unpin: { Args: { p_id: string }; Returns: boolean };
       home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
