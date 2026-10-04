@@ -75,6 +75,8 @@ const REWRITE_TASK = `REESCRITA: o texto anterior ficou com menos de ${MIN_BODY_
 const TOPIC_REF = /^topic:([^\s#]+)(?:#rewrite(\d+))?$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
 const PIPELINE_OWNED = new Set(["draft", "in_review"]);
+/** Matéria no ar que a reescrita (`#rewrite<n>`) atualiza sem tirar do ar (A-126). */
+const LIVE = new Set(["published", "updated"]);
 
 type Paragraph = { text: string; citations: string[] };
 
@@ -158,7 +160,14 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     if (ctx.items.length === 0) return ok([]);
 
     const existing = ctx.article;
-    if (existing && (existing.humanEdited || !PIPELINE_OWNED.has(existing.status)))
+    // Reescrita pedida de matéria publicada pelas regras e nunca editada por pessoa: atualiza no ar.
+    const live =
+      rewrite > 0 &&
+      existing !== null &&
+      !existing.humanEdited &&
+      existing.publishMode === "auto" &&
+      LIVE.has(existing.status);
+    if (existing && !live && (existing.humanEdited || !PIPELINE_OWNED.has(existing.status)))
       return ok([nextMessage(msg, "notify", `article:${existing.id}#new_sources`)]);
 
     const version = await deps.promptVersion("write");
@@ -208,6 +217,9 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       }
     } else draft = { ...fallbackDraft(ctx), summary: null };
 
+    // No ar, só troca o texto quando a redação deu certo: falha nunca substitui o que está publicado.
+    if (live && failure !== null) return ok([]);
+
     const reason =
       failure === null
         ? null
@@ -232,6 +244,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       aiFallback: failure !== null,
       reviewReason: reason,
       sources: ctx.items.map((i) => ({ itemId: i.id, role: roleOf(ctx, i) })),
+      ...(live ? { live: true } : {}),
     };
     const saved = await deps.repo.saveDraft(input);
     // R41: o texto precisa de 30 linhas; só fica menor se as fontes não trazem conteúdo.

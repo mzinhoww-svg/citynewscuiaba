@@ -179,6 +179,61 @@ describe("write (etapas 11 e 12)", () => {
   });
 });
 
+describe("reescrita de matéria no ar (A-126)", () => {
+  async function live(s: ReturnType<typeof setup>) {
+    s.repo.addTopic(farmacias());
+    await s.handlers.summarize!(msg("summarize", "topic:t-farm"));
+    const a = s.repo.articleOfTopic("t-farm")!;
+    await s.repo.setStatus(a.id, { status: "published", publishMode: "auto" });
+    return a.id;
+  }
+
+  it("#rewrite em publicada automática atualiza o texto sem tirar do ar e segue até o índice", async () => {
+    const s = setup({ flags: { auto_publish: true } });
+    const id = await live(s);
+    const next = await unwrap(s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5")));
+    expect(next).toEqual([msg("image", `article:${id}`)]);
+    expect(s.repo.article(id)).toMatchObject({
+      status: "published",
+      publishMode: "auto",
+      version: 2,
+    });
+    // Regras não decidem de novo o que já está no ar: seguem para publicar, que reindexa.
+    expect(await unwrap(s.handlers.rules!(msg("rules", `article:${id}`)))).toEqual([
+      msg("publish", `article:${id}`),
+    ]);
+    expect(await unwrap(s.handlers.publish!(msg("publish", `article:${id}`)))).toEqual([
+      msg("index", `article:${id}`),
+    ]);
+  });
+
+  it("sem #rewrite, a publicada não é reescrita (só aviso de fontes novas)", async () => {
+    const s = setup();
+    const id = await live(s);
+    const next = await unwrap(s.handlers.summarize!(msg("summarize", "topic:t-farm")));
+    expect(next).toEqual([msg("notify", `article:${id}#new_sources`)]);
+    expect(s.repo.article(id)!.version).toBe(1);
+  });
+
+  it("#rewrite com a IA fora não troca o texto que está no ar", async () => {
+    const s = setup();
+    const id = await live(s);
+    s.fake.script([{ error: "timeout" }, { error: "provider" }]);
+    const next = await unwrap(s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5")));
+    expect(next).toEqual([]);
+    expect(s.repo.article(id)).toMatchObject({ status: "published", version: 1 });
+  });
+
+  it("#rewrite em publicada editada por pessoa: nunca", async () => {
+    const s = setup();
+    const id = await live(s);
+    s.repo.markHumanEdited(id);
+    const next = await unwrap(s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5")));
+    expect(next).toEqual([msg("notify", `article:${id}#new_sources`)]);
+    expect(s.repo.article(id)!.version).toBe(1);
+  });
+});
+
 async function drafted(s: ReturnType<typeof setup>, topic: MemoryTopic = farmacias()) {
   s.repo.addTopic(topic);
   await s.handlers.summarize!(msg("summarize", `topic:${topic.id}`));

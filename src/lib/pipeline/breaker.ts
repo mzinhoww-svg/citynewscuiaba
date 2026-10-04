@@ -1,8 +1,9 @@
 /**
- * Disjuntor da publicação automática (AUT-T4, A8): 60 por hora, 800 por dia, pico de denúncias e
+ * Disjuntor da publicação automática (AUT-T4, A8; limites do dono em A-126): 300 por hora, 3.000
+ * por dia, pico de denúncias e
  * falha de IA. NÃO é freio editorial: protege contra erro de pipeline. Aberto, pausa a publicação
  * automática (`publish_breaker_trip`: desliga `auto_publish`, manda o resto do ciclo para revisão)
- * e avisa o plantão. Religar `auto_publish` continua com duas pessoas.
+ * e avisa o plantão. Religar `auto_publish`: regra 8 do CLAUDE.md.
  */
 
 export type BreakerReason = "hourly" | "daily" | "reports" | "ai_failures";
@@ -15,8 +16,8 @@ export interface BreakerLimits {
 }
 
 export const DEFAULT_BREAKER_LIMITS: BreakerLimits = {
-  hourly: 60,
-  daily: 800,
+  hourly: 300,
+  daily: 3000,
   reportsPerHour: 10,
   aiFailuresPerHour: 15,
 };
