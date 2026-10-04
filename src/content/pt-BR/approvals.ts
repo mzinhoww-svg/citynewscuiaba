@@ -56,7 +56,7 @@ export const APPROVALS_TEXT = {
   sectionLabel: "Control Center",
   title: "Aprovações",
   intro:
-    "Mudança crítica fica registrada aqui: quem pediu, quem aprovou e quando. Quem tem o papel de aprovar aplica na hora, na própria tela; ficam abertos só os pedidos de quem não tem esse papel.",
+    "Mudança crítica passa pelo motor de política e fica registrada aqui: quem pediu, quem aprovou, a regra da política e quando. Segura e com o papel certo, aplica na hora; inválida, é recusada; ficam abertas só as exceções reais, cada uma com prazo.",
   pendingTitle: (n: number) =>
     n === 0
       ? "Nenhum pedido aguardando"
@@ -80,7 +80,9 @@ export const APPROVALS_TEXT = {
     approved: "Aprovado (sem aplicar)",
     rejected: "Recusado",
     applied: "Aplicado",
+    expired: "Expirado",
   } as Record<string, string>,
+  policyRejected: (reason: string) => `Recusado pela política: ${reason}`,
   someone: "alguém da equipe",
   review: "Revisar",
   reviewAt: "Revisar na fonte",

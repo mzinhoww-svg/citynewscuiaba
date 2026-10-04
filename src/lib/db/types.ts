@@ -506,38 +506,65 @@ export type Database = {
       approvals: {
         Row: {
           approved_by: string | null;
+          confidence: number | null;
           content_hash: string | null;
           created_at: string;
           decided_at: string | null;
+          decision_mode: string;
+          expires_at: string | null;
           id: string;
           justification: string;
           kind: string;
+          next_action: string | null;
+          outcome: string | null;
+          policy_inputs: NonNullable<Json>;
+          policy_version: number | null;
+          reason: string | null;
           requested_by: string;
+          rule_id: string | null;
           status: string;
           target_ref: string;
           approval_assert_content: undefined | null;
         };
         Insert: {
           approved_by?: string | null;
+          confidence?: number | null;
           content_hash?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          decision_mode?: string;
+          expires_at?: string | null;
           id?: string;
           justification: string;
           kind: string;
+          next_action?: string | null;
+          outcome?: string | null;
+          policy_inputs?: NonNullable<Json>;
+          policy_version?: number | null;
+          reason?: string | null;
           requested_by: string;
+          rule_id?: string | null;
           status?: string;
           target_ref: string;
         };
         Update: {
           approved_by?: string | null;
+          confidence?: number | null;
           content_hash?: string | null;
           created_at?: string;
           decided_at?: string | null;
+          decision_mode?: string;
+          expires_at?: string | null;
           id?: string;
           justification?: string;
           kind?: string;
+          next_action?: string | null;
+          outcome?: string | null;
+          policy_inputs?: NonNullable<Json>;
+          policy_version?: number | null;
+          reason?: string | null;
           requested_by?: string;
+          rule_id?: string | null;
           status?: string;
           target_ref?: string;
         };
@@ -3675,8 +3702,8 @@ export type Database = {
           last_modified: string | null;
           layer: number | null;
           locality: string;
-          logo_path: string | null;
           logo_origin_url: string | null;
+          logo_path: string | null;
           logo_source: string | null;
           may_be_sole_source: boolean;
           name: string;
@@ -3686,7 +3713,6 @@ export type Database = {
           rec_excluded: boolean;
           rec_local_highlight: boolean;
           rec_pinned: boolean;
-          trusted: boolean;
           reliability: Database["public"]["Enums"]["source_reliability"];
           republish_policy: Database["public"]["Enums"]["republish_policy"];
           slug: string;
@@ -3697,7 +3723,9 @@ export type Database = {
           terms_min_interval_minutes: number | null;
           terms_reviewed_at: string | null;
           terms_reviewed_by: string | null;
+          terms_status: string;
           terms_url: string | null;
+          trusted: boolean;
           updated_at: string;
           version: number;
         };
@@ -3728,8 +3756,8 @@ export type Database = {
           last_modified?: string | null;
           layer?: number | null;
           locality: string;
-          logo_path?: string | null;
           logo_origin_url?: string | null;
+          logo_path?: string | null;
           logo_source?: string | null;
           may_be_sole_source?: boolean;
           name: string;
@@ -3739,7 +3767,6 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
-          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug: string;
@@ -3750,7 +3777,9 @@ export type Database = {
           terms_min_interval_minutes?: number | null;
           terms_reviewed_at?: string | null;
           terms_reviewed_by?: string | null;
+          terms_status?: string;
           terms_url?: string | null;
+          trusted?: boolean;
           updated_at?: string;
           version?: number;
         };
@@ -3781,8 +3810,8 @@ export type Database = {
           last_modified?: string | null;
           layer?: number | null;
           locality?: string;
-          logo_path?: string | null;
           logo_origin_url?: string | null;
+          logo_path?: string | null;
           logo_source?: string | null;
           may_be_sole_source?: boolean;
           name?: string;
@@ -3792,7 +3821,6 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
-          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
           slug?: string;
@@ -3803,7 +3831,9 @@ export type Database = {
           terms_min_interval_minutes?: number | null;
           terms_reviewed_at?: string | null;
           terms_reviewed_by?: string | null;
+          terms_status?: string;
           terms_url?: string | null;
+          trusted?: boolean;
           updated_at?: string;
           version?: number;
         };
@@ -4332,6 +4362,101 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      governance_decisions: {
+        Row: {
+          actor: string;
+          approval_id: string | null;
+          at: string;
+          confidence: number | null;
+          decision: string;
+          fallback_level: number | null;
+          id: number;
+          input_hash: string;
+          inputs: NonNullable<Json>;
+          kind: string;
+          model: string | null;
+          policy: string;
+          policy_version: number;
+          prompt: string | null;
+          reason: string;
+          requested_by: string | null;
+          rule_id: string;
+          subject_ref: string;
+        };
+        Insert: {
+          actor?: string;
+          approval_id?: string | null;
+          at?: string;
+          confidence?: number | null;
+          decision: string;
+          fallback_level?: number | null;
+          id?: number;
+          input_hash: string;
+          inputs?: NonNullable<Json>;
+          kind: string;
+          model?: string | null;
+          policy: string;
+          policy_version: number;
+          prompt?: string | null;
+          reason: string;
+          requested_by?: string | null;
+          rule_id: string;
+          subject_ref: string;
+        };
+        Update: {
+          actor?: string;
+          approval_id?: string | null;
+          at?: string;
+          confidence?: number | null;
+          decision?: string;
+          fallback_level?: number | null;
+          id?: number;
+          input_hash?: string;
+          inputs?: NonNullable<Json>;
+          kind?: string;
+          model?: string | null;
+          policy?: string;
+          policy_version?: number;
+          prompt?: string | null;
+          reason?: string;
+          requested_by?: string | null;
+          rule_id?: string;
+          subject_ref?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "governance_decisions_approval_id_fkey";
+            columns: ["approval_id"];
+            isOneToOne: false;
+            referencedRelation: "approvals";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      governance_policies: {
+        Row: {
+          active: boolean;
+          body: NonNullable<Json>;
+          created_at: string;
+          created_by: string;
+          version: number;
+        };
+        Insert: {
+          active?: boolean;
+          body: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string;
+          version: number;
+        };
+        Update: {
+          active?: boolean;
+          body?: NonNullable<Json>;
+          created_at?: string;
+          created_by?: string;
+          version?: number;
+        };
+        Relationships: [];
       };
       guide_templates: {
         Row: {
@@ -5753,6 +5878,43 @@ export type Database = {
       };
       two_person_error: { Args: { msg: string }; Returns: undefined };
       unaccent: { Args: { "": string }; Returns: string };
+      governance_log: {
+        Args: {
+          p_approval?: string;
+          p_confidence?: number;
+          p_decision: string;
+          p_inputs?: Json;
+          p_kind: string;
+          p_reason: string;
+          p_rule: string;
+          p_subject: string;
+        };
+        Returns: number;
+      };
+      governance_policy: { Args: Record<PropertyKey, never>; Returns: Json };
+      governance_record: {
+        Args: {
+          p_approval?: string;
+          p_confidence?: number;
+          p_decision: string;
+          p_fallback?: number;
+          p_inputs?: Json;
+          p_kind: string;
+          p_model?: string;
+          p_prompt?: string;
+          p_reason: string;
+          p_requested_by?: string;
+          p_rule: string;
+          p_subject: string;
+        };
+        Returns: number;
+      };
+      governance_sweep: { Args: { p_now?: string }; Returns: Json };
+      push_policy_dispatch: { Args: { p_send: string }; Returns: string };
+      source_usage_mode: {
+        Args: { p_image: string; p_republish: string; p_status: string; p_terms: string };
+        Returns: string;
+      };
       guide_report_venue: {
         Args: { p_contact?: string; p_reason: string; p_venue: string };
         Returns: Json;

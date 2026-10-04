@@ -185,20 +185,22 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
 
   const r = await ctx.store.request(parsed.data);
   if (!r.ok) return storeFailure(r.error);
-  const settings = await pushSettings();
-  // A-128: quem pede e tem `push.approve` aprova na mesma ação; o pedido e a aprovação ficam
-  // registrados (approvals + auditoria do push) com o nome de quem fez.
-  if (!settings.paused.on && canAccess(ctx.roles, "push.approve")) {
-    const a = await ctx.store.approve(r.value.id);
-    refresh();
-    if (!a.ok) return done(T.done.requested, { id: r.value.id });
-    return done(a.value.status === "scheduled" ? T.done.scheduledNow : T.done.sentNow, {
-      id: r.value.id,
-      status: a.value.status,
-    });
-  }
   refresh();
-  return done(settings.paused.on ? T.done.requestedPaused : T.done.requested, { id: r.value.id });
+  // A política de avisos (0151, A-133) decide no próprio pedido: papel, limite por hora e por
+  // dia e matéria no ar. Na fila, agendado ou recusado com motivo; nunca esperando pessoa.
+  const { data: decided } = await ctx.db
+    .from("push_sends")
+    .select("status, status_reason")
+    .eq("id", r.value.id)
+    .maybeSingle();
+  if (decided?.status === "rejected")
+    return fail(T.done.policyRejected(decided.status_reason ?? ""));
+  const settings = await pushSettings();
+  if (settings.paused.on) return done(T.done.requestedPaused, { id: r.value.id });
+  return done(decided?.status === "scheduled" ? T.done.scheduledNow : T.done.sentNow, {
+    id: r.value.id,
+    status: decided?.status,
+  });
 }
 
 export async function estimateAudienceAction(form: FormData): Promise<ActionState> {

@@ -141,6 +141,14 @@ export const AUDIT_ACTIONS = [
   "ads.banner.create",
   "ads.placement.status",
   "ads.report.export",
+  // Governança autônoma (A-133, 0151): decisões do sistema (actor = system)
+  "governance.auto_approved",
+  "governance.auto_review",
+  "governance.human_exception",
+  "governance.rejected",
+  "governance.expired",
+  "governance.auto_rollback",
+  "governance.apply",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

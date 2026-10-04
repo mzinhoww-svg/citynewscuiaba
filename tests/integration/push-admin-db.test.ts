@@ -1,7 +1,7 @@
 // @vitest-environment node
-// Migration 0041 (push, PW-T5): pedidos, aprovação registrada imposta no banco (A-128: pode ser
-// de quem pediu; Review Focus 6 do plano; spec §18.20/21/23/24), pausa e retomada, configurações
-// `push.*` e alcance.
+// Migration 0041 (push, PW-T5) + 0148 (governança autônoma, A-127): pedidos decididos pela
+// política de avisos (papel, limite por hora/dia, matéria publicada), pausa e retomada,
+// configurações `push.*` e alcance.
 // Cada cenário roda como `authenticated` com o JWT de uma pessoa do seed e tenta contornar a
 // regra direto pela API; nada aqui depende da interface.
 import { randomBytes } from "node:crypto";
@@ -11,7 +11,6 @@ import { createServiceClient, type DbClient } from "@/lib/db/client";
 import type { Database, Json } from "@/lib/db/types";
 
 const SEED_PASSWORD = "citynews-local-123";
-const HELENA = "c1000000-0000-4000-8000-000000000001"; // admin
 const MARINA = "c1000000-0000-4000-8000-000000000002"; // editor_chefe
 const ART_CIDADE = "c2000000-0000-4000-8000-000000000002"; // cidade, publicada
 const ART_ESPORTES = "c2000000-0000-4000-8000-000000000010"; // esportes, publicada
@@ -20,7 +19,6 @@ const ART_CLIMA = "c2000000-0000-4000-8000-000000000007";
 const ART_ECONOMIA = "c2000000-0000-4000-8000-000000000009";
 const ART_SERVICOS = "c2000000-0000-4000-8000-000000000012";
 const ART_CLIMA_2 = "c2000000-0000-4000-8000-000000000008";
-const ART_MOB_2 = "c2000000-0000-4000-8000-000000000006";
 
 const service = createServiceClient();
 const testStart = new Date().toISOString();
@@ -117,7 +115,24 @@ async function insertSub(
   subs.push(data.id);
 }
 
+let policyBody: Json | null = null;
+async function setPushPolicy(urgentMaxPerHour: number, highlightMaxPerDay = 100) {
+  const { data } = await service
+    .from("governance_policies")
+    .select("body")
+    .eq("active", true)
+    .single();
+  const body = data!.body as Record<string, Json>;
+  policyBody ??= body;
+  await service
+    .from("governance_policies")
+    .update({ body: { ...body, push: { urgentMaxPerHour, highlightMaxPerDay } } })
+    .eq("active", true);
+}
+
 beforeAll(async () => {
+  // Limites altos: as suítes criam vários avisos na mesma hora; o limite tem teste próprio.
+  await setPushPolicy(100);
   // Estado limpo das configurações (outras suítes podem ter pausado).
   await service.from("app_settings").upsert([
     { key: "push.paused", value: { on: false, by: null, at: null, reason: null } },
@@ -128,6 +143,8 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (policyBody)
+    await service.from("governance_policies").update({ body: policyBody }).eq("active", true);
   await service.from("push_sends").delete().gte("created_at", testStart);
   await service.from("approvals").delete().like("kind", "push.%").gte("created_at", testStart);
   if (subs.length) await service.from("push_subscriptions").delete().in("id", subs);
@@ -140,62 +157,61 @@ afterAll(async () => {
   ]);
 });
 
-describe("aprovação registrada (Review Focus 6; A-128)", () => {
-  it("editor e analista não aprovam; quem pede e tem push.approve aprova o próprio pedido; a linha guarda os dois", async () => {
+describe("política de avisos (A-127)", () => {
+  it("pedido com papel e dentro do limite sai aprovado pelo sistema, sem segunda pessoa", async () => {
     const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
-    expect((await send(id)).status).toBe("pending_approval");
-    expect((await send(id)).approval_id).not.toBeNull();
-    // Sem aprovação registrada, ninguém muda o estado do envio direto na tabela.
-    const direct = await (
-      await marina()
-    )
-      .from("push_sends")
-      .update({ status: "queued" })
-      .eq("id", id)
-      .select("id");
-    expect(direct.error?.message).toMatch(/aprovação registrada|push\.approve/);
-    await expect(rpcAs(otavio(), "push_approve", { p_send: id })).rejects.toThrow();
-    await expect(rpcAs(thiago(), "push_approve", { p_send: id })).rejects.toThrow();
-    expect((await send(id)).status).toBe("pending_approval");
-    expect(await rpcAs(marina(), "push_approve", { p_send: id })).toBe("queued");
     const row = await send(id);
     expect(row).toMatchObject({ status: "queued", approved_by: MARINA });
     expect(row.approved_at).not.toBeNull();
-    const ap = await service
+    const { data: appr } = await service
       .from("approvals")
-      .select("requested_by, approved_by, status")
+      .select("status, decision_mode, outcome, rule_id")
       .eq("target_ref", `push:${id}`)
       .single();
-    expect(ap.data).toEqual({ requested_by: MARINA, approved_by: MARINA, status: "approved" });
+    expect(appr).toMatchObject({
+      status: "approved",
+      decision_mode: "system",
+      outcome: "auto_apply",
+      rule_id: "push.urgent.policy_ok",
+    });
+    const { data: dec } = await service
+      .from("governance_decisions")
+      .select("decision, actor, policy_version")
+      .eq("subject_ref", `push:${id}`)
+      .single();
+    expect(dec).toMatchObject({ decision: "auto_approved", actor: "system" });
+    // Decisão do sistema é final: ninguém a refaz por RPC nem por SQL.
     await expect(rpcAs(helena(), "push_reject", { p_send: id, p_reason: "tarde" })).rejects.toThrow(
       /decisão já tomada/,
     );
-    expect(await auditActions(`push:${id}`)).toEqual(
-      expect.arrayContaining(["push.request", "push.approve"]),
-    );
-  });
-
-  it("outra pessoa com push.approve também aprova (Helena)", async () => {
-    const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
-    expect(await rpcAs(helena(), "push_approve", { p_send: id })).toBe("queued");
-    expect(await send(id)).toMatchObject({ status: "queued", approved_by: HELENA });
-  });
-
-  it("aprovação adulterada para rejected não vira queued; segunda decisão no mesmo pedido é final", async () => {
-    const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_MOBILIDADE) });
-    await rpcAs(helena(), "push_reject", { p_send: id, p_reason: "não é urgente" });
-    expect(await send(id)).toMatchObject({ status: "rejected", status_reason: "não é urgente" });
-    await expect(rpcAs(helena(), "push_approve", { p_send: id })).rejects.toThrow(
-      /decisão já tomada/,
-    );
     const again = await (
-      await helena()
+      await marina()
     )
       .from("approvals")
-      .update({ status: "approved", approved_by: HELENA })
+      .update({ status: "rejected", approved_by: MARINA })
       .eq("target_ref", `push:${id}`)
       .select("id");
     expect(again.error?.message).toMatch(/decisão já tomada/);
+    expect(await auditActions(`push:${id}`)).toEqual(
+      expect.arrayContaining(["push.request", "governance.auto_approved"]),
+    );
+  });
+
+  it("acima do limite por hora o pedido é recusado com motivo, nunca fica pendente", async () => {
+    await setPushPolicy(0);
+    try {
+      const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_MOBILIDADE) });
+      expect(await send(id)).toMatchObject({ status: "rejected" });
+      expect((await send(id)).status_reason).toMatch(/Limite/);
+      const { data: dec } = await service
+        .from("governance_decisions")
+        .select("decision, rule_id")
+        .eq("subject_ref", `push:${id}`)
+        .single();
+      expect(dec).toMatchObject({ decision: "rejected", rule_id: "push.urgent.rate_limit" });
+    } finally {
+      await setPushPolicy(100);
+    }
   });
 });
 
@@ -214,9 +230,9 @@ describe("pedidos", () => {
     expect(
       (await (await thiago()).from("push_sends").select("id").eq("id", id)).data ?? [],
     ).toEqual([]);
-    // Editor não aprova o próprio nem o de outra pessoa.
+    // A política decide na hora: Destaque da própria editoria entra na fila.
+    expect((await send(id)).status).toBe("queued");
     await expect(rpcAs(otavio(), "push_approve", { p_send: id })).rejects.toThrow();
-    expect(await rpcAs(marina(), "push_approve", { p_send: id })).toBe("queued");
   });
 
   it("matéria patrocinada ou não publicada recusada; urgente agendado recusado; Destaque fora do silêncio e até 7 dias", async () => {
@@ -261,7 +277,7 @@ describe("pedidos", () => {
     const id = await rpcAs(marina(), "push_request", {
       p: highlightReq(ART_CLIMA, { when: { type: "at", at: tomorrow.toISOString() } }),
     });
-    expect(await rpcAs(helena(), "push_approve", { p_send: id })).toBe("scheduled");
+    expect((await send(id)).status).toBe("scheduled");
   });
 
   it("texto e público imutáveis depois do pedido; cancelar por quem pediu ou push.settings", async () => {
@@ -282,29 +298,48 @@ describe("pedidos", () => {
     expect(await auditActions(`push:${id}`)).toContain("push.cancel");
   });
 
-  it("expiração: urgente sem aprovação em 60 min; Destaque 'agora' em 24 h", async () => {
-    const u = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CLIMA_2) });
-    const h = await rpcAs(marina(), "push_request", { p: highlightReq(ART_MOB_2) });
-    const later = new Date(Date.now() + 61 * 60_000).toISOString();
+  it("pedido pendente antigo passa pela política na varredura; urgente vencido expira", async () => {
+    const base = {
+      article_id: ART_CLIMA_2,
+      title: "Antigo",
+      body: "Pedido de antes da política",
+      origin_label: "ORIGINAL CITYNEWS",
+      url: "/materia/antigo",
+      tag: "antigo",
+      audience: { type: "all" },
+      status: "pending_approval",
+      requested_by: MARINA,
+    };
+    const fresh = await service
+      .from("push_sends")
+      .insert({ ...base, kind: "highlight" })
+      .select("id")
+      .single();
+    const stale = await service
+      .from("push_sends")
+      .insert({
+        ...base,
+        kind: "urgent",
+        justification: "antigo",
+        created_at: new Date(Date.now() - 2 * 3_600_000).toISOString(),
+      })
+      .select("id")
+      .single();
+    expect(fresh.error).toBeNull();
+    expect(stale.error).toBeNull();
     expect(
-      await service.rpc("push_expire_requests", { p_now: later }).then((r) => r.data),
+      await service.rpc("push_expire_requests", {}).then((r) => r.data),
     ).toBeGreaterThanOrEqual(1);
-    expect((await send(u)).status).toBe("expired");
-    expect((await send(h)).status).toBe("pending_approval");
-    await service.rpc("push_expire_requests", {
-      p_now: new Date(Date.now() + 25 * 3_600_000).toISOString(),
-    });
-    expect((await send(h)).status).toBe("expired");
-    await expect(rpcAs(helena(), "push_approve", { p_send: u })).rejects.toThrow(
-      /expired|decisão já tomada/,
-    );
+    expect((await send(stale.data!.id)).status).toBe("expired");
+    await service.rpc("governance_sweep", {});
+    expect((await send(fresh.data!.id)).status).toBe("queued");
   });
 });
 
 describe("pausa, retomada e configurações", () => {
-  it("pausar vale na hora; retomar exige aprovação de quem tem push.approve (pode ser quem pediu, A-128)", async () => {
+  it("pausar e retomar valem na hora para quem tem push.settings", async () => {
     const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
-    await rpcAs(helena(), "push_approve", { p_send: id });
+    expect((await send(id)).status).toBe("queued");
     await expect(rpcAs(thiago(), "push_settings_pause", { p_reason: "x" })).rejects.toThrow();
     await rpcAs(helena(), "push_settings_pause", { p_reason: "incidente" });
     expect((await setting("push.paused")).on).toBe(true);
@@ -316,18 +351,15 @@ describe("pausa, retomada e configurações", () => {
         p_ctx: {},
       }),
     ).rejects.toThrow(/pausar\/retomar/);
-    const a = await rpcAs(helena(), "push_resume_request", { p_reason: "resolvido" });
-    await expect(rpcAs(otavio(), "push_resume_approve", { p_approval: a })).rejects.toThrow();
+    await expect(rpcAs(otavio(), "push_resume_request", { p_reason: "x" })).rejects.toThrow();
     expect((await setting("push.paused")).on).toBe(true);
+    // Quem tem push.settings e push.approve pede e retoma em sequência (A-128), sem segunda pessoa.
+    const a = await rpcAs(helena(), "push_resume_request", { p_reason: "resolvido" });
     await rpcAs(helena(), "push_resume_approve", { p_approval: a });
     expect((await setting("push.paused")).on).toBe(false);
     expect((await send(id)).status).toBe("queued");
-    const { data: appr } = await service
-      .from("approvals")
-      .select("status, requested_by, approved_by")
-      .eq("id", a)
-      .single();
-    expect(appr).toEqual({ status: "applied", requested_by: HELENA, approved_by: HELENA });
+    const { data: appr } = await service.from("approvals").select("status").eq("id", a).single();
+    expect(appr!.status).toBe("applied");
     expect(await auditActions("push:")).toEqual(
       expect.arrayContaining(["push.pause", "push.resume_requested", "push.resume_applied"]),
     );

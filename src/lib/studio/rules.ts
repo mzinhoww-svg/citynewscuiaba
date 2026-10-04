@@ -16,6 +16,7 @@ import type { RuleSet } from "@/lib/rules";
 import { canAccess } from "@/lib/auth/permissions";
 import { StudioFailure, studioAction, type StudioResult } from "./action";
 import { studioContext } from "./context";
+import { evaluateGovernance } from "@/lib/governance";
 import { requestAndApproveCommand } from "./approvals";
 
 /*
@@ -146,11 +147,23 @@ export const proposeRulesCommand = studioAction(
       : current.forceReview && !i.rules.forceReview
         ? "force_review.disable"
         : "rules.activate";
+    // Motor de política (A-133): regras válidas e papel certo aplicam na hora; inválidas são
+    // recusadas; afrouxar a segurança sem ser admin é exceção (ação do admin).
+    const next: RuleSet = { version, ...proposed };
+    const sim = simulateRules(next, await recentCandidates(7, ctx.db), current);
+    const policy = evaluateGovernance({
+      kind,
+      actorRoles: ctx.session?.roles.map((r) => r.role) ?? [],
+      current,
+      next,
+      simulation: { changed: sim.changed, total: sim.total },
+    });
     const approval = await requestAndApproveCommand({
       kind,
       targetRef: rulesTarget(version),
       justification: i.justification,
       details: { version, diff },
+      policy,
     });
     ctx.setObjectRef(rulesTarget(version));
     ctx.detail({ version, kind, diff, justification: i.justification });

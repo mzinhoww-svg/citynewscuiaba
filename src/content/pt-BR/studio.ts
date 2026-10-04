@@ -428,12 +428,13 @@ export const PUBLISH_TEXT = {
   noTopic: "sem assunto vinculado",
   push: "Push urgente",
   pushNote:
-    "Cria e aprova o aviso urgente em Notificações na mesma ação; fica registrado no histórico.",
+    "Cria o aviso urgente em Notificações; a política de avisos (limite por hora) decide na hora e fica registrado no histórico.",
   pushUnavailable: "Push urgente é só para admin ou editor-chefe.",
   pushJustification: "Justificativa do push",
   pushJustificationHint: "Por que este aviso é urgente (até 300 caracteres).",
   pushJustificationRequired: "Informe a justificativa do push urgente.",
-  pushRequested: "Pedido de push criado. Aguardando aprovação na fila de notificações.",
+  pushRequested:
+    "Push urgente recusado pela política de avisos (limite por hora). Veja o motivo na fila de notificações.",
   pushApproved: "Push urgente aprovado e na fila de envio. Fica registrado no histórico.",
   pushQueueLink: "Ver fila de notificações",
   pushFailed: (why: string) => `Matéria publicada, mas o pedido de push não foi criado: ${why}`,

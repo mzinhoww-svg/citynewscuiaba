@@ -6,6 +6,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import webpush from "web-push";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
+import type { Json } from "@/lib/db/types";
 import { createPushSendStore } from "@/lib/db/push-send-store";
 import { drain } from "@/lib/pipeline/drain";
 import type { PipelineEvent } from "@/lib/pipeline/ports";
@@ -149,7 +150,6 @@ async function requestUrgent(article: string, extra: Record<string, unknown> = {
     return c;
   };
   const marina = await asUser("marina.arruda@citynews.local");
-  const helena = await asUser("helena.costa@citynews.local");
   const req = await marina.rpc("push_request", {
     p: {
       kind: "urgent",
@@ -163,11 +163,11 @@ async function requestUrgent(article: string, extra: Record<string, unknown> = {
     },
   });
   if (req.error) throw new Error(req.error.message);
-  const id = req.data as string;
-  const appr = await helena.rpc("push_approve", { p_send: id });
-  if (appr.error) throw new Error(appr.error.message);
-  return id;
+  // A política de avisos aprova na mesma chamada (A-127): já está na fila.
+  return req.data as string;
 }
+
+let policyBody: Json | null = null;
 
 beforeAll(async () => {
   server = await startFakePushServer();
@@ -190,9 +190,26 @@ beforeAll(async () => {
     { key: "push.paused", value: { on: false, by: null, at: null, reason: null } },
     { key: "push.default_daily_limit", value: 3 },
   ]);
+  const { data: pol } = await db
+    .from("governance_policies")
+    .select("body")
+    .eq("active", true)
+    .single();
+  policyBody = pol!.body;
+  await db
+    .from("governance_policies")
+    .update({
+      body: {
+        ...(pol!.body as Record<string, Json>),
+        push: { urgentMaxPerHour: 100, highlightMaxPerDay: 100 },
+      },
+    })
+    .eq("active", true);
 });
 
 afterAll(async () => {
+  if (policyBody !== null)
+    await db.from("governance_policies").update({ body: policyBody }).eq("active", true);
   await db.from("jobs").delete().eq("queue", "notify").like("dedupe_key", "push_%");
   await db.from("push_sends").delete().gte("created_at", testStart);
   await db.from("approvals").delete().like("kind", "push.%").gte("created_at", testStart);
@@ -319,15 +336,6 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
       email: "marina.arruda@citynews.local",
       password: "citynews-local-123",
     });
-    const helena = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    await helena.auth.signInWithPassword({
-      email: "helena.costa@citynews.local",
-      password: "citynews-local-123",
-    });
     const req = await marina.rpc("push_request", {
       p: {
         kind: "highlight",
@@ -340,8 +348,6 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
     });
     if (req.error) throw new Error(req.error.message);
     const highlight = req.data as string;
-    const ok = await helena.rpc("push_approve", { p_send: highlight });
-    if (ok.error) throw new Error(ok.error.message);
     await drainOnce(() => EARLY);
     expect(received("night")).toBe(1);
     const { data: d } = await db
@@ -385,32 +391,29 @@ describe("urgente e Destaque (critérios 13, 14, 20; Review Focus 6)", () => {
     expect((await db.from("push_subscriptions").select("id").eq("id", gone)).data).toEqual([]);
     expect((await followSendOf(art))!.removed_n).toBe(1);
 
-    const { createClient } = await import("@supabase/supabase-js");
-    const marina = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { persistSession: false, autoRefreshToken: false } },
-    );
-    await marina.auth.signInWithPassword({
-      email: "marina.arruda@citynews.local",
-      password: "citynews-local-123",
-    });
-    const req = await marina.rpc("push_request", {
-      p: {
+    // Pedido pendente (de antes da política de avisos, A-127) não fica parado: vence em 60 min.
+    const pend = await db
+      .from("push_sends")
+      .insert({
         kind: "urgent",
-        articleId: art,
+        article_id: art,
         title: "Pendente",
         body: "Sem aprovação",
+        origin_label: "ORIGINAL CITYNEWS",
+        url: "/materia/pendente",
+        tag: "pendente",
         audience: { type: "all" },
-        when: { type: "now" },
+        status: "pending_approval",
+        requested_by: "c1000000-0000-4000-8000-000000000002", // Marina (seed)
         justification: "teste",
-      },
-    });
-    if (req.error) throw new Error(req.error.message);
+      })
+      .select("id")
+      .single();
+    if (pend.error) throw new Error(pend.error.message);
     const later = new Date(Math.max(Date.now(), DAY.getTime()) + 61 * 60_000);
     const r = await db.rpc("push_dispatch_due", { p_now: later.toISOString() });
     expect(r.error).toBeNull();
-    expect((await send(req.data as string)).status).toBe("expired");
+    expect((await send(pend.data.id)).status).toBe("expired");
   });
 
   it("403 em massa (5+ inscrições, metade do lote) pausa o envio e abre o alerta (G8, PWA-02)", async () => {
