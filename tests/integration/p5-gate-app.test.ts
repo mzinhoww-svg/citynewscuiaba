@@ -45,7 +45,7 @@ afterAll(async () => {
 });
 
 describe("achado 7 · proposta que tira tema sensível vira safety.disable", () => {
-  it("só admin aprova; a versão ativa depois de outra pessoa decidir", async () => {
+  it("só admin aprova; editora-chefe que propôs fica pendente e a versão ativa quando a admin decide", async () => {
     const rules = {
       forceReview: DEFAULT_RULES.forceReview,
       sensitiveTopics: DEFAULT_RULES.sensitiveTopics.filter((t) => t !== "overdose"),
@@ -58,9 +58,10 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
     if (!proposed.ok) return;
     ruleVersions.push(proposed.value.version);
     expect(proposed.value.kind).toBe("safety.disable");
+    expect(proposed.value.status).toBe("pending");
     approvalIds.push(proposed.value.approvalId!);
 
-    // Editor-chefe e operador não têm a segunda assinatura de Segurança (é do admin).
+    // Editor-chefe e operador não aprovam mudança de Segurança (é do admin).
     const self = await asUser("marina", () =>
       decideApprovalCommand({ id: proposed.value.approvalId!, decision: "approve" }),
     );
@@ -80,7 +81,7 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
     ]);
   });
 
-  it("proposta que só acrescenta tema segue como rules.activate", async () => {
+  it("proposta que só acrescenta tema segue como rules.activate e a editora-chefe aplica na hora (A-128)", async () => {
     const rules = {
       forceReview: DEFAULT_RULES.forceReview,
       sensitiveTopics: [...DEFAULT_RULES.sensitiveTopics, `greve-${mark}`],
@@ -90,6 +91,7 @@ describe("achado 7 · proposta que tira tema sensível vira safety.disable", () 
       proposeRulesCommand({ rules, justification: "Cobrir greves com revisão" }),
     );
     expect(proposed.ok && proposed.value.kind).toBe("rules.activate");
+    expect(proposed.ok && proposed.value.status).toBe("applied");
     if (proposed.ok) {
       ruleVersions.push(proposed.value.version);
       approvalIds.push(proposed.value.approvalId!);
@@ -296,7 +298,7 @@ describe("achado 15 · pedido de aprovação alheio não trava a proposta", () =
       requestApprovalCommand({ kind: "rules.activate", targetRef: target, justification: "meu" }),
     );
     expect(again.ok && again.value).toEqual({ id: mine.value.id, existing: true });
-    expect(APPROVAL_ERROR_TEXT.self_approval).toBeTruthy();
+    expect(APPROVAL_ERROR_TEXT.not_pending).toBeTruthy();
   });
 });
 

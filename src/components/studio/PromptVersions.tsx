@@ -33,7 +33,7 @@ export interface PromptVersionsProps {
   currentUserId: string;
   /** Pode escrever versões (operador de IA). */
   canWrite: boolean;
-  /** Tem a segunda assinatura (admin ou editor-chefe). */
+  /** Aprova e publica (admin ou editor-chefe); pode ser quem escreveu (A-128). */
   canApprove: boolean;
   request: (i: { agentId: string; version: number; justification: string }) => Promise<PromptReply>;
   publish: (i: { approvalId: string }) => Promise<PromptReply>;
@@ -142,7 +142,6 @@ export function PromptVersions({
               {versions.map((v) => {
                 const own = v.author.id === currentUserId;
                 const ap = v.approval;
-                const requester = ap?.requestedBy === currentUserId;
                 return (
                   <tr key={v.id} className="border-b border-line-subtle last:border-0 align-top">
                     <th
@@ -181,13 +180,13 @@ export function PromptVersions({
                         )}
                         {canWrite && own && v.status === "draft" && (
                           <Button size="sm" variant="outline-strong" onClick={() => setAsking(v)}>
-                            {T.requestPublish(v.version)}
+                            {(canApprove ? T.publishDirect : T.requestPublish)(v.version)}
                           </Button>
                         )}
-                        {ap && ap.status === "pending" && requester && (
-                          <span className="type-meta text-strong">{T.waitOther}</span>
+                        {ap && ap.status === "pending" && !canApprove && (
+                          <span className="type-meta text-strong">{T.waitApprover}</span>
                         )}
-                        {ap && ap.status === "pending" && !requester && canApprove && (
+                        {ap && ap.status === "pending" && canApprove && (
                           <Button
                             size="sm"
                             disabled={busy}
@@ -198,7 +197,7 @@ export function PromptVersions({
                             {T.approveAndPublish(v.version)}
                           </Button>
                         )}
-                        {ap && ap.status === "approved" && !requester && canApprove && (
+                        {ap && ap.status === "approved" && canApprove && (
                           <Button
                             size="sm"
                             disabled={busy}
@@ -299,7 +298,7 @@ export function PromptVersions({
       {asking && (
         <Dialog
           open
-          title={T.requestPublish(asking.version)}
+          title={(canApprove ? T.publishDirect : T.requestPublish)(asking.version)}
           onClose={() => setAsking(null)}
           actions={
             <>
@@ -323,7 +322,7 @@ export function PromptVersions({
                   );
                 }}
               >
-                {T.requestPublish(asking.version)}
+                {(canApprove ? T.publishDirect : T.requestPublish)(asking.version)}
               </Button>
             </>
           }

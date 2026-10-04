@@ -28,7 +28,9 @@ function reply<O>(r: StudioResult<O>, success: (v: O) => string): RecReply {
 }
 
 export async function proposeWeightsAction(i: ProposeWeightsInput): Promise<RecReply> {
-  return reply(await proposeWeightsCommand(i), (v) => REC_TEXT.proposed(v.version));
+  return reply(await proposeWeightsCommand(i), (v) =>
+    v.status === "applied" ? REC_TEXT.applied(v.version) : REC_TEXT.proposed(v.version),
+  );
 }
 
 export async function activateWeightsAction(i: ActivateWeightsInput): Promise<RecReply> {
@@ -53,7 +55,9 @@ export async function endExperimentAction(i: { id: string }): Promise<RecReply> 
 }
 
 export async function promoteExperimentAction(i: PromoteInput): Promise<RecReply> {
-  return reply(await promoteExperimentCommand(i), (v) => AB_TEXT.promoted(v.version));
+  return reply(await promoteExperimentCommand(i), (v) =>
+    v.status === "applied" ? AB_TEXT.promotedApplied(v.version) : AB_TEXT.promoted(v.version),
+  );
 }
 
 export async function explainRecommendationAction(i: ExplainInput): Promise<WhyReply> {

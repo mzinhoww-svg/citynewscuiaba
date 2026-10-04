@@ -61,6 +61,7 @@ const HELENA = "helena.costa@citynews.local"; // admin
 const MARINA = "marina.arruda@citynews.local"; // editor_chefe
 const DIEGO = "diego.prado@citynews.local"; // operador_ia
 const THIAGO = "thiago.moraes@citynews.local"; // analista (sem source.manage)
+const MARINA_ID = "c1000000-0000-4000-8000-000000000002";
 
 const testStart = new Date().toISOString();
 const svc = createServiceClient();
@@ -190,8 +191,8 @@ afterAll(async () => {
 
 // ---------------------------------------------------------------------------
 
-describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
-  it("operador pede, tenta aprovar, editora-chefe aprova", async () => {
+describe("mudança crítica: aprovação registrada (Review Focus 2; A-128)", () => {
+  it("operador pede, não pode aprovar, editora-chefe aprova", async () => {
     const s = await detailBySlug("portal-varzea");
     expect(s.imagePolicy).toBe("none");
     const r = await asUser(DIEGO, () =>
@@ -204,7 +205,10 @@ describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
         }),
       ),
     );
-    expect(r).toMatchObject({ ok: true, message: "1 alteração aguarda segunda aprovação" });
+    expect(r).toMatchObject({
+      ok: true,
+      message: "1 alteração aguarda aprovação de admin ou editor-chefe",
+    });
     expect((await detailBySlug("portal-varzea")).imagePolicy).toBe("none");
 
     const pending = await pendingSourceApprovals();
@@ -219,7 +223,7 @@ describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
 
     expect(
       await asUser(DIEGO, () => decideApprovalAction(formFrom({ id: p!.id, decision: "approve" }))),
-    ).toMatchObject({ ok: false, message: "A aprovação precisa ser de outra pessoa" });
+    ).toMatchObject({ ok: false, message: "Só admin ou editor-chefe aprova mudança crítica." });
     expect(
       await asUser(MARINA, () =>
         decideApprovalAction(formFrom({ id: p!.id, decision: "approve" })),
@@ -236,7 +240,7 @@ describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
         "source.update",
       ]),
     );
-    // Auditoria com as duas pessoas e o hash do IP (nunca o IP cru).
+    // Auditoria com quem pediu, quem aprovou e o hash do IP (nunca o IP cru).
     const rows = await auditRows(`source:${s.id}`);
     const applied = rows.find((x) => x.action === "source.approval_applied");
     expect(applied?.details).toMatchObject({
@@ -261,7 +265,7 @@ describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
     );
     expect(r).toMatchObject({
       ok: true,
-      message: "Alterações salvas. 1 alteração aguarda segunda aprovação",
+      message: "Alterações salvas. 1 alteração aguarda aprovação de admin ou editor-chefe",
     });
     const after = await detailBySlug("brasil-hoje");
     expect(after.editorialScore).toBe(4);
@@ -275,6 +279,45 @@ describe("mudança crítica: duas pessoas (Review Focus 2)", () => {
     );
     expect(r).toMatchObject({ ok: false, fieldErrors: { justification: expect.any(String) } });
     expect((await detailBySlug("cena-cuiabana")).version).toBe(s.version);
+  });
+
+  it("A-128: editora-chefe pede e aplica na mesma ação; approvals e auditoria guardam quem fez", async () => {
+    const s = await detailBySlug("cena-cuiabana");
+    const r = await asUser(MARINA, () =>
+      updateSourceAction(
+        formFrom({
+          id: s.id,
+          version: s.version,
+          maySoleSource: "true",
+          justification: "Fonte primária da agenda cultural",
+        }),
+      ),
+    );
+    expect(r).toMatchObject({ ok: true, message: "Aplicado. Fica registrado no histórico." });
+    expect((await rowBySlug("cena-cuiabana")).may_be_sole_source).toBe(true);
+    const approval = (
+      await svc
+        .from("approvals")
+        .select("kind, status, requested_by, approved_by")
+        .eq("target_ref", `source:${s.id}:may_be_sole_source=true`)
+        .gt("created_at", testStart)
+        .single()
+    ).data;
+    expect(approval).toEqual({
+      kind: "source.critical",
+      status: "applied",
+      requested_by: MARINA_ID,
+      approved_by: MARINA_ID,
+    });
+    const rows = await auditRows(`source:${s.id}`);
+    expect(rows.find((x) => x.action === "source.approval_requested")?.actor).toBe(MARINA_ID);
+    const applied = rows.find((x) => x.action === "source.approval_applied");
+    expect(applied?.actor).toBe(MARINA_ID);
+    expect(applied?.details).toMatchObject({
+      requestedBy: MARINA_ID,
+      approvedBy: MARINA_ID,
+      justification: "Fonte primária da agenda cultural",
+    });
   });
 
   it("recusar exige motivo e registra na auditoria", async () => {
@@ -367,7 +410,7 @@ describe("ciclo de vida como pessoas reais", () => {
     expect(m?.status).toBe("blocked");
   });
 
-  it("desbloquear pede segunda aprovação; editora-chefe aprova e a fonte volta pausada", async () => {
+  it("operador pede desbloqueio e aguarda; editora-chefe aprova e a fonte volta pausada", async () => {
     const s = await detailBySlug("correio-mato-grossense");
     const r = await asUser(DIEGO, () =>
       sourceStatusAction(
@@ -379,7 +422,10 @@ describe("ciclo de vida como pessoas reais", () => {
         }),
       ),
     );
-    expect(r).toMatchObject({ ok: true, message: "O desbloqueio aguarda segunda aprovação" });
+    expect(r).toMatchObject({
+      ok: true,
+      message: "O desbloqueio aguarda aprovação de admin ou editor-chefe",
+    });
     expect((await rowBySlug("correio-mato-grossense")).status).toBe("blocked");
     const approval = (
       await svc

@@ -26,7 +26,7 @@ export interface FieldShellProps {
   label: string;
   hint?: ReactNode;
   error?: string | null;
-  /** Conteúdo à direita do rótulo (selo "Exige segunda aprovação", "opcional"). */
+  /** Conteúdo à direita do rótulo (selo "Mudança crítica", "opcional"). */
   aside?: ReactNode;
   children: ReactNode;
   className?: string;

@@ -358,6 +358,19 @@ describe("autoReview", () => {
     return { s, item, callAgent };
   }
 
+  it("o modelo sabe quando há fontes divergentes ou conteúdo duvidoso", async () => {
+    const { s, item, callAgent } = await itemOf("Texto da matéria.");
+    s.fake.script([verdict("hold", "Fontes divergem sobre o número de feridos.")]);
+    const flagged: ReviewItem = {
+      ...item,
+      ctx: { ...item.ctx, centralConflict: true, dubious: true },
+    };
+    await autoReview(flagged, { callAgent });
+    const call = s.fake.calls.findLast((c) => c.agentId === "reviewer")!;
+    expect(call.system).toContain("Fontes divergentes confirmadas: sim");
+    expect(call.system).toContain("Conteúdo marcado como duvidoso: sim");
+  });
+
   it("o texto da matéria vai ao modelo como dado externo, nunca como instrução", async () => {
     const { s, item, callAgent } = await itemOf("A Prefeitura anunciou a obra na avenida.");
     s.fake.script([verdict("hold", "Mantida por falta de confirmação na fonte única.")]);
@@ -396,5 +409,22 @@ describe("isReviewable", () => {
     expect(isReviewable({ ...item, ctx: { ...ctx, humanEdited: true } })).toBe(false);
     expect(isReviewable({ ...item, openReports: 1 })).toBe(false);
     expect(isReviewable({ ...item, fromPipeline: false })).toBe(false);
+  });
+
+  it("rascunho sem IA nunca chega ao revisor: é lista de trechos das fontes, não matéria (regra 4)", async () => {
+    const s = await setup();
+    const ctx = (await s.base.decisionContext(s.id))!;
+    const item: ReviewItem = {
+      ctx: { ...ctx, aiFallback: true },
+      text: "x",
+      reviewReason: null,
+      dueAt: null,
+      fromPipeline: true,
+      openReports: 0,
+      openCorrections: 0,
+      openEscalations: 0,
+      sourceNames: [],
+    };
+    expect(isReviewable(item)).toBe(false);
   });
 });

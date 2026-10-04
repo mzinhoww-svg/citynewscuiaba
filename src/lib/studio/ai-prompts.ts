@@ -28,14 +28,15 @@ import { APPROVER_ACTION } from "@/lib/approvals/targets";
 import { audit } from "@/lib/audit";
 import { canAccess } from "@/lib/auth/permissions";
 import { agentsOverview, promptVersions } from "@/lib/db/queries/ai-prompts";
-import { StudioFailure, studioAction } from "./action";
-import { requestApprovalCommand } from "./approvals";
+import { StudioFailure, studioAction, type ActionContext } from "./action";
+import { requestAndApproveCommand } from "./approvals";
 
 /*
  * Agentes, modelos, prompts versionados e playground (P5-T5). Toda mutação passa por
  * `studioAction` (papel, modo leitura, auditoria). Publicar em produção é mudança crítica:
- * quem escreve pede (`prompt.request`), outra pessoa aprova na caixa, e `prompt_publish`
- * (0036) consome a aprovação; rollback (`prompt_rollback`) não pede aprovação nova.
+ * o pedido (`prompt.request`) fica registrado e `prompt_publish` (0036) consome a aprovação. A-128:
+ * quem pede e tem o papel de aprovar (admin ou editor-chefe) aprova e publica na mesma ação; o
+ * histórico guarda quem pediu e quem aprovou. Rollback (`prompt_rollback`) não pede aprovação nova.
  */
 
 const noScope = () => ({});
@@ -96,11 +97,20 @@ const RequestInput = z.object({
 });
 export type RequestPublishInput = z.infer<typeof RequestInput>;
 
-/** Marca a versão `pending` e abre o pedido `prompt.publish` para outra pessoa decidir. */
+export interface RequestPublishOutcome {
+  approvalId: string;
+  /** `published`: a versão já está em produção; `pending`: aguarda quem tem o papel de aprovar. */
+  status: "published" | "pending";
+}
+
+/**
+ * Marca a versão `pending` e registra o pedido `prompt.publish`; quem pode aprovar publica na
+ * mesma ação (A-128).
+ */
 export const requestPromptPublishCommand = studioAction(
   "prompt.publish",
   noScope,
-  async (i: RequestPublishInput, ctx): Promise<{ approvalId: string; existing: boolean }> => {
+  async (i: RequestPublishInput, ctx): Promise<RequestPublishOutcome> => {
     const versions = await promptVersions(i.agentId, ctx.db);
     const v = versions.find((x) => x.version === i.version);
     if (!v) throw new StudioFailure("not_found");
@@ -114,15 +124,18 @@ export const requestPromptPublishCommand = studioAction(
         .eq("status", "draft");
       if (error) throw new Error(`ai_prompts update: ${error.message}`);
     }
-    const r = await requestApprovalCommand({
+    const r = await requestAndApproveCommand({
       kind: "prompt.publish",
       targetRef: promptTarget(i.agentId, i.version),
       justification: i.justification,
       details: { agentId: i.agentId, version: i.version },
     });
     if (!r.ok) throw new StudioFailure(r.error, r.message ?? PROMPTS_TEXT.genericError);
-    ctx.detail({ version: i.version, approvalId: r.value.id, existing: r.value.existing });
-    return { approvalId: r.value.id, existing: r.value.existing };
+    ctx.detail({ version: i.version, approvalId: r.value.id });
+    if (r.value.status === "pending") return { approvalId: r.value.id, status: "pending" };
+    const out = await publishApproved(ctx, r.value.id);
+    ctx.detail({ published: true, previous: out.previous });
+    return { approvalId: r.value.id, status: "published" };
   },
   {
     schema: RequestInput,
@@ -141,62 +154,74 @@ export interface PublishOutcome {
 }
 
 /**
- * Publica a versão aprovada: só quem aprovou (outra pessoa) aplica, dentro de 24 h. Se o pedido
- * ainda está pendente e a pessoa pode decidir, aprova e publica de uma vez.
+ * Publica a versão aprovada: só quem aprovou aplica, dentro de 24 h (quem pediu pode ser quem
+ * aprova, A-128). Se o pedido ainda está pendente e a pessoa pode decidir, aprova e publica de
+ * uma vez.
  */
+async function publishApproved(
+  ctx: ActionContext,
+  approvalId: string,
+): Promise<PublishOutcome & { targetRef: string }> {
+  const port = supabaseApprovalsPort(ctx.db);
+  const row = await port.get(approvalId);
+  if (!row || row.kind !== "prompt.publish") throw new StudioFailure("not_found");
+  if (row.status === "pending") {
+    const action = APPROVER_ACTION[row.kind as CriticalKind];
+    if (!ctx.session || !canAccess(ctx.session.roles, action))
+      throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.forbidden);
+    const r = await createApprovals(ctx.db).approve({ id: approvalId });
+    if (!r.ok)
+      throw new StudioFailure(
+        r.error === "forbidden" ? "forbidden" : "conflict",
+        APPROVAL_ERROR_TEXT[r.error],
+      );
+    await audit(
+      ctx.userId,
+      "approval.approved",
+      row.targetRef,
+      { approvalId, kind: row.kind, requestedBy: row.requestedBy },
+      ctx.db,
+    );
+  } else if (row.status !== "approved") {
+    throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
+  }
+  const { data, error } = await ctx.db.rpc("prompt_publish", { p_approval: approvalId });
+  if (error) {
+    if (error.code === "42501" || /quem aprovou/.test(error.message))
+      throw new StudioFailure("forbidden", PROMPTS_TEXT.publishForbidden);
+    if (error.code === "P0002") throw new StudioFailure("not_found");
+    throw new Error(`prompt_publish: ${error.message}`);
+  }
+  const out = data as {
+    applied?: boolean;
+    agent?: string;
+    version?: number;
+    previous?: number | null;
+  } | null;
+  if (!out?.applied) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
+  await audit(
+    ctx.userId,
+    "approval.applied",
+    row.targetRef,
+    { approvalId, kind: row.kind, requestedBy: row.requestedBy },
+    ctx.db,
+  );
+  return {
+    agentId: String(out.agent),
+    version: Number(out.version),
+    previous: out.previous ?? null,
+    targetRef: row.targetRef,
+  };
+}
+
 export const publishPromptCommand = studioAction(
   "prompt.publish",
   noScope,
   async (i: PublishPromptInput, ctx): Promise<PublishOutcome> => {
-    const port = supabaseApprovalsPort(ctx.db);
-    const row = await port.get(i.approvalId);
-    if (!row || row.kind !== "prompt.publish") throw new StudioFailure("not_found");
-    if (row.requestedBy === ctx.userId)
-      throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.self_approval);
-    if (row.status === "pending") {
-      const action = APPROVER_ACTION[row.kind as CriticalKind];
-      if (!ctx.session || !canAccess(ctx.session.roles, action))
-        throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.forbidden);
-      const r = await createApprovals(ctx.db).approve({ id: i.approvalId });
-      if (!r.ok) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT[r.error]);
-      await audit(
-        ctx.userId,
-        "approval.approved",
-        row.targetRef,
-        { approvalId: i.approvalId, kind: row.kind, requestedBy: row.requestedBy },
-        ctx.db,
-      );
-    } else if (row.status !== "approved") {
-      throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
-    }
-    const { data, error } = await ctx.db.rpc("prompt_publish", { p_approval: i.approvalId });
-    if (error) {
-      if (error.code === "42501" || /duas pessoas|quem aprovou/.test(error.message))
-        throw new StudioFailure("forbidden", PROMPTS_TEXT.publishForbidden);
-      if (error.code === "P0002") throw new StudioFailure("not_found");
-      throw new Error(`prompt_publish: ${error.message}`);
-    }
-    const out = data as {
-      applied?: boolean;
-      agent?: string;
-      version?: number;
-      previous?: number | null;
-    } | null;
-    if (!out?.applied) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
-    ctx.setObjectRef(row.targetRef);
-    ctx.detail({ approvalId: i.approvalId, version: out.version, previous: out.previous ?? null });
-    await audit(
-      ctx.userId,
-      "approval.applied",
-      row.targetRef,
-      { approvalId: i.approvalId, kind: row.kind, requestedBy: row.requestedBy },
-      ctx.db,
-    );
-    return {
-      agentId: String(out.agent),
-      version: Number(out.version),
-      previous: out.previous ?? null,
-    };
+    const { targetRef, ...out } = await publishApproved(ctx, i.approvalId);
+    ctx.setObjectRef(targetRef);
+    ctx.detail({ approvalId: i.approvalId, version: out.version, previous: out.previous });
+    return out;
   },
   { schema: PublishInput, auditAs: "prompt.publish", objectRef: () => "prompt:" },
 );

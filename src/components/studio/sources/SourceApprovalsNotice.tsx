@@ -4,7 +4,7 @@ import { cx } from "../../cx";
 import { Icon } from "../../ui/Icon";
 
 export interface SourceApprovalsNoticeProps {
-  /** Total de mudanças críticas aguardando segunda aprovação (spec §7.5, D-F3). */
+  /** Total de mudanças críticas aguardando aprovação (spec §7.5, D-F3). */
   count: number;
   /** Link para a lista já filtrada por `pendente=1`. */
   href: string;

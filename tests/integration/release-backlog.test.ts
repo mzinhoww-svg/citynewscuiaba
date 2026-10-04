@@ -206,7 +206,7 @@ describe("release-backlog contra o banco local", () => {
   });
 
   it("--apply com a v3 ativa: lotes pequenos, worker real, publica e respeita o teto da hora", async () => {
-    // Ativa uma v3 de teste (service role: sem a regra de duas pessoas) e liga a publicação.
+    // Ativa uma v3 de teste (service role: sem passar pelo pedido de aprovação) e liga a publicação.
     const body = { ...RULES_V3, version: V3_VERSION } as unknown as Record<string, unknown>;
     const ins = await db.from("rules").insert({
       version: V3_VERSION,

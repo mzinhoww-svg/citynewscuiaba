@@ -30,7 +30,7 @@ const STEP = 0.01;
 /**
  * Pesos do score (O17): um controle deslizante por componente com o valor numérico ao lado, a
  * soma sempre visível e "Propor" desabilitado enquanto a soma não fecha em 1,00 ± 0,001
- * (Review Focus 2). A proposta abre um pedido `rec.weights` para outra pessoa.
+ * (Review Focus 2). A proposta registra um pedido `rec.weights` e, para quem pode aprovar, já ativa.
  */
 export function WeightSliders({ current, version, propose, className }: WeightSlidersProps) {
   const uid = useId();

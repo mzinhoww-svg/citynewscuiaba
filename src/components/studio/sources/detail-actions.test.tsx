@@ -47,13 +47,7 @@ describe("PendingApprovalsPanel", () => {
 
   it("sem pedidos não renderiza nada", () => {
     const { container } = render(
-      <PendingApprovalsPanel
-        approvals={[]}
-        currentValues={{}}
-        currentUserId="u-marina"
-        canApprove
-        action={ok()}
-      />,
+      <PendingApprovalsPanel approvals={[]} currentValues={{}} canApprove action={ok()} />,
     );
     expect(container).toBeEmptyDOMElement();
   });
@@ -63,13 +57,12 @@ describe("PendingApprovalsPanel", () => {
       <PendingApprovalsPanel
         approvals={[approval]}
         currentValues={{ image_policy: "none" }}
-        currentUserId="u-diego"
         canApprove={false}
         action={ok()}
       />,
     );
     expect(
-      screen.getByRole("region", { name: "1 alteração aguarda segunda aprovação" }),
+      screen.getByRole("region", { name: "1 alteração aguarda aprovação" }),
     ).toBeInTheDocument();
     expect(screen.getByText(/pedido por Diego Prado/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Revisar" })).toBeNull();
@@ -81,7 +74,6 @@ describe("PendingApprovalsPanel", () => {
       <PendingApprovalsPanel
         approvals={[approval]}
         currentValues={{ image_policy: "none" }}
-        currentUserId="u-marina"
         canApprove
         action={action}
       />,
@@ -103,13 +95,12 @@ describe("PendingApprovalsPanel", () => {
   it("falha da ação fica no diálogo (não fecha) e não atualiza a tela", async () => {
     const action = vi.fn<ActionFn>(async () => ({
       ok: false,
-      message: "Só outra pessoa pode aprovar este pedido.",
+      message: "Este pedido já foi decidido.",
     }));
     render(
       <PendingApprovalsPanel
         approvals={[approval]}
         currentValues={{ image_policy: "none" }}
-        currentUserId="u-marina"
         canApprove
         action={action}
       />,
@@ -117,9 +108,7 @@ describe("PendingApprovalsPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Revisar" }));
     await userEvent.click(screen.getByRole("button", { name: "Aprovar e aplicar" }));
     const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByRole("alert")).toHaveTextContent(
-      "Só outra pessoa pode aprovar este pedido.",
-    );
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Este pedido já foi decidido.");
     expect(refresh).not.toHaveBeenCalled();
   });
 });
@@ -154,7 +143,7 @@ describe("SourceHeaderActions", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("pausada aguardando ativação mostra Ativar; bloqueada mostra Bloquear de novo e Pedir desbloqueio; arquivada só Restaurar", () => {
+  it("pausada aguardando ativação mostra Ativar; bloqueada mostra Bloquear de novo e Desbloquear; arquivada só Restaurar", () => {
     const { rerender } = render(
       <SourceHeaderActions
         source={{ ...source, status: "paused", statusReason: "pending_activation" }}
@@ -174,7 +163,7 @@ describe("SourceHeaderActions", () => {
     expect(
       screen.getByRole("button", { name: "Bloquear de novo (Pedido do veículo)" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pedir desbloqueio" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Desbloquear" })).toBeInTheDocument();
     rerender(
       <SourceHeaderActions
         source={{ ...source, status: "paused", archived: true }}

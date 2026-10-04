@@ -53,7 +53,7 @@ export function parseApprovalTarget(ref: string): ApprovalTarget {
   return { kind: "other", ref };
 }
 
-/** Ação da matriz de permissões que dá a segunda assinatura de cada tipo. */
+/** Ação da matriz de permissões que aprova cada tipo (pode ser de quem pediu, A-128). */
 export const APPROVER_ACTION: Record<CriticalKind, Action> = {
   "rules.activate": "rules.approve",
   "force_review.disable": "rules.approve",

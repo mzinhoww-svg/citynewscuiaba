@@ -25,11 +25,7 @@ describe("PublishDialog · push urgente (E06, spec §10.7)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
     const box = screen.getByRole("checkbox", { name: "Push urgente" });
     expect(box).toBeDisabled();
-    expect(
-      screen.getByText(
-        "Push urgente é pedido por admin ou editor-chefe e aprovado por outra pessoa.",
-      ),
-    ).toBeVisible();
+    expect(screen.getByText("Push urgente é só para admin ou editor-chefe.")).toBeVisible();
     unmount();
     render(<PublishDialog {...base} canRequestUrgent publish={vi.fn()} />);
     await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
@@ -42,7 +38,8 @@ describe("PublishDialog · push urgente (E06, spec §10.7)", () => {
   it("marcado exige justificativa; publica com o pedido e mostra o link para a fila", async () => {
     const publish = vi.fn().mockResolvedValue({
       ok: true,
-      message: "Matéria publicada. Pedido de push criado. Aguardando aprovação de outra pessoa.",
+      message:
+        "Matéria publicada. Push urgente aprovado e na fila de envio. Fica registrado no histórico.",
       pushQueueHref: "/estudio/admin/notificacoes/fila",
     });
     render(<PublishDialog {...base} canRequestUrgent publish={publish} />);
@@ -61,7 +58,9 @@ describe("PublishDialog · push urgente (E06, spec §10.7)", () => {
       destinations: ["home", "section"],
       push: { justification: "Alerta da Defesa Civil" },
     });
-    expect(await screen.findByRole("status")).toHaveTextContent("Pedido de push criado");
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Push urgente aprovado e na fila de envio",
+    );
     expect(screen.getByRole("link", { name: "Ver fila de notificações" })).toHaveAttribute(
       "href",
       "/estudio/admin/notificacoes/fila",

@@ -149,7 +149,6 @@ export const FREQUENCY_TEXT = {
 export const scoreText = (score: number): string => `${score} de 5`;
 
 export const APPROVAL_ERROR_TEXT = {
-  self_approval: "A aprovação precisa ser de outra pessoa",
   forbidden: "Só admin ou editor-chefe aprova mudança crítica.",
   not_pending: "Este pedido já foi decidido.",
   invalid: "Justificativa obrigatória.",
@@ -161,16 +160,18 @@ export const SOURCE_ACTION_TEXT = {
   saved: "Alterações salvas",
   nothingToSave: "Nenhuma alteração para salvar",
   pendingApproval: (n: number) =>
-    `${n} ${plural(n, "alteração aguarda", "alterações aguardam")} segunda aprovação`,
+    `${n} ${plural(n, "alteração aguarda", "alterações aguardam")} aprovação de admin ou editor-chefe`,
   savedWithPending: (n: number) =>
-    `Alterações salvas. ${n} ${plural(n, "alteração aguarda", "alterações aguardam")} segunda aprovação`,
+    `Alterações salvas. ${n} ${plural(n, "alteração aguarda", "alterações aguardam")} aprovação de admin ou editor-chefe`,
+  /** A-128: quem tem o papel aprova e aplica a mudança crítica na mesma ação. */
+  appliedCritical: "Aplicado. Fica registrado no histórico.",
   conflict: (who: string, time: string) =>
     `Esta fonte foi alterada por ${who} às ${time}. Recarregue para ver a versão atual.`,
-  conflictUnknown: "Esta fonte foi alterada por outra pessoa. Recarregue para ver a versão atual.",
+  conflictUnknown: "Esta fonte foi alterada agora há pouco. Recarregue para ver a versão atual.",
   systemActor: "o sistema",
   auditFailed: "Aviso: a alteração foi feita, mas o registro complementar na auditoria falhou.",
   approvalRequestFailed: (fields: string) =>
-    `Não foi possível pedir a segunda aprovação para: ${fields}. Nada foi pedido para esse campo; tente de novo.`,
+    `Não foi possível registrar a aprovação para: ${fields}. Nada mudou nesse campo; tente de novo.`,
   createdFollowUpFailed:
     "Não foi possível registrar a revisão dos termos. Marque de novo na aba Configuração.",
   forbidden: "Sua conta não tem permissão para esta ação.",
@@ -182,13 +183,12 @@ export const SOURCE_ACTION_TEXT = {
     `A via rápida está cheia: ${used} de ${max} fontes. Tire outra fonte da via rápida ou peça para aumentar o limite.`,
   fastLaneInactive: "Ative a fonte antes de colocá-la na via rápida.",
   justificationRequired:
-    "Explique por que esta mudança é necessária. A segunda pessoa vai ler antes de aprovar.",
+    "Explique por que esta mudança é necessária. A justificativa fica no histórico da aprovação.",
   reasonRequired: "Informe o motivo.",
   confirmName: "Digite o nome da fonte exatamente como aparece para confirmar.",
   created: "Fonte salva pausada. Ative quando os termos estiverem revisados e o teste passar.",
   createdActive: "Fonte salva e ativada.",
   createdNotActivated: (why: string) => `Fonte salva pausada. Não foi possível ativar: ${why}`,
-  termsRequired: "Revise os termos de uso antes de ativar.",
   status: {
     pause: "Fonte pausada",
     resume: "Fonte retomada",
@@ -196,7 +196,8 @@ export const SOURCE_ACTION_TEXT = {
     block: "Fonte bloqueada",
     blockOptOut: (n: number) =>
       `Fonte bloqueada a pedido do veículo. ${n} ${plural(n, "reprodução removida", "reproduções removidas")}.`,
-    unblockRequested: "O desbloqueio aguarda segunda aprovação",
+    unblockRequested: "O desbloqueio aguarda aprovação de admin ou editor-chefe",
+    unblocked: "Fonte desbloqueada (volta pausada). Fica registrado no histórico.",
     blockOptOutTakedownFailed:
       "Fonte bloqueada, mas a remoção das reproduções falhou. Bloqueie de novo com “Pedido do veículo” para repetir a remoção: o prazo é de 24 h.",
     archive: "Fonte excluída (arquivada). Itens e matérias continuam íntegros.",
@@ -271,7 +272,7 @@ export const SOURCE_ACTION_TEXT = {
     },
   },
   approval: {
-    approved: "Mudança aprovada e aplicada",
+    approved: "Aplicado. Fica registrado no histórico.",
     rejected: "Pedido recusado",
     obsolete:
       "O campo mudou depois do pedido. O pedido foi recusado automaticamente como obsoleto.",
@@ -427,8 +428,8 @@ export const SOURCES_LIST_TEXT = {
     close: "Fechar",
   },
   approvalsNotice: {
-    one: "1 mudança aguarda segunda aprovação.",
-    many: (n: number) => `${n} mudanças aguardam segunda aprovação.`,
+    one: "1 mudança aguarda aprovação.",
+    many: (n: number) => `${n} mudanças aguardam aprovação.`,
     review: "Revisar",
   },
   /** Aviso de fontes rápidas puladas por falta de vaga (spec §8, cabeçalho O03). */

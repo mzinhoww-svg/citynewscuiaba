@@ -53,7 +53,10 @@ export async function requestPromptPublishAction(
 ): Promise<PromptReply> {
   return reply(
     await requestPromptPublishCommand(i as RequestPublishInput),
-    () => PROMPTS_TEXT.requested,
+    (v) =>
+      v.status === "published" && typeof i.version === "number"
+        ? PROMPTS_TEXT.requestedPublished(i.version)
+        : PROMPTS_TEXT.requested,
     PROMPTS_TEXT,
   );
 }

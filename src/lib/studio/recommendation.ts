@@ -15,13 +15,14 @@ import { weightsValid } from "@/lib/ranking/experiments";
 import { scoreBreakdown, type ScoreBreakdown } from "@/lib/ranking/metrics";
 import { REC_V1, WEIGHT_KEYS } from "@/lib/ranking/score";
 import type { Weights } from "@/lib/ranking/types";
-import { StudioFailure, studioAction } from "./action";
-import { requestApprovalCommand } from "./approvals";
+import { StudioFailure, studioAction, type ActionContext } from "./action";
+import { requestAndApproveCommand } from "./approvals";
 
 /*
  * Recomendação (P5-T7): propor pesos (versão nova + pedido `rec.weights`), ativar pesos
  * aprovados (`rec_weights_activate`, 0037), campanhas, testes A/B e "Por que esta
- * recomendação". Papel: `rec.weights` (admin, operador_ia), o mesmo da RLS.
+ * recomendação". Papel: `rec.weights` (admin, operador_ia), o mesmo da RLS. A-128: quem propõe
+ * e pode aprovar ativa na mesma ação; o pedido e a auditoria guardam quem propôs e quem aprovou.
  */
 
 const noScope = () => ({});
@@ -79,11 +80,41 @@ const ProposeInput = z.object({
 });
 export type ProposeWeightsInput = z.infer<typeof ProposeInput>;
 
+export interface ProposeWeightsOutcome {
+  version: string;
+  approvalId: string | null;
+  /** `applied`: os pesos já estão ativos; `pending`: aguardam quem tem o papel de aprovar. */
+  status: "applied" | "pending";
+}
+
+/**
+ * Pedido `rec.weights` da versão nova; se quem propõe pode aprovar, aprova e ativa na mesma ação
+ * (A-128). Devolve se ficou ativo ou pendente.
+ */
+async function requestAndActivate(
+  ctx: ActionContext,
+  version: string,
+  justification: string,
+  details: Record<string, unknown>,
+): Promise<{ approvalId: string; status: "applied" | "pending" }> {
+  const approval = await requestAndApproveCommand({
+    kind: "rec.weights",
+    targetRef: recTarget(version),
+    justification,
+    details,
+  });
+  if (!approval.ok) throw new StudioFailure(approval.error, approval.message);
+  const approvalId = approval.value.id;
+  if (approval.value.status === "pending") return { approvalId, status: "pending" };
+  await activateApproved(ctx, approvalId);
+  return { approvalId, status: "applied" };
+}
+
 /** Nova versão de pesos (inativa, em nome de quem propõe) + pedido `rec.weights`. */
 export const proposeWeightsCommand = studioAction(
   "rec.weights",
   noScope,
-  async (i: ProposeWeightsInput, ctx): Promise<{ version: string; approvalId: string | null }> => {
+  async (i: ProposeWeightsInput, ctx): Promise<ProposeWeightsOutcome> => {
     const valid = weightsValid(i.weights);
     if (!valid.ok) throw new StudioFailure("invalid", REC_TEXT.sumBad);
     const history = await weightsHistory(ctx.db);
@@ -94,15 +125,14 @@ export const proposeWeightsCommand = studioAction(
       cap: active?.cap ?? 0.25,
       discoveryEvery: active?.discoveryEvery ?? 5,
     });
-    const approval = await requestApprovalCommand({
-      kind: "rec.weights",
-      targetRef: recTarget(version),
-      justification: i.justification,
-      details: { version, weights: i.weights },
-    });
     ctx.setObjectRef(recTarget(version));
     ctx.detail({ version, weights: i.weights, justification: i.justification });
-    return { version, approvalId: approval.ok ? approval.value.id : null };
+    const { approvalId, status } = await requestAndActivate(ctx, version, i.justification, {
+      version,
+      weights: i.weights,
+    });
+    ctx.detail({ approvalId, status });
+    return { version, approvalId, status };
   },
   { schema: ProposeInput, auditAs: "rec.weights", objectRef: () => "rec:" },
 );
@@ -110,51 +140,68 @@ export const proposeWeightsCommand = studioAction(
 const ActivateInput = z.object({ approvalId: z.uuid() });
 export type ActivateWeightsInput = z.infer<typeof ActivateInput>;
 
-/** Ativa a versão aprovada: só quem aprovou (outra pessoa) aplica; pendente + papel → aprova e ativa. */
+/**
+ * Ativa a versão aprovada (só quem aprovou aplica); pendente + papel → aprova e ativa. Quem
+ * pediu pode ser quem aprova (A-128).
+ */
+async function activateApproved(
+  ctx: ActionContext,
+  approvalId: string,
+): Promise<{ version: string; previous: string | null; targetRef: string }> {
+  const port = supabaseApprovalsPort(ctx.db);
+  const row = await port.get(approvalId);
+  if (!row || row.kind !== "rec.weights") throw new StudioFailure("not_found");
+  if (row.status === "pending") {
+    const action = APPROVER_ACTION[row.kind as CriticalKind];
+    if (!ctx.session || !canAccess(ctx.session.roles, action))
+      throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.forbidden);
+    const r = await createApprovals(ctx.db).approve({ id: approvalId });
+    if (!r.ok)
+      throw new StudioFailure(
+        r.error === "forbidden" ? "forbidden" : "conflict",
+        APPROVAL_ERROR_TEXT[r.error],
+      );
+    await audit(
+      ctx.userId,
+      "approval.approved",
+      row.targetRef,
+      { approvalId, kind: row.kind, requestedBy: row.requestedBy },
+      ctx.db,
+    );
+  } else if (row.status !== "approved") {
+    throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
+  }
+  const { data, error } = await ctx.db.rpc("rec_weights_activate", { p_approval: approvalId });
+  if (error) {
+    if (error.code === "42501" || /quem aprovou/.test(error.message))
+      throw new StudioFailure("forbidden", REC_TEXT.activateForbidden);
+    if (error.code === "P0002") throw new StudioFailure("not_found");
+    throw new Error(`rec_weights_activate: ${error.message}`);
+  }
+  const out = data as { applied?: boolean; version?: string; previous?: string | null } | null;
+  if (!out?.applied) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
+  await audit(
+    ctx.userId,
+    "approval.applied",
+    row.targetRef,
+    { approvalId, kind: row.kind, requestedBy: row.requestedBy },
+    ctx.db,
+  );
+  return {
+    version: String(out.version),
+    previous: out.previous ?? null,
+    targetRef: row.targetRef,
+  };
+}
+
 export const activateWeightsCommand = studioAction(
   "rec.weights",
   noScope,
   async (i: ActivateWeightsInput, ctx): Promise<{ version: string; previous: string | null }> => {
-    const port = supabaseApprovalsPort(ctx.db);
-    const row = await port.get(i.approvalId);
-    if (!row || row.kind !== "rec.weights") throw new StudioFailure("not_found");
-    if (row.requestedBy === ctx.userId)
-      throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.self_approval);
-    if (row.status === "pending") {
-      const action = APPROVER_ACTION[row.kind as CriticalKind];
-      if (!ctx.session || !canAccess(ctx.session.roles, action))
-        throw new StudioFailure("forbidden", APPROVAL_ERROR_TEXT.forbidden);
-      const r = await createApprovals(ctx.db).approve({ id: i.approvalId });
-      if (!r.ok) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT[r.error]);
-      await audit(
-        ctx.userId,
-        "approval.approved",
-        row.targetRef,
-        { approvalId: i.approvalId, kind: row.kind, requestedBy: row.requestedBy },
-        ctx.db,
-      );
-    } else if (row.status !== "approved") {
-      throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
-    }
-    const { data, error } = await ctx.db.rpc("rec_weights_activate", { p_approval: i.approvalId });
-    if (error) {
-      if (error.code === "42501" || /duas pessoas|quem aprovou/.test(error.message))
-        throw new StudioFailure("forbidden", REC_TEXT.activateForbidden);
-      if (error.code === "P0002") throw new StudioFailure("not_found");
-      throw new Error(`rec_weights_activate: ${error.message}`);
-    }
-    const out = data as { applied?: boolean; version?: string; previous?: string | null } | null;
-    if (!out?.applied) throw new StudioFailure("conflict", APPROVAL_ERROR_TEXT.not_pending);
-    ctx.setObjectRef(row.targetRef);
-    ctx.detail({ approvalId: i.approvalId, version: out.version, previous: out.previous ?? null });
-    await audit(
-      ctx.userId,
-      "approval.applied",
-      row.targetRef,
-      { approvalId: i.approvalId, kind: row.kind, requestedBy: row.requestedBy },
-      ctx.db,
-    );
-    return { version: String(out.version), previous: out.previous ?? null };
+    const { version, previous, targetRef } = await activateApproved(ctx, i.approvalId);
+    ctx.setObjectRef(targetRef);
+    ctx.detail({ approvalId: i.approvalId, version, previous });
+    return { version, previous };
   },
   { schema: ActivateInput, auditAs: "rec.weights.activate", objectRef: () => "rec:" },
 );
@@ -281,12 +328,12 @@ export type PromoteInput = z.infer<typeof PromoteInput>;
 
 /**
  * Promover a variante vencedora: encerra o teste e propõe os pesos dela como versão nova com
- * pedido `rec.weights` (duas pessoas: quem promove e quem aprova/ativa).
+ * pedido `rec.weights`; quem promove e pode aprovar ativa na mesma ação (A-128).
  */
 export const promoteExperimentCommand = studioAction(
   "rec.weights",
   noScope,
-  async (i: PromoteInput, ctx): Promise<{ version: string; approvalId: string | null }> => {
+  async (i: PromoteInput, ctx): Promise<ProposeWeightsOutcome> => {
     const exp = await experimentById(i.id, ctx.db);
     if (!exp) throw new StudioFailure("not_found");
     const variant = exp.variants[i.variant];
@@ -299,12 +346,6 @@ export const promoteExperimentCommand = studioAction(
       cap: source.cap,
       discoveryEvery: source.discoveryEvery,
     });
-    const approval = await requestApprovalCommand({
-      kind: "rec.weights",
-      targetRef: recTarget(version),
-      justification: i.justification,
-      details: { version, experimentId: i.id, variant: i.variant, from: variant.weightsVersion },
-    });
     const { error } = await ctx.db
       .from("rec_experiments")
       .update({ status: "promoted", ended_at: new Date().toISOString(), promoted_version: version })
@@ -316,7 +357,14 @@ export const promoteExperimentCommand = studioAction(
       from: variant.weightsVersion,
       previousActive: active?.version ?? null,
     });
-    return { version, approvalId: approval.ok ? approval.value.id : null };
+    const { approvalId, status } = await requestAndActivate(ctx, version, i.justification, {
+      version,
+      experimentId: i.id,
+      variant: i.variant,
+      from: variant.weightsVersion,
+    });
+    ctx.detail({ approvalId, status });
+    return { version, approvalId, status };
   },
   {
     schema: PromoteInput,

@@ -247,13 +247,13 @@ describe("gatilhos de origem", () => {
     expect(other.some((n) => n.object_ref === ref)).toBe(false);
   });
 
-  it("pedido de aprovação avisa admin e chefia, menos quem pediu", async () => {
+  it("pedido de quem não aprova avisa admin e chefia, menos quem pediu", async () => {
     const { data, error } = await service
       .from("approvals")
       .insert({
         kind: "prompt.publish",
         target_ref: `prompt:test-${tag}`,
-        requested_by: SEED_USERS.marina.id,
+        requested_by: SEED_USERS.diego.id,
         justification: "teste da central",
       })
       .select("id")
@@ -262,8 +262,34 @@ describe("gatilhos de origem", () => {
     created.approvals.push(data.id);
     const k = `approval:${data.id}`;
     expect(await visibleTo("helena", [k])).toEqual([k]);
-    expect(await visibleTo("marina", [k])).toEqual([]);
+    expect(await visibleTo("marina", [k])).toEqual([k]);
+    expect(await visibleTo("diego", [k])).toEqual([]);
     expect(await visibleTo("paulo", [k])).toEqual([]);
+    const { data: n } = await service
+      .from("studio_notifications")
+      .select("body")
+      .eq("dedupe_key", k)
+      .single();
+    expect(n?.body).toMatch(/aguarda quem tem permissão para aprovar/);
+    expect(n?.body).not.toMatch(/segunda pessoa/);
+  });
+
+  it("A-128: pedido de quem já pode aprovar não avisa ninguém (a pessoa aplica na hora)", async () => {
+    const { data, error } = await service
+      .from("approvals")
+      .insert({
+        kind: "prompt.publish",
+        target_ref: `prompt:test-self-${tag}`,
+        requested_by: SEED_USERS.marina.id,
+        justification: "teste da central",
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    created.approvals.push(data.id);
+    const k = `approval:${data.id}`;
+    expect(await visibleTo("helena", [k])).toEqual([]);
+    expect(await visibleTo("marina", [k])).toEqual([]);
   });
 
   it("disjuntor aberto é urgente para admin, chefia e operador de IA; religar vira backlog liberado", async () => {

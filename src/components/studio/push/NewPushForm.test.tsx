@@ -102,7 +102,7 @@ describe("NewPushForm (spec §10.2)", () => {
   it("urgente exige justificativa; pedido enviado mostra o status e o link para a fila", async () => {
     request.mockResolvedValue({
       ok: true,
-      message: "Pedido criado. Aguardando aprovação de outra pessoa.",
+      message: "Aplicado. O aviso entrou na fila de envio e fica registrado no histórico.",
       data: { id: "x" },
     });
     setup();
@@ -124,7 +124,9 @@ describe("NewPushForm (spec §10.2)", () => {
       justification: "Alerta da Defesa Civil",
     });
     const status = await screen.findByRole("status");
-    expect(status).toHaveTextContent("Pedido criado. Aguardando aprovação de outra pessoa.");
+    expect(status).toHaveTextContent(
+      "Aplicado. O aviso entrou na fila de envio e fica registrado no histórico.",
+    );
     expect(within(status).getByRole("link", { name: "Ver a fila" })).toHaveAttribute(
       "href",
       "/estudio/admin/notificacoes/fila",

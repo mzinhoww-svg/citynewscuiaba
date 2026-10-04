@@ -7,7 +7,7 @@ import type { PushKind, SendStatus } from "@/lib/push/types";
 export const PUSH_ADMIN_TEXT = {
   title: "Notificações",
   intro:
-    "Avisos no celular e no computador de quem ativou. Urgente e Destaque passam por duas pessoas.",
+    "Avisos no celular e no computador de quem ativou. Urgente e Destaque passam por aprovação registrada; quem pode aprovar envia na hora.",
   sectionNav: "Seções de Notificações",
   tabs: {
     new: "Novo envio",
@@ -67,7 +67,6 @@ export const PUSH_ADMIN_TEXT = {
     by: (name: string, at: string) => `Aprovado por ${name} às ${at}`,
   },
   errors: {
-    self_approval: "A aprovação precisa ser de outra pessoa.",
     forbidden: "Sua conta não tem permissão para esta ação.",
     not_pending: "Este pedido já foi decidido.",
     invalid: "Revise os campos destacados.",
@@ -89,14 +88,17 @@ export const PUSH_ADMIN_TEXT = {
     },
   },
   done: {
-    requested: "Pedido criado. Aguardando aprovação de outra pessoa.",
+    requested: "Pedido criado. Aguardando aprovação de quem pode aprovar avisos.",
+    sentNow: "Aplicado. O aviso entrou na fila de envio e fica registrado no histórico.",
+    scheduledNow: "Aplicado. O aviso sai no horário agendado e fica registrado no histórico.",
     requestedPaused: "Pedido criado. Envios pausados: o pedido fica na fila até a retomada.",
     approved: "Pedido aprovado",
     approvedScheduled: "Pedido aprovado. Sai no horário agendado.",
     rejected: "Pedido recusado",
     cancelled: "Envio cancelado",
     paused: "Envios pausados. Tudo, inclusive os automáticos, fica parado até a retomada.",
-    resumeRequested: "Retomada pedida. Outra pessoa com permissão de aprovar precisa confirmar.",
+    resumeRequested: "Retomada pedida. Quem tem permissão de aprovar precisa confirmar.",
+    resumedNow: "Envios retomados. Fica registrado no histórico.",
     resumed: "Envios retomados",
     settingsSaved: "Configurações salvas",
   },
@@ -186,7 +188,7 @@ export const PUSH_SETTINGS_TEXT = {
     section: "Contingência",
     trigger: "Pausar todos os envios",
     title: "Pausar todos os envios?",
-    body: "Vale na hora para tudo: urgentes, destaques, automáticos e agendados. Nada sai até outra pessoa aprovar a retomada.",
+    body: "Vale na hora para tudo: urgentes, destaques, automáticos e agendados. Nada sai até a retomada ser aprovada.",
     reason: "Motivo",
     confirmLabel: "Digite PAUSAR para confirmar",
     mismatch: "Digite exatamente PAUSAR.",
@@ -196,12 +198,12 @@ export const PUSH_SETTINGS_TEXT = {
   resume: {
     trigger: "Retomar envios",
     title: "Retomar envios?",
-    body: "Cria um pedido de retomada. Outra pessoa com permissão de aprovar precisa confirmar; agendados vencidos há mais de 1 h expiram.",
+    body: "Quem tem permissão de aprovar retoma na hora; sem essa permissão, fica um pedido de retomada. Tudo fica registrado no histórico; agendados vencidos há mais de 1 h expiram.",
     reason: "Motivo",
     confirm: "Pedir retomada",
     pending: (name: string) =>
-      `Retomada pedida por ${name}. Outra pessoa com permissão de aprovar precisa confirmar.`,
-    pendingOwn: "Você pediu a retomada. Outra pessoa com permissão de aprovar precisa confirmar.",
+      `Retomada pedida por ${name}. Quem tem permissão de aprovar precisa confirmar.`,
+    pendingOwn: "Você pediu a retomada. Quem tem permissão de aprovar precisa confirmar.",
     approve: "Aprovar retomada",
   },
   vapid: {
@@ -213,7 +215,6 @@ export const PUSH_SETTINGS_TEXT = {
 
 export type PushAdminErrorKey = keyof Pick<
   typeof PUSH_ADMIN_TEXT.errors,
-  | "self_approval"
   | "forbidden"
   | "not_pending"
   | "invalid"
@@ -258,7 +259,6 @@ export const PUSH_QUEUE_TEXT = {
     requestedBy: "Pedido por",
     justification: "Justificativa",
     noJustification: "Sem justificativa",
-    selfNote: "A aprovação precisa ser de outra pessoa.",
     approve: "Aprovar",
     reject: "Recusar",
     rejectReason: "Motivo da recusa",

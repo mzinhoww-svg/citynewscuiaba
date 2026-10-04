@@ -1,7 +1,7 @@
 /**
  * Papéis de uma pessoa (A02/A03): diferença entre o que ela tem e o que a tela pediu.
- * Conceder `admin` nunca é aplicado direto: vira um pedido `role.admin` para outra pessoa
- * decidir (spec §8; `guard_user_roles`, 0002). Puro.
+ * Conceder `admin` passa por um pedido `role.admin` registrado, que o admin aprova e aplica na
+ * mesma ação (spec §8, A-128; `guard_user_roles`, 0002). Puro.
  */
 import { ROLES, type Role, type RoleGrant } from "@/lib/auth/permissions";
 

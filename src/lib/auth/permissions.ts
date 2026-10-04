@@ -48,8 +48,9 @@ export type Action = (typeof ACTIONS)[number];
  * - `all`: em qualquer escopo.
  * - `section`: só nas editorias do papel (`scope.section` ∈ `sections`).
  * - `own`: só em objetos da própria pessoa (`scope.ownerId === scope.userId`).
- * - `first` / `second`: assinatura de mudança crítica (1ª propõe, 2ª aprova; pessoas diferentes,
- *   garantido por `approvals` e pelos checks do banco). Para `can`, ambas permitem.
+ * - `first` / `second`: papel em mudança crítica (`first` propõe, `second` aprova e aplica; A-128:
+ *   a mesma pessoa com `second` propõe e aplica, e `approvals` registra os dois). Para `can`,
+ *   ambas permitem.
  */
 export type Grant = "all" | "section" | "own" | "first" | "second";
 
@@ -74,7 +75,7 @@ export const PERMISSIONS: Matrix = {
   "correction.manage": { editor_chefe: "all", editor: "section", revisor: "all" },
   "media.approve": { editor_chefe: "all", editor: "section", revisor: "all" },
   "source.manage": { admin: "all", editor_chefe: "all", operador_ia: "all" },
-  /** Segunda assinatura de mudança crítica de fonte (painel de fontes, D-F4). */
+  /** Aprova e aplica mudança crítica de fonte (painel de fontes, D-F4; A-128). */
   "source.approve_critical": { admin: "second", editor_chefe: "second" },
   "rules.propose": { admin: "all", editor_chefe: "all", operador_ia: "all" },
   "rules.approve": { admin: "all", editor_chefe: "second" },
