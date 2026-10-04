@@ -122,7 +122,9 @@ function ErrorState({
   const text = aiOff
     ? ASK.errorText.off
     : answer.reason === "rate_limited"
-      ? ASK.errorText.rate_limited(answer.retryAt ? formatHour(answer.retryAt) : "")
+      ? answer.retryAt
+        ? ASK.errorText.rate_limited(formatHour(answer.retryAt))
+        : ASK.errorText.limitNoTime
       : ASK.errorText[answer.reason];
   const canRetry = !aiOff && answer.reason !== "rate_limited";
   return (

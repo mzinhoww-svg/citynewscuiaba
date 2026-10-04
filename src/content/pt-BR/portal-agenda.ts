@@ -200,6 +200,7 @@ export const AGENDA = {
   dayEvents: (n: number) => (n === 1 ? "1 evento" : `${n} eventos`),
   dayLink: (date: string, n: number) => `${date}: ${n === 1 ? "1 evento" : `${n} eventos`}`,
   noEventsDay: "sem eventos",
+  todayDay: "hoje",
   // Evento (P10)
   when2: "Data e hora",
   where: "Local",

@@ -103,20 +103,29 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <ol className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-7">
             {days.map((d) => {
               const list = byDay.get(d) ?? [];
+              const isToday = d === today;
               return (
                 <li
                   key={d}
                   aria-labelledby={`dia-${d}`}
-                  className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-3"
+                  aria-current={isToday ? "date" : undefined}
+                  className={
+                    isToday
+                      ? "flex flex-col gap-2 rounded-lg border-2 border-line-strong bg-card-white p-3"
+                      : "flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-3"
+                  }
                 >
                   <h2
                     id={`dia-${d}`}
                     className={
-                      d === today
-                        ? "type-label text-16 text-eyebrow"
+                      isToday
+                        ? "flex flex-col type-label text-16 text-eyebrow"
                         : "type-label text-16 text-strong"
                     }
                   >
+                    {isToday && (
+                      <span className="type-meta font-semibold uppercase">{T.todayLabel}</span>
+                    )}
                     {formatLongDate(dayStart(d).toISOString())}
                   </h2>
                   {list.length === 0 ? (

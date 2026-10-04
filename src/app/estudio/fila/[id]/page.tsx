@@ -64,7 +64,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const open = OPEN.has(a.status);
   const rules = a.decisions.find((d) => d.step === "rules");
   const human = a.decisions.find((d) => d.humanDecision);
-  const sensitive = a.section.slug === "seguranca";
   const ai = a.aiVersion;
 
   return (
@@ -105,7 +104,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {T.aiFallbackAlert}
           </InlineAlert>
         )}
-        {sensitive && (
+        {a.sensitive && (
           <InlineAlert tone="warn" role="none">
             {T.sensitiveAlert}
           </InlineAlert>

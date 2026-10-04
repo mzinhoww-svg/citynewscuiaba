@@ -1,4 +1,6 @@
 /** Pergunte ao CityNews (Perguntar ao CityNews, docs/screens.md P13; spec §5.5). */
+const LIMIT_NO_TIME = "O limite libera em até uma hora. A busca tradicional continua sem limite.";
+
 export const ASK = {
   title: "Pergunte ao CityNews",
   metaDescription:
@@ -70,7 +72,9 @@ export const ASK = {
     timeout: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     provider: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     rate_limited: (hour: string) =>
-      `O limite libera às ${hour}. A busca tradicional continua sem limite.`,
+      hour ? `O limite libera às ${hour}. A busca tradicional continua sem limite.` : LIMIT_NO_TIME,
+    /** Sem `retryAt` (horário desconhecido): nunca "libera às ." (UX-W1-T10). */
+    limitNoTime: LIMIT_NO_TIME,
     unavailable: "Pode ser uma instabilidade passageira. A busca tradicional continua funcionando.",
     off: "A redação pausou o assistente. A busca tradicional continua funcionando.",
   },

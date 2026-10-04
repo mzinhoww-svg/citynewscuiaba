@@ -17,7 +17,8 @@ const MAX_ITEMS = 6;
 
 /**
  * "Agora": as últimas matérias com horário, modo de publicação e a contagem até o próximo
- * ciclo do motor (a cada 30 min). Região `aria-live="polite"` (DESIGN.md §9).
+ * ciclo do motor (a cada 30 min). Sem `aria-live`: a lista é estática no carregamento e não
+ * deve ser anunciada sozinha.
  *
  * ```tsx
  * <NowList items={home.now} />
@@ -31,7 +32,7 @@ export function NowList({ items, now, className }: NowListProps) {
       <h2 id={id} className="border-b border-line-strong pb-3">
         <LiveIndicator label={CARD.now} />
       </h2>
-      <ol aria-live="polite" className="flex flex-col">
+      <ol className="flex flex-col">
         {items.slice(0, MAX_ITEMS).map((a) => {
           const { originText } = publicLabels(a);
           return (
