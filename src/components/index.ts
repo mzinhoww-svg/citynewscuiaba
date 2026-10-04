@@ -123,7 +123,26 @@ export {
 export { ErrorState, type ErrorStateProps } from "./editorial/ErrorState";
 export { LazyErrorState } from "./editorial/LazyErrorState";
 export { RightOfReplyForm, type RightOfReplyFormProps } from "./editorial/RightOfReplyForm";
-export { DocPage, type DocPageProps } from "./editorial/DocPage";
+export {
+  DocBreadcrumb,
+  DocPage,
+  DocRelated,
+  PendingText,
+  type DocPageProps,
+} from "./editorial/DocPage";
+export {
+  Benefits,
+  Cta,
+  Faq,
+  Hero,
+  type BenefitItem,
+  type BenefitsProps,
+  type CtaProps,
+  type FaqItem,
+  type FaqProps,
+  type HeroProps,
+  type MarketingAction,
+} from "./editorial/marketing";
 export { JsonLd, type JsonLdProps } from "./editorial/JsonLd";
 export { SectionTile, type SectionTileProps } from "./editorial/SectionTile";
 export { SiteFooter, type SiteFooterProps } from "./editorial/SiteFooter";
