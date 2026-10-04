@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cx } from "../cx";
 
 export interface LiveIndicatorProps {
@@ -6,6 +7,8 @@ export interface LiveIndicatorProps {
   pulse?: boolean;
   /** Texto branco sobre Tinta ou foto. */
   inverse?: boolean;
+  /** Vira link (alvo de 44 px), como o "● AGORA" do cabeçalho, que leva a `/#agora`. */
+  href?: string;
   className?: string;
 }
 
@@ -15,6 +18,7 @@ export interface LiveIndicatorProps {
  *
  * ```tsx
  * <LiveIndicator />                                   // ● AGORA
+ * <LiveIndicator href="/#agora" pulse={false} />      // link, sem pulso
  * <LiveIndicator label="Agora · CityNews Cuiabá" inverse />
  * ```
  * - O ponto é decorativo; o texto carrega o sentido (nada depende só de cor).
@@ -23,16 +27,17 @@ export function LiveIndicator({
   label = "Agora",
   pulse = true,
   inverse = false,
+  href,
   className,
 }: LiveIndicatorProps) {
-  return (
-    <span
-      className={cx(
-        "inline-flex items-center gap-2 type-eyebrow",
-        inverse ? "text-branco" : "text-strong",
-        className,
-      )}
-    >
+  const classes = cx(
+    "inline-flex items-center gap-2 type-eyebrow",
+    inverse ? "text-branco" : "text-strong",
+    href && "min-h-tap rounded-xs px-1 no-underline hover:underline",
+    className,
+  );
+  const content = (
+    <>
       <span aria-hidden="true" className="relative size-2 shrink-0">
         <span className="absolute inset-0 rounded-pill bg-urucum" />
         {pulse && (
@@ -40,6 +45,14 @@ export function LiveIndicator({
         )}
       </span>
       {label}
-    </span>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className={classes}>
+        {content}
+      </Link>
+    );
+  }
+  return <span className={classes}>{content}</span>;
 }

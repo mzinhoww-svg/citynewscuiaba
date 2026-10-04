@@ -391,7 +391,8 @@ function Home({ data }: { data: HomeData }) {
             className="lg:col-span-8"
           />
           {/* Retângulo lateral abaixo do "Agora" (decisão do dono, 04/10/2026): o Agora fica no topo. */}
-          <div className="flex flex-col gap-8 lg:col-span-4">
+          {/* Âncora do "● AGORA" do cabeçalho (`/#agora`, item 69). */}
+          <div id="agora" className="flex flex-col gap-8 lg:col-span-4">
             <NowList items={data.now} />
             <AdSlot code="RAIL-A" />
           </div>

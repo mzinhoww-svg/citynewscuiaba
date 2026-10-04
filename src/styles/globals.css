@@ -402,9 +402,23 @@
   }
 }
 
+/*
+ * Topo livre abaixo do cabeçalho fixo do portal [UX-W4-T1]: a altura real dele, medida no
+ * navegador (`--cn-header-h`, gravada pelo StickyHeader, já com a área segura) + 16 px de folga.
+ * Antes da medição (ou sem JavaScript) vale o token `--h-sticky-public` (102 medidos + 16).
+ */
+:root {
+  --cn-sticky-top: calc(
+    var(
+        --cn-header-h,
+        calc(var(--h-sticky-public) - var(--sp-16) + env(safe-area-inset-top, 0px))
+      ) +
+      var(--sp-16)
+  );
+}
 /* Coluna `sticky` do portal: para logo abaixo do cabeçalho fixo (altura medida + folga). */
 @utility top-sticky-public {
-  top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
+  top: var(--cn-sticky-top);
 }
 /* Área segura superior (entalhe do iPhone com `viewport-fit=cover`): zero onde não há entalhe,
    para o cabeçalho não mudar de altura no desktop. */
@@ -452,7 +466,7 @@
  * deles. Cada cabeçalho fixo se declara com `data-sticky`.
  */
 :root:has(header[data-sticky="public"]) {
-  scroll-padding-top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
+  scroll-padding-top: var(--cn-sticky-top);
 }
 :root:has(header[data-sticky="studio"]) {
   scroll-padding-top: var(--h-sticky-studio);
@@ -484,6 +498,17 @@
 }
 :root[data-consent-open] body {
   padding-bottom: var(--cn-consent-h, 0px);
+}
+/*
+ * Anúncio fixo do rodapé no celular aberto (AdSlotClient, item 64) [UX-W4-T1]: a página ganha
+ * no fim a altura dele (`--cn-ad-h`) e a rolagem por foco/âncora para acima dele. Ele nunca
+ * aparece junto com um convite ou o aviso de privacidade (um de cada vez, `lib/app/slot`).
+ */
+:root:root[data-ad-open] {
+  scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-ad-h, 0px) + var(--tap-min));
+}
+:root[data-ad-open] body {
+  padding-bottom: var(--cn-ad-h, 0px);
 }
 
 /*
