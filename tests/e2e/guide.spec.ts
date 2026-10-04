@@ -98,6 +98,10 @@ test.afterAll(async () => {
   await db.from("guide_list_items").delete().in("list_id", listIds);
   await db.from("guide_lists").delete().in("id", listIds);
   await db.from("venues").delete().in("id", venueIds);
+  // fullyParallel: o mesmo worker pode rodar o beforeAll de novo depois deste afterAll; ids de
+  // linhas já apagadas virariam erro de chave estrangeira no próximo insert.
+  venueIds.length = 0;
+  listIds.length = 0;
 });
 
 test("índice do Guia: título, link das matérias e listas, sem rótulo de IA", async ({ page }) => {

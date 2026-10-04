@@ -70,7 +70,7 @@ test.beforeAll(async () => {
       .single();
     expect(l.error).toBeNull();
     listIds.push(l.data!.id);
-    await db.from("guide_list_items").insert(
+    const items = await db.from("guide_list_items").insert(
       venueIds.map((venue_id, i) => ({
         list_id: l.data!.id,
         venue_id,
@@ -78,6 +78,7 @@ test.beforeAll(async () => {
         score: 90 - i,
       })),
     );
+    expect(items.error).toBeNull();
   }
 });
 
@@ -86,6 +87,10 @@ test.afterAll(async () => {
   await db.from("guide_list_items").delete().in("list_id", listIds);
   await db.from("guide_lists").delete().in("id", listIds);
   await db.from("venues").delete().in("id", venueIds);
+  // fullyParallel: o mesmo worker pode rodar o beforeAll de novo depois deste afterAll; ids de
+  // linhas já apagadas virariam erro de chave estrangeira no próximo insert.
+  venueIds.length = 0;
+  listIds.length = 0;
 });
 
 const SCHEMES = ["light", "dark"] as const;
@@ -94,13 +99,9 @@ for (const scheme of SCHEMES) {
   test.describe(`tema ${scheme}`, () => {
     test.beforeEach(async ({ page, context, baseURL }) => {
       await page.emulateMedia({ colorScheme: scheme });
-      await context.addCookies([
-        {
-          name: "cn_consent",
-          value: encodeURIComponent(JSON.stringify({ v: 1, essential: true })),
-          url: baseURL!,
-        },
-      ]);
+      // Formato de `parseConsent` (`src/lib/consent`): outro valor conta como sem decisão e o
+      // aviso de consentimento cobre a página.
+      await context.addCookies([{ name: "cn_consent", value: "v1|m1|p1", url: baseURL! }]);
     });
 
     for (const path of [
