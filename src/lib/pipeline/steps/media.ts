@@ -24,6 +24,7 @@ import type {
   MediaSourceItem,
 } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
+import type { PipelineMessage } from "../types";
 import { inputHash } from "./understanding";
 
 export interface MediaStepDeps {
@@ -46,7 +47,19 @@ export interface MediaStepDeps {
 const MAX_SOURCE_IMAGES = 4;
 const AUTO_CHOSEN_BY = "pipeline:image";
 const ARCHIVE_LIMIT = 12;
-const ARTICLE_REF = /^article:(\S+)$/;
+/** `article:<id>`, ou `article:<id>#photo<n>` na nova tentativa da foto. */
+const ARTICLE_REF = /^article:([^\s#]+)(?:#photo(\d+))?$/;
+const RATE_LIMITED = "limite de requisições da fonte";
+
+/**
+ * Foto que ainda não deu para buscar (limite por hora da fonte esgotado, ou item sem URL de foto
+ * porque o `enrich` não abriu a página): a matéria segue com o card e a foto é tentada de novo,
+ * até `PHOTO_RETRIES` vezes, com espera crescente. Estado terminal: card tipográfico.
+ */
+export const PHOTO_RETRIES = 3;
+export const PHOTO_RETRY_DELAY_SEC = 30 * 60;
+/** A página (og:image) é buscada antes da nova tentativa da foto. */
+export const PHOTO_REFETCH_LEAD_SEC = 10 * 60;
 
 export const REPRODUCTION_LICENSE =
   "Reprodução da imagem da matéria original (política reproduction, A-010): rótulo REPRODUÇÃO, crédito e link obrigatórios, sem recorte, remoção em 24 h a pedido.";
@@ -158,7 +171,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       },
     );
     if (robots.kind !== "allowed")
-      return err(robots.kind === "rate_limited" ? "limite de requisições da fonte" : robots.reason);
+      return err(robots.kind === "rate_limited" ? RATE_LIMITED : robots.reason);
     const file = await fetchImage(deps, imageUrl, {
       sourceBaseUrl: item.source.baseUrl,
       signal,
@@ -211,6 +224,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     signal: AbortSignal | undefined,
     skip: { sourceId: string | null; originUrl: string | null } | undefined,
     need: { cover: boolean; inline: boolean },
+    pending: { refetch: string[]; rateLimited: boolean },
   ): Promise<Prepared[]> => {
     const now = deps.now();
     let tried = 0;
@@ -220,7 +234,11 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     for (const item of ctx.items) {
       // Prazo do passo estourou: o que falta volta à fila (o chamador decide).
       if (signal?.aborted) break;
-      if (!item.imageUrl) continue;
+      if (!item.imageUrl) {
+        // Fonte que permite a foto, mas o item ainda não tem a URL: a página tem (og:image).
+        if (usableAs(item, reproductionEnabled, now)) pending.refetch.push(item.itemId);
+        continue;
+      }
       if (skip?.sourceId && item.source.id === skip.sourceId) continue;
       if (skip?.originUrl && item.imageUrl === skip.originUrl) continue;
       if (doneSources.has(item.source.id)) continue;
@@ -232,6 +250,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       if (tried++ >= MAX_SOURCE_IMAGES) break;
       const p = await prepare(item, item.imageUrl, signal, use);
       if (!p.ok) {
+        if (p.error === RATE_LIMITED) pending.rateLimited = true;
         notes.push(`${item.source.name}: ${p.error}.`);
         continue;
       }
@@ -304,11 +323,14 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
   };
 
   return async (msg, step) => {
-    const articleId = ARTICLE_REF.exec(msg.itemRef)?.[1];
+    const ref = ARTICLE_REF.exec(msg.itemRef);
+    const articleId = ref?.[1];
     if (!articleId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
+    const attemptN = Number(ref?.[2] ?? 0);
     const ctx = await deps.repo.mediaContext(articleId);
     if (!ctx) return err(stepError.notFound(`matéria ${articleId} não encontrada`));
-    const next = [nextMessage(msg, "rules", msg.itemRef)];
+    // A nova tentativa da foto só liga a imagem: a matéria já passou pelas regras.
+    const next = attemptN > 0 ? [] : [nextMessage(msg, "rules", `article:${articleId}`)];
     // Escolha de pessoa e matéria editada por pessoa nunca são tocadas (reprocesso idempotente).
     if (ctx.humanMedia || ctx.humanEdited) return ok(next);
 
@@ -325,6 +347,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
 
     const reproductionEnabled = await deps.flags.isEnabled("image_reproduction_enabled");
     const notes: string[] = [];
+    const pending = { refetch: [] as string[], rateLimited: false };
     const prepared = await sourceImages(
       ctx,
       reproductionEnabled,
@@ -332,6 +355,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       step?.signal,
       ctx.cover ? { sourceId: ctx.cover.sourceId, originUrl: ctx.cover.originUrl } : undefined,
       { cover: wantCover, inline: wantInline },
+      pending,
     );
     // Prazo do drain estourado antes de achar qualquer imagem: volta à fila em vez de gravar capa
     // de acervo (ou nada) para sempre.
@@ -398,8 +422,27 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
       inlineId = saved.value;
     }
 
+    // Sem foto de fonte por falta de cota ou de URL: agenda a nova tentativa (a matéria não espera).
+    const retry: PipelineMessage[] = [];
+    if (
+      wantCover &&
+      mediaId === null &&
+      (pending.rateLimited || pending.refetch.length > 0) &&
+      attemptN < PHOTO_RETRIES
+    ) {
+      const delaySec = PHOTO_RETRY_DELAY_SEC * (attemptN + 1);
+      for (const itemId of pending.refetch)
+        retry.push({ ...nextMessage(msg, "enrich", `item:${itemId}#refetch`), delaySec });
+      retry.push({
+        ...nextMessage(msg, "image", `article:${articleId}#photo${attemptN + 1}`),
+        delaySec: delaySec + (pending.refetch.length > 0 ? PHOTO_REFETCH_LEAD_SEC : 0),
+      });
+      notes.push(`Nova tentativa da foto agendada (${attemptN + 1} de ${PHOTO_RETRIES}).`);
+    }
+    const out = [...next, ...retry];
+
     // Reprocesso que não achou imagem do texto e não precisava de capa: nada mudou, nada a registrar.
-    if (!wantCover && !inlineId) return ok(next);
+    if (!wantCover && !inlineId) return ok(out);
 
     const rationale = [choice?.rationale, ...notes].filter(Boolean).join(" ");
     if (mediaId && choice)
@@ -437,7 +480,7 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
         .filter(Boolean)
         .join(" "),
     });
-    return ok(next);
+    return ok(out);
   };
 }
 
