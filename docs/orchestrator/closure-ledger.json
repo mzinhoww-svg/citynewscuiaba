@@ -341,8 +341,8 @@
    "decision": "A-128",
    "spec": null,
    "plan": null,
-   "implemented": false,
-   "tested": false,
+   "implemented": true,
+   "tested": true,
    "reviewed": false,
    "merged": false,
    "deployed": false,
@@ -355,8 +355,8 @@
    "secondary_skills": [],
    "owner_dependency": null,
    "external_dependency": null,
-   "evidence": "src/lib/approvals/targets.ts:64-66",
-   "status": "IDENTIFIED",
+   "evidence": "f54c70f",
+   "status": "TESTED_LOCALLY",
    "next_action": "corrigir mapeamento + teste",
    "closed_at": null
   },
@@ -580,8 +580,9 @@
    "id": "L-022",
    "categoria": "IA/fila",
    "status": "TESTED_LOCALLY",
-   "evidence": "21 em revisao 'IA indisponivel'; 159 ai_fallback em 24h",
-   "next_action": "PR, CI, deploy; medir ai_fallback por hora"
+   "evidence": "3e32a98+f110605",
+   "next_action": "PR, CI, deploy; medir ai_fallback por hora",
+   "reviewed": true
   },
   {
    "id": "L-023",
@@ -589,6 +590,13 @@
    "status": "ANALYZED",
    "evidence": "543/69/21/14/3/1/1 por review_reason",
    "next_action": "recuperacao, reprocessar, L-022"
+  },
+  {
+   "id": "L-024",
+   "categoria": "revisao",
+   "status": "REVIEWED",
+   "evidence": "revisao adversarial; achados corrigidos em f110605",
+   "next_action": "-"
   }
  ]
 }
