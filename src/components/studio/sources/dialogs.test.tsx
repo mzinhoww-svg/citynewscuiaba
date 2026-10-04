@@ -117,19 +117,19 @@ describe("ApproveChangeDialog", () => {
     expect(onApprove).toHaveBeenCalled();
   });
 
-  it("pedido da própria pessoa avisa que a aprovação precisa ser de outra", () => {
+  it("pedido da própria pessoa pode ser aprovado por ela (A-128): sem aviso de outra pessoa", async () => {
+    const onApprove = vi.fn();
     render(
       <ApproveChangeDialog
         open
         approval={approval}
-        isOwnRequest
         onCancel={vi.fn()}
-        onApprove={vi.fn()}
+        onApprove={onApprove}
         onReject={vi.fn()}
       />,
     );
-    expect(
-      screen.getByText("Você fez este pedido: a aprovação precisa ser de outra pessoa."),
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/outra pessoa/)).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Aprovar e aplicar" }));
+    expect(onApprove).toHaveBeenCalled();
   });
 });

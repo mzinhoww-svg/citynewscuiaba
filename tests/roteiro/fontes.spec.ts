@@ -185,16 +185,16 @@ test("18–19 · pedido de aprovação e diálogo de aprovar", async ({ page, ba
   const policy = page.getByLabel("Política de imagem");
   if ((await policy.inputValue()) === "none") {
     await policy.selectOption("reproduction");
-    await expect(page.getByText("Exige segunda aprovação").first()).toBeVisible();
+    await expect(page.getByText("Mudança crítica", { exact: true }).first()).toBeVisible();
     await page
-      .getByLabel("Justificativa para a segunda aprovação")
+      .getByLabel("Justificativa da mudança crítica")
       .fill("Acordo de reprodução assinado (roteiro exploratório)");
     await page.getByRole("button", { name: "Salvar alterações" }).click();
-    await expect(page.getByRole("status")).toContainText(/aguarda segunda aprovação|Nenhuma/);
+    await expect(page.getByRole("status")).toContainText(/aguarda aprovação|Nenhuma/);
   }
   await both(page, "18-aprovacao-pedido", async (p) => {
     await p.goto(`${BASE}/${SEED.placar}`);
-    await expect(p.getByText(/Aguardando segunda aprovação/)).toBeVisible();
+    await expect(p.getByText(/Aguardando aprovação/)).toBeVisible();
   });
   await enter(page, "marina", baseURL);
   await both(

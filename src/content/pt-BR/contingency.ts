@@ -80,7 +80,7 @@ export const CONTINGENCY_TEXT = {
         prev === null
           ? `Versão ativa v${v}; não há versão aprovada anterior para voltar.`
           : `Versão ativa v${v}; o rollback volta para a v${prev}.`,
-      body: "Reativa a versão aprovada anterior (já passou por duas pessoas). A versão atual fica inativa e pode ser proposta de novo.",
+      body: "Reativa a versão aprovada anterior (já passou por aprovação registrada). A versão atual fica inativa e pode ser proposta de novo.",
       runbook:
         "https://github.com/mzinhoww-svg/citynewscuiaba/blob/main/docs/runbooks/rollback-regras.md",
     },
@@ -116,10 +116,10 @@ export const CONTINGENCY_TEXT = {
   error: {
     typed: "Confirme digitando o nome exato da ação.",
     forbidden: "Só a administração usa a contingência.",
-    needs_approval: "Esta mudança exige aprovação de outra pessoa.",
+    needs_approval: "Esta mudança exige aprovação registrada de quem tem o papel de aprovar.",
     no_previous: "Não há versão aprovada anterior para voltar.",
     rollback_loosens:
-      "A versão anterior é mais frouxa que a ativa (revisão, temas sensíveis ou exigências menores). Rollback direto não vale: proponha essa versão como nova em Regras, com aprovação de outra pessoa.",
+      "A versão anterior é mais frouxa que a ativa (revisão, temas sensíveis ou exigências menores). Rollback direto não vale: proponha essa versão como nova em Regras.",
     generic: "Não foi possível aplicar a ação. Tente de novo.",
     pending: "Já existe um pedido aberto para retomar a publicação automática.",
   },

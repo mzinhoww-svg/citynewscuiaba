@@ -142,19 +142,19 @@ describe("SourceConfigForm", () => {
     ).toBeInTheDocument();
   });
 
-  it("afrouxar política mostra Exige segunda aprovação e pede justificativa; restringir não", async () => {
+  it("afrouxar política mostra Mudança crítica e pede justificativa; restringir não", async () => {
     const act = setup({ config: { ...CONFIG, imagePolicy: "licensed_only" } });
     const policy = screen.getByLabelText("Política de imagem");
     await userEvent.selectOptions(policy, "none");
-    expect(screen.queryByLabelText("Justificativa para a segunda aprovação")).toBeNull();
+    expect(screen.queryByLabelText("Justificativa da mudança crítica")).toBeNull();
     await userEvent.selectOptions(policy, "reproduction");
-    expect(screen.getAllByText("Exige segunda aprovação").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Mudança crítica").length).toBeGreaterThan(0);
     await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
     // Sem justificativa, nem chama o servidor.
     expect(act).not.toHaveBeenCalled();
     expect(screen.getByRole("alert")).toHaveTextContent("Explique por que");
     await userEvent.type(
-      screen.getByLabelText("Justificativa para a segunda aprovação"),
+      screen.getByLabelText("Justificativa da mudança crítica"),
       "Acordo assinado em 27/09",
     );
     await userEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));

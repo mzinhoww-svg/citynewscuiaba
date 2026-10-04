@@ -5,7 +5,8 @@ import { loginAs, service, STAFF, tag } from "./studio";
 
 /*
  * P5-T8 · Administração (A01–A06): convidar pessoa mostra "Convite pendente" e manda o link;
- * conceder admin abre pedido `role.admin` (outra pessoa decide); mesclar tags duplicadas
+ * conceder admin registra o pedido `role.admin` e a admin aprova e aplica na mesma ação (A-128);
+ * mesclar tags duplicadas
  * preserva vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
  * Mutações só no projeto desktop e cada teste restaura o que criou.
  */
@@ -57,7 +58,9 @@ test("A02 · convidar pessoa envia link e aparece como convite pendente", async 
   }
 });
 
-test("A03 · conceder admin pede aprovação role.admin de outra pessoa", async ({ page }, info) => {
+test("A03 · admin concede admin numa ação só; o pedido role.admin fica no histórico (A-128)", async ({
+  page,
+}, info) => {
   test.skip(info.project.name !== "desktop", "muda papéis do seed: só no projeto desktop");
   const db = service();
   try {
@@ -68,17 +71,31 @@ test("A03 · conceder admin pede aprovação role.admin de outra pessoa", async 
     await dialog.getByLabel("Administração").check();
     await dialog.getByLabel(/Justificativa/).fill("Cobrir férias da administração");
     await dialog.getByRole("button", { name: "Salvar papéis" }).click();
-    await expect(page.getByRole("status")).toContainText("Pedido de papel de administração aberto");
-    await expect(page.getByRole("row").filter({ hasText: "Thiago Moraes" })).toContainText(
-      "Pedido de administração aguardando aprovação",
+    await expect(page.getByRole("status")).toContainText(
+      "Papel de administração aplicado. Fica registrado no histórico.",
     );
-    const roles = await db.from("user_roles").select("role").eq("user_id", STAFF.thiago.id);
-    expect(roles.data?.map((r) => r.role)).toEqual(["analista"]);
-    // Quem pediu não decide: na caixa de aprovações o pedido aparece sem "Revisar".
+    const roles = await db
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", STAFF.thiago.id)
+      .order("role");
+    expect(roles.data?.map((r) => r.role)).toEqual(["admin", "analista"]);
+    const { data: ap } = await db
+      .from("approvals")
+      .select("status, requested_by, approved_by")
+      .eq("kind", "role.admin")
+      .eq("target_ref", STAFF.thiago.id)
+      .single();
+    expect(ap).toEqual({
+      status: "applied",
+      requested_by: STAFF.helena.id,
+      approved_by: STAFF.helena.id,
+    });
+    // O pedido aplicado aparece no histórico da caixa de aprovações.
     await page.goto("/estudio/control/aprovacoes");
-    const mine = page.getByRole("listitem").filter({ hasText: "Cobrir férias da administração" });
-    await expect(mine).toContainText("A aprovação precisa ser de outra pessoa");
-    await expect(mine.getByRole("button", { name: "Revisar" })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: "Últimas decisões" })).toContainText(
+      "Conceder papel de administração",
+    );
   } finally {
     await db.from("approvals").delete().eq("kind", "role.admin").eq("target_ref", STAFF.thiago.id);
     await db.from("user_roles").delete().eq("user_id", STAFF.thiago.id).eq("role", "admin");

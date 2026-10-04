@@ -113,12 +113,10 @@ export function ApprovalInbox({
                     {own && (
                       <p className="flex items-center gap-2 type-meta font-medium text-strong">
                         <Icon name="info" size={16} />
-                        {T.ownRequest}: {T.waitOther}
+                        {T.ownRequest}
                       </p>
                     )}
-                    {!own && !can && !elsewhere && (
-                      <p className="type-meta text-meta">{T.noRole}</p>
-                    )}
+                    {!can && !elsewhere && <p className="type-meta text-meta">{T.noRole}</p>}
                   </div>
                   <div className="shrink-0">
                     {elsewhere ? (
@@ -130,7 +128,6 @@ export function ApprovalInbox({
                         {T.reviewAt}
                       </Button>
                     ) : (
-                      !own &&
                       can && (
                         <Button
                           size="sm"

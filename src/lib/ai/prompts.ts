@@ -42,7 +42,7 @@ export function diffPrompt(a: string, b: string): DiffOp[] {
 
 /**
  * Transições de estado de uma versão: rascunho → pendente (pedido de publicação) → produção
- * (aprovação de outra pessoa). Produção só sai para arquivada (nova versão publicada) ou
+ * (aprovação de admin ou editor-chefe, que pode ser quem pediu, A-128). Produção só sai para arquivada (nova versão publicada) ou
  * revertida (rollback); versão decidida nunca volta a rascunho.
  */
 const TRANSITIONS: Record<PromptStatus, readonly PromptStatus[]> = {

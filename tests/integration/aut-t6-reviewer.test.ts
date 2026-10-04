@@ -153,7 +153,7 @@ describe("review_due_articles", () => {
     expect(await listed(early)).toBe(false);
   });
 
-  it("nunca rascunho sem IA (lista de trechos das fontes, migration 0148)", async () => {
+  it("nunca rascunho sem IA (lista de trechos das fontes, migration 0150)", async () => {
     const fb = await make();
     await overdue(fb);
     expect(await listed(fb)).toBe(true);

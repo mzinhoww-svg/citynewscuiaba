@@ -67,7 +67,7 @@ test("Por que esta recomendação: anonId vira pseudônimo e individual pesa 0 s
   await expect(table.getByText("Individual: peso 0,00 × sinal 0,00").first()).toBeVisible();
 });
 
-test("propor, bloquear autoativação, ativar por outra pessoa e abrir teste A/B", async ({
+test("operador propõe e o pedido aguarda; admin ativa; A-128: admin propõe e ativa direto; teste A/B", async ({
   page,
 }, info) => {
   test.skip(info.project.name !== "desktop", "muda os pesos ativos: só no projeto desktop");
@@ -80,10 +80,10 @@ test("propor, bloquear autoativação, ativar por outra pessoa e abrir teste A/B
     await page.getByLabel("Justificativa da proposta").fill(`${MARK}: mais diversidade`);
     await page.getByRole("button", { name: "Propor pesos" }).click();
     await expect(page.getByRole("status")).toContainText(/Versão rec-v\d+ proposta/);
-    await expect(page.getByText(/pedidos? aguardam? segunda aprovação/)).toBeVisible();
+    await expect(page.getByText(/pedidos? aguardam? aprovação/)).toBeVisible();
     const history = page.getByRole("table", { name: /Versões de pesos/ });
     const row = history.getByRole("row").filter({ hasText: "Aguardando aprovação" });
-    await expect(row).toContainText("Seu pedido: a aprovação precisa ser de outra pessoa.");
+    await expect(row).toContainText("Aguarda quem tem o papel de aprovar pesos.");
     await expect(row.getByRole("button", { name: /Aprovar e ativar/ })).toHaveCount(0);
 
     // Admin aprova e ativa numa ação.
@@ -94,6 +94,24 @@ test("propor, bloquear autoativação, ativar por outra pessoa e abrir teste A/B
     await expect(page.getByText(/^Pesos ativos: rec-v[2-9]\d*/)).toBeVisible();
     const active = await service().from("rec_weights").select("version").eq("active", true);
     expect(active.data?.[0]?.version).not.toBe("rec-v1");
+
+    // A-128: a admin propõe e ativa numa ação só; a linha guarda quem propôs e quem aprovou.
+    await page.getByRole("spinbutton", { name: "Peso de Diversidade" }).fill("0.05");
+    await page.getByRole("spinbutton", { name: "Peso de Popularidade" }).fill("0.35");
+    await page.getByLabel("Justificativa da proposta").fill(`${MARK}: volta ao padrão`);
+    await page.getByRole("button", { name: "Propor pesos" }).click();
+    await expect(page.getByRole("status")).toContainText(
+      /rec-v\d+ em uso\. Fica registrado no histórico\./,
+    );
+    const own = await service()
+      .from("rec_weights")
+      .select("version, proposed_by, approved_by")
+      .eq("active", true)
+      .single();
+    expect(own.data).toMatchObject({
+      proposed_by: STAFF.helena.id,
+      approved_by: STAFF.helena.id,
+    });
 
     // Teste A/B entre rec-v1 (aprovada) e a nova versão.
     await page.getByLabel("Nome", { exact: true }).nth(1).fill(`${MARK} diversidade`);

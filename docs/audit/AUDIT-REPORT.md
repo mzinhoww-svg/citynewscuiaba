@@ -34,7 +34,7 @@ A ordem é a da gravidade. Os IDs são usados em todos os outros documentos.
 
 | ID | Achado | Evidência | Estado |
 |---|---|---|---|
-| **P0-01** | O revisor automático noturno recebia e podia publicar o **rascunho sem IA**, que é a lista de títulos e trechos das fontes. Publicá-lo republicaria texto de terceiros (regra 4) e não é matéria. Além disso, o revisor decidia sem saber se havia fontes divergentes ou conteúdo duvidoso. | [O] `auto-reviewer.ts:77-86` não checava `aiFallback`; `0141_auto_reviewer.sql:114-139` não filtrava `ai_fallback`; `systemOf` não passava `centralConflict` nem `dubious`. | **Corrigido** (migration 0148, `isReviewable`, contexto do revisor; testes unitários e de integração). |
+| **P0-01** | O revisor automático noturno recebia e podia publicar o **rascunho sem IA**, que é a lista de títulos e trechos das fontes. Publicá-lo republicaria texto de terceiros (regra 4) e não é matéria. Além disso, o revisor decidia sem saber se havia fontes divergentes ou conteúdo duvidoso. | [O] `auto-reviewer.ts:77-86` não checava `aiFallback`; `0141_auto_reviewer.sql:114-139` não filtrava `ai_fallback`; `systemOf` não passava `centralConflict` nem `dubious`. | **Corrigido** (migration 0150, `isReviewable`, contexto do revisor; testes unitários e de integração). |
 | **P0-02** | **Consenso de cópias conta como confirmação independente.** `independentSources` é o número de veículos distintos. Três portais que republicam o mesmo release valem 3 fontes, sobem a confiança e destravam o portão "fonte não confiável com assunto grave e sem segunda fonte". | [O] `verify.ts:137`, `rules/index.ts:141`, `confidence/index.ts:40-45`, `topics/state.ts:38-45` | **Medida em sombra implementada** (`independentLineages`, ADR-012). Ligar aos portões é decisão do dono (D-03). |
 | **P0-03** | **O texto gerado não é conferido contra as fontes** em números, nomes próprios e citações. Há guarda de cópia (8 palavras) e de citação por parágrafo, mas um parágrafo pode citar o item certo e trazer o número errado. Com segurança, política e saúde publicando sozinhas, este é o maior risco jurídico. | [O] `write.ts:111-127` (só citação e cópia); contraste com `verify.ts:76-99`, que já confere valores no texto da fonte. | Aberto. Proposta em `EDITORIAL-POLICY.md` §4 e iniciativa EV-03. |
 | **P0-04** | **Reprodução de imagem de terceiros sem permissão registrada**, com revisão jurídica ainda pendente (B-002) e lançamento já feito. A regra 4 diz "imagem apenas com permissão registrada" e a regra 11 autoriza a reprodução. Além disso, a capa reproduzida vira `og:image` sem crédito, e `object-cover` recorta a foto apesar do "sem recorte". | [O] `CLAUDE.md:68` vs `:75`; `.planning/BLOCKERS.md:4`; `materia/[slug]/page.tsx:58-76`; `Photo.tsx:75` | Aberto. Decisão do dono (D-02). Política proposta em `MEDIA-POLICY.md`. |
@@ -51,7 +51,7 @@ A ordem é a da gravidade. Os IDs são usados em todos os outros documentos.
 | **P1-05** | Avaliação de IA quase inexistente: 6 casos, só para `answer`, rodando contra o provedor falso no CI. Nenhuma avaliação de `classify`, `verify`, `write` ou `reviewer`, que publicam sozinhos. Resultado de avaliação não bloqueia publicação de prompt. | [O] `tests/fixtures/eval/answer.json`, `regression.yml:26-38`, `src/lib/ai/eval.ts` |
 | **P1-06** | Busca vetorial sem índice: colunas `vector` sem dimensão impedem HNSW/IVFFlat; toda busca semântica e toda deduplicação fazem varredura sequencial. | [O] `0001_init.sql:83,101,131`, `0007_search.sql:269-274` |
 | **P1-07** | Operação sem rede de segurança: backup em artifact de 7 dias, arquivos do Storage fora do dump, migrations aplicadas à mão, sem staging (B-004), restauração mensal sem evidência. | [O] `backup.yml`, `docs/runbooks/restore.md` (corrigido), A-054/A-095 |
-| **P1-08** | Governança de duas pessoas numa operação de uma pessoa. "Alterar regras" exige segundo aprovador que não existe (A-102 admite), e o admin não tem `article.publish`. A-125 já precisou derrubar a regra para religar a publicação. A próxima mudança de regra vai travar ou forçar outro atalho. | [O] `CLAUDE.md:72`, `permissions.ts:72`, `0145_auto_publish_single_admin.sql` |
+| **P1-08** | Governança de duas pessoas numa operação de uma pessoa. "Alterar regras" exige segundo aprovador que não existe (A-102 admite), e o admin não tem `article.publish`. A-125 já precisou derrubar a regra para religar a publicação. A próxima mudança de regra vai travar ou forçar outro atalho. | [O] `CLAUDE.md:72`, `permissions.ts:72`, `0145_auto_publish_single_admin.sql` **Resolvida pelo dono em 04/10 (A-128, PR #37):** fim da regra de duas pessoas em todas as mudanças críticas; uma pessoa com o papel de aprovar pede, aprova e aplica numa ação só, com `approvals` e auditoria registrando quem fez (migration 0149). |
 | **P1-09** | Matéria reescrita ao vivo (status `updated`) não é reindexada nem revalidada: o passo de publicação devolve `[]` fora de `published`. | [O] `steps/publish.ts:46-47`, `0147_live_rewrite.sql` |
 | **P1-10** | Orçamento de IA verificado por leitura antes da chamada, sem reserva: workers paralelos podem estourar o teto de R$ 30/dia. A busca pública cria um `AiStore` novo por consulta, então o cache de 60 s nunca aquece. | [O] `call-agent.ts:162-167`, `search/server.ts:38` |
 
@@ -83,17 +83,17 @@ Linha do tempo por assunto, dossiês, comparação de versões, grafo de entidad
 
 | Gargalo | Efeito | Saída |
 |---|---|---|
-| Uma pessoa operando um sistema desenhado para várias | Regras de duas pessoas viram atalhos ad hoc (A-125) | ADR-010 §4 e D-04: duas pessoas só onde o risco exige; resto com atraso de efetivação e auditoria |
+| Uma pessoa operando um sistema desenhado para várias | Regras de duas pessoas viram atalhos ad hoc (A-125) | Resolvido pelo dono (A-128): uma pessoa aprova e aplica, com auditoria |
 | Embedding no caminho crítico da deduplicação | Queda do provedor ou orçamento de R$ 1/dia esgotado trava a coleta | Deduplicação degradada por simhash quando o embedding falha (EV-07) |
 | Reescrita completa a cada item novo | Custo de IA cresce com o número de itens do assunto | Reescrita incremental e teto de itens por chamada (EV-09) |
 | Documentos de governança como fonte de regra | Agentes seguem texto vencido | Regra testável primeiro, texto depois (ADR-010 §3) |
 
 ## 5. Recomendações prioritárias
 
-1. **Decisões do dono** (lista completa em `EVOLUTION-ROADMAP.md` §1): D-01 R36, D-02 reprodução de imagem, D-03 ligar linhagens às regras, D-04 modelo de aprovação para operação de uma pessoa, D-05 revisor noturno e itens com conflito ou duvidosos.
+1. **Decisões do dono** (lista completa em `EVOLUTION-ROADMAP.md` §1): D-01 R36, D-02 reprodução de imagem, D-03 ligar linhagens às regras, D-05 revisor noturno e itens com conflito ou duvidosos.
 2. **Conferência de afirmações no `write`** (EV-03): números, datas e nomes da saída precisam existir no material das fontes; senão o parágrafo cai, como já acontece com parágrafo sem citação.
 3. **Alerta que chega a uma pessoa** (EV-04): envio do `oncall_email` por um provedor de e-mail e erro do servidor em um rastreador, com o tick atrasado e o disjuntor como primeiros gatilhos.
-4. **Conferir em produção** o disjuntor (P1-03) e aplicar a migration 0148.
+4. **Conferir em produção** o disjuntor (P1-03) e aplicar a migration 0150.
 5. **Avaliações por agente** (EV-05) antes de qualquer aumento de autonomia, e avaliação como portão da publicação de prompt.
 6. **Higiene de governança** contínua: decisões com status, `STATE.md` curto, specs filhas registradas como emendas (ADR-010, ADR-011).
 
@@ -101,7 +101,7 @@ Linha do tempo por assunto, dossiês, comparação de versões, grafo de entidad
 
 | Mudança | Arquivos | Validação |
 |---|---|---|
-| P0-01: revisor não decide rascunho sem IA e recebe conflito e duvidoso no contexto | `src/lib/pipeline/steps/auto-reviewer.ts`, `supabase/migrations/0148_reviewer_skips_ai_fallback.sql` | Testes unitários (`auto-reviewer.test.ts`, 2 novos) e de integração (`aut-t6-reviewer.test.ts`, 1 novo, roda no CI) |
+| P0-01: revisor não decide rascunho sem IA e recebe conflito e duvidoso no contexto | `src/lib/pipeline/steps/auto-reviewer.ts`, `supabase/migrations/0150_reviewer_skips_ai_fallback.sql` | Testes unitários (`auto-reviewer.test.ts`, 2 novos) e de integração (`aut-t6-reviewer.test.ts`, 1 novo, roda no CI) |
 | P0-02: linhagens independentes em sombra | `src/lib/confidence/lineage.ts`, `src/lib/pipeline/steps/verify.ts` | `lineage.test.ts` (7 casos), `understand.test.ts` (1 novo); confiança e portões inalterados |
 | P1-01: governança | `CLAUDE.md` §1, §2, §5; `.planning/STATE.md`; `.planning/DECISIONS.md`; `docs/architecture.md` | Revisão de texto |
 | Operação | `.env.example` (6 variáveis em uso que faltavam), `docs/runbooks/restore.md` (alinhado ao `backup.yml`), `docs/media-slots.md` (aviso de desatualização) | Revisão de texto |

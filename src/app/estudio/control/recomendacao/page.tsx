@@ -45,12 +45,15 @@ const reasonText = (key: string): string => {
   return typeof r === "function" ? r("editoria") : (r ?? key);
 };
 
-/** O17 · Recomendação: métricas, pesos com aprovação dupla, campanhas, testes A/B e "Por que". */
+/** O17 · Recomendação: métricas, pesos com aprovação registrada, campanhas, testes A/B e "Por que". */
 export default async function RecommendationPage() {
   const session = await requireRole("metrics.view", undefined, {
     next: "/estudio/control/recomendacao",
   });
   const canManage = canAccess(session.roles, "rec.weights");
+  // Decidir o pedido `rec.weights` é de admin na prática: a RLS `approvals_decide` (admin,
+  // editor-chefe) e `rec_weights_activate` (admin, operador_ia) só se cruzam no admin.
+  const canApprove = canManage && session.roles.some((r) => r.role === "admin");
   const data = await loadOrNull("rec panel", async () => {
     const [panel, pending] = await Promise.all([recPanel(), pendingApprovalsFor("rec:")]);
     return { panel, pending };
@@ -82,6 +85,7 @@ export default async function RecommendationPage() {
           pending={data.value.pending}
           userId={session.userId}
           canManage={canManage}
+          canApprove={canApprove}
         />
       )}
     </section>
@@ -93,11 +97,13 @@ function Body({
   pending,
   userId,
   canManage,
+  canApprove,
 }: {
   panel: Awaited<ReturnType<typeof recPanel>>;
   pending: Awaited<ReturnType<typeof pendingApprovalsFor>>;
   userId: string;
   canManage: boolean;
+  canApprove: boolean;
 }) {
   const m = panel.metrics;
   const running = panel.experiments.filter((e) => e.status === "running").length;
@@ -280,8 +286,7 @@ function Body({
         <h3 className="type-label text-16 text-strong">{T.historyTitle}</h3>
         <WeightsHistory
           rows={panel.weights}
-          currentUserId={userId}
-          canApprove={canManage}
+          canApprove={canApprove}
           activate={activateWeightsAction}
         />
       </section>

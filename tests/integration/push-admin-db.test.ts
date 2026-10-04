@@ -1,6 +1,7 @@
 // @vitest-environment node
-// Migration 0041 (push, PW-T5): pedidos, regra de duas pessoas imposta no banco (Review Focus 6
-// do plano; spec §18.20/21/23/24), pausa e retomada, configurações `push.*` e alcance.
+// Migration 0041 (push, PW-T5): pedidos, aprovação registrada imposta no banco (A-128: pode ser
+// de quem pediu; Review Focus 6 do plano; spec §18.20/21/23/24), pausa e retomada, configurações
+// `push.*` e alcance.
 // Cada cenário roda como `authenticated` com o JWT de uma pessoa do seed e tenta contornar a
 // regra direto pela API; nada aqui depende da interface.
 import { randomBytes } from "node:crypto";
@@ -139,23 +140,12 @@ afterAll(async () => {
   ]);
 });
 
-describe("duas pessoas (Review Focus 6)", () => {
-  it("quem pede não aprova, nem por SQL; editor e analista não aprovam; Helena aprova", async () => {
+describe("aprovação registrada (Review Focus 6; A-128)", () => {
+  it("editor e analista não aprovam; quem pede e tem push.approve aprova o próprio pedido; a linha guarda os dois", async () => {
     const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
     expect((await send(id)).status).toBe("pending_approval");
     expect((await send(id)).approval_id).not.toBeNull();
-    await expect(rpcAs(marina(), "push_approve", { p_send: id })).rejects.toThrow(
-      /outra pessoa|quem pede não decide/,
-    );
-    const sql = await (
-      await marina()
-    )
-      .from("approvals")
-      .update({ status: "approved", approved_by: MARINA })
-      .eq("target_ref", `push:${id}`)
-      .select("id");
-    expect(sql.error?.message).toMatch(/quem pede não decide/);
-    // Marina também não muda o estado do envio direto (sem aprovação registrada por outra pessoa).
+    // Sem aprovação registrada, ninguém muda o estado do envio direto na tabela.
     const direct = await (
       await marina()
     )
@@ -163,20 +153,32 @@ describe("duas pessoas (Review Focus 6)", () => {
       .update({ status: "queued" })
       .eq("id", id)
       .select("id");
-    expect(direct.error?.message).toMatch(/outra pessoa|push\.approve/);
+    expect(direct.error?.message).toMatch(/aprovação registrada|push\.approve/);
     await expect(rpcAs(otavio(), "push_approve", { p_send: id })).rejects.toThrow();
     await expect(rpcAs(thiago(), "push_approve", { p_send: id })).rejects.toThrow();
     expect((await send(id)).status).toBe("pending_approval");
-    expect(await rpcAs(helena(), "push_approve", { p_send: id })).toBe("queued");
+    expect(await rpcAs(marina(), "push_approve", { p_send: id })).toBe("queued");
     const row = await send(id);
-    expect(row).toMatchObject({ status: "queued", approved_by: HELENA });
+    expect(row).toMatchObject({ status: "queued", approved_by: MARINA });
     expect(row.approved_at).not.toBeNull();
+    const ap = await service
+      .from("approvals")
+      .select("requested_by, approved_by, status")
+      .eq("target_ref", `push:${id}`)
+      .single();
+    expect(ap.data).toEqual({ requested_by: MARINA, approved_by: MARINA, status: "approved" });
     await expect(rpcAs(helena(), "push_reject", { p_send: id, p_reason: "tarde" })).rejects.toThrow(
       /decisão já tomada/,
     );
     expect(await auditActions(`push:${id}`)).toEqual(
       expect.arrayContaining(["push.request", "push.approve"]),
     );
+  });
+
+  it("outra pessoa com push.approve também aprova (Helena)", async () => {
+    const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
+    expect(await rpcAs(helena(), "push_approve", { p_send: id })).toBe("queued");
+    expect(await send(id)).toMatchObject({ status: "queued", approved_by: HELENA });
   });
 
   it("aprovação adulterada para rejected não vira queued; segunda decisão no mesmo pedido é final", async () => {
@@ -300,7 +302,7 @@ describe("pedidos", () => {
 });
 
 describe("pausa, retomada e configurações", () => {
-  it("pausar vale na hora; retomar exige outra pessoa com push.approve", async () => {
+  it("pausar vale na hora; retomar exige aprovação de quem tem push.approve (pode ser quem pediu, A-128)", async () => {
     const id = await rpcAs(marina(), "push_request", { p: urgentReq(ART_CIDADE) });
     await rpcAs(helena(), "push_approve", { p_send: id });
     await expect(rpcAs(thiago(), "push_settings_pause", { p_reason: "x" })).rejects.toThrow();
@@ -315,16 +317,17 @@ describe("pausa, retomada e configurações", () => {
       }),
     ).rejects.toThrow(/pausar\/retomar/);
     const a = await rpcAs(helena(), "push_resume_request", { p_reason: "resolvido" });
-    await expect(rpcAs(helena(), "push_resume_approve", { p_approval: a })).rejects.toThrow(
-      /outra pessoa|quem pede não decide/,
-    );
     await expect(rpcAs(otavio(), "push_resume_approve", { p_approval: a })).rejects.toThrow();
     expect((await setting("push.paused")).on).toBe(true);
-    await rpcAs(marina(), "push_resume_approve", { p_approval: a });
+    await rpcAs(helena(), "push_resume_approve", { p_approval: a });
     expect((await setting("push.paused")).on).toBe(false);
     expect((await send(id)).status).toBe("queued");
-    const { data: appr } = await service.from("approvals").select("status").eq("id", a).single();
-    expect(appr!.status).toBe("applied");
+    const { data: appr } = await service
+      .from("approvals")
+      .select("status, requested_by, approved_by")
+      .eq("id", a)
+      .single();
+    expect(appr).toEqual({ status: "applied", requested_by: HELENA, approved_by: HELENA });
     expect(await auditActions("push:")).toEqual(
       expect.arrayContaining(["push.pause", "push.resume_requested", "push.resume_applied"]),
     );

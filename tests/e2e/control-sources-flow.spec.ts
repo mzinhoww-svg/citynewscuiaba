@@ -98,7 +98,7 @@ test("cadastrar pela seção sem feed, ativar, coletar agora, 3 falhas, pausa au
   const slug = await page.getByLabel("Slug").inputValue();
   expect(slug).toBe("jornal-da-chapada");
 
-  // Ativar exige termos revisados (critério 10): sem a caixa, "Salvar e ativar" não ativa.
+  // A caixa de termos é opcional (A-127): só registra quando foram revisados.
   await page.getByLabel("Li os termos de uso e a coleta é permitida").check();
   await page.getByRole("button", { name: "Salvar e ativar" }).click();
   // O servidor de fixtures é `next dev`: a Server Action (salvar + testar conexão + ativar) e a

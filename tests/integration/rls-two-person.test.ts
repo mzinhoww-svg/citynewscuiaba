@@ -1,6 +1,9 @@
 // @vitest-environment node
-// Regra de duas pessoas imposta no banco (spec §8; architecture §6). Cada cenário roda como
+// Mudança crítica imposta no banco (spec §8; architecture §6). Cada cenário roda como
 // `authenticated`, com o JWT de um usuário de seed, e tenta contornar a regra direto pela API.
+// A-128: a regra de duas pessoas acabou; quem tem o papel aprova em nome próprio, inclusive o que
+// propôs ou pediu, e a linha guarda os dois. Seguem: papel, nome próprio, imutabilidade, decisão
+// final e ninguém conceder o próprio papel.
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import { createServiceClient, type DbClient } from "@/lib/db/client";
@@ -114,7 +117,7 @@ describe("regras (rules)", () => {
     expect((await ruleRow(1)).body).toEqual(DEFAULT_RULES);
   });
 
-  it("editor_chefe não troca proposed_by para se aprovar", async () => {
+  it("editor_chefe não troca proposed_by; aprova a própria proposta em nome próprio (A-128)", async () => {
     const m = await marina();
     const v = ruleVersion(1);
     await propose(m, v, MARINA);
@@ -126,14 +129,12 @@ describe("regras (rules)", () => {
       .eq("version", v)
       .select();
     expect(swapAndApprove.error).not.toBeNull();
-    const approve = await m
-      .from("rules")
-      .update({ approved_by: MARINA, active: true })
-      .eq("version", v)
-      .select();
-    expect(approve.error).not.toBeNull();
+    expect(await ruleRow(v)).toMatchObject({ proposed_by: MARINA, approved_by: null });
+    const approve = await m.from("rules").update({ approved_by: MARINA }).eq("version", v).select();
+    expect(approve.error).toBeNull();
+    expect(approve.data).toHaveLength(1);
     const row = await ruleRow(v);
-    expect(row).toMatchObject({ proposed_by: MARINA, approved_by: null, active: false });
+    expect(row).toMatchObject({ proposed_by: MARINA, approved_by: MARINA, active: false });
   });
 
   it("proposta em nome de outra pessoa, já aprovada ou ativa é recusada", async () => {
@@ -160,7 +161,7 @@ describe("regras (rules)", () => {
     expect(active.error).not.toBeNull();
   });
 
-  it("aprovação só em nome próprio e regra não aprovada não é ativada", async () => {
+  it("aprovação só em nome próprio e regra não aprovada não é ativada; papel sem permissão não aprova", async () => {
     const m = await marina();
     const h = await helena();
     const v = ruleVersion(5);
@@ -169,8 +170,10 @@ describe("regras (rules)", () => {
     expect(inName.error).not.toBeNull();
     const activate = await h.from("rules").update({ active: true }).eq("version", v).select();
     expect(activate.error).not.toBeNull();
-    const own = await m.from("rules").update({ approved_by: MARINA }).eq("version", v).select();
-    expect(own.error).not.toBeNull();
+    // Operador de IA propõe regras, mas não as aprova (papel), nem em nome próprio.
+    const d = await diego();
+    const noRole = await d.from("rules").update({ approved_by: DIEGO }).eq("version", v).select();
+    expect(noRole.data ?? []).toEqual([]);
     expect(await ruleRow(v)).toMatchObject({ approved_by: null, active: false });
   });
 
@@ -198,7 +201,7 @@ describe("regras (rules)", () => {
 });
 
 describe("aprovações (approvals)", () => {
-  it("admin não troca requested_by para aprovar o próprio pedido", async () => {
+  it("admin não troca requested_by; decide o próprio pedido em nome próprio (A-128)", async () => {
     const h = await helena();
     const id = await requestApproval(h, HELENA, "force_review.disable", "rules:1");
     const swap = await h
@@ -207,14 +210,28 @@ describe("aprovações (approvals)", () => {
       .eq("id", id)
       .select();
     expect(swap.error).not.toBeNull();
+    const inName = await h
+      .from("approvals")
+      .update({ approved_by: MARINA, status: "approved" })
+      .eq("id", id)
+      .select();
+    expect(inName.error).not.toBeNull();
     const self = await h
       .from("approvals")
       .update({ approved_by: HELENA, status: "approved" })
       .eq("id", id)
       .select();
-    expect(self.error).not.toBeNull();
+    expect(self.error).toBeNull();
+    expect(self.data).toHaveLength(1);
     const row = await service.from("approvals").select("*").eq("id", id).single();
-    expect(row.data).toMatchObject({ requested_by: HELENA, approved_by: null, status: "pending" });
+    expect(row.data).toMatchObject({
+      requested_by: HELENA,
+      approved_by: HELENA,
+      status: "approved",
+    });
+    expect(row.data?.decided_at).not.toBeNull();
+    const redo = await h.from("approvals").update({ status: "rejected" }).eq("id", id).select();
+    expect(redo.error).not.toBeNull();
   });
 
   it("pedido só em nome próprio e sem decisão", async () => {
@@ -364,7 +381,7 @@ describe("prompts (ai_prompts)", () => {
 });
 
 describe("pesos de recomendação (rec_weights)", () => {
-  it("operador_ia não troca proposed_by para ativar os próprios pesos", async () => {
+  it("operador_ia não troca proposed_by nem ativa sem aprovação; aprova os próprios pesos em nome próprio (A-128)", async () => {
     const d = await diego();
     const v = weightsVersion(1);
     const ins = await d
@@ -378,16 +395,20 @@ describe("pesos de recomendação (rec_weights)", () => {
       .eq("version", v)
       .select();
     expect(swap.error).not.toBeNull();
-    const self = await d
-      .from("rec_weights")
-      .update({ approved_by: DIEGO, active: true })
-      .eq("version", v)
-      .select();
-    expect(self.error).not.toBeNull();
     const activate = await d.from("rec_weights").update({ active: true }).eq("version", v).select();
     expect(activate.error).not.toBeNull();
+    expect(
+      (await service.from("rec_weights").select("*").eq("version", v).single()).data,
+    ).toMatchObject({ proposed_by: DIEGO, approved_by: null, active: false });
+    const self = await d
+      .from("rec_weights")
+      .update({ approved_by: DIEGO })
+      .eq("version", v)
+      .select();
+    expect(self.error).toBeNull();
+    expect(self.data).toHaveLength(1);
     const row = await service.from("rec_weights").select("*").eq("version", v).single();
-    expect(row.data).toMatchObject({ proposed_by: DIEGO, approved_by: null, active: false });
+    expect(row.data).toMatchObject({ proposed_by: DIEGO, approved_by: DIEGO, active: false });
   });
 
   it("pesos já ativos são imutáveis", async () => {
@@ -421,7 +442,7 @@ describe("pesos de recomendação (rec_weights)", () => {
 });
 
 describe("papéis (user_roles)", () => {
-  it("admin não concede admin sem aprovação de duas pessoas", async () => {
+  it("admin não concede admin sem aprovação role.admin registrada", async () => {
     const h = await helena();
     const r = await h.from("user_roles").insert({ user_id: THIAGO, role: "admin" }).select();
     expect(r.error).not.toBeNull();
@@ -436,7 +457,7 @@ describe("papéis (user_roles)", () => {
     expect(roles.data).toEqual([{ role: "analista" }]);
   });
 
-  it("aprovação pendente ou decidida pela mesma pessoa não vale", async () => {
+  it("aprovação pendente não vale", async () => {
     const h = await helena();
     await requestApproval(h, HELENA, "role.admin", THIAGO);
     const r = await h.from("user_roles").insert({ user_id: THIAGO, role: "admin" }).select();
@@ -447,6 +468,28 @@ describe("papéis (user_roles)", () => {
     const h = await helena();
     const r = await h.from("user_roles").insert({ user_id: HELENA, role: "editor_chefe" }).select();
     expect(r.error).not.toBeNull();
+  });
+
+  it("A-128: a mesma admin pede, aprova e concede; a aprovação é consumida e guarda os dois", async () => {
+    const h = await helena();
+    const id = await requestApproval(h, HELENA, "role.admin", CARLOS);
+    const decide = await h
+      .from("approvals")
+      .update({ approved_by: HELENA, status: "approved" })
+      .eq("id", id)
+      .select();
+    expect(decide.error).toBeNull();
+    grantedRoles.push(CARLOS);
+    const grant = await h.from("user_roles").insert({ user_id: CARLOS, role: "admin" }).select();
+    expect(grant.error).toBeNull();
+    expect(grant.data).toHaveLength(1);
+    const row = await service.from("approvals").select("*").eq("id", id).single();
+    expect(row.data).toMatchObject({
+      status: "applied",
+      requested_by: HELENA,
+      approved_by: HELENA,
+    });
+    await service.from("user_roles").delete().eq("user_id", CARLOS).eq("role", "admin");
   });
 
   it("caminho feliz: pedido de uma pessoa, aprovação de outra, concessão única", async () => {

@@ -45,7 +45,7 @@ const JUSTIFICATION_MAX = 300;
 
 /**
  * Publicação e agendamento (E06): resumo do checklist, rótulos finais, agora ou agendar (fuso de
- * Cuiabá), destinos, push urgente (cria o pedido em A09 para outra pessoa aprovar) e aviso de
+ * Cuiabá), destinos, push urgente (cria e aprova o pedido em A09, A-128) e aviso de
  * manchete. `<dialog>` nativo: foco preso, Esc fecha, camada superior sem z-index.
  */
 export function PublishDialog({

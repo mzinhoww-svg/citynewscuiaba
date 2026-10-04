@@ -53,7 +53,9 @@ async function noHorizontalScroll(page: Page) {
   expect(overflow).toBe(false);
 }
 
-test("Marina pede urgente com justificativa e vê o toast", async ({ page }) => {
+test("Marina pede urgente com justificativa, aprova na mesma ação (A-128) e vê o toast", async ({
+  page,
+}) => {
   const t = tag();
   const title = `Chuva forte em Cuiabá ${t}`;
   await published(title);
@@ -72,8 +74,8 @@ test("Marina pede urgente com justificativa e vê o toast", async ({ page }) => 
   await expect(page.getByText(/cerca de \d+0 inscrições|menos de 20 inscrições/)).toBeVisible();
   await page.getByLabel("Justificativa").fill("Alerta da Defesa Civil para hoje à tarde");
   await page.getByRole("button", { name: "Enviar para aprovação" }).click();
-  // Outro worker pode ter pausado os envios no meio: a mensagem muda, o pedido entra igual.
-  const status = page.getByRole("status").filter({ hasText: "Pedido criado." });
+  // Outro worker pode ter pausado os envios no meio: aí o pedido entra e aguarda a retomada.
+  const status = page.getByRole("status").filter({ hasText: /Aplicado\.|Pedido criado\./ });
   await expect(status).toBeVisible();
   await expect(status.getByRole("link", { name: "Ver a fila" })).toHaveAttribute(
     "href",
@@ -86,9 +88,9 @@ test("Marina pede urgente com justificativa e vê o toast", async ({ page }) => 
   expect(data).toHaveLength(1);
   expect(data![0]).toMatchObject({
     kind: "urgent",
-    status: "pending_approval",
     justification: "Alerta da Defesa Civil para hoje à tarde",
   });
+  expect(["queued", "dispatching", "sent", "pending_approval"]).toContain(data![0]!.status);
 });
 
 test("Otávio vê só Destaque e só matérias de cidade, serviços, clima e agenda", async ({
@@ -135,7 +137,7 @@ test("analista entra pelo Funil e não vê Novo envio; sem papel de push não en
   );
 });
 
-test("pausar exige digitar PAUSAR; banner aparece; retomar cria pedido para outra pessoa", async ({
+test("pausar exige digitar PAUSAR; banner aparece; quem pode aprovar retoma na hora (A-128)", async ({
   browser,
 }) => {
   test.slow();
@@ -158,7 +160,7 @@ test("pausar exige digitar PAUSAR; banner aparece; retomar cria pedido para outr
         .getByText(/Envios pausados por Helena Costa às \d{2}:\d{2}: incidente no provedor/)
         .first(),
     ).toBeVisible();
-    // Retomar: pedido para outra pessoa.
+    // Retomar: Helena (admin, push.approve) pede e retoma na mesma ação; fica no histórico.
     await helena.getByRole("button", { name: "Retomar envios" }).click();
     await helena
       .getByRole("dialog", { name: "Retomar envios?" })
@@ -166,25 +168,21 @@ test("pausar exige digitar PAUSAR; banner aparece; retomar cria pedido para outr
       .fill("resolvido");
     await helena.getByRole("button", { name: "Pedir retomada" }).click();
     await expect(
-      helena.getByText(
-        "Você pediu a retomada. Outra pessoa com permissão de aprovar precisa confirmar.",
-      ),
+      helena
+        .getByRole("status")
+        .filter({ hasText: "Envios retomados. Fica registrado no histórico." }),
     ).toBeVisible();
-    await expect(helena.getByRole("button", { name: "Aprovar retomada" })).toHaveCount(0);
-
-    const marinaCtx = await browser.newContext();
-    const marina = await marinaCtx.newPage();
-    await loginAs(marinaCtx, "marina");
-    await marina.goto(`${URL}/configuracoes`);
-    await expect(
-      marina.getByText(
-        "Retomada pedida por Helena Costa. Outra pessoa com permissão de aprovar precisa confirmar.",
-      ),
-    ).toBeVisible();
-    await marina.getByRole("button", { name: "Aprovar retomada" }).click();
-    await expect(marina.getByRole("status").filter({ hasText: "Envios retomados" })).toBeVisible();
-    await expect(marina.getByText(/Envios pausados por/)).toHaveCount(0);
-    await marinaCtx.close();
+    await expect(helena.getByText(/Envios pausados por/)).toHaveCount(0);
+    const { data: resumed } = await service()
+      .from("approvals")
+      .select("status, requested_by, approved_by")
+      .eq("kind", "push.resume")
+      .eq("justification", "resolvido")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+    expect(resumed?.status).toBe("applied");
+    expect(resumed?.approved_by).toBe(resumed?.requested_by);
   } finally {
     await service().from("app_settings").upsert(SETTINGS_RESET);
     await service().from("approvals").delete().eq("kind", "push.resume").eq("status", "pending");

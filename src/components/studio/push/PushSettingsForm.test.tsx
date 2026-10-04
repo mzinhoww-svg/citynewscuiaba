@@ -108,7 +108,7 @@ describe("PushSettingsForm (spec §10.5)", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Digite PAUSAR para confirmar.");
   });
 
-  it("pausado: mostra quem pausou, 'Retomar envios' cria o pedido; pendente de outra pessoa mostra Aprovar", async () => {
+  it("pausado: mostra quem pausou, 'Retomar envios' cria o pedido; pendente mostra Aprovar a quem pode aprovar", async () => {
     approveResume.mockResolvedValue({ ok: true, message: "Envios retomados" });
     requestResume.mockResolvedValue({
       ok: true,
@@ -157,12 +157,12 @@ describe("PushSettingsForm (spec §10.5)", () => {
     );
     expect(
       screen.getByText(
-        "Retomada pedida por Helena Costa. Outra pessoa com permissão de aprovar precisa confirmar.",
+        "Retomada pedida por Helena Costa. Quem tem permissão de aprovar precisa confirmar.",
       ),
     ).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Aprovar retomada" }));
     await waitFor(() => expect(approveResume).toHaveBeenCalledTimes(1));
-    // Quem pediu não vê o botão de aprovar.
+    // A-128: quem pediu e pode aprovar também vê o botão de aprovar.
     rerender(
       <PushSettingsForm
         settings={paused}
@@ -178,6 +178,6 @@ describe("PushSettingsForm (spec §10.5)", () => {
       />,
     );
     expect(screen.getByText(/Você pediu a retomada/)).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Aprovar retomada" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Aprovar retomada" })).toBeVisible();
   });
 });

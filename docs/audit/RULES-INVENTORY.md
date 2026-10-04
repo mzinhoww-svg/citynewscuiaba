@@ -56,7 +56,7 @@ IDs: **PR** processo, **ED** editorial e produto, **CD** código, **DS** design,
 | ED-10 | Personalização só com consentimento; nunca inferir atributo protegido | §5.7 |
 | ED-11 | Publicação automática por `decidePublication` com regras versionadas (v3) | §5.8 |
 | ED-12 | Disjuntor 300/h e 3.000/dia | §5.8, A-126 |
-| ED-13 | Religar `auto_publish` é ação de um admin; alterar regras exige duas pessoas | §5.8, A-125 |
+| ED-13 | Religar `auto_publish` e alterar regras são ação de uma pessoa com papel de aprovar (A-125, A-128) | §5.8, A-125 |
 | ED-14 | Imagem gerada nunca fotorrealista de pessoa real nem crime, tragédia, saúde individual | §5.9 |
 | ED-15 | Só fontes reais em produção, respeitando robots e termos; fixtures fictícias em teste | §5.10 |
 | ED-16 | Imagem de terceiros só pela política `reproduction` | §5.11 |
@@ -87,7 +87,7 @@ IDs: **PR** processo, **ED** editorial e produto, **CD** código, **DS** design,
 | SE-02 | Rotas de cron e worker exigem `Bearer CRON_SECRET` | §8 |
 | SE-03 | RLS em todas as tabelas; service role só no pipeline | §8 |
 | SE-04 | Estúdio exige sessão e papel | §8 |
-| SE-05 | Duas pessoas imposto no banco (`approved_by <> requested_by`) | `architecture.md` §6, `0002_rls.sql` |
+| SE-05 | Duas pessoas no banco (`approved_by <> requested_by`) — removido pela A-128 (0149); `approvals` segue registrando quem pediu e quem aprovou | `architecture.md` §6, `0002_rls.sql` |
 | SE-06 | Admin não tem `article.publish` | `permissions.ts:72` |
 
 ## 3. Conflitos e inconsistências
@@ -154,9 +154,9 @@ Classes: **KEEP** manter · **MODIFY** revisar · **RELAX** flexibilizar · **RE
 | ED-07 | Agregado não é republicado | KEEP, AUTOMATE | Correta; vale também para o rascunho sem IA (P0-01) → teste de que nenhum caminho automático publica `ai_fallback` | Baixo | auto-reviewer, rules | P0 | Implementada |
 | ED-08 | IA nunca sem fonte | KEEP | R36 a contradiz → manter até D-01; alternativa: "não encontramos fontes" + busca tradicional + sugestão de pergunta | Alto se relaxada | answer.ts, e2e | P0 | Pendente (D-01) |
 | ED-11 | Publicação por regras v3 | MODIFY | Independência conta veículos → medir linhagens em sombra (feito) e decidir portão (D-03) | Médio | verify, rules, confidence | P0 | Implementada em sombra |
-| ED-11 (revisor) | Revisor noturno decide o que subiu | MODIFY | Decidia rascunho sem IA e sem saber de conflito/duvidoso → exclui rascunho sem IA, recebe contexto; conflito e duvidoso à noite ficam para D-05 | Baixo | 0148 | P0 | Implementada |
+| ED-11 (revisor) | Revisor noturno decide o que subiu | MODIFY | Decidia rascunho sem IA e sem saber de conflito/duvidoso → exclui rascunho sem IA, recebe contexto; conflito e duvidoso à noite ficam para D-05 | Baixo | 0150 | P0 | Implementada |
 | ED-12 | Disjuntor 300/3.000 | CONFIGURABLE, INVESTIGATE | Já é linha no banco; produção pode estar em 60/800 → conferir; manter editável no Interruptores | Baixo | `publish_breaker` | P1 | Pendente (conferir) |
-| ED-13 | Duas pessoas para regras | RELAX, CONFIGURABLE | Operação de uma pessoa → duas pessoas só para o que amplia risco (regra mais permissiva, papel admin, política de imagem); o que restringe é imediato; o resto com espera de 24 h e auditoria (D-04) | Médio | triggers 0002, 0048 | P1 | Pendente (D-04) |
+| ED-13 | Duas pessoas para regras | RELAX, CONFIGURABLE | Operação de uma pessoa → duas pessoas só para o que amplia risco (regra mais permissiva, papel admin, política de imagem); o que restringe é imediato; o resto com espera de 24 h e auditoria (D-04) | Médio | triggers 0002, 0048 | P1 | Resolvida pelo dono (A-128) |
 | ED-14 | Imagem gerada | KEEP, AUTOMATE | Guardas já existem em `choose.ts:36-92` → manter; teste ao ligar gerador | — | — | — | — |
 | ED-16 | Reprodução de imagem | MODIFY | Contradiz ED-07; B-002 aberto; `og:image` sem crédito; recorte → política em `MEDIA-POLICY.md` (D-02) | Alto | media, seo | P0 | Pendente (D-02) |
 | ED-17 | Regras de redação | AUTOMATE | Só no prompt → verificador pós-geração (nome de menor, "culpado" antes de condenação, método de suicídio) que derruba o parágrafo ou manda para revisão | Médio | write | P1 | Pendente (EV-03) |
@@ -168,7 +168,7 @@ Classes: **KEEP** manter · **MODIFY** revisar · **RELAX** flexibilizar · **RE
 | CD-01..06 | Convenções de código | KEEP | Seguidas (0 `any`, 0 `@ts-ignore`); documentar CD-06 em CLAUDE.md | — | — | P3 | Pendente |
 | DS-01..05 | Design | KEEP | Corretas; detector de design deve bloquear (UI-T15 concluída?) → INVESTIGATE | Baixo | ci.yml | P3 | Pendente |
 | SE-01..04 | Segurança | KEEP | Corretas e testadas; `/estudio` sem verificação na borda é aceitável (layout + página) | — | — | — | — |
-| SE-05 | Duas pessoas no banco | KEEP, MODIFY | Ver ED-13; `service_role` passa por cima por desenho → registrar como exceção auditada | Baixo | 0002 | P1 | Pendente (D-04) |
+| SE-05 | Duas pessoas no banco | KEEP, MODIFY | Ver ED-13; `service_role` passa por cima por desenho → registrar como exceção auditada | Baixo | 0002 | P1 | Resolvida pelo dono (A-128, 0149) |
 | SE-06 | Admin sem `article.publish` | INVESTIGATE | Faz sentido com equipe; numa pessoa obriga dois papéis → decidir junto com D-04 | Baixo | permissions.ts | P2 | Pendente |
 | (novo) | Afirmações do texto gerado conferidas contra as fontes | AUTOMATE | Não existe (P0-03) → `claimCheck` no `write` | Médio | write, schemas | P0 | Pendente (EV-03) |
 | (novo) | Remoção de imagem em 24 h medida | AUTOMATE | Promessa sem relógio → prazo e alerta na fila de remoção | Baixo | takedown | P2 | Pendente |

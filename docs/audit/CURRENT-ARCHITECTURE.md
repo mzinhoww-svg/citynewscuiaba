@@ -17,7 +17,7 @@ Data: 04/10/2026. Retrato do que o código faz, não do que os planos previam. `
 | Hospedagem | Vercel (integração Git; sem `vercel.json`, sem Vercel Cron) | [I] `drain/route.ts:8` |
 | Agendamento | `pg_cron` + `pg_net` chamando as rotas com `Bearer CRON_SECRET` do Vault; watchdog no GitHub Actions a cada 15 min | `0011_source_admin.sql:1072-1093`, `cron-watchdog.yml` |
 
-Tamanho: cerca de 1.017 arquivos TS/TSX de produção em `src`, 304 testes unitários ao lado do código, 85 de integração, 78 migrations (numeração 0001 a 0148 com lacunas).
+Tamanho: cerca de 1.017 arquivos TS/TSX de produção em `src`, 304 testes unitários ao lado do código, 85 de integração, 81 migrations (numeração 0001 a 0150 com lacunas).
 
 ## 2. Componentes
 

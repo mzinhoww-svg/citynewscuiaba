@@ -27,7 +27,9 @@ Regra de bolso: **se errar prejudica terceiros ou a verdade do que foi publicado
 | Pesos de recomendação | `rec_weights` | Control Center → Recomendação |
 | Layout da home, destaques, SEO, push | `home_layouts`, `featured_*`, `app_settings` | Admin |
 
-## 3. Quem aprova o quê (proposta para D-04) [R]
+## 3. Quem aprova o quê
+
+> **Resolvida pelo dono em 04/10 (A-128, PR #37):** fim da regra de duas pessoas em todas as mudanças críticas; uma pessoa com o papel de aprovar pede, aprova e aplica numa ação só, com `approvals` e auditoria registrando quem fez (migration 0149). A proposta abaixo fica registrada como alternativa para quando houver equipe.
 
 Hoje "duas pessoas" vale para regras, pesos, prompts, papéis e algumas mudanças de fonte, imposto por trigger; religar automático virou uma pessoa (A-125). Numa operação de uma pessoa isso trava. Proposta por **direção do risco**, não por tipo de objeto:
 

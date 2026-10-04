@@ -26,8 +26,6 @@ export interface ApproveChangeDialogProps {
   approval: ApprovalLike;
   /** Valor atual do campo (para o diff "antes → depois"). */
   currentValue?: string | null;
-  /** Quem abriu é quem pediu: a aprovação precisa ser de outra pessoa. */
-  isOwnRequest?: boolean;
   busy?: boolean;
   error?: string | null;
   onCancel: () => void;
@@ -46,14 +44,13 @@ export function approvalDiffText(a: ApprovalLike, currentValue?: string | null):
 
 /**
  * Aprovar mudança crítica (spec §7.5, §8): diff, justificativa do pedido e quem pediu, com
- * "Aprovar e aplicar" e "Recusar" (motivo obrigatório). A pessoa que pediu vê o aviso de que a
- * aprovação precisa ser de outra pessoa (o servidor e o banco recusam do mesmo jeito).
+ * "Aprovar e aplicar" e "Recusar" (motivo obrigatório). Quem pediu também pode decidir, se tiver o
+ * papel (A-128); o histórico guarda quem pediu e quem aprovou.
  */
 export function ApproveChangeDialog({
   open,
   approval,
   currentValue,
-  isOwnRequest = false,
   busy = false,
   error,
   onCancel,
@@ -88,9 +85,6 @@ export function ApproveChangeDialog({
             <dd className="type-body text-strong">{approval.justification}</dd>
           </div>
         </dl>
-        {isOwnRequest && (
-          <p className="rounded-md bg-atencao-soft px-3 py-2 type-body text-strong">{T.selfNote}</p>
-        )}
         {rejecting && (
           <TextInput
             id={`${uid}-recusa`}

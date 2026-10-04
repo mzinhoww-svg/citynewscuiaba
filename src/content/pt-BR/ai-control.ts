@@ -210,7 +210,7 @@ export const AI_TEXT = {
       "Publicação automática segue regras versionadas; segurança e urgente nunca publicam sozinhos.",
       "Imagem gerada nunca é fotorrealista de pessoa real e nunca ilustra crime, tragédia ou saúde individual.",
       "Personalização só com consentimento; nenhum atributo protegido é inferido.",
-      "Prompt em produção e desligar salvaguardas exigem duas pessoas diferentes.",
+      "Prompt em produção e desligar salvaguardas passam por aprovação de admin ou editor-chefe, registrada no histórico.",
     ],
     agentsTitle: "Agentes",
     agentsCaption: "Agentes de IA: função, modelo, prompt em produção e última avaliação",

@@ -16,8 +16,6 @@ export interface DecideDialogProps {
   row: QueueRow;
   /** `decide`: aprovar/recusar (pendente); `cancel`: cancelar com motivo. */
   mode: DecideMode;
-  /** Quem abriu é quem pediu: a aprovação precisa ser de outra pessoa. */
-  isOwnRequest?: boolean;
   busy?: boolean;
   error?: string | null;
   onCancel: () => void;
@@ -28,14 +26,13 @@ export interface DecideDialogProps {
 
 /**
  * Revisar pedido (spec §10.3): prévia nas três plataformas, texto, público, quando, quem pediu
- * e justificativa; Aprovar, Recusar (motivo obrigatório) ou Cancelar (motivo). Quem pediu vê o
- * aviso de que a aprovação precisa ser de outra pessoa (servidor e banco recusam igual).
+ * e justificativa; Aprovar, Recusar (motivo obrigatório) ou Cancelar (motivo). Quem pediu e tem
+ * `push.approve` também decide (A-128); o histórico guarda quem pediu e quem aprovou.
  */
 export function DecideDialog({
   open,
   row,
   mode,
-  isOwnRequest = false,
   busy = false,
   error,
   onCancel,
@@ -101,11 +98,6 @@ export function DecideDialog({
             <dd className="type-body text-strong">{row.justification ?? T.noJustification}</dd>
           </div>
         </dl>
-        {mode === "decide" && isOwnRequest && (
-          <p role="note" className="rounded-md bg-atencao-soft px-3 py-2 type-body text-strong">
-            {T.selfNote}
-          </p>
-        )}
         {askingReason && (
           <TextInput
             id={`${uid}-motivo`}
@@ -157,7 +149,7 @@ export function DecideDialog({
               >
                 {T.reject}
               </Button>
-              <Button size="md" onClick={onApprove} disabled={busy || isOwnRequest}>
+              <Button size="md" onClick={onApprove} disabled={busy}>
                 {T.approve}
               </Button>
             </>
