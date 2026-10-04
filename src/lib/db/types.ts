@@ -3085,6 +3085,30 @@ export type Database = {
           },
         ];
       };
+      source_logo_checks: {
+        Row: {
+          checked_at: string;
+          detail: string | null;
+          found_at: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Insert: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome: string;
+          source_id: string;
+        };
+        Update: {
+          checked_at?: string;
+          detail?: string | null;
+          found_at?: string | null;
+          outcome?: string;
+          source_id?: string;
+        };
+        Relationships: [];
+      };
       sources: {
         Row: {
           agreement_note: string | null;
@@ -3114,6 +3138,8 @@ export type Database = {
           layer: number | null;
           locality: string;
           logo_path: string | null;
+          logo_origin_url: string | null;
+          logo_source: string | null;
           may_be_sole_source: boolean;
           name: string;
           owner_id: string | null;
@@ -3165,6 +3191,8 @@ export type Database = {
           layer?: number | null;
           locality: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name: string;
           owner_id?: string | null;
@@ -3216,6 +3244,8 @@ export type Database = {
           layer?: number | null;
           locality?: string;
           logo_path?: string | null;
+          logo_origin_url?: string | null;
+          logo_source?: string | null;
           may_be_sole_source?: boolean;
           name?: string;
           owner_id?: string | null;
@@ -4448,6 +4478,10 @@ export type Database = {
       source_discovery_link: {
         Args: { p_accepted?: string[]; p_id: string; p_source: string };
         Returns: boolean;
+      };
+      source_logo_auto_set: {
+        Args: { p_id: string; p_origin: string; p_path: string };
+        Returns: string;
       };
       source_discovery_save: { Args: { p: Json; p_ctx?: Json }; Returns: string };
       source_operational_columns: { Args: Record<PropertyKey, never>; Returns: string[] };

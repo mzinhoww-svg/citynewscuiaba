@@ -1,5 +1,6 @@
 import "server-only";
 import { defaultHomeLayout, parseHomeLayout, type HomeModule } from "@/lib/admin/home-layout";
+import { sourceLogoUrl } from "@/lib/sources/logo-path";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
@@ -97,7 +98,7 @@ async function fetchHomeAggregated(db: DbClient, limit: number): Promise<Aggrega
 async function fetchFeaturedSources(db: DbClient, limit: number): Promise<SourceView[]> {
   const rows = await db
     .from("public_sources")
-    .select("slug, name, locality, rec_pinned, rec_local_highlight")
+    .select("slug, name, locality, logo_path, rec_pinned, rec_local_highlight")
     .eq("status", "active")
     .eq("rec_excluded", false)
     .order("rec_pinned", { ascending: false })
@@ -107,7 +108,15 @@ async function fetchFeaturedSources(db: DbClient, limit: number): Promise<Source
     .then(many);
   return rows.flatMap((s) =>
     s.slug && s.name
-      ? [{ slug: s.slug, name: s.name, href: `/fontes/${s.slug}`, locality: s.locality ?? "" }]
+      ? [
+          {
+            slug: s.slug,
+            name: s.name,
+            href: `/fontes/${s.slug}`,
+            locality: s.locality ?? "",
+            logo: sourceLogoUrl(s.logo_path),
+          },
+        ]
       : [],
   );
 }

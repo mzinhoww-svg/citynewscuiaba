@@ -328,7 +328,7 @@ function Module_sources({ data }: { data: HomeData }) {
           <SectionHeader id="home-sources" title={HOME.sources} actionHref={HOME.sourcesMore} />
           <Rail label={HOME.sources} itemWidth="auto" className="lg:flex lg:justify-between">
             {data.sources.map((s) => (
-              <SourceAvatar key={s.slug} name={s.name} href={s.href} size={64} />
+              <SourceAvatar key={s.slug} name={s.name} image={s.logo} href={s.href} size={64} />
             ))}
           </Rail>
         </section>
