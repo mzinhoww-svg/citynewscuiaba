@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Panel } from "@/components";
 import {
   ApprovalBanner,
   ReviewerModeCard,
@@ -80,10 +80,7 @@ export default async function SwitchesPage() {
               run={reviewerModeAction}
             />
           )}
-          <section
-            aria-labelledby="others"
-            className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="others" className="flex flex-col gap-2">
             <h2 id="others" className="type-section text-strong">
               {T.others.title}
             </h2>
@@ -97,7 +94,7 @@ export default async function SwitchesPage() {
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         </>
       )}
     </section>

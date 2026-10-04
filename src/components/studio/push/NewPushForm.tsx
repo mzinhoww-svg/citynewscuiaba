@@ -9,14 +9,11 @@ import { BODY_MAX, sanitizeNotificationText, TITLE_MAX } from "@/lib/push/text";
 import type { ActionFn, ActionState } from "@/lib/sources/action-state";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
+import { DateField } from "../../ui/DateField";
 import { InlineAlert } from "../../ui/InlineAlert";
-import {
-  ActionMessage,
-  CONTROL_CLASS,
-  describedBy,
-  FieldShell,
-  SelectField,
-} from "../sources/fields";
+import { RadioGroup } from "../../ui/RadioGroup";
+import { Select } from "../../ui/Select";
+import { ActionMessage, CONTROL_CLASS, describedBy, FieldShell } from "../sources/fields";
 import { ArticlePicker } from "./ArticlePicker";
 import { AudienceField, type ReachState } from "./AudienceField";
 import { PushPreview } from "./PushPreview";
@@ -209,29 +206,23 @@ export function NewPushForm({
         </InlineAlert>
       )}
 
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 type-label text-strong">{T.kind}</legend>
-        {kinds.map((k) => (
-          <label key={k} className="flex min-h-tap items-start gap-3 type-body text-strong">
-            <input
-              type="radio"
-              name="kind"
-              value={k}
-              checked={kind === k}
-              onChange={() => {
-                setKind(k);
-                if (k === "urgent") setWhenType("now");
-                clearError("justification");
-              }}
-              className="mt-2.5 size-5 shrink-0 accent-(--action-primary)"
-            />
-            <span className="flex flex-col py-2">
-              <span>{PUSH_ADMIN_TEXT.kind[k]}</span>
-              <span className="type-meta text-meta">{T.kindHint[k]}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
+      <RadioGroup
+        name="kind"
+        legend={T.kind}
+        options={kinds.map((k) => ({
+          value: k,
+          label: PUSH_ADMIN_TEXT.kind[k],
+          hint: T.kindHint[k],
+        }))}
+        value={kind}
+        onChange={(v) => {
+          const k = kinds.find((x) => x === v);
+          if (!k) return;
+          setKind(k);
+          if (k === "urgent") setWhenType("now");
+          clearError("justification");
+        }}
+      />
 
       <ArticlePicker
         search={async (q) => {
@@ -250,7 +241,7 @@ export function NewPushForm({
       />
 
       {templates.length > 0 && (
-        <SelectField
+        <Select
           id={`${uid}-modelo`}
           name="template"
           label={T.template}
@@ -368,30 +359,19 @@ export function NewPushForm({
               </label>
             ))}
             {whenType === "at" && (
-              <FieldShell
+              <DateField
                 id={`${uid}-hora`}
+                name="at"
+                type="datetime-local"
                 label={T.at}
                 hint={T.atHint}
                 error={errors.at ?? scheduleError}
-              >
-                <input
-                  id={`${uid}-hora`}
-                  name="at"
-                  type="datetime-local"
-                  value={at}
-                  onChange={(e) => {
-                    setAt(e.target.value);
-                    clearError("at");
-                  }}
-                  aria-invalid={errors.at || scheduleError ? true : undefined}
-                  aria-describedby={describedBy(
-                    `${uid}-hora`,
-                    T.atHint,
-                    errors.at ?? scheduleError,
-                  )}
-                  className={cx(CONTROL_CLASS, (errors.at || scheduleError) && "field-error")}
-                />
-              </FieldShell>
+                value={at}
+                onChange={(v) => {
+                  setAt(v);
+                  clearError("at");
+                }}
+              />
             )}
           </>
         )}

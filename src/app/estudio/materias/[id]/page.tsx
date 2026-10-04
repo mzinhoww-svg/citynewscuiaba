@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, OriginLabel } from "@/components";
+import { Button, EmptyState, InlineAlert, OriginLabel, Panel } from "@/components";
 import {
   AiSuggestionInline,
   ConfidenceMeter,
@@ -101,10 +101,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
   const sidebar = (
     <>
       <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
-      <section
-        aria-labelledby="imagem-da-materia"
-        className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby="imagem-da-materia" className="flex flex-col gap-4">
         <h2 id="imagem-da-materia" className="type-section text-strong">
           {IMAGE_TEXT.title}
         </h2>
@@ -130,7 +127,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
             </div>
           ))
         )}
-      </section>
+      </Panel>
       {canEdit && !isPublic && (
         <GenerateImageDrawer articleId={a.id} suggest={suggestIllustrationAction} />
       )}
