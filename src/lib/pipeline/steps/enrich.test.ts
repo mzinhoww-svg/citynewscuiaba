@@ -254,7 +254,13 @@ async function setup({ routes, src = source(), items }: Setup) {
       { signal },
     );
   const advance = (ms: number) => void (clock += ms);
-  return { repo, calls, sleeps, run, ids, advance };
+  const msg = (i = 0, attempt = 1): PipelineMessage => ({
+    runId: "run-1",
+    step: "enrich",
+    itemRef: `item:${ids[i]}`,
+    attempt,
+  });
+  return { repo, calls, sleeps, run, ids, advance, step, msg };
 }
 
 const nextIsDedupe = (
@@ -411,6 +417,47 @@ describe("enrich", () => {
     });
     expect((await step(msg(1))).ok).toBe(false);
     expect((await step(msg(3))).ok).toBe(true);
+  });
+
+  it("registra o motivo de não guardar o texto (ctx.note): nunca pula em silêncio", async () => {
+    const cases: [Record<string, FakeRoute>, Record<string, unknown>][] = [
+      [
+        { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: { status: 403 } },
+        { enrich: "skipped", reason: "http_403" },
+      ],
+      [
+        {
+          [`${HOST}/robots.txt`]: { body: "User-agent: *\nDisallow: /" },
+          [CHUVA]: ok200(FULL_PAGE),
+        },
+        { enrich: "skipped", reason: "robots_disallowed" },
+      ],
+      [
+        {
+          [`${HOST}/robots.txt`]: { status: 404 },
+          [CHUVA]: { body: "{}", headers: { "content-type": "application/json" } },
+        },
+        { enrich: "skipped", reason: "not_html" },
+      ],
+      [{ [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) }, { enrich: "saved" }],
+    ];
+    for (const [routes, expected] of cases) {
+      const t = await setup({ routes });
+      const notes: Record<string, unknown>[] = [];
+      const r = await t.step(t.msg(0), { note: (d) => void notes.push(d) });
+      nextIsDedupe(r, t.ids[0]!);
+      expect(notes).toEqual([expect.objectContaining(expected)]);
+    }
+  });
+
+  it("fonte com a flag desligada anota o motivo (disabled)", async () => {
+    const t = await setup({
+      src: source({ consumption: { strategy: "sitemap_news", enrich: false } }),
+      routes: {},
+    });
+    const notes: Record<string, unknown>[] = [];
+    await t.step(t.msg(0), { note: (d) => void notes.push(d) });
+    expect(notes).toEqual([{ enrich: "skipped", reason: "disabled" }]);
   });
 
   it("404/403 não é transitório: segue direto, sem nova tentativa", async () => {

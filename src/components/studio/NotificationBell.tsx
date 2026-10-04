@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { BELL_TEXT, SEVERITY_BADGE, SEVERITY_TEXT } from "@/content/pt-BR/studio-notifications";
+import { formatDateTime, formatWhen } from "@/lib/format/date";
 import {
   applyRead,
   badgeText,
@@ -67,6 +68,8 @@ export function NotificationBell({
   const [open, setOpen] = useState(false);
   const [onlyUnread, setOnlyUnread] = useState(false);
   const [announce, setAnnounce] = useState("");
+  // Relógio do "há 12 min": anda a cada busca e ao abrir o painel.
+  const [now, setNow] = useState(() => new Date());
   const panelId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -86,6 +89,7 @@ export function NotificationBell({
       if (!isSnapshot(data)) throw new Error("formato");
       if (mine !== seq.current) return;
       setSnap({ items: data.items, unread: data.unread });
+      setNow(new Date());
       setStatus("ready");
       setStale(false);
       if (known.current === null) known.current = new Set(data.items.map((n) => n.id));
@@ -188,7 +192,10 @@ export function NotificationBell({
         aria-controls={open ? panelId : undefined}
         aria-keyshortcuts="Alt+N"
         title={BELL_TEXT.shortcutHint}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setNow(new Date());
+          setOpen((o) => !o);
+        }}
         className="relative inline-flex size-tap cursor-pointer items-center justify-center rounded-pill border border-transparent text-strong transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-section"
       >
         <Icon name="bell" size={22} />
@@ -320,6 +327,13 @@ export function NotificationBell({
                                 {BELL_TEXT.unread}
                               </span>
                             )}
+                            <time
+                              dateTime={n.createdAt}
+                              title={formatDateTime(n.createdAt)}
+                              className="ml-auto type-meta whitespace-nowrap text-meta"
+                            >
+                              {formatWhen(n.createdAt, now)}
+                            </time>
                           </span>
                           <span
                             className={cx(

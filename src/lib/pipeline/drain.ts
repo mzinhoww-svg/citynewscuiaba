@@ -201,14 +201,22 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             }
             r.processed++;
             const signal = AbortSignal.timeout(Math.max(0, remainingMs));
-            const res = await runStep(q.msg, { signal });
+            let notes: Record<string, unknown> = {};
+            const note = (d: Record<string, unknown>) => void (notes = { ...notes, ...d });
+            const res = await runStep(q.msg, { signal, note });
             let e: StepError;
             if (res.ok) {
               try {
                 for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
                 await queue.ack(name, q.msgId);
                 r.succeeded++;
-                await push(event(q, "info", "ok", { next: res.value.length }));
+                await push(
+                  event(q, "info", "ok", {
+                    next: res.value.length,
+                    // Em `note`, para nunca sobrescrever `attempt`, `runRef` ou `kind` do evento.
+                    ...(Object.keys(notes).length > 0 ? { note: notes } : {}),
+                  }),
+                );
                 continue;
               } catch (ex) {
                 // Etapa feita, próxima não enfileirada: a mensagem volta como falha transitória

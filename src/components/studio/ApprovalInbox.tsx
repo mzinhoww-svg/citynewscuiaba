@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { APPROVALS_TEXT as T, KIND_TEXT, targetText } from "@/content/pt-BR/approvals";
 import type { ApprovalItem } from "@/lib/db/queries/approvals";
-import { applyHref, approvalHref } from "@/lib/approvals/targets";
+import { applyHref, approvalHref, decidedElsewhere } from "@/lib/approvals/targets";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
@@ -97,7 +97,7 @@ export function ApprovalInbox({
             {pending.map((a) => {
               const own = a.requestedBy.id === currentUserId;
               const can = decidable.includes(a.kind);
-              const elsewhere = a.kind === "source.critical";
+              const elsewhere = decidedElsewhere(a.kind);
               return (
                 <li
                   key={a.id}
@@ -125,7 +125,7 @@ export function ApprovalInbox({
                         size="sm"
                         variant="outline-strong"
                       >
-                        {T.reviewAt}
+                        {a.kind.startsWith("push.") ? T.reviewAtPush : T.reviewAt}
                       </Button>
                     ) : (
                       can && (

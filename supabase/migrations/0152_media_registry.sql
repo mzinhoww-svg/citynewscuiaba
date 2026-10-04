@@ -93,8 +93,7 @@ end
 $$;
 revoke execute on function public.media_assets_registry() from public, anon, authenticated;
 
-drop trigger if exists media_assets_registry on public.media_assets;
-create trigger media_assets_registry before insert or update on public.media_assets
+create or replace trigger media_assets_registry before insert or update on public.media_assets
   for each row execute function public.media_assets_registry();
 
 -- Crédito exibido em cada uso: o do ativo no momento da associação (não muda se o ativo mudar).
@@ -113,8 +112,7 @@ end
 $$;
 revoke execute on function public.article_media_credit_shown() from public, anon, authenticated;
 
-drop trigger if exists article_media_credit_shown on public.article_media;
-create trigger article_media_credit_shown before insert on public.article_media
+create or replace trigger article_media_credit_shown before insert on public.article_media
   for each row execute function public.article_media_credit_shown();
 
 -- Dados existentes: status derivado, aviso e escopo pelo tipo, crédito dos usos já feitos.

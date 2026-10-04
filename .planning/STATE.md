@@ -1,27 +1,33 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-04 — decisões D-01 a D-06 da auditoria 360 implementadas no branch `claude/vigilant-babbage-ndnhwp`, enviado com autorização do dono e aberto como PR #44 (rascunho). Merge, deploy e produção seguem dependendo de autorização explícita.
+**Última atualização:** 2026-10-04 — decisões D-01 a D-06 (PR #44); migrations 0151 a 0153 e proposta v4 aplicadas em produção com autorização do dono.
 **Atualizado por:** Claude Code
+
+> 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
 
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Onde o projeto está
 
-- **P0 a P6 concluídos** (69/70; P6-T4 degradado, B-021). Depois: Painel de Fontes, PWA, UI pública, autonomia (regras v3), destaques, publicidade, Guia Cuiabá, segurança P1, auditoria 360 (PR #42, integrado).
-- **Decisões do dono D-01 a D-06 (A-133 a A-138):** implementadas e testadas no banco local; relatório em `docs/reports/decisoes-auditoria-360.md`.
+- **P0 a P6 concluídos** (69/70 tarefas; P6-T4, exercício de restauração, degradado por falta de 2º projeto Supabase, B-021). Painel de Fontes, PWA, UI pública, autonomia de publicação (regras v3), destaques, publicidade (ADS-T1..T4), Guia Cuiabá e segurança P1 entregues depois.
+- **Produção:** https://citynewscuiaba.vercel.app, projeto Supabase `citynews-prod`. Pipeline com regras v3 e disjuntor.
+- **Closure (04/10, PR #41, `docs/orchestrator/`):** 0146 a 0150 aplicadas e verificadas; disjuntor 300/3.000 e `auto_publish` ligado (A-126). **0143 segue NÃO aplicada.**
+- **Auditoria 360 (PR #42) e decisões do dono D-01 a D-06 (A-133 a A-138, PR #44):** relatório em `docs/reports/decisoes-auditoria-360.md`.
   - D-01 Pergunte responde com uma fonte relevante, atribuída; sem fonte informa.
   - D-02 "Foto: reprodução web" e Media Registry (0152).
   - D-03 linhagens só como indicador.
   - D-04 flags com antes e depois na auditoria (regras já versionadas e reversíveis).
   - D-05 risco em quatro níveis (0151) e regras v4 como proposta inativa.
   - D-06 sem selo público de IA; colunas internas fora da chave anônima (0153).
+- **Produção, 04/10 (autorizado pelo dono, A-139):** 0151, 0152 e 0153 aplicadas e conferidas; proposta das regras v4 inserida (versão 4, inativa) com pedido `safety.disable` pendente. A v3 continua ativa.
 
 ## Próximas ações
 
-1. **Com autorização do dono:** merge do PR #44; deploy.
-2. **Produção, depois do deploy:** aplicar 0150 (se pendente), 0151, 0152, 0153; conferir `publish_breaker` (60/800 ou 300/3.000); rodar `supabase/bootstrap/rules-v4-proposal.sql`, conferir a simulação de 7 dias e aplicar a v4 no painel.
+1. **Merge do PR #44** (autorizado) assim que o CI ficar verde; o deploy da Vercel sai do merge.
+2. **Regras v4:** no painel de governança, conferir a simulação de 7 dias e aprovar o pedido `rules:4` (uma pessoa, A-128). Rollback: `rules_rollback()`.
 3. **Medir** por 2 semanas: `editorial_risk_daily` e `verify_lineage_daily`.
-4. **Roadmap:** EV-03 conferência de afirmações, EV-04 alertas fora do banco, fechar `publish_mode`/`agent_id`/`confidence` ao `anon`.
+4. **Produção:** aplicar 0143 depois da pré-checagem (`docs/orchestrator/migration-matrix.md`); conferir qual chave do OpenRouter vence em 28/10.
+5. **Roadmap:** EV-03 conferência de afirmações, EV-04 alertas fora do banco, fechar `publish_mode`/`agent_id`/`confidence` ao `anon`.
 
 ## Degradados abertos
 

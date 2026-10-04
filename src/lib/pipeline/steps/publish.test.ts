@@ -8,6 +8,7 @@ import { DEFAULT_RULES } from "@/lib/rules/defaults";
 import { drain } from "../drain";
 import type { FlagKey } from "../ports";
 import { createRunStep } from "../run-step";
+import { WRITE_AI_RETRIES } from "./write";
 import { createMemoryPublishRepo, type MemoryTopic } from "../testing/memory-publish-repo";
 import { createMemoryQueue } from "../testing/memory-queue";
 import type { PipelineMessage } from "../types";
@@ -80,12 +81,14 @@ function setup(
   return { repo, fake, store, handlers, deps, revalidated };
 }
 
-const msg = (step: PipelineMessage["step"], itemRef: string): PipelineMessage => ({
+const msg = (step: PipelineMessage["step"], itemRef: string, attempt = 1): PipelineMessage => ({
   runId: "r1",
   step,
   itemRef,
-  attempt: 1,
+  attempt,
 });
+/** Última tentativa da redação: depois de `WRITE_AI_RETRIES` novas tentativas, vale o rascunho sem IA. */
+const LAST = WRITE_AI_RETRIES + 1;
 
 async function unwrap(p: Promise<Result<PipelineMessage[], unknown>>) {
   const r = await p;
@@ -129,7 +132,7 @@ describe("write (etapas 11 e 12)", () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([{ error: "timeout" }, { error: "provider" }]);
-    const next = await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm")));
+    const next = await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", LAST)));
     const a = repo.articleOfTopic("t-farm")!;
     expect(a.status).toBe("in_review");
     expect(a.input.aiFallback).toBe(true);
@@ -138,6 +141,71 @@ describe("write (etapas 11 e 12)", () => {
     expect(a.input.sources.map((s) => s.itemId)).toEqual(["i1", "i2"]);
     expect(repo.decisions()[0]!.rationale).toMatch(/IA indisponível.*\(provider\)/);
     expect(next).toEqual([msg("image", `article:${a.id}`)]);
+  });
+
+  it("IA fora nas primeiras tentativas: erro transitório (nova tentativa), nada vai para a fila humana", async () => {
+    for (const error of ["timeout", "provider", "schema"] as const) {
+      const { repo, handlers, fake } = setup();
+      repo.addTopic(farmacias());
+      fake.script([{ error }, { error }]);
+      const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toMatchObject({ kind: "transient", retryable: true });
+      expect(repo.articleOfTopic("t-farm")).toBeUndefined();
+      expect(repo.decisions()).toHaveLength(0);
+    }
+  });
+
+  it("prazo do drain esgotado: não tenta de novo (o drain não contaria a tentativa), vai para a revisão", async () => {
+    const { repo, handlers, fake } = setup();
+    repo.addTopic(farmacias());
+    fake.script([{ error: "timeout" }, { error: "timeout" }]);
+    const ac = new AbortController();
+    ac.abort();
+    const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1), { signal: ac.signal });
+    expect(r.ok).toBe(true);
+    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+    expect(repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
+  });
+
+  it("2ª tentativa ainda tenta de novo; a 3ª cai no rascunho sem IA", async () => {
+    const { repo, handlers, fake } = setup();
+    repo.addTopic(farmacias());
+    fake.script(Array.from({ length: 4 }, () => ({ error: "schema" as const })));
+    const second = await handlers.summarize!(msg("summarize", "topic:t-farm", WRITE_AI_RETRIES));
+    expect(second.ok).toBe(false);
+    expect(repo.articleOfTopic("t-farm")).toBeUndefined();
+    await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", LAST)));
+    expect(repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
+  });
+
+  it("texto sem citação válida antes da última tentativa também tenta de novo", async () => {
+    const { repo, handlers, fake } = setup();
+    repo.addTopic(farmacias());
+    fake.script([
+      {
+        output: {
+          title: "Farmácias de plantão abertas",
+          dek: "Lista oficial do fim de semana",
+          summary: ["Doze farmácias abrem."],
+          body: [{ text: "Doze farmácias abrem.", citations: ["inventado"] }],
+        },
+      },
+    ]);
+    const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1));
+    expect(r.ok).toBe(false);
+    expect(repo.articleOfTopic("t-farm")).toBeUndefined();
+  });
+
+  it("orçamento esgotado ou IA desligada: nova tentativa não ajuda, vale o rascunho sem IA na hora", async () => {
+    for (const error of ["budget_exceeded", "disabled"] as const) {
+      const s = setup();
+      s.repo.addTopic(farmacias());
+      const handlers = createPublishHandlers({ ...s.deps, callAgent: async () => err(error) });
+      await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", 1)));
+      expect(s.repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+      expect(s.repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
+    }
   });
 
   it("texto sem citação válida também vai para revisão", async () => {
@@ -153,7 +221,7 @@ describe("write (etapas 11 e 12)", () => {
         },
       },
     ]);
-    await handlers.summarize!(msg("summarize", "topic:t-farm"));
+    await handlers.summarize!(msg("summarize", "topic:t-farm", LAST));
     expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
     expect(repo.articleOfTopic("t-farm")!.reviewReason).toMatch(/sem citações válidas/);
   });
@@ -219,8 +287,19 @@ describe("reescrita de matéria no ar (A-126)", () => {
     const s = setup();
     const id = await live(s);
     s.fake.script([{ error: "timeout" }, { error: "provider" }]);
-    const next = await unwrap(s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5")));
+    const next = await unwrap(
+      s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5", LAST)),
+    );
     expect(next).toEqual([]);
+    expect(s.repo.article(id)).toMatchObject({ status: "published", version: 1 });
+  });
+
+  it("#rewrite com a IA fora antes da última tentativa: tenta de novo, texto no ar intacto", async () => {
+    const s = setup();
+    const id = await live(s);
+    s.fake.script([{ error: "timeout" }, { error: "provider" }]);
+    const r = await s.handlers.summarize!(msg("summarize", "topic:t-farm#rewrite5", 1));
+    expect(r.ok).toBe(false);
     expect(s.repo.article(id)).toMatchObject({ status: "published", version: 1 });
   });
 
@@ -234,9 +313,9 @@ describe("reescrita de matéria no ar (A-126)", () => {
   });
 });
 
-async function drafted(s: ReturnType<typeof setup>, topic: MemoryTopic = farmacias()) {
+async function drafted(s: ReturnType<typeof setup>, topic: MemoryTopic = farmacias(), attempt = 1) {
   s.repo.addTopic(topic);
-  await s.handlers.summarize!(msg("summarize", `topic:${topic.id}`));
+  await s.handlers.summarize!(msg("summarize", `topic:${topic.id}`, attempt));
   return s.repo.articleOfTopic(topic.id)!.id;
 }
 
@@ -413,7 +492,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
   it("rascunho sem IA nunca publica, mesmo com regras abertas", async () => {
     const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: true } });
     s.fake.script([{ error: "provider" }, { error: "provider" }]);
-    const id = await drafted(s);
+    const id = await drafted(s, farmacias(), LAST);
     const next = await unwrap(s.handlers.rules!(msg("rules", `article:${id}`)));
     expect(next).toEqual([msg("notify", `article:${id}#ai_unavailable`)]);
     expect(s.repo.decisions().at(-1)!.output).toMatchObject({ rule: "ai_unavailable" });
@@ -514,19 +593,29 @@ describe("unpublishAuto (desfazer em um clique)", () => {
 });
 
 describe("cadeia no worker (Review Focus 4)", () => {
-  it("IA fora durante write: matéria em revisão com motivo, notificação, fila vazia", async () => {
+  it("IA fora durante write: tenta de novo com espera e, na última, revisão com motivo e notificação", async () => {
     const s = setup({ flags: { auto_publish: true } });
     s.repo.addTopic(farmacias());
-    s.fake.script([{ error: "provider" }, { error: "provider" }]);
-    const queue = createMemoryQueue();
+    // Cada tentativa chama o modelo principal e o reserva: 2 falhas por tentativa.
+    s.fake.script(Array.from({ length: 2 * LAST }, () => ({ error: "provider" as const })));
+    let clock = 0;
+    const queue = createMemoryQueue(() => clock);
     await queue.enqueue("pipeline", msg("summarize", "topic:t-farm"));
-    const r = await drain({
-      queue,
-      runStep: createRunStep({ ...s.handlers, image: async (m) => ok([{ ...m, step: "rules" }]) }),
-      events: { record: async () => {} },
-      now: () => 0,
+    const runStep = createRunStep({
+      ...s.handlers,
+      image: async (m) => ok([{ ...m, step: "rules" }]),
     });
-    expect(r).toMatchObject({ remaining: 0, quarantined: 0, retried: 0 });
+    let retried = 0;
+    for (let i = 0; i < LAST; i++) {
+      const r = await drain({ queue, runStep, events: { record: async () => {} }, now: () => 0 });
+      retried += r.retried;
+      expect(r.quarantined).toBe(0);
+      // Antes da última tentativa nada vai para a fila humana.
+      if (i < LAST - 1) expect(s.repo.articleOfTopic("t-farm")).toBeUndefined();
+      clock += 10 * 60_000;
+    }
+    expect(retried).toBe(WRITE_AI_RETRIES);
+    expect(await queue.pending("pipeline")).toBe(0);
     const a = s.repo.articleOfTopic("t-farm")!;
     expect(a.status).toBe("in_review");
     expect(s.repo.notifications()).toEqual([

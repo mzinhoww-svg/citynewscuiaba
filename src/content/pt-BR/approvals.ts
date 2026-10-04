@@ -84,6 +84,7 @@ export const APPROVALS_TEXT = {
   someone: "alguém da equipe",
   review: "Revisar",
   reviewAt: "Revisar na fonte",
+  reviewAtPush: "Decidir em Notificações",
   ownRequest: "Seu pedido",
   ownPending: "Pedido seu: decida aqui se seu papel aprova este tipo",
   noRole: "Seu papel não decide este tipo de pedido",

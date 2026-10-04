@@ -39,8 +39,15 @@ async function focused(page: Page): Promise<Focus> {
       };
     }
     const cs = getComputedStyle(el);
+    const outlined = (s: CSSStyleDeclaration) =>
+      s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2;
+    // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do input some de
+    // propósito (evita anel duplo). Só o contorno do contêiner conta, não a sombra do foco interno.
+    const field = el.tagName === "INPUT" ? el.closest(".control-field") : null;
     const ring =
-      (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) >= 2) || cs.boxShadow !== "none";
+      outlined(cs) ||
+      cs.boxShadow !== "none" ||
+      (field !== null && outlined(getComputedStyle(field)));
     const r = el.getBoundingClientRect();
     const inView = r.bottom > 0 && r.top < window.innerHeight && r.width > 0 && r.height > 0;
     // 2.4.11: um cabeçalho fixo ou a barra inferior não podem esconder o elemento com foco por
@@ -130,7 +137,11 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
   expect(at.covered, `foco coberto por ${at.coveredBy} em ${name}`).toBe(false);
   if (at.tag === "body") return at;
   const box = await page.evaluate(() => {
-    const r = document.activeElement!.getBoundingClientRect();
+    const el = document.activeElement!;
+    // R4/R5 + A-123: o anel de um input em `.control-field` é pintado no contêiner; a captura
+    // precisa cobrir o contêiner, senão o contorno cai fora do recorte.
+    const host = (el.tagName === "INPUT" && el.closest(".control-field")) || el;
+    const r = host.getBoundingClientRect();
     return { x: r.left, y: r.top, width: r.width, height: r.height };
   });
   const pad = 8;

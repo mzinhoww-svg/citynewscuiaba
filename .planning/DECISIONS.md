@@ -276,3 +276,12 @@ Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 
 
 **Status:** vigente. Decisão do dono (D-06). Selos públicos de IA já eram proibidos por teste; mantidos. Migration 0153 tira do papel `anon` as colunas internas de `articles` que nenhum código público lê. Pendente: `publish_mode`, `agent_id` e `confidence` ainda legíveis pelo `anon` porque o portal as seleciona com a chave anônima (refatorar consultas públicas). Obrigação legal de rotular IA em notícia: levantamento (não é parecer jurídico) não achou exigência no Brasil hoje para jornalismo; a regra do TSE sobre conteúdo sintético vale para propaganda eleitoral, o PL 2338/2023 está em tramitação e o AI Act europeu (art. 50) só alcança quem opera na UE. Confirmar com o jurídico junto com B-002 e revisitar se a lei mudar. Commit `10eb1e9`.
 
+
+## A-139 · Produção: 0151, 0152, 0153 e proposta das regras v4 aplicadas (04/10/2026)
+
+**Status:** vigente. Autorização expressa do dono ("Aplique as migrations e rode o sql").
+
+- **Pré-checagem:** `review_due_articles` em produção idêntica à 0150; todas as colunas do `grant` da 0153 existem em `articles`; o código público em produção não lê nenhuma coluna retirada do `anon`; corpo da v3 ativa igual ao da proposta, exceto `riskLevels`.
+- **0152:** o conector do Supabase travava (tempo esgotado, nada aplicado) com `drop trigger if exists`, tratado como instrução destrutiva que pede confirmação. A migration passou a usar `create or replace trigger` (Postgres 14+), mesmo efeito e idempotente; o arquivo do repositório foi alinhado ao que rodou.
+- **Conferido depois:** as quatro migrations 0150 a 0153 registradas; 671 ativos no Media Registry, todos `unknown` (nenhuma autorização registrada); todos os usos com `credit_shown`; `anon` lê `title` e `publish_mode` e não lê `review_reason`, `risk_level` nem `ai_fallback`.
+- **Regras v4:** versão 4 inserida inativa, com o pedido `safety.disable` `rules:4` pendente. A v3 continua ativa até a aprovação no painel, depois da simulação de 7 dias.

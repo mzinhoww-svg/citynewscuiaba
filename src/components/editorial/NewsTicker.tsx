@@ -13,7 +13,7 @@ export interface NewsTickerProps {
 const SECONDS_PER_ITEM = 7;
 
 const linkClass =
-  "block whitespace-nowrap px-4 py-2.5 text-12 font-semibold uppercase tracking-wide text-on-inverse no-underline hover:underline focus-visible:underline";
+  "flex min-h-tap items-center whitespace-nowrap px-4 text-12 font-semibold uppercase tracking-wide text-on-inverse no-underline hover:underline focus-visible:underline";
 
 /**
  * Faixa "Última hora" logo abaixo do menu: manchetes em caixa alta rolando para a esquerda,
