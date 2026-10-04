@@ -9,7 +9,13 @@ import type { FlagKey, MediaSourceItem } from "../ports";
 import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryMediaRepo } from "../testing/memory-media-repo";
 import type { PipelineMessage } from "../types";
-import { createMediaStep, reusableAsset } from "./media";
+import {
+  createMediaStep,
+  PHOTO_REFETCH_LEAD_SEC,
+  PHOTO_RETRIES,
+  PHOTO_RETRY_DELAY_SEC,
+  reusableAsset,
+} from "./media";
 import { inlinePosition } from "@/lib/media/score";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
@@ -52,8 +58,12 @@ function setup(opts: {
   routes?: Record<string, FakeRoute>;
   category?: string;
   failPut?: boolean;
+  /** `false`: o limite por hora da fonte está esgotado. */
+  rateLimit?: boolean;
 }) {
-  const repo = createMemoryMediaRepo();
+  const repo = createMemoryMediaRepo(
+    opts.rateLimit === undefined ? {} : { rateLimit: opts.rateLimit },
+  );
   repo.setContext({
     articleId: "a1",
     topicId: "t1",
@@ -565,6 +575,61 @@ describe("capa e imagem no texto (UI-T16)", () => {
     expect(store.files.has(repo.assets().find((a) => a.id === first!.mediaId)!.storagePath)).toBe(
       true,
     );
+  });
+});
+
+describe("foto que ainda não deu para buscar: nova tentativa agendada", () => {
+  it("limite da fonte esgotado: publica com o card e agenda nova tentativa da foto", async () => {
+    const { repo, step } = setup({ rateLimit: false });
+    const r = await step(msg);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value).toEqual([
+      { ...msg, step: "rules" },
+      { ...msg, step: "image", itemRef: "article:a1#photo1", delaySec: PHOTO_RETRY_DELAY_SEC },
+    ]);
+    expect(repo.decisions()[0]!.output).toMatchObject({ kind: "typographic" });
+  });
+
+  it("item sem URL de foto: pede a página de novo (og:image) antes da nova tentativa", async () => {
+    const { step } = setup({ items: [sourceItem({}, { itemId: "i9", imageUrl: null })] });
+    const r = await step(msg);
+    expect(r.ok && r.value).toEqual([
+      { ...msg, step: "rules" },
+      { ...msg, step: "enrich", itemRef: "item:i9#refetch", delaySec: PHOTO_RETRY_DELAY_SEC },
+      {
+        ...msg,
+        step: "image",
+        itemRef: "article:a1#photo1",
+        delaySec: PHOTO_RETRY_DELAY_SEC + PHOTO_REFETCH_LEAD_SEC,
+      },
+    ]);
+  });
+
+  it("nova tentativa acha a foto: liga a capa e não volta para as regras", async () => {
+    const { repo, step } = setup({});
+    const r = await step({ ...msg, itemRef: "article:a1#photo1" });
+    expect(r).toEqual({ ok: true, value: [] });
+    expect(repo.links()).toEqual([expect.objectContaining({ articleId: "a1", role: "cover" })]);
+  });
+
+  it("capa do acervo já resolve: não agenda nova tentativa", async () => {
+    const { repo, step } = setup({ rateLimit: false });
+    repo.addArchive({ id: "acervo-1", tags: ["cultura"] });
+    expect(await step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+  });
+
+  it("para depois de PHOTO_RETRIES tentativas", async () => {
+    const { step } = setup({ rateLimit: false });
+    const r = await step({ ...msg, itemRef: `article:a1#photo${PHOTO_RETRIES}` });
+    expect(r).toEqual({ ok: true, value: [] });
+  });
+
+  it("política none ou reprodução desligada não agenda nada (não é falta de cota)", async () => {
+    const none = setup({ items: [sourceItem({ imagePolicy: "none" }, { imageUrl: null })] });
+    expect(await none.step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+    const off = setup({ flags: { image_reproduction_enabled: false }, rateLimit: false });
+    expect(await off.step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
   });
 });
 

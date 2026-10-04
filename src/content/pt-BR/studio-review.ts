@@ -57,6 +57,7 @@ export const REVIEW_BULK_TEXT = {
   resultTitle: "Ficaram de fora",
   reasons: {
     no_body: "sem texto",
+    unwritten: "sem redação: só o rascunho das fontes",
     forbidden: "sem permissão na editoria",
     status: "não está mais em revisão",
     not_found: "não encontrada",
