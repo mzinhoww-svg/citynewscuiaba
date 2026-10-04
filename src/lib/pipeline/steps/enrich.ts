@@ -205,6 +205,7 @@ export type EnrichSkipReason =
   | "not_modified"
   | "network_blocked"
   | "retries_exhausted"
+  | "source_missing"
   | `http_${number}`;
 
 type PageOutcome =
@@ -326,7 +327,7 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
       return next;
     };
     const source = await deps.repo.sourceById(item.sourceId);
-    if (!source) return next;
+    if (!source) return skip("source_missing");
     if (!refetch && !enrichEnabled(source.consumption, item.excerpt)) return skip("disabled");
 
     const now = deps.now();

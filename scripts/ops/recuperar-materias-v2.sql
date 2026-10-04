@@ -18,12 +18,16 @@
 begin;
 
 -- 0) Trava: sem 0147 e 0148 a recuperação reescreveria só metade e voltaria a falhar.
+-- `exists` no schema public: função ausente ou renomeada também trava (nunca passa por NULL).
 do $$
 begin
-  if not (select prosrc ilike '%v_live%' from pg_proc where proname = 'save_pipeline_draft') then
+  if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
+                  and proname = 'save_pipeline_draft' and prosrc ilike '%v_live%') then
     raise exception 'pré-requisito: 0147 (save_pipeline_draft com live) não está aplicada';
   end if;
-  if (select prosrc ilike '%Ativar exige termos de uso revisados%' from pg_proc where proname = 'guard_source_changes') then
+  if not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
+                  and proname = 'guard_source_changes'
+                  and prosrc not ilike '%Ativar exige termos de uso revisados%') then
     raise exception 'pré-requisito: 0148 (ativar sem termos revisados) não está aplicada';
   end if;
 end $$;
@@ -40,7 +44,9 @@ update ai_agents set daily_budget_brl = 0.5 where id = 'source_profiler' and dai
 update ai_agents set daily_budget_brl = 15 where id = 'write' and daily_budget_brl < 15;
 
 -- 2) Fontes pausadas: uma por vez, cada uma no próprio bloco. Falha vira linha no relatório.
-create temp table recuperacao_fontes (slug text, resultado text, motivo text) on commit drop;
+-- Tabela temporária da sessão (sem `on commit drop`): o relatório é a última consulta, depois do commit.
+drop table if exists recuperacao_fontes;
+create temp table recuperacao_fontes (slug text, resultado text, motivo text);
 
 do $$
 declare
@@ -59,14 +65,18 @@ begin
       insert into recuperacao_fontes values (s.slug, 'ativada', null);
     exception when others then
       insert into recuperacao_fontes values (s.slug, 'mantida pausada', sqlerrm);
+      raise notice 'fonte % mantida pausada: %', s.slug, sqlerrm;
     end;
   end loop;
 end $$;
 
 -- `enrich: false` explícito sai também das ativas (sem a flag o enrich liga no feed curto).
-update sources set consumption = consumption - 'enrich' where consumption ->> 'enrich' = 'false';
+-- Nunca em fonte arquivada: `guard_source_changes` recusa qualquer mudança nela e a recusa
+-- reverteria a transação inteira.
+update sources set consumption = consumption - 'enrich'
+ where consumption ->> 'enrich' = 'false' and archived_at is null;
 update sources set rate_limit_per_hour = 60
- where slug in ('olhar-conceito', 'agro-olhar') and rate_limit_per_hour < 60;
+ where slug in ('olhar-conceito', 'agro-olhar') and rate_limit_per_hour < 60 and archived_at is null;
 
 -- 3) Matérias finas do redator (mesmo critério da v1): refetch espaçado por fonte e reescrita
 --    15 minutos depois do último item do assunto. Só itens de fontes ativas (a pausada não coleta).
@@ -111,11 +121,11 @@ reescrita as (
 select (select count(*) from refetch) as itens_na_fila,
        (select count(*) from reescrita) as assuntos_na_fila;
 
--- Relatório por fonte (antes do commit, enquanto a tabela temporária existe).
+commit;
+
+-- Relatório por fonte: última consulta (o SQL Editor mostra o resultado da última).
 select resultado, count(*), string_agg(slug || coalesce(' (' || motivo || ')', ''), ', ' order by slug)
   from recuperacao_fontes group by resultado;
-
-commit;
 
 -- Verificação (só leitura, depois):
 -- select hourly_limit, daily_limit from publish_breaker;                       -- 300, 3000

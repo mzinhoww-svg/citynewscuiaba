@@ -210,7 +210,13 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
                 for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
                 await queue.ack(name, q.msgId);
                 r.succeeded++;
-                await push(event(q, "info", "ok", { ...notes, next: res.value.length }));
+                await push(
+                  event(q, "info", "ok", {
+                    next: res.value.length,
+                    // Em `note`, para nunca sobrescrever `attempt`, `runRef` ou `kind` do evento.
+                    ...(Object.keys(notes).length > 0 ? { note: notes } : {}),
+                  }),
+                );
                 continue;
               } catch (ex) {
                 // Etapa feita, próxima não enfileirada: a mensagem volta como falha transitória

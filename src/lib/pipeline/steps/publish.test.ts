@@ -156,6 +156,29 @@ describe("write (etapas 11 e 12)", () => {
     }
   });
 
+  it("prazo do drain esgotado: não tenta de novo (o drain não contaria a tentativa), vai para a revisão", async () => {
+    const { repo, handlers, fake } = setup();
+    repo.addTopic(farmacias());
+    fake.script([{ error: "timeout" }, { error: "timeout" }]);
+    const ac = new AbortController();
+    ac.abort();
+    const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1), { signal: ac.signal });
+    expect(r.ok).toBe(true);
+    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+    expect(repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
+  });
+
+  it("2ª tentativa ainda tenta de novo; a 3ª cai no rascunho sem IA", async () => {
+    const { repo, handlers, fake } = setup();
+    repo.addTopic(farmacias());
+    fake.script(Array.from({ length: 4 }, () => ({ error: "schema" as const })));
+    const second = await handlers.summarize!(msg("summarize", "topic:t-farm", WRITE_AI_RETRIES));
+    expect(second.ok).toBe(false);
+    expect(repo.articleOfTopic("t-farm")).toBeUndefined();
+    await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", LAST)));
+    expect(repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
+  });
+
   it("texto sem citação válida antes da última tentativa também tenta de novo", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());

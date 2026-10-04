@@ -232,10 +232,13 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     } else draft = { ...fallbackDraft(ctx), summary: null };
 
     // Falha passageira da IA: nova tentativa da etapa (backoff do drain), nunca fila humana de cara.
+    // Prazo do drain esgotado não entra: o drain devolveria a mensagem sem contar a tentativa
+    // (`queue_release`), e o assunto giraria para sempre sem chegar à revisão.
     if (
       failure !== null &&
       RETRYABLE_WRITE_FAILURES.has(failure) &&
-      msg.attempt <= WRITE_AI_RETRIES
+      msg.attempt <= WRITE_AI_RETRIES &&
+      !run?.signal?.aborted
     )
       return err(
         stepError.transient(`redação adiada: IA indisponível (${failure})`, { topicId, failure }),

@@ -81,7 +81,7 @@ describe("drain", () => {
     expect(events.events[0]).toMatchObject({
       level: "info",
       message: "ok",
-      details: { next: 0, enrich: "skipped", reason: "http_403" },
+      details: { next: 0, note: { enrich: "skipped", reason: "http_403" } },
     });
   });
 
