@@ -268,7 +268,7 @@ test.describe("com conta", () => {
 
     // Exportar dados.
     const download = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Exportar dados" }).click();
+    await page.getByRole("button", { name: /Baixar meus dados/ }).click();
     const file = await download;
     expect(file.suggestedFilename()).toBe("citynews-minha-conta.json");
     const raw = await readFile((await file.path())!, "utf8");
@@ -288,10 +288,9 @@ test.describe("com conta", () => {
 
     // Excluir: agenda em 7 dias, sem apagar já.
     const before = Date.now();
-    await page.getByRole("button", { name: "Excluir conta" }).click();
-    const dialog = page.getByRole("dialog", { name: "Excluir sua conta?" });
-    await dialog.getByLabel("Digite EXCLUIR para confirmar").fill("EXCLUIR");
-    await dialog.getByRole("button", { name: "Excluir conta" }).click();
+    await page.getByRole("link", { name: "Excluir conta" }).click();
+    await page.getByLabel("Digite EXCLUIR para confirmar").fill("EXCLUIR");
+    await page.getByRole("button", { name: "Excluir conta em 7 dias" }).click();
     await expect(page.getByText(/Exclusão agendada para/)).toBeVisible();
     await expect(page.getByText(/Até lá, a conta continua funcionando/)).toBeVisible();
 

@@ -78,13 +78,21 @@ test("perfil sem conta mostra o navegador, atalhos e o convite opcional", async 
   await seedAnonWithInterests(page, ["Mobilidade"]);
   await page.goto("/perfil");
   await expect(page.getByRole("heading", { name: "Seu perfil neste navegador" })).toBeVisible();
-  await expect(page.getByText(ANON_ID)).toBeVisible();
-  await expect(page.getByText(/1 fonte ou tema seguido/)).toBeVisible();
+  // As contagens deste navegador ficam nas linhas de Favoritos e Alertas.
+  const activity = page.getByRole("navigation", { name: "Seu CityNews" });
+  await expect(activity.getByRole("link", { name: /Favoritos/ })).toContainText("1 seguido");
+  await expect(activity.getByRole("link", { name: /Alertas/ })).toBeVisible();
   await expect(page.getByText(/Se você limpar os dados do navegador/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta para sincronizar" })).toBeVisible();
-  const nav = page.getByRole("navigation", { name: "Atalhos" });
-  for (const l of ["Favoritos", "Alertas", "Privacidade e recomendações"])
-    await expect(nav.getByRole("link", { name: l })).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation", { name: "Preferências" })
+      .getByRole("link", { name: "Privacidade e recomendações" }),
+  ).toBeVisible();
+  // O identificador local é detalhe técnico: fica recolhido até a pessoa pedir.
+  await expect(page.getByText(ANON_ID)).toBeHidden();
+  await page.getByText("Detalhes técnicos").click();
+  await expect(page.getByText(ANON_ID)).toBeVisible();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Baixar dados deste navegador" }).click();
   expect((await download).suggestedFilename()).toBe("citynews-este-navegador.json");
@@ -106,42 +114,64 @@ async function newAccount(page: Page, tag: string): Promise<string> {
 
 test("excluir conta exige digitar EXCLUIR", async ({ page }) => {
   await newAccount(page, "excluir");
-  await page.getByRole("button", { name: "Excluir conta" }).click();
-  const dialog = page.getByRole("dialog", { name: "Excluir sua conta?" });
-  const confirm = dialog.getByRole("button", { name: "Excluir conta" });
+  // A exclusão tem tela própria, longe das ações do dia a dia.
+  await page.getByRole("link", { name: "Excluir conta" }).click();
+  await expect(page).toHaveURL(/\/perfil\/excluir$/);
+  await expect(page.getByRole("heading", { name: "O que acontece" })).toBeVisible();
+  const confirm = page.getByRole("button", { name: "Excluir conta em 7 dias" });
   await expect(confirm).toBeDisabled();
-  await dialog.getByLabel("Digite EXCLUIR para confirmar").fill("excluir");
+  await page.getByLabel("Digite EXCLUIR para confirmar").fill("excluir");
   await expect(confirm).toBeDisabled();
-  await dialog.getByLabel("Digite EXCLUIR para confirmar").fill("EXCLUIR");
+  await page.getByLabel("Digite EXCLUIR para confirmar").fill("EXCLUIR");
   await expect(confirm).toBeEnabled();
   await confirm.click();
   await expect(page.getByText(/Exclusão agendada para/)).toBeVisible();
+  // Com a exclusão agendada, a linha mostra a data e não abre o fluxo de novo.
+  await expect(page.getByRole("link", { name: "Excluir conta" })).toHaveCount(0);
   await page.getByRole("button", { name: "Cancelar exclusão" }).click();
   await expect(page.getByText("Exclusão cancelada. Sua conta continua ativa.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Excluir conta" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Excluir conta" })).toBeVisible();
 });
 
 test("conta: dados, bairro, exportar e sair", async ({ page }) => {
   const email = await newAccount(page, "dados");
   await expect(page.getByText(email)).toBeVisible();
+  // Nome e bairro se editam numa folha; "Salvar" só ativa quando algo muda.
+  await page.getByRole("button", { name: "Editar perfil" }).click();
+  const sheet = page.getByRole("dialog", { name: "Editar perfil" });
   await accountFormReady(page);
-  await page.getByLabel("Nome de exibição").fill("Ana do Porto");
-  await page.getByLabel("Bairro principal").selectOption("Porto");
-  await page.getByRole("button", { name: "Salvar dados" }).click();
+  await expect(sheet.getByRole("button", { name: "Salvar" })).toBeDisabled();
+  await sheet.getByLabel("Nome de exibição").fill("Ana do Porto");
+  await sheet.getByLabel("Bairro principal").selectOption("Porto");
+  await sheet.getByRole("button", { name: "Salvar" }).click();
+  await expect(sheet).toBeHidden();
   await expect(page.getByText("Dados salvos.")).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Nome de exibição")).toHaveValue("Ana do Porto");
-  await expect(page.getByLabel("Bairro principal")).toHaveValue("Porto");
+  const account = page.getByRole("region", { name: "Sua conta" });
+  await expect(account.getByText("Ana do Porto")).toBeVisible();
+  await expect(account.getByText("Porto", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Editar perfil" }).click();
+  await expect(sheet.getByLabel("Nome de exibição")).toHaveValue("Ana do Porto");
+  await expect(sheet.getByLabel("Bairro principal")).toHaveValue("Porto");
+  await sheet.getByRole("button", { name: "Cancelar" }).click();
 
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Exportar dados" }).click();
+  await page.getByRole("button", { name: /Baixar meus dados/ }).click();
   const file = await download;
   expect(file.suggestedFilename()).toBe("citynews-minha-conta.json");
   const json = JSON.parse(await readFile((await file.path())!, "utf8"));
   expect(json.account.email).toBe(email);
   expect(json.profile.display_name).toBe("Ana do Porto");
 
-  await page.getByRole("button", { name: "Sair de todos os dispositivos" }).click();
+  // Sair dos outros aparelhos mantém este navegador conectado.
+  await page.getByRole("link", { name: /Sessões/ }).click();
+  await expect(page).toHaveURL(/\/perfil\/seguranca#sessoes$/);
+  await page.getByRole("button", { name: "Sair dos outros aparelhos" }).click();
+  await expect(page.getByText(/Você saiu dos outros aparelhos/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Senha e sessões" })).toBeVisible();
+
+  await page.goto("/perfil");
+  await page.getByRole("button", { name: "Sair da conta" }).click();
   await expect(page.getByText(/Você saiu da conta/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Criar conta para sincronizar" })).toBeVisible();
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { downloadJson } from "./LocalProfileCard";
+import { downloadJson } from "./download";
 
 describe("downloadJson (gate P2, M8)", () => {
   afterEach(() => {
