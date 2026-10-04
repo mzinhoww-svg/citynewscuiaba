@@ -125,7 +125,7 @@ test("ocultar com motivo e desfazer", async ({ page, context, baseURL }) => {
   await open(page, "/fontes?aba=locais");
   const card = panel(page).locator('[data-slug="diario-da-baixada"]');
   await expect(card).toBeVisible();
-  await card.getByRole("button", { name: "Ocultar Diário da Baixada" }).click();
+  await card.getByRole("button", { name: "Mais opções de Diário da Baixada" }).click();
   await page.getByRole("menuitem", { name: "Já conheço esta fonte" }).click();
   await expect(card).toHaveCount(0);
   await expect(page.getByText("Diário da Baixada não aparece mais nas suas listas.")).toBeVisible();
@@ -136,7 +136,7 @@ test("ocultar com motivo e desfazer", async ({ page, context, baseURL }) => {
   await expect(page.getByText("1 fonte ocultada")).toHaveCount(0);
 
   // Ocultar de novo e reabrir: a escolha fica no navegador; "Mostrar de novo" desfaz depois.
-  await card.getByRole("button", { name: "Ocultar Diário da Baixada" }).click();
+  await card.getByRole("button", { name: "Mais opções de Diário da Baixada" }).click();
   await page.getByRole("menuitem", { name: "Não tenho interesse" }).click();
   await expect(card).toHaveCount(0);
   await open(page, "/fontes?aba=locais");
@@ -159,7 +159,7 @@ test("ocultar com 'Não quero recomendações personalizadas' desliga a personal
   await open(page, "/fontes?aba=recomendadas");
   await expect(personalizationSwitch(page)).toHaveAttribute("aria-checked", "true");
   await panel(page)
-    .getByRole("button", { name: /^Ocultar / })
+    .getByRole("button", { name: /^Mais opções de / })
     .first()
     .click();
   await page.getByRole("menuitem", { name: "Não quero recomendações personalizadas" }).click();
@@ -190,6 +190,55 @@ test("filtros por tema e região na URL", async ({ page, context, baseURL }) => 
   await expect(panel(page).getByText("Nenhuma fonte nesta lista com esses filtros")).toBeVisible();
   await filters.getByRole("link", { name: "Limpar filtros" }).click();
   await expect(page).not.toHaveURL(/tema=/);
+});
+
+test("card enxuto: justificativa, Seguir e Ver matérias; números em Detalhes; Ocultar no menu ⋯ (UI-T10)", async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await withConsent(context, baseURL!, "v1|m0|p0");
+  await open(page, "/fontes?aba=locais");
+  const card = panel(page).locator("[data-slug]").first();
+  const name = (await card.getByRole("heading").textContent())?.trim() ?? "";
+  await expect(card.getByRole("button", { name: `Seguir ${name}` })).toBeVisible();
+  await expect(card.getByRole("link", { name: `Ver matérias de ${name}` })).toBeVisible();
+  await expect(card.getByText(/^Por que aparece aqui:/)).toHaveCount(1);
+  // Números escondidos até abrir "Detalhes".
+  const stats = card.getByRole("definition").first();
+  await expect(stats).toBeHidden();
+  await card.getByText("Detalhes", { exact: true }).click();
+  await expect(stats).toBeVisible();
+  // Sem botão "Ocultar" solto; o menu ⋯ tem 44 px, abre com teclado e fecha com Esc.
+  await expect(card.getByRole("button", { name: /^Ocultar/ })).toHaveCount(0);
+  const more = card.getByRole("button", { name: `Mais opções de ${name}` });
+  const box = await more.boundingBox();
+  expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+  await more.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("menu", { name: `Por que ocultar ${name}?` })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menu")).toHaveCount(0);
+  await expect(more).toBeFocused();
+});
+
+test("Panorama em superfície própria, 1 plaqueta AGREGADO · fonte por item e sem rótulo de IA", async ({
+  page,
+}) => {
+  await page.goto("/panorama");
+  const surface = page.locator("main .bg-aggregated").first();
+  await expect(surface).toBeVisible();
+  const items = page.locator("[data-item-source]");
+  await expect(items.first()).toBeVisible();
+  const n = await items.count();
+  for (let i = 0; i < n; i++) {
+    const plaques = items.nth(i).getByTestId("origin-label");
+    await expect(plaques).toHaveCount(1);
+    await expect(plaques).toContainText("AGREGADO");
+  }
+  const text = (await page.locator("main").textContent()) ?? "";
+  expect(text).not.toMatch(/\bIA\b|inteligência artificial|resumo por|normaliz/i);
 });
 
 test("Fontes sem violações graves de acessibilidade @a11y", async ({ page, context, baseURL }) => {
