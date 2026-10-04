@@ -17,7 +17,7 @@ const slug = `teste-anuncio-${run}`;
 const href = `https://padaria.example/${run}`;
 const created = {
   creatives: [] as string[],
-  placements: [] as Record<string, string>,
+  placements: {} as Record<string, string>,
   article: "",
 };
 
