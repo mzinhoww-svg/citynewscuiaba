@@ -76,7 +76,7 @@ export const MAX_KB = 200;
 export const fileName = (messageId, w, h) => `${messageId}-${w}x${h}.png`;
 
 /** Texto alternativo: diz o que a peça oferece, sem "imagem de". */
-export const altOf = (m) => `${m.title}. ${m.cta}.`;
+export const altOf = (m) => `${/[?!.]$/.test(m.title) ? m.title : `${m.title}.`} ${m.cta}.`;
 
 /**
  * Linhas das peças da casa para um site (`baseUrl`, ex.: https://citynewscuiaba.vercel.app):

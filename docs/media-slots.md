@@ -301,7 +301,7 @@ Sem acréscimo.
 - [ ] Comando: `pnpm vitest run src/lib/ads src/lib/events && pnpm test:e2e --grep @ads && pnpm verify`.
 - [ ] Commit: `feat: impressão, viewability e clique de anúncio [MS-T3]`.
 
-#### Task ADS-T4: Administração e métricas (24 h; já planejada)
+#### Task ADS-T4: Administração e métricas (24 h; já planejada) · concluída em 04/10 (A-122)
 Acréscimo: A07 passa a ler `ad_stats`; "Pausar tudo" usa a mesma regra de duas pessoas do A13.
 
 #### Task MS-T4: Relatório mensal por anunciante (12 h)

@@ -204,7 +204,7 @@ test("A01–A06 · administração: painel, usuários, papéis, equipes, taxonom
 test("A07–A14 · publicidade, SEO, auditoria, segurança, governança, integrações e configurações", async ({
   page,
 }) => {
-  await loginAs(page, "helena", "/estudio/admin/publicidade");
+  await loginAs(page, "helena", "/estudio/admin/publicidade/patrocinados");
   await expect(
     page.getByRole("heading", { level: 1, name: "Publicidade e patrocinados" }),
   ).toBeVisible();

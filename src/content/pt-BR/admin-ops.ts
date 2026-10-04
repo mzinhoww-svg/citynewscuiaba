@@ -27,12 +27,12 @@ export const ADMIN_OPS_TEXT = {
   ads: {
     title: "Publicidade e patrocinados",
     intro:
-      "Campanhas de conteúdo patrocinado: anunciante, período, peça, editorias permitidas e entregas. As regras abaixo são fixas e valem para toda campanha.",
+      "Banners e conteúdo patrocinado: ocupação dos campos, peças, relatório e campanhas. Nunca há anúncio em Política, Justiça, Segurança ou Saúde.",
     rulesTitle: "Regras fixas",
     rules: [
       "Rótulo PATROCINADO sempre visível, nunca só por cor.",
       "No máximo 1 patrocinado a cada 6 cards; nunca na manchete nem na primeira dobra.",
-      "Nunca em Política, Segurança ou Saúde, nem nas respostas do Pergunte ao CityNews.",
+      "Nunca em Política, Justiça, Segurança ou Saúde, nem nas respostas do Pergunte ao CityNews.",
       "Nunca ao lado de matéria urgente nem de contexto sensível (crime, tragédia, saúde individual).",
       "Patrocinado não conta como matéria editorial nem entra no sitemap de notícias.",
     ],
