@@ -18,6 +18,7 @@ import {
   CORRECTIONS_TEXT,
   EDITOR_TEXT as T,
   IMAGE_TEXT,
+  TOPIC_STATE_STUDIO,
 } from "@/content/pt-BR/studio";
 import { can, canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -111,6 +112,11 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
           {T.title} · {a.section.name}
         </p>
         <h1 className="type-screen-title text-strong">{a.title}</h1>
+        {a.topic && (
+          <p className="type-meta text-meta" title={TOPIC_STATE_STUDIO.auto}>
+            {TOPIC_STATE_STUDIO.line(a.topic.title, TOPIC_STATE_STUDIO.state[a.topic.state])}
+          </p>
+        )}
         <p className="type-meta text-meta">
           {T.statusLine(ARTICLE_STATUS_LABEL[a.status], a.version)}
           {a.authorName ? ` · ${a.authorName}` : ""} · {formatDateTime(a.updatedAt)}

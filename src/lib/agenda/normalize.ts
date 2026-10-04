@@ -92,6 +92,12 @@ const CATEGORY_RULES: [string, RegExp][] = [
 
 export const CATEGORIES = Object.keys(AGENDA.categories);
 
+/** Categoria pelo texto (título e local), sem acento nem caixa; `fallback` quando nada casa. */
+export function categoryFromText(text: string, fallback = "cultura"): string {
+  const t = fold(text);
+  return CATEGORY_RULES.find(([, re]) => re.test(t))?.[0] ?? fallback;
+}
+
 function categoryOf(raw: RawEvent, source: AgendaSource): string {
   const text = fold(`${raw.title} ${raw.category ?? ""}`);
   const hit = CATEGORY_RULES.find(([, re]) => re.test(text));

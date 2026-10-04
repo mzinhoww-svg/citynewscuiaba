@@ -5,9 +5,18 @@ import { ReportResponder } from "@/components/estudio";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
-import { listReports, type ReportRow } from "@/lib/db/queries/studio-moderation";
+import {
+  listEscalations,
+  listReports,
+  type EscalationRow,
+  type ReportRow,
+} from "@/lib/db/queries/studio-moderation";
 import { formatDateTime } from "@/lib/format/date";
-import { correctionFromReportAction, respondReportAction } from "../actions";
+import {
+  correctionFromReportAction,
+  resolveEscalationAction,
+  respondReportAction,
+} from "../actions";
 
 export const metadata: Metadata = { title: "Denúncias · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -25,6 +34,12 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   } catch {
     rows = null;
   }
+  let escalations: EscalationRow[] = [];
+  try {
+    escalations = await listEscalations();
+  } catch {
+    escalations = [];
+  }
   const now = new Date().getTime();
   const correct = canAccess(session.roles, "correction.manage");
 
@@ -34,6 +49,52 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
         <h1 className="type-screen-title text-strong">{T.reportsTitle}</h1>
         <p className="type-body text-meta">{T.reportsIntro}</p>
       </header>
+      {sp.encerrada === "1" && (
+        <InlineAlert tone="success" role="status">
+          {T.escalation.resolved}
+        </InlineAlert>
+      )}
+      {escalations.length > 0 && (
+        <section
+          aria-labelledby="escaladas"
+          className="flex flex-col gap-3 rounded-lg border-2 border-line-strong bg-card-white p-4"
+        >
+          <h2 id="escaladas" className="type-section text-strong">
+            {T.escalation.title}
+          </h2>
+          <p className="type-body text-meta">{T.escalation.intro}</p>
+          <ul className="flex flex-col gap-3" aria-label={T.escalation.caption}>
+            {escalations.map((e) => (
+              <li key={e.id} className="flex flex-col gap-2 border-t border-line-subtle pt-3">
+                <p className="type-body font-semibold text-strong">
+                  <Link href={e.href} className="underline-offset-4 hover:underline">
+                    {e.title ?? T.unknownContent}
+                  </Link>
+                </p>
+                <p className="type-meta text-meta">
+                  {T.escalation.reports(e.reportCount)} · {T.escalation.openedAt}{" "}
+                  {formatDateTime(e.openedAt)}
+                </p>
+                <form action={resolveEscalationAction} className="flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="id" value={e.id} />
+                  <label className="flex min-w-56 flex-col gap-1 type-label text-16 text-strong">
+                    {T.escalation.resolveNote}
+                    <input
+                      name="note"
+                      type="text"
+                      maxLength={500}
+                      className="border-control rounded-lg bg-input px-4 py-3 type-body text-strong"
+                    />
+                  </label>
+                  <Button type="submit" size="md" variant="outline">
+                    {T.escalation.resolve}
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       {sp.respondida === "1" && (
         <InlineAlert tone="success" role="status">
           {T.answered}

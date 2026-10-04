@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { ApprovalBanner, SwitchBoard, type SwitchCard } from "@/components/estudio";
+import {
+  ApprovalBanner,
+  ReviewerModeCard,
+  SwitchBoard,
+  type SwitchCard,
+} from "@/components/estudio";
 import { SWITCH_INFO, SWITCH_KEYS, SWITCH_TEXT as T } from "@/content/pt-BR/switches";
 import { requireRole } from "@/lib/auth/require-role";
 import { contingencyOverview, type FlagState } from "@/lib/db/queries/contingency";
+import { reviewerSettings } from "@/lib/db/queries/reviewer";
 import { formatDateTime } from "@/lib/format/date";
 import { loadOrNull } from "../../load-error";
-import { switchAction } from "./actions";
+import { reviewerModeAction, switchAction } from "./actions";
 
 export const metadata: Metadata = { title: "Interruptores · Administração · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -20,6 +26,7 @@ export default async function SwitchesPage() {
     next: "/estudio/admin/interruptores",
   });
   const data = await loadOrNull("switches", () => contingencyOverview());
+  const reviewer = await loadOrNull("reviewer", () => reviewerSettings());
 
   return (
     <section className="flex flex-col gap-8">
@@ -60,6 +67,20 @@ export default async function SwitchesPage() {
               };
             })}
           />
+          {reviewer !== null && (
+            <ReviewerModeCard
+              mode={reviewer.value.mode}
+              since={
+                reviewer.value.updatedAt
+                  ? T.since(
+                      reviewer.value.updatedByName ?? T.unknownWho,
+                      formatDateTime(reviewer.value.updatedAt),
+                    )
+                  : undefined
+              }
+              run={reviewerModeAction}
+            />
+          )}
           <section
             aria-labelledby="others"
             className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"

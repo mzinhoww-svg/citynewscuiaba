@@ -29,6 +29,11 @@ const CRON_ROUTES: {
     load: () => import("@/app/api/ingest/agenda/route"),
   },
   {
+    path: "/api/ingest/review-tick",
+    method: "POST",
+    load: () => import("@/app/api/ingest/review-tick/route"),
+  },
+  {
     path: "/api/ingest/source-logos",
     method: "POST",
     load: () => import("@/app/api/ingest/source-logos/route"),

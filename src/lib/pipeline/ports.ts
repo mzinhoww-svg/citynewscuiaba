@@ -406,13 +406,16 @@ export interface TopicItem {
 export interface TopicBundle {
   topicId: string;
   updatedAt: string;
+  /** Estado atual do assunto (AUT-T7); ausente = em apuração. */
+  state?: "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
   items: TopicItem[];
 }
 
 /** Registro de decisão automática (`decisions`), com a versão do prompt e o hash da entrada. */
 export interface DecisionRecord {
   objectRef: string;
-  step: StepName;
+  /** `review`: decisão do revisor automático (fora das 20 etapas, AUT-T6). */
+  step: StepName | "review";
   agentId: string | null;
   promptVersion: number | null;
   inputHash: string;
@@ -442,6 +445,8 @@ export interface TopicPatch {
   confidenceScore: number;
   /** Só preenche a editoria quando o assunto ainda não tem uma. */
   sectionSlug?: string | null;
+  /** Novo estado do assunto (AUT-T7), só quando muda. */
+  state?: "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
 }
 
 /** Acesso a banco das etapas classify, locate e verify. */

@@ -216,6 +216,7 @@ export const ADMIN_OPS_TEXT = {
     correctionsOverdue: "Correções vencidas",
     rightOfReply: "Direito de resposta aberto",
     reportsOpen: "Denúncias abertas",
+    escalationsOpen: "Matérias em revisão por denúncias",
     approvalsPending: "Aprovações pendentes",
     publishedHuman: "Publicadas por pessoa (7 d)",
     publishedAuto: "Publicadas automaticamente (7 d)",

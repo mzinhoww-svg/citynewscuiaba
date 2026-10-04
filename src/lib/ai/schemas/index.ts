@@ -5,6 +5,7 @@ import { AnswerDraftSchema } from "./answer";
 import { ClassifySchema } from "./classify";
 import { ImageSchema } from "./image";
 import { LocateSchema } from "./locate";
+import { ReviewSchema } from "./review";
 import { sourceProfileSchema } from "./source-profile";
 import { VerifySchema } from "./verify";
 import { WriteSchema } from "./write";
@@ -15,6 +16,7 @@ export {
   ClassifySchema,
   ImageSchema,
   LocateSchema,
+  ReviewSchema,
   sourceProfileSchema,
   VerifySchema,
   WriteSchema,
@@ -30,4 +32,5 @@ export const AGENT_SCHEMAS = {
   image: ImageSchema,
   aggregate_summary: AggregateSummarySchema,
   source_profiler: sourceProfileSchema,
+  reviewer: ReviewSchema,
 } satisfies Record<AgentId, z.ZodType>;
