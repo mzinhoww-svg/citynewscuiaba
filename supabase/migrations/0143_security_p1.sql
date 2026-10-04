@@ -42,7 +42,9 @@ grant execute on function public.push_audit(text, text, jsonb) to authenticated,
 -- Com a auto-confirmação (sem "Confirm email"), `email_confirmed_at` vem preenchido para qualquer
 -- e-mail digitado no cadastro: a conta lia (exportação) ou apagava (expurgo) newsletter, alertas
 -- `email:` e a fila `reader_emails` de outra pessoa. Prova de posse = e-mail confirmado E
--- (confirmação enviada por link, `confirmation_sent_at`, ou provedor OAuth, que verifica o e-mail).
+-- (confirmação enviada por link, `confirmation_sent_at`, ou provedor OAuth da allowlist, que
+-- verifica o e-mail; hoje só `google`, B-006). É allowlist, não negação: 'anonymous', 'phone',
+-- 'sso:*' e provedores futuros não provam posse até serem incluídos de propósito aqui.
 -- No GoTrue, `admin.createUser({ email_confirm: true })` e o cadastro auto-confirmado deixam
 -- `confirmation_sent_at` nulo; o cadastro com link o preenche (verificado no Supabase local).
 create or replace function public.email_ownership_proven(p_uid uuid)
@@ -55,7 +57,7 @@ as $$
   select coalesce((
     select u.email_confirmed_at is not null
        and (u.confirmation_sent_at is not null
-            or coalesce(u.raw_app_meta_data->>'provider', 'email') <> 'email')
+            or coalesce(u.raw_app_meta_data->>'provider', 'email') in ('google'))
       from auth.users u
      where u.id = p_uid), false)
 $$;
