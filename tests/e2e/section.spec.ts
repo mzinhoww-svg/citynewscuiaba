@@ -56,7 +56,7 @@ test("filtros aplicam na hora, sem botão Aplicar, vão para a URL e o Voltar re
   page,
 }) => {
   await page.goto("/cidade");
-  // A-133: painel recolhível (fechado no celular); aberto, rótulos visíveis e sem "Aplicar filtros".
+  // A-140: painel recolhível (fechado no celular); aberto, rótulos visíveis e sem "Aplicar filtros".
   await openFilters(page);
   await expect(page.getByLabel("Período")).toBeVisible();
   await expect(page.getByLabel("Bairro")).toBeVisible();

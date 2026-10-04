@@ -191,7 +191,7 @@ test("filtros por tema e região na URL", async ({ page, context, baseURL }) => 
   await filters.getByRole("link", { name: "Mato Grosso", exact: true }).click();
   await expect(page).toHaveURL(/regiao=mt/);
   await expect(panel(page).getByText("Nenhuma fonte nesta lista com esses filtros")).toBeVisible();
-  // A-133: o Limpar fica no cabeçalho do painel, à vista mesmo recolhido.
+  // A-140: o Limpar fica no cabeçalho do painel, à vista mesmo recolhido.
   await page.getByRole("link", { name: "Limpar filtros" }).first().click();
   await expect(page).not.toHaveURL(/tema=/);
 });

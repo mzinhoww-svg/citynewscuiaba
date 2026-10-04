@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { expectHydrated } from "./hydration";
 
 /**
- * A-133: os painéis de filtro (`CollapsibleFilters`) começam recolhidos abaixo de `lg`. Abre todos
+ * A-140: os painéis de filtro (`CollapsibleFilters`) começam recolhidos abaixo de `lg`. Abre todos
  * os que estiverem com o corpo escondido; no desktop o corpo já aparece (CSS) e nada acontece.
  * Decide pela visibilidade do corpo, não pelo `aria-expanded`, que antes da hidratação vale
  * `false` mesmo com o painel aberto no desktop.

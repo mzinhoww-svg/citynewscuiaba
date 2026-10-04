@@ -35,6 +35,8 @@ export const setSwitchCommand = studioAction(
       if (r.error === "forbidden") throw new StudioFailure("forbidden", T.error.forbidden);
       throw new StudioFailure("conflict", T.error.generic);
     }
+    // Auditoria com antes e depois (D-04): a mudança é livre, o histórico não.
+    ctx.detail({ from: r.value.previous, to: i.value });
     return { changed: r.value.changed };
   },
   {

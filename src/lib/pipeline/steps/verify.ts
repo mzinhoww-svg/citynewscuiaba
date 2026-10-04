@@ -2,7 +2,7 @@ import type { CallAgent } from "@/lib/ai/call-agent";
 import { VerifySchema, type VerifyOutput } from "@/lib/ai/schemas/verify";
 import type { AiError } from "@/lib/ai/types";
 import { computeConfidence, type Confidence } from "@/lib/confidence";
-import { independentLineages } from "@/lib/confidence/lineage";
+import { LINEAGE_METHOD, safeIndependentLineages } from "@/lib/confidence/lineage";
 import { normalizePlace } from "@/lib/geo/neighborhoods";
 import { err, ok, type Result } from "@/lib/result";
 import { isDubious } from "@/lib/rules/dubious";
@@ -23,10 +23,13 @@ export interface VerifyResult {
   mainFact: string;
   independentSources: number;
   /**
-   * Linhagens de texto independentes (cópias do mesmo release contam uma vez). Medida em sombra:
-   * vai para a decisão do `verify`, mas nenhum portão nem a confiança a usam ainda (ADR-012).
+   * Linhagens de texto independentes (cópias do mesmo release contam uma vez). Indicador
+   * informativo (D-03): vai para a decisão do `verify`; nenhum portão, nem a confiança, nem o
+   * revisor o usam (ADR-012). `null` quando o cálculo falhou.
    */
-  independentLineages: number;
+  independentLineages: number | null;
+  /** Método da medição de linhagens (para auditoria). */
+  lineageMethod: string;
   primarySources: number;
   centralConflict: boolean;
   /** O agente marcou o assunto como extremamente duvidoso ou sem atribuição possível. */
@@ -158,7 +161,8 @@ export function createVerifyTopic(deps: { callAgent: CallAgent }) {
       topicId: bundle.topicId,
       mainFact: r.value.mainFact,
       independentSources,
-      independentLineages: independentLineages(items),
+      independentLineages: safeIndependentLineages(items),
+      lineageMethod: LINEAGE_METHOD,
       primarySources,
       centralConflict,
       dubious: isDubious(r.value),

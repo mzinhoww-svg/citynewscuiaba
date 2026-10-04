@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { ASK } from "@/content/pt-BR/ask";
 import type { AiAnswer as AiAnswerData, Claim } from "@/lib/ai/answer";
-import { formatHour } from "@/lib/format/date";
+import { formatDayMonth, formatHour } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { AnswerFeedback } from "./AnswerFeedback";
@@ -63,6 +63,12 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
             {ASK.asOf(formatHour(answer.asOf))}
           </time>
         </p>
+        {answer.basis === "single_source" && answer.sources[0] && (
+          <p className="type-meta text-meta">{ASK.singleSource(answer.sources[0].sourceName)}</p>
+        )}
+        {answer.staleSince && (
+          <p className="type-meta text-meta">{ASK.staleSince(formatDayMonth(answer.staleSince))}</p>
+        )}
       </header>
 
       <Block title={ASK.factsTitle}>

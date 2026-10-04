@@ -1,6 +1,8 @@
 # Política de mídia
 
-Data: 04/10/2026. Estado atual, lacunas e política proposta para imagens e outros ativos. Legenda [O]/[I]/[R] em `AUDIT-REPORT.md`. **As seções 3 e 4 são proposta e dependem da decisão D-02 do dono**; até lá valem `CLAUDE.md` §5 regras 4, 9 e 11.
+Data: 04/10/2026. Estado atual, lacunas e política para imagens e outros ativos. Legenda [O]/[I]/[R] em `AUDIT-REPORT.md`.
+
+> **Decisão do dono D-02 (A-134), implementada:** imagens encontradas na web podem ser usadas com crédito e o aviso **"Foto: reprodução web"**, e todo ativo fica no **Media Registry** (migration 0152): `media_assets` com `rights_status` (imagem da web sem autorização registrada = `unknown`), `usage_scope`, `disclaimer`, `updated_at`, `archived_at`; `article_media.credit_shown`; visão `media_registry` com direitos efetivos e as matérias que usaram cada ativo. Ativo bloqueado ou vencido nunca volta a ser escolhido. O aviso não equivale a autorização; a legalidade de cada uso depende da revisão jurídica (B-002). As propostas das seções 3 e 4 que a D-02 não adotou (`og:image` só com escopo `social`, sem recorte) ficam como evolução futura, sob nova decisão. O Media Registry é a primeira etapa: a separação entre metadados e arquivo e o hash permitem trocar o storage, servir por CDN e incluir vídeo, áudio e infográfico depois.
 
 ## 1. Princípio
 

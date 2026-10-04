@@ -93,7 +93,7 @@ describe("officialPhotoFor", () => {
     const r = await officialPhotoFor(VENUE, deps);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.value.credit).toBe("Reprodução web · Padaria Pão Dourado");
+    expect(r.value.credit).toBe("Foto: reprodução web · Padaria Pão Dourado");
     expect(r.value.pageUrl).toBe("https://paodourado.example/");
     expect(r.value.analysis.width).toBe(1600);
   });
@@ -226,7 +226,7 @@ describe("officialPhotoFor", () => {
       sourceName: "Outro",
       author: null,
       license: "x",
-      credit: "Reprodução web · Outro",
+      credit: "Foto: reprodução web · Outro",
       allowedUse: "venue:x",
       width: 1600,
       height: 900,
@@ -252,7 +252,7 @@ describe("attachOfficialPhoto", () => {
       {
         venueId: "v1",
         mediaId: r.status === "attached" ? r.mediaId : "",
-        credit: "Reprodução web · Padaria Pão Dourado",
+        credit: "Foto: reprodução web · Padaria Pão Dourado",
         originUrl: "https://paodourado.example/img/fachada.jpg",
         position: 0,
       },

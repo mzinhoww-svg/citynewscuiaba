@@ -9,7 +9,7 @@ import type { FlagKey, MediaSourceItem } from "../ports";
 import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryMediaRepo } from "../testing/memory-media-repo";
 import type { PipelineMessage } from "../types";
-import { createMediaStep } from "./media";
+import { createMediaStep, reusableAsset } from "./media";
 import { inlinePosition } from "@/lib/media/score";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
@@ -600,5 +600,29 @@ describe("takedownReproduction (remoção em 24 h)", () => {
       ok: false,
       error: "not_found",
     });
+  });
+});
+
+describe("reaproveitamento pelo Media Registry (D-02)", () => {
+  const asset = {
+    id: "m",
+    kind: "reproduction" as const,
+    storagePath: "x",
+    originUrl: "https://x/a.jpg",
+    status: "approved" as const,
+    width: 800,
+    height: 600,
+    credit: null,
+    sourceId: null,
+    tags: [],
+  };
+  it("bloqueada ou com autorização vencida nunca volta a ser escolhida", () => {
+    expect(reusableAsset({ ...asset, status: "blocked" })).toBe(false);
+    expect(reusableAsset({ ...asset, rightsStatus: "expired" })).toBe(false);
+    expect(reusableAsset({ ...asset, rightsStatus: "blocked" })).toBe(false);
+  });
+  it("direitos desconhecidos seguem a política de reprodução (não bloqueiam)", () => {
+    expect(reusableAsset({ ...asset, rightsStatus: "unknown" })).toBe(true);
+    expect(reusableAsset(asset)).toBe(true);
   });
 });

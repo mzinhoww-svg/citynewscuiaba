@@ -42,7 +42,7 @@ test("resposta com citações clicáveis e aviso", async ({ page }) => {
   }
 });
 
-test("assunto com uma só fonte não é respondido e sugere caminhos", async ({ page }) => {
+test("assunto sem fonte nenhuma não é respondido e sugere caminhos", async ({ page }) => {
   await page.goto("/pergunte?q=Resuma saúde pública no Coxipó");
   await expect(
     page.getByRole("heading", { name: "Não encontramos fontes suficientes para responder" }),

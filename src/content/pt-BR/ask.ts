@@ -6,7 +6,7 @@ export const ASK = {
   documentTitle: (q: string) =>
     q ? `Pergunte: ${q} · CityNews Cuiabá` : "Pergunte ao CityNews · CityNews Cuiabá",
   intro:
-    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem pelo menos duas fontes independentes, o CityNews não responde. Não precisa de conta.",
+    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem fonte sobre o assunto, o CityNews diz que não encontrou e mostra onde procurar. Não precisa de conta.",
   label: "Sua pergunta",
   placeholder: "Ex.: O que muda no plano de ônibus do CPA?",
   submit: "Perguntar",
@@ -22,11 +22,14 @@ export const ASK = {
   processingTitle: "Preparando a resposta",
   processingSteps: [
     "Procurando fontes no CityNews e em outros veículos",
-    "Conferindo se há ao menos 2 fontes independentes",
+    "Conferindo o que as fontes sustentam",
     "Escrevendo a resposta com a fonte de cada frase",
   ],
   aiGenerated: "Resposta do CityNews",
   asOf: (hour: string) => `Consultado às ${hour}`,
+  singleSource: (name: string) =>
+    `Baseada em uma única fonte (${name}), ainda sem confirmação de outro veículo.`,
+  staleSince: (day: string) => `Informação de ${day}: pode ter mudado desde então.`,
   factsTitle: "O que as fontes confirmam",
   inferencesTitle: "Inferência",
   inferencesHint: "Conclusão a partir das fontes, não confirmada por elas.",
@@ -49,8 +52,8 @@ export const ASK = {
   insufficientTitle: "Não encontramos fontes suficientes para responder",
   insufficientText: (n: number) =>
     n === 0
-      ? "O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes, e não achamos nenhuma sobre isso."
-      : `O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, de um só veículo ou sem relação suficiente com a pergunta.`,
+      ? "O Perguntar ao CityNews só responde com fontes, e não achamos nenhuma sobre isso."
+      : `O Perguntar ao CityNews só responde com fontes. Encontramos ${n === 1 ? "1 fonte relacionada" : `${n} fontes relacionadas`}, mas nenhuma responde à pergunta.`,
   suggestion: {
     traditional_search: "Ver na busca tradicional",
     widen_period: "Buscar em qualquer data",

@@ -53,21 +53,33 @@ Medida antes de ligar: rodar em sombra por uma semana, gravando em `decisions` q
 - **Matéria do CityNews a partir de fontes:** síntese própria com citação. O corpo da fonte (`collected_items.source_text`, até 6.000 caracteres) é material de apuração interno, nunca publicado [O]. **Decisão pendente:** fonte cuja política é "só link" deveria entrar como material de escrita? Proposta: sim para extrair fatos, com a guarda de cópia e a conferência de afirmações ligadas; o texto final precisa citar a fonte e acrescentar contexto de pelo menos uma outra linhagem ou do acervo, senão vira resumo curto com link (formato "resumo factual com atribuição") [R].
 - **Fonte única:** publica como resumo factual atribuído, curto, com link em destaque. O mínimo de 30 linhas (R41) não deve forçar enchimento: o próprio R41 já prevê `short_reason = insufficient_source` [O].
 
-## 6. Pergunte (D-01)
+## 6. Pergunte (D-01, decidida e implementada)
 
-A decisão R36 do dono pede que o Pergunte responda mesmo sem fonte, com ressalva. Isso contradiz o princípio 1 e a regra 5 de CLAUDE.md, e um sistema de notícias que responde sem fonte produz exatamente o tipo de afirmação sem sustentação que esta política existe para evitar. **Não está implementado** e não deve ser implementado sem nova confirmação do dono depois de ver a alternativa:
+Decisão do dono: **com fontes relevantes, responder; sem fontes relevantes, informar a limitação** (A-133, substitui a R36 e o mínimo de 2 fontes).
 
-| Situação | Hoje [O] | Proposta segura [R] |
-|---|---|---|
-| ≥ 2 veículos | Responde com fatos citados | Igual |
-| 1 veículo | Recusa | Responde **só** com o que essa fonte diz, atribuído ("Segundo {fonte}…"), marcado como fonte única |
-| 0 veículos | Recusa com texto fixo | Não responde o fato; mostra a busca tradicional, matérias próximas, e oferece criar alerta para o tema |
+| Situação | Comportamento [O] (`src/lib/ai/answer.ts`) |
+|---|---|
+| ≥ 2 veículos | Responde com fatos citados; divergências em bloco próprio, com a versão de cada fonte |
+| 1 veículo (ou várias matérias do mesmo veículo) | Responde só o que ele sustenta, atribuído ("Segundo {veículo}"), com o aviso "Baseada em uma única fonte, ainda sem confirmação de outro veículo" |
+| Fontes encontradas, mas nenhuma responde | O modelo devolve `facts` vazio; o leitor vê "Não encontramos fontes suficientes", as fontes relacionadas e a busca tradicional |
+| Nenhuma fonte | Mesma tela, com sugestão de pauta; nada é inventado nem citado |
+| Fonte com mais de 72 h | Responde e mostra "Informação de {data}: pode ter mudado desde então" |
+| Busca ou provedor fora | Erro explícito ("serviço falhou"), nunca confundido com falta de fonte |
 
-Assim o leitor nunca fica sem resposta útil e o sistema nunca afirma sem fonte.
+Guardas que não dependem do modelo continuam: fato sem citação válida cai, frase que copia a fonte cai, patrocinado nunca é fonte, pergunta com instrução embutida não vai ao modelo.
 
 ## 7. Revisão por risco
 
-Os níveis R0 a R4 estão em `EDITORIAL-INTELLIGENCE.md` §4. O revisor automático noturno decide R1 a R3 que subiram para a fila; nunca decide rascunho sem IA (P0-01, implementado), correção, direito de resposta, denúncia ou mudança de regra. **Decisão pendente (D-05):** conflito confirmado e conteúdo duvidoso à noite vão ao revisor automático (leitura da A12) ou esperam pessoa (leitura da §1 da spec de autonomia, "humano só em dois casos: duvidoso ou fontes divergentes")? Até a decisão, o revisor recebe esses dois sinais explicitamente no contexto (implementado) e a política recomendada é esperar pessoa.
+Implementado pela D-05 (A-137) em quatro níveis, por motivo explícito (`src/lib/rules/risk.ts`):
+
+| Nível | Motivos | Destino |
+|---|---|---|
+| 1 baixo | nenhum | Publica sozinho |
+| 2 moderado | fonte única não oficial; divergência em assunto comum; urgente com dado preliminar | Publica sozinho quando o núcleo está sustentado; o redator atribui cada versão e marca o preliminar (`DIVERGENCE_RULE`) |
+| 3 alto | duvidoso; divergência sobre fato central em assunto grave; acusação de fonte não confiável sem segunda fonte | Fila de revisão; o revisor noturno decide com o nível no contexto e só publica se o texto relata apenas o sustentado e atribui as versões |
+| 4 crítico | rascunho sem IA (sem processamento suficiente) | Nunca publica sozinho; reavaliado quando chega fonte nova ou a IA volta |
+
+A publicação da divergência comum (nível 2) só passa a valer com as regras v4 ativas (`riskLevels`); até a ativação no painel, a regra v3 manda toda divergência para revisão. O nível e os motivos ficam gravados em toda decisão e em `articles.risk_level`. O revisor nunca decide correção, direito de resposta, denúncia ou mudança de regra.
 
 ## 8. Correção, atualização e retirada
 

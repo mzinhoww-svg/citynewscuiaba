@@ -172,9 +172,9 @@ describe("publicLabels", () => {
 });
 
 describe("publicImageCaption", () => {
-  it("imagem de terceiros é uma frase: 'Reprodução web · Fonte'", () => {
-    expect(publicImageCaption("reproduction", "MT Agora")).toBe("Reprodução web · MT Agora");
-    expect(publicImageCaption("reproduction")).toBe("Reprodução web");
+  it("imagem de terceiros é uma frase: 'Foto: reprodução web · Fonte'", () => {
+    expect(publicImageCaption("reproduction", "MT Agora")).toBe("Foto: reprodução web · MT Agora");
+    expect(publicImageCaption("reproduction")).toBe("Foto: reprodução web");
   });
 
   it("os demais tipos mantêm a legenda em frase", () => {

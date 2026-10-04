@@ -230,7 +230,9 @@ Toda decisão nova traz **Status**: `vigente`, `superada por A-###` ou `pendente
 | A-101 | A-102 | Merge da PR #1 |
 | R29 (15 linhas) | R41 (30 linhas), A-109 | Tamanho mínimo |
 | Spec de autonomia A8 e A13 | A-126, A-125 | Mesmos temas acima |
-| CLAUDE.md §5 regra 5 | R36 **não aplicada**, pendente do dono (A-132) | Pergunte sem fonte |
+| CLAUDE.md §5 regra 5 (2 fontes) e R36 (responder sem fonte) | A-133 (D-01): responde com fonte relevante, uma basta; sem fonte informa | Pergunte |
+| A-132 (R36 pendente) | A-133 | Pergunte |
+| CLAUDE.md §5 regra 11 ("REPRODUÇÃO · fonte"), "Reprodução web · Fonte" | A-134 (D-02): "Foto: reprodução web" + Media Registry | Imagem de terceiros |
 
 Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 (commits `db8376a`, `e7e53a1`, `5cc2869`) e foram renumeradas para A-129 a A-132 no merge com a `main`, que já tinha A-127 e A-128; a migration da auditoria nasceu 0148 e virou 0150 pelo mesmo motivo. A-123 aparece em commits da reescrita ao vivo (`69762a3`, `37a75cf`), que virou A-126; aqui A-123 é o Estúdio no celular. A-117 é citado em `STATE.md` antigo para ADS-T1, cuja decisão é A-119. `progress.json` cita A-124 para MS-T2, cuja decisão é A-118.
 
@@ -250,6 +252,40 @@ Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 
 
 **Status:** pendente do dono (D-01). A R36 da rodada 3 substitui a regra 5 ("IA nunca responde sem fonte"). Por reduzir uma garantia de integridade (camada 1, ADR-010 §4), não foi aplicada: o código e o e2e continuam recusando com menos de 2 veículos. Alternativa proposta em `docs/audit/EDITORIAL-POLICY.md` §6: com 1 fonte, responde só o que ela diz, atribuído; com 0, mostra a busca tradicional e oferece alerta; nunca afirma sem fonte.
 
-## A-133 · Filtros recolhíveis no portal e no Estúdio (04/10/2026)
+## A-133 · D-01: Pergunte responde com fonte relevante, uma basta (04/10/2026)
+
+**Status:** vigente. Decisão do dono (D-01), substitui a R36 e o mínimo de 2 fontes. Com fonte relevante responde só o que ela sustenta, citada; uma fonte basta, com cada fato atribuído e a resposta marcada `single_source`; fonte mais recente com mais de 72 h vira `staleSince`. Sem fonte, ou sem fato sustentado, `insufficient` com o que foi encontrado e a busca tradicional; falha técnica continua `error`. `src/lib/ai/answer.ts`, `AiAnswer.tsx`, `content/pt-BR/ask.ts`; casos de avaliação atualizados (`uma-fonte-relevante`). Commit `c8d9b94`.
+
+## A-134 · D-02: imagens da web com "Foto: reprodução web" e Media Registry (04/10/2026)
+
+**Status:** vigente. Decisão do dono (D-02). Legenda pública da reprodução vira "Foto: reprodução web · Fonte". Migration 0152 estende `media_assets` (rights_status, usage_scope, disclaimer, updated_at, archived_at) e `article_media.credit_shown`; gatilho deriva o status (imagem da web sem autorização registrada = `unknown`); visão `media_registry` (só equipe). Ativo bloqueado ou vencido nunca volta a ser escolhido (`reusableAsset`). O aviso não equivale a autorização: B-002 (revisão jurídica) segue aberto. Commit `ea6955f`.
+
+## A-135 · D-03: linhagens como indicador informativo (04/10/2026)
+
+**Status:** vigente. Decisão do dono (D-03, opção C). Supera a pergunta D-03 da auditoria (A-130 fica como fase 1). `independentLineages` e `lineageMethod` na decisão do `verify`, cálculo à prova de falha (`null`), visão `verify_lineage_daily` (0151). Não entra em confiança, portão nem revisor; migrar para critério de confiança exige nova decisão explícita do dono. Commit `09a097f`.
+
+## A-136 · D-04: regras alteradas livremente, com histórico e reversão (04/10/2026)
+
+**Status:** vigente. Decisão do dono (D-04, opção C), coerente com A-128. Regras seguem versionadas e aplicadas por uma pessoa numa ação; `rules_rollback` (0149) restaura. Acrescentado: flags gravam `from`/`to` na auditoria (Interruptores e Contingência). Aprovação proporcional ao risco fica como evolução futura, só com nova decisão. Commit `938a18e`.
+
+## A-137 · D-05: risco editorial em quatro níveis e regras v4 (04/10/2026)
+
+**Status:** vigente (código); regras v4 **inativas** até o dono aplicar a proposta no painel. Decisão do dono (D-05, opção B flexível). `classifyRisk` (src/lib/rules/risk.ts): 1 baixo, 2 moderado (fonte única não oficial, divergência em assunto comum, urgente/preliminar), 3 alto (duvidoso, divergência central em assunto grave, acusação de fonte não confiável sem segunda fonte), 4 crítico (rascunho sem IA). Toda decisão grava `risk`; `articles.risk_level` (0151). Com `riskLevels` (v4): divergência comum publica com versões atribuídas (`DIVERGENCE_RULE` no `write`), divergência central grave vai para revisão (`conflict_grave`). Revisor noturno decide 2 e 3 com nível no contexto, nunca 4 (TS e `review_due_articles` iguais). Visão `editorial_risk_daily`. Ativação: migration 0151, deploy, `supabase/bootstrap/rules-v4-proposal.sql`, simulação de 7 dias e aplicar. Commit `1569867`.
+
+## A-138 · D-06: sem selo público de IA; metadados internos fora da chave anônima (04/10/2026)
+
+**Status:** vigente. Decisão do dono (D-06). Selos públicos de IA já eram proibidos por teste; mantidos. Migration 0153 tira do papel `anon` as colunas internas de `articles` que nenhum código público lê. Pendente: `publish_mode`, `agent_id` e `confidence` ainda legíveis pelo `anon` porque o portal as seleciona com a chave anônima (refatorar consultas públicas). Obrigação legal de rotular IA em notícia: levantamento (não é parecer jurídico) não achou exigência no Brasil hoje para jornalismo; a regra do TSE sobre conteúdo sintético vale para propaganda eleitoral, o PL 2338/2023 está em tramitação e o AI Act europeu (art. 50) só alcança quem opera na UE. Confirmar com o jurídico junto com B-002 e revisitar se a lei mudar. Commit `10eb1e9`.
+
+
+## A-139 · Produção: 0151, 0152, 0153 e proposta das regras v4 aplicadas (04/10/2026)
+
+**Status:** vigente. Autorização expressa do dono ("Aplique as migrations e rode o sql").
+
+- **Pré-checagem:** `review_due_articles` em produção idêntica à 0150; todas as colunas do `grant` da 0153 existem em `articles`; o código público em produção não lê nenhuma coluna retirada do `anon`; corpo da v3 ativa igual ao da proposta, exceto `riskLevels`.
+- **0152:** o conector do Supabase travava (tempo esgotado, nada aplicado) com `drop trigger if exists`, tratado como instrução destrutiva que pede confirmação. A migration passou a usar `create or replace trigger` (Postgres 14+), mesmo efeito e idempotente; o arquivo do repositório foi alinhado ao que rodou.
+- **Conferido depois:** as quatro migrations 0150 a 0153 registradas; 671 ativos no Media Registry, todos `unknown` (nenhuma autorização registrada); todos os usos com `credit_shown`; `anon` lê `title` e `publish_mode` e não lê `review_reason`, `risk_level` nem `ai_fallback`.
+- **Regras v4:** versão 4 inserida inativa, com o pedido `safety.disable` `rules:4` pendente. A v3 continua ativa até a aprovação no painel, depois da simulação de 7 dias.
+
+## A-140 · Filtros recolhíveis no portal e no Estúdio (04/10/2026)
 
 Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/components/ui`), usado pela `FilterBar` (busca, editorias, agenda, assuntos), pela cobertura do assunto, pelos filtros de /fontes e por todos os filtros do Estúdio (fila, fontes, logs, auditoria, histórico e funil de push, histórico da fonte, denúncias, banners e relatório de publicidade). Sem escolha da pessoa o estado vem só do CSS: recolhido abaixo de `lg`, aberto no desktop, sem salto de layout na hidratação; o botão "Filtros" alterna em qualquer tela e traz a contagem de ativos ("2 ativos"). "Limpar filtros" sai de dentro do formulário e fica no cabeçalho do painel, só com filtro ativo (antes aparecia sempre na fila, fontes, logs e auditoria; faltava no histórico e funil de push, histórico da fonte e denúncias). Exportar CSV fica à vista ao lado do botão. Sem JavaScript o corpo aparece sempre. Abas e atalhos (tipo da busca, abas da fila, Lista/Calendário, atalhos da agenda) não recolhem: são navegação. Os e2e usam `openFilters` (`tests/e2e/helpers/filters.ts`).
