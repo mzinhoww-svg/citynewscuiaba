@@ -960,9 +960,16 @@
         "fix": "Alertas sem zod no cliente (B-018)"
       },
       "UI-T15": {
-        "status": "pending"
+        "status": "done",
+        "report": "docs/reports/ui-publica.md",
+        "pending": [
+          "capturas antes e depois (critério 12)",
+          "LCP da home (critério 9, L-026)",
+          "leitor de tela humano"
+        ]
       }
-    }
+    },
+    "pr": "mzinhoww-svg/citynewscuiaba#43"
   },
   "destaques": {
     "spec": "docs/superpowers/specs/2026-10-03-destaques-e-profundidade-design.md",
@@ -1035,9 +1042,12 @@
         "migration": "0156_hot_pins (aplicar após merge, depois da 0154)"
       },
       "GATE": {
-        "status": "pending"
+        "status": "done",
+        "report": "docs/reports/destaques-e-profundidade.md",
+        "production": "A-142: 0154 e 0156 aplicadas; frontpage em 8 portais; 0155 com o dono"
       }
     },
-    "decision": "A-133"
+    "decision": "A-133",
+    "pr": "mzinhoww-svg/citynewscuiaba#43"
   }
 }
