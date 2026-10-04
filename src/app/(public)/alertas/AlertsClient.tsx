@@ -15,7 +15,7 @@ import {
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
 import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import { requestLoginInvite } from "@/lib/anon/invite";
-import { parseEmail } from "@/lib/auth/account";
+import { looksLikeEmail } from "@/lib/auth/email-shape";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { showNotification } from "@/lib/offline/sw";
@@ -77,7 +77,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
     e.preventDefault();
     if (!resolved || busy) return;
     setFeedback(null);
-    if (channel === "email" && !parseEmail(email)) {
+    if (channel === "email" && !looksLikeEmail(email)) {
       flagEmail();
       return;
     }
@@ -277,7 +277,7 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (emailError && parseEmail(e.target.value)) setEmailError(false);
+                if (emailError && looksLikeEmail(e.target.value)) setEmailError(false);
               }}
               error={emailError ? T.invalidEmail : undefined}
             />
