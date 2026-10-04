@@ -69,7 +69,7 @@ for (const [path, title] of PAGES) {
     const r = await page.goto(path);
     expect(r!.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
-    // Dado institucional pendente nunca aparece ao leitor (A-143).
+    // Dado institucional pendente nunca aparece ao leitor (A-146).
     await expect(page.getByRole("main")).not.toContainText("PREENCHER");
   });
 }

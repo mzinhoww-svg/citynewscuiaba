@@ -3,7 +3,7 @@
 **Última atualização:** 2026-10-04 — decisões D-01 a D-06 (PR #44); migrations 0151 a 0153 e proposta v4 aplicadas em produção com autorização do dono.
 **Atualizado por:** Claude Code
 
-> 2026-10-04 · Telas públicas no celular (A-143): faixa preta do Safari sob o cabeçalho (máscara da fileira de editorias) removida; `[PREENCHER]` fora das telas públicas; Favoritos e Alertas com o conteúdo antes do convite; Guia vazio mostra as matérias recentes. Pendente do dono: texto de "Temas sensíveis" em /principios-editoriais contradiz as regras v3.
+> 2026-10-04 · Telas públicas no celular (A-146): faixa preta do Safari sob o cabeçalho (máscara da fileira de editorias) removida; `[PREENCHER]` fora das telas públicas; Favoritos e Alertas com o conteúdo antes do convite; Guia vazio mostra as matérias recentes. Pendente do dono: texto de "Temas sensíveis" em /principios-editoriais contradiz as regras v3.
 
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 

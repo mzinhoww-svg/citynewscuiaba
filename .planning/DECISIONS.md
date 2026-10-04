@@ -293,7 +293,11 @@ Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 
 
 Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/components/ui`), usado pela `FilterBar` (busca, editorias, agenda, assuntos), pela cobertura do assunto, pelos filtros de /fontes e por todos os filtros do Estúdio (fila, fontes, logs, auditoria, histórico e funil de push, histórico da fonte, denúncias, banners e relatório de publicidade). Sem escolha da pessoa o estado vem só do CSS: recolhido abaixo de `lg`, aberto no desktop, sem salto de layout na hidratação; o botão "Filtros" alterna em qualquer tela e traz a contagem de ativos ("2 ativos"). "Limpar filtros" sai de dentro do formulário e fica no cabeçalho do painel, só com filtro ativo (antes aparecia sempre na fila, fontes, logs e auditoria; faltava no histórico e funil de push, histórico da fonte e denúncias). Exportar CSV fica à vista ao lado do botão. Sem JavaScript o corpo aparece sempre. Abas e atalhos (tipo da busca, abas da fila, Lista/Calendário, atalhos da agenda) não recolhem: são navegação. Os e2e usam `openFilters` (`tests/e2e/helpers/filters.ts`).
 
-## A-143 · Telas públicas no celular: faixa preta, dado pendente e ordem de leitura (04/10/2026)
+## A-143 · Refetch na cota por hora espera a próxima janela (04/10/2026)
+
+**Status:** vigente. Em produção, depois do deploy da #41, o `enrich` registrou 76 itens do refetch da recuperação A-126 pulados com `rate_limited` (olhar-direto 29, folhamax 25, agro-olhar 22): a cota `crawler:<slug>` é uma janela fixa da hora cheia (`hit_rate_limit`) e o pulo era terminal, então o item ficava sem texto. Agora, só no `#refetch`, cota esgotada vira falha transitória com `retryAfterSec` até a próxima janela, mais espalhamento por item (30 a 570 s); o drain espera o maior entre esse pedido e a política (60/240/600 s). Nada é pedido ao site nessa espera. Depois de `ENRICH_MAX_RETRIES`, `retries_exhausted` com `lastError: rate_limited`. Item novo segue sem o texto, como antes (`rate_limited`): esperar até 2 h numa notícia quente custaria mais. Reversível.
+
+## A-146 · Telas públicas no celular: faixa preta, dado pendente e ordem de leitura (04/10/2026)
 
 **Status:** vigente. Pedido do dono (capturas do iPhone de Favoritos, Guia, Serviços, Newsletters, Anuncie, Princípios e Alertas).
 

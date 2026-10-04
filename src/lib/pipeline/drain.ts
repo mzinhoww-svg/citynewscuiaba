@@ -234,7 +234,11 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
               await push(event(q, "info", "prazo do drain: devolvida à fila", { kind: e.kind }));
               continue;
             }
-            const decision = retryPolicy(q.readCt, { retryable: e.retryable });
+            const policy = retryPolicy(q.readCt, { retryable: e.retryable });
+            const decision =
+              policy.action === "retry" && e.retryAfterSec !== undefined
+                ? { ...policy, delaySec: Math.max(policy.delaySec, Math.ceil(e.retryAfterSec)) }
+                : policy;
             const details = { kind: e.kind, ...(e.details ?? {}) };
             if (decision.action === "retry") {
               await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);

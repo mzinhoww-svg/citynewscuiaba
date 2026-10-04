@@ -17,7 +17,7 @@ export interface DocPageProps {
 const TOC_MIN = 3;
 
 /**
- * Só o que já tem dado vai à tela (A-143): linha com `[PREENCHER]` some, e a seção que fica sem
+ * Só o que já tem dado vai à tela (A-146): linha com `[PREENCHER]` some, e a seção que fica sem
  * nenhum texto some junto (com o atalho do índice). O leitor nunca vê marcador de rascunho.
  */
 export function filledSections(sections: readonly DocSection[]): DocSection[] {
@@ -50,7 +50,7 @@ function anchor(title: string): string {
  * Página institucional e legal (P24, UI-T14): o mesmo contêiner e título de tela do portal,
  * texto corrido em coluna de leitura de 68ch e, com 3 seções ou mais, o índice "Nesta página"
  * (trilho de atalhos no celular, coluna lateral fixa a partir de 1024 px). O conteúdo jurídico
- * vem de `institutional.ts` e não muda aqui; dado pendente (`[PREENCHER]`) não aparece (A-143).
+ * vem de `institutional.ts` e não muda aqui; dado pendente (`[PREENCHER]`) não aparece (A-146).
  *
  * ```tsx
  * <DocPage title={TERMS.title} intro={TERMS.intro} sections={TERMS.sections} path="/termos" />

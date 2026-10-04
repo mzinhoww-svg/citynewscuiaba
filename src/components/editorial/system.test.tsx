@@ -26,7 +26,7 @@ it("500 tenta de novo e mostra o código", async () => {
   expect(reset).toHaveBeenCalled();
 });
 
-it("institucional esconde dado pendente e a seção que fica vazia (A-143)", () => {
+it("institucional esconde dado pendente e a seção que fica vazia (A-146)", () => {
   const { container } = render(
     <DocPage
       title="Sobre"
