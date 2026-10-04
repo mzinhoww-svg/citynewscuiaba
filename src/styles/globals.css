@@ -395,6 +395,14 @@
 @utility bottom-consent-safe {
   bottom: var(--cn-consent-h, 0px);
 }
+/* Toast (item 36): acima da barra inferior do portal (quando existe), da área segura e do aviso
+   de privacidade aberto; no Estúdio, só a área segura. */
+@utility bottom-toast-safe {
+  bottom: calc(
+    max(var(--cn-bottom-bar, 0px), env(safe-area-inset-bottom, 0px)) + var(--cn-consent-h, 0px) +
+      var(--sp-16)
+  );
+}
 @utility bottom-chat-safe {
   bottom: calc(
     var(--h-tabbar) + env(safe-area-inset-bottom) + var(--cn-consent-h, 0px) +

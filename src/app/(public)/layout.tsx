@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
-import { PublicShell } from "@/components";
+import { PublicShell, ToastProvider } from "@/components";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
 /**
@@ -40,5 +40,9 @@ export const metadata: Metadata = {
  */
 export default async function PublicLayout({ children }: Readonly<{ children: ReactNode }>) {
   const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
-  return <PublicShell consent={consent}>{children}</PublicShell>;
+  return (
+    <ToastProvider>
+      <PublicShell consent={consent}>{children}</PublicShell>
+    </ToastProvider>
+  );
 }

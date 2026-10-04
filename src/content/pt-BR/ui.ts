@@ -28,4 +28,6 @@ export const UI = {
   /** Contagem real de uma lista paginada ("Carregar mais"). */
   showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
   loadMore: "Carregar mais",
+  /** Toast (item 36): botão de fechar o aviso flutuante. */
+  closeToast: "Fechar aviso",
 } as const;
