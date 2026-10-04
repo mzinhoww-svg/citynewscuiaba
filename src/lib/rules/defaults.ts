@@ -23,6 +23,7 @@ export const DEFAULT_RULES: RuleSet = {
   neverAuto: ["seguranca"],
   breakingReview: true,
   sensitiveFlagReview: true,
+  riskLevels: false,
   sensitiveTopics: [
     "crime",
     "violencia",
@@ -69,6 +70,7 @@ export const RULES_V3: RuleSet = {
   neverAuto: [],
   breakingReview: false,
   sensitiveFlagReview: false,
+  riskLevels: false,
   sensitiveTopics: [],
   categories: {
     servicos: v3Category(1, 60),
@@ -83,3 +85,11 @@ export const RULES_V3: RuleSet = {
     seguranca: v3Category(1, 80),
   },
 };
+
+/**
+ * Regras v4 (D-05, decisão do dono de 04/10/2026): a v3 com os níveis de risco ligados.
+ * Divergência em assunto comum publica com as versões atribuídas (nível 2); divergência sobre
+ * fato central em assunto grave vai para revisão (nível 3). Nasce como proposta INATIVA
+ * (`supabase/bootstrap/rules-v4-proposal.sql`); ativação no painel, depois da simulação.
+ */
+export const RULES_V4: RuleSet = { ...RULES_V3, version: 4, riskLevels: true };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { independentLineages } from "./lineage";
+import { independentLineages, LINEAGE_METHOD, safeIndependentLineages } from "./lineage";
 
 const item = (id: string, sourceId: string, title: string, excerpt: string | null = null) => ({
   id,
@@ -97,5 +97,59 @@ describe("independentLineages (cópia do mesmo texto não é confirmação indep
         item("b", "mt-agora", "Avenida das Torres será duplicada"),
       ]),
     ).toBe(2);
+  });
+
+  it("paráfrase do mesmo fato com palavras próprias é apuração distinta (o método é lexical)", () => {
+    expect(
+      independentLineages([
+        item("a", "folha-do-cerrado", "Avenida das Torres será duplicada", RELEASE),
+        item(
+          "b",
+          "mt-agora",
+          "Torres terá pista dupla",
+          "Com 60 milhões de reais e um ano e meio de trabalho, a prefeitura promete pista dupla no miolo da avenida das Torres, segundo anúncio feito na segunda.",
+        ),
+      ]),
+    ).toBe(2);
+  });
+
+  it("mesmo acontecimento com fatos diferentes conta como duas linhagens", () => {
+    expect(
+      independentLineages([
+        item(
+          "a",
+          "folha-do-cerrado",
+          "Incêndio atinge depósito no Distrito Industrial",
+          "O fogo começou às 14h e atingiu um depósito de recicláveis no Distrito Industrial, segundo os bombeiros, que usaram três viaturas.",
+        ),
+        item(
+          "b",
+          "mt-agora",
+          "Incêndio no Distrito Industrial",
+          "Moradores do bairro vizinho relatam fumaça desde o início da tarde e cobram fiscalização do depósito, que já tinha sido autuado.",
+        ),
+      ]),
+    ).toBe(2);
+  });
+});
+
+describe("medição informativa (D-03)", () => {
+  it("o método fica registrado para auditar falsos agrupamentos", () => {
+    expect(LINEAGE_METHOD).toMatch(/shingle4/);
+  });
+
+  it("falha no cálculo vira null e nunca derruba a verificação", () => {
+    const broken = [
+      {
+        id: "a",
+        sourceId: "x",
+        title: "t",
+        get excerpt(): string {
+          throw new Error("boom");
+        },
+      },
+    ];
+    expect(safeIndependentLineages(broken)).toBeNull();
+    expect(safeIndependentLineages([item("a", "x", "t")])).toBe(1);
   });
 });

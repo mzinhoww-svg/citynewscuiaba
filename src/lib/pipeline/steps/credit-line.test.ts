@@ -18,7 +18,7 @@ import {
   hasCreditLine,
 } from "./credit-line";
 import { createPublishHandlers } from "./index";
-import { REDACTION_RULES, writeTaskFor } from "./write";
+import { DIVERGENCE_RULE, REDACTION_RULES, writeTaskFor } from "./write";
 
 const NOW = new Date("2026-10-03T18:00:00Z");
 const SOURCES = {
@@ -190,5 +190,14 @@ describe("fonte confiável", () => {
     await handlers.summarize!(msg("summarize", "topic:t1"));
     const ctx = await repo.decisionContext(repo.articleOfTopic("t1")!.id);
     expect(ctx?.sourceTrusted).toBe(true);
+  });
+});
+
+describe("divergência entre fontes no texto (D-05)", () => {
+  it("com conflito confirmado, o redator atribui cada versão e marca o preliminar", () => {
+    expect(writeTaskFor("cidade", false, true)).toContain(DIVERGENCE_RULE);
+    expect(DIVERGENCE_RULE).toMatch(/cada versão/);
+    expect(DIVERGENCE_RULE).toMatch(/preliminar/);
+    expect(writeTaskFor("cidade")).not.toContain(DIVERGENCE_RULE);
   });
 });

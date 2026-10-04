@@ -51,12 +51,12 @@ describe("flags de contingência", () => {
     const f = createFlagsService(m.port);
     expect(await f.setFlag("auto_publish", false, "helena")).toEqual({
       ok: true,
-      value: { changed: true },
+      value: { changed: true, previous: true },
     });
     expect(m.writes).toEqual([["auto_publish", false, "helena"]]);
     expect(await f.setFlag("auto_publish", false, "helena")).toEqual({
       ok: true,
-      value: { changed: false },
+      value: { changed: false, previous: false },
     });
     expect(m.writes).toHaveLength(1);
   });
@@ -66,7 +66,7 @@ describe("flags de contingência", () => {
     const f = createFlagsService(m.port);
     expect(await f.setFlag("auto_publish", true, "helena")).toEqual({
       ok: true,
-      value: { changed: true },
+      value: { changed: true, previous: false },
     });
     expect(m.writes).toHaveLength(1);
   });

@@ -2,6 +2,7 @@
  * Portas do pipeline: o domínio conversa com fila, banco e rede só por estas interfaces.
  * Implementações reais em `queue.ts` e `src/lib/db/pipeline-store.ts`; falsas em `testing/`.
  */
+import type { RightsStatus } from "@/lib/media/rights";
 import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
 import type { RuleSet } from "@/lib/rules";
@@ -548,6 +549,8 @@ export interface MediaAssetRecord {
   credit: string | null;
   sourceId: string | null;
   tags: string[];
+  /** Media Registry (D-02, 0152): direitos conhecidos; ausente em dado antigo ou em memória. */
+  rightsStatus?: RightsStatus;
 }
 
 /** Cópia de imagem de terceiro, com proveniência (A-010). */
@@ -725,6 +728,8 @@ export interface StatusPatch {
   nationalCommotion?: boolean;
   /** Rebaixa (false) ou marca (true) a matéria como urgente. */
   urgent?: boolean;
+  /** Nível de risco editorial (D-05), gravado pela etapa de regras. */
+  riskLevel?: 1 | 2 | 3 | 4;
   publishMode?: "auto" | null;
   publishedAt?: string;
   rulesVersion?: number | null;

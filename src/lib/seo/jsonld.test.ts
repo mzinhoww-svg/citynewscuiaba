@@ -31,6 +31,16 @@ it("NewsArticle com dateModified, author e citation", () => {
   expect(ld.mainEntityOfPage).toBe("https://citynews.example/materia/plano");
 });
 
+it("sem rótulo nem metadado de IA, e autoria fiel ao que aconteceu (D-06)", () => {
+  const ld = articleJsonLd(article, "https://citynews.example");
+  const text = JSON.stringify(ld);
+  expect(text).not.toMatch(
+    /\bIA\b|inteligência artificial|gerad[ao] por|\bAI\b|agent|model|prompt/i,
+  );
+  // Matéria do pipeline assina como a redação (organização), nunca como uma pessoa.
+  expect(ld.author).toEqual({ "@type": "Organization", name: "Redação CityNews" });
+});
+
 it("imagem da rota de mídia vira URL absoluta", () => {
   const ld = articleJsonLd(
     { ...article, image: { src: "/api/media/5b0a3f7e-8c1d-4e2f-9a6b-1c2d3e4f5a6b" } },

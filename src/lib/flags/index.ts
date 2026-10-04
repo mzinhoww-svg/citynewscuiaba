@@ -44,7 +44,7 @@ export interface FlagsService {
     key: FlagKey,
     value: boolean,
     actor: string,
-  ): Promise<Result<{ changed: boolean }, SetFlagError>>;
+  ): Promise<Result<{ changed: boolean; previous: boolean }, SetFlagError>>;
 }
 
 export function createFlagsService(port: FlagsPort): FlagsService {
@@ -60,9 +60,10 @@ export function createFlagsService(port: FlagsPort): FlagsService {
     async setFlag(key, value, actor) {
       const current = await port.read(key);
       if (!current) return err("not_found");
-      if (current.enabled === value) return ok({ changed: false });
+      // Valor anterior volta para a auditoria (D-04: histórico com antes e depois).
+      if (current.enabled === value) return ok({ changed: false, previous: current.enabled });
       const r = await port.write(key, value, actor);
-      return r.ok ? ok({ changed: true }) : r;
+      return r.ok ? ok({ changed: true, previous: current.enabled }) : r;
     },
   };
 }

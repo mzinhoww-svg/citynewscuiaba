@@ -92,7 +92,7 @@ describe("foto oficial do lugar", () => {
         pageUrl: `https://foto-a-${mark}.example/`,
         bytes,
         analysis: a.value,
-        credit: "Reprodução web · Padaria Foto A",
+        credit: "Foto: reprodução web · Padaria Foto A",
         existingAssetId: null,
       },
       { repo, store, now: () => new Date() },
@@ -107,7 +107,7 @@ describe("foto oficial do lugar", () => {
       status: "approved",
       source_id: null,
       source_name: "Padaria Foto A",
-      credit: "Reprodução web · Padaria Foto A",
+      credit: "Foto: reprodução web · Padaria Foto A",
       origin_url: `https://foto-a-${mark}.example/img/fachada.jpg`,
       width: 1600,
     });
@@ -115,7 +115,7 @@ describe("foto oficial do lugar", () => {
     expect(link.data).toHaveLength(1);
     expect(link.data?.[0]).toMatchObject({
       media_id: mediaId,
-      credit: "Reprodução web · Padaria Foto A",
+      credit: "Foto: reprodução web · Padaria Foto A",
     });
   });
 
