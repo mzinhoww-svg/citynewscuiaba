@@ -41,6 +41,9 @@ beforeAll(async () => {
   });
   if (created.error) throw created.error;
   userId = created.data.user.id;
+  // Conta com prova de posse do e-mail (confirmação por link), que exporta e expurga o dado
+  // guardado pelo e-mail (C1-02). A auto-confirmação de `createUser` sozinha não é prova.
+  sql(`update auth.users set confirmation_sent_at = now() where id = '${userId}'`);
   reader = client();
   const r = await reader.auth.signInWithPassword({ email, password: PASSWORD });
   if (r.error) throw r.error;
