@@ -156,7 +156,7 @@ function CampaignDialog({
     advertiser.trim().length >= 2 &&
     title.trim().length >= 2 &&
     /^https:\/\//.test(href) &&
-    (imageUrl === "" || /^https:\/\//.test(imageUrl)) &&
+    (imageUrl === "" || (/^https:\/\//.test(imageUrl) && imageAlt.trim().length > 0)) &&
     secs.length > 0 &&
     dateOk;
   return (
