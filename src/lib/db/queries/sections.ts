@@ -79,7 +79,9 @@ function filtered(db: DbClient, slugs: string[], f: Filters, now: Date) {
     .select(ARTICLE_COLUMNS, { count: "exact" })
     .in("status", [...PUBLIC_STATUSES])
     .contains("publish_destinations", [SECTION_DESTINATION])
-    .in("section_slug", slugs);
+    .in("section_slug", slugs)
+    // Patrocinado só entra pelo slot (regra 1 a cada 6), nunca na ordem da lista (MS-T1).
+    .eq("sponsored", false);
   if (f.origin === "original" || f.origin === "normalized") q = q.eq("kind", f.origin);
   if (f.neighborhood) q = q.contains("neighborhoods", [f.neighborhood]);
   if (f.period && f.period !== "all") {

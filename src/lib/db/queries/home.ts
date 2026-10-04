@@ -1,5 +1,6 @@
 import "server-only";
 import { defaultHomeLayout, parseHomeLayout, type HomeModule } from "@/lib/admin/home-layout";
+import { pickHomeSponsored } from "@/lib/ads/rules";
 import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
@@ -191,6 +192,30 @@ export function topicsWithCover(
  * Ordem publicada dos módulos da home (A06). Sem versão publicada (ou com o banco fora),
  * vale a ordem padrão: a home nunca deixa de renderizar por causa do layout.
  */
+/**
+ * Patrocinado nativo (MS-T1): flag `sponsored_native_enabled` e categoria de autonomia de cada
+ * editoria, para a home barrar subeditoria de Política, Justiça, Segurança e Saúde. Falha
+ * fechada: erro de leitura conta como flag desligada.
+ */
+export async function fetchSponsoredGate(
+  db: DbClient,
+): Promise<{ enabled: boolean; categoryOf: (slug: string) => string | undefined }> {
+  try {
+    const [flag, sections] = await Promise.all([
+      db
+        .from("feature_flags")
+        .select("enabled")
+        .eq("key", "sponsored_native_enabled")
+        .maybeSingle(),
+      db.from("sections").select("slug, autonomy_category").then(many),
+    ]);
+    const category = new Map(sections.map((s) => [s.slug, s.autonomy_category ?? undefined]));
+    return { enabled: flag.data?.enabled === true, categoryOf: (slug) => category.get(slug) };
+  } catch {
+    return { enabled: false, categoryOf: () => undefined };
+  }
+}
+
 export async function fetchPublishedHomeLayout(db: DbClient): Promise<HomeModule[]> {
   try {
     const { data } = await db
@@ -211,7 +236,7 @@ export async function getHomeData(
 ): Promise<Result<HomeData, QueryError>> {
   return readPublic(
     async (db) => {
-      const [rows, activeTopics, collections, events, sources, aggregated, modules] =
+      const [rows, activeTopics, collections, events, sources, aggregated, modules, gate] =
         await Promise.all([
           fetchRecentArticles(db, 60, "home"),
           fetchActiveTopics(db, TOPIC_POOL),
@@ -220,6 +245,7 @@ export async function getHomeData(
           fetchFeaturedSources(db, 8),
           fetchHomeAggregated(db, 4),
           fetchPublishedHomeLayout(db),
+          fetchSponsoredGate(db),
         ]);
       const articles = await summarize(db, rows);
       const editorial = articles.filter((a) => !a.sponsored);
@@ -296,7 +322,7 @@ export async function getHomeData(
         events,
         sectionBlocks,
         mostRead,
-        sponsored: articles.find((a) => a.sponsored) ?? null,
+        sponsored: pickHomeSponsored(articles, gate),
         sources,
         aggregated,
         modules,
