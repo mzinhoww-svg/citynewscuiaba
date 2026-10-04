@@ -148,6 +148,20 @@ function summaryWordsFor(section: string): number {
  * IA estiver desligada), a matéria nasce em revisão com um rascunho sem IA e o motivo: o assunto
  * nunca se perde. Idempotente por (assunto, revisão = itens, versão do prompt). Próxima: `image`.
  */
+/**
+ * Novas tentativas da redação antes do rascunho sem IA. Tempo esgotado, falha do provedor, saída
+ * fora do esquema e texto sem citação válida costumam passar na tentativa seguinte (o drain espera
+ * 1 e 4 min): só na última o rascunho sem IA vai para a revisão humana. Orçamento esgotado e IA
+ * desligada não melhoram em minutos e caem no rascunho sem IA na hora.
+ */
+export const WRITE_AI_RETRIES = 2;
+const RETRYABLE_WRITE_FAILURES: ReadonlySet<string> = new Set([
+  "timeout",
+  "provider",
+  "schema",
+  "citations",
+]);
+
 export function createWriteStep(deps: PublishStepDeps): StepHandler {
   return async (msg, run) => {
     const ref = TOPIC_REF.exec(msg.itemRef);
@@ -216,6 +230,16 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
         draft = { ...fallbackDraft(ctx), summary: null };
       }
     } else draft = { ...fallbackDraft(ctx), summary: null };
+
+    // Falha passageira da IA: nova tentativa da etapa (backoff do drain), nunca fila humana de cara.
+    if (
+      failure !== null &&
+      RETRYABLE_WRITE_FAILURES.has(failure) &&
+      msg.attempt <= WRITE_AI_RETRIES
+    )
+      return err(
+        stepError.transient(`redação adiada: IA indisponível (${failure})`, { topicId, failure }),
+      );
 
     // No ar, só troca o texto quando a redação deu certo: falha nunca substitui o que está publicado.
     if (live && failure !== null) return ok([]);

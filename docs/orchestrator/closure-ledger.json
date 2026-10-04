@@ -182,7 +182,7 @@
    "deployed": true,
    "migration": null,
    "integrated": false,
-   "verified_target": false,
+   "verified_target": true,
    "flag": null,
    "configuration": null,
    "primary_skill": "systematic-debugging",
@@ -191,8 +191,8 @@
    ],
    "owner_dependency": null,
    "external_dependency": null,
-   "evidence": "RDNews 0/56 com source_text; mesmo codigo fora da Vercel extrai 2905 chars; Folhamax com enrich:true ok",
-   "status": "ANALYZED",
+   "evidence": "HNT 7/7 com source_text, materias de 9-10 blocos; RDNews 0/5",
+   "status": "PRODUCTION_VERIFIED (HNT) / ANALYZED (RDNews)",
    "next_action": "deploy b0a277d e ler pipeline_events.details.reason",
    "closed_at": null
   },
@@ -247,9 +247,9 @@
    "secondary_skills": [],
    "owner_dependency": null,
    "external_dependency": null,
-   "evidence": "breaker 60/800 tripado; 0 jobs recuperacao-a126; write R$9",
-   "status": "PLANNED",
-   "next_action": "rodar scripts/ops/recuperar-materias-v2.sql",
+   "evidence": "dono rodou 13h39; 1010 refetch + 1113 rewrite ate 18h25",
+   "status": "APPLIED",
+   "next_action": "medir as 18h30 UTC",
    "closed_at": null
   },
   {
@@ -267,15 +267,15 @@
    "deployed": false,
    "migration": null,
    "integrated": false,
-   "verified_target": false,
+   "verified_target": true,
    "flag": "auto_publish",
    "configuration": null,
    "primary_skill": null,
    "secondary_skills": [],
    "owner_dependency": "admin religa na Contingencia",
    "external_dependency": null,
-   "evidence": "feature_flags.auto_publish=false",
-   "status": "OWNER_ACTION_REQUIRED",
+   "evidence": "auto_publish=true 13h39; publicacao automatica 13h40",
+   "status": "PRODUCTION_VERIFIED",
    "next_action": "depois de L-009",
    "closed_at": null
   },
@@ -575,6 +575,20 @@
    "status": "IDENTIFIED",
    "next_action": "auditar",
    "closed_at": null
+  },
+  {
+   "id": "L-022",
+   "categoria": "IA/fila",
+   "status": "TESTED_LOCALLY",
+   "evidence": "21 em revisao 'IA indisponivel'; 159 ai_fallback em 24h",
+   "next_action": "PR, CI, deploy; medir ai_fallback por hora"
+  },
+  {
+   "id": "L-023",
+   "categoria": "fila",
+   "status": "ANALYZED",
+   "evidence": "543/69/21/14/3/1/1 por review_reason",
+   "next_action": "recuperacao, reprocessar, L-022"
   }
  ]
 }
