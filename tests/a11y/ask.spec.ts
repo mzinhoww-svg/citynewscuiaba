@@ -51,12 +51,11 @@ test("teclado: Enter envia, Shift+Enter quebra linha e o foco fica no campo @a11
   await expect(page.getByRole("status")).not.toHaveText("");
 });
 
-test.describe("sem JavaScript", () => {
-  test.use({ javaScriptEnabled: false });
-
-  test("modo simples responde no servidor, sem violações @a11y", async ({ page }) => {
-    await page.goto(`/pergunte?q=${encodeURIComponent(Q)}&modo=simples`);
-    await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
-    await expectNoSeriousViolations(page);
-  });
+// O modo simples é o HTML que quem está sem JavaScript recebe (o fluxo sem JS fica em
+// tests/e2e/ask.spec.ts). O axe precisa de JavaScript na página para medir, então mede o mesmo
+// HTML do servidor com JavaScript ligado.
+test("modo simples (HTML de quem está sem JavaScript) sem violações @a11y", async ({ page }) => {
+  await page.goto(`/pergunte?q=${encodeURIComponent(Q)}&modo=simples`);
+  await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
+  await expectNoSeriousViolations(page);
 });
