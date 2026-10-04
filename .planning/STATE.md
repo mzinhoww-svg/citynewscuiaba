@@ -1,7 +1,9 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-04 — auditoria 360 (`docs/audit/`), branch `claude/vigilant-babbage-ndnhwp`.
+**Última atualização:** 2026-10-04 — governança autônoma e motor de autonomia (A-133, A-134), branch `claude/citynews-autonomous-governance-4vkloh`.
 **Atualizado por:** Claude Code
+
+> 2026-10-04 · **Governança autônoma (A-133, 0151) e motor de autonomia (A-134, 0152):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** aplicar 0151 e 0152 antes do deploy.
 
 > 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
 
@@ -16,7 +18,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 ## Próximas ações
 
-1. **Produção:** aplicar `0150_reviewer_skips_ai_fallback.sql` (0148 e 0149 já aplicadas; disjuntor já em 300/3.000); aplicar 0143 depois da pré-checagem (`docs/orchestrator/migration-matrix.md`); conferir qual chave do OpenRouter vence em 28/10.
+1. **Produção:** aplicar `0151_autonomous_governance.sql` e `0152_autonomy_engine.sql` (A-133, A-134) antes do deploy do código; aplicar `0150_reviewer_skips_ai_fallback.sql` (0148 e 0149 já aplicadas; disjuntor já em 300/3.000); aplicar 0143 depois da pré-checagem (`docs/orchestrator/migration-matrix.md`); conferir qual chave do OpenRouter vence em 28/10.
 2. **Decisões do dono D-01 a D-06** (abaixo).
 3. **Roadmap** (`docs/audit/EVOLUTION-ROADMAP.md`): EV-03 conferência de afirmações em sombra, EV-04 alertas fora do banco, EV-05 avaliação por agente e portão de prompt, EV-07 deduplicação resiliente, EV-10 índice vetorial.
 

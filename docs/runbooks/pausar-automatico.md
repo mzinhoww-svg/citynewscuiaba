@@ -5,7 +5,7 @@
 ## O que acontece
 
 1. `feature_flags.auto_publish` passa a `false` na hora; a ação fica em `audit_log` (`flag.set`, com motivo).
-2. A etapa 15 (regras) passa a rotear tudo o que publicaria para **revisão** (`rule = auto_publish_off`); a etapa 17 (publicar) confere a flag de novo e também manda para revisão.
+2. A etapa 15 (regras) deixa o que publicaria em **rascunho com próxima ação** `await_auto_publish` (`rule = auto_publish_off`, decisão REPROCESS do motor de autonomia, A-134), sem fila humana; a etapa 17 (publicar) confere a flag de novo e faz o mesmo. A varredura de autonomia reconfere a cada 30 min e, religada a flag, as matérias seguem sozinhas.
 3. Itens do **ciclo em andamento** que as regras já tinham mandado publicar e ainda não foram publicados vão para a fila de revisão, com a justificativa em `decisions` (`contingency_pause_cycle`). Matérias com edição humana não são tocadas.
 4. Nada é despublicado. Quem já publicou continua no ar; para tirar do ar, use "Despublicar automáticas" na fila do Estúdio.
 
@@ -21,4 +21,5 @@ Religar é ação direta do admin (decisão do dono A-125, 04/10/2026): "Retomar
 ## Verificação
 
 - Control Center → Visão geral: "Publicação automática: pausada".
-- `/estudio/fila` recebe os itens com o motivo "Publicação automática desligada…".
+- Ciclo em andamento (pausa manual): vai para `/estudio/fila` com o motivo da pausa (`contingency_pause_cycle`, ação explícita do dono).
+- Matérias novas: ficam em rascunho com `next_action = await_auto_publish` (Control Center → saúde da fila, "reprocessando").
