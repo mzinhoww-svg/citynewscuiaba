@@ -53,6 +53,8 @@ export function ChatComposer({
   const noticeId = `${id}-aviso`;
   const showCounter = value.length >= Math.min(COUNTER_FROM, max);
   const empty = value.trim().length === 0;
+  // Antes da hidratação (e sem JavaScript) o botão envia o formulário GET: nunca sai desabilitado.
+  const inactive = hydrated && (disabled || empty);
 
   const submit = () => {
     const q = value.trim();
@@ -101,10 +103,10 @@ export function ChatComposer({
         <button
           type="submit"
           aria-label={ASK.chat.send}
-          aria-disabled={disabled || empty || undefined}
+          aria-disabled={inactive || undefined}
           className={cx(
             "inline-flex size-tap shrink-0 cursor-pointer items-center justify-center rounded-pill",
-            disabled || empty
+            inactive
               ? "bg-section text-meta"
               : "bg-action-primary text-on-inverse hover:bg-action-primary-pressed",
           )}

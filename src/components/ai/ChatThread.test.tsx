@@ -327,3 +327,12 @@ describe("AskChat", () => {
     await act(async () => {});
   });
 });
+
+describe("ChatComposer sem JavaScript (Review Focus 3)", () => {
+  it("o HTML do servidor não marca o botão de enviar como desabilitado", async () => {
+    const { renderToString } = await import("react-dom/server");
+    const html = renderToString(<ChatComposer onSend={() => {}} />);
+    expect(html).toContain('aria-label="Enviar pergunta"');
+    expect(html).not.toContain("aria-disabled");
+  });
+});
