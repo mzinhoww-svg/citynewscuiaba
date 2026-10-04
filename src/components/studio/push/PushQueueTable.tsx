@@ -171,21 +171,21 @@ export function PushQueueTable({
                   </td>
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
-                      {r.status === "pending_approval" &&
-                        (canApprove || r.requestedBy?.id === currentUserId) && (
-                          <Button
-                            size="sm"
-                            variant="outline-strong"
-                            aria-label={T.approve(r.title)}
-                            onClick={(e) => {
-                              setTrigger(e.currentTarget);
-                              setError(null);
-                              setOpen({ row: r, mode: "decide" });
-                            }}
-                          >
-                            {T.review}
-                          </Button>
-                        )}
+                      {/* A-128: decide quem tem push.approve, inclusive o próprio pedido. */}
+                      {r.status === "pending_approval" && canApprove && (
+                        <Button
+                          size="sm"
+                          variant="outline-strong"
+                          aria-label={T.approve(r.title)}
+                          onClick={(e) => {
+                            setTrigger(e.currentTarget);
+                            setError(null);
+                            setOpen({ row: r, mode: "decide" });
+                          }}
+                        >
+                          {T.review}
+                        </Button>
+                      )}
                       {canCancel(r) && (
                         <Button
                           size="sm"
@@ -213,7 +213,6 @@ export function PushQueueTable({
           open
           row={open.row}
           mode={open.mode}
-          isOwnRequest={open.row.requestedBy?.id === currentUserId}
           busy={busy}
           error={error}
           onCancel={close}

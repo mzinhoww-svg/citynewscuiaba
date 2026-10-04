@@ -159,13 +159,13 @@ describe("AddSourceWizard", () => {
     expect(push).toHaveBeenCalledWith("/estudio/control/fontes/abc?cadastro=pausada");
   });
 
-  it("afrouxar política no cadastro pede justificativa e marca a segunda aprovação", async () => {
+  it("afrouxar política no cadastro pede justificativa e marca a mudança crítica", async () => {
     setup(async () => ({ ok: true, message: "ok", data: analysis() }));
     await analyzeUrl();
     expect(screen.queryByLabelText(/Justificativa/)).toBeNull();
     await userEvent.selectOptions(screen.getByLabelText("Política de imagem"), "reproduction");
-    expect(screen.getAllByText("Exige segunda aprovação").length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Justificativa para a segunda aprovação")).toBeInTheDocument();
+    expect(screen.getAllByText("Mudança crítica").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Justificativa da mudança crítica")).toBeInTheDocument();
   });
 
   it("robots que proíbe: mensagem com host e caminho; texto digitado é mantido", async () => {

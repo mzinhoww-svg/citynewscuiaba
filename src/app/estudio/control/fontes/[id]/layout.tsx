@@ -109,7 +109,6 @@ export default async function SourceDetailLayout({ children, params }: Props) {
         <PendingApprovalsPanel
           approvals={d.pendingApprovals}
           currentValues={currentValues}
-          currentUserId={session?.userId ?? ""}
           canApprove={session ? can(session.roles, "source.approve_critical") : false}
           action={decideApprovalAction}
         />

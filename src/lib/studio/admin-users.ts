@@ -8,14 +8,15 @@ import { callbackUrl } from "@/lib/auth/links";
 import { ROLES, type RoleGrant } from "@/lib/auth/permissions";
 import { createServiceClient } from "@/lib/db/client";
 import { StudioFailure, studioAction } from "./action";
-import { requestApprovalCommand } from "./approvals";
+import { requestAndApproveCommand } from "./approvals";
 
 /*
  * Usuários e papéis (A02/A03, P5-T8). Tudo exige `users.manage` (admin) e audita.
  * - Convite: o Auth cria a conta e manda o link (service role, único jeito de convidar); o perfil
  *   e o papel entram na hora, e `staff_invites` mostra "Convite pendente" até o primeiro acesso.
- * - Papéis: conceder/revogar/mudar editorias direto (RLS `user_roles_admin`); `admin` só por
- *   pedido `role.admin` decidido por outra pessoa e aplicado depois (`guard_user_roles` consome).
+ * - Papéis: conceder/revogar/mudar editorias direto (RLS `user_roles_admin`); `admin` passa pelo
+ *   pedido `role.admin` registrado (`guard_user_roles` consome). A-128: o admin que pede aprova e
+ *   aplica na mesma ação; o pedido e a auditoria guardam quem fez. Ninguém mexe no próprio papel.
  */
 
 const RoleGrantSchema = z.object({
@@ -94,9 +95,14 @@ export interface SetRolesOutcome {
   adminApprovalId: string | null;
   /** Pedido `role.admin` de revogação (alvo `revoke:<uuid>`), quando o papel de admin sai. */
   adminRevokeApprovalId: string | null;
+  /** O papel de admin entrou nesta ação (pedido aprovado e aplicado pela mesma pessoa). */
+  adminApplied: boolean;
+  /** O papel de admin saiu nesta ação (pedido aprovado e aplicado pela mesma pessoa). */
+  adminRevokeApplied: boolean;
 }
 
-const isTwoPersonError = (e: { code?: string; message: string }) =>
+/** Recusa do banco por falta da aprovação `role.admin` registrada. */
+const isApprovalError = (e: { code?: string; message: string }) =>
   e.code === "42501" || /aprovação|two_person/.test(e.message);
 
 export const setRolesCommand = studioAction(
@@ -151,17 +157,19 @@ export const setRolesCommand = studioAction(
       );
     }
     // Revogar `admin` também é mudança crítica (spec §8): o banco só deixa apagar com pedido
-    // `role.admin` (alvo `revoke:<uuid>`) decidido por outra pessoa; sem ele, abre o pedido.
+    // `role.admin` (alvo `revoke:<uuid>`) aprovado; sem ele, registra o pedido, aprova (A-128: o
+    // admin que pede decide) e apaga de novo, agora consumindo a aprovação.
     const revoked: string[] = [];
     let adminRevokeApprovalId: string | null = null;
+    let adminRevokeApplied = false;
     for (const role of plan.revoke) {
       const r = await ctx.db.from("user_roles").delete().eq("user_id", i.userId).eq("role", role);
       if (r.error) {
-        if (role !== "admin" || !isTwoPersonError(r.error))
+        if (role !== "admin" || !isApprovalError(r.error))
           throw new Error(`revoke ${role}: ${r.error.message}`);
         if (!i.justification?.trim())
           throw new StudioFailure("invalid", T.users.rolesDialog.justificationRequired);
-        const req = await requestApprovalCommand({
+        const req = await requestAndApproveCommand({
           kind: "role.admin",
           targetRef: adminRevokeTarget(i.userId),
           justification: i.justification,
@@ -170,17 +178,33 @@ export const setRolesCommand = studioAction(
         });
         if (!req.ok) throw new StudioFailure(req.error, req.message);
         adminRevokeApprovalId = req.value.id;
-        continue;
+        if (req.value.status === "pending") continue;
+        const again = await ctx.db
+          .from("user_roles")
+          .delete()
+          .eq("user_id", i.userId)
+          .eq("role", "admin");
+        if (again.error) throw new StudioFailure("conflict", T.users.rolesDialog.revokePending);
+        adminRevokeApplied = true;
       }
       revoked.push(role);
-      await audit(ctx.userId, "user.role.revoke", `user:${i.userId}`, { role }, ctx.db);
+      await audit(
+        ctx.userId,
+        "user.role.revoke",
+        `user:${i.userId}`,
+        role === "admin" && adminRevokeApprovalId
+          ? { role, approvalId: adminRevokeApprovalId }
+          : { role },
+        ctx.db,
+      );
     }
 
     let adminApprovalId: string | null = null;
+    let adminApplied = false;
     if (plan.adminRequested) {
       if (!i.justification?.trim())
         throw new StudioFailure("invalid", T.users.rolesDialog.justificationRequired);
-      const r = await requestApprovalCommand({
+      const r = await requestAndApproveCommand({
         kind: "role.admin",
         targetRef: userTarget(i.userId),
         justification: i.justification,
@@ -188,20 +212,39 @@ export const setRolesCommand = studioAction(
       });
       if (!r.ok) throw new StudioFailure(r.error, r.message);
       adminApprovalId = r.value.id;
+      if (r.value.status !== "pending") {
+        const g = await ctx.db
+          .from("user_roles")
+          .insert({ user_id: i.userId, role: "admin", sections: [] });
+        if (g.error) throw new StudioFailure("conflict", T.users.rolesDialog.adminPending);
+        adminApplied = true;
+        await audit(
+          ctx.userId,
+          "user.role.grant",
+          `user:${i.userId}`,
+          { role: "admin", sections: [], approvalId: adminApprovalId },
+          ctx.db,
+        );
+      }
     }
+    const granted = [...plan.grant.map((g) => g.role), ...(adminApplied ? ["admin"] : [])];
     ctx.detail({
-      granted: plan.grant.map((g) => g.role),
+      granted,
       revoked,
       updated: plan.update.map((u) => u.role),
       adminApprovalId,
       adminRevokeApprovalId,
+      adminApplied,
+      adminRevokeApplied,
     });
     return {
-      granted: plan.grant.map((g) => g.role),
+      granted,
       revoked,
       updated: plan.update.map((u) => u.role),
       adminApprovalId,
       adminRevokeApprovalId,
+      adminApplied,
+      adminRevokeApplied,
     };
   },
   { schema: SetRolesInput, auditAs: "user.role.grant", objectRef: (i) => `user:${i.userId}` },
@@ -209,7 +252,7 @@ export const setRolesCommand = studioAction(
 
 const ApplyAdminInput = z.object({ userId: z.string().uuid() });
 
-/** Aplica o papel de administração já aprovado por outra pessoa (o trigger consome o pedido). */
+/** Aplica o papel de administração já aprovado (o trigger consome o pedido). */
 export const applyAdminRoleCommand = studioAction(
   "users.manage",
   () => ({}),
@@ -231,7 +274,7 @@ export const applyAdminRoleCommand = studioAction(
   { schema: ApplyAdminInput, auditAs: "user.role.grant", objectRef: (i) => `user:${i.userId}` },
 );
 
-/** Aplica a revogação de admin já aprovada por outra pessoa (o trigger consome o pedido). */
+/** Aplica a revogação de admin já aprovada (o trigger consome o pedido). */
 export const applyAdminRevokeCommand = studioAction(
   "users.manage",
   () => ({}),
@@ -244,7 +287,7 @@ export const applyAdminRevokeCommand = studioAction(
       .eq("role", "admin")
       .select("user_id");
     if (r.error) {
-      if (isTwoPersonError(r.error))
+      if (isApprovalError(r.error))
         throw new StudioFailure("conflict", T.users.rolesDialog.revokePending);
       throw new Error(`apply revoke admin: ${r.error.message}`);
     }

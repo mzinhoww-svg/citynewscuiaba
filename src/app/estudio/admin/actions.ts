@@ -47,11 +47,15 @@ export async function setRolesAction(i: {
   justification: string;
 }) {
   return reply(await setRolesCommand(i), (v) =>
-    v.adminApprovalId
-      ? T.users.rolesDialog.adminRequested
-      : v.adminRevokeApprovalId
-        ? T.users.rolesDialog.revokeRequested
-        : T.users.rolesDialog.saved,
+    v.adminApplied
+      ? T.users.rolesDialog.adminAppliedNow
+      : v.adminRevokeApplied
+        ? T.users.rolesDialog.revokeAppliedNow
+        : v.adminApprovalId
+          ? T.users.rolesDialog.adminRequested
+          : v.adminRevokeApprovalId
+            ? T.users.rolesDialog.revokeRequested
+            : T.users.rolesDialog.saved,
   );
 }
 

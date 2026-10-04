@@ -41,7 +41,8 @@ const inviteRoles = roleOptions.filter((r) => r.value !== "admin");
 /**
  * Usuários (A02): tabela da equipe com papéis, situação ("Convite pendente" até o primeiro
  * acesso) e ações; convite por e-mail e edição de papéis em diálogos. Papel de administração
- * vira pedido `role.admin`; quando aprovado por outra pessoa, aparece "Aplicar".
+ * vira pedido `role.admin`, aprovado e aplicado na mesma ação (A-128); um pedido que ficou
+ * aprovado sem aplicar mostra "Aplicar".
  */
 export function StaffTable({
   staff,

@@ -43,7 +43,7 @@ export interface ReviewStepProps {
   fieldErrors: Record<string, string>;
   sections: readonly { slug: string; name: string }[];
   defaultFrequency: number;
-  /** Campos que afrouxam o padrão restrito (selo "Exige segunda aprovação"). */
+  /** Campos que afrouxam o padrão restrito (selo "Mudança crítica"). */
   loosened: readonly string[];
   onFocus: () => void;
 }

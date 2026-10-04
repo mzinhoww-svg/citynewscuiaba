@@ -1,5 +1,6 @@
 // @vitest-environment node
-// Migration 0011 (Painel de Fontes): regras impostas no banco — duas pessoas, via rápida, versão
+// Migration 0011 (Painel de Fontes): regras impostas no banco — mudança crítica com aprovação
+// registrada (A-128: pode ser de quem pediu), via rápida, versão
 // otimista, auditoria e runs `cron`/`manual`/`fast` (spec docs/superpowers/specs/2026-09-27-painel-de-fontes.md).
 // Pilha local sem Docker (A-017): usuários e fontes do seed, sem rede.
 import { randomUUID } from "node:crypto";
@@ -243,7 +244,7 @@ describe("claim_source_fetch: uma coleta por janela (D-F29, Review Focus 6)", ()
   });
 });
 
-describe("criação de fonte: duas pessoas vale desde o create (Finding 1, Review Focus 2)", () => {
+describe("criação de fonte: nasce restrita, mudança crítica vale desde o create (Finding 1, Review Focus 2)", () => {
   it("Diego não cria fonte já com os quatro campos críticos afrouxados", async () => {
     await expect(
       rpcAs(diego(), "source_admin_create", {
@@ -483,7 +484,7 @@ describe("transições de status inválidas são recusadas no trigger (Finding 5
     ).rejects.toThrow(/transição de status/);
   });
 
-  it("ativar (paused → active) exige termos revisados; 'activate' é sinônimo de 'resume'", async () => {
+  it("ativar (paused → active) sem termos revisados passa no banco (A-127); 'activate' é sinônimo de 'resume'", async () => {
     const created = await asService
       .from("sources")
       .insert({
@@ -501,23 +502,26 @@ describe("transições de status inválidas são recusadas no trigger (Finding 5
     const slug = created.data!.slug;
     createdSourceIds.push(id);
 
-    await expect(
-      rpc("source_admin_status", {
-        p_id: id,
-        p_version: created.data!.version,
-        p_action: "resume",
-        p_ctx: {},
-      }),
-    ).rejects.toThrow(/termos/);
-
-    await asService
-      .from("sources")
-      .update({ terms_reviewed_at: new Date().toISOString() })
-      .eq("id", id);
-    const withTerms = await sourceBySlug(slug);
+    // Termos revisados ficam com a aplicação (Painel de Fontes); o banco não recusa mais.
     await rpc("source_admin_status", {
       p_id: id,
-      p_version: withTerms.version,
+      p_version: created.data!.version,
+      p_action: "resume",
+      p_ctx: {},
+    });
+    const resumed = await sourceBySlug(slug);
+    expect(resumed.status).toBe("active");
+    expect(resumed.terms_reviewed_at).toBeNull();
+
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: resumed.version,
+      p_action: "pause",
+      p_ctx: {},
+    });
+    await rpc("source_admin_status", {
+      p_id: id,
+      p_version: (await sourceBySlug(slug)).version,
       p_action: "activate",
       p_ctx: {},
     });
@@ -708,7 +712,7 @@ describe("peek_rate_limit e record_source_fetch (só service_role)", () => {
   });
 });
 
-describe("mudança crítica: duas pessoas (D-F3 a D-F5, Review Focus 2)", () => {
+describe("mudança crítica: aprovação registrada (D-F3 a D-F5, Review Focus 2; A-128)", () => {
   it("sem aprovação não muda, nem por SQL direto", async () => {
     const s = await sourceBySlug("portal-varzea"); // image_policy 'none' no seed
     await expect(
@@ -726,7 +730,7 @@ describe("mudança crítica: duas pessoas (D-F3 a D-F5, Review Focus 2)", () => 
     expect((await sourceBySlug("portal-varzea")).image_policy).toBe("none");
   });
 
-  it("aprovação de outra pessoa aplica e é consumida", async () => {
+  it("aprovação de quem tem o papel aplica e é consumida", async () => {
     const s = await sourceBySlug("portal-varzea");
     const d = await diego();
     const a = await d
@@ -742,9 +746,9 @@ describe("mudança crítica: duas pessoas (D-F3 a D-F5, Review Focus 2)", () => 
     expect(a.error).toBeNull();
     createdApprovalIds.push(a.data!.id);
 
-    // Diego é operador_ia: nem chega à regra "quem pede não decide" (guard_approvals) — a RLS de
-    // approvals_decide (só admin/editor_chefe) já barra a linha antes, então a tentativa não
-    // muda nada (nenhuma exceção: 0 linhas afetadas, comportamento de RLS em UPDATE).
+    // Diego é operador_ia: a RLS de approvals_decide (só admin/editor_chefe) barra a linha, então
+    // a tentativa não muda nada (nenhuma exceção: 0 linhas afetadas, comportamento de RLS em
+    // UPDATE).
     await d
       .from("approvals")
       .update({ status: "approved", approved_by: DIEGO })
@@ -767,6 +771,43 @@ describe("mudança crítica: duas pessoas (D-F3 a D-F5, Review Focus 2)", () => 
     });
     expect((await sourceBySlug("portal-varzea")).image_policy).toBe("reproduction");
     expect((await approval(a.data!.id)).status).toBe("applied");
+  });
+
+  it("A-128: editora-chefe pede, aprova o próprio pedido e aplica; a linha guarda os dois", async () => {
+    const s = await sourceBySlug("portal-varzea");
+    expect(s.republish_policy).toBe("link_only");
+    const m = await marina();
+    const a = await m
+      .from("approvals")
+      .insert({
+        kind: "source.critical",
+        target_ref: `source:${s.id}:republish_policy=summary_2_sentences`,
+        requested_by: MARINA,
+        justification: "Veículo autorizou resumo",
+      })
+      .select()
+      .single();
+    expect(a.error).toBeNull();
+    createdApprovalIds.push(a.data!.id);
+    const decide = await m
+      .from("approvals")
+      .update({ status: "approved", approved_by: MARINA })
+      .eq("id", a.data!.id)
+      .select();
+    expect(decide.error).toBeNull();
+    expect(decide.data).toHaveLength(1);
+    await rpcAs(marina(), "source_admin_update", {
+      p_id: s.id,
+      p_version: s.version,
+      p_patch: { republish_policy: "summary_2_sentences" },
+      p_ctx: { reason: "Autorização do veículo" },
+    });
+    expect((await sourceBySlug("portal-varzea")).republish_policy).toBe("summary_2_sentences");
+    expect(await approval(a.data!.id)).toMatchObject({
+      status: "applied",
+      requested_by: MARINA,
+      approved_by: MARINA,
+    });
   });
 });
 

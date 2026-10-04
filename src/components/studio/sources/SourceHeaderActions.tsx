@@ -33,7 +33,7 @@ type DialogKind = null | "block" | "archive" | "unblock";
 /**
  * Ações principais do cabeçalho da fonte (spec §7.3, §7.4, §8): Coletar agora, Pausar/Retomar/
  * Ativar, Bloquear (também "Bloquear de novo (Pedido do veículo)" numa fonte já bloqueada, para
- * repetir a remoção das reproduções), Pedir desbloqueio (duas pessoas), Excluir fonte (digitar o
+ * repetir a remoção das reproduções), Desbloquear (mudança crítica registrada), Excluir fonte (digitar o
  * nome) e Restaurar. Diálogos nativos com foco preso; ao fechar, o foco volta ao gatilho.
  * Resultado em `role="status"`/`alert`; conflito de versão oferece "Recarregar".
  */

@@ -160,12 +160,13 @@ export const FIELD_TEXT = {
   scoreHint:
     "Ordena a coleta e o destaque no Panorama. Score 1 tira a fonte do Panorama. Não muda a confiança das matérias.",
   priority: "Prioridade",
-  critical: "Exige segunda aprovação",
-  criticalStatic: "Afrouxar exige segunda aprovação; restringir aplica na hora.",
+  critical: "Mudança crítica",
+  criticalStatic:
+    "Afrouxar é mudança crítica: admin ou editor-chefe aplica na hora e fica registrado no histórico; restringir aplica na hora.",
   restrictNow: "Restringir aplica na hora.",
-  justification: "Justificativa para a segunda aprovação",
+  justification: "Justificativa da mudança crítica",
   justificationHint:
-    "A segunda pessoa lê antes de aprovar. Explique o motivo e a referência do acordo, se houver.",
+    "Fica no histórico da aprovação. Explique o motivo e a referência do acordo, se houver.",
   reason: "Motivo da alteração (opcional, vai para a auditoria)",
   save: "Salvar alterações",
   saving: "Salvando…",
@@ -244,25 +245,24 @@ export const DETAIL_TEXT = {
     activate: "Ativar",
     block: "Bloquear",
     blockAgain: "Bloquear de novo (Pedido do veículo)",
-    unblock: "Pedir desbloqueio",
+    unblock: "Desbloquear",
     archive: "Excluir fonte",
     restore: "Restaurar fonte",
     reload: "Recarregar",
     working: "Aguarde…",
   },
   unblock: {
-    title: "Pedir desbloqueio",
-    body: "Desbloquear devolve a fonte para pausada e exige a aprovação de outra pessoa (admin ou editor-chefe).",
+    title: "Desbloquear fonte",
+    body: "Desbloquear devolve a fonte para pausada. Admin ou editor-chefe desbloqueia na hora; os outros papéis deixam o pedido aguardando aprovação. Fica registrado no histórico.",
     justification: "Justificativa",
-    confirm: "Pedir desbloqueio",
+    confirm: "Desbloquear",
     cancel: "Cancelar",
   },
   pending: {
-    title: (n: number) =>
-      `${n} ${plural(n, "alteração aguarda", "alterações aguardam")} segunda aprovação`,
+    title: (n: number) => `${n} ${plural(n, "alteração aguarda", "alterações aguardam")} aprovação`,
     line: (field: string, value: string, who: string) =>
-      `Aguardando segunda aprovação: ${field} → ${value}, pedido por ${who}`,
-    someone: "outra pessoa",
+      `Aguardando aprovação: ${field} → ${value}, pedido por ${who}`,
+    someone: "alguém da equipe",
     review: "Revisar",
   },
   actionsLabel: "Ações da fonte",
@@ -500,6 +500,5 @@ export const DIALOG_TEXT = {
     rejectReason: "Motivo da recusa",
     confirmReject: "Confirmar recusa",
     rejectRequired: "Informe o motivo da recusa.",
-    selfNote: "Você fez este pedido: a aprovação precisa ser de outra pessoa.",
   },
 } as const;

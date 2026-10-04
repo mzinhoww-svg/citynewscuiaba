@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const who = (p: { name: string | null } | null) => p?.name ?? "outra pessoa";
+const who = (p: { name: string | null } | null) => p?.name ?? "alguém da equipe";
 
 function statusOf(v: RuleVersion): string {
   if (v.rules === null) return T.status.invalid;

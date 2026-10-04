@@ -51,8 +51,8 @@ export { SWITCH_KEYS };
 
 /*
  * Disjuntor da publicação automática (AUT-T4, A8): limites editáveis e reset manual (admin). O
- * reset zera a janela de contagem; religar `auto_publish` continua pela Contingência, com duas
- * pessoas.
+ * reset zera a janela de contagem; religar `auto_publish` é ação direta do admin (Contingência
+ * ou Interruptores, A-125), auditada.
  */
 
 const LimitsInput = z.object({
@@ -112,7 +112,7 @@ export const resetBreakerCommand = studioAction(
 
 /*
  * Revisor automático (AUT-T6): modo `off`, `night` ou `always` (admin, com motivo). Mudar o modo
- * não pede segunda pessoa: o revisor só age sobre matéria em revisão vencida, com publicação
+ * é ação direta do admin, auditada: o revisor só age sobre matéria em revisão vencida, com publicação
  * automática ligada, dentro das regras e do orçamento de IA.
  */
 

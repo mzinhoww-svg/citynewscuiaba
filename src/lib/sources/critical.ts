@@ -1,6 +1,6 @@
 /**
- * Mudança crítica (D-F3): só o que amplia direito de uso ou autonomia de publicação exige
- * aprovação de outra pessoa. Espelha exatamente `guard_source_changes` em
+ * Mudança crítica (D-F3): só o que amplia direito de uso ou autonomia de publicação passa por
+ * aprovação registrada (A-128: quem tem o papel aprova e aplica na mesma ação). Espelha exatamente `guard_source_changes` em
  * `supabase/migrations/0011_source_admin.sql` (`image_policy_rank`/`source_reliability_rank`).
  */
 import type { FieldChange, ImagePolicy, Reliability, SourceConfig } from "./types";
@@ -40,7 +40,7 @@ export function diffConfig(before: SourceConfig, after: SourceConfig): FieldChan
 }
 
 /**
- * Subconjunto de `diffConfig` que exige duas pessoas (D-F3): afrouxar `imagePolicy`; liberar
+ * Subconjunto de `diffConfig` que é mudança crítica (D-F3): afrouxar `imagePolicy`; liberar
  * resumo (`link_only` → `summary_2_sentences`); confiabilidade subindo para `verified`/`primary`;
  * `maySoleSource` de falso para verdadeiro. Score, frequência e o resto aplicam na hora.
  */

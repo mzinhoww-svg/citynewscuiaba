@@ -46,7 +46,7 @@ export interface AddSourceWizardProps {
  * Assistente "Nova fonte" (spec §7.1, O04a): Endereço → Análise → Revisão → Termos → Salvar, com a
  * etapa atual em `aria-current="step"` e o progresso da análise em `aria-live="polite"`. Toda
  * sugestão da IA só entra no formulário com o clique em "Usar sugestão"; as políticas começam no
- * padrão mais restrito e o que afrouxar exige justificativa (vira pedido de segunda aprovação).
+ * padrão mais restrito e o que afrouxar exige justificativa (vira mudança crítica registrada, aplicada na hora por quem pode aprovar).
  * O texto digitado nunca se perde em erro.
  */
 export function AddSourceWizard({

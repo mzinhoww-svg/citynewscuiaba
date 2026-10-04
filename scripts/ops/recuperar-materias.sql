@@ -25,15 +25,17 @@ update ai_agents set daily_budget_brl = 15 where id = 'write' and daily_budget_b
 --    sozinho quando o feed traz menos de 600 caracteres (sitemap e página trazem 0), e busca o
 --    texto completo e a foto na página da fonte. Olhar Conceito e Agro Olhar (mesmo site do Olhar
 --    Direto, robots.txt sem restrição) vão de 30 para 60 páginas por hora.
+--    Todas as pausadas voltam, com ou sem termos de uso revisados: o banco não recusa mais
+--    (0148, A-127). Fonte arquivada não muda (o banco só aceita restaurar).
 update sources
    set status = 'active', status_reason = null, consecutive_failures = 0,
        consumption = coalesce(consumption, '{}'::jsonb) - 'enrich'
- where status = 'paused';
+ where status = 'paused' and archived_at is null;
 update sources
    set consumption = consumption - 'enrich'
- where consumption ->> 'enrich' = 'false';
+ where consumption ->> 'enrich' = 'false' and archived_at is null;
 update sources set rate_limit_per_hour = 60
- where slug in ('olhar-conceito', 'agro-olhar') and rate_limit_per_hour < 60;
+ where slug in ('olhar-conceito', 'agro-olhar') and rate_limit_per_hour < 60 and archived_at is null;
 
 -- 3) Todas as matérias do redator que nasceram finas: retiradas do ar por texto curto, em revisão
 --    ou rascunho, e publicadas com até 3 parágrafos. Ficam de fora as editadas por pessoa e as

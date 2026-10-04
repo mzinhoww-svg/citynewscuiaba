@@ -1,6 +1,7 @@
 // @vitest-environment node
-// P5-T7 · Recomendação (banco real): propor pesos abre pedido `rec.weights` e quem propõe não
-// ativa; outra pessoa (admin) aprova e ativa pelo `rec_weights_activate`; pesos 0,99 recusados;
+// P5-T7 · Recomendação (banco real): propor pesos abre pedido `rec.weights`; operador (sem o papel
+// de decidir) não ativa; admin aprova e ativa pelo `rec_weights_activate`, inclusive o que ela
+// mesma propõe, numa ação só (A-128); pesos 0,99 recusados;
 // campanhas e testes A/B com variantes aprovadas; `getRecConfigFor` estável por anonId;
 // "Por que esta recomendação" só via pseudônimo e sem peso individual sem consentimento.
 import { randomUUID } from "node:crypto";
@@ -71,7 +72,7 @@ describe("pesos de recomendação (banco real)", () => {
   let version = "";
   let approvalId = "";
 
-  it("operador propõe rec-v2 com pedido; quem propõe não ativa nem direto no banco", async () => {
+  it("operador propõe rec-v2 com pedido pendente; sem o papel de aprovar não ativa nem direto no banco", async () => {
     const r = await asUser("diego", () =>
       proposeWeightsCommand({ weights: W2, justification: "Mais diversidade nas Recomendadas" }),
     );
@@ -80,6 +81,7 @@ describe("pesos de recomendação (banco real)", () => {
     version = r.value.version;
     approvalId = r.value.approvalId ?? "";
     approvals.push(approvalId);
+    expect(r.value.status).toBe("pending");
     expect(version).toMatch(/^rec-v\d+$/);
     expect(await weightsRow(version)).toMatchObject({
       active: false,
@@ -122,21 +124,44 @@ describe("pesos de recomendação (banco real)", () => {
         { actor: SEED_USERS.helena.id, action: "rec.weights.activate" },
       ]),
     );
-    // Operador tem `rec.weights`, mas a RLS `approvals_decide` só deixa admin/editor-chefe
-    // decidir: na prática a 2ª assinatura dos pesos é de admin. Pedido pendente de admin não é
-    // aprovado por operador.
+    // A-128: admin que propõe aprova e ativa na mesma ação; o pedido e a auditoria registram
+    // quem propôs e quem aprovou (a mesma pessoa).
     const back = await asUser("helena", () =>
       proposeWeightsCommand({ weights: REC_V1, justification: "Voltar ao padrão" }),
     );
     expect(back.ok).toBe(true);
     if (!back.ok) return;
-    approvals.push(back.value.approvalId ?? "");
-    const one = await asUser("diego", () =>
-      activateWeightsCommand({ approvalId: back.value.approvalId ?? "" }),
+    const backId = back.value.approvalId ?? "";
+    approvals.push(backId);
+    expect(back.value.status).toBe("applied");
+    const nowActive = await service.from("rec_weights").select("version").eq("active", true);
+    expect(nowActive.data).toEqual([{ version: back.value.version }]);
+    expect(await weightsRow(back.value.version)).toMatchObject({
+      active: true,
+      proposed_by: SEED_USERS.helena.id,
+      approved_by: SEED_USERS.helena.id,
+    });
+    const backRow = await service
+      .from("approvals")
+      .select("status, requested_by, approved_by")
+      .eq("id", backId)
+      .single();
+    expect(backRow.data).toEqual({
+      status: "applied",
+      requested_by: SEED_USERS.helena.id,
+      approved_by: SEED_USERS.helena.id,
+    });
+    const backAudit = await service
+      .from("audit_log")
+      .select("actor, action")
+      .eq("details->>approvalId", backId);
+    expect(backAudit.data).toEqual(
+      expect.arrayContaining([
+        { actor: SEED_USERS.helena.id, action: "approval.requested" },
+        { actor: SEED_USERS.helena.id, action: "approval.approved" },
+        { actor: SEED_USERS.helena.id, action: "approval.applied" },
+      ]),
     );
-    expect(one.ok).toBe(false);
-    const stillActive = await service.from("rec_weights").select("version").eq("active", true);
-    expect(stillActive.data).toEqual([{ version }]);
   });
 
   it("campanha exige fonte e período válido; criada com auditoria", async () => {

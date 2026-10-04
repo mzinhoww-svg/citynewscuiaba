@@ -173,7 +173,11 @@ test("excluir exige digitar o nome e mantém a fonte em Arquivadas; restaurar vo
   await expect(page.getByRole("status")).toContainText("Fonte restaurada");
 });
 
-test("mudança de política vira pedido e Marina aprova", async ({ page, browser, baseURL }) => {
+test("mudança de política de quem não aprova vira pedido e Marina aprova", async ({
+  page,
+  browser,
+  baseURL,
+}) => {
   // No projeto `fixtures` (`next dev`) a jornada compila detalhe, configuração e histórico e faz
   // um segundo login: em base fria passa dos 30 s padrão (rodada final de P5-T5/T7).
   test.setTimeout(90_000);
@@ -182,27 +186,27 @@ test("mudança de política vira pedido e Marina aprova", async ({ page, browser
   const policy = page.getByLabel("Política de imagem");
   // Restringir aplica na hora, sem justificativa (também deixa o teste repetível numa base já usada).
   await policy.selectOption("none");
-  await expect(page.getByLabel("Justificativa para a segunda aprovação")).toHaveCount(0);
+  await expect(page.getByLabel("Justificativa da mudança crítica")).toHaveCount(0);
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page.getByRole("status")).toContainText(/Alterações salvas|Nenhuma alteração/);
   await page.reload();
   await expect(policy).toHaveValue("none");
   await policy.selectOption("reproduction");
-  await expect(page.getByText("Exige segunda aprovação").first()).toBeVisible();
+  await expect(page.getByText("Mudança crítica", { exact: true }).first()).toBeVisible();
   await page.getByRole("button", { name: "Salvar alterações" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Explique por que" })).toBeVisible();
   await page
-    .getByLabel("Justificativa para a segunda aprovação")
+    .getByLabel("Justificativa da mudança crítica")
     .fill("Acordo de reprodução assinado em 27/09");
   await page.getByRole("button", { name: "Salvar alterações" }).click();
-  await expect(page.getByRole("status")).toContainText("1 alteração aguarda segunda aprovação");
-  // O campo volta ao valor gravado até a segunda aprovação.
+  await expect(page.getByRole("status")).toContainText(
+    "1 alteração aguarda aprovação de admin ou editor-chefe",
+  );
+  // O campo volta ao valor gravado até a aprovação.
   await expect(policy).toHaveValue("none");
   await page.reload();
   await expect(
-    page.getByText(
-      "Aguardando segunda aprovação: política de imagem → reprodução, pedido por Diego Prado",
-    ),
+    page.getByText("Aguardando aprovação: política de imagem → reprodução, pedido por Diego Prado"),
   ).toBeVisible();
   // Diego (operador de IA) não aprova.
   await expect(page.getByRole("button", { name: "Revisar" })).toHaveCount(0);
@@ -217,7 +221,7 @@ test("mudança de política vira pedido e Marina aprova", async ({ page, browser
   await expect(dialog.getByText("Acordo de reprodução assinado em 27/09")).toBeVisible();
   await expect(dialog.getByText("Diego Prado")).toBeVisible();
   await dialog.getByRole("button", { name: "Aprovar e aplicar" }).click();
-  await expect(marina.getByRole("status")).toContainText("Mudança aprovada e aplicada");
+  await expect(marina.getByRole("status")).toContainText("Aplicado. Fica registrado no histórico.");
   await marina.goto(`${BASE}/${SEED.agro}/configuracao`);
   await expect(marina.getByLabel("Política de imagem")).toHaveValue("reproduction");
   await marina.goto(`${BASE}/${SEED.agro}/historico`);

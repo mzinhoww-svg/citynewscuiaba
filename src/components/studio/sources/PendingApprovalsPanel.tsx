@@ -19,7 +19,6 @@ export interface PendingApprovalsPanelProps {
   approvals: readonly PendingSourceApproval[];
   /** Valor atual de cada coluna crítica (`image_policy` → "none"), para o diff. */
   currentValues: Record<string, string>;
-  currentUserId: string;
   /** `source.approve_critical` (admin e editor-chefe). */
   canApprove: boolean;
   /** `decideApprovalAction` (FS-T6). */
@@ -28,14 +27,13 @@ export interface PendingApprovalsPanelProps {
 }
 
 /**
- * Banner "Aguardando segunda aprovação" do detalhe (spec §7.5): uma linha por pedido com quem
- * pediu e "Revisar", que abre o diálogo de aprovar/recusar. A pessoa que pediu vê o aviso de que
- * a aprovação precisa ser de outra pessoa; quem não pode aprovar só lê.
+ * Banner "Aguardando aprovação" do detalhe (spec §7.5): uma linha por pedido com quem pediu e
+ * "Revisar", que abre o diálogo de aprovar/recusar. Quem pode aprovar decide, inclusive o próprio
+ * pedido (A-128); quem não pode só lê.
  */
 export function PendingApprovalsPanel({
   approvals,
   currentValues,
-  currentUserId,
   canApprove,
   action,
   className,
@@ -131,7 +129,6 @@ export function PendingApprovalsPanel({
             createdAt: open.createdAt,
           }}
           currentValue={currentValues[open.field] ?? null}
-          isOwnRequest={open.requestedBy.id === currentUserId}
           busy={busy}
           error={error}
           onCancel={close}
