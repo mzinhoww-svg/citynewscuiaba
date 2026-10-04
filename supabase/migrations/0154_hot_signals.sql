@@ -68,8 +68,9 @@ begin
   return new;
 end
 $$;
-drop trigger if exists app_settings_hot_guard on public.app_settings;
-create trigger app_settings_hot_guard before insert or update on public.app_settings
+-- `create or replace trigger` (Postgres 14+): idempotente sem `drop` (o conector do Supabase trava
+-- com `drop trigger`, A-139).
+create or replace trigger app_settings_hot_guard before insert or update on public.app_settings
   for each row execute function public.guard_app_settings_hot();
 
 -- ---------------------------------------------------------------------------

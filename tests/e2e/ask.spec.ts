@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 
 /*
  * docs/testing.md §2 item 6 · Pergunte ao CityNews (P13) como chat (UI-T13, spec
@@ -21,6 +21,8 @@ test.beforeEach(async ({ context }) => ownIp(context));
 
 const field = (page: Page) => page.getByRole("textbox", { name: "Sua pergunta" });
 const reply = (page: Page) => page.getByRole("article", { name: "Resposta do CityNews" });
+// O chat só envia pelo navegador depois de hidratar; antes disso o Enter faz o GET do modo simples.
+const chatReady = (page: Page) => page.locator('[data-composer="fixed"]').waitFor();
 
 test("/pergunte?q= abre a conversa com a pergunta enviada, citações e aviso", async ({ page }) => {
   await page.goto(`/pergunte?q=${encodeURIComponent(Q)}`);
@@ -53,6 +55,7 @@ test("vazio: boas-vindas e 4 perguntas iniciais; tocar uma envia e o foco volta 
   page,
 }) => {
   await page.goto("/pergunte");
+  await chatReady(page);
   await expect(page.getByRole("heading", { level: 1, name: "Pergunte ao CityNews" })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   const starters = page.getByRole("list", { name: "Perguntas para começar" }).getByRole("button");
@@ -64,6 +67,7 @@ test("vazio: boas-vindas e 4 perguntas iniciais; tocar uma envia e o foco volta 
 
 test("Enter envia, Shift+Enter quebra linha, contador a partir de 250", async ({ page }) => {
   await page.goto("/pergunte");
+  await chatReady(page);
   await field(page).fill("a".repeat(249));
   await expect(page.getByText(/de 300$/)).toHaveCount(0);
   await field(page).fill("a".repeat(320));
@@ -177,6 +181,7 @@ test("rede caindo no meio do stream: falha com Tentar de novo, e o campo reaceit
     await route.fallback();
   });
   await page.goto("/pergunte");
+  await chatReady(page);
   await field(page).fill(Q);
   await field(page).press("Enter");
   await expect(
@@ -201,6 +206,7 @@ test("duas perguntas seguidas rápidas: a segunda é ignorada enquanto a primeir
     await route.fallback();
   });
   await page.goto("/pergunte");
+  await chatReady(page);
   await field(page).fill(Q);
   await field(page).press("Enter");
   await field(page).fill("Segunda pergunta");
@@ -215,6 +221,7 @@ test("duas perguntas seguidas rápidas: a segunda é ignorada enquanto a primeir
 test("celular: campo fixo na base, acima da barra inferior", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/pergunte");
+  await chatReady(page);
   const box = await field(page).boundingBox();
   const nav = await page.getByRole("navigation", { name: "Principal" }).last().boundingBox();
   expect(box && nav).toBeTruthy();
@@ -225,6 +232,7 @@ test("celular: campo fixo na base, acima da barra inferior", async ({ page }) =>
 test("desktop: 3 áreas só com Personalização aceita", async ({ page, context, baseURL }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/pergunte");
+  await chatReady(page);
   await expect(page.getByRole("complementary", { name: "Fontes da resposta" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Conversas neste aparelho" })).toHaveCount(0);
 
@@ -257,13 +265,13 @@ test("API responde em streaming NDJSON com o contrato da resposta", async ({ pag
 test.describe("sem JavaScript (Review Focus 3)", () => {
   test.use({ javaScriptEnabled: false });
 
-  // Sem JavaScript o aviso de privacidade não fecha e fica fixo na base; o campo está no fluxo da
-  // página, então quem lê rola até ele. O teste faz o mesmo antes de tocar em Enviar.
-  const send = async (page: Page) => {
-    const button = page.getByRole("button", { name: "Enviar pergunta" });
-    await button.evaluate((el) => el.scrollIntoView({ block: "center" }));
-    await button.click();
+  // Sem JavaScript o aviso de privacidade não fecha e fica fixo na base; quem lê rola até o que vai
+  // tocar. O teste faz o mesmo: centraliza o alvo antes do toque.
+  const tap = async (target: Locator) => {
+    await target.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await target.click();
   };
+  const send = (page: Page) => tap(page.getByRole("button", { name: "Enviar pergunta" }));
 
   test("o formulário GET continua respondendo no servidor", async ({ page }) => {
     await page.goto("/pergunte");
@@ -271,17 +279,15 @@ test.describe("sem JavaScript (Review Focus 3)", () => {
     await send(page);
     await expect(page).toHaveURL(/[?&]modo=simples/);
     await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
-    await page.getByRole("link", { name: "Fonte 1", exact: true }).first().click();
+    await tap(page.getByRole("link", { name: "Fonte 1", exact: true }).first());
     await expect(page).toHaveURL(/#fonte-1$/);
   });
 
   test("pergunta inicial e link ?q= também funcionam", async ({ page }) => {
     await page.goto("/pergunte");
-    await page
-      .getByRole("list", { name: "Perguntas para começar" })
-      .getByRole("button")
-      .first()
-      .click();
+    await tap(
+      page.getByRole("list", { name: "Perguntas para começar" }).getByRole("button").first(),
+    );
     await expect(page).toHaveURL(/[?&]modo=simples/);
     await expect(page.getByText(/Você perguntou/)).toBeVisible();
 
