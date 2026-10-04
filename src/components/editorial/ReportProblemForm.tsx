@@ -12,6 +12,8 @@ import { cx } from "../cx";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { RadioGroup } from "../ui/RadioGroup";
+import { TextArea } from "../ui/TextArea";
 import { TextField } from "../ui/TextField";
 
 export interface ReportProblemFormProps {
@@ -86,51 +88,20 @@ export function ReportProblemForm({
           <form action={formAction} noValidate className="flex flex-col gap-5">
             <p className="type-body text-meta">{REPORT.intro}</p>
             <input type="hidden" name="contentRef" value={contentRef} />
-            <fieldset
-              aria-describedby={kindError ? `${id}-kind-erro` : undefined}
-              className="flex flex-col gap-1"
-            >
-              <legend className="mb-2 type-label text-strong">{REPORT.kindLegend}</legend>
-              {REPORT_KINDS.map((k) => (
-                <label
-                  key={k}
-                  className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-                >
-                  <input
-                    type="radio"
-                    name="kind"
-                    value={k}
-                    className="size-5 shrink-0 accent-(--action-primary)"
-                  />
-                  {REPORT.kinds[k]}
-                </label>
-              ))}
-              {kindError && (
-                <p
-                  id={`${id}-kind-erro`}
-                  className="flex items-start gap-1.5 type-meta text-danger"
-                >
-                  <Icon name="circle-alert" size={16} />
-                  {kindError}
-                </p>
-              )}
-            </fieldset>
-            <div className="flex flex-col gap-2">
-              <label htmlFor={`${id}-msg`} className="type-label text-strong">
-                {REPORT.message}
-              </label>
-              <textarea
-                id={`${id}-msg`}
-                name="message"
-                rows={3}
-                maxLength={1000}
-                aria-describedby={`${id}-msg-dica`}
-                className="border-control rounded-lg bg-input px-4 py-3 type-body text-strong"
-              />
-              <p id={`${id}-msg-dica`} className="type-meta text-meta">
-                {REPORT.messageHint}
-              </p>
-            </div>
+            <RadioGroup
+              name="kind"
+              legend={REPORT.kindLegend}
+              options={REPORT_KINDS.map((k) => ({ value: k, label: REPORT.kinds[k] }))}
+              error={kindError}
+            />
+            <TextArea
+              id={`${id}-msg`}
+              name="message"
+              label={REPORT.message}
+              hint={REPORT.messageHint}
+              rows={3}
+              maxLength={1000}
+            />
             <TextField
               id={`${id}-contact`}
               name="contact"
@@ -159,8 +130,8 @@ export function ReportProblemForm({
                 </p>
               )}
             </div>
-            <Button type="submit" fullWidth disabled={pending}>
-              {pending ? REPORT.sending : REPORT.submit}
+            <Button type="submit" fullWidth loading={pending} loadingLabel={REPORT.sending}>
+              {REPORT.submit}
             </Button>
           </form>
         )}

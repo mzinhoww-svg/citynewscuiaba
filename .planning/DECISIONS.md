@@ -305,3 +305,7 @@ W1-T5 (item 11 do plano de melhorias): texto de 14 px sem corte, "Saiba mais" co
 ## A-145 · Alerta de tema sensível na revisão segue as regras v3 (04/10/2026)
 
 O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contradiz o CLAUDE.md §5.8 (nas regras v3, tema sensível publica sozinho com a fonte citada). O texto passa a ser "Tema sensível: confira a fonte citada e o tom antes de decidir." Os números reservados no plano mudam: o "A-142" do plano (select em pílula da FilterBar) vira A-146 e o "A-143" (papel de admin numa ação) vira A-147.
+
+## A-149 · FilterBar mantém o select em pílula (04/10/2026)
+
+**Status:** vigente. UX-W2-T13. A `FilterBar` é o controle de filtro público (editorias, busca, agenda): lista nativa em pílula de 44 px, texto de 14 px em negrito, largura mínima de 9 rem, que aplica ao mudar e funciona sem JavaScript. O `Select` do kit tem só `sm` e `md`, ambos com cantos `rounded-lg` e texto de 16 px; criar `size="pill"` exigiria mexer na primitiva (fora do escopo da migração) e ainda assim mudaria o visual. Decisão: a variante não entra; a `FilterBar` continua com o `<select>` próprio, que é a única lista crua permitida no portal fora de `src/components/ui`, e a regra de lint da W2-T15 deve isentá-la. Se um dia o `Select` ganhar uma variante em pílula idêntica, a troca é mecânica. Numeração: o plano chama esta decisão de A-142 e a A-145 a remarcou como A-146; o número vigente é A-149.

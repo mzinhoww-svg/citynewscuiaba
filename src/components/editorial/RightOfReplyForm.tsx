@@ -9,22 +9,14 @@ import {
   type ReplyState,
 } from "@/lib/reports/form-state";
 import { Button } from "../ui/Button";
+import { FieldError } from "../ui/Field";
 import { Icon } from "../ui/Icon";
+import { TextArea } from "../ui/TextArea";
 import { TextField } from "../ui/TextField";
 
 export interface RightOfReplyFormProps {
   /** Server Action com honeypot e limite de 5/h por IP. */
   action: (state: ReplyState, form: FormData) => Promise<ReplyState>;
-}
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="flex items-start gap-1.5 type-meta text-danger">
-      <Icon name="circle-alert" size={16} />
-      {message}
-    </p>
-  );
 }
 
 /**
@@ -112,26 +104,17 @@ export function RightOfReplyForm({ action }: RightOfReplyFormProps) {
         error={err("article")}
         required
       />
-      <div className="flex flex-col gap-2">
-        <label htmlFor={f("reply")} className="type-label text-strong">
-          {REPLY.fields.reply}
-        </label>
-        <textarea
-          id={f("reply")}
-          name="reply"
-          rows={8}
-          maxLength={3000}
-          required
-          defaultValue={val("reply")}
-          aria-invalid={err("reply") ? true : undefined}
-          aria-describedby={`${f("reply")}-dica${err("reply") ? ` ${f("reply")}-erro` : ""}`}
-          className="border-control rounded-lg bg-input px-4 py-3 type-body text-strong"
-        />
-        <p id={`${f("reply")}-dica`} className="type-meta text-meta">
-          {REPLY.hints.reply}
-        </p>
-        <FieldError id={`${f("reply")}-erro`} message={err("reply")} />
-      </div>
+      <TextArea
+        id={f("reply")}
+        name="reply"
+        label={REPLY.fields.reply}
+        hint={REPLY.hints.reply}
+        rows={8}
+        maxLength={3000}
+        required
+        defaultValue={val("reply")}
+        error={err("reply")}
+      />
       <div className="flex flex-col gap-1">
         <label className="flex min-h-tap cursor-pointer items-start gap-3 py-2 type-body text-strong">
           <input
@@ -145,7 +128,7 @@ export function RightOfReplyForm({ action }: RightOfReplyFormProps) {
           />
           {REPLY.fields.consent}
         </label>
-        <FieldError id={`${f("consent")}-erro`} message={err("consent")} />
+        <FieldError id={f("consent")} error={err("consent")} />
       </div>
       <div hidden>
         <label htmlFor={`${id}-${REPLY_HONEYPOT}`}>{REPLY.honeypotLabel}</label>
@@ -158,8 +141,8 @@ export function RightOfReplyForm({ action }: RightOfReplyFormProps) {
         />
       </div>
       <div>
-        <Button type="submit" disabled={pending}>
-          {pending ? REPLY.sending : REPLY.submit}
+        <Button type="submit" loading={pending} loadingLabel={REPLY.sending}>
+          {REPLY.submit}
         </Button>
       </div>
     </form>

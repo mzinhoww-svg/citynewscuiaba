@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DOC_TEXT, PENDING, RELATED_LINKS, type DocSection } from "@/content/pt-BR/institutional";
+import { TagLink } from "../ui/TagLink";
 import { PAGE_CONTAINER, PageHeader } from "./PageHeader";
 
 export interface DocPageProps {
@@ -154,12 +155,7 @@ export function DocRelated({ path }: { path: string }) {
       <ul className="flex flex-wrap gap-2">
         {related.map((l) => (
           <li key={l.href}>
-            <Link
-              href={l.href}
-              className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover"
-            >
-              {l.label}
-            </Link>
+            <TagLink href={l.href}>{l.label}</TagLink>
           </li>
         ))}
       </ul>

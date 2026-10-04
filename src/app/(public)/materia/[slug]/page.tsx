@@ -27,6 +27,7 @@ import {
   UpdateNote,
   UpdatedWhileReading,
   NotificationInviteSlot,
+  TagLink,
 } from "@/components";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { CARD } from "@/content/pt-BR/portal-card";
@@ -265,21 +266,16 @@ function Article({ a }: { a: ArticleView }) {
               </h2>
               <ul className="flex flex-wrap gap-2">
                 <li>
-                  <Link
-                    href={`/${a.section.slug}`}
-                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
-                  >
-                    {a.section.name}
-                  </Link>
+                  <TagLink href={`/${a.section.slug}`}>{a.section.name}</TagLink>
                 </li>
                 {a.topic && (
                   <li>
-                    <Link
+                    <TagLink
                       href={`/assunto/${a.topic.slug}`}
-                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
+                      className="max-w-full whitespace-normal! py-2.5 leading-snug!"
                     >
                       {ARTICLE.topicTag(a.topic.title)}
-                    </Link>
+                    </TagLink>
                   </li>
                 )}
               </ul>
