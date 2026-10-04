@@ -67,8 +67,10 @@ S = {
                            leading=10.5, textColor=INK, wordWrap="CJK"),
     "cellb": ParagraphStyle("cellb", parent=ss["BodyText"], fontName="Helvetica-Bold",
                             fontSize=8, leading=10.5, textColor=colors.white),
-    "chip": ParagraphStyle("chip", fontName="Helvetica-Bold", fontSize=7.5, leading=9,
+    "chip": ParagraphStyle("chip", fontName="Helvetica-Bold", fontSize=6.6, leading=9,
                            textColor=colors.white, alignment=TA_CENTER),
+    "path": ParagraphStyle("path", parent=ss["BodyText"], fontName="Helvetica", fontSize=7,
+                           leading=9.5, textColor=INK, wordWrap="CJK"),
     "code": ParagraphStyle("code", fontName="Courier", fontSize=7, leading=8.6, textColor=INK),
     "title": ParagraphStyle("title", fontName="Helvetica-Bold", fontSize=26, leading=31,
                             textColor=INK, spaceAfter=14),
@@ -91,7 +93,7 @@ def t(text: str) -> str:
 
 
 def chip(sev: str) -> Table:
-    tab = Table([[Paragraph(sev.upper(), S["chip"])]], colWidths=[2.0 * cm], rowHeights=[0.5 * cm])
+    tab = Table([[Paragraph(sev.upper(), S["chip"])]], colWidths=[2.3 * cm], rowHeights=[0.5 * cm])
     tab.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor(SEV[sev])),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -126,11 +128,11 @@ def donut(counts: Counter) -> Image:
               bbox_to_anchor=(0.5, -0.02), ncol=3, frameon=False, fontsize=9)
     ax.set_title("Achados por severidade", fontsize=12, weight="bold", color="#111827")
     ax.axis("equal")
-    return fig_to_image(fig, 7.6)
+    return fig_to_image(fig, 8.2)
 
 
 def bars(findings: list[dict], categories: list[dict]) -> Image:
-    fig, ax = plt.subplots(figsize=(6.4, 4.2))
+    fig, ax = plt.subplots(figsize=(8.2, 3.6))
     names = [c["curto"] for c in categories]
     left = [0] * len(categories)
     for sev in SEV_ORDER:
@@ -148,8 +150,8 @@ def bars(findings: list[dict], categories: list[dict]) -> Image:
     ax.spines[["top", "right"]].set_visible(False)
     ax.tick_params(labelsize=9)
     ax.xaxis.get_major_locator().set_params(integer=True)
-    ax.legend(fontsize=8, frameon=False, loc="lower right")
-    return fig_to_image(fig, 9.0)
+    ax.legend(fontsize=8, frameon=False, loc="upper left", bbox_to_anchor=(1.01, 1))
+    return fig_to_image(fig, 15.5)
 
 
 def table(rows, widths, header_bg="#111827", zebra=True) -> Table:
@@ -200,8 +202,8 @@ def build() -> None:
                 "sub"),
               Spacer(1, 0.8 * cm)]
     cover = [[Paragraph("<b>Escopo auditado</b>", S["cellb"])]] + [[p(t(x), "cell")] for x in DATA["escopo"]]
-    story += [table(cover, [W]), Spacer(1, 0.5 * cm)]
-    story += [p("<b>Stack detectada</b>", "h2"), p(t(DATA["stack"]))]
+    story += [table(cover, [W]), PageBreak()]
+    story += [p("Stack detectada", "h1"), p(t(DATA["stack"]))]
     story += [p("<b>Nota metodológica</b>", "h2")]
     meth = [[Paragraph("<b>Categoria</b>", S["cellb"]), Paragraph("<b>Como foi mapeada para esta stack</b>", S["cellb"])]]
     meth += [[p(t(c["nome"]), "cell"), p(t(c["metodo"]), "cell")] for c in cats]
@@ -221,9 +223,7 @@ def build() -> None:
         ("BOX", (0, 0), (-1, -1), 0.5, LINE), ("INNERGRID", (0, 0), (-1, -1), 0.5, LINE),
     ]))
     story += [tt, Spacer(1, 0.4 * cm)]
-    charts = Table([[donut(counts), bars(findings, cats)]], colWidths=[7.8 * cm, W - 7.8 * cm])
-    charts.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE")]))
-    story += [charts, PageBreak()]
+    story += [donut(counts), Spacer(1, 0.3 * cm), bars(findings, cats), PageBreak()]
 
     # c) Pontos fortes e fracos
     story += [p("Pontos fortes", "h1"),
@@ -257,9 +257,9 @@ def build() -> None:
             desc = f"<b>{f['id']} · {t(f['titulo'])}</b><br/>{t(f['descricao'])}"
             if f.get("condicoes"):
                 desc += f"<br/><i>Condições:</i> {t(f['condicoes'])}"
-            rows.append([chip(f["severidade"]), p(t("\n".join(f["locais"])).replace("\n", "<br/>"), "cell"),
+            rows.append([chip(f["severidade"]), p(t("\n".join(f["locais"])).replace("\n", "<br/>"), "path"),
                          p(desc, "cell")])
-        story.append(table(rows, [2.3 * cm, 4.6 * cm, W - 6.9 * cm], zebra=False))
+        story.append(table(rows, [2.6 * cm, 5.4 * cm, W - 8.0 * cm], zebra=False))
         for f in fs:
             if f.get("trecho"):
                 story.append(KeepTogether([

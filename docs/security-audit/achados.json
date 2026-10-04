@@ -1,0 +1,376 @@
+{
+  "projeto": "CityNews Cuiabá",
+  "data": "04/10/2026",
+  "branch": "claude/saas-security-audit-v2-p5kwh9",
+  "commit": "cdee487",
+  "escopo": [
+    "Código da aplicação em `src/` (Next.js App Router): 33 arquivos `route.ts` (37 handlers) e 25 arquivos `\"use server\"` (141 Server Actions + 1 ação inline), todos percorridos.",
+    "Banco: as 58 migrations de `supabase/migrations/` (cerca de 73 tabelas, views, cerca de 75 funções `security definer`, Storage, grants), `supabase/config.toml`, `supabase/seed.sql` e `supabase/bootstrap/`.",
+    "Configuração e entrega: `.env.example`, `.gitignore`, `.github/workflows/*`, `scripts/`, `next.config.ts`, CSP (`src/lib/security/headers.ts`, `src/proxy.ts`), service worker (`src/sw/`).",
+    "Histórico git completo (`git log --all`, 213 commits), procurando JWTs, chaves `sk-`, `ghp_`, `AKIA`, chaves privadas, `.env` e logs commitados.",
+    "Fora do escopo: o ambiente de produção (Vercel/Supabase) não foi consultado. Achados que dependem de configuração indicam a condição."
+  ],
+  "stack": "TypeScript strict · Next.js (App Router, React 19, Server Components e Server Actions) · Supabase (Postgres com RLS, Auth/GoTrue, Storage, pgmq, pg_cron, pg_net, Vault) acessado por `@supabase/ssr`/`supabase-js` (cliente de sessão com RLS e cliente service role só no servidor) · autorização por papéis em `user_roles` com escopo por editoria (`src/lib/auth/permissions.ts`, `require-role.ts`, `studioAction`) espelhada no banco por funções `has_role`/`can_edit_section` · cron/worker com `Authorization: Bearer CRON_SECRET` · IA via OpenRouter · Vercel + GitHub Actions (CI, Lighthouse, backup). Modelo de isolamento: não é multi-tenant; o isolamento é entre (a) público anônimo, (b) leitor com conta (dono dos próprios dados) e (c) equipe com papéis e editorias.",
+  "resumo": "A base tem defesa em profundidade madura: RLS ligada em 100% das tabelas (também nas partições), Server Actions do Estúdio passando por um wrapper único que revalida papel e escopo do objeto, regra de duas pessoas imposta por trigger no banco, CSP com nonce e `strict-dynamic`, JSON-LD escapado, segredo de cron comparado em tempo constante e nenhum segredo real no código nem no histórico git. Não encontramos achado crítico nem alto. Os 5 achados médios estão no banco (versões de matérias legíveis por anônimos, função de auditoria aberta a qualquer conta, exportação por e-mail sem confirmação), em um escopo de editoria que não é respeitado na remoção em lote de imagens e no `.gitignore`, que não cobre `.env.prod`. Nesta stack todo visitante pode criar conta (`enable_signup = true`), então \"qualquer usuário autenticado\" equivale a \"qualquer pessoa na internet\".",
+  "categorias": [
+    {
+      "id": "c1",
+      "curto": "1. Banco sem tranca",
+      "nome": "1. Banco sem tranca (isolamento por RLS)",
+      "metodo": "O projeto usa Supabase e o navegador fala direto com o PostgREST usando a anon key, então o isolamento é a RLS. Inventariamos cada `create table` e confirmamos `enable row level security`. Lemos cada política (inclusive as recriadas depois), as views (security_invoker ou não), os grants para `anon`/`authenticated`, as políticas de Storage e as cerca de 75 funções `security definer`: `search_path`, revoke/grant e checagem de `auth.uid()`. Também verificamos onde a service role é usada em `src/`.",
+      "pontos_fortes": [
+        {"texto": "RLS ligada em todas as tabelas de `public` (37 iniciais e a partição `events_default`) por um laço sistemático; as 36 tabelas criadas depois ligam RLS na própria migration.", "evidencia": "`supabase/migrations/0002_rls.sql:130-136`; `0004:250-252`, `0040:461-465`, `0073:33` etc."},
+        {"texto": "Teste de integração dedicado à RLS, com lista de tabelas sensíveis.", "evidencia": "`tests/security/rls.test.ts`"},
+        {"texto": "Toda função `security definer` fixa `search_path`; as de pipeline e retenção são revogadas de public, anon e authenticated.", "evidencia": "ex.: `0009_events_retention.sql:37-38`, `0041:102`"},
+        {"texto": "Funções auxiliares de papel (`has_role`, `is_staff`...) fora de anon; as políticas lidas por anon usam subconsulta, sem chamá-las.", "evidencia": "`0002_rls.sql:116-125`, `0002_rls.sql:163-165`"},
+        {"texto": "Regra de duas pessoas e escrita direta bloqueada por triggers no banco (publicação, regras, prompts, pesos, admin, push urgente).", "evidencia": "`0002:415-688`, `0023:860-955`, `0047_push_gate_fixes.sql:76-170`"},
+        {"texto": "Dados pessoais isolados: `reader_preferences` só do dono; `push_subscriptions` sem colunas de chave para ninguém além do serviço (grant por coluna); `reader_emails` e `newsletter_subscriptions` sem política.", "evidencia": "`0020:1-35`, `0040:466-479`, `0012:24-25`"},
+        {"texto": "`audit_log` é append-only (trigger imutável e revoke de update/delete).", "evidencia": "`0001_init.sql:267-268`, `0002_rls.sql:383`"},
+        {"texto": "Bucket `media` privado, servido por URL assinada curta; leitura pública de `media_assets` só `approved` e com a flag de reprodução.", "evidencia": "`0004_pipeline.sql:636-649`, `src/lib/media/serve.ts:46-47`"},
+        {"texto": "Service role nunca recebe filtro controlado pelo usuário em rota pública: e-mail vem só de token HMAC; push exige hash do token de gestão.", "evidencia": "`src/lib/newsletter/token.ts:43-73`, `src/lib/push/api.ts:234-238`"}
+      ]
+    },
+    {
+      "id": "c2",
+      "curto": "2. Permissão no navegador",
+      "nome": "2. Permissão definida no navegador",
+      "metodo": "Server Actions são endpoints POST chamáveis diretamente, então esconder um botão por papel não protege nada. Cruzamos cada gate de papel da UI (`canEdit`, `canPublish`, `canApprove`, `canRequestUrgent`...) com a Server Action ou rota correspondente e com a checagem no banco (RPC ou trigger). Também procuramos validação que dependa de um valor vindo do próprio navegador.",
+      "pontos_fortes": [
+        {"texto": "Wrapper único `studioAction`: valida a entrada com zod, checa a ação sem escopo, resolve o escopo do objeto com o cliente da sessão, recheca com escopo, respeita `read_only` e audita. Usado por quase todas as mutações do Estúdio.", "evidencia": "`src/lib/studio/action.ts:77-130`"},
+        {"texto": "141 Server Actions percorridas: todas autenticam e checam o papel no servidor (ex.: `fontes/actions.ts` via `context()` → `requireRole(\"source.manage\")`; notificações via `requireAnyRole` + checagem fina).", "evidencia": "`src/app/estudio/control/fontes/actions.ts:106-107`, `src/app/estudio/admin/notificacoes/actions.ts:66,71,174,242,266,315`"},
+        {"texto": "Os gates da UI têm equivalente no servidor: `PromptVersions` (rollback só admin ou editor-chefe), `WeightsHistory`, `PendingApprovalsPanel`, `PushQueueTable`, `ArticleEditor`/`PublishDialog`.", "evidencia": "`src/lib/studio/ai-prompts.ts:162-166,215-219`, `recommendation.ts:118-127`"},
+        {"texto": "Autoaprovação barrada no servidor e no banco.", "evidencia": "`src/lib/studio/approvals.ts:84-102`, `fontes/actions.ts:531-533`"},
+        {"texto": "Rotas de cron e worker (6) exigem `Bearer CRON_SECRET` comparado com `timingSafeEqual` sobre SHA-256 e falham fechadas sem segredo.", "evidencia": "`src/lib/security/cron-auth.ts:11-17`; `src/app/api/jobs/drain/route.ts:13`"},
+        {"texto": "Sessão da equipe com duração máxima: vencida, os papéis saem da sessão (falha fechada).", "evidencia": "`src/lib/auth/require-role.ts:31-36`"}
+      ]
+    },
+    {
+      "id": "c3",
+      "curto": "3. IDOR",
+      "nome": "3. IDOR (objeto por ID sem checar posse ou escopo)",
+      "metodo": "Percorremos todos os 37 handlers de rota e as 142 ações. Para cada um que recebe um ID (path, query, form ou corpo), verificamos se a posse ou o escopo (editoria, autoria, token do dono) é checado sobre o objeto, e se a consulta usa o cliente da sessão (RLS aplicada) ou a service role (RLS ignorada).",
+      "pontos_fortes": [
+        {"texto": "`api/push/subscriptions/[id]` (PATCH/DELETE) e `rotate` usam a service role, mas exigem o hash do Bearer do dono comparado em tempo constante: não há IDOR.", "evidencia": "`src/lib/push/api.ts:221-238,286-288`, `src/lib/push/token.ts:17-21`"},
+        {"texto": "Alertas e newsletter: o e-mail-alvo vem do token HMAC com finalidade e expiração, nunca do formulário; o update é restrito por `owner_ref` do token.", "evidencia": "`src/lib/db/writes.ts:223-238`, `src/lib/newsletter/token.ts:43-68`"},
+        {"texto": "Perfil, migração e senha gravam só em `reader.user.id`, com o cliente da sessão sob RLS.", "evidencia": "`src/app/(public)/perfil/actions.ts`, `src/app/(public)/entrar/migrar/actions.ts`"},
+        {"texto": "`api/media/[id]` público: cliente anon (RLS `approved`) mais nova checagem de status e da flag de reprodução.", "evidencia": "`src/lib/media/serve.ts:46-47`"},
+        {"texto": "Correções e publicação forçada repetem `can(section)` por objeto; correção confere que a denúncia pertence à matéria.", "evidencia": "`src/lib/studio/forced-publish.ts:91-94`, `src/lib/studio/corrections.ts:34-43`"},
+        {"texto": "Sem redirecionamento aberto: `next` passa por `internalPath` (decodifica até 3 camadas, recusa `//`, `\\` e caracteres de controle, exige a mesma origem).", "evidencia": "`src/lib/auth/safe-path.ts:11-30`, `src/app/auth/callback/route.ts:21`"}
+      ]
+    },
+    {
+      "id": "c4",
+      "curto": "4. Chaves expostas",
+      "nome": "4. Chaves expostas (hardcode)",
+      "metodo": "Busca por padrões de segredo (JWT `eyJhbGci`, `sk-`, `sk-or-`, `ghp_`, `github_pat_`, `AKIA`, `sb_secret_`, `BEGIN PRIVATE KEY`, VAPID, senhas) em arquivos rastreados, workflows, scripts, migrations (chamadas de pg_cron/pg_net), `config.toml`, seed e docs. O mesmo no histórico git com `git log --all -G`. Verificamos fallbacks `?? \"default\"` que viram segredo real, validação de startup e quais variáveis `NEXT_PUBLIC_*` entram no bundle.",
+      "pontos_fortes": [
+        {"texto": "Nenhum segredo real em arquivos rastreados nem no histórico git (213 commits); nenhum `.env`, `.pem` ou `logs/*.jsonl` já foi commitado.", "evidencia": "`git log --all -G` (padrões acima); `logs/.gitkeep` é o único arquivo em `logs/`"},
+        {"texto": "pg_cron e pg_net leem o segredo do Vault; nada hardcoded nas migrations.", "evidencia": "`0004_pipeline.sql:305-320`, `0053_agenda_collector.sql:50-54`"},
+        {"texto": "Só `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` e `NEXT_PUBLIC_VAPID_PUBLIC_KEY` vão para o bundle; a service role vive em módulo `server-only`.", "evidencia": "`src/lib/db/client.ts:1`"},
+        {"texto": "Fallbacks de desenvolvimento falham fechados em produção (token da newsletter e sal do rate limit devolvem `null`).", "evidencia": "`src/lib/newsletter/token.ts:17-21`, `src/lib/security/rate-limit.ts:27-38`"},
+        {"texto": "Sem chave do OpenRouter, cai no provedor `fake` em vez de usar um valor padrão.", "evidencia": "`src/lib/ai/openrouter.ts:21`"},
+        {"texto": "Workflows usam `secrets.*`, mascaram valores e declaram `permissions: contents: read`.", "evidencia": "`.github/workflows/ci.yml`"}
+      ]
+    },
+    {
+      "id": "c5",
+      "curto": "5. Inputs (XSS)",
+      "nome": "5. Inputs sem tratamento (XSS e injeções de saída)",
+      "metodo": "Busca por `dangerouslySetInnerHTML`, `innerHTML`, `insertAdjacentHTML`, `document.write`, `eval` e `new Function`. Verificamos renderizadores de markdown, `href`/`src` vindos de dados externos (`javascript:`), JSON-LD em `<script>`, templates de e-mail, geração de ICS e CSV, uploads (SVG), o clique de notificação no service worker e a aplicação de `sanitizeExternalText`. Avaliamos a CSP como mitigação.",
+      "pontos_fortes": [
+        {"texto": "Os seis `dangerouslySetInnerHTML` são seguros: sprite estático, script de tema constante com nonce e JSON-LD escapado (`<` vira `\\u003c`).", "evidencia": "`src/lib/seo/jsonld.ts:153-155`, `src/app/layout.tsx:50,65`, `src/components/ui/IconSprite.tsx:17`"},
+        {"texto": "Nenhum `innerHTML`, `eval`, `new Function` ou renderizador de markdown no projeto.", "evidencia": "grep em `src/`; `package.json`"},
+        {"texto": "CSP forte: nonce por requisição, `strict-dynamic`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, HSTS e nosniff.", "evidencia": "`src/lib/security/headers.ts:24-56`, `src/proxy.ts:47-67`"},
+        {"texto": "URLs externas validadas na entrada (só http/https; agenda e anúncios só https).", "evidencia": "`src/lib/db/queries/aggregated.ts:35-39`, `src/lib/agenda/submission.ts:97`, `src/lib/studio/admin-ops.ts:37-45`"},
+        {"texto": "Clique em notificação só abre caminho interno ou a mesma origem (`safeTarget`).", "evidencia": "`src/sw/core.ts:127-130,172-184`"},
+        {"texto": "SVG recusado em todos os caminhos de imagem; `Content-Type` sai do formato analisado, com nosniff.", "evidencia": "`src/lib/media/fetch-image.ts:84-86`, `src/lib/media/serve.ts:63-70`"},
+        {"texto": "`sanitizeExternalText` aplicado em todo o pipeline de coleta e IA; e-mails ao leitor são texto puro.", "evidencia": "`src/lib/security/sanitize.ts`; `src/lib/db/writes.ts:167-192`"},
+        {"texto": "Exportações CSV de logs e push protegidas contra fórmula.", "evidencia": "`src/lib/control/index.ts:191-196`, `src/lib/push/csv.ts:5-11`"}
+      ]
+    }
+  ],
+  "pontos_fracos": [
+    "Políticas de RLS antigas mais amplas que as views criadas depois para recortar o dado: `public_article_versions` e as colunas públicas de `articles` são contornáveis lendo a tabela diretamente pelo PostgREST (C1-01, C1-04).",
+    "Funções `security definer` liberadas a `authenticated` sem checar papel. Com cadastro público aberto, `authenticated` = qualquer pessoa (C1-03, C1-05, C1-07, C1-08).",
+    "Identidade por e-mail sem prova de posse quando a confirmação de e-mail está desligada (`enable_confirmations = false`), afetando exportação e exclusão LGPD (C1-02).",
+    "Escopo por editoria checado só no objeto de entrada, e não no conjunto afetado, em operação em lote com service role (C3-01).",
+    "Higiene de segredos dependente do operador: `.gitignore` incompleto para `.env.prod`, `CRON_SECRET` sem validação de força e reaproveitado como chave HMAC, backup sem cifra em repositório privado (C4-01, C4-02, C4-03, C4-04)."
+  ],
+  "achados": [
+    {
+      "id": "C1-01", "categoria": "c1", "severidade": "média",
+      "titulo": "Anônimos leem todas as versões (inclusive rascunhos pré-publicação) de matérias publicadas",
+      "locais": ["supabase/migrations/0002_rls.sql:164-165", "supabase/migrations/0008_portal.sql:64-73 (view que deveria recortar)"],
+      "descricao": "A política `article_versions_read_public` libera a anon a tabela inteira `article_versions` de qualquer matéria publicada ou atualizada: o `snapshot` completo (título, corpo, tags, SEO, `fieldOrigins`), `origin` ('ai'/'human') e `author_id`, incluindo versões anteriores à publicação. A view `public_article_versions` foi criada para expor só as versões pós-publicação, sem autor nem origem, mas a política da tabela anula esse recorte. Explorável com `GET /rest/v1/article_versions?select=*&article_id=eq.<id>` e a anon key do bundle.",
+      "condicoes": "Nenhuma: vale para toda matéria publicada.",
+      "trecho": "create policy article_versions_read_public on article_versions for select to anon, authenticated\n  using (exists (select 1 from articles a where a.id = article_id\n                 and a.status in ('published', 'updated')));"
+    },
+    {
+      "id": "C1-02", "categoria": "c1", "severidade": "média",
+      "titulo": "Sem confirmação de e-mail, quem cadastra o e-mail de outra pessoa exporta e apaga os dados dela",
+      "locais": ["supabase/config.toml:225", "supabase/migrations/0021_reader_email_gate.sql:112-144", "supabase/migrations/0021_reader_email_gate.sql:47-63", "supabase/migrations/0024_profiles_on_delete.sql:43-89"],
+      "descricao": "`export_email_data()` (security definer, liberada a `authenticated`) devolve as inscrições na newsletter, os alertas (com alvos seguidos) e os metadados de e-mails ligados ao e-mail da conta, exigindo só `email_confirmed_at is not null`. Com `enable_confirmations = false`, o GoTrue marca o e-mail como confirmado no cadastro. O atacante cria conta com o e-mail da vítima (que assina newsletter ou alertas sem ter conta), chama `rpc('export_email_data')` e depois pede exclusão da conta: `purge_deleted_accounts` chama `purge_email_data`, que apaga newsletter, alertas e fila da vítima.",
+      "condicoes": "Produção com \"Confirm email\" desligado, como no `config.toml` versionado. A vítima não pode ter conta com o mesmo e-mail.",
+      "trecho": "# supabase/config.toml:225\nenable_confirmations = false\n-- 0021:123-124\nselect lower(u.email) into e from auth.users u\n where u.id = (select auth.uid()) and u.email_confirmed_at is not null;"
+    },
+    {
+      "id": "C1-03", "categoria": "c1", "severidade": "média",
+      "titulo": "Qualquer conta grava entradas falsas e imutáveis no audit_log via push_audit",
+      "locais": ["supabase/migrations/0041_push_admin.sql:138-153", "supabase/migrations/0002_rls.sql:379-380"],
+      "descricao": "`push_audit` é `security definer`, liberada a `authenticated` e só exige que a ação comece com `push.`. Não checa papel, tamanho de `p_details` nem frequência. Uma conta de leitor (cadastro aberto) chama `rpc('push_audit', {p_action:'push.approve', p_object:'push:<id>', p_details:{...}})` e forja trilhas de aprovação de push. Como `audit_log` é imutável, as entradas não podem ser removidas, o que também permite inflar o armazenamento. Agravante: a política `audit_log_insert` deixa qualquer papel da equipe (inclusive `leitura`) inserir qualquer `action`, contornando a lista fechada de `studio_audit_actions()`.",
+      "condicoes": "Só uma conta autenticada.",
+      "trecho": "create or replace function public.push_audit(p_action text, p_object text, p_details jsonb ...)\n... security definer ...\n  if p_action not like 'push.%' then raise exception ...\n  insert into audit_log (actor, action, object_ref, details) values (...);\n...\ngrant execute on function public.push_audit(text, text, jsonb) to authenticated, service_role;"
+    },
+    {
+      "id": "C1-04", "categoria": "c1", "severidade": "baixa",
+      "titulo": "Colunas internas de matérias publicadas legíveis por anônimos",
+      "locais": ["supabase/migrations/0002_rls.sql:150"],
+      "descricao": "`articles_read_public` libera todas as colunas das matérias publicadas, sem grant por coluna: `author_id`, `assignee_id`, `agent_id`, `publish_mode`, `confidence_score`, `review_reason`, `ai_fallback`, `rules_version`, `field_origins`, `ai_summary_reviewed_by`, `due_at`, `short_reason`, `embedding`. Explorável com `GET /rest/v1/articles?select=*`. Expõe metadados editoriais e de IA que a UI pública deliberadamente esconde (CLAUDE.md §5.3). Não expõe dado de leitor.",
+      "condicoes": "Nenhuma.",
+      "trecho": "create policy articles_read_public on articles for select to anon, authenticated\n  using (status in ('published', 'updated'));"
+    },
+    {
+      "id": "C1-05", "categoria": "c1", "severidade": "baixa",
+      "titulo": "Oráculo de papéis: qualquer conta descobre quem é admin ou editor",
+      "locais": ["supabase/migrations/0002_rls.sql:116-125", "supabase/migrations/0008_portal.sql:27-32", "supabase/migrations/0027_control_center.sql:235", "supabase/migrations/0041_push_admin.sql:134-135"],
+      "descricao": "`has_role`, `is_staff`, `has_any_role`, `can_edit_section`, `article_owner`, `article_section`, `control_can_*` e `push_can` recebem um `uid` arbitrário e estão liberadas a `authenticated`. A view `public_bylines` entrega a anon o id e o nome de toda pessoa com papel. Uma conta comum chama `rpc('has_role', {uid, role:'admin'})` e mapeia admins para phishing direcionado; `article_owner` e `article_section` revelam autor e editoria de rascunhos se o UUID for conhecido.",
+      "condicoes": "Conta autenticada (cadastro aberto).",
+      "trecho": "grant execute on function public.has_role(uuid, app_role, text), public.is_staff(uuid),\n  public.has_any_role(uuid, app_role[]), public.can_edit_section(uuid, text), ...\n  to authenticated, service_role;"
+    },
+    {
+      "id": "C1-06", "categoria": "c1", "severidade": "baixa",
+      "titulo": "Eventos individuais e perfis de leitores lidos por papéis amplos da equipe",
+      "locais": ["supabase/migrations/0002_rls.sql:337-340", "supabase/migrations/0002_rls.sql:352"],
+      "descricao": "`events_read_metrics` libera linhas individuais de `events` (com `anon_id`, `user_id`, `session` e termos buscados em `props.query`) a `editor` e `leitura`, que só precisam de agregados. `profiles_read_staff` deixa qualquer papel da equipe ler todos os perfis de leitores (nome, bairro, pedido de exclusão). É acesso maior que o necessário a dados pessoais (minimização, LGPD).",
+      "condicoes": "Membro da equipe com papel `leitura`, `editor`, `analista` ou similar.",
+      "trecho": "create policy events_read_metrics on events for select to authenticated\n  using (has_any_role((select auth.uid()), '{admin,editor_chefe,editor,operador_ia,analista,leitura}'));"
+    },
+    {
+      "id": "C1-07", "categoria": "c1", "severidade": "informativa",
+      "titulo": "Funções security definer sem checagem de papel, de baixo impacto",
+      "locais": ["supabase/migrations/0048_p5_gate_fixes.sql:32-61", "supabase/migrations/0011_source_admin.sql:167-181", "supabase/migrations/0041_push_admin.sql:102-103"],
+      "descricao": "`approval_target_hash` devolve o sha256 de regras, prompts e pesos (oráculo de conteúdo). `lock_fast_lane_max` permite que qualquer conta faça `SELECT ... FOR UPDATE` em `app_settings` (lock curto). `push_settings_int` lê chaves `push.*`. Todas estão liberadas a `authenticated` sem checar papel."
+    },
+    {
+      "id": "C1-08", "categoria": "c1", "severidade": "informativa",
+      "titulo": "Revogação incompleta (`from public, anon`) e guarda `auth.uid() is not null and ...`",
+      "locais": ["supabase/migrations/0011_source_admin.sql:628-633", "supabase/migrations/0048_p5_gate_fixes.sql:100", "supabase/migrations/0027_control_center.sql:37-48"],
+      "descricao": "`consume_source_critical_approval` e `approval_assert_content` foram revogadas só de public e anon, então seguem executáveis por `authenticated` (hoje inofensivas). Funções como `control_guard_view`, `contingency_pause_cycle`, `prompt_rollback` e `rules_rollback` deixam passar quando `auth.uid()` é nulo; estão seguras só porque anon foi revogado. É um padrão frágil para mudanças futuras."
+    },
+    {
+      "id": "C2-01", "categoria": "c2", "severidade": "baixa",
+      "titulo": "Validação do bairro do perfil confia em valor-base enviado pelo navegador",
+      "locais": ["src/app/(public)/perfil/actions.ts:20-23", "src/components/editorial/AccountForms.tsx:53"],
+      "descricao": "A ação aceita o bairro se ele for igual a `current_neighborhood`, campo oculto vindo do próprio formulário. Enviar `neighborhood=X&current_neighborhood=X` grava qualquer texto, sem limite de tamanho, em `profiles.neighborhood`. O alcance é só o próprio perfil, e `profiles_update_self` (`0002:354`) já permite o mesmo pelo PostgREST: a validação do servidor é ilusória e o banco não tem `check` de tamanho ou lista.",
+      "condicoes": "Leitor autenticado, só no próprio perfil.",
+      "trecho": "const current = String(form.get(\"current_neighborhood\") ?? \"\").trim();\nconst allowed = hood === \"\" || hood === current || NEIGHBORHOODS.some((n) => n.name === hood);"
+    },
+    {
+      "id": "C2-02", "categoria": "c2", "severidade": "informativa",
+      "titulo": "Recibo de push: consentimento lido de cookie do cliente e `sendId` sem vínculo",
+      "locais": ["src/lib/push/api.ts:294-306"],
+      "descricao": "O consentimento vem do cookie `cn_consent`, que o próprio cliente define, e o `sendId` não é ligado a nenhuma inscrição. Com o Origin certo, qualquer pessoa infla `delivered`/`clicked` e o CTR de qualquer envio. O limite de 120 recibos por hora por IP atenua."
+    },
+    {
+      "id": "C2-03", "categoria": "c2", "severidade": "informativa",
+      "titulo": "Push urgente em publishAction sem checagem na própria Server Action",
+      "locais": ["src/app/estudio/actions.ts:258-271"],
+      "descricao": "A UI só oferece o urgente com `canRequestUrgent`, mas a ação chama `requestUrgentPush` sem rechecar. Não é explorável: o trigger `guard_push_sends` barra (`0047_push_gate_fixes.sql:115-116`). Falta uma camada de defesa, mas não há falha."
+    },
+    {
+      "id": "C3-01", "categoria": "c3", "severidade": "média",
+      "titulo": "Editor de uma editoria remove imagens de todas as editorias (\"remover todas da fonte\")",
+      "locais": ["src/lib/studio/media.ts:119-137", "src/app/estudio/actions.ts:367-373", "src/lib/db/pipeline-store.ts:1060-1068", "src/lib/auth/permissions.ts:73"],
+      "descricao": "`takedownImage` checa `media.approve` só no escopo da imagem passada em `id` (`mediaScope`). Com `allFromSource: true`, a remoção vai para todas as reproduções do mesmo `source_id`, sem filtro de editoria, e roda com a service role, que ignora a RLS e apaga a cópia no Storage. Um `editor` com `sections=[\"esportes\"]` escolhe uma reprodução da própria editoria e remove, de forma irreversível, as imagens daquele veículo em matérias de todas as outras editorias.",
+      "condicoes": "Papel `editor` restrito a editoria e uma reprodução da fonte ligada a uma matéria da editoria dele. Para revisor e editor-chefe (escopo `all`) não há escalada.",
+      "trecho": "export const takedownImage = studioAction(\n  \"media.approve\",\n  (i: TakedownInput, ctx) => mediaScope(ctx, i.id),   // escopo de UMA imagem\n  async (i, ctx) => { ...\n    const service = createServiceClient();\n    const target = i.allFromSource && m.source_id ? { sourceId: m.source_id } : { mediaId: i.id };"
+    },
+    {
+      "id": "C3-02", "categoria": "c3", "severidade": "baixa",
+      "titulo": "Prévia de mídia do Estúdio serve qualquer imagem (pendente ou bloqueada) a qualquer papel",
+      "locais": ["src/app/api/estudio/midia/[id]/route.ts:21-22", "src/app/api/estudio/midia/[id]/route.ts:44-50", "supabase/migrations/0002_rls.sql:190"],
+      "descricao": "A rota exige só que a sessão tenha algum papel (`roles.length > 0`), enquanto as telas exigem `media.approve` ou `article.edit`. Ela força `status: \"approved\"` e ignora a flag `image_reproduction_enabled`. Quem tem `leitura`, `analista`, `moderador` ou `operador_ia` lista os ids pelo PostgREST (`media_assets_read_staff`) e baixa os bytes de imagens bloqueadas por motivo legal que ainda estejam no Storage. O `jornalista` vê imagens que não são das matérias dele.",
+      "condicoes": "Conta com qualquer papel da equipe.",
+      "trecho": "const session = await getSession();\nif (!session || session.roles.length === 0) return notFound();\n...\n  status: \"approved\",\n...\nreproductionEnabled: async () => true,"
+    },
+    {
+      "id": "C3-03", "categoria": "c3", "severidade": "informativa",
+      "titulo": "Denúncia aceita qualquer `contentRef` com formato de UUID",
+      "locais": ["src/lib/reports/report.ts:33", "src/lib/db/writes.ts:241-256"],
+      "descricao": "O código não confere se o conteúdo existe ou é público antes de gravar com a service role. Só polui a fila de denúncias (limite de 5 por hora por IP) e não escala: `openCorrection` confere a matéria."
+    },
+    {
+      "id": "C4-01", "categoria": "c4", "severidade": "média",
+      "titulo": ".gitignore não cobre .env.prod e um script manda criá-lo com a service role de produção",
+      "locais": [".gitignore:3-4", "scripts/release-backlog.mjs:11"],
+      "descricao": "Só `.env` e `.env*.local` são ignorados; `git check-ignore` confirma que `.env.prod`, `.env.production` e `.env.development` não estão ignorados. O fluxo documentado (`node --env-file=.env.prod ...`) leva o operador a criar `.env.prod` com `SUPABASE_SERVICE_ROLE_KEY` de produção. Um `git add -A` (o agente autônomo tem `Bash(git:*)` liberado) commitaria a chave, que ignora toda a RLS.",
+      "condicoes": "O arquivo precisa ser criado e commitado. Hoje não existe nem no disco nem no histórico.",
+      "trecho": "# .gitignore:3-4\n.env*.local\n.env\n# scripts/release-backlog.mjs:11\n//   node --env-file=.env.prod  scripts/release-backlog.mjs --apply --confirm-host=<projeto>.supabase.co"
+    },
+    {
+      "id": "C4-02", "categoria": "c4", "severidade": "baixa",
+      "titulo": "CRON_SECRET sem validação de força nem checagem de placeholder na inicialização",
+      "locais": ["src/lib/security/cron-auth.ts:11-17", ".env.example:8"],
+      "descricao": "`isCronAuthorized` só recusa segredo vazio. Não há módulo de validação de ambiente nem `instrumentation.ts`. Se `.env.example` for copiado sem troca, o valor público `substituir-por-32-caracteres-aleatorios` autoriza as 6 rotas de cron (ingest e jobs) e vira a chave HMAC dos links da newsletter.",
+      "condicoes": "Erro de configuração do operador.",
+      "trecho": "export function isCronAuthorized(header: string | null, secret: string | undefined): boolean {\n  if (!secret) return false;   // aceita qualquer valor não vazio, inclusive o placeholder"
+    },
+    {
+      "id": "C4-03", "categoria": "c4", "severidade": "informativa",
+      "titulo": "CRON_SECRET reaproveitado como chave HMAC da newsletter e sal do rate limit",
+      "locais": ["src/lib/newsletter/token.ts:17-18", "src/lib/security/rate-limit.ts:27-28"],
+      "descricao": "Sem `NEWSLETTER_TOKEN_SECRET` ou `RATE_LIMIT_SALT`, os dois módulos usam o `CRON_SECRET`. Um vazamento do segredo de cron também permite forjar links de preferências de newsletter e alertas para qualquer e-mail. Os fallbacks de desenvolvimento falham fechados em produção (ponto forte)."
+    },
+    {
+      "id": "C4-04", "categoria": "c4", "severidade": "baixa",
+      "titulo": "Backup de produção (com auth.users) sai sem cifra em repositório privado",
+      "locais": [".github/workflows/backup.yml:35", ".github/workflows/backup.yml:63-68"],
+      "descricao": "O dump inclui o schema `auth` (hashes de senha, e-mails). A cifra GPG só é exigida quando o repositório é público; em repositório privado, o artifact fica 7 dias sem cifra, baixável por qualquer pessoa com leitura no repositório (colaboradores, tokens, apps).",
+      "condicoes": "Repositório privado sem o secret `BACKUP_PASSPHRASE`.",
+      "trecho": "elif [ \"$REPO_PRIVATE\" != \"true\" ] && [ -z \"${BACKUP_PASSPHRASE:-}\" ]; then   # só bloqueia se público\n...\nif [ -n \"${BACKUP_PASSPHRASE:-}\" ]; then gpg ... --symmetric ...   # cifra opcional"
+    },
+    {
+      "id": "C4-05", "categoria": "c4", "severidade": "informativa",
+      "titulo": "Credenciais locais e de teste conhecidas, e ref do projeto de produção na documentação",
+      "locais": ["scripts/local-stack/env.sh:19", "scripts/local-stack/start.sh:99", "supabase/seed.sql:64", "README.md:80,103"],
+      "descricao": "`JWT_SECRET` padrão do Supabase local, `CRON_SECRET` local, senha `citynews-local-123` dos usuários de seed e `ci-secret-...` no CI: todos só para ambiente local ou CI (o seed não roda em produção). O README e `.planning/` citam o ref `vmvirmemxfdtxfdmivuu`, já público pela `NEXT_PUBLIC_SUPABASE_URL`. Sem ação necessária além de garantir que esses valores nunca vão para produção."
+    },
+    {
+      "id": "C5-01", "categoria": "c5", "severidade": "baixa",
+      "titulo": "Injeção em arquivo ICS: `;` não é escapado e CR sozinho não é tratado",
+      "locais": ["src/lib/ics.ts:42-48", "src/lib/ics.ts:94-97", "src/app/api/ics/[slug]/route.ts:20-28"],
+      "descricao": "Em JS, `\"\\;\"` é só `\";\"`, então o ponto e vírgula não é escapado. `/\\r?\\n/` deixa passar um `\\r` sozinho, que parsers tolerantes tratam como quebra de linha: um título ou descrição com `\\rATTACH:...` ou `\\rEND:VEVENT` injeta propriedades ou eventos no .ics baixado. O texto coletado passa por `sanitizeExternalText` (normaliza CR), mas a sugestão pública de evento (`src/lib/agenda/submission.ts`) não remove caracteres de controle.",
+      "condicoes": "Sugestão de evento com `\\r` enviada por POST manual e aprovada pela equipe. Não é XSS no portal.",
+      "trecho": "function escape(text: string): string {\n  return text\n    .replace(/\\\\/g, \"\\\\\\\\\")\n    .replace(/;/g, \"\\;\")        // \"\\;\" === \";\": não escapa\n    .replace(/,/g, \"\\\\,\")\n    .replace(/\\r?\\n/g, \"\\\\n\");  // CR sozinho passa\n}"
+    },
+    {
+      "id": "C5-02", "categoria": "c5", "severidade": "baixa",
+      "titulo": "Injeção de fórmula no CSV do histórico de fontes",
+      "locais": ["src/components/studio/sources/SourceAuditTable.tsx:79-96"],
+      "descricao": "`csvCell` só dobra aspas; `r.actor.name` e `r.reason` começando com `=`, `+`, `-` ou `@` viram fórmula (ex.: `=HYPERLINK(...)`) no Excel de quem exportar. As outras exportações usam `toCsv`, que já protege.",
+      "condicoes": "Membro da equipe mal-intencionado (nome de exibição ou motivo) e a vítima abrir o CSV numa planilha.",
+      "trecho": "const csvCell = (s: string) => `\"${s.replace(/\"/g, '\"\"')}\"`;\n...\n  r.actor.name, ..., r.reason ?? \"\", ...  ].map(csvCell)"
+    }
+  ],
+  "recomendacoes": [
+    {"prioridade": "P1", "acao": "Remover a política `article_versions_read_public` e servir o histórico público só pela view `public_article_versions`.", "achados": ["C1-01"]},
+    {"prioridade": "P1", "acao": "Ligar \"Confirm email\" no Supabase de produção (e em `config.toml`). Até lá, recusar `export_email_data` e o expurgo por e-mail para contas cujo e-mail não foi confirmado por link.", "achados": ["C1-02"]},
+    {"prioridade": "P1", "acao": "`push_audit`: exigir `push_can(auth.uid(), ...)`, limitar o tamanho de `p_details` e aplicar rate limit. Restringir `audit_log_insert` à lista de `studio_audit_actions()` ou removê-la.", "achados": ["C1-03"]},
+    {"prioridade": "P1", "acao": "`takedownImage` com `allFromSource`: exigir `media.approve` com escopo `all`, ou filtrar o lote pelas editorias do usuário.", "achados": ["C3-01"]},
+    {"prioridade": "P1", "acao": "`.gitignore`: trocar por `.env*` com `!.env.example`.", "achados": ["C4-01"]},
+    {"prioridade": "P2", "acao": "Grant de SELECT por coluna em `articles` para anon (ou servir o portal por view) e revogar as funções de papel com `uid` arbitrário de `authenticated`, trocando por wrappers baseados em `auth.uid()`.", "achados": ["C1-04", "C1-05"]},
+    {"prioridade": "P2", "acao": "Rota de prévia de mídia do Estúdio: exigir `media.approve` ou `article.edit` com escopo do objeto e respeitar `blocked`.", "achados": ["C3-02"]},
+    {"prioridade": "P2", "acao": "Validação de ambiente na inicialização (`instrumentation.ts`): `CRON_SECRET` com 32 caracteres ou mais e nunca o placeholder. Segredos separados para newsletter e rate limit.", "achados": ["C4-02", "C4-03"]},
+    {"prioridade": "P2", "acao": "Backup: exigir `BACKUP_PASSPHRASE` sempre, inclusive em repositório privado.", "achados": ["C4-04"]},
+    {"prioridade": "P3", "acao": "Escape correto no ICS (`\\;`, `\\r\\n|\\r|\\n` e remoção de controles) e proteção contra fórmula no CSV de fontes.", "achados": ["C5-01", "C5-02"]},
+    {"prioridade": "P3", "acao": "Dar a `editor` e `leitura` agregados em vez de `events` crus; rever `profiles_read_staff`.", "achados": ["C1-06"]},
+    {"prioridade": "P3", "acao": "Bairro: validar só pela lista (sem campo-base do cliente) e adicionar `check` no banco.", "achados": ["C2-01"]},
+    {"prioridade": "P3", "acao": "Endurecimento: padronizar `revoke ... from public, anon, authenticated`, falhar quando `auth.uid()` for nulo fora da service role, rechecar `canRequestUrgent` na ação, validar a existência de `contentRef` e vincular o recibo de push à inscrição.", "achados": ["C1-07", "C1-08", "C2-02", "C2-03", "C3-03"]}
+  ],
+  "issues": [
+    {
+      "titulo": "[Segurança] Anônimos leem todas as versões de matérias publicadas, inclusive rascunhos pré-publicação",
+      "severidade": "média", "achados": ["C1-01"],
+      "descricao": "A política RLS `article_versions_read_public` libera a `anon` e a `authenticated` todas as linhas de `article_versions` de matérias publicadas ou atualizadas, com o `snapshot` completo, `origin` (ai/human) e `author_id`. A view `public_article_versions` foi criada para expor só as versões pós-publicação e sem esses campos, mas o PostgREST permite ler a tabela diretamente com a anon key pública: `GET /rest/v1/article_versions?select=*&article_id=eq.<id>`.",
+      "impacto": "Vaza texto de rascunhos que nunca foram publicados (inclusive trechos removidos na revisão), a origem IA ou humana de cada campo e o UUID dos autores. Contraria a regra de produto §5.3 (nenhuma tela pública expõe origem IA).",
+      "correcao": "Nova migration com `drop policy article_versions_read_public on article_versions;`. Se algum caminho público ler a tabela, trocar pela view `public_article_versions`. Adicionar o caso a `tests/security/rls.test.ts`.",
+      "aceite": ["`select` anônimo em `article_versions` devolve 0 linhas", "`public_article_versions` continua devolvendo só versões pós-publicação", "Teste de RLS cobre o caso", "`pnpm verify` verde"]
+    },
+    {
+      "titulo": "[Segurança] Sem confirmação de e-mail, conta com e-mail alheio exporta e apaga dados da vítima",
+      "severidade": "média", "achados": ["C1-02"],
+      "descricao": "`export_email_data()` e o expurgo de conta (`purge_deleted_accounts` → `purge_email_data`) confiam em `auth.users.email_confirmed_at`. Com `enable_confirmations = false`, o GoTrue confirma o e-mail no cadastro, então qualquer pessoa cria conta com o e-mail de um assinante e passa a ser tratada como dona dos dados dele.",
+      "impacto": "Leitura (inscrições, alertas e assuntos seguidos) e exclusão de dados pessoais de terceiros, com efeito sobre direitos LGPD de acesso e eliminação.",
+      "correcao": "Ligar \"Confirm email\" no projeto de produção e em `supabase/config.toml`. Como defesa adicional, registrar a confirmação por link próprio (ex.: `reader_emails` confirmado) e exigir isso em `export_email_data` e `purge_email_data`.",
+      "aceite": ["Cadastro novo não tem `email_confirmed_at` até clicar no link", "`export_email_data` devolve null para conta sem confirmação por link", "Expurgo não apaga dados por e-mail de conta não confirmada", "Teste de integração cobre o cenário"]
+    },
+    {
+      "titulo": "[Segurança] push_audit permite que qualquer conta grave entradas falsas e imutáveis no audit_log",
+      "severidade": "média", "achados": ["C1-03"],
+      "descricao": "`public.push_audit` é `security definer`, liberada a `authenticated` (cadastro aberto) e só exige `p_action like 'push.%'`. Não checa papel, tamanho nem frequência. Além disso, a política `audit_log_insert` deixa qualquer papel da equipe inserir qualquer `action` diretamente.",
+      "impacto": "Forja da trilha de auditoria (ex.: `push.approve` falso), que não pode ser apagada por causa da imutabilidade, e crescimento ilimitado da tabela.",
+      "correcao": "Em `push_audit`: exigir `push_can(auth.uid(), ...)` ou `is_staff`, limitar `p_details` a cerca de 1 KB e aplicar `hit_rate_limit`, como já faz `studio_audit` (0025). Restringir `audit_log_insert` a `action = any(studio_audit_actions())` ou removê-la, centralizando a gravação em funções.",
+      "aceite": ["Leitor sem papel recebe 42501 ao chamar `push_audit`", "`p_details` acima do limite é recusado", "Insert direto com action fora da lista falha", "Testes de RLS e RPC adicionados"]
+    },
+    {
+      "titulo": "[Segurança] Editor de editoria remove imagens de outras editorias via \"remover todas da fonte\"",
+      "severidade": "média", "achados": ["C3-01"],
+      "descricao": "`takedownImage` (`src/lib/studio/media.ts:119-137`) valida `media.approve` só no escopo da imagem `id`. Com `allFromSource: true`, a remoção atinge todas as reproduções do mesmo `source_id`, com a service role, sem filtrar por editoria.",
+      "impacto": "Um editor restrito a uma editoria apaga, de forma irreversível (Storage), as imagens de reprodução daquele veículo em matérias de todas as editorias.",
+      "correcao": "Para `allFromSource`, exigir `can(session, \"media.approve\", { section: \"*\" })` (escopo `all`) ou filtrar as reproduções às matérias das editorias do usuário. Esconder o checkbox para quem não tem escopo total.",
+      "aceite": ["Editor com `sections=[x]` recebe `forbidden` ao usar `allFromSource`", "Editor-chefe e revisor continuam podendo", "Teste unitário de `takedownImage` cobre os dois papéis"]
+    },
+    {
+      "titulo": "[Segurança] .gitignore não cobre .env.prod / .env.production (risco de commitar service role)",
+      "severidade": "média", "achados": ["C4-01"],
+      "descricao": "O `.gitignore` só ignora `.env` e `.env*.local`. `scripts/release-backlog.mjs` documenta o uso de `.env.prod` com credenciais de produção, que não seria ignorado.",
+      "impacto": "Um `git add -A` (manual ou do agente autônomo) publicaria a `SUPABASE_SERVICE_ROLE_KEY` de produção, que ignora toda a RLS.",
+      "correcao": "Trocar as linhas por `.env*` e `!.env.example`. Opcional: hook de pre-commit ou secret scanning (gitleaks) no CI.",
+      "aceite": ["`git check-ignore .env.prod .env.production .env.development` retorna os três", "`.env.example` continua rastreado", "CI roda secret scanning (opcional)"]
+    },
+    {
+      "titulo": "[Segurança] Metadados internos de matérias e papéis da equipe expostos via PostgREST",
+      "severidade": "baixa", "achados": ["C1-04", "C1-05"],
+      "descricao": "`articles_read_public` libera todas as colunas de matérias publicadas (autor, `confidence_score`, `ai_fallback`, `field_origins`, `embedding`...). Funções como `has_role(uid, role)` recebem `uid` arbitrário e estão liberadas a `authenticated`; com os ids de `public_bylines`, qualquer conta mapeia quem é admin.",
+      "impacto": "Vazamento de metadados editoriais e de IA e enumeração de contas privilegiadas para phishing direcionado.",
+      "correcao": "`revoke select on articles from anon` + `grant select (colunas públicas) on articles to anon`, ou servir o portal por view. Revogar as funções de papel de `authenticated` e criar wrappers `my_*()` baseados em `auth.uid()`; RLS continua usando as originais (as políticas rodam como dono).",
+      "aceite": ["`GET /rest/v1/articles?select=confidence_score` anônimo falha", "`rpc('has_role')` de leitor falha", "Portal e Estúdio funcionam (e2e verde)"]
+    },
+    {
+      "titulo": "[Segurança] Papéis amplos da equipe leem eventos individuais e perfis de leitores",
+      "severidade": "baixa", "achados": ["C1-06"],
+      "descricao": "`events_read_metrics` libera linhas individuais de eventos (anon_id, user_id, buscas) a `editor` e `leitura`; `profiles_read_staff` libera todos os perfis a qualquer papel.",
+      "impacto": "Acesso a dados pessoais além do necessário (minimização, LGPD).",
+      "correcao": "Restringir `events` a admin e analista e expor agregados (views ou RPC) aos demais. Limitar `profiles_read_staff` a papéis que moderam ou atendem leitores.",
+      "aceite": ["Papel `leitura` não lê linhas de `events`", "Painéis de métricas continuam funcionando com agregados", "Teste de RLS atualizado"]
+    },
+    {
+      "titulo": "[Segurança] Prévia de mídia do Estúdio serve imagens pendentes ou bloqueadas a qualquer papel",
+      "severidade": "baixa", "achados": ["C3-02"],
+      "descricao": "`GET /api/estudio/midia/[id]` exige só `roles.length > 0`, força `status: approved` e ignora `image_reproduction_enabled`, enquanto as telas exigem `media.approve` ou `article.edit`.",
+      "impacto": "Papéis como `leitura` ou `analista` baixam imagens bloqueadas (inclusive por motivo legal) e de matérias fora do seu escopo.",
+      "correcao": "Exigir `canAccess(session, \"media.approve\")` ou `article.edit` com escopo da matéria ligada; para imagens `blocked`, só `media.approve`.",
+      "aceite": ["Papel `leitura` recebe 404", "Editor de outra editoria recebe 404", "Teste da rota cobre os papéis"]
+    },
+    {
+      "titulo": "[Segurança] Validação do bairro do perfil depende de campo oculto do cliente",
+      "severidade": "baixa", "achados": ["C2-01"],
+      "descricao": "`perfil/actions.ts` aceita qualquer `neighborhood` igual a `current_neighborhood`, que vem do próprio formulário, e o banco não restringe a coluna.",
+      "impacto": "O leitor grava texto arbitrário e longo no próprio perfil (dado sujo, possível abuso em telas da equipe que listam perfis).",
+      "correcao": "Ler o bairro atual do banco (não do form) ou validar só pela lista `NEIGHBORHOODS`. Adicionar `check (char_length(neighborhood) <= 80)` em `profiles`.",
+      "aceite": ["POST com bairro fora da lista é recusado", "`check` de tamanho no banco", "Teste unitário da ação"]
+    },
+    {
+      "titulo": "[Segurança] Validar CRON_SECRET na inicialização e separar segredos derivados",
+      "severidade": "baixa", "achados": ["C4-02", "C4-03"],
+      "descricao": "`isCronAuthorized` aceita qualquer segredo não vazio, inclusive o placeholder de `.env.example`. O mesmo segredo vira chave HMAC da newsletter e sal do rate limit quando as variáveis dedicadas faltam.",
+      "impacto": "Má configuração libera as rotas de cron, e um único vazamento compromete cron, links de newsletter e alertas.",
+      "correcao": "Criar `src/instrumentation.ts` (ou `src/lib/env.ts`) que, em produção, rejeite `CRON_SECRET` com menos de 32 caracteres ou contendo `substituir`. Exigir `NEWSLETTER_TOKEN_SECRET` e `RATE_LIMIT_SALT` próprios em produção.",
+      "aceite": ["Boot em produção falha com o placeholder", "`isCronAuthorized` recusa segredo curto", "Newsletter e rate limit não usam mais o fallback para `CRON_SECRET` em produção", "Testes unitários"]
+    },
+    {
+      "titulo": "[Segurança] Backup diário com auth.users sai sem cifra em repositório privado",
+      "severidade": "baixa", "achados": ["C4-04"],
+      "descricao": "`.github/workflows/backup.yml` só exige `BACKUP_PASSPHRASE` em repositório público; em privado, o dump (schemas public, auth e storage) fica 7 dias como artifact sem cifra.",
+      "impacto": "Qualquer pessoa ou token com leitura no repositório baixa e-mails e hashes de senha de toda a base.",
+      "correcao": "Pular o backup (com aviso) sempre que faltar `BACKUP_PASSPHRASE` e cifrar sempre.",
+      "aceite": ["Sem passphrase, o job não publica artifact", "Artifact publicado é sempre `.gpg`"]
+    },
+    {
+      "titulo": "[Segurança] Injeção em ICS e em CSV do histórico de fontes",
+      "severidade": "baixa", "achados": ["C5-01", "C5-02"],
+      "descricao": "`src/lib/ics.ts` não escapa `;` (`\"\\;\"` vira `\";\"` em JS) nem CR sozinho, permitindo injetar propriedades ou eventos no .ics. `SourceAuditTable.tsx` monta o CSV sem neutralizar fórmulas (`=`, `+`, `-`, `@`).",
+      "impacto": "Arquivo de calendário manipulado para quem baixa o evento; execução de fórmula na planilha de quem exporta o histórico.",
+      "correcao": "ICS: `.replace(/;/g, \"\\\\;\")`, `.replace(/\\r\\n|\\r|\\n/g, \"\\\\n\")` e remoção de caracteres de controle (também em `agenda/submission.ts`). CSV: reutilizar o `toCsv` protegido de `src/lib/control`.",
+      "aceite": ["Teste: `\"a;b\\rX:1\"` sai como `a\\;b\\nX:1`", "Teste: célula `=1+1` sai prefixada com `'`", "`pnpm verify` verde"]
+    },
+    {
+      "titulo": "[Segurança] Endurecimento: grants de funções, guardas de uid nulo e validações de defesa em profundidade",
+      "severidade": "informativa", "achados": ["C1-07", "C1-08", "C2-02", "C2-03", "C3-03"],
+      "descricao": "Itens sem exploração relevante hoje que tornam a base frágil a mudanças: funções `security definer` sem checagem de papel (`approval_target_hash`, `lock_fast_lane_max`, `push_settings_int`); revokes só `from public, anon`; guardas `auth.uid() is not null and ...`; `publishAction` sem rechecar `canRequestUrgent`; recibo de push sem vínculo com a inscrição; denúncia sem checar a existência do conteúdo.",
+      "impacto": "Baixo hoje, mas uma mudança futura (ex.: liberar anon numa função) vira falha real sem que nenhum teste acuse.",
+      "correcao": "Padronizar `revoke execute ... from public, anon, authenticated` + `grant` explícito; nas funções só de serviço, falhar se `auth.uid() is null and auth.role() <> 'service_role'`; checar papel nas três funções citadas; rechecar `canRequestUrgent` na ação; validar `contentRef` com `findPublicArticleId`; assinar o `sendId` no payload do push. Adicionar teste que liste funções `security definer` executáveis por authenticated e compare com uma allowlist.",
+      "aceite": ["Teste de allowlist de funções executáveis por `authenticated`", "Guardas de uid nulo revisadas", "Itens de defesa em profundidade aplicados"]
+    }
+  ]
+}
