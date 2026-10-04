@@ -45,6 +45,12 @@ export {
 export { Skeleton, type SkeletonProps } from "./ui/Skeleton";
 export { Slider, type SliderProps } from "./ui/Slider";
 export { StatGrid, type StatGridItem, type StatGridProps } from "./ui/StatGrid";
+export {
+  StatusBadge,
+  STATUS_TONE_CLASSES,
+  type StatusBadgeProps,
+  type StatusTone,
+} from "./ui/StatusBadge";
 export { TabBar, DEFAULT_TABS, type TabBarItem, type TabBarProps } from "./ui/TabBar";
 export { Tabs, type TabsProps } from "./ui/Tabs";
 export { TextField, type TextFieldProps } from "./ui/TextField";
