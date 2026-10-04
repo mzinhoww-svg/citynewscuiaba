@@ -4,8 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { cx } from "../cx";
 import { CollapsibleFilters } from "../ui/CollapsibleFilters";
-import { Icon } from "../ui/Icon";
 import { SegmentedToggle } from "../ui/SegmentedToggle";
+import { Select } from "../ui/Select";
 
 export interface TopicCoverageProps {
   /** Veículos com itens agregados no assunto. */
@@ -58,31 +58,16 @@ export function TopicCoverage({ sources, children, className }: TopicCoveragePro
           onChange={(v) => setOrigin(v === "citynews" || v === "external" ? v : "all")}
         />
         {sources.length > 1 && origin !== "citynews" && (
-          <div className="flex flex-col gap-1">
-            <label htmlFor={`${id}-fonte`} className="type-meta text-strong">
-              {TOPIC.filterSource}
-            </label>
-            <div className="relative">
-              <select
-                id={`${id}-fonte`}
-                value={source}
-                onChange={(e) => setSource(e.target.value)}
-                className="border-control h-tap cursor-pointer appearance-none rounded-pill bg-input pr-10 pl-4 text-14 text-strong"
-              >
-                <option value="">{TOPIC.allSources}</option>
-                {sources.map((s) => (
-                  <option key={s.slug} value={s.slug}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-              <Icon
-                name="chevron-down"
-                size={16}
-                className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-meta"
-              />
-            </div>
-          </div>
+          <Select
+            id={`${id}-fonte`}
+            name="fonte"
+            label={TOPIC.filterSource}
+            size="sm"
+            placeholder={TOPIC.allSources}
+            options={sources.map((s) => ({ value: s.slug, label: s.name }))}
+            value={source}
+            onChange={setSource}
+          />
         )}
       </CollapsibleFilters>
       {children}

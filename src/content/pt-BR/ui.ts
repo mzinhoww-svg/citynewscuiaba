@@ -25,4 +25,24 @@ export const UI = {
   trendUp: "alta",
   trendDown: "queda",
   chartSummary: "Valores do gráfico",
+  /** Contagem real de uma lista paginada ("Carregar mais"). */
+  showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
+  loadMore: "Carregar mais",
+  /** Contador de caracteres do `TextArea` com `maxLength` ("12/120"). */
+  charCount: (used: number, max: number) => `${used}/${max}`,
+  charCountLabel: (used: number, max: number) => `${used} de ${max} caracteres`,
+  /** Paginação numerada (`ui/Pagination`). */
+  pagination: {
+    prev: "Anterior",
+    next: "Próxima",
+    prevLabel: "Página anterior",
+    nextLabel: "Próxima página",
+    of: (page: number, total: number) => `Página ${page} de ${total}`,
+    page: (page: number) => `Página ${page}`,
+  },
+  /** Texto padrão do botão em carregamento (`Button loading`, `SubmitButton`). */
+  saving: "Salvando…",
+  cancel: "Cancelar",
+  /** Toast (item 36): botão de fechar o aviso flutuante. */
+  closeToast: "Fechar aviso",
 } as const;

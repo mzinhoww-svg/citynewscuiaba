@@ -11,6 +11,7 @@ import {
 } from "@/lib/auth/form-state";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
+import { FormStatus } from "../ui/FormStatus";
 import { InlineAlert } from "../ui/InlineAlert";
 import { Select } from "../ui/Select";
 import { TextField } from "../ui/TextField";
@@ -63,7 +64,7 @@ export function ProfileDetailsForm({ action, name, email, neighborhood }: Profil
         error={state.status === "invalid" ? T.account.nameError : undefined}
       />
       <div className="flex flex-col gap-2">
-        <span className="type-label text-16 text-strong">{T.account.email}</span>
+        <span className="type-label text-strong">{T.account.email}</span>
         <span className="type-body break-all text-body">{email}</span>
       </div>
       <div id="bairro" className="scroll-mt-8">
@@ -81,9 +82,7 @@ export function ProfileDetailsForm({ action, name, email, neighborhood }: Profil
         <Button type="submit" size="md" disabled={pending}>
           {T.account.save}
         </Button>
-        <p role="status" className="type-meta text-service">
-          {state.status === "saved" ? T.account.saved : ""}
-        </p>
+        <FormStatus tone="success" message={state.status === "saved" ? T.account.saved : ""} />
       </div>
       {state.status === "unavailable" && (
         <InlineAlert tone="error" title={T.delete.error} role="alert" />
@@ -102,7 +101,8 @@ export function ExportAccountButton({ action }: { action: () => Promise<ExportRe
         size="md"
         variant="outline"
         icon="download"
-        disabled={busy}
+        loading={busy}
+        loadingLabel={T.data.exporting}
         onClick={async () => {
           setBusy(true);
           setFailed(false);
@@ -112,7 +112,7 @@ export function ExportAccountButton({ action }: { action: () => Promise<ExportRe
           else setFailed(true);
         }}
       >
-        {busy ? T.data.exporting : T.data.export}
+        {T.data.export}
       </Button>
       {failed && <InlineAlert tone="error" title={T.data.exportError} role="alert" />}
     </div>

@@ -56,7 +56,7 @@ export function NewsCard({
       className={cx(
         "relative flex gap-3.5 rounded-xl p-3 [--card-radius:var(--r-xl)]",
         surface === "nevoa" ? "bg-card" : "border border-line-subtle bg-card-white",
-        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-nevoa-2",
+        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-hover",
         className,
       )}
       style={style}

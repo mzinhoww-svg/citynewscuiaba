@@ -9,6 +9,7 @@ import { formatReach, type TrendDirection } from "@/lib/ranking/signals";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 import { DismissMenu } from "./DismissMenu";
 import { RecommendationReason } from "./RecommendationReason";
 import { SourceAvatar } from "./SourceAvatar";
@@ -129,13 +130,7 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
   const titleId = useId();
   const updated = source.updatedAt ? formatWhen(source.updatedAt, now) : "";
   return (
-    <article
-      aria-labelledby={titleId}
-      className={cx(
-        "flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4",
-        className,
-      )}
-    >
+    <Panel as="article" aria-labelledby={titleId} className={cx("flex flex-col gap-3", className)}>
       <div className="flex items-start gap-3">
         <SourceAvatar
           name={source.name}
@@ -232,6 +227,6 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           </dl>
         </div>
       </details>
-    </article>
+    </Panel>
   );
 }

@@ -164,6 +164,10 @@ export function Showcase() {
           <p className="max-w-read type-body text-meta">
             Todos os componentes de src/components com seus estados. Rota bloqueada em produção.
           </p>
+          {/* `truncate` em <p> (UX-W1-T9): uma linha só, com reticências. */}
+          <p data-testid="ds-truncate" className="max-w-xs truncate type-meta text-meta">
+            Texto longo em uma linha só, cortado com reticências quando passa da largura disponível.
+          </p>
         </div>
         <SegmentedToggle
           label="Tema da vitrine"

@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
-import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 import type { ActionReply } from "./QueueTable";
 
 export type SuggestionField = "title" | "dek" | "seo_title" | "seo_description" | "body";
@@ -54,10 +54,7 @@ export function AiSuggestionInline({
     });
 
   return (
-    <section
-      aria-labelledby="sugestoes-titulo"
-      className={cx("rounded-lg border border-line-subtle bg-card-white p-4", className)}
-    >
+    <Panel aria-labelledby="sugestoes-titulo" className={className}>
       <h2 id="sugestoes-titulo" className="flex items-center gap-2 type-section text-strong">
         <Icon name="layers" size={20} className="text-ai" />
         {T.suggestions}
@@ -102,6 +99,6 @@ export function AiSuggestionInline({
           ))}
         </ul>
       )}
-    </section>
+    </Panel>
   );
 }

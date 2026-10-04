@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { Button } from "../ui/Button";
+import { DateField } from "../ui/DateField";
 import type { ActionReply } from "./QueueTable";
 
 export interface LicenseActionsProps {
@@ -32,18 +33,13 @@ export function LicenseActions({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-end gap-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-ate`} className="type-meta text-strong">
-            {T.renewUntil}
-          </label>
-          <input
-            id={`${uid}-ate`}
-            type="date"
-            value={until}
-            onChange={(e) => setUntil(e.target.value)}
-            className="border-control h-tap rounded-md bg-input px-3 type-body text-strong"
-          />
-        </div>
+        <DateField
+          id={`${uid}-ate`}
+          name="ate"
+          label={T.renewUntil}
+          value={until}
+          onChange={setUntil}
+        />
         <Button
           size="sm"
           variant="outline"

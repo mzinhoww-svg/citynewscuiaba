@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Panel } from "@/components";
 import { SourceHealthPanel, SourceRunsTable } from "@/components/estudio";
 import { formatMinutes, FREQUENCY_TEXT } from "@/content/pt-BR/sources-admin";
 import { COLLECTION_TAB_TEXT, DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
@@ -57,10 +57,7 @@ export default async function SourceSummaryPage({ params, searchParams }: Props)
           consecutiveFailures={d.consecutiveFailures}
         />
       )}
-      <section
-        aria-labelledby="ultimas-coletas"
-        className="flex flex-col gap-3 rounded-lg border border-line-section bg-card-white p-4 sm:p-5"
-      >
+      <Panel aria-labelledby="ultimas-coletas" className="flex flex-col gap-3 sm:p-5">
         <h2 id="ultimas-coletas" className="type-section text-strong">
           {COLLECTION_TAB_TEXT.runsTitle}
         </h2>
@@ -69,7 +66,7 @@ export default async function SourceSummaryPage({ params, searchParams }: Props)
         ) : (
           <p className="type-body text-meta">{T.error.tab}</p>
         )}
-      </section>
+      </Panel>
     </section>
   );
 }

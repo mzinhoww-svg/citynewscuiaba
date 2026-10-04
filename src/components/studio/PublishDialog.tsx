@@ -8,8 +8,11 @@ import type { Label } from "@/lib/labels";
 import { cx } from "../cx";
 import { OriginLabel } from "../editorial/OriginLabel";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { DateField } from "../ui/DateField";
 import { Icon } from "../ui/Icon";
 import { IconButton } from "../ui/IconButton";
+import { RadioGroup } from "../ui/RadioGroup";
 
 export type PublishDestination = "home" | "section" | "topic" | "newsletter";
 
@@ -37,6 +40,10 @@ export interface PublishDialogProps {
     /** Pedido de push urgente junto com a publicação (só com `canRequestUrgent`). */
     push?: { justification: string };
   }) => Promise<PublishReply>;
+  /** O editor tem alterações não salvas: publicar salva antes (item 4, E-02). */
+  dirty?: boolean;
+  /** Salva o editor; `false` (falha ou conflito) cancela a publicação. */
+  onSaveFirst?: () => Promise<boolean>;
   className?: string;
 }
 
@@ -56,6 +63,8 @@ export function PublishDialog({
   headline,
   canRequestUrgent = false,
   publish,
+  dirty = false,
+  onSaveFirst,
   className,
 }: PublishDialogProps) {
   const router = useRouter();
@@ -99,6 +108,11 @@ export function PublishDialog({
       return;
     }
     start(async () => {
+      // Nunca publica a versão antiga em silêncio: com edição pendente, salva antes ou para.
+      if (dirty && !(onSaveFirst && (await onSaveFirst()))) {
+        setError(T.saveFailed);
+        return;
+      }
       const r = await publish({
         id: articleId,
         when: mode === "now" ? "now" : { at },
@@ -197,97 +211,77 @@ export function PublishDialog({
             </div>
           </section>
 
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 type-eyebrow text-meta">{T.when}</legend>
-            {(["now", "schedule"] as const).map((m) => (
-              <label key={m} className="flex min-h-tap items-center gap-3 type-body text-strong">
-                <input
-                  type="radio"
-                  name={`${uid}-quando`}
-                  checked={mode === m}
-                  onChange={() => setMode(m)}
-                  className="size-5 accent-(--action-primary)"
-                />
-                {m === "now" ? T.now : T.schedule}
-              </label>
-            ))}
+          <div className="flex flex-col gap-2">
+            <RadioGroup
+              name={`${uid}-quando`}
+              legend={T.when}
+              options={[
+                { value: "now", label: T.now },
+                { value: "schedule", label: T.schedule },
+              ]}
+              value={mode}
+              onChange={(v) => setMode(v === "schedule" ? "schedule" : "now")}
+            />
             {mode === "schedule" && (
-              <div className="flex flex-col gap-2">
-                <label htmlFor={`${uid}-hora`} className="type-label text-16 text-strong">
-                  {T.at}
-                </label>
-                <input
-                  id={`${uid}-hora`}
-                  type="datetime-local"
-                  value={at}
-                  onChange={(e) => {
-                    setAt(e.target.value);
-                    setError(null);
-                  }}
-                  aria-describedby={`${uid}-hora-dica`}
-                  className="border-control h-input rounded-lg bg-input px-4 type-body text-strong"
-                />
-                <p id={`${uid}-hora-dica`} className="type-meta text-meta">
-                  {T.atHint}
-                </p>
-              </div>
+              <DateField
+                id={`${uid}-hora`}
+                name="agendar-para"
+                type="datetime-local"
+                label={T.at}
+                hint={T.atHint}
+                value={at}
+                onChange={(v) => {
+                  setAt(v);
+                  setError(null);
+                }}
+              />
             )}
-          </fieldset>
+          </div>
 
           <fieldset className="flex flex-col gap-1">
             <legend className="mb-1 type-eyebrow text-meta">{T.destinations}</legend>
             {ALL.map((d) => {
               const disabled = d === "topic" && !hasTopic;
               return (
-                <label
+                <Checkbox
                   key={d}
-                  className={cx(
-                    "flex min-h-tap items-center gap-3 type-body",
-                    disabled ? "text-placeholder" : "text-strong",
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    checked={dest.has(d) && !disabled}
-                    disabled={disabled}
-                    onChange={(e) => toggle(d, e.target.checked)}
-                    className="size-5 accent-(--action-primary)"
-                  />
-                  {T.destination[d]}
-                  {disabled && <span className="type-meta">({T.noTopic})</span>}
-                </label>
+                  id={`${uid}-destino-${d}`}
+                  name="destinos"
+                  value={d}
+                  label={
+                    <span className={disabled ? "text-placeholder" : undefined}>
+                      {T.destination[d]}
+                      {disabled && <span className="type-meta"> ({T.noTopic})</span>}
+                    </span>
+                  }
+                  checked={dest.has(d) && !disabled}
+                  disabled={disabled}
+                  onChange={(on) => toggle(d, on)}
+                />
               );
             })}
             {(() => {
               const pushDisabled = !canRequestUrgent || mode === "schedule";
               return (
-                <label
-                  className={cx(
-                    "flex min-h-tap items-center gap-3 type-body",
-                    pushDisabled ? "text-placeholder" : "text-strong",
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    checked={push && !pushDisabled}
-                    disabled={pushDisabled}
-                    onChange={(e) => {
-                      setPush(e.target.checked);
-                      setFieldError(null);
-                    }}
-                    aria-describedby={`${uid}-push`}
-                    className="size-5 accent-(--action-primary)"
-                  />
-                  {T.push}
-                </label>
+                <Checkbox
+                  id={`${uid}-push`}
+                  name="push-urgente"
+                  label={
+                    <span className={pushDisabled ? "text-placeholder" : undefined}>{T.push}</span>
+                  }
+                  hint={canRequestUrgent ? T.pushNote : T.pushUnavailable}
+                  checked={push && !pushDisabled}
+                  disabled={pushDisabled}
+                  onChange={(on) => {
+                    setPush(on);
+                    setFieldError(null);
+                  }}
+                />
               );
             })()}
-            <p id={`${uid}-push`} className="type-meta text-meta">
-              {canRequestUrgent ? T.pushNote : T.pushUnavailable}
-            </p>
             {wantsPush && (
               <div className="mt-2 flex flex-col gap-2">
-                <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
+                <label htmlFor={`${uid}-just`} className="type-label text-strong">
                   {T.pushJustification}
                 </label>
                 <textarea
@@ -328,6 +322,13 @@ export function PublishDialog({
             </p>
           )}
 
+          {dirty && (
+            <p className="flex items-start gap-2 rounded-md bg-atencao-soft p-3 type-meta text-strong">
+              <Icon name="pencil" size={16} className="mt-0.5 shrink-0 text-warn" />
+              {T.unsaved}
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="flex items-start gap-1.5 type-body text-danger">
               <Icon name="circle-alert" size={20} className="mt-0.5 shrink-0" />
@@ -337,7 +338,13 @@ export function PublishDialog({
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
             <Button type="submit" size="md" disabled={pending}>
-              {mode === "now" ? T.confirm : T.confirmSchedule}
+              {mode === "now"
+                ? dirty
+                  ? T.saveAndPublish
+                  : T.confirm
+                : dirty
+                  ? T.saveAndSchedule
+                  : T.confirmSchedule}
             </Button>
             <Button size="md" variant="text" onClick={() => setOpen(false)}>
               {T.cancel}

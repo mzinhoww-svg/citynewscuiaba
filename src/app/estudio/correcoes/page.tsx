@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Table } from "@/components";
 import { QueueTabs } from "@/components/estudio";
 import { CORRECTIONS_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
@@ -60,66 +60,47 @@ export default async function CorrectionsPage({ searchParams }: { searchParams: 
           {T.empty[tab]}
         </EmptyState>
       ) : (
-        <div
-          role="region"
-          aria-label={T.caption}
-          tabIndex={0}
-          className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.caption}
+          minWidth="md"
+          headers={[
+            T.col.article,
+            T.col.kind,
+            T.col.requestedBy,
+            tab === "open" ? T.col.due : T.publishedAt,
+            T.col.status,
+          ]}
         >
-          <table className="w-full min-w-[44rem] border-collapse text-left">
-            <caption className="sr-only">{T.caption}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.article}
+          {rows.map((c) => {
+            const overdue = tab === "open" && Date.parse(c.dueAt) < now;
+            return (
+              <tr key={c.id} className="border-b border-line-subtle align-top last:border-b-0">
+                <th scope="row" className="px-3 py-3 font-normal">
+                  <Link
+                    href={`/estudio/correcoes/${c.id}`}
+                    className="type-body font-semibold text-strong underline-offset-4 hover:underline"
+                  >
+                    {c.article.title}
+                  </Link>
                 </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.kind}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.requestedBy}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {tab === "open" ? T.col.due : T.publishedAt}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.status}
-                </th>
+                <td className="px-3 py-3 type-body">{T.kind[c.kind] ?? c.kind}</td>
+                <td className="px-3 py-3 type-body">{c.requestedBy}</td>
+                <td className="px-3 py-3 type-body tabular-nums">
+                  <span className={overdue ? "font-semibold text-danger" : "text-strong"}>
+                    {overdue && <span className="sr-only">{T.overdue}: </span>}
+                    {formatDateTime(tab === "open" ? c.dueAt : (c.publishedAt ?? c.dueAt))}
+                  </span>
+                </td>
+                <td className="px-3 py-3 type-body">
+                  {T.status[c.status] ?? c.status}
+                  {tab === "published" && (
+                    <span className="block type-meta text-meta">{T.notified(c.notified)}</span>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((c) => {
-                const overdue = tab === "open" && Date.parse(c.dueAt) < now;
-                return (
-                  <tr key={c.id} className="border-b border-line-subtle align-top last:border-b-0">
-                    <th scope="row" className="px-3 py-3 font-normal">
-                      <Link
-                        href={`/estudio/correcoes/${c.id}`}
-                        className="type-body font-semibold text-strong underline-offset-4 hover:underline"
-                      >
-                        {c.article.title}
-                      </Link>
-                    </th>
-                    <td className="px-3 py-3 type-body">{T.kind[c.kind] ?? c.kind}</td>
-                    <td className="px-3 py-3 type-body">{c.requestedBy}</td>
-                    <td className="px-3 py-3 type-body tabular-nums">
-                      <span className={overdue ? "font-semibold text-danger" : "text-strong"}>
-                        {overdue && <span className="sr-only">{T.overdue}: </span>}
-                        {formatDateTime(tab === "open" ? c.dueAt : (c.publishedAt ?? c.dueAt))}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 type-body">
-                      {T.status[c.status] ?? c.status}
-                      {tab === "published" && (
-                        <span className="block type-meta text-meta">{T.notified(c.notified)}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            );
+          })}
+        </Table>
       )}
     </section>
   );

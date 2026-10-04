@@ -48,7 +48,7 @@ em `docs/reports/destaques-estaveis.md`.
   Agora, O Documento, RDNews, Olhar Direto e Circuito MT. Ficaram de fora órgãos públicos, fontes
   nacionais e de nicho. Reverter: `update sources set consumption = consumption - 'frontpage'`.
 
-## Primeiros ciclos (04/10, A-146)
+## Primeiros ciclos (04/10, A-152)
 
 O cron `ingest-frontpage` rodou às 17h40 e às 18h00 (UTC), as duas vezes com sucesso. Sinais gravados
 por portal (lidos / casados com item já coletado):

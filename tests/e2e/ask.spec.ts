@@ -56,7 +56,9 @@ test("vazio: boas-vindas e 4 perguntas iniciais; tocar uma envia e o foco volta 
 }) => {
   await page.goto("/pergunte");
   await chatReady(page);
-  await expect(page.getByRole("heading", { level: 1, name: "Pergunte ao CityNews" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Perguntar ao CityNews" }),
+  ).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   const starters = page.getByRole("list", { name: "Perguntas para começar" }).getByRole("button");
   await expect(starters).toHaveCount(4);

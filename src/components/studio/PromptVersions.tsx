@@ -10,6 +10,8 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Table } from "../ui/Table";
+import { TextArea } from "../ui/TextArea";
 import { VersionCompare } from "./VersionDiff";
 
 export interface PromptVersionItem {
@@ -111,120 +113,93 @@ export function PromptVersions({
         <h2 id={`${uid}-versions`} className="type-section text-strong">
           {T.versionsTitle}
         </h2>
-        <div
-          role="region"
-          aria-label={T.versionsCaption}
-          tabIndex={0}
-          className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.versionsCaption}
+          minWidth="xl"
+          headers={(
+            ["version", "status", "author", "approvals", "rationale", "when", "actions"] as const
+          ).map((k) => T.col[k])}
         >
-          <table className="w-full min-w-[60rem] border-collapse text-left">
-            <caption className="sr-only">{T.versionsCaption}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                {(
-                  [
-                    "version",
-                    "status",
-                    "author",
-                    "approvals",
-                    "rationale",
-                    "when",
-                    "actions",
-                  ] as const
-                ).map((k) => (
-                  <th key={k} scope="col" className="px-3 py-3">
-                    {T.col[k]}
-                  </th>
-                ))}
+          {versions.map((v) => {
+            const own = v.author.id === currentUserId;
+            const ap = v.approval;
+            return (
+              <tr key={v.id} className="border-b border-line-subtle last:border-0 align-top">
+                <th
+                  scope="row"
+                  className="px-3 py-3 type-body font-medium text-strong whitespace-nowrap"
+                >
+                  v{v.version}
+                </th>
+                <td
+                  className={cx(
+                    "px-3 py-3 type-body whitespace-nowrap",
+                    v.status === "production" ? "font-semibold text-service" : "text-body",
+                  )}
+                >
+                  {PROMPT_STATUS_TEXT[v.status]}
+                </td>
+                <td className="px-3 py-3 type-body">{who(v.author)}</td>
+                <td className="px-3 py-3 type-body">
+                  {v.approvedBy.length === 0 ? "—" : v.approvedBy.map(who).join(", ")}
+                </td>
+                <td className="max-w-xs px-3 py-3 type-meta text-body">{v.rationale}</td>
+                <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                  {formatDateTime(v.createdAt)}
+                </td>
+                <td className="px-3 py-2">
+                  <div className="flex flex-wrap gap-2">
+                    {v.status !== "production" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        aria-pressed={compare === v.version}
+                        onClick={() => setCompare(compare === v.version ? null : v.version)}
+                      >
+                        {T.compare(v.version)}
+                      </Button>
+                    )}
+                    {canWrite && own && v.status === "draft" && (
+                      <Button size="sm" variant="outline-strong" onClick={() => setAsking(v)}>
+                        {(canApprove ? T.publishDirect : T.requestPublish)(v.version)}
+                      </Button>
+                    )}
+                    {ap && ap.status === "pending" && !canApprove && (
+                      <span className="type-meta text-strong">{T.waitApprover}</span>
+                    )}
+                    {ap && ap.status === "pending" && canApprove && (
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() =>
+                          start(async () => done(await publish({ approvalId: ap.id })))
+                        }
+                      >
+                        {T.approveAndPublish(v.version)}
+                      </Button>
+                    )}
+                    {ap && ap.status === "approved" && canApprove && (
+                      <Button
+                        size="sm"
+                        disabled={busy}
+                        onClick={() =>
+                          start(async () => done(await publish({ approvalId: ap.id })))
+                        }
+                      >
+                        {T.publish(v.version)}
+                      </Button>
+                    )}
+                    {canApprove && rollbackable.has(v.version) && (
+                      <Button size="sm" variant="outline-strong" onClick={() => setRollingBack(v)}>
+                        {T.rollback(v.version)}
+                      </Button>
+                    )}
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {versions.map((v) => {
-                const own = v.author.id === currentUserId;
-                const ap = v.approval;
-                return (
-                  <tr key={v.id} className="border-b border-line-subtle last:border-0 align-top">
-                    <th
-                      scope="row"
-                      className="px-3 py-3 type-body font-medium text-strong whitespace-nowrap"
-                    >
-                      v{v.version}
-                    </th>
-                    <td
-                      className={cx(
-                        "px-3 py-3 type-body whitespace-nowrap",
-                        v.status === "production" ? "font-semibold text-service" : "text-body",
-                      )}
-                    >
-                      {PROMPT_STATUS_TEXT[v.status]}
-                    </td>
-                    <td className="px-3 py-3 type-body">{who(v.author)}</td>
-                    <td className="px-3 py-3 type-body">
-                      {v.approvedBy.length === 0 ? "—" : v.approvedBy.map(who).join(", ")}
-                    </td>
-                    <td className="max-w-xs px-3 py-3 type-meta text-body">{v.rationale}</td>
-                    <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
-                      {formatDateTime(v.createdAt)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        {v.status !== "production" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            aria-pressed={compare === v.version}
-                            onClick={() => setCompare(compare === v.version ? null : v.version)}
-                          >
-                            {T.compare(v.version)}
-                          </Button>
-                        )}
-                        {canWrite && own && v.status === "draft" && (
-                          <Button size="sm" variant="outline-strong" onClick={() => setAsking(v)}>
-                            {(canApprove ? T.publishDirect : T.requestPublish)(v.version)}
-                          </Button>
-                        )}
-                        {ap && ap.status === "pending" && !canApprove && (
-                          <span className="type-meta text-strong">{T.waitApprover}</span>
-                        )}
-                        {ap && ap.status === "pending" && canApprove && (
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              start(async () => done(await publish({ approvalId: ap.id })))
-                            }
-                          >
-                            {T.approveAndPublish(v.version)}
-                          </Button>
-                        )}
-                        {ap && ap.status === "approved" && canApprove && (
-                          <Button
-                            size="sm"
-                            disabled={busy}
-                            onClick={() =>
-                              start(async () => done(await publish({ approvalId: ap.id })))
-                            }
-                          >
-                            {T.publish(v.version)}
-                          </Button>
-                        )}
-                        {canApprove && rollbackable.has(v.version) && (
-                          <Button
-                            size="sm"
-                            variant="outline-strong"
-                            onClick={() => setRollingBack(v)}
-                          >
-                            {T.rollback(v.version)}
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            );
+          })}
+        </Table>
       </section>
 
       {compared && (
@@ -264,27 +239,23 @@ export function PromptVersions({
               });
             }}
           >
-            <label htmlFor={`${uid}-body`} className="type-label text-16 text-strong">
-              {T.newBody}
-            </label>
-            <textarea
+            <TextArea
               id={`${uid}-body`}
+              name="corpo"
+              label={T.newBody}
               rows={8}
               required
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="border-control min-h-32 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+              onChange={setBody}
             />
-            <label htmlFor={`${uid}-rationale`} className="type-label text-16 text-strong">
-              {T.newRationale}
-            </label>
-            <textarea
+            <TextArea
               id={`${uid}-rationale`}
+              name="justificativa"
+              label={T.newRationale}
               rows={3}
               required
               value={rationale}
-              onChange={(e) => setRationale(e.target.value)}
-              className="border-control min-h-20 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+              onChange={setRationale}
             />
             <div>
               <Button type="submit" size="md" icon="plus" disabled={busy}>
@@ -327,16 +298,15 @@ export function PromptVersions({
             </>
           }
         >
-          <label htmlFor={`${uid}-just`} className="block text-left type-label text-16 text-strong">
-            {T.requestJustification}
-          </label>
-          <textarea
+          <TextArea
             id={`${uid}-just`}
+            name="justificativa"
+            label={T.requestJustification}
             rows={3}
             required
             value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            className="border-control mt-2 min-h-20 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+            onChange={setJustification}
+            className="text-left"
           />
         </Dialog>
       )}

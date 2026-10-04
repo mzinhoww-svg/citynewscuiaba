@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { governanceOverview } from "@/lib/db/queries/admin-ops";
 import { loadOrNull } from "../../load-error";
 import { AdminScreen } from "../screen";
+import { Panel } from "@/components";
 
 export const metadata: Metadata = {
   title: "Governança editorial · Administração · CityNews Cuiabá",
@@ -79,10 +80,7 @@ export default async function GovernancePage() {
           />
           <p className="type-body text-strong">{G.autoShare(pct)}</p>
           <div className="grid gap-6 md:grid-cols-2">
-            <section
-              aria-labelledby="gov-queues"
-              className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-            >
+            <Panel aria-labelledby="gov-queues" className="flex flex-col gap-2">
               <h2 id="gov-queues" className="type-section text-strong">
                 {G.queues}
               </h2>
@@ -95,11 +93,8 @@ export default async function GovernancePage() {
                   </li>
                 ))}
               </ul>
-            </section>
-            <section
-              aria-labelledby="gov-principles"
-              className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-            >
+            </Panel>
+            <Panel aria-labelledby="gov-principles" className="flex flex-col gap-2">
               <h2 id="gov-principles" className="type-section text-strong">
                 {G.principles}
               </h2>
@@ -112,7 +107,7 @@ export default async function GovernancePage() {
                   </li>
                 ))}
               </ul>
-            </section>
+            </Panel>
           </div>
         </div>
       )}
