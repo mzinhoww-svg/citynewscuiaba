@@ -86,6 +86,7 @@ export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
 export { AdSlot, type AdSlotProps } from "./editorial/AdSlot";
 export { AccountShell, type AccountShellProps } from "./editorial/AccountShell";
 export { SignInForm, type SignInFormProps } from "./editorial/SignInForm";
+export { EmailDivider, GoogleButton, type GoogleButtonProps } from "./editorial/GoogleButton";
 export { SignUpForm, type SignUpFormProps } from "./editorial/SignUpForm";
 export { EmailLinkForm, type EmailLinkFormProps } from "./editorial/EmailLinkForm";
 export { NewPasswordForm, type NewPasswordFormProps } from "./editorial/NewPasswordForm";
