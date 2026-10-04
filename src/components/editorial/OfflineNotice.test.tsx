@@ -10,10 +10,18 @@ describe("OfflineNotice", () => {
       "Salva às 14h32, pode estar desatualizada.",
     );
     expect(query).toHaveBeenCalledWith(expect.stringMatching(/^\//));
-    act(() => {
-      window.dispatchEvent(new Event("online"));
-    });
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta."));
+    // O ouvinte de "online" é ligado num efeito depois do primeiro texto aparecer; sob carga o
+    // evento pode chegar antes dele. Reenviar o evento (idempotente) a cada tentativa torna a
+    // espera determinística, sem afrouxar a asserção.
+    await waitFor(
+      () => {
+        act(() => {
+          window.dispatchEvent(new Event("online"));
+        });
+        expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta.");
+      },
+      { timeout: 5000 },
+    );
     expect(screen.getByRole("button", { name: "Atualizar" })).toBeVisible();
   });
 
