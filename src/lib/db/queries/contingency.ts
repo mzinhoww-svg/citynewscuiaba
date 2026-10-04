@@ -46,6 +46,7 @@ export async function contingencyOverview(db?: DbClient): Promise<ContingencyOve
     "image_reproduction_enabled",
     "source_link_analysis",
     "sponsored_native_enabled",
+    "ads_enabled",
   ] as const) {
     const r = rows.find((x) => x.key === key);
     flags[key] = r

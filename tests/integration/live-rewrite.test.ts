@@ -1,5 +1,5 @@
 // @vitest-environment node
-// A-123: reescrita de matéria no ar. `save_pipeline_draft` com `live` atualiza o texto da matéria
+// A-126: reescrita de matéria no ar. `save_pipeline_draft` com `live` atualiza o texto da matéria
 // publicada pelas regras sem tirar do ar; sem `live` (ou com edição humana), recusa como antes.
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";

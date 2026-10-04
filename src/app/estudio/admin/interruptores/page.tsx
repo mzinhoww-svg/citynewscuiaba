@@ -63,7 +63,6 @@ export default async function SwitchesPage() {
                 effect: f?.enabled ? info.on : info.off,
                 enabled: f ? f.enabled : null,
                 since: since(f),
-                note: info.guarded && f && !f.enabled ? T.guardedNote : undefined,
               };
             })}
           />

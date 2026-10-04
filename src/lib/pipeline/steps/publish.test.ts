@@ -179,7 +179,7 @@ describe("write (etapas 11 e 12)", () => {
   });
 });
 
-describe("reescrita de matéria no ar (A-123)", () => {
+describe("reescrita de matéria no ar (A-126)", () => {
   async function live(s: ReturnType<typeof setup>) {
     s.repo.addTopic(farmacias());
     await s.handlers.summarize!(msg("summarize", "topic:t-farm"));

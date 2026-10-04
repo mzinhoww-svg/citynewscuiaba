@@ -1,4 +1,4 @@
--- A-123 · Publicação forçada não é edição humana. `forced_publish_batch` (0054) gravava a versão
+-- A-126 · Publicação forçada não é edição humana. `forced_publish_batch` (0054) gravava a versão
 -- com origin 'human', e qualquer versão humana impede o pipeline de reescrever a matéria
 -- (`write`, `studio_request_reprocess`). Resultado: as 710 matérias publicadas à força em 03/10 e
 -- depois retiradas do ar por texto curto ficaram presas, sem poder ser refeitas com o texto
@@ -136,7 +136,7 @@ update article_versions v
    and d.object_ref = 'article:' || v.article_id
    and v.created_at = d.created_at;
 
--- Disjuntor: padrão da tabela alinhado aos limites do dono (300 por hora, 3.000 por dia; A-123).
+-- Disjuntor: padrão da tabela alinhado aos limites do dono (300 por hora, 3.000 por dia; A-126).
 -- O valor em produção é ajustado em `scripts/ops/recuperar-materias.sql`.
 alter table public.publish_breaker alter column hourly_limit set default 300;
 alter table public.publish_breaker alter column daily_limit set default 3000;

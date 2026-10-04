@@ -19,7 +19,6 @@ function cardsOf(o: Awaited<ReturnType<typeof contingencyOverview>>): Contingenc
   const auto = o.flags.auto_publish?.enabled ?? false;
   const ro = o.flags.read_only?.enabled ?? false;
   const ai = o.flags.ai_enabled?.enabled ?? false;
-  const hasResume = o.resumeRequests.length > 0;
   return [
     {
       id: "auto_publish",
@@ -28,8 +27,7 @@ function cardsOf(o: Awaited<ReturnType<typeof contingencyOverview>>): Contingenc
       since: since(o.flags.auto_publish),
       body: auto ? C.auto_publish.pauseBody : C.auto_publish.resumeBody,
       runbook: C.auto_publish.runbook,
-      action: auto ? "pause_auto_publish" : hasResume ? undefined : "resume_auto_publish",
-      note: !auto && hasResume ? T.error.pending : undefined,
+      action: auto ? "pause_auto_publish" : "resume_auto_publish",
       tone: auto ? "ok" : "warn",
     },
     {

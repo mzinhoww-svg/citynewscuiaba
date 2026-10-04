@@ -1,4 +1,4 @@
--- A-123 · Reescrita de matéria no ar. `save_pipeline_draft` (0004) só aceitava rascunho ou
+-- A-126 · Reescrita de matéria no ar. `save_pipeline_draft` (0004) só aceitava rascunho ou
 -- revisão; agora, com `live = true`, atualiza o texto de matéria publicada pelas regras
 -- (`publish_mode = 'auto'`) e nunca editada por pessoa, sem tirar do ar. As 550 matérias
 -- publicadas com texto de uma frase (antes de A-114) são refeitas com o texto completo da fonte.
@@ -19,7 +19,7 @@ begin
   select a.id, a.status, a.publish_mode into v_id, v_status, v_mode from articles a
   where a.topic_id = (p->>'topicId')::uuid and a.agent_id = 'write' for update;
   if v_id is not null then
-    -- A-123: a reescrita de matéria publicada pelas regras (nunca editada por pessoa) atualiza
+    -- A-126: a reescrita de matéria publicada pelas regras (nunca editada por pessoa) atualiza
     -- o texto no ar; status, publicação e motivo de revisão ficam como estão.
     v_live := v_live and v_status in ('published', 'updated') and v_mode = 'auto';
     if (v_status not in ('draft', 'in_review') and not v_live)

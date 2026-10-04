@@ -809,7 +809,7 @@
       "MS-T2": {
         "status": "done",
         "migration": "0081_advertisers.sql",
-        "decision": "A-118"
+        "decision": "A-124"
       },
       "ADS-T1": {
         "status": "done",
@@ -825,10 +825,48 @@
         "status": "done",
         "decision": "A-121",
         "assets": "public/ads (48 PNG)"
+      },
+      "ADS-T4": {
+        "status": "done",
+        "migration": "0144_ads_admin.sql",
+        "decision": "A-122"
       }
     },
     "next": [
-      "ADS-T4 (administração e relatório)"
+      "MS-T4 (relatório mensal por anunciante)"
+    ]
+  },
+  "guia": {
+    "report": "docs/reports/guia-cuiaba.md",
+    "pr": "mzinhoww-svg/citynewscuiaba#34",
+    "tasks": {
+      "GUIA-T1": {
+        "status": "done"
+      },
+      "GUIA-T2": {
+        "status": "done"
+      },
+      "GUIA-T3": {
+        "status": "done"
+      },
+      "GUIA-T4": {
+        "status": "done"
+      },
+      "GUIA-T5": {
+        "status": "done"
+      },
+      "GUIA-T6": {
+        "status": "done"
+      },
+      "GUIA-T7": {
+        "status": "done"
+      }
+    },
+    "migrations": "0130_guide_core (tabelas, RLS e funções), 0131_guide_sync, 0132_guide_templates_seed, 0133_guide_cron: aplicadas em produção em 04/10",
+    "decision": "A-124",
+    "next": [
+      "merge e deploy do PR #34",
+      "B-025: TRIPADVISOR_API_KEY"
     ]
   },
   "segurancaP1": {

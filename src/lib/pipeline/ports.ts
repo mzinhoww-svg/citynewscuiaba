@@ -672,7 +672,7 @@ export interface DraftInput {
   reviewReason: string | null;
   sources: { itemId: string; role: "primary" | "secondary" | "context" }[];
   /**
-   * Reescrita de matéria publicada automaticamente e nunca editada por pessoa (A-123): grava a
+   * Reescrita de matéria publicada automaticamente e nunca editada por pessoa (A-126): grava a
    * versão nova e mantém a matéria no ar (`status` é ignorado).
    */
   live?: boolean;

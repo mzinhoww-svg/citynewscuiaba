@@ -75,7 +75,7 @@ const REWRITE_TASK = `REESCRITA: o texto anterior ficou com menos de ${MIN_BODY_
 const TOPIC_REF = /^topic:([^\s#]+)(?:#rewrite(\d+))?$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
 const PIPELINE_OWNED = new Set(["draft", "in_review"]);
-/** Matéria no ar que a reescrita (`#rewrite<n>`) atualiza sem tirar do ar (A-123). */
+/** Matéria no ar que a reescrita (`#rewrite<n>`) atualiza sem tirar do ar (A-126). */
 const LIVE = new Set(["published", "updated"]);
 
 type Paragraph = { text: string; citations: string[] };

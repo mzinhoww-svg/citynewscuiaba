@@ -1,5 +1,5 @@
 /**
- * Disjuntor da publicação automática (AUT-T4, A8; limites do dono em A-123): 300 por hora, 3.000
+ * Disjuntor da publicação automática (AUT-T4, A8; limites do dono em A-126): 300 por hora, 3.000
  * por dia, pico de denúncias e
  * falha de IA. NÃO é freio editorial: protege contra erro de pipeline. Aberto, pausa a publicação
  * automática (`publish_breaker_trip`: desliga `auto_publish`, manda o resto do ciclo para revisão)

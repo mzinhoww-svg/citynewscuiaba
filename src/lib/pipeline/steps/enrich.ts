@@ -293,7 +293,7 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
   }
 
   return async (msg, ctx) => {
-    // `item:<id>#refetch`: recuperação de item já coletado (A-123). Busca texto e foto na página
+    // `item:<id>#refetch`: recuperação de item já coletado (A-126). Busca texto e foto na página
     // e para ali: o item já tem assunto, e a reescrita é pedida à parte (`summarize`).
     const refetch = msg.itemRef.endsWith(REFETCH_SUFFIX);
     const id = msg.itemRef.replace(/^item:/, "").replace(REFETCH_SUFFIX, "");

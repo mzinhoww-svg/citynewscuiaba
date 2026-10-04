@@ -190,7 +190,7 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
     if (!articleId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
     const ctx = await deps.repo.decisionContext(articleId);
     if (!ctx) return err(stepError.notFound(`matéria ${articleId} não encontrada`));
-    // Matéria no ar atualizada pela reescrita (A-123): as regras não decidem de novo o que já
+    // Matéria no ar atualizada pela reescrita (A-126): as regras não decidem de novo o que já
     // está publicado; segue para publicar, que reindexa e atualiza a página.
     if (!ctx.humanEdited && ctx.publishMode === "auto" && LIVE_STATUS.has(ctx.status))
       return ok([nextMessage(msg, "publish", msg.itemRef)]);

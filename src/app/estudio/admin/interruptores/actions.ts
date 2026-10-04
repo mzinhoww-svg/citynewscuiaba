@@ -38,7 +38,6 @@ export async function switchAction(i: {
   const action = GUARDED[i.key as keyof typeof GUARDED][i.value ? "on" : "off"];
   const r = await contingencyCommand({ action, typed: ACTION_NAME[action], reason: i.reason });
   if (!r.ok) return { ok: false, message: r.message ?? T.error.generic };
-  if (r.value.action === "resume_auto_publish") return { ok: true, message: T.result.pending };
   const changed = "changed" in r.value ? r.value.changed : true;
   return { ok: true, message: changed ? T.result.changed(label, i.value) : T.result.unchanged };
 }

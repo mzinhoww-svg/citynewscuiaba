@@ -1,6 +1,6 @@
--- A-123 · Recuperação da vazão e de todas as matérias finas (decisões do dono, 04/10/2026).
+-- A-126 · Recuperação da vazão e de todas as matérias finas (decisões do dono, 04/10/2026).
 -- Rode no SQL Editor do Supabase (citynews-prod) DEPOIS do deploy que traz o modo `#refetch` do
--- `enrich`, da migration 0145 (publicação forçada não é edição humana) e da 0146 (reescrita no
+-- `enrich`, da migration 0146 (publicação forçada não é edição humana) e da 0147 (reescrita no
 -- ar). Idempotente: as mensagens têm chave de deduplicação, e as atualizações só mudam o que
 -- ainda não mudou.
 
@@ -40,7 +40,7 @@ update sources set rate_limit_per_hour = 60
 --    publicadas que já têm texto. Cada item do assunto busca o texto completo e a foto
 --    (`item:<id>#refetch`), espaçado pelo limite por hora da fonte (com folga de 6 para a coleta
 --    normal); 15 minutos depois do último item, o assunto é reescrito (`#rewrite5`). A matéria
---    publicada é atualizada no ar, sem sair do site (0146); as demais seguem para imagem, regras
+--    publicada é atualizada no ar, sem sair do site (0147); as demais seguem para imagem, regras
 --    e publicação como qualquer matéria nova.
 with alvo as (
   select distinct a.topic_id
@@ -66,14 +66,14 @@ itens as (
 ),
 refetch as (
   select queue_enqueue('pipeline', 'enrich:item:' || i.id || '#refetch',
-           jsonb_build_object('runId', 'recuperacao-a123', 'step', 'enrich',
+           jsonb_build_object('runId', 'recuperacao-a126', 'step', 'enrich',
                               'itemRef', 'item:' || i.id || '#refetch', 'attempt', 1),
            i.atraso::int) as job
     from itens i
 ),
 reescrita as (
   select queue_enqueue('pipeline', 'summarize:topic:' || i.topic_id || '#rewrite5',
-           jsonb_build_object('runId', 'recuperacao-a123', 'step', 'summarize',
+           jsonb_build_object('runId', 'recuperacao-a126', 'step', 'summarize',
                               'itemRef', 'topic:' || i.topic_id || '#rewrite5', 'attempt', 1),
            (max(i.atraso) + 900)::int) as job
     from itens i
@@ -86,4 +86,4 @@ commit;
 
 -- Conferência (rode depois):
 -- select message->>'step' etapa, count(*), min(visible_at), max(visible_at)
---   from jobs where message->>'runId' = 'recuperacao-a123' group by 1;
+--   from jobs where message->>'runId' = 'recuperacao-a126' group by 1;
