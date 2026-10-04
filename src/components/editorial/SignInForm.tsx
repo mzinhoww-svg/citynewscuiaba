@@ -114,8 +114,8 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
           )}
         </div>
 
-        <Button type="submit" fullWidth disabled={busy}>
-          {signingIn ? T.busy : T.submit}
+        <Button type="submit" fullWidth disabled={busy} loading={signingIn} loadingLabel={T.busy}>
+          {T.submit}
         </Button>
 
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">

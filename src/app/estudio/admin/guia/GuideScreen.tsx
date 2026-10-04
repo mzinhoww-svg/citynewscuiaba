@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Panel } from "@/components";
 import { GUIDE_ADMIN_TEXT as T } from "@/content/pt-BR/guide";
 import { formatWhen } from "@/lib/format/date";
 import type { GuideStatus } from "@/lib/db/queries/guide-admin";
@@ -53,11 +54,10 @@ export function GuideScreen({
         </ul>
       </nav>
       {status && (
-        <section
-          aria-label={T.status.title}
-          className="flex flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4"
-        >
-          <p className="type-meta font-semibold text-strong">{T.status.title}</p>
+        <Panel aria-labelledby="guia-estado-titulo" className="flex flex-col gap-1">
+          <p id="guia-estado-titulo" className="type-meta font-semibold text-strong">
+            {T.status.title}
+          </p>
           <p className="type-meta text-meta">
             {status.tripadvisorKey ? T.status.tripadvisorOn : T.status.tripadvisorOff}
           </p>
@@ -73,7 +73,7 @@ export function GuideScreen({
           <p className="type-meta text-meta">
             {T.status.counts(status.openProposals, status.publishedLists, status.venues)}
           </p>
-        </section>
+        </Panel>
       )}
       {children}
     </AdminScreen>

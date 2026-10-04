@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, CollapsibleFilters, EmptyState, InlineAlert, Select } from "@/components";
+import { Button, CollapsibleFilters, EmptyState, Icon, InlineAlert, Select } from "@/components";
 import { ReportResponder } from "@/components/estudio";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
@@ -77,7 +77,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 </p>
                 <form action={resolveEscalationAction} className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="id" value={e.id} />
-                  <label className="flex min-w-56 flex-col gap-1 type-label text-16 text-strong">
+                  <label className="flex min-w-56 flex-col gap-1 type-label text-strong">
                     {T.escalation.resolveNote}
                     <input
                       name="note"
@@ -161,8 +161,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="text-meta"> · {r.contactEmail ?? T.noContact}</span>
                   </p>
-                  <blockquote className="border-l-4 border-line-section pl-3 type-body text-strong">
-                    {r.message ?? T.noMessage}
+                  <blockquote className="flex items-start gap-2 rounded-md bg-section px-3 py-2 type-body text-strong">
+                    <Icon name="message-circle" size={18} className="mt-0.5 shrink-0 text-meta" />
+                    <span className="min-w-0 break-words">{r.message ?? T.noMessage}</span>
                   </blockquote>
                   {correct &&
                     r.content.articleId &&

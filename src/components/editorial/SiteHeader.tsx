@@ -111,7 +111,7 @@ export function SiteHeader({
                     "hover:bg-section aria-[current=page]:bg-section",
                   )}
                 >
-                  <Icon name={QUICK_ICON[it.id] ?? "search"} size={22} />
+                  <Icon name={QUICK_ICON[it.id] ?? "search"} size={24} />
                   <VisuallyHidden>{it.label}</VisuallyHidden>
                 </NavLink>
               </li>

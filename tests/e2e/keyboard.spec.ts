@@ -41,9 +41,12 @@ async function focused(page: Page): Promise<Focus> {
     const cs = getComputedStyle(el);
     const outlined = (s: CSSStyleDeclaration) =>
       s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2;
-    // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do input some de
-    // propósito (evita anel duplo). Só o contorno do contêiner conta, não a sombra do foco interno.
-    const field = el.tagName === "INPUT" ? el.closest(".control-field") : null;
+    // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do controle some de
+    // propósito (evita anel duplo). Desde a UX-W2-T2 vale também para select e textarea. Só o
+    // contorno do contêiner conta, não a sombra do foco interno.
+    const field = ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)
+      ? el.closest(".control-field")
+      : null;
     // R7 + UX-W1-T9: no `card-link` o anel é do `::after`, que cobre o card inteiro.
     const card = el.classList.contains("card-link");
     const ring =

@@ -153,6 +153,7 @@
   --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
+  --animate-drawer-in-right: cn-drawer-in-right var(--dur-slow) var(--ease-out); /* [UX-W2-T8] */
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
 }
 
@@ -177,6 +178,14 @@
 @keyframes cn-drawer-in {
   from {
     transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes cn-drawer-in-right {
+  from {
+    transform: translateX(100%);
   }
   to {
     transform: translateX(0);
@@ -302,19 +311,20 @@
 
 /*
  * R4 + R5 no contêiner de campo: foco troca a borda para Tinta 2 px (1 px de borda + 1 px
- * interno) e mostra o anel Urucum no contêiner. O anel do input some porque o contêiner o
- * substitui; botões internos (mostrar senha, filtros) mantêm o anel próprio.
+ * interno) e mostra o anel Urucum no contêiner. O anel do input, select ou textarea (item 27)
+ * some porque o contêiner o substitui; botões internos (mostrar senha, filtros) mantêm o anel
+ * próprio.
  */
 @utility control-field {
   &:focus-within {
     border-color: var(--border-strong);
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
-  &:has(input:focus-visible) {
+  &:has(:is(input, select, textarea):focus-visible) {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  & input:focus-visible {
+  & :is(input, select, textarea):focus-visible {
     outline: none;
   }
 }
@@ -344,6 +354,32 @@
     height: max(100%, var(--tap-min));
     transform: translate(-50%, -50%);
   }
+}
+
+/*
+ * Utilitários de layout (item 41, D-17). `grid-rail`: coluna principal + barra lateral com a
+ * largura do token `--layout-rail` a partir de `lg` (64rem); no celular, só define a grade e
+ * as colunas seguem o padrão (uma). `table-*`: largura mínima da tabela dentro da região
+ * rolável, para colunas não espremerem no celular.
+ */
+@utility grid-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  @media (width >= 64rem) {
+    grid-template-columns: minmax(0, 1fr) var(--layout-rail);
+  }
+}
+@utility table-sm {
+  min-width: 36rem;
+}
+@utility table-md {
+  min-width: 44rem;
+}
+@utility table-lg {
+  min-width: 52rem;
+}
+@utility table-xl {
+  min-width: 64rem;
 }
 
 /*
@@ -394,6 +430,14 @@
 /* No desktop o campo é sticky: fica logo acima da barra de privacidade enquanto ela está aberta. */
 @utility bottom-consent-safe {
   bottom: var(--cn-consent-h, 0px);
+}
+/* Toast (item 36): acima da barra inferior do portal (quando existe), da área segura e do aviso
+   de privacidade aberto; no Estúdio, só a área segura. */
+@utility bottom-toast-safe {
+  bottom: calc(
+    max(var(--cn-bottom-bar, 0px), env(safe-area-inset-bottom, 0px)) + var(--cn-consent-h, 0px) +
+      var(--sp-16)
+  );
 }
 @utility bottom-chat-safe {
   bottom: calc(

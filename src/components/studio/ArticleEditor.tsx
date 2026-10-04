@@ -262,7 +262,7 @@ export function ArticleEditor({
         <OriginNote origin={origins.title} />
       </div>
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-linha`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-linha`} className="type-label text-strong">
           {T.fields.dek}
         </label>
         <textarea
@@ -338,7 +338,7 @@ export function ArticleEditor({
         <OriginNote origin={origins.seoTitle} />
       </div>
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-seo-desc`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-seo-desc`} className="type-label text-strong">
           {T.fields.seoDescription}
         </label>
         <textarea

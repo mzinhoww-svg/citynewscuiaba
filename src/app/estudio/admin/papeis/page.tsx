@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/require-role";
 import { listStaff } from "@/lib/db/queries/admin";
 import { loadOrNull } from "../../load-error";
 import { AdminScreen } from "../screen";
+import { Panel } from "@/components";
 
 export const metadata: Metadata = {
   title: "Papéis e permissões · Administração · CityNews Cuiabá",
@@ -77,10 +78,7 @@ export default async function RolesPage() {
             </ul>
           </section>
 
-          <section
-            aria-labelledby="roles-critical"
-            className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="roles-critical" className="flex flex-col gap-2">
             <h2 id="roles-critical" className="type-section text-strong">
               {R.criticalTitle}
             </h2>
@@ -89,7 +87,7 @@ export default async function RolesPage() {
                 <li key={c}>{c}</li>
               ))}
             </ul>
-          </section>
+          </Panel>
         </div>
       )}
     </AdminScreen>

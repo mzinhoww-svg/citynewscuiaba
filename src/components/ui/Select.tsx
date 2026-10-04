@@ -1,48 +1,72 @@
-import type { ChangeEvent } from "react";
-import type { ReactNode } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import { cx } from "../cx";
+import { describedBy, FieldShell } from "./Field";
 import { Icon } from "./Icon";
 
 export interface SelectOption {
   value: string;
   label: string;
+  disabled?: boolean;
 }
 
-export interface SelectProps {
-  id: string;
-  /** Rótulo sempre visível. */
+export interface SelectOptionGroup {
   label: string;
-  name: string;
   options: readonly SelectOption[];
+}
+
+/** `md` = campo de formulário (52 px); `sm` = compacto de tabela e filtro (44 px, alvo de toque). */
+export type SelectSize = "sm" | "md";
+
+export interface SelectControlProps {
+  id: string;
+  name: string;
+  options?: readonly SelectOption[];
+  /** Opções agrupadas em `optgroup`, depois de `options`. */
+  groups?: readonly SelectOptionGroup[];
   defaultValue?: string;
   /** Controlado (formulários interativos); sem ele, o campo é livre (`defaultValue`). */
   value?: string;
   onChange?: (value: string) => void;
   /** Primeira opção sem valor ("Todos os bairros"). */
   placeholder?: string;
-  hint?: string;
-  error?: string;
+  /** Só para montar `aria-describedby`; quem renderiza dica e erro é a moldura. */
+  hint?: ReactNode;
+  error?: string | null;
   required?: boolean;
   /** Campo só de leitura (modo leitura do editor): não abre nem muda. */
   disabled?: boolean;
+  size?: SelectSize;
+  className?: string;
+}
+
+export interface SelectProps extends Omit<SelectControlProps, "hint" | "error" | "className"> {
+  /** Rótulo sempre visível. */
+  label: string;
+  hint?: ReactNode;
+  error?: string | null;
   /** Conteúdo extra à direita do rótulo (ex.: "opcional"). */
   labelAside?: ReactNode;
   className?: string;
 }
 
+function renderOptions(options: readonly SelectOption[]) {
+  return options.map((o) => (
+    <option key={o.value} value={o.value} disabled={o.disabled}>
+      {o.label}
+    </option>
+  ));
+}
+
 /**
- * Lista de opções nativa com o visual de campo do kit (borda de controle R4, anel R5). Funciona
- * sem JavaScript dentro de formulários GET (filtros na URL).
- *
- * ```tsx
- * <Select id="bairro" name="bairro" label="Bairro" placeholder="Todos os bairros" options={bairros} />
- * ```
+ * Só o controle (sem rótulo): para quando o rótulo já existe fora (filtro de tabela) ou a moldura
+ * é montada por quem chama. A borda fica no contêiner com `control-field`, como no `TextField`,
+ * para o foco trocar a borda do mesmo jeito (item 27).
  */
-export function Select({
+export function SelectControl({
   id,
-  label,
   name,
-  options,
+  options = [],
+  groups,
   defaultValue,
   value,
   onChange,
@@ -51,63 +75,86 @@ export function Select({
   error,
   required,
   disabled = false,
-  labelAside,
+  size = "md",
   className,
-}: SelectProps) {
-  const hintId = hint ? `${id}-dica` : undefined;
-  const errorId = error ? `${id}-erro` : undefined;
-  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+}: SelectControlProps) {
   return (
-    <div className={cx("flex flex-col gap-2", className)}>
-      <div className="flex items-baseline justify-between gap-2">
-        <label htmlFor={id} className="type-label text-16 text-strong">
-          {label}
-        </label>
-        {labelAside}
-      </div>
-      <div className="relative">
-        <select
-          id={id}
-          name={name}
-          {...(value !== undefined
-            ? { value, onChange: (e: ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
-            : { defaultValue: defaultValue ?? "" })}
-          required={required}
-          disabled={disabled}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy}
-          className={cx(
-            "border-control h-input w-full cursor-pointer appearance-none rounded-lg bg-input pr-11 pl-4 type-body text-strong",
-            "disabled:cursor-not-allowed",
-            error && "field-error",
-          )}
-        >
-          {placeholder !== undefined && <option value="">{placeholder}</option>}
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        {!disabled && (
-          <Icon
-            name="chevron-down"
-            size={20}
-            className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-meta"
-          />
-        )}
-      </div>
-      {hint && (
-        <p id={hintId} className="type-meta text-meta">
-          {hint}
-        </p>
+    <div
+      className={cx(
+        "border-control control-field relative w-full rounded-lg bg-input",
+        "transition-[border-color,box-shadow] duration-(--dur-base) ease-(--ease-standard)",
+        size === "sm" ? "h-tap" : "h-input",
+        "has-[:disabled]:bg-section",
+        error && "field-error",
+        className,
       )}
-      {error && (
-        <p id={errorId} className="flex items-start gap-1.5 type-meta text-danger">
-          <Icon name="circle-alert" size={16} />
-          {error}
-        </p>
+    >
+      <select
+        id={id}
+        name={name}
+        {...(value !== undefined
+          ? { value, onChange: (e: ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
+          : {
+              defaultValue: defaultValue ?? "",
+              onChange: onChange
+                ? (e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)
+                : undefined,
+            })}
+        required={required}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(id, hint, error)}
+        className={cx(
+          // type-body nos dois tamanhos: abaixo de 16 px o iOS amplia a página ao focar.
+          "size-full cursor-pointer appearance-none rounded-lg bg-transparent type-body text-strong",
+          size === "sm" ? "pr-10 pl-3" : "pr-11 pl-4",
+          "disabled:cursor-not-allowed",
+        )}
+      >
+        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {renderOptions(options)}
+        {groups?.map((g) => (
+          <optgroup key={g.label} label={g.label}>
+            {renderOptions(g.options)}
+          </optgroup>
+        ))}
+      </select>
+      {!disabled && (
+        <Icon
+          name="chevron-down"
+          size={size === "sm" ? 18 : 20}
+          className={cx(
+            "pointer-events-none absolute top-1/2 -translate-y-1/2 text-meta",
+            size === "sm" ? "right-3" : "right-4",
+          )}
+        />
       )}
     </div>
+  );
+}
+
+/**
+ * Lista de opções nativa com o visual de campo do kit (borda de controle R4, anel R5). Funciona
+ * sem JavaScript dentro de formulários GET (filtros na URL). Com `error`, o `select` leva
+ * `aria-invalid` e `aria-describedby` para a mensagem (item 26).
+ *
+ * ```tsx
+ * <Select id="bairro" name="bairro" label="Bairro" placeholder="Todos os bairros" options={bairros} />
+ * <Select id="tipo" name="tipo" label="Tipo" size="sm" groups={[{ label: "Coleta", options }]} />
+ * ```
+ */
+export function Select({ label, hint, error, labelAside, className, ...control }: SelectProps) {
+  return (
+    <FieldShell
+      id={control.id}
+      label={label}
+      hint={hint}
+      error={error}
+      required={control.required}
+      aside={labelAside}
+      className={className}
+    >
+      <SelectControl {...control} hint={hint} error={error} />
+    </FieldShell>
   );
 }

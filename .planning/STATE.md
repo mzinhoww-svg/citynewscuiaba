@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — decisões D-01 a D-06 (PR #44); migrations 0151 a 0153 e proposta v4 aplicadas em produção com autorização do dono.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Melhorias W2 (itens 25–44): kit completo em `src/components/ui` (Field, Select, TextArea, DateField, Checkbox, RadioGroup, Panel, StatGrid, StatusBadge, Table, Pagination, Button com carregamento e destrutivo, SubmitButton, ConfirmDialog, Toast, FormStatus, Popover, Menu, Drawer, TagLink, LinkTabs, origem segura), rótulo de campo em 16 px, escala de ícones, Estúdio e portal migrados, ESLint barra controles crus fora do kit (exceções comentadas) e DESIGN §7 com o inventário real. A-149.
+
 > 2026-10-04 · Melhorias W1 (itens 1–24 do plano `docs/superpowers/plans/2026-10-04-melhorias-ux-ui-tecnica.md`): modo escuro legível, editor que não perde texto, fila e agenda com total e "Carregar mais", atraso e hoje com texto, banner de consentimento e ticker legíveis, colunas fixas abaixo do cabeçalho, CSS global em camada, Lighthouse visível (A-146), confirmações sensíveis. A-147 e A-148.
 
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.

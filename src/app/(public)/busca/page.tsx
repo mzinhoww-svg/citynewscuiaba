@@ -10,6 +10,7 @@ import {
   KeepFocusInView,
   SearchGroupBlock,
   Skeleton,
+  TagLink,
 } from "@/components";
 import { SEARCH } from "@/content/pt-BR/search";
 import { listTopics } from "@/lib/db/queries";
@@ -203,12 +204,12 @@ async function Start() {
           <ul className="flex flex-wrap gap-2">
             {list.map((t) => (
               <li key={t.id}>
-                <Link
+                <TagLink
                   href={t.href}
-                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
+                  className="max-w-full whitespace-normal! py-2.5 leading-snug!"
                 >
                   {t.title}
-                </Link>
+                </TagLink>
               </li>
             ))}
           </ul>

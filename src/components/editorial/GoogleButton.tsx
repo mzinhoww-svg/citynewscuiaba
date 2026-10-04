@@ -27,7 +27,7 @@ export function GoogleButton({ action, next, label = GOOGLE_TEXT.button }: Googl
         <input type="hidden" name="next" value={next} />
         <button
           type="submit"
-          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-pill border border-line-control bg-branco px-6 text-16 font-semibold leading-none text-tinta shadow-sm transition-[transform,background-color] duration-(--dur-fast) ease-(--ease-standard) hover:bg-nevoa motion-safe:active:scale-98"
+          className="flex min-h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-pill border border-line-control bg-branco px-6 text-16 font-semibold leading-none text-tinta shadow-sm transition-[transform,background-color] duration-(--dur-fast) ease-(--ease-standard) hover:bg-hover motion-safe:active:scale-98"
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- logotipo de marca estático, 20 px */}
           <img src="/brand/google-g.svg" alt="" className="size-5 shrink-0" />

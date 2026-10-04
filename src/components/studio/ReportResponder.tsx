@@ -40,7 +40,7 @@ export function ReportResponder({ id, label, respond, doneHref, className }: Rep
         });
       }}
     >
-      <label htmlFor={`${uid}-resposta`} className="type-label text-16 text-strong">
+      <label htmlFor={`${uid}-resposta`} className="type-label text-strong">
         {T.responseLabel}
         <span className="sr-only">: {label}</span>
       </label>

@@ -95,7 +95,7 @@ export function RichEditor({
 
   return (
     <div className={cx("flex flex-col", className)}>
-      <span id={labelId} className="mb-2 type-label text-16 text-strong">
+      <span id={labelId} className="mb-2 type-label text-strong">
         {label}
       </span>
       <div

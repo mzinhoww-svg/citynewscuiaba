@@ -7,7 +7,9 @@ import { formatWhen } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
+import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, CheckList, type AdminReply } from "../admin/AdminStatus";
 import { AdjustDialog, type AdjustPayload, type VenueChoice } from "./AdjustDialog";
@@ -166,10 +168,7 @@ function ProposalCard({
   const missing = p.analysis?.missingForAutoPublish ?? [];
   const sources = [...new Set(l.items.flatMap((i) => i.sources))];
   return (
-    <article
-      aria-labelledby={`${uid}-t`}
-      className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-    >
+    <Panel as="article" aria-labelledby={`${uid}-t`} className="flex flex-col gap-4">
       <header className="flex flex-col gap-1">
         <p className="type-eyebrow text-service">{T.origin[p.origin]}</p>
         <h3 id={`${uid}-t`} className="type-section text-strong">
@@ -258,7 +257,7 @@ function ProposalCard({
           {T.discard}
         </Button>
       </div>
-    </article>
+    </Panel>
   );
 }
 
@@ -419,18 +418,14 @@ function ManualDialog({
           />
         )}
         <p className="type-meta text-meta">{T.venuesHint}</p>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`${uid}-crit`} className="type-meta font-semibold text-strong">
-            {T.criteriaField}
-          </label>
-          <textarea
-            id={`${uid}-crit`}
-            value={criteria}
-            onChange={(e) => setCriteria(e.target.value)}
-            rows={3}
-            className="w-full rounded-md border border-line-control bg-card-white p-3 type-body text-strong"
-          />
-        </div>
+        <TextArea
+          id={`${uid}-crit`}
+          name="criterio"
+          label={T.criteriaField}
+          value={criteria}
+          onChange={setCriteria}
+          rows={3}
+        />
         {error && !error.ok && (
           <p role="alert" className="type-body text-danger">
             {error.message}

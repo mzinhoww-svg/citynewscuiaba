@@ -72,7 +72,7 @@ export function TextField({
 
   return (
     <div className={cx("flex flex-col gap-2", className)} style={style}>
-      <label htmlFor={id} className="type-label text-16 text-strong">
+      <label htmlFor={id} className="type-label text-strong">
         {label}
       </label>
       <div
@@ -84,7 +84,7 @@ export function TextField({
           disabled && "opacity-60",
         )}
       >
-        {icon && <Icon name={icon} color="var(--text-placeholder)" />}
+        {icon && <Icon name={icon} className="text-placeholder" />}
         <input
           id={id}
           name={name}

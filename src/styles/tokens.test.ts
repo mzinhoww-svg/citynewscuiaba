@@ -139,3 +139,21 @@ describe("modo escuro em estado interativo", () => {
     expect(layout).toMatch(new RegExp(`prefers-color-scheme: dark\\)",\\s*color:\\s*"${bgPage}"`));
   });
 });
+
+describe("rótulo de campo em 16 px (UX-W2-T1, item 29, R9)", () => {
+  it("--type-label usa o tamanho --fs-16", () => {
+    expect(tokens).toMatch(/--type-label:\s*600 var\(--fs-16\)\/1\.25 var\(--font-sans\)/);
+  });
+
+  it("nenhum text-16 redundante junto de type-label (em qualquer ordem)", () => {
+    expect(
+      rg(/["'`][^"'`]*(\btype-label\b[^"'`]*\btext-16\b|\btext-16\b[^"'`]*\btype-label\b)/, "src"),
+    ).toEqual([]);
+  });
+
+  it("título do Dialog usa papel tipográfico, não tamanho solto", () => {
+    const dialog = readFileSync("src/components/ui/Dialog.tsx", "utf8");
+    expect(dialog).not.toContain("text-18 font-semibold leading-snug");
+    expect(dialog).toMatch(/<h2 id=\{titleId\} className="[^"]*\btype-nav-title\b/);
+  });
+});

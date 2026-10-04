@@ -11,6 +11,7 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Table } from "../ui/Table";
 import { TextField } from "../ui/TextField";
 
 export interface ApprovalReply {
@@ -157,66 +158,51 @@ export function ApprovalInbox({
         {recent.length === 0 ? (
           <p className="type-body text-meta">{T.historyEmpty}</p>
         ) : (
-          <div
-            role="region"
-            aria-label={T.historyTitle}
-            tabIndex={0}
-            className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+          <Table
+            caption={T.historyTitle}
+            minWidth="lg"
+            headers={(
+              ["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const
+            ).map((k) => T.col[k])}
           >
-            <table className="w-full min-w-[48rem] border-collapse text-left">
-              <caption className="sr-only">{T.historyTitle}</caption>
-              <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                <tr>
-                  {(["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const).map(
-                    (k) => (
-                      <th key={k} scope="col" className="px-3 py-3">
-                        {T.col[k]}
-                      </th>
-                    ),
+            {recent.map((a) => (
+              <tr key={a.id} className="border-b border-line-subtle last:border-0">
+                <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                  {KIND_TEXT[a.kind]}
+                </th>
+                <td className="px-3 py-3 type-body text-body">
+                  {a.kind === "source.critical" && a.target.kind === "source" ? (
+                    <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
+                      {targetText(a.target)}
+                    </Link>
+                  ) : (
+                    targetText(a.target)
                   )}
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((a) => (
-                  <tr key={a.id} className="border-b border-line-subtle last:border-0">
-                    <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                      {KIND_TEXT[a.kind]}
-                    </th>
-                    <td className="px-3 py-3 type-body text-body">
-                      {a.kind === "source.critical" && a.target.kind === "source" ? (
-                        <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
-                          {targetText(a.target)}
-                        </Link>
-                      ) : (
-                        targetText(a.target)
-                      )}
-                    </td>
-                    <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
-                    <td className="px-3 py-3 type-body text-body">
-                      {a.approvedBy ? who(a.approvedBy) : "—"}
-                    </td>
-                    <td className="px-3 py-3 type-body text-body">
-                      {T.status[a.status] ?? a.status}
-                      {a.status === "approved" && applyHref(a.kind, a.target) && (
-                        <>
-                          {" · "}
-                          <Link
-                            href={applyHref(a.kind, a.target) ?? "#"}
-                            className="text-link underline"
-                          >
-                            {T.applyAt}
-                          </Link>
-                        </>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
-                      {formatDateTime(a.decidedAt ?? a.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </td>
+                <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
+                <td className="px-3 py-3 type-body text-body">
+                  {a.approvedBy ? who(a.approvedBy) : "—"}
+                </td>
+                <td className="px-3 py-3 type-body text-body">
+                  {T.status[a.status] ?? a.status}
+                  {a.status === "approved" && applyHref(a.kind, a.target) && (
+                    <>
+                      {" · "}
+                      <Link
+                        href={applyHref(a.kind, a.target) ?? "#"}
+                        className="text-link underline"
+                      >
+                        {T.applyAt}
+                      </Link>
+                    </>
+                  )}
+                </td>
+                <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                  {formatDateTime(a.decidedAt ?? a.createdAt)}
+                </td>
+              </tr>
+            ))}
+          </Table>
         )}
       </section>
 

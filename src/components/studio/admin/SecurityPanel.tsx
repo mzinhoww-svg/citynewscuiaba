@@ -12,13 +12,14 @@ import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import type { PrivacyRequestRow, SecurityOverview } from "@/lib/db/queries/admin-ops";
 import { formatDate, formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
-import { ConfirmDialog } from "./ConfirmDialog";
 
 export interface SecurityPanelProps {
   data: SecurityOverview;
@@ -80,10 +81,7 @@ export function SecurityPanel({
     <div className="flex flex-col gap-10">
       <AdminStatus status={status} />
 
-      <section
-        aria-labelledby={`${uid}-pol`}
-        className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby={`${uid}-pol`} className="flex flex-col gap-4">
         <h2 id={`${uid}-pol`} className="type-section text-strong">
           {S.settings}
         </h2>
@@ -127,7 +125,7 @@ export function SecurityPanel({
             {S.save}
           </Button>
         </div>
-      </section>
+      </Panel>
 
       <section aria-labelledby={`${uid}-lgpd`} className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -281,11 +279,12 @@ export function SecurityPanel({
 
       {confirming?.kind === "policy" && (
         <ConfirmDialog
-          busy={busy}
+          open
+          pending={busy}
           title={C.policyTitle}
-          effect={C.policyEffect(Number(sessionHours), Number(retentionDays))}
+          body={C.policyEffect(Number(sessionHours), Number(retentionDays))}
           confirmLabel={C.policyConfirm}
-          onCancel={() => setConfirming(null)}
+          onClose={() => setConfirming(null)}
           onConfirm={() =>
             start(async () =>
               done(
@@ -300,11 +299,12 @@ export function SecurityPanel({
       )}
       {confirming?.kind === "rotate" && (
         <ConfirmDialog
-          busy={busy}
+          open
+          pending={busy}
           title={C.rotateTitle(confirming.key)}
-          effect={C.rotateEffect}
+          body={C.rotateEffect}
           confirmLabel={C.rotateConfirm(confirming.key)}
-          onCancel={() => setConfirming(null)}
+          onClose={() => setConfirming(null)}
           onConfirm={() => {
             const { key } = confirming;
             start(async () => done(await rotateKey({ key })));

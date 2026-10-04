@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Button, InlineAlert } from "@/components";
+import { Button, Checkbox, FormStatus, InlineAlert } from "@/components";
 import { NEWSLETTER_PREFS as T } from "@/content/pt-BR/newsletter";
 import { savePrefsAction, type PrefsState } from "../actions";
 
@@ -44,24 +44,20 @@ export function PrefsForm({ token, lists }: PrefsFormProps) {
       <fieldset className="flex flex-col gap-1 border border-line-section bg-card-white p-4">
         <legend className="sr-only">{T.title}</legend>
         {lists.map((l) => (
-          <label
+          <Checkbox
             key={l.id}
-            className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-          >
-            <input
-              type="checkbox"
-              name="lists"
-              value={l.id}
-              defaultChecked={l.state !== "off"}
-              className="size-5 accent-(--action-primary)"
-            />
-            <span>
-              {l.name}{" "}
-              <span className="type-meta text-meta">
-                · {l.when} · {T.status[l.state]}
+            name="lists"
+            value={l.id}
+            defaultChecked={l.state !== "off"}
+            label={
+              <span>
+                {l.name}{" "}
+                <span className="type-meta text-meta">
+                  · {l.when} · {T.status[l.state]}
+                </span>
               </span>
-            </span>
-          </label>
+            }
+          />
         ))}
       </fieldset>
       <div className="flex flex-wrap gap-3">
@@ -78,9 +74,7 @@ export function PrefsForm({ token, lists }: PrefsFormProps) {
           {T.unsubscribeAll}
         </button>
       </div>
-      <p role="status" className="type-meta text-meta">
-        {message}
-      </p>
+      <FormStatus tone={state.status === "saved" ? "success" : "error"} message={message} />
     </form>
   );
 }
