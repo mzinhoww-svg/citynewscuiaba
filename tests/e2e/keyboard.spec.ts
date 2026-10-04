@@ -137,7 +137,11 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
   expect(at.covered, `foco coberto por ${at.coveredBy} em ${name}`).toBe(false);
   if (at.tag === "body") return at;
   const box = await page.evaluate(() => {
-    const r = document.activeElement!.getBoundingClientRect();
+    const el = document.activeElement!;
+    // R4/R5 + A-123: o anel de um input em `.control-field` é pintado no contêiner; a captura
+    // precisa cobrir o contêiner, senão o contorno cai fora do recorte.
+    const host = (el.tagName === "INPUT" && el.closest(".control-field")) || el;
+    const r = host.getBoundingClientRect();
     return { x: r.left, y: r.top, width: r.width, height: r.height };
   });
   const pad = 8;
