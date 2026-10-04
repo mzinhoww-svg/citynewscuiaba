@@ -3,6 +3,233 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type Database = {
   public: {
     Tables: {
+      ad_creatives: {
+        Row: {
+          advertiser_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          creative: NonNullable<Json>;
+          id: string;
+          name: string;
+          slot: string;
+          status: string;
+          updated_at: string;
+        };
+        Insert: {
+          advertiser_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          creative: NonNullable<Json>;
+          id?: string;
+          name: string;
+          slot: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Update: {
+          advertiser_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          creative?: NonNullable<Json>;
+          id?: string;
+          name?: string;
+          slot?: string;
+          status?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_creatives_advertiser_id_fkey";
+            columns: ["advertiser_id"];
+            isOneToOne: false;
+            referencedRelation: "advertisers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_creatives_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_creatives_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_creatives_slot_fkey";
+            columns: ["slot"];
+            isOneToOne: false;
+            referencedRelation: "ad_slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
+      ad_event_keys: {
+        Row: {
+          at: string;
+          key: string;
+        };
+        Insert: {
+          at?: string;
+          key: string;
+        };
+        Update: {
+          at?: string;
+          key?: string;
+        };
+        Relationships: [];
+      };
+      ad_placements: {
+        Row: {
+          allowed_sections: string[];
+          campaign_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          creative_id: string;
+          ends_on: string;
+          id: string;
+          max_impressions_per_day: number | null;
+          slot: string;
+          starts_on: string;
+          status: string;
+          weight: number;
+        };
+        Insert: {
+          allowed_sections?: string[];
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          creative_id: string;
+          ends_on: string;
+          id?: string;
+          max_impressions_per_day?: number | null;
+          slot: string;
+          starts_on: string;
+          status?: string;
+          weight?: number;
+        };
+        Update: {
+          allowed_sections?: string[];
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          creative_id?: string;
+          ends_on?: string;
+          id?: string;
+          max_impressions_per_day?: number | null;
+          slot?: string;
+          starts_on?: string;
+          status?: string;
+          weight?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_placements_campaign_id_fkey";
+            columns: ["campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "sponsored_campaigns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_placements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_placements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "public_bylines";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_placements_creative_id_fkey";
+            columns: ["creative_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_creatives";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_placements_slot_fkey";
+            columns: ["slot"];
+            isOneToOne: false;
+            referencedRelation: "ad_slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
+      ad_slots: {
+        Row: {
+          code: string;
+          enabled: boolean;
+          formats: NonNullable<Json>;
+          max_kb: number;
+          name: string;
+        };
+        Insert: {
+          code: string;
+          enabled?: boolean;
+          formats?: NonNullable<Json>;
+          max_kb?: number;
+          name: string;
+        };
+        Update: {
+          code?: string;
+          enabled?: boolean;
+          formats?: NonNullable<Json>;
+          max_kb?: number;
+          name?: string;
+        };
+        Relationships: [];
+      };
+      ad_stats: {
+        Row: {
+          clicks: number;
+          day: string;
+          impressions: number;
+          placement_id: string;
+          section_slug: string;
+          views: number;
+        };
+        Insert: {
+          clicks?: number;
+          day: string;
+          impressions?: number;
+          placement_id: string;
+          section_slug?: string;
+          views?: number;
+        };
+        Update: {
+          clicks?: number;
+          day?: string;
+          impressions?: number;
+          placement_id?: string;
+          section_slug?: string;
+          views?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_stats_placement_id_fkey";
+            columns: ["placement_id"];
+            isOneToOne: false;
+            referencedRelation: "ad_placements";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ad_stats_placement_id_fkey";
+            columns: ["placement_id"];
+            isOneToOne: false;
+            referencedRelation: "public_ad_placements";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       advertisers: {
         Row: {
           contact_email: string | null;
@@ -3729,6 +3956,29 @@ export type Database = {
       };
     };
     Views: {
+      public_ad_placements: {
+        Row: {
+          allowed_sections: string[] | null;
+          creative: Json | null;
+          ends_on: string | null;
+          id: string | null;
+          impressions_today: number | null;
+          is_house: boolean | null;
+          max_impressions_per_day: number | null;
+          slot: string | null;
+          starts_on: string | null;
+          weight: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ad_placements_slot_fkey";
+            columns: ["slot"];
+            isOneToOne: false;
+            referencedRelation: "ad_slots";
+            referencedColumns: ["code"];
+          },
+        ];
+      };
       audit_log_view: {
         Row: {
           action: string | null;
@@ -4081,6 +4331,15 @@ export type Database = {
       };
     };
     Functions: {
+      ad_track: {
+        Args: {
+          p_event: string;
+          p_key: string;
+          p_placement: string;
+          p_section: string;
+        };
+        Returns: boolean;
+      };
       ai_cost_daily: {
         Args: { p_since: string };
         Returns: {

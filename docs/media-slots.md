@@ -285,7 +285,7 @@ Estimativas em horas de implementação com testes (sem espera de aprovação do
 - [ ] Comando: `pnpm vitest run src/lib/ads src/lib/studio && pnpm verify`.
 - [ ] Commit: `feat: creative tipado e anunciante [MS-T2]`.
 
-#### Task ADS-T1: Banco, seleção e componente (14 h; já planejada)
+#### Task ADS-T1: Banco, seleção e componente (14 h; já planejada) · concluída em 04/10 (migration 0082, A-117)
 Acréscimo deste inventário: `selectCreative` aplica `weight` e `maxImpressionsPerDay`; `AdSlot` recusa render em editoria bloqueada **no servidor**, não só no painel; altura reservada medida por CLS no Playwright.
 
 #### Task ADS-T2: Posições no site (12 h; já planejada)

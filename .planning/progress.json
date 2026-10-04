@@ -810,10 +810,15 @@
         "status": "done",
         "migration": "0081_advertisers.sql",
         "decision": "A-116"
+      },
+      "ADS-T1": {
+        "status": "done",
+        "migration": "0082_ad_slots.sql",
+        "decision": "A-117"
       }
     },
     "next": [
-      "ADS-T1"
+      "ADS-T2 (depende das decisões do dono: tablet, coluna da home, STICKY)"
     ]
   }
 }
