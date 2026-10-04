@@ -815,10 +815,17 @@
         "status": "done",
         "migration": "0082_ad_slots.sql",
         "decision": "A-119"
+      },
+      "ADS-T2": {
+        "status": "done",
+        "migration": "0083_ad_slots_tablet.sql",
+        "decision": "A-120"
       }
     },
     "next": [
-      "ADS-T2 (depende das decisões do dono: tablet, coluna da home, STICKY)"
+      "ADS-T3 (peças do CityNews)",
+      "MS-T3 (medição no relatório)",
+      "ADS-T4 (administração)"
     ]
   }
 }

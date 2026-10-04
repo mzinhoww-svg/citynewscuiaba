@@ -5,7 +5,7 @@
  */
 import type { DisplayCreative } from "./creative";
 import { isNeverSection } from "./rules";
-import { SLOT_FORMATS, type DisplaySlot } from "./slots";
+import { SLOT_FORMATS, type Device, type DisplaySlot } from "./slots";
 
 export interface AdPlacement {
   id: string;
@@ -13,7 +13,7 @@ export interface AdPlacement {
   creative: DisplayCreative;
   startsOn: string;
   endsOn: string;
-  /** Vazio: todas as editorias, menos as proibidas. */
+  /** Vazio: todas as editorias (e a home), menos as proibidas; com lista, só essas editorias. */
   allowedSections: readonly string[];
   weight: number;
   maxImpressionsPerDay: number | null;
@@ -54,20 +54,29 @@ export function eligibleCandidates(
       p.slot === ctx.slot &&
       live(p, day) &&
       (p.maxImpressionsPerDay === null || p.impressionsToday < p.maxImpressionsPerDay) &&
+      // Peça segmentada só nas editorias dela; páginas sem editoria (home) só recebem as gerais.
       (p.allowedSections.length === 0 ||
-        ctx.sectionSlug === null ||
-        p.allowedSections.includes(ctx.sectionSlug)),
+        (ctx.sectionSlug !== null && p.allowedSections.includes(ctx.sectionSlug))),
   );
   const paid = ok.filter((p) => !p.isHouse);
   return paid.length > 0 ? paid : ok;
 }
 
-/** Aparelho do formato da peça no campo (desktop a partir de `lg`). */
-export function deviceOf(p: AdPlacement): "desktop" | "mobile" | null {
-  const f = SLOT_FORMATS[p.slot].find(
-    (x) => x.width === p.creative.width && x.height === p.creative.height,
-  );
-  return f?.device ?? null;
+/**
+ * Formato do campo naquele aparelho: o primeiro do catálogo que tem peça entre as candidatas.
+ * Um só por aparelho, para a altura reservada no HTML ser exatamente a da peça (CLS 0).
+ */
+export function formatFor(
+  slot: DisplaySlot,
+  device: Device,
+  candidates: readonly AdPlacement[],
+): { width: number; height: number } | null {
+  for (const f of SLOT_FORMATS[slot]) {
+    if (!f.devices.includes(device)) continue;
+    if (candidates.some((c) => c.creative.width === f.width && c.creative.height === f.height))
+      return { width: f.width, height: f.height };
+  }
+  return null;
 }
 
 /** FNV-1a de 32 bits: estável, sem dependência, roda no navegador. */
@@ -83,9 +92,15 @@ function hash(s: string): number {
 /** Escolhe uma candidata do aparelho, pelo peso, sempre a mesma para a mesma sessão. */
 export function pickCandidate(
   candidates: readonly AdPlacement[],
-  opts: { sessionKey: string; device: "desktop" | "mobile" },
+  opts: { sessionKey: string; device: Device },
 ): AdPlacement | null {
-  const list = candidates.filter((c) => deviceOf(c) === opts.device);
+  const first = candidates[0];
+  if (!first) return null;
+  const f = formatFor(first.slot, opts.device, candidates);
+  if (!f) return null;
+  const list = candidates.filter(
+    (c) => c.creative.width === f.width && c.creative.height === f.height,
+  );
   if (list.length === 0) return null;
   const total = list.reduce((s, c) => s + Math.max(1, c.weight), 0);
   let point = (hash(`${opts.sessionKey}:${list[0]!.slot}`) / 2 ** 32) * total;

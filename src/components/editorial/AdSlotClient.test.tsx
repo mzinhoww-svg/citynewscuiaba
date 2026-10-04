@@ -99,6 +99,31 @@ describe("AdSlotClient (ADS-T1)", () => {
     expect(sent()).toEqual(["impression", "view"]);
   });
 
+  it("rodapé fixo: só depois de 40% da rolagem, empilhado sobre a barra e dispensável na sessão", async () => {
+    const sticky = { ...place("s", 320, 50), slot: "STICKY" as const };
+    sticky.creative = { ...sticky.creative, slot: "STICKY" };
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 3000,
+    });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 1000 });
+    const { container, unmount } = render(
+      <AdSlotClient code="STICKY" sectionSlug="cidade" candidates={[sticky]} />,
+    );
+    expect(container.querySelector("[data-ad-sticky]")).toBeNull();
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 900 });
+    await act(async () => window.dispatchEvent(new Event("scroll")));
+    const bar = container.querySelector<HTMLElement>("[data-ad-sticky]")!;
+    expect(bar.className).toContain("bottom-tabbar-safe");
+    expect(bar.className).toContain("md:hidden");
+    await act(async () => screen.getByRole("button", { name: "Fechar publicidade" }).click());
+    expect(container.querySelector("[data-ad-sticky]")).toBeNull();
+    unmount();
+    render(<AdSlotClient code="STICKY" sectionSlug="cidade" candidates={[sticky]} />);
+    await act(async () => window.dispatchEvent(new Event("scroll")));
+    expect(document.querySelector("[data-ad-sticky]")).toBeNull();
+  });
+
   it("sem candidata para nenhum aparelho não desenha nada", () => {
     const { container } = render(<AdSlotClient code="TOP" sectionSlug={null} candidates={[]} />);
     expect(container.innerHTML).toBe("");

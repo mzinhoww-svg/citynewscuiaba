@@ -1,7 +1,7 @@
 import "server-only";
 import { eligibleCandidates } from "@/lib/ads/select";
 import type { DisplaySlot } from "@/lib/ads/slots";
-import { listSlotPlacements } from "@/lib/db/queries/ads";
+import { getSectionCategory, listSlotPlacements } from "@/lib/db/queries/ads";
 import { AdSlotClient } from "./AdSlotClient";
 
 export interface AdSlotProps {
@@ -27,14 +27,18 @@ export async function AdSlot({
   urgent = false,
   className,
 }: AdSlotProps) {
-  const res = await listSlotPlacements(code);
+  const [res, cat] = await Promise.all([
+    listSlotPlacements(code),
+    sectionSlug && !sectionCategory ? getSectionCategory(sectionSlug) : null,
+  ]);
   if (!res.ok) return null;
+  const category = sectionCategory ?? (cat?.ok ? cat.value : null);
   const candidates = eligibleCandidates(res.value, {
     slot: code,
     sectionSlug,
     now: new Date(),
     urgent,
-    categoryOf: () => sectionCategory ?? undefined,
+    categoryOf: () => category ?? undefined,
   });
   if (candidates.length === 0) return null;
   return (

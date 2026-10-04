@@ -89,3 +89,8 @@ export function useInviteSlot(kind: InviteKind, wanted: boolean, path = ""): boo
   }, [kind, wanted, path]);
   return wanted && current === kind;
 }
+
+/** Convite que ocupa a vaga agora (ou `null`): o rodapé de publicidade some enquanto houver um. */
+export function useCurrentInvite(): InviteKind | null {
+  return useSyncExternalStore(subscribe, snapshot, serverSnapshot);
+}
