@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "project": "CityNews Cuiabá",
-  "updatedAt": "2026-10-02",
+  "updatedAt": "2026-10-04",
   "kickoff": {
     "questionsAsked": true,
     "answered": true,
@@ -797,5 +797,19 @@
     "lastCommit": "c66b639",
     "migrations": "0040-0045 em produção (+0046)",
     "report": "docs/reports/pwa.md"
+  },
+  "midiaSlots": {
+    "inventory": "docs/media-slots.md",
+    "tasks": {
+      "MS-T1": {
+        "status": "done",
+        "migration": "0075_sponsored_guard.sql (produção: 04/10)",
+        "decision": "A-115"
+      }
+    },
+    "next": [
+      "ADS-T1",
+      "MS-T2"
+    ]
   }
 }

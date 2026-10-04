@@ -26,6 +26,7 @@ export const FLAG_TEXT: Record<string, string> = {
   personalization_enabled: "personalização",
   image_reproduction_enabled: "reprodução de imagem de terceiros",
   source_link_analysis: "análise de fonte por link",
+  sponsored_native_enabled: "patrocinado nativo",
 };
 
 /** "regras v3", "publicação automática → ligada", "política de imagem → reprodução". */
