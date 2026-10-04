@@ -53,15 +53,15 @@ export function StudioShell({ nav, user, bell, children, className }: StudioShel
         data-sticky="studio"
         className="sticky top-0 z-sticky flex items-center gap-4 border-b border-line-subtle bg-page px-gutter py-1"
       >
-        <Link href="/estudio" className="flex items-center gap-2 rounded-xs no-underline">
+        <Link href="/estudio" className="flex shrink-0 items-center gap-2 rounded-xs no-underline">
           <Logo variant="symbol" size="sm" decorative />
           <span className="type-nav-title text-strong">{STUDIO_TEXT.name}</span>
         </Link>
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-3">
           {bell}
-          <p className="flex flex-col items-end text-right type-meta text-meta">
+          <p className="flex min-w-0 flex-col items-end text-right type-meta text-meta">
             <span className="sr-only">{STUDIO_TEXT.signedInAs}</span>
-            <span className="font-semibold text-strong">{user.name}</span>
+            <span className="max-w-full break-all font-semibold text-strong">{user.name}</span>
             <span>{user.role}</span>
           </p>
         </div>
