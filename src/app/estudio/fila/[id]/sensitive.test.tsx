@@ -77,7 +77,7 @@ function article(over: Partial<StudioArticle>): StudioArticle {
   };
 }
 
-const ALERT = "Tema sensível: nunca publica sozinho.";
+const ALERT = "Tema sensível: confira a fonte citada e o tom antes de decidir.";
 
 describe("/estudio/fila/[id] · tema sensível único (UX-W1-T10, item 19)", () => {
   it("item sensível em Cidade (fonte marcada) mostra o alerta, como na fila", async () => {

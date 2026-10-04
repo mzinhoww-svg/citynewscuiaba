@@ -297,3 +297,11 @@ Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/c
 ## A-143 · Lighthouse mede a main e falha à vista; orçamento provisório de JS (04/10/2026)
 
 **Status:** vigente, provisório no orçamento. UX-W1-T8 (itens 16 e 17 da spec `2026-10-04-melhorias-ux-ui-tecnica-design.md`). O workflow roda em PR, em `push` na `main` e semanalmente; sem `continue-on-error`, um orçamento estourado é check vermelho. O relatório sobe com `include-hidden-files: true` e o resumo roda em passo separado mesmo com falha. `resource-summary:script:size` subiu de 170 KB para **175 KB** em home e busca, que já mediam 170 a 172 KB; a meta é ≤ 165 KB depois da W5-T5, quando o teto baixa de novo. Teste: `tests/ci/lighthouse-config.test.ts`. Numeração: o plano chama esta decisão de A-141; A-141 e A-142 já estavam ocupadas.
+
+## A-144 · Banner de consentimento legível no celular, mais alto (04/10/2026)
+
+W1-T5 (item 11 do plano de melhorias): texto de 14 px sem corte, "Saiba mais" com alvo de 44 px e botões de 14 px não cabem no limite antigo de 15% da altura da tela (96 px em 360×640). O banner passa a ter cerca de 169 px no celular, em duas linhas de ações; o e2e limita a 180 px e a spec `2026-10-02-ui-publica-design.md` foi corrigida. Legibilidade no sol (PRODUCT.md) vence a altura mínima. O botão de aceite diz o que liga: "Aceitar métricas e recomendações".
+
+## A-145 · Alerta de tema sensível na revisão segue as regras v3 (04/10/2026)
+
+O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contradiz o CLAUDE.md §5.8 (nas regras v3, tema sensível publica sozinho com a fonte citada). O texto passa a ser "Tema sensível: confira a fonte citada e o tom antes de decidir." Os números reservados no plano mudam: o "A-142" do plano (select em pílula da FilterBar) vira A-146 e o "A-143" (papel de admin numa ação) vira A-147.

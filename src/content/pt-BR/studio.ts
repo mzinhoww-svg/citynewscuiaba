@@ -363,7 +363,7 @@ export const REVIEW_TEXT = {
   noImage: "Nenhuma imagem escolhida.",
   alerts: "Alertas",
   aiFallbackAlert: "Rascunho montado sem IA: confira fontes e texto com atenção.",
-  sensitiveAlert: "Tema sensível: nunca publica sozinho.",
+  sensitiveAlert: "Tema sensível: confira a fonte citada e o tom antes de decidir.",
   history: "Histórico",
   actions: "Decisão",
   reject: "Rejeitar",

@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — decisões D-01 a D-06 (PR #44); migrations 0151 a 0153 e proposta v4 aplicadas em produção com autorização do dono.
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · Melhorias W1 (itens 1–24 do plano `docs/superpowers/plans/2026-10-04-melhorias-ux-ui-tecnica.md`): modo escuro legível, editor que não perde texto, fila e agenda com total e "Carregar mais", atraso e hoje com texto, banner de consentimento e ticker legíveis, colunas fixas abaixo do cabeçalho, CSS global em camada, Lighthouse visível (A-143), confirmações sensíveis. A-144 e A-145.
+
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 
 > 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
