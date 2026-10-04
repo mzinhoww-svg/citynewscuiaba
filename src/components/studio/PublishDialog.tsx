@@ -37,6 +37,10 @@ export interface PublishDialogProps {
     /** Pedido de push urgente junto com a publicação (só com `canRequestUrgent`). */
     push?: { justification: string };
   }) => Promise<PublishReply>;
+  /** O editor tem alterações não salvas: publicar salva antes (item 4, E-02). */
+  dirty?: boolean;
+  /** Salva o editor; `false` (falha ou conflito) cancela a publicação. */
+  onSaveFirst?: () => Promise<boolean>;
   className?: string;
 }
 
@@ -56,6 +60,8 @@ export function PublishDialog({
   headline,
   canRequestUrgent = false,
   publish,
+  dirty = false,
+  onSaveFirst,
   className,
 }: PublishDialogProps) {
   const router = useRouter();
@@ -99,6 +105,11 @@ export function PublishDialog({
       return;
     }
     start(async () => {
+      // Nunca publica a versão antiga em silêncio: com edição pendente, salva antes ou para.
+      if (dirty && !(onSaveFirst && (await onSaveFirst()))) {
+        setError(T.saveFailed);
+        return;
+      }
       const r = await publish({
         id: articleId,
         when: mode === "now" ? "now" : { at },
@@ -328,6 +339,13 @@ export function PublishDialog({
             </p>
           )}
 
+          {dirty && (
+            <p className="flex items-start gap-2 rounded-md bg-atencao-soft p-3 type-meta text-strong">
+              <Icon name="pencil" size={16} className="mt-0.5 shrink-0 text-warn" />
+              {T.unsaved}
+            </p>
+          )}
+
           {error && (
             <p role="alert" className="flex items-start gap-1.5 type-body text-danger">
               <Icon name="circle-alert" size={20} className="mt-0.5 shrink-0" />
@@ -337,7 +355,13 @@ export function PublishDialog({
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
             <Button type="submit" size="md" disabled={pending}>
-              {mode === "now" ? T.confirm : T.confirmSchedule}
+              {mode === "now"
+                ? dirty
+                  ? T.saveAndPublish
+                  : T.confirm
+                : dirty
+                  ? T.saveAndSchedule
+                  : T.confirmSchedule}
             </Button>
             <Button size="md" variant="text" onClick={() => setOpen(false)}>
               {T.cancel}
