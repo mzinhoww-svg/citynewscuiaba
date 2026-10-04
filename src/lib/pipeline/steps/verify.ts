@@ -6,6 +6,7 @@ import { normalizePlace } from "@/lib/geo/neighborhoods";
 import { err, ok, type Result } from "@/lib/result";
 import { isDubious } from "@/lib/rules/dubious";
 import { anySourceTrusted } from "@/lib/sources/trusted";
+import { nextTopicState } from "@/lib/topics/state";
 import type { TopicBundle, TopicItem } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import type { UnderstandStepDeps } from "./classify";
@@ -202,10 +203,21 @@ export function createVerifyStep(deps: UnderstandStepDeps): StepHandler {
 
     const v = await verifyTopic(bundle, deps.now(), ctx?.signal);
     if (!v.ok) return err(aiStepError(v.error, "verificação", { topicId }));
+    // Estado do assunto (A10): verificar é novidade (dias sem item = 0), então reabre assunto
+    // encerrado; o encerramento por tempo é a varredura `topic_close_stale`.
+    const current = bundle.state ?? "em_apuracao";
+    const state = nextTopicState({
+      state: current,
+      independentOutlets: v.value.independentSources,
+      hasOfficial: v.value.primarySources > 0,
+      hasCorrection: false,
+      daysSinceLastItem: 0,
+    });
     await deps.repo.updateTopic(topicId, {
       confidence: v.value.confidence.level,
       confidenceScore: v.value.confidence.score,
       sectionSlug: majoritySection(bundle.items),
+      ...(state !== current ? { state } : {}),
     });
     await deps.repo.recordDecision({
       objectRef: msg.itemRef,

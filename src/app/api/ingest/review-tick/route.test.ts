@@ -1,6 +1,9 @@
 const SECRET = "segredo-de-teste-da-rota-review-tick-32+";
-const { defaultReviewDeps } = vi.hoisted(() => ({ defaultReviewDeps: vi.fn() }));
-vi.mock("@/lib/pipeline/deps", () => ({ defaultReviewDeps }));
+const { defaultReviewDeps, sweep } = vi.hoisted(() => ({
+  defaultReviewDeps: vi.fn(),
+  sweep: vi.fn(async () => 2),
+}));
+vi.mock("@/lib/pipeline/deps", () => ({ defaultReviewDeps, defaultTopicSweep: () => sweep }));
 
 const req = (secret?: string) =>
   new Request("http://localhost/api/ingest/review-tick", {
@@ -38,6 +41,7 @@ describe("POST /api/ingest/review-tick", () => {
     const { POST } = await import("./route");
     const res = await POST(req(SECRET));
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ status: "inactive", mode: "off" });
+    // A varredura de assuntos encerrados roda mesmo com o revisor desligado (AUT-T7).
+    expect(await res.json()).toEqual({ status: "inactive", mode: "off", topicsClosed: 2 });
   });
 });

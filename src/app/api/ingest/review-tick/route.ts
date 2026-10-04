@@ -1,4 +1,4 @@
-import { defaultReviewDeps } from "@/lib/pipeline/deps";
+import { defaultReviewDeps, defaultTopicSweep } from "@/lib/pipeline/deps";
 import { runReviewTick } from "@/lib/pipeline/steps/auto-reviewer";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 
@@ -18,5 +18,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
   const result = await runReviewTick(defaultReviewDeps());
-  return Response.json(result);
+  // Assuntos sem novidade há 7 dias passam a `encerrado` (AUT-T7); independe do modo do revisor.
+  const topicsClosed = await defaultTopicSweep()().catch(() => null);
+  return Response.json({ ...result, topicsClosed });
 }

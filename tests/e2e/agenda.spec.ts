@@ -267,7 +267,8 @@ test("sugestão completa entra na fila e o 6º envio na hora é recusado", async
     await page.goto("/agenda/sugerir");
     await page.getByLabel("Nome do evento").fill("Feira de discos");
     await page.getByLabel("Data e hora de início").fill("2030-10-10T19:00");
-    await page.getByLabel("Local", { exact: true }).fill("Sesc Arsenal");
+    // Local fora da agenda: segue para a fila humana (local conhecido entra sozinho, A14).
+    await page.getByLabel("Local", { exact: true }).fill("Espaço Teste Desconhecido");
     await page.getByLabel("Entrada gratuita").check();
     await page.getByLabel("E-mail do responsável").fill("org@exemplo.com");
     await page.getByLabel(/Autorizo o CityNews/).check();

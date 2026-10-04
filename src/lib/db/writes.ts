@@ -2,6 +2,7 @@ import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { err, ok, type Result } from "@/lib/result";
 import { revalidateTags } from "@/lib/pipeline/revalidate";
+import { autoApproveSubmission } from "./event-auto";
 import { createServiceClient, type DbClient } from "./client";
 import { SupabaseEnvError } from "./env";
 
@@ -283,7 +284,11 @@ async function refreshIfEscalated(db: DbClient, contentRef: string): Promise<voi
   }
 }
 
-/** Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h. */
+/**
+ * Sugestão de evento de leitor: fila `event_submissions` (E13), revisada em até 48 h, salvo a
+ * aprovação automática (A14): data futura, local conhecido, sem link nem palavrão e dentro do
+ * limite diário entram na agenda na hora (`approved`).
+ */
 export async function saveEventSubmission(s: {
   title: string;
   startsAt: string;
@@ -295,13 +300,22 @@ export async function saveEventSubmission(s: {
   link: string | null;
   description: string | null;
   contactEmail: string;
-}): Promise<Result<void, WriteError>> {
+}): Promise<Result<{ approved: boolean }, WriteError>> {
   return withService(async (db) => {
     const { contactEmail, ...payload } = s;
-    const { error } = await db
+    const { data, error } = await db
       .from("event_submissions")
-      .insert({ payload, contact_email: contactEmail });
+      .insert({ payload, contact_email: contactEmail })
+      .select("id")
+      .single();
     if (error) throw new Error(error.message);
+    // Aprovação automática (A14): falha aqui nunca perde a sugestão, que segue na fila humana.
+    try {
+      const r = await autoApproveSubmission(db, data.id, s);
+      return { approved: r.approved };
+    } catch {
+      return { approved: false }; // fica pendente para a redação
+    }
   });
 }
 

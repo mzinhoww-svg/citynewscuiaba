@@ -729,3 +729,16 @@ export const MODERATION_TEXT = {
     alreadyResolved: "Esta revisão já foi encerrada.",
   },
 } as const;
+
+/** Situação do assunto (AUT-T7, A10): só no Estúdio; o público não vê nenhum estado. */
+export const TOPIC_STATE_STUDIO = {
+  label: "Situação do assunto",
+  state: {
+    em_apuracao: "Em apuração",
+    confirmado: "Confirmado",
+    corrigido: "Corrigido",
+    encerrado: "Encerrado",
+  },
+  line: (title: string, state: string) => `Assunto: ${title} · Situação: ${state}`,
+  auto: "Muda sozinha: confirmado com 2 veículos ou 1 fonte oficial, corrigido ao publicar correção, encerrado depois de 7 dias sem novidade.",
+} as const;

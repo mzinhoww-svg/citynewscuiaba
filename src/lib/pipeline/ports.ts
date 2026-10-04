@@ -404,6 +404,8 @@ export interface TopicItem {
 export interface TopicBundle {
   topicId: string;
   updatedAt: string;
+  /** Estado atual do assunto (AUT-T7); ausente = em apuração. */
+  state?: "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
   items: TopicItem[];
 }
 
@@ -441,6 +443,8 @@ export interface TopicPatch {
   confidenceScore: number;
   /** Só preenche a editoria quando o assunto ainda não tem uma. */
   sectionSlug?: string | null;
+  /** Novo estado do assunto (AUT-T7), só quando muda. */
+  state?: "em_apuracao" | "confirmado" | "corrigido" | "encerrado";
 }
 
 /** Acesso a banco das etapas classify, locate e verify. */

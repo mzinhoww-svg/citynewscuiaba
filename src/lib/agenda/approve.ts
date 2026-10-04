@@ -32,6 +32,11 @@ const SHORTENERS = new Set([
   "wa.me",
 ]);
 
+/** Palavrão no texto (sem acento nem caixa), mesma base da aprovação da agenda coletada. */
+export function hasProfanity(text: string): boolean {
+  return PROFANITY.test(fold(text));
+}
+
 /** Link do original: https, host por nome (nunca IP), sem credenciais e sem encurtador. */
 export function suspiciousLink(raw: string): boolean {
   let u: URL;

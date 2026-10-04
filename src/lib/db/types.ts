@@ -4050,6 +4050,7 @@ export type Database = {
       consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
+      topic_close_stale: { Args: { p_now?: string; p_days?: number }; Returns: number };
       ai_reviewer_set_mode: { Args: { p_mode: string; p_ctx?: Json }; Returns: string };
       review_due_articles: {
         Args: { p_now?: string; p_limit?: number };

@@ -212,3 +212,13 @@ export function defaultReviewDeps(): ReviewTickDeps {
     now: () => new Date(),
   };
 }
+
+/** Varredura dos assuntos sem novidade há 7 dias (AUT-T7, `topic_close_stale`). */
+export function defaultTopicSweep(): () => Promise<number> {
+  const db = createServiceClient();
+  return async () => {
+    const { data, error } = await db.rpc("topic_close_stale");
+    if (error) throw new Error(`topic_close_stale: ${error.message}`);
+    return data ?? 0;
+  };
+}
