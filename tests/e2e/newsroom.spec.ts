@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createArticle, loginAs, removeArticles, service, tag } from "./studio";
 
 /*
- * Newsroom e fila (E01, E02 · P4-T2): abas, faixa de aviso sobre itens automáticos,
+ * Redação e fila (E01, E02 · P4-T2): abas, faixa de aviso sobre itens automáticos,
  * despublicação de item automático com motivo obrigatório (decisão humana "unpublish").
  */
 const created: string[] = [];
@@ -45,7 +45,7 @@ test("editora vê exceções e despublica automático com motivo", async ({ page
 
 test("newsroom mostra KPIs, abas e a fila de exceção do pipeline", async ({ page }) => {
   await loginAs(page, "marina");
-  await expect(page.getByRole("heading", { level: 1, name: "Newsroom" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Redação" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Indicadores do dia" })).toBeVisible();
   await page
     .getByRole("link", { name: /Fila de exceção/ })

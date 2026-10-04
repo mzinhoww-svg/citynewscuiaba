@@ -110,7 +110,7 @@ export const CONTROL_TEXT = {
     live: "Tempo real",
     failures: "Falhas",
     runs: "Execuções",
-    logs: "Logs",
+    logs: "Registros",
     sources: "Fontes",
   },
 
@@ -321,7 +321,7 @@ export const CONTROL_TEXT = {
   },
 
   logs: {
-    title: "Logs",
+    title: "Registros",
     intro: "Registro das etapas do pipeline, do mais novo para o mais antigo.",
     filters: "Filtros",
     run: "Ciclo (id)",

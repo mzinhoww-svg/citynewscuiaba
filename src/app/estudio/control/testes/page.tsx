@@ -12,7 +12,7 @@ import { loadOrNull } from "../../load-error";
 import { playgroundAction } from "../ai-prompt-actions";
 
 export const metadata: Metadata = {
-  title: "Playground de testes · Control Center · CityNews Cuiabá",
+  title: "Testar prompts · Control Center · CityNews Cuiabá",
 };
 export const dynamic = "force-dynamic";
 

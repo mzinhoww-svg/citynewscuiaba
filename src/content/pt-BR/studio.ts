@@ -14,7 +14,7 @@ export const STUDIO_TEXT = {
   signedInAs: "Conectado como",
   welcome: "Bem-vindo ao Estúdio",
   intro:
-    "Redação, Control Center e Governança ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
+    "Redação, Control Center e Administração ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
   loading: "Carregando",
   backToSite: "Ver o portal",
   errorTitle: "Não foi possível carregar esta tela do Estúdio",
@@ -29,6 +29,27 @@ export const STUDIO_TEXT = {
   menuTitle: "Menu do Estúdio",
   menuSearch: "Buscar no menu",
   menuEmpty: (q: string) => `Nenhuma tela com “${q}”.`,
+  /** Final do nome acessível de um item com contagem: "Exceções, 3 pendentes". */
+  navCount: (n: number, kind: "pending" | "overdue" = "pending") =>
+    kind === "overdue"
+      ? `, ${n} ${n === 1 ? "vencida" : "vencidas"}`
+      : `, ${n} ${n === 1 ? "pendente" : "pendentes"}`,
+  /** Final do nome acessível de uma aba com contagem: "Fila de exceção, 3 itens". */
+  tabCount: (n: number) => `, ${n} ${n === 1 ? "item" : "itens"}`,
+} as const;
+
+/** Grupos e subgrupos do menu do Estúdio (item 50). */
+export const STUDIO_NAV_TEXT = {
+  groups: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
+  subgroups: {
+    operation: "Operação",
+    ai: "IA",
+    sourcesRules: "Fontes e regras",
+  },
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -66,7 +87,7 @@ export const RECOMMENDED_LABEL: Record<string, string> = {
 export const CONFIDENCE_LABEL = { alta: "Alta", média: "Média", baixa: "Baixa" } as const;
 
 export const QUEUE_TEXT = {
-  newsroomTitle: "Newsroom",
+  newsroomTitle: "Redação",
   queueTitle: "Fila de matérias",
   kpiRegion: "Indicadores do dia",
   kpi: {

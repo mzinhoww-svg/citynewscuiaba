@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 
 export interface QueueTabItem {
@@ -39,9 +40,15 @@ export function QueueTabs({ label, items, current, className }: QueueTabsProps) 
               >
                 {it.label}
                 {it.count !== undefined && (
-                  <span className="rounded-pill bg-section px-2 py-0.5 text-13 tabular-nums text-strong">
-                    {it.count}
-                  </span>
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="rounded-pill bg-section px-2 py-0.5 text-13 tabular-nums text-strong"
+                    >
+                      {it.count}
+                    </span>
+                    <span className="sr-only">{STUDIO_TEXT.tabCount(it.count)}</span>
+                  </>
                 )}
               </Link>
             </li>

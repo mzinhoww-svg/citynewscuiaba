@@ -25,7 +25,7 @@ import { pushHrefFor } from "./nav";
 import { setStaffAlertsAction } from "./notificacoes/actions";
 import { tabHref, toTableRow } from "./fila/rows";
 
-export const metadata: Metadata = { title: "Newsroom · Estúdio · CityNews Cuiabá" };
+export const metadata: Metadata = { title: "Redação · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
 
 const PREVIEW = 8;
