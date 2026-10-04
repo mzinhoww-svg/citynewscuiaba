@@ -28,7 +28,11 @@ describe("peças da casa (ADS-T3)", () => {
       expect(m.href).toMatch(/^\/[a-z]/);
       expect(`${m.title} ${m.text} ${m.cta}`).not.toMatch(/\bIA\b|inteligência artificial/i);
       expect(m.title.length).toBeLessThanOrEqual(28);
+      expect(altOf(m), m.id).not.toMatch(/[?!.]\./);
     }
+    expect(altOf({ title: "Tem um evento em Cuiabá?", cta: "Enviar evento" })).toBe(
+      "Tem um evento em Cuiabá? Enviar evento.",
+    );
   });
 
   it("cada PNG existe, pesa até 200 KB e vira peça válida com alt", () => {
