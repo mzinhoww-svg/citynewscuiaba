@@ -11,6 +11,15 @@ export { Chip, ChipGroup, type ChipGroupProps, type ChipProps } from "./ui/Chip"
 export { Dialog, type DialogProps } from "./ui/Dialog";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ui/ConfirmDialog";
 export { SubmitButton, type SubmitButtonProps } from "./ui/SubmitButton";
+export { Drawer, type DrawerProps } from "./ui/Drawer";
+export { Menu, type MenuItem, type MenuProps } from "./ui/Menu";
+export {
+  Popover,
+  type PopoverControls,
+  type PopoverProps,
+  type PopoverTriggerProps,
+  type PopoverTriggerRender,
+} from "./ui/Popover";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
 export { Icon, type IconName, type IconProps, type IconSize } from "./ui/Icon";
 export { ICON_NAMES } from "./ui/icon-names";
