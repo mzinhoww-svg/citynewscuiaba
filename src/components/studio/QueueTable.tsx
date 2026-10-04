@@ -39,6 +39,8 @@ export interface QueueTableRow {
   overdue: boolean;
   /** Pode despublicar (automática publicada e papel com `article.unpublish_auto`). */
   canUnpublish: boolean;
+  /** Âncora do primeiro item novo depois de "Carregar mais" (recebe o foco). */
+  anchorId?: string;
 }
 
 export interface ActionReply {
@@ -303,7 +305,12 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
+                  <tr
+                    key={r.id}
+                    id={r.anchorId}
+                    tabIndex={r.anchorId ? -1 : undefined}
+                    className="border-b border-line-subtle align-top last:border-b-0"
+                  >
                     {bulk && (
                       <td className="px-3 py-3">
                         <input
