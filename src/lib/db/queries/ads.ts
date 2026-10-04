@@ -49,3 +49,18 @@ export async function listSlotPlacements(
     { tags: ["ads"], revalidate: ADS_REVALIDATE },
   );
 }
+
+/** Categoria de autonomia da editoria (subeditoria herda a proibição). */
+export async function getSectionCategory(slug: string): Promise<Result<string | null, QueryError>> {
+  return readPublic(
+    async (db) => {
+      const { data } = await db
+        .from("sections")
+        .select("autonomy_category")
+        .eq("slug", slug)
+        .maybeSingle();
+      return data?.autonomy_category ?? null;
+    },
+    { tags: ["sections"], revalidate: 600 },
+  );
+}
