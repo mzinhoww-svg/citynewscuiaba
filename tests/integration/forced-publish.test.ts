@@ -129,6 +129,13 @@ describe("publicação forçada (banco real)", () => {
       .single();
     expect(ok.data).toMatchObject({ status: "published", publish_mode: "auto" });
     expect(JSON.stringify(ok.data?.body)).toContain("Com informações de Folha do Cerrado.");
+    // Publicar não edita o texto: a versão não é humana (a decisão humana fica em `decisions`),
+    // então o pipeline ainda pode reescrever a matéria se ela voltar para revisão (A-123).
+    const versions = await service
+      .from("article_versions")
+      .select("origin")
+      .eq("article_id", ids.ok!);
+    expect(versions.data?.map((v) => v.origin)).not.toContain("human");
     const skipped = await service
       .from("articles")
       .select("status")

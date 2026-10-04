@@ -20,17 +20,17 @@ describe("disjuntor (AUT-T4, A8)", () => {
   it("fechado em operação normal", () =>
     expect(breaker.check(NOW, calm)).toEqual({ open: false, reason: null }));
 
-  it("a 61ª publicação na hora abre; 59 não", () => {
-    expect(breaker.check(NOW, { ...calm, publishedLastHour: 59 }).open).toBe(false);
-    expect(breaker.check(NOW, { ...calm, publishedLastHour: 60 })).toEqual({
+  it("a 301ª publicação na hora abre; 299 não", () => {
+    expect(breaker.check(NOW, { ...calm, publishedLastHour: 299 }).open).toBe(false);
+    expect(breaker.check(NOW, { ...calm, publishedLastHour: 300 })).toEqual({
       open: true,
       reason: "hourly",
     });
   });
 
-  it("800 no dia abre", () => {
-    expect(breaker.check(NOW, { ...calm, publishedToday: 799 }).open).toBe(false);
-    expect(breaker.check(NOW, { ...calm, publishedToday: 800 })).toEqual({
+  it("3.000 no dia abre", () => {
+    expect(breaker.check(NOW, { ...calm, publishedToday: 2999 }).open).toBe(false);
+    expect(breaker.check(NOW, { ...calm, publishedToday: 3000 })).toEqual({
       open: true,
       reason: "daily",
     });
@@ -63,8 +63,8 @@ describe("disjuntor (AUT-T4, A8)", () => {
   it("a ordem dos motivos é hora, dia, denúncias, IA", () =>
     expect(
       breaker.check(NOW, {
-        publishedLastHour: 60,
-        publishedToday: 800,
+        publishedLastHour: 300,
+        publishedToday: 3000,
         reportsLastHour: 10,
         aiCallsLastHour: 10,
         aiFailuresLastHour: 10,

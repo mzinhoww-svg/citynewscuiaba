@@ -478,6 +478,32 @@ describe("enrich", () => {
     expect(t.calls).toHaveLength(0);
   });
 
+  it("#refetch (recuperação): item antigo busca texto e foto e para ali, sem dedupe", async () => {
+    const body = `<article>${"<p>Fato completo da matéria na página da fonte, com detalhes.</p>".repeat(6)}</article>`;
+    const t = await setup({
+      src: source({ consumption: {} }),
+      routes: {
+        [`${HOST}/robots.txt`]: { status: 404 },
+        [CHUVA]: ok200(page(`<meta property="og:image" content="${HOST}/img/chuva.jpg">`, body)),
+      },
+      items: [{ url: CHUVA, title: "Chuva", publishedAt: "2026-09-20T10:00:00.000Z" }],
+    });
+    const r = await createEnrichStep({
+      repo: t.repo,
+      http: createFakeHttp({
+        [`${HOST}/robots.txt`]: { status: 404 },
+        [CHUVA]: ok200(page(`<meta property="og:image" content="${HOST}/img/chuva.jpg">`, body)),
+      }).http,
+      resolve: fakeResolve(),
+      userAgent: UA,
+      now: () => NOW,
+      sleep: async () => {},
+    })({ runId: "rec", step: "enrich", itemRef: `item:${t.ids[0]}#refetch`, attempt: 1 });
+    expect(r).toEqual({ ok: true, value: [] });
+    expect(t.repo.collected()[0]!.sourceText).toContain("Fato completo da matéria");
+    expect(t.repo.collected()[0]!.imageUrl).toBe(`${HOST}/img/chuva.jpg`);
+  });
+
   it("resposta que não é HTML é ignorada", async () => {
     const t = await setup({
       routes: {

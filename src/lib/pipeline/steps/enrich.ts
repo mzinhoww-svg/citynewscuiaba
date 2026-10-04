@@ -24,6 +24,8 @@ export const SHORT_EXCERPT_CHARS = 600;
 export const ENRICH_MAX_RETRIES = 2;
 /** Item mais velho que isto não é enriquecido (primeira coleta de um sitemap com muito histórico). */
 export const ENRICH_MAX_AGE_MS = 48 * 60 * 60_000;
+/** Sufixo da recuperação: enriquece item já coletado sem seguir para o `dedupe`. */
+export const REFETCH_SUFFIX = "#refetch";
 /** Quanto tempo o `robots.txt` de uma fonte fica em memória. */
 const ROBOTS_TTL_MS = 10 * 60_000;
 const DAY_MS = 24 * 60 * 60_000;
@@ -291,16 +293,20 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
   }
 
   return async (msg, ctx) => {
-    const id = msg.itemRef.replace(/^item:/, "");
-    const next = ok([nextMessage(msg, "dedupe", `item:${id}`)]);
+    // `item:<id>#refetch`: recuperação de item já coletado (A-123). Busca texto e foto na página
+    // e para ali: o item já tem assunto, e a reescrita é pedida à parte (`summarize`).
+    const refetch = msg.itemRef.endsWith(REFETCH_SUFFIX);
+    const id = msg.itemRef.replace(/^item:/, "").replace(REFETCH_SUFFIX, "");
+    const next = refetch ? ok([]) : ok([nextMessage(msg, "dedupe", `item:${id}`)]);
     const item = await deps.repo.collectedForEnrich(id);
     if (!item) return err(stepError.notFound(`item ${id} não encontrado`));
     const source = await deps.repo.sourceById(item.sourceId);
-    if (!source || !enrichEnabled(source.consumption, item.excerpt)) return next;
+    if (!source || (!refetch && !enrichEnabled(source.consumption, item.excerpt))) return next;
 
     const now = deps.now();
-    if (item.publishedAt && Date.parse(item.publishedAt) < now.getTime() - ENRICH_MAX_AGE_MS)
-      return next;
+    const old =
+      item.publishedAt !== null && Date.parse(item.publishedAt) < now.getTime() - ENRICH_MAX_AGE_MS;
+    if (old && !refetch) return next;
     if (!sameSite(item.canonicalUrl, source.baseUrl)) return next;
 
     const outcome = await exclusive(source.slug, () =>
