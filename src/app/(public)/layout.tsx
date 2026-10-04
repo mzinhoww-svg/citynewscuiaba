@@ -13,6 +13,8 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "CityNews",
+    /* eslint-disable no-restricted-syntax -- consultas de mídia da splash do iOS: o Safari exige px
+       do aparelho, não é classe de UI */
     startupImage: [
       {
         url: "/icons/splash-1170x2532.png",
@@ -30,6 +32,7 @@ export const metadata: Metadata = {
           "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)",
       },
     ],
+    /* eslint-enable no-restricted-syntax */
   },
   icons: { apple: [{ url: "/icons/apple-touch-icon-180.png", sizes: "180x180" }] },
 };
