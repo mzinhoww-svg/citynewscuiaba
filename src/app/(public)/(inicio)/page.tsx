@@ -289,7 +289,7 @@ function Module_most_read({ data }: { data: HomeData }) {
               {HOME.mostRead}
             </h2>
           </div>
-          <ol className="grid grid-cols-1 gap-x-10 gap-y-4 max-md:[&>li:nth-child(n+4)]:hidden md:grid-cols-2">
+          <ol className="grid grid-cols-1 gap-x-10 gap-y-4 max-md:[&>li:nth-child(n+4):not([data-sponsored])]:hidden md:grid-cols-2">
             {/* Número par no desktop: a grade de duas colunas nunca fica com buraco no fim. */}
             {data.mostRead
               .slice(0, data.mostRead.length - (data.mostRead.length % 2))
@@ -305,7 +305,8 @@ function Module_most_read({ data }: { data: HomeData }) {
                 </li>
               ))}
             {data.sponsored && (
-              <li className="flex items-start gap-4 md:col-span-2">
+              // Fora do corte das 3 primeiras no celular: o patrocinado nunca fica escondido.
+              <li data-sponsored="" className="flex items-start gap-4 md:col-span-2">
                 <ArticleCard
                   variant="compact"
                   article={data.sponsored}
@@ -379,6 +380,20 @@ function Home({ data }: { data: HomeData }) {
           <ArticleCard variant="lead" as="h1" article={lead} className="lg:col-span-8" />
           <NowList items={data.now} className="lg:col-span-4" />
         </div>
+
+        {/* Posição home.destaques: até 3 matérias com capa, sem repetir a manchete (R39 e R40). */}
+        {data.highlights.length > 0 && (
+          <section aria-labelledby="home-highlights" className="flex flex-col gap-4">
+            <SectionHeader id="home-highlights" title={HOME.highlights} action={null} />
+            <ul className="grid grid-cols-1 gap-6 md:grid-cols-3 max-md:[&>li:nth-child(n+2)]:hidden">
+              {data.highlights.map((a) => (
+                <li key={a.id} className="flex min-w-0">
+                  <ArticleCard variant="standard" article={a} className="flex-1" />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {data.modules
           .filter((m) => m.enabled)

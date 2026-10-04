@@ -33,6 +33,12 @@ export const ADMIN_NAV: AdminNavEntry[] = [
   { href: "/estudio/admin/taxonomia", label: "Taxonomia", icon: "layers", action: "site.manage" },
   { href: "/estudio/admin/home", label: "Home e módulos", icon: "house", action: "site.manage" },
   {
+    href: "/estudio/admin/destaques",
+    label: "Destaques",
+    icon: "star",
+    action: "featured.manage",
+  },
+  {
     href: "/estudio/admin/publicidade",
     label: "Publicidade",
     icon: "ticket",

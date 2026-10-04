@@ -108,6 +108,8 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/control/logs/export",
     "/api/control/run-now",
     "/api/estudio/midia/[id]",
+    "/api/estudio/notificacoes",
+    "/api/estudio/notificacoes/ler",
     "/estudio/admin/auditoria/export",
     "/estudio/admin/notificacoes/historico/exportar",
   ];

@@ -26,7 +26,7 @@ import { pathToFileURL, fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 function parseArgs(argv) {
-  const a = { apply: false, dryRun: false, only: null, config: join(root, "scripts/ops/sources-activation.json"), report: null };
+  const a = { apply: false, dryRun: false, only: null, config: join(root, "scripts/ops/sources-activation.json"), report: null, emitSql: null };
   for (let i = 0; i < argv.length; i++) {
     const k = argv[i];
     if (k === "--apply") a.apply = true;
@@ -34,6 +34,7 @@ function parseArgs(argv) {
     else if (k === "--only") a.only = (argv[++i] ?? "").split(",").filter(Boolean);
     else if (k === "--config") a.config = resolve(argv[++i] ?? "");
     else if (k === "--report") a.report = resolve(argv[++i] ?? "");
+    else if (k === "--emit-sql") a.emitSql = resolve(argv[++i] ?? "");
     else throw new Error(`opção desconhecida: ${k}`);
   }
   if (a.apply && a.dryRun) throw new Error("--apply e --dry-run juntos: escolha um");
@@ -204,6 +205,7 @@ async function main() {
 
     const ctx = { reason: `${file.decision}: ativação das fontes pausadas`, batchId: randomUUID() };
     const results = [];
+    const sqlOut = [];
     let failures = 0;
     for (const entry of entries) {
       const now = new Date();
@@ -227,6 +229,13 @@ async function main() {
         sample: check.items.slice(0, 3),
         applied: null,
       };
+      if (args.emitSql && outcome.action === "activate") {
+        const q = (v) => (v == null ? "null" : `'${String(v).replace(/'/g, "''")}'`);
+        const pt = outcome.patch;
+        sqlOut.push(
+          `update sources set kind = ${q(pt.kind)}, feed_url = ${q(pt.feed_url)}, consumption = ${q(JSON.stringify(pt.consumption ?? {}))}::jsonb, terms_url = ${q(pt.terms_url)}, terms_reviewed_at = ${pt.terms_reviewed_at ? q(pt.terms_reviewed_at) : "now()"}, frequency_minutes = ${Number(pt.frequency_minutes ?? 60)}, rate_limit_per_hour = ${Number(pt.rate_limit_per_hour ?? 20)}, agreement_note = ${q(pt.agreement_note)}, status = 'active', status_reason = null, last_error = null, status_changed_at = now(), version = version + 1 where slug = ${q(entry.slug)} and status = 'paused';`,
+        );
+      }
       if (conn) {
         const { data: row, error } = await conn.db.from("sources").select(COLS).eq("slug", entry.slug).maybeSingle();
         if (error) throw new Error(`select ${entry.slug}: ${error.message}`);
@@ -256,6 +265,7 @@ async function main() {
 
     const active = results.filter((r) => r.result === "ATIVA").length;
     console.log(`\nResumo: ${active} ativável(is), ${results.length - active} pausada(s)${args.apply ? "" : " · nada foi gravado (dry-run)"}`);
+    if (args.emitSql) await writeFile(args.emitSql, sqlOut.join("\n") + "\n");
     if (args.report) await writeFile(args.report, JSON.stringify({ at: new Date().toISOString(), apply: args.apply, results }, null, 2));
     if (failures) process.exit(1);
   } finally {

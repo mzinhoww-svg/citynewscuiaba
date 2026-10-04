@@ -26,7 +26,7 @@ const source = (over: Partial<SourceRecord> = {}): SourceRecord => ({
   locality: "cuiaba",
   etag: null,
   lastModified: null,
-  consumption: { strategy: "sitemap_news" },
+  consumption: { strategy: "sitemap_news", enrich: false },
   ...over,
 });
 
