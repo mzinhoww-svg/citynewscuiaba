@@ -58,6 +58,8 @@ export function RichEditor({
       attributes: {
         role: "textbox",
         "aria-multiline": "true",
+        // Só leitura anunciado como tal (item 6); o Tiptap já tira o contenteditable.
+        ...(readOnly ? { "aria-readonly": "true" } : {}),
         "aria-labelledby": labelId,
         class: cx(
           "cn-prose min-h-64 rounded-b-lg border border-t-0 border-line-control bg-input px-4 py-3",

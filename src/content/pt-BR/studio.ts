@@ -232,6 +232,10 @@ export const EDITOR_TEXT = {
   conflictReload: "Recarregar a versão atual",
   conflictSaved: "Versão salva por outra pessoa",
   conflictMine: "O que você tentou salvar",
+  draftKept: "Guardamos o seu texto neste aparelho.",
+  draftKeptHint: "Confira a versão atual e, se quiser, traga o seu texto de volta para continuar.",
+  restoreDraft: "Restaurar meu texto",
+  discardDraft: "Descartar meu texto",
   publishedNeedsMode:
     "Matéria publicada: use o modo Atualização ou Correção para mudar o texto público.",
   suggestionDecided: "Esta sugestão já foi decidida.",
@@ -440,6 +444,11 @@ export const PUBLISH_TEXT = {
   headline: (title: string) => `A manchete atual da home é "${title}". Esta matéria entra no topo.`,
   confirm: "Confirmar publicação",
   confirmSchedule: "Confirmar agendamento",
+  saveAndPublish: "Salvar e publicar",
+  saveAndSchedule: "Salvar e agendar",
+  unsaved: "Há alterações não salvas no editor. Elas são salvas antes de publicar.",
+  saveFailed:
+    "Não foi possível salvar as alterações. Nada foi publicado: confira o aviso no editor.",
   cancel: "Cancelar",
   published: "Matéria publicada",
   scheduled: (when: string) => `Matéria agendada para ${when}`,

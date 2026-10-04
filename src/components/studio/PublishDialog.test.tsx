@@ -79,3 +79,74 @@ describe("PublishDialog · push urgente (E06, spec §10.7)", () => {
     });
   });
 });
+
+describe("PublishDialog · edição não salva (item 4, E-02)", () => {
+  it("com edição pendente, o diálogo oferece Salvar e publicar", async () => {
+    render(
+      <PublishDialog
+        {...base}
+        publish={vi.fn()}
+        dirty
+        onSaveFirst={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    expect(screen.getByRole("button", { name: "Salvar e publicar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Confirmar publicação" })).not.toBeInTheDocument();
+    expect(screen.getByText(/alterações não salvas/i)).toBeInTheDocument();
+  });
+
+  it("salva antes e só então publica", async () => {
+    const order: string[] = [];
+    const save = vi.fn(async () => {
+      order.push("save");
+      return true;
+    });
+    const publish = vi.fn(async () => {
+      order.push("publish");
+      return { ok: true, message: "Matéria publicada" };
+    });
+    render(<PublishDialog {...base} publish={publish} dirty onSaveFirst={save} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar e publicar" }));
+    expect(order).toEqual(["save", "publish"]);
+  });
+
+  it("se salvar falhar, não publica e avisa", async () => {
+    const publish = vi.fn();
+    render(
+      <PublishDialog
+        {...base}
+        publish={publish}
+        dirty
+        onSaveFirst={vi.fn().mockResolvedValue(false)}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar e publicar" }));
+    expect(publish).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Nada foi publicado");
+  });
+
+  it("com edição pendente e sem como salvar, não publica a versão antiga", async () => {
+    const publish = vi.fn();
+    render(<PublishDialog {...base} publish={publish} dirty />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Salvar e publicar" }));
+    expect(publish).not.toHaveBeenCalled();
+  });
+
+  it("agendar com edição pendente vira Salvar e agendar", async () => {
+    render(
+      <PublishDialog
+        {...base}
+        publish={vi.fn()}
+        dirty
+        onSaveFirst={vi.fn().mockResolvedValue(true)}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
+    expect(screen.getByRole("button", { name: "Salvar e agendar" })).toBeInTheDocument();
+  });
+});
