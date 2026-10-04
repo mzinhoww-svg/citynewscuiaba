@@ -234,7 +234,13 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
       .order("id", { ascending: false })
       .limit(1);
     expect(log?.[0]).toMatchObject({ actor: SEED_USERS.helena.id });
-    expect(log?.[0]?.details).toMatchObject({ reason: "Teste", movedToReview: 1 });
+    expect(log?.[0]?.details).toMatchObject({
+      reason: "Teste",
+      movedToReview: 1,
+      // D-04: a mudança é livre, mas a auditoria guarda o antes e o depois.
+      from: true,
+      to: false,
+    });
   });
 
   it("a etapa 15 do item ainda não decidido passa a rotear para revisão", async () => {
