@@ -99,6 +99,34 @@ describe("AdSlotClient (ADS-T1)", () => {
     expect(sent()).toEqual(["impression", "view"]);
   });
 
+  it("rodapé fixo reserva a própria altura em --cn-ad-h e data-ad-open, e libera ao sair", async () => {
+    const sticky = { ...place("r", 320, 50), slot: "STICKY" as const };
+    sticky.creative = { ...sticky.creative, slot: "STICKY" };
+    const root = document.documentElement;
+    Object.defineProperty(root, "scrollHeight", { configurable: true, value: 3000 });
+    Object.defineProperty(window, "innerHeight", { configurable: true, value: 1000 });
+    const height = vi
+      .spyOn(HTMLElement.prototype, "offsetHeight", "get")
+      .mockImplementation(function (this: HTMLElement) {
+        return this.hasAttribute("data-ad-sticky") ? 72 : 0;
+      });
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+    const { unmount } = render(
+      <AdSlotClient code="STICKY" sectionSlug={null} candidates={[sticky]} />,
+    );
+    expect(root.hasAttribute("data-ad-open")).toBe(false);
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 900 });
+    await act(async () => window.dispatchEvent(new Event("scroll")));
+    expect(root.hasAttribute("data-ad-open")).toBe(true);
+    expect(root.style.getPropertyValue("--cn-ad-h")).toBe("72px");
+    // (fechar é coberto no teste seguinte; aqui a saída da página libera o espaço)
+    unmount();
+    expect(root.hasAttribute("data-ad-open")).toBe(false);
+    expect(root.style.getPropertyValue("--cn-ad-h")).toBe("");
+    height.mockRestore();
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
+  });
+
   it("rodapé fixo: só depois de 40% da rolagem, empilhado sobre a barra e dispensável na sessão", async () => {
     const sticky = { ...place("s", 320, 50), slot: "STICKY" as const };
     sticky.creative = { ...sticky.creative, slot: "STICKY" };
@@ -116,8 +144,10 @@ describe("AdSlotClient (ADS-T1)", () => {
     const bar = container.querySelector<HTMLElement>("[data-ad-sticky]")!;
     expect(bar.className).toContain("bottom-tabbar-safe");
     expect(bar.className).toContain("md:hidden");
+    expect(document.documentElement.hasAttribute("data-ad-open")).toBe(true);
     await act(async () => screen.getByRole("button", { name: "Fechar publicidade" }).click());
     expect(container.querySelector("[data-ad-sticky]")).toBeNull();
+    expect(document.documentElement.hasAttribute("data-ad-open")).toBe(false);
     unmount();
     render(<AdSlotClient code="STICKY" sectionSlug="cidade" candidates={[sticky]} />);
     await act(async () => window.dispatchEvent(new Event("scroll")));
