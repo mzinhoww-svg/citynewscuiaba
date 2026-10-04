@@ -28,4 +28,7 @@ export const UI = {
   /** Contagem real de uma lista paginada ("Carregar mais"). */
   showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
   loadMore: "Carregar mais",
+  /** Texto padrão do botão em carregamento (`Button loading`, `SubmitButton`). */
+  saving: "Salvando…",
+  cancel: "Cancelar",
 } as const;
