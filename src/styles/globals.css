@@ -375,6 +375,18 @@
 @utility bottom-tabbar-safe {
   bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
 }
+/* Campo do chat (UI-T13): acima da barra inferior e do aviso de privacidade ou da faixa de
+   convite abertos (um de cada vez; a altura de cada um vem do próprio componente). */
+/* No desktop o campo é sticky: fica logo acima da barra de privacidade enquanto ela está aberta. */
+@utility bottom-consent-safe {
+  bottom: var(--cn-consent-h, 0px);
+}
+@utility bottom-chat-safe {
+  bottom: calc(
+    var(--h-tabbar) + env(safe-area-inset-bottom) + var(--cn-consent-h, 0px) +
+      var(--cn-invite-h, 0px)
+  );
+}
 
 /*
  * Foco nunca coberto (WCAG 2.4.11): o cabeçalho fixo e a barra inferior do portal (só abaixo de

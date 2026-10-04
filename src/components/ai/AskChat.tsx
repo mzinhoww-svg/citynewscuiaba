@@ -18,6 +18,7 @@ import { inlineSourcePrefix } from "./ChatMessage";
 import { ChatSources } from "./ChatSources";
 import { ChatThread } from "./ChatThread";
 import { useAskStream } from "./useAskStream";
+import { useHydrated } from "./useHydrated";
 
 export interface AskChatProps {
   /** `/pergunte?q=`: a conversa abre já com esta pergunta enviada. */
@@ -74,6 +75,7 @@ function visibleTarget(ids: string[]): HTMLElement | null {
  */
 export function AskChat({ initialQuestion, historyStore }: AskChatProps) {
   const { send, retry, reset, messages, busy } = useAskStream();
+  const hydrated = useHydrated();
   const [consent] = useConsent();
   const consentKnown = useConsentKnown();
   const historyOn = consent.personalization;
@@ -243,9 +245,15 @@ export function AskChat({ initialQuestion, historyStore }: AskChatProps) {
         <p role="status" aria-live="polite" className="sr-only">
           {liveText(messages.at(-1))}
         </p>
+        {/* Sem JavaScript o aviso de privacidade não fecha: o campo fica no fluxo da página para
+            nunca ficar sob ele. Hidratado, fica fixo acima da barra inferior e do aviso aberto. */}
         <div
           ref={composerRef}
-          className="fixed inset-x-0 bottom-tabbar-safe z-sticky border-t border-line-section bg-page px-gutter py-3 lg:sticky lg:bottom-0 lg:border-t-0 lg:px-0 lg:pb-6"
+          data-composer={hydrated ? "fixed" : "static"}
+          className={cx(
+            "border-t border-line-section bg-page py-3 lg:sticky lg:bottom-consent-safe lg:border-t-0 lg:px-0 lg:pb-6",
+            hydrated && "fixed inset-x-0 bottom-chat-safe z-sticky px-gutter",
+          )}
         >
           <ChatComposer
             onSend={ask}

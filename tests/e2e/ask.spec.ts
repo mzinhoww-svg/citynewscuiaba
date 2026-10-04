@@ -249,10 +249,18 @@ test("API responde em streaming NDJSON com o contrato da resposta", async ({ pag
 test.describe("sem JavaScript (Review Focus 3)", () => {
   test.use({ javaScriptEnabled: false });
 
+  // Sem JavaScript o aviso de privacidade não fecha e fica fixo na base; o campo está no fluxo da
+  // página, então quem lê rola até ele. O teste faz o mesmo antes de tocar em Enviar.
+  const send = async (page: Page) => {
+    const button = page.getByRole("button", { name: "Enviar pergunta" });
+    await button.evaluate((el) => el.scrollIntoView({ block: "center" }));
+    await button.click();
+  };
+
   test("o formulário GET continua respondendo no servidor", async ({ page }) => {
     await page.goto("/pergunte");
     await field(page).fill(Q);
-    await page.getByRole("button", { name: "Enviar pergunta" }).click();
+    await send(page);
     await expect(page).toHaveURL(/[?&]modo=simples/);
     await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
     await page.getByRole("link", { name: "Fonte 1", exact: true }).first().click();
@@ -271,7 +279,7 @@ test.describe("sem JavaScript (Review Focus 3)", () => {
 
     await page.goto(`/pergunte?q=${encodeURIComponent(Q)}`);
     await expect(field(page)).toHaveValue(Q);
-    await page.getByRole("button", { name: "Enviar pergunta" }).click();
+    await send(page);
     await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
   });
 });

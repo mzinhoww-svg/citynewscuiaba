@@ -336,3 +336,20 @@ describe("ChatComposer sem JavaScript (Review Focus 3)", () => {
     expect(html).not.toContain("aria-disabled");
   });
 });
+
+describe("campo do chat e o aviso de privacidade", () => {
+  it("sem JavaScript (HTML do servidor) o campo fica no fluxo da página, não fixo", async () => {
+    const { renderToString } = await import("react-dom/server");
+    const html = renderToString(<AskChat />);
+    expect(html).toContain('data-composer="static"');
+    expect(html).not.toContain("fixed inset-x-0");
+  });
+
+  it("hidratado, o campo fica fixo acima da barra inferior e do aviso de privacidade", () => {
+    mockFetch();
+    const { container } = render(<AskChat />);
+    const wrap = container.querySelector("[data-composer]");
+    expect(wrap).toHaveAttribute("data-composer", "fixed");
+    expect(wrap?.className).toContain("bottom-chat-safe");
+  });
+});

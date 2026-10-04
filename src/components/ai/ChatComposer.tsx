@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore, type KeyboardEvent, type Ref } from "react";
+import { useId, useState, type KeyboardEvent, type Ref } from "react";
+import { useHydrated } from "./useHydrated";
 import { ASK } from "@/content/pt-BR/ask";
 import { COUNTER_FROM, MAX_QUESTION } from "@/lib/ask";
 import { cx } from "../cx";
@@ -21,10 +22,6 @@ export interface ChatComposerProps {
   formId?: string;
   className?: string;
 }
-
-const subscribeNever = () => () => {};
-const isClient = () => true;
-const isServer = () => false;
 
 /**
  * Campo de envio do chat (UI-T13): `Enter` envia, `Shift+Enter` quebra linha, contador a partir
@@ -47,7 +44,7 @@ export function ChatComposer({
 }: ChatComposerProps) {
   const id = useId();
   const [typed, setValue] = useState("");
-  const hydrated = useSyncExternalStore(subscribeNever, isClient, isServer);
+  const hydrated = useHydrated();
   const value = hydrated ? typed : serverValue.slice(0, max);
   const counterId = `${id}-contador`;
   const noticeId = `${id}-aviso`;
