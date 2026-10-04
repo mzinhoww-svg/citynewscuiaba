@@ -64,7 +64,7 @@ export function BlockSourceDialog({
                   setReason(r);
                   setMissing(false);
                 }}
-                className="size-5 accent-action-primary"
+                className="size-5 accent-(--action-primary)"
               />
               {T.reasons[r]}
             </label>

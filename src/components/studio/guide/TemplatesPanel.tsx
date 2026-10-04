@@ -236,7 +236,7 @@ function TemplateDialog({
             type="checkbox"
             checked={f.active}
             onChange={(e) => setF({ ...f, active: e.target.checked })}
-            className="size-5 shrink-0 accent-action-primary"
+            className="size-5 shrink-0 accent-(--action-primary)"
           />
           {D.active}
         </label>

@@ -476,7 +476,7 @@ function Loading() {
   return (
     <div aria-busy="true" className="flex flex-col gap-4">
       <p className="sr-only">{AGENDA.loading}</p>
-      <div aria-hidden="true" className="h-7 w-48 bg-section motion-safe:animate-pulse" />
+      <Skeleton shape="block" className="h-7 w-48" />
       {[0, 1, 2].map((i) => (
         <Skeleton key={i} media lines={4} className="border-t border-line-subtle py-4" />
       ))}

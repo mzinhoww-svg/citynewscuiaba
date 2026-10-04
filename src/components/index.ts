@@ -12,7 +12,7 @@ export { Dialog, type DialogProps } from "./ui/Dialog";
 export { ConfirmDialog, type ConfirmDialogProps } from "./ui/ConfirmDialog";
 export { SubmitButton, type SubmitButtonProps } from "./ui/SubmitButton";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
-export { Icon, type IconName, type IconProps } from "./ui/Icon";
+export { Icon, type IconName, type IconProps, type IconSize } from "./ui/Icon";
 export { ICON_NAMES } from "./ui/icon-names";
 export { IconSprite } from "./ui/IconSprite";
 export { IconButton, type IconButtonProps } from "./ui/IconButton";

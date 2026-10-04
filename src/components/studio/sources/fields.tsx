@@ -239,7 +239,7 @@ export function CheckboxField({
             disabled={disabled}
             onChange={(e) => onChange(e.target.checked)}
             aria-describedby={hint ? `${id}-dica` : undefined}
-            className="size-5 shrink-0 accent-action-primary"
+            className="size-5 shrink-0 accent-(--action-primary)"
           />
           {label}
         </label>

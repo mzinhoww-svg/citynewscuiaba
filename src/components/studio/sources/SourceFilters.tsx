@@ -119,7 +119,7 @@ export function SourceFilters({ filters, basePath, className }: SourceFiltersPro
               name="pendente"
               value="1"
               defaultChecked={filters.pending}
-              className="size-5 accent-action-primary"
+              className="size-5 accent-(--action-primary)"
             />
             {T.filters.pending}
           </label>

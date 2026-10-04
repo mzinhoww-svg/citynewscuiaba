@@ -95,7 +95,7 @@ export function ArticleActionBar({
                   : "text-meta hover:text-strong",
             )}
           >
-            <Icon name={a.icon} size={22} fill={a.pressed ? "currentColor" : "none"} />
+            <Icon name={a.icon} size={24} fill={a.pressed ? "currentColor" : "none"} />
             <span aria-hidden="true">{a.short}</span>
           </button>
         ))}

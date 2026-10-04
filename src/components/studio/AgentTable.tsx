@@ -209,7 +209,7 @@ export function AgentTable({ agents, models, globalBudgetBrl, save, className }:
                         aria-label={T.enabledLabel(name)}
                         checked={d.enabled}
                         onChange={(e) => patch(a.id, { enabled: e.target.checked })}
-                        className="size-5 accent-action-primary"
+                        className="size-5 accent-(--action-primary)"
                       />
                     ) : (
                       <span className="type-body">{a.enabled ? "Sim" : "Não"}</span>
