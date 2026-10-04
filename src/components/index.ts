@@ -22,7 +22,20 @@ export { NavLink, isCurrentPath, type NavLinkProps } from "./ui/NavLink";
 export { SearchBar, type SearchBarProps } from "./ui/SearchBar";
 export { CollapsibleFilters, type CollapsibleFiltersProps } from "./ui/CollapsibleFilters";
 export { SectionHeader, type SectionHeaderProps } from "./ui/SectionHeader";
-export { Select, type SelectOption, type SelectProps } from "./ui/Select";
+export {
+  Select,
+  SelectControl,
+  type SelectControlProps,
+  type SelectOption,
+  type SelectOptionGroup,
+  type SelectProps,
+  type SelectSize,
+} from "./ui/Select";
+export { FieldShell, FieldError, describedBy, type FieldShellProps } from "./ui/Field";
+export { TextArea, type TextAreaProps } from "./ui/TextArea";
+export { DateField, type DateFieldProps } from "./ui/DateField";
+export { Checkbox, type CheckboxProps } from "./ui/Checkbox";
+export { RadioGroup, type RadioGroupProps, type RadioOption } from "./ui/RadioGroup";
 export {
   SegmentedToggle,
   type SegmentedToggleOption,

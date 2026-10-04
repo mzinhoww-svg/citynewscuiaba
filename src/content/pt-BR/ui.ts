@@ -28,4 +28,7 @@ export const UI = {
   /** Contagem real de uma lista paginada ("Carregar mais"). */
   showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
   loadMore: "Carregar mais",
+  /** Contador de caracteres do `TextArea` com `maxLength` ("12/120"). */
+  charCount: (used: number, max: number) => `${used}/${max}`,
+  charCountLabel: (used: number, max: number) => `${used} de ${max} caracteres`,
 } as const;
