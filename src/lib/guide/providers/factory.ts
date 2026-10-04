@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { HttpFetch } from "@/lib/pipeline/ports";
 import { fixtureHttp, fixturesEnabled, realHttp } from "@/lib/sources/http-deps";
 import { createOsmProvider, OVERPASS_URL } from "./osm";
+import { siteUrl } from "@/lib/seo/jsonld";
 import { createTripadvisorProvider } from "./tripadvisor";
 import type { VenueProvider } from "./types";
 
@@ -66,6 +67,7 @@ export function buildProviders(opts: { onTaCall?: () => void } = {}): GuideProvi
       ? createTripadvisorProvider({
           apiKey: key,
           http,
+          referer: siteUrl(),
           ...(opts.onTaCall ? { onCall: opts.onTaCall } : {}),
         })
       : null,
