@@ -32,7 +32,7 @@ export interface ProposalWrite {
 export interface EngineStore {
   /** Próximo modelo ativo sem lista em andamento (proposta, rascunho, publicada ou suspensa). */
   nextTemplate(now: Date): Promise<TemplateRow | null>;
-  venuesFor(t: GuideTemplate): Promise<Venue[]>;
+  venuesFor(t: Pick<GuideTemplate, "category">): Promise<Venue[]>;
   mentions(venues: readonly Venue[]): Promise<MentionCounts>;
   createProposal(w: ProposalWrite): Promise<{ listId: string; proposalId: string }>;
   markProposed(templateId: string, at: Date): Promise<void>;

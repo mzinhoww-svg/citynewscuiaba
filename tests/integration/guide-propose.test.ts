@@ -1,7 +1,7 @@
 // @vitest-environment node
 // GUIA-T4 · Propostas contra o banco real: catálogo de 30 modelos, proposta de um modelo (lista,
 // itens e proposta gravados), modelo em andamento fora da fila e proposta de link com análise.
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
 import { createGuideListStore, templateFromRow } from "@/lib/db/guide-list-store";
 import { proposeForTemplate } from "@/lib/guide/engine";
@@ -14,19 +14,19 @@ const db = createServiceClient();
 const lists = createGuideListStore(db);
 const venues = createGuideStore(db);
 const mark = Date.now().toString(36);
-const CATEGORY = "parque"; // categoria do catálogo pouco usada pelo seed
-const TEMPLATE = "parques-cuiaba";
+const CATEGORY = "churrascaria"; // categoria que nem o seed nem a leva fictícia usam
+const TEMPLATE = "churrascarias-cuiaba";
 const created: string[] = [];
 
 const rec = (n: number, over: Parameters<typeof venueRecord>[0] = {}) =>
   venueRecord({
-    name: `Parque Teste ${mark} ${n}`,
+    name: `Churrascaria Teste ${mark} ${n}`,
     category: CATEGORY,
     address: `Rua do Teste, ${n}`,
     neighborhood: "Porto",
     phone: "+55 65 3000-0000",
     hours: "Mo-Su 06:00-18:00",
-    website: `https://parque${n}-${mark}.example`,
+    website: `https://churras${n}-${mark}.example`,
     lat: -15.6 - n / 100,
     lng: -56.1,
     rating: 4.9 - n / 10,
@@ -38,6 +38,21 @@ const rec = (n: number, over: Parameters<typeof venueRecord>[0] = {}) =>
     ...over,
   });
 
+beforeAll(async () => {
+  // Estado limpo do modelo: sem lista antiga que o deixe "em andamento".
+  const { data: tpl } = await db.from("guide_templates").select("id").eq("slug", TEMPLATE).single();
+  if (tpl) {
+    const { data: old } = await db.from("guide_lists").select("id").eq("template_id", tpl.id);
+    const ids = (old ?? []).map((l) => l.id);
+    if (ids.length) {
+      await db.from("guide_proposals").delete().in("list_id", ids);
+      await db.from("guide_list_items").delete().in("list_id", ids);
+      await db.from("guide_lists").delete().in("id", ids);
+    }
+    await db.from("guide_templates").update({ last_proposed_at: null }).eq("id", tpl.id);
+  }
+});
+
 afterAll(async () => {
   const { data: ls } = await db.from("guide_lists").select("id").in("id", created);
   const ids = (ls ?? []).map((l) => l.id);
@@ -46,7 +61,7 @@ afterAll(async () => {
     await db.from("guide_list_items").delete().in("list_id", ids);
     await db.from("guide_lists").delete().in("id", ids);
   }
-  await db.from("venues").delete().like("name", `Parque Teste ${mark}%`);
+  await db.from("venues").delete().like("name", `Churrascaria Teste ${mark}%`);
   await db.from("guide_templates").update({ last_proposed_at: null }).eq("slug", TEMPLATE);
 });
 
@@ -82,7 +97,7 @@ describe("proposta de um modelo", () => {
     expect(list).toMatchObject({ status: "proposal", origin: "template", slug: TEMPLATE });
     expect(list?.items.map((i) => i.position)).toEqual([1, 2, 3, 4, 5]);
     // A melhor nota e o melhor ranking ficam em primeiro.
-    expect(list?.items[0]?.venue.name).toBe(`Parque Teste ${mark} 1`);
+    expect(list?.items[0]?.venue.name).toBe(`Churrascaria Teste ${mark} 1`);
     expect(list?.items.every((i) => i.venue.sources.length >= 2)).toBe(true);
     expect(list?.criteria.length).toBeGreaterThan(40);
 
@@ -108,9 +123,9 @@ describe("proposta de um modelo", () => {
       await db
         .from("guide_templates")
         .update({ active: false })
-        .not("slug", "in", `(${TEMPLATE},museus-cuiaba)`);
+        .not("slug", "in", `(${TEMPLATE},lanchonetes-cuiaba)`);
       const next = await lists.nextTemplate(new Date());
-      expect(next?.slug).toBe("museus-cuiaba");
+      expect(next?.slug).toBe("lanchonetes-cuiaba");
     } finally {
       await db.from("guide_templates").update({ active: true }).in("id", wasActive);
     }
@@ -159,10 +174,10 @@ describe("proposta por link (venues conferidos)", () => {
       new Date(),
     );
     const after = (await venues.loadCategory(CATEGORY)).filter((v) =>
-      v.name.startsWith(`Parque Teste ${mark}`),
+      v.name.startsWith(`Churrascaria Teste ${mark}`),
     );
     const r = proposeFromLink({
-      url: "https://saboresmt.example/melhores-parques",
+      url: "https://saboresmt.example/melhores-churrascarias",
       extracted: {
         names: after.map((v) => v.name),
         category: CATEGORY,
@@ -177,19 +192,19 @@ describe("proposta por link (venues conferidos)", () => {
       proposal: r.proposal,
       templateId: "",
       analysis: r.analysis as unknown as Record<string, unknown>,
-      sourceUrl: "https://saboresmt.example/melhores-parques",
+      sourceUrl: "https://saboresmt.example/melhores-churrascarias",
       createdBy: null,
     });
     created.push(link.listId);
     const list = await lists.getList(link.listId);
     expect(list?.origin).toBe("link");
-    expect(list?.title).toMatch(/^Os \d+ melhores parques de Cuiabá$/);
+    expect(list?.title).toMatch(/^As \d+ melhores churrascarias de Cuiabá$/);
     const prop = await db
       .from("guide_proposals")
       .select("source_url, analysis")
       .eq("list_id", link.listId)
       .single();
-    expect(prop.data?.source_url).toBe("https://saboresmt.example/melhores-parques");
+    expect(prop.data?.source_url).toBe("https://saboresmt.example/melhores-churrascarias");
     expect((prop.data?.analysis as { sourceHost?: string }).sourceHost).toBe("saboresmt.example");
   });
 });

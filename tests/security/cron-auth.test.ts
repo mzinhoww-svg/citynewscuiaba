@@ -29,6 +29,16 @@ const CRON_ROUTES: {
     load: () => import("@/app/api/ingest/agenda/route"),
   },
   {
+    path: "/api/ingest/venues",
+    method: "POST",
+    load: () => import("@/app/api/ingest/venues/route"),
+  },
+  {
+    path: "/api/ingest/guide",
+    method: "POST",
+    load: () => import("@/app/api/ingest/guide/route"),
+  },
+  {
     path: "/api/ingest/status",
     method: "GET",
     load: () => import("@/app/api/ingest/status/route"),
@@ -114,6 +124,7 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/editoria/[slug]/novas",
     "/api/events",
     "/api/fontes/onboarding",
+    "/api/guia/informar",
     "/api/ics/[slug]",
     "/api/materia/[slug]/atualizacao",
     "/api/media/[id]",
@@ -168,6 +179,7 @@ describe("classificação de todas as rotas de src/app", () => {
     const writers = [
       "/api/alertas",
       "/api/events",
+      "/api/guia/informar",
       "/api/newsletter",
       "/api/push/receipt",
       "/api/push/subscriptions",

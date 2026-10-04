@@ -9,6 +9,7 @@ import { checkRobots, type CrawlDeps } from "@/lib/pipeline/http";
 import type { MediaRepo } from "@/lib/pipeline/ports";
 import { err, ok, type Result } from "@/lib/result";
 import type { SiteError, SiteFacts } from "./providers/site";
+import { guideTags } from "./tags";
 import type { Venue } from "./types";
 
 /**
@@ -76,6 +77,8 @@ export interface VenueMediaDeps {
 }
 
 /** Texto do crédito: "Reprodução web · {nome do lugar}". */
+export { guideTags };
+
 export const photoCredit = (name: string) => `Reprodução web · ${name}`;
 
 export async function officialPhotoFor(
@@ -208,12 +211,6 @@ export async function attachOfficialPhoto(
   if (!saved.ok) return { status: "typographic", reason: saved.error };
   return { status: "attached", mediaId: saved.value };
 }
-
-export const guideTags = {
-  index: "guide",
-  list: (slug: string) => `guide:list:${slug}`,
-  venue: (slug: string) => `guide:venue:${slug}`,
-} as const;
 
 export interface VenuesOfMedia {
   venuesOfMedia(
