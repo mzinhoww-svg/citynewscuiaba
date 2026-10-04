@@ -70,7 +70,12 @@ describe("coleta com banco real (fixtures, sem rede)", () => {
 
     const r = await drain({
       queue,
-      runStep: createRunStep({ ...handlers, dedupe: async () => ({ ok: true, value: [] }) }),
+      // Coleta até o dedupe; o enriquecimento (feed só com a abertura) tem testes próprios.
+      runStep: createRunStep({
+        ...handlers,
+        enrich: async () => ({ ok: true, value: [] }),
+        dedupe: async () => ({ ok: true, value: [] }),
+      }),
       events: createEventSink(db),
       now: () => Date.now(),
       queues: ["pipeline"],
