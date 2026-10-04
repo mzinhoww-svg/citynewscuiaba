@@ -72,12 +72,14 @@ export interface ReviewItem {
 
 /**
  * Fora do alcance do revisor: correção, direito de resposta, denúncia (e a escalada por
- * denúncias), edição de pessoa e matéria que não veio do pipeline.
+ * denúncias), edição de pessoa, matéria que não veio do pipeline e rascunho sem IA (lista de
+ * trechos das fontes: publicá-lo republicaria texto de terceiros, regra 4 de CLAUDE.md §5).
  */
 export function isReviewable(i: ReviewItem): boolean {
   return (
     i.ctx.status === "in_review" &&
     i.fromPipeline &&
+    !i.ctx.aiFallback &&
     !i.ctx.humanEdited &&
     i.openReports === 0 &&
     i.openCorrections === 0 &&
@@ -105,6 +107,8 @@ function systemOf(i: ReviewItem): string {
     `Editoria: ${c.sectionSlug} (${c.category}). Confiança ${c.confidence} (${c.confidenceScore}).`,
     `Fontes independentes: ${c.independentSources}; primárias: ${c.primarySources}; fonte confiável: ${c.sourceTrusted ? "sim" : "não"}.`,
     `Urgente: ${c.urgent ? "sim" : "não"}; tema sensível: ${c.sensitive ? "sim" : "não"}.`,
+    `Fontes divergentes confirmadas: ${c.centralConflict ? "sim" : "não"}.`,
+    `Conteúdo marcado como duvidoso: ${c.dubious ? "sim" : "não"}.`,
     `Fontes citadas: ${i.sourceNames.length > 0 ? i.sourceNames.join(", ") : "nenhuma"}.`,
     `Motivo pelo qual a matéria ficou em revisão: ${i.reviewReason ?? "não informado"}.`,
   ].join("\n");
