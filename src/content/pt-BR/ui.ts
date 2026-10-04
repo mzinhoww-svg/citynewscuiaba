@@ -28,4 +28,13 @@ export const UI = {
   /** Contagem real de uma lista paginada ("Carregar mais"). */
   showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
   loadMore: "Carregar mais",
+  /** Paginação numerada (`ui/Pagination`). */
+  pagination: {
+    prev: "Anterior",
+    next: "Próxima",
+    prevLabel: "Página anterior",
+    nextLabel: "Próxima página",
+    of: (page: number, total: number) => `Página ${page} de ${total}`,
+    page: (page: number) => `Página ${page}`,
+  },
 } as const;

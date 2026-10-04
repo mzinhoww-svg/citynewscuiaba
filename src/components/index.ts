@@ -15,6 +15,8 @@ export { ICON_NAMES } from "./ui/icon-names";
 export { IconSprite } from "./ui/IconSprite";
 export { IconButton, type IconButtonProps } from "./ui/IconButton";
 export { InlineAlert, type InlineAlertProps } from "./ui/InlineAlert";
+export { Pagination, paginationSlots, type PaginationProps } from "./ui/Pagination";
+export { Table, type TableHeader, type TableMinWidth, type TableProps } from "./ui/Table";
 export { LoadMore, loadMoreAnchor, type LoadMoreProps } from "./ui/LoadMore";
 export { ListRow, type ListRowProps } from "./ui/ListRow";
 export { NavHeader, type NavHeaderProps } from "./ui/NavHeader";
