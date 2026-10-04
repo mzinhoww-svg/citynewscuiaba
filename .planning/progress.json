@@ -820,12 +820,15 @@
         "status": "done",
         "migration": "0083_ad_slots_tablet.sql",
         "decision": "A-120"
+      },
+      "ADS-T3": {
+        "status": "done",
+        "decision": "A-121",
+        "assets": "public/ads (48 PNG)"
       }
     },
     "next": [
-      "ADS-T3 (peças do CityNews)",
-      "MS-T3 (medição no relatório)",
-      "ADS-T4 (administração)"
+      "ADS-T4 (administração e relatório)"
     ]
   }
 }

@@ -291,7 +291,7 @@ Acréscimo deste inventário: `selectCreative` aplica `weight` e `maxImpressions
 #### Task ADS-T2: Posições no site (12 h; já planejada) · concluída em 04/10 (migration 0083, A-120)
 Acréscimo: tabela de breakpoints deste inventário (incluindo 768), RAIL-A/RAIL-B na home exige novo grid (o NowList hoje ocupa a coluna), `STICKY` empilhado acima da `BottomNav`; HUB no mobile com carrossel manual.
 
-#### Task ADS-T3: Peças genéricas (10 h; já planejada)
+#### Task ADS-T3: Peças genéricas (10 h; já planejada) · concluída em 04/10 (A-121)
 Sem acréscimo.
 
 #### Task MS-T3: Eventos de anúncio e viewability (10 h)
