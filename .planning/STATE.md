@@ -27,7 +27,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 Detalhe e recomendação de cada uma em `docs/audit/EVOLUTION-ROADMAP.md` §1. O trabalho que não depende delas continua.
 
-- **D-01** R36 (Pergunte responde sem fonte): não aplicada por reduzir garantia de integridade (A-132); confirmar depois de ver a alternativa.
+- ~~D-01~~ Pergunte: resolvida pelo dono (A-134). Responde com 1 fonte, atribuída; sem fonte, recusa.
 - **D-02** Reprodução de imagem de terceiros sem permissão (B-002 aberto): manter com restrições, restringir ou suspender até revisão jurídica.
 - **D-03** Linhagens independentes valem nas regras depois de 2 semanas em sombra?
 - ~~D-04~~ Aprovação para operação de uma pessoa: resolvida pelo dono (A-128, migration 0149, uma pessoa pede, aprova e aplica).

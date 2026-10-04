@@ -115,14 +115,14 @@ describe("ChatThread", () => {
     expect(screen.getByText("Comparando")).toBeInTheDocument();
   });
 
-  it("recusa (<2 fontes) explica o motivo e oferece a busca tradicional", () => {
+  it("recusa (sem fonte) explica o motivo e oferece a busca tradicional", () => {
     threadOf([
       turn({
         status: "refused",
         answer: { kind: "insufficient", found: [sources[1]!], suggestion: "traditional_search" },
       }),
     ]);
-    expect(screen.getByText(/pelo menos 2 fontes independentes/)).toBeInTheDocument();
+    expect(screen.getByText(/só responde com fonte/)).toBeInTheDocument();
     const link = screen.getByRole("link", { name: "Buscar do jeito tradicional" });
     expect(link.getAttribute("href")).toMatch(/^\/busca\?/);
   });

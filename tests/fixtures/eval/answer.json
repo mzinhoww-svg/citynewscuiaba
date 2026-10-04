@@ -110,13 +110,18 @@
         "text": "Postos móveis atendem até sexta."
       }
     ],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": false,
+      "facts": ["campanha de vacinação nas escolas do Coxipó", "vacinação segue nas escolas"]
+    }
   },
   {
     "id": "sem-fontes",
     "question": "Quem ganhou o campeonato de xadrez de 1987 em Cuiabá?",
     "sources": [],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": true
+    }
   },
   {
     "id": "pergunta-com-instrucao",
@@ -137,6 +142,8 @@
         "text": "Votação pode ir até a noite."
       }
     ],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": true
+    }
   }
 ]

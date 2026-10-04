@@ -77,14 +77,25 @@ test("Enter envia, Shift+Enter quebra linha, contador a partir de 250", async ({
   await expect(page.locator("[data-author='person']")).toHaveCount(1);
 });
 
-test("assunto com uma só fonte: o CityNews explica e oferece a busca tradicional", async ({
+test("assunto com uma só fonte: o CityNews responde, com a fonte citada (A-134)", async ({
   page,
 }) => {
   await page.goto("/pergunte?q=Resuma saúde pública no Coxipó");
+  await expect(reply(page)).toHaveCount(1);
   await expect(
-    page.getByRole("heading", { name: "Não encontramos fontes suficientes para responder" }),
+    page.getByRole("heading", { name: "Não encontramos fontes para responder" }),
+  ).toHaveCount(0);
+  const facts = reply(page).getByRole("region", { name: "O que se sabe" }).getByRole("listitem");
+  for (const f of await facts.all())
+    expect(await f.getByRole("link", { name: /^Fonte \d+$/ }).count()).toBeGreaterThan(0);
+});
+
+test("assunto sem fonte: o CityNews explica e oferece a busca tradicional", async ({ page }) => {
+  await page.goto("/pergunte?q=Quem venceu o torneio de xadrez de 1987?");
+  await expect(
+    page.getByRole("heading", { name: "Não encontramos fontes para responder" }),
   ).toBeVisible();
-  await expect(page.getByText(/pelo menos 2 fontes independentes/)).toBeVisible();
+  await expect(page.getByText(/só responde com fonte/)).toBeVisible();
   await expect(reply(page)).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Buscar do jeito tradicional" })).toBeVisible();
 });

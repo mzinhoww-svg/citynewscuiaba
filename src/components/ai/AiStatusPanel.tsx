@@ -26,7 +26,7 @@ const ICON: Record<AiStatusPanelProps["tone"], IconName> = {
  * depende só de cor.
  *
  * ```tsx
- * <AiStatusPanel tone="insufficient" title="Não encontramos fontes suficientes" />
+ * <AiStatusPanel tone="insufficient" title="Não encontramos fontes para responder" />
  * ```
  */
 export function AiStatusPanel({

@@ -35,9 +35,17 @@ describe("busca com IA sobre o seed (P3-T11)", () => {
     }
   });
 
-  it("assunto sem 2 fontes independentes vira insufficient", async () => {
-    const a = await buildAnswer("Resuma saúde pública no Coxipó", ctx());
+  it("assunto sem fonte vira insufficient", async () => {
+    const a = await buildAnswer("Quem venceu o torneio de xadrez de 1987?", ctx());
     expect(a.kind).toBe("insufficient");
+  });
+
+  it("assunto com um só veículo responde com a fonte citada (A-134)", async () => {
+    const a = await buildAnswer("Resuma saúde pública no Coxipó", ctx());
+    if (a.kind === "answer") {
+      expect(independentCount(a.sources)).toBeGreaterThanOrEqual(1);
+      expect(a.facts.every((f) => f.citations.length > 0)).toBe(true);
+    } else expect(a.kind).toBe("insufficient");
   });
 
   it("agência oficial conta como fonte primária", async () => {

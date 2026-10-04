@@ -86,31 +86,40 @@ describe("validateAnswer (spec §5.5)", () => {
       ok: false,
       error: "sponsored_source",
     }));
-  it("uma só fonte independente não sustenta resposta", () =>
-    expect(validateAnswer(ans, [srcs[0]!, { ...srcs[0]!, id: "x2" }])).toEqual({
-      ok: false,
-      error: "too_few_sources",
-    }));
+  it("uma só fonte independente sustenta resposta (A-134)", () =>
+    expect(validateAnswer(ans, [srcs[0]!, { ...srcs[0]!, id: "x2" }]).ok).toBe(true));
+  it("sem nenhuma fonte não há resposta", () =>
+    expect(validateAnswer(ans, [])).toEqual({ ok: false, error: "too_few_sources" }));
 });
 
 describe("buildAnswer", () => {
-  it("menos de 2 fontes independentes vira insufficient", async () => {
-    const ctx1Source = ctx([cand("s1", "agencia-mt", "Campanha de vacinação nas escolas.")]);
-    const a = await buildAnswer("Resuma saúde pública no Coxipó", ctx1Source.context);
-    expect(a.kind).toBe("insufficient");
-    if (a.kind === "insufficient") {
-      expect(a.found).toHaveLength(1);
-      expect(a.suggestion).toBe("traditional_search");
-    }
-    expect(ctx1Source.fake.calls).toHaveLength(0);
+  it("uma só fonte responde, atribuída e com confiança baixa (A-134)", async () => {
+    const one = ctx([cand("s1", "agencia-mt", "Campanha de vacinação nas escolas.")]);
+    const a = await buildAnswer("Resuma saúde pública no Coxipó", one.context);
+    expect(a.kind).toBe("answer");
+    if (a.kind !== "answer") return;
+    expect(a.sources).toHaveLength(1);
+    expect(a.confidence).toBe("baixa");
+    for (const f of a.facts) expect(f.citations).toEqual([0]);
+    expect(one.fake.calls).toHaveLength(1);
+    expect(one.fake.lastPrompt).toContain("Há uma só fonte");
   });
 
-  it("duas matérias do mesmo veículo contam como uma fonte", async () => {
+  it("duas matérias do mesmo veículo contam como uma fonte: responde atribuindo", async () => {
     const same = ctx([
       cand("a", "mt-agora", "Texto um sobre a feira."),
       cand("b", "mt-agora", "Texto dois sobre a feira."),
     ]);
-    expect((await buildAnswer("feira", same.context)).kind).toBe("insufficient");
+    const a = await buildAnswer("feira", same.context);
+    expect(a.kind).toBe("answer");
+    if (a.kind === "answer") expect(a.confidence).toBe("baixa");
+    expect(same.fake.lastPrompt).toContain("Há uma só fonte");
+  });
+
+  it("com 2 veículos ou mais o pedido de atribuição única não vai ao modelo", async () => {
+    const c = ctx(viaduto);
+    await buildAnswer("viaduto", c.context);
+    expect(c.fake.lastPrompt).not.toContain("Há uma só fonte");
   });
 
   it("nada encontrado sugere pauta", async () => {

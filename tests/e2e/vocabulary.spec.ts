@@ -135,9 +135,9 @@ test("Perguntar ao CityNews: resposta com fontes e recusa por falta de fontes", 
   await page.goto("/pergunte?q=O que aconteceu em Cuiabá hoje?");
   await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();
   expect(hits(await visibleStrings(page)), "resposta").toEqual([]);
-  await page.goto("/pergunte?q=Resuma saúde pública no Coxipó");
+  await page.goto("/pergunte?q=Quem venceu o torneio de xadrez de 1987?");
   await expect(
-    page.getByRole("heading", { name: /Não encontramos fontes suficientes/ }),
+    page.getByRole("heading", { name: /Não encontramos fontes para responder/ }),
   ).toBeVisible();
   expect(hits(await visibleStrings(page)), "recusa").toEqual([]);
 });

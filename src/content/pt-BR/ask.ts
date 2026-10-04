@@ -6,7 +6,7 @@ export const ASK = {
   documentTitle: (q: string) =>
     q ? `Pergunte: ${q} · CityNews Cuiabá` : "Pergunte ao CityNews · CityNews Cuiabá",
   intro:
-    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem pelo menos duas fontes independentes, o CityNews não responde. Não precisa de conta.",
+    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Quando só um veículo tratou do assunto, a resposta diz quem disse. Não precisa de conta.",
   label: "Sua pergunta",
   placeholder: "Ex.: O que muda no plano de ônibus do CPA?",
   submit: "Perguntar",
@@ -22,7 +22,7 @@ export const ASK = {
   processingTitle: "Preparando a resposta",
   processingSteps: [
     "Procurando fontes no CityNews e em outros veículos",
-    "Conferindo se há ao menos 2 fontes independentes",
+    "Conferindo o que cada fonte diz",
     "Escrevendo a resposta com a fonte de cada frase",
   ],
   aiGenerated: "Resposta do CityNews",
@@ -46,11 +46,11 @@ export const ASK = {
   report: "Reportar erro",
   refineTitle: "Continue por aqui",
   traditional: "Ver na busca tradicional",
-  insufficientTitle: "Não encontramos fontes suficientes para responder",
+  insufficientTitle: "Não encontramos fontes para responder",
   insufficientText: (n: number) =>
     n === 0
-      ? "O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes, e não achamos nenhuma sobre isso."
-      : `O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, de um só veículo ou sem relação suficiente com a pergunta.`,
+      ? "O Perguntar ao CityNews só responde com fonte, e não achamos nenhuma sobre isso."
+      : `O Perguntar ao CityNews só responde com fonte. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, mas sem relação suficiente com a pergunta.`,
   suggestion: {
     traditional_search: "Ver na busca tradicional",
     widen_period: "Buscar em qualquer data",

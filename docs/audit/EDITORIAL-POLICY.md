@@ -22,7 +22,7 @@ Data: 04/10/2026. Princípios de qualidade, originalidade, verificação, atribu
 | Incerteza | conflito confirmado por regra manda para revisão | `verify.ts:76-99`, `rules/index.ts:139` |
 | Pessoas protegidas (parcial) | regras de redação no prompt para segurança, política, saúde e sensível | `write.ts:55-56` |
 | Correção | correção e direito de resposta só por pessoa; prazo de 24 h; histórico público por matéria | `studio/corrections.ts`, `materia/[slug]/historico` |
-| Pergunte | < 2 veículos recusa; fato sem citação cai; fato, inferência, lacuna e conflito separados | `ai/answer.ts` |
+| Pergunte | sem fonte recusa; 1 veículo responde atribuído (A-134); fato sem citação cai; fato, inferência, lacuna e conflito separados | `ai/answer.ts` |
 
 ## 3. O que falta
 
@@ -53,17 +53,17 @@ Medida antes de ligar: rodar em sombra por uma semana, gravando em `decisions` q
 - **Matéria do CityNews a partir de fontes:** síntese própria com citação. O corpo da fonte (`collected_items.source_text`, até 6.000 caracteres) é material de apuração interno, nunca publicado [O]. **Decisão pendente:** fonte cuja política é "só link" deveria entrar como material de escrita? Proposta: sim para extrair fatos, com a guarda de cópia e a conferência de afirmações ligadas; o texto final precisa citar a fonte e acrescentar contexto de pelo menos uma outra linhagem ou do acervo, senão vira resumo curto com link (formato "resumo factual com atribuição") [R].
 - **Fonte única:** publica como resumo factual atribuído, curto, com link em destaque. O mínimo de 30 linhas (R41) não deve forçar enchimento: o próprio R41 já prevê `short_reason = insufficient_source` [O].
 
-## 6. Pergunte (D-01)
+## 6. Pergunte (D-01, resolvida em A-134)
 
-A decisão R36 do dono pede que o Pergunte responda mesmo sem fonte, com ressalva. Isso contradiz o princípio 1 e a regra 5 de CLAUDE.md, e um sistema de notícias que responde sem fonte produz exatamente o tipo de afirmação sem sustentação que esta política existe para evitar. **Não está implementado** e não deve ser implementado sem nova confirmação do dono depois de ver a alternativa:
+O dono escolheu a proposta segura (04/10/2026: "não recusa, passa com 1 fonte"). A R36 original, responder sem fonte, não vale.
 
-| Situação | Hoje [O] | Proposta segura [R] |
-|---|---|---|
-| ≥ 2 veículos | Responde com fatos citados | Igual |
-| 1 veículo | Recusa | Responde **só** com o que essa fonte diz, atribuído ("Segundo {fonte}…"), marcado como fonte única |
-| 0 veículos | Recusa com texto fixo | Não responde o fato; mostra a busca tradicional, matérias próximas, e oferece criar alerta para o tema |
+| Situação | Comportamento |
+|---|---|
+| ≥ 2 veículos | Responde com fatos citados |
+| 1 veículo | Responde **só** com o que essa fonte diz, cada fato atribuído ("Segundo {fonte}…"), confiança baixa e a lacuna "nenhuma outra fonte confirmou" |
+| 0 veículos | Não responde o fato; explica e mostra a busca tradicional |
 
-Assim o leitor nunca fica sem resposta útil e o sistema nunca afirma sem fonte.
+Assim o leitor quase nunca fica sem resposta e o sistema nunca afirma sem fonte.
 
 ## 7. Revisão por risco
 

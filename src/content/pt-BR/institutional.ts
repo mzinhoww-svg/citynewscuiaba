@@ -239,7 +239,7 @@ export const AI_USE: InstitutionalDoc = {
       title: "O que a IA não faz",
       items: [
         "Não publica sozinha temas sensíveis nem notícias urgentes.",
-        "Não responde sem pelo menos duas fontes relevantes: quando não há, ela diz que não sabe.",
+        "Não responde sem fonte: com uma só, diz de quem é a informação; sem nenhuma, diz que não sabe.",
         "Não segue instruções escondidas em textos de terceiros: tudo o que é coletado é tratado como dado.",
         "Não cria imagem realista de pessoa real nem ilustra crime, tragédia ou saúde de alguém.",
       ],
