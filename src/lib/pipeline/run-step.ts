@@ -13,6 +13,8 @@ export interface StepError {
   message: string;
   retryable: boolean;
   details?: Record<string, unknown>;
+  /** Espera mínima até a nova tentativa (ex.: limite por hora); o drain usa o maior valor. */
+  retryAfterSec?: number;
 }
 
 const make =
