@@ -158,51 +158,63 @@ export function ApprovalInbox({
         {recent.length === 0 ? (
           <p className="type-body text-meta">{T.historyEmpty}</p>
         ) : (
-          <Table
-            caption={T.historyTitle}
-            minWidth="lg"
-            headers={(
-              ["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const
-            ).map((k) => T.col[k])}
-          >
-            {recent.map((a) => (
-              <tr key={a.id} className="border-b border-line-subtle last:border-0">
-                <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                  {KIND_TEXT[a.kind]}
-                </th>
-                <td className="px-3 py-3 type-body text-body">
-                  {a.kind === "source.critical" && a.target.kind === "source" ? (
-                    <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
-                      {targetText(a.target)}
-                    </Link>
-                  ) : (
-                    targetText(a.target)
-                  )}
-                </td>
-                <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
-                <td className="px-3 py-3 type-body text-body">
-                  {a.approvedBy ? who(a.approvedBy) : "—"}
-                </td>
-                <td className="px-3 py-3 type-body text-body">
-                  {T.status[a.status] ?? a.status}
-                  {a.status === "approved" && applyHref(a.kind, a.target) && (
-                    <>
-                      {" · "}
-                      <Link
-                        href={applyHref(a.kind, a.target) ?? "#"}
-                        className="text-link underline"
-                      >
-                        {T.applyAt}
-                      </Link>
-                    </>
-                  )}
-                </td>
-                <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
-                  {formatDateTime(a.decidedAt ?? a.createdAt)}
-                </td>
-              </tr>
-            ))}
-          </Table>
+          <>
+            {/* Celular (< md): cartões; a tabela aparece a partir de md. */}
+            <ul aria-label={T.historyTitle} className="flex flex-col gap-3 md:hidden">
+              {recent.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4"
+                >
+                  <p className="type-meta text-meta">{KIND_TEXT[a.kind]}</p>
+                  <p className="type-body font-semibold text-strong [overflow-wrap:anywhere]">
+                    <HistoryTarget approval={a} />
+                  </p>
+                  <p className="type-body text-strong">
+                    <HistoryStatus approval={a} />
+                  </p>
+                  <p className="type-meta text-meta">
+                    {T.col.requestedBy} {who(a.requestedBy)}
+                  </p>
+                  <p className="type-meta text-meta">
+                    {T.col.decidedBy} {a.approvedBy ? who(a.approvedBy) : "—"} ·{" "}
+                    <span className="tabular-nums">
+                      {formatDateTime(a.decidedAt ?? a.createdAt)}
+                    </span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <Table
+              caption={T.historyTitle}
+              minWidth="lg"
+              className="hidden md:block"
+              headers={(
+                ["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const
+              ).map((k) => T.col[k])}
+            >
+              {recent.map((a) => (
+                <tr key={a.id} className="border-b border-line-subtle last:border-0">
+                  <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                    {KIND_TEXT[a.kind]}
+                  </th>
+                  <td className="px-3 py-3 type-body text-body">
+                    <HistoryTarget approval={a} />
+                  </td>
+                  <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
+                  <td className="px-3 py-3 type-body text-body">
+                    {a.approvedBy ? who(a.approvedBy) : "—"}
+                  </td>
+                  <td className="px-3 py-3 type-body text-body">
+                    <HistoryStatus approval={a} />
+                  </td>
+                  <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                    {formatDateTime(a.decidedAt ?? a.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </>
         )}
       </section>
 
@@ -217,6 +229,35 @@ export function ApprovalInbox({
         />
       )}
     </div>
+  );
+}
+
+/** Mudança decidida: a fonte (mudança crítica) abre o detalhe; o resto é texto. */
+function HistoryTarget({ approval: a }: { approval: ApprovalItem }) {
+  return a.kind === "source.critical" && a.target.kind === "source" ? (
+    <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
+      {targetText(a.target)}
+    </Link>
+  ) : (
+    <>{targetText(a.target)}</>
+  );
+}
+
+/** Situação da decisão; aprovada sem aplicar leva ao lugar onde se aplica. */
+function HistoryStatus({ approval: a }: { approval: ApprovalItem }) {
+  const apply = a.status === "approved" ? applyHref(a.kind, a.target) : null;
+  return (
+    <>
+      {T.status[a.status] ?? a.status}
+      {apply && (
+        <>
+          {" · "}
+          <Link href={apply} className="text-link underline">
+            {T.applyAt}
+          </Link>
+        </>
+      )}
+    </>
   );
 }
 

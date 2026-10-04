@@ -60,48 +60,102 @@ export default async function CorrectionsPage({ searchParams }: { searchParams: 
           {T.empty[tab]}
         </EmptyState>
       ) : (
-        <Table
-          caption={T.caption}
-          minWidth="md"
-          headers={[
-            T.col.article,
-            T.col.kind,
-            T.col.requestedBy,
-            tab === "open" ? T.col.due : T.publishedAt,
-            T.col.status,
-          ]}
-        >
-          {rows.map((c) => {
-            const overdue = tab === "open" && Date.parse(c.dueAt) < now;
-            return (
-              <tr key={c.id} className="border-b border-line-subtle align-top last:border-b-0">
-                <th scope="row" className="px-3 py-3 font-normal">
+        <>
+          {/* Celular (< md): cartões; a tabela aparece a partir de md. */}
+          <ul aria-label={T.caption} className="flex flex-col gap-3 md:hidden">
+            {rows.map((c) => {
+              const overdue = tab === "open" && Date.parse(c.dueAt) < now;
+              return (
+                <li
+                  key={c.id}
+                  className="flex min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4"
+                >
                   <Link
                     href={`/estudio/correcoes/${c.id}`}
-                    className="type-body font-semibold text-strong underline-offset-4 hover:underline"
+                    className="type-body font-semibold text-strong underline-offset-4 [overflow-wrap:anywhere] hover:underline"
                   >
                     {c.article.title}
                   </Link>
-                </th>
-                <td className="px-3 py-3 type-body">{T.kind[c.kind] ?? c.kind}</td>
-                <td className="px-3 py-3 type-body">{c.requestedBy}</td>
-                <td className="px-3 py-3 type-body tabular-nums">
-                  <span className={overdue ? "font-semibold text-danger" : "text-strong"}>
-                    {overdue && <span className="sr-only">{T.overdue}: </span>}
-                    {formatDateTime(tab === "open" ? c.dueAt : (c.publishedAt ?? c.dueAt))}
-                  </span>
-                </td>
-                <td className="px-3 py-3 type-body">
-                  {T.status[c.status] ?? c.status}
-                  {tab === "published" && (
-                    <span className="block type-meta text-meta">{T.notified(c.notified)}</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </Table>
+                  <p className="type-meta text-meta">
+                    {T.kind[c.kind] ?? c.kind} · {T.col.requestedBy}: {c.requestedBy}
+                  </p>
+                  <p className="type-meta">
+                    <span className="text-meta">
+                      {tab === "open" ? T.col.due : T.publishedAt}:{" "}
+                    </span>
+                    <DueDate correction={c} tab={tab} overdue={overdue} />
+                  </p>
+                  <p className="type-meta text-strong">
+                    {T.status[c.status] ?? c.status}
+                    {tab === "published" && (
+                      <span className="block text-meta">{T.notified(c.notified)}</span>
+                    )}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+          <Table
+            caption={T.caption}
+            minWidth="md"
+            className="hidden md:block"
+            headers={[
+              T.col.article,
+              T.col.kind,
+              T.col.requestedBy,
+              tab === "open" ? T.col.due : T.publishedAt,
+              T.col.status,
+            ]}
+          >
+            {rows.map((c) => {
+              const overdue = tab === "open" && Date.parse(c.dueAt) < now;
+              return (
+                <tr key={c.id} className="border-b border-line-subtle align-top last:border-b-0">
+                  <th scope="row" className="px-3 py-3 font-normal">
+                    <Link
+                      href={`/estudio/correcoes/${c.id}`}
+                      className="type-body font-semibold text-strong underline-offset-4 hover:underline"
+                    >
+                      {c.article.title}
+                    </Link>
+                  </th>
+                  <td className="px-3 py-3 type-body">{T.kind[c.kind] ?? c.kind}</td>
+                  <td className="px-3 py-3 type-body">{c.requestedBy}</td>
+                  <td className="px-3 py-3 type-body tabular-nums">
+                    <DueDate correction={c} tab={tab} overdue={overdue} />
+                  </td>
+                  <td className="px-3 py-3 type-body">
+                    {T.status[c.status] ?? c.status}
+                    {tab === "published" && (
+                      <span className="block type-meta text-meta">{T.notified(c.notified)}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </Table>
+        </>
       )}
     </section>
+  );
+}
+
+/** Prazo (aberta) ou data de publicação; prazo vencido em destaque, com texto para leitor de tela. */
+function DueDate({
+  correction: c,
+  tab,
+  overdue,
+}: {
+  correction: CorrectionRow;
+  tab: "open" | "published";
+  overdue: boolean;
+}) {
+  return (
+    <span
+      className={overdue ? "font-semibold text-danger tabular-nums" : "text-strong tabular-nums"}
+    >
+      {overdue && <span className="sr-only">{T.overdue}: </span>}
+      {formatDateTime(tab === "open" ? c.dueAt : (c.publishedAt ?? c.dueAt))}
+    </span>
   );
 }
