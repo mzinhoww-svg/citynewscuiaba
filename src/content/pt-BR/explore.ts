@@ -1,4 +1,5 @@
 import type { IconName } from "@/components";
+import { ASK_NAME } from "./ask";
 
 /** Explorar (P07) e coleção (P08). */
 export const EXPLORE = {
@@ -19,15 +20,17 @@ export const EXPLORE = {
   collections: "Coleções",
   collectionsEmpty: "Nenhuma coleção publicada ainda.",
   mostRead: "Mais lidas da semana",
-  shortcuts: "Fontes e agenda",
+  shortcuts: "Atalhos",
+  ask: ASK_NAME,
+  askText: "Faça uma pergunta sobre Cuiabá e receba a resposta com a fonte de cada frase.",
   sources: "Fontes",
   sourcesText: "Veículos de Cuiabá e de Mato Grosso, com a origem de cada notícia.",
   agenda: "Agenda",
   agendaText: "Shows, feiras, teatro e esporte na cidade, com os gratuitos em destaque.",
   app: "Baixar o app",
   appText: "Instale o CityNews na tela inicial: abre mais rápido e funciona sem internet.",
-  guide: "Guia Cuiabá",
-  guideMore: "/guia-cuiaba",
+  guide: "Serviços da cidade",
+  guideMore: "/servicos",
   errorTitle: "Não conseguimos carregar o Explorar agora",
   errorText: "Pode ser uma instabilidade passageira. As editorias continuam no menu.",
   retry: "Tentar de novo",
@@ -47,13 +50,16 @@ export const SECTION_ICONS: Record<string, IconName> = {
   "guia-cuiaba": "compass",
 };
 
-/** Guia Cuiabá no Explorar: serviços que não envelhecem, destinos fixos. */
+/**
+ * Serviços da cidade no Explorar: destinos fixos, cada um onde o texto promete (UX-W4-T3,
+ * item 68). O Guia Cuiabá (listas de lugares) é um atalho próprio, não o de ônibus.
+ */
 export const GUIDE_LINKS = [
   {
-    href: "/guia-cuiaba",
+    href: "/cidade?sub=mobilidade",
     title: "Ônibus e trânsito",
     description: "Linhas, desvios e obras",
-    icon: "map-pin",
+    icon: "navigation",
   },
   {
     href: "/servicos?sub=clima",
@@ -63,8 +69,8 @@ export const GUIDE_LINKS = [
   },
   {
     href: "/servicos",
-    title: "Vagas e cursos",
-    description: "Mutirões de emprego e inscrições",
+    title: "Serviços e inscrições",
+    description: "Vagas, cursos e mutirões",
     icon: "users",
   },
   {
@@ -72,6 +78,12 @@ export const GUIDE_LINKS = [
     title: "Programação gratuita",
     description: "Eventos sem custo na cidade",
     icon: "ticket",
+  },
+  {
+    href: "/guia-cuiaba",
+    title: "Guia Cuiabá",
+    description: "Listas de lugares, com o critério à vista",
+    icon: "map-pin",
   },
 ] as const satisfies readonly {
   href: string;
