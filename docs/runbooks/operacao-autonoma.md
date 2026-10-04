@@ -22,7 +22,7 @@ Nada vai para a fila humana. O redator tenta de novo (1 e 4 min), troca de model
 
 ## Quarentena
 
-Estado terminal fora do ar, com motivo e recomendação (`articles.quarantine_reason`). Origens: conteúdo duvidoso, duplicata, notícia com mais de 72 h, reprocessos esgotados com risco alto, falha de IA esgotada. Pessoa decide só se quiser republicar (Estúdio, como qualquer rascunho).
+Estado terminal fora do ar, com motivo e recomendação (`articles.quarantine_reason`). Origens: duplicata, notícia com mais de 72 h, reprocessos esgotados com risco alto, falha de IA esgotada. Pessoa decide só se quiser republicar (Estúdio, como qualquer rascunho).
 
 ## Pedidos de mudança (regras, prompts, pesos, push)
 
