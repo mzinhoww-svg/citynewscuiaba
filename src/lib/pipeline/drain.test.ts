@@ -96,6 +96,23 @@ describe("drain", () => {
     expect(queue.delays()).toEqual([60]);
   });
 
+  it("falha transitória com retryAfterSec espera o maior entre o pedido e a política", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    await queue.enqueue("pipeline", m("source:b"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: false,
+        error: {
+          ...stepError.transient("limite por hora"),
+          retryAfterSec: msg.itemRef === "source:a" ? 1500 : 10,
+        },
+      }),
+    });
+    await drain({ queue, runStep, events: sink(), now: () => 0 });
+    expect(queue.delays()).toEqual([1500, 60]);
+  });
+
   it("injeção vai direto para a quarentena e gera alerta de segurança", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("raw:1#3", "normalize"));

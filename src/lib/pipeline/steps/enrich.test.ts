@@ -9,6 +9,7 @@ import {
   cleanOgTitle,
   createEnrichStep,
   ENRICH_DELAY_MS,
+  ENRICH_MAX_RETRIES,
   enrichEnabled,
   parseEnrichment,
   SOURCE_TEXT_MAX,
@@ -476,15 +477,53 @@ describe("enrich", () => {
     expect((await t.run(0, 1)).ok).toBe(false);
   });
 
-  it("limite por hora da fonte atingido: segue sem enriquecer, sem tentar de novo", async () => {
+  it("limite por hora da fonte atingido: item novo segue sem enriquecer, sem tentar de novo", async () => {
     const t = await setup({
       src: source({ rateLimitPerHour: 1 }),
       routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
     });
+    const notes: Record<string, unknown>[] = [];
     // 1 requisição por hora: a do robots.txt já consome a cota
-    nextIsDedupe(await t.run(), t.ids[0]!);
+    nextIsDedupe(await t.step(t.msg(), { note: (d) => notes.push(d) }), t.ids[0]!);
+    expect(notes).toEqual([{ enrich: "skipped", reason: "rate_limited" }]);
     expect(t.calls.map((c) => c.url)).toEqual([`${HOST}/robots.txt`]);
     expect(t.repo.collected()[0]!.imageUrl).toBeNull();
+  });
+
+  const refetchMsg = (id: string, attempt = 1): PipelineMessage => ({
+    runId: "recuperacao-a126",
+    step: "enrich",
+    itemRef: `item:${id}#refetch`,
+    attempt,
+  });
+
+  it("limite por hora no refetch: tenta de novo na próxima janela, sem requisitar a página", async () => {
+    const t = await setup({
+      src: source({ rateLimitPerHour: 1 }),
+      routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
+    });
+    const r = await t.step(refetchMsg(t.ids[0]!));
+    expect(r).toMatchObject({ ok: false, error: { kind: "transient", retryable: true } });
+    const after = r.ok ? 0 : (r.error.retryAfterSec ?? 0);
+    // NOW é 17h00 em ponto: a próxima janela abre em 1 h; o espalhamento fica abaixo de 10 min.
+    expect(after).toBeGreaterThanOrEqual(3600);
+    expect(after).toBeLessThan(3600 + 600);
+    expect(t.calls.map((c) => c.url)).toEqual([`${HOST}/robots.txt`]);
+  });
+
+  it("limite por hora no refetch, tentativas esgotadas: para sem texto e registra o motivo", async () => {
+    const t = await setup({
+      src: source({ rateLimitPerHour: 1 }),
+      routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
+    });
+    const notes: Record<string, unknown>[] = [];
+    const r = await t.step(refetchMsg(t.ids[0]!, ENRICH_MAX_RETRIES + 1), {
+      note: (d) => notes.push(d),
+    });
+    expect(r).toEqual({ ok: true, value: [] });
+    expect(notes).toEqual([
+      { enrich: "skipped", reason: "retries_exhausted", lastError: "rate_limited" },
+    ]);
   });
 
   it("URL de outro host (loc fora do site da fonte) não é requisitada", async () => {
