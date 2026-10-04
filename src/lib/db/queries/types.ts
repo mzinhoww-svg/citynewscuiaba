@@ -265,6 +265,8 @@ export interface SourceView {
   name: string;
   href: string;
   locality: string;
+  /** Logotipo da fonte (bucket público `source-logos`); sem ele a interface usa o monograma. */
+  logo?: string;
 }
 
 export interface HomeData {
@@ -297,6 +299,8 @@ export type SourceEntry = ComputedSignals & {
   baseUrl: string;
   categories: string[];
   reliability: "primary" | "verified" | "standard" | "low";
+  /** Logotipo da fonte (bucket público `source-logos`), ou `null` (monograma de reserva). */
+  logoUrl: string | null;
   itemsToday: number;
   /** Último item publicado pela fonte (ou última coleta). */
   lastUpdatedAt: string | null;

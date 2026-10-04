@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { cx } from "../cx";
+import { AvatarCircle } from "./AvatarCircle";
 
 export interface SourceAvatarProps {
   name: string;
-  /** Logotipo licenciado; sem ele, monograma de 2 letras. */
+  /** Logotipo da fonte (bucket `source-logos`); sem ele, monograma de 2 letras. */
   image?: string;
   initials?: string;
   /** Código curto da fonte (monograma de 2 letras); sinônimo de `initials`. */
@@ -57,7 +58,8 @@ function monogram(name: string): string {
  * <SourceAvatar name="Ana Lima" href="/autores/ana-lima" />
  * <SourceAvatar name="Guia CityNews" image={logo} size={72} href="/fontes/guia" />
  * ```
- * - Sem logotipo licenciado: monograma de 2 letras sobre `--cn-avatar-1..6`.
+ * - Com logotipo: círculo claro com a marca inteira (`object-contain`), `alt` = nome da fonte.
+ * - Sem logotipo, ou se a imagem falhar: monograma de 2 letras sobre `--cn-avatar-1..6` (reserva).
  * - Nome em até 2 linhas. É link (ou botão) com o nome da fonte como nome acessível; sem ação,
  *   vira imagem com o nome (`code` define o monograma: `<SourceAvatar name="Folha do Cerrado" code="FC" />`).
  */
@@ -74,19 +76,13 @@ export function SourceAvatar({
 }: SourceAvatarProps) {
   const s = SIZE[size];
   const circle = (
-    <span
-      aria-hidden="true"
-      className={cx(
-        "flex shrink-0 items-center justify-center rounded-pill bg-cover bg-center font-bold text-branco",
-        s.box,
-        s.text,
-        !image && avatarBg(name),
-        decorative && className,
-      )}
-      style={image ? { backgroundImage: `url(${JSON.stringify(image)})` } : undefined}
-    >
-      {!image && (code ?? initials ?? monogram(name))}
-    </span>
+    <AvatarCircle
+      name={name}
+      image={image}
+      mono={code ?? initials ?? monogram(name)}
+      monoBg={avatarBg(name)}
+      className={cx(s.box, s.text, decorative && className)}
+    />
   );
   if (decorative) return circle;
   const classes = cx(

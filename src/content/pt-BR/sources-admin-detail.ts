@@ -453,6 +453,12 @@ export const LOGO_TEXT = {
   hint: "PNG ou WebP quadrado, de 96 px a 200 KB.",
   send: "Enviar logotipo",
   sending: "Enviando…",
+  remove: "Remover logotipo",
+  removing: "Removendo…",
+  discover: "Buscar logo",
+  discovering: "Buscando…",
+  discoverHint:
+    "Procura no site oficial da fonte (ícone do site, manifest e perfis oficiais). Um logotipo enviado por você nunca é trocado.",
 } as const;
 
 export const DIALOG_TEXT = {

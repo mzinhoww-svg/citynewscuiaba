@@ -24,6 +24,8 @@ export type SourceListEntry = ComputedSignals & {
   categories: string[];
   itemsToday: number;
   lastUpdatedAt: string | null;
+  /** Logotipo da fonte, ou ausente/`null` (monograma de reserva). */
+  logoUrl?: string | null;
 };
 
 export const TAB_SLUGS: Record<RankList, string> = {
@@ -234,6 +236,8 @@ export interface SourceCardView {
   name: string;
   href: string;
   code: string;
+  /** Logotipo da fonte; sem ele, o card usa o monograma `code`. */
+  logo?: string;
   category: string;
   locality: string;
   reason: string;
@@ -267,6 +271,7 @@ export function toCardData(
     name: e.name,
     href: e.href,
     code: monogram(e.name),
+    ...(e.logoUrl ? { logo: e.logoUrl } : {}),
     category: SOURCE_CATEGORY_TEXT[e.categories[0] ?? ""] ?? SOURCE_CATEGORY_TEXT.cidade!,
     locality: LOCALITY_TEXT[e.locality] ?? e.locality,
     reason: explainRecommendation(r, ctx),

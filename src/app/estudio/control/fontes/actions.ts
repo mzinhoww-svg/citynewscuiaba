@@ -60,6 +60,7 @@ import { analyzeLink, type AnalyzeError, type AnalyzeResult } from "@/lib/source
 import { conflictState, type ActionState } from "@/lib/sources/action-state";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import { validateLogo } from "@/lib/sources/logo";
+import { runSourceLogoSync } from "@/lib/db/source-logo-run";
 import { testConnection } from "@/lib/sources/test-connection";
 import {
   ANALYZE_TEXT,
@@ -1047,6 +1048,78 @@ export async function uploadLogoAction(form: FormData): Promise<ActionState> {
   }
   refresh(id);
   return finish(ctx, T.logo.saved, { version: r.value.version, path: up.value.path });
+}
+
+/**
+ * Remover logotipo (a pedido da fonte, R27): apaga `logo_path`, o monograma volta e, como a mudança
+ * vem do painel, a fonte fica `manual` (a busca automática não repõe). O arquivo sai do bucket.
+ */
+export async function removeLogoAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  if (!(await allow(ctx, LIMITS.write))) return fail(T.rateLimited);
+  const id = text(form, "id") ?? "";
+  const version = toInt(text(form, "version") ?? "");
+  const row = await sourceRow(ctx, id);
+  if (!row) return fail(T.notFound);
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
+  if (!row.logo_path) return fail(T.logo.removeNone);
+  const r = await ctx.store.update(
+    id,
+    version,
+    { logoPath: null },
+    auditCtx(ctx, { reason: "logotipo removido" }),
+  );
+  if (!r.ok) return storeFailure(ctx, id, r.error);
+  await ctx.store.removeLogo(row.logo_path);
+  refresh(id);
+  await refreshPortal();
+  return finish(ctx, T.logo.removed, { version: r.value.version });
+}
+
+/**
+ * "Buscar logo" (R27): procura o logotipo na internet para esta fonte, grava no bucket e atualiza
+ * a fonte (`logo_source = 'auto'`). Logotipo definido por pessoa nunca é trocado.
+ */
+export async function discoverLogoAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  if (!(await allow(ctx, LIMITS.analyze))) return fail(T.rateLimited);
+  const id = text(form, "id") ?? "";
+  const row = await sourceRow(ctx, id);
+  if (!row) return fail(T.notFound);
+  const M = T.logo.discover;
+  if (row.logo_source === "manual") return fail(M.manual);
+  let item;
+  try {
+    item = (
+      await runSourceLogoSync({ sourceId: id, limit: 1, signal: AbortSignal.timeout(50_000) })
+    ).processed[0];
+  } catch {
+    return fail(M.error);
+  }
+  if (!item) return fail(M.unreachable);
+  refresh(id);
+  switch (item.outcome) {
+    case "found": {
+      await refreshPortal();
+      let host = "";
+      try {
+        host = new URL(item.origin ?? "").hostname;
+      } catch {
+        /* sem host legível */
+      }
+      return done(M.found(host));
+    }
+    case "none":
+      return fail(M.none);
+    case "robots":
+      return fail(M.robots);
+    case "unreachable":
+      return fail(M.unreachable);
+    case "skipped_manual":
+      return fail(M.manual);
+    default:
+      return fail(M.error);
+  }
 }
 
 // ---------------------------------------------------------------------------

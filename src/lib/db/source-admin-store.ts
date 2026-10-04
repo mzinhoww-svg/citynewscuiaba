@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import type { Json } from "@/lib/db/types";
 import { err, ok, type Result } from "@/lib/result";
 import {
@@ -9,6 +9,7 @@ import {
   type SourceConfig,
   type SourceLayer,
 } from "@/lib/sources";
+import { logoObjectPath } from "@/lib/sources/logo-path";
 import type { DbClient } from "./client";
 
 /**
@@ -466,9 +467,7 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
       id: string,
       file: { bytes: Uint8Array; contentType: "image/png" | "image/webp" },
     ): Promise<Result<{ path: string }, "unavailable">> {
-      const ext = file.contentType === "image/png" ? "png" : "webp";
-      const hash = createHash("sha256").update(file.bytes).digest("hex").slice(0, 16);
-      const path = `${id}/${hash}.${ext}`;
+      const path = logoObjectPath(id, file.bytes, file.contentType);
       try {
         const client = opts.storage ? opts.storage() : db;
         const { error } = await client.storage
