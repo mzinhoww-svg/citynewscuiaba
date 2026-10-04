@@ -2,7 +2,7 @@ name: Lighthouse
 
 # Orçamentos de performance (P6-T1; docs/reports/perf.md). Roda contra `next start` (build de
 # produção) com o seed local, em mobile simulado. Mede PR, a main a cada push e toda segunda-feira
-# (deriva sem mudança de código). Orçamento estourado é check vermelho (A-143), não alerta mudo.
+# (deriva sem mudança de código). Orçamento estourado é check vermelho (A-146), não alerta mudo.
 on:
   push:
     branches: [main]

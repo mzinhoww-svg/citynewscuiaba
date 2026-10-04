@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Sinal do Lighthouse (itens 16 e 17 da spec de melhorias; A-143). Sem dependência de YAML:
+// Sinal do Lighthouse (itens 16 e 17 da spec de melhorias; A-146). Sem dependência de YAML:
 // o workflow é lido como texto, sem comentários, e cada bloco é recortado pela indentação.
 const root = process.cwd();
 const workflow = readFileSync(join(root, ".github/workflows/lighthouse.yml"), "utf8")
@@ -91,7 +91,7 @@ describe("orçamentos do lighthouserc.json", () => {
       expect(b.level, b.url).toBe("error");
       expect(b.max, b.url).toBeLessThanOrEqual(185000);
     }
-    // Home e busca: 170 KB → 175 KB (A-143).
+    // Home e busca: 170 KB → 175 KB (A-146).
     const home = budgets.find((b) => b.url === "^http://localhost:3000/(\\?.*)?$");
     const busca = budgets.find((b) => b.url === "^http://localhost:3000/busca");
     expect(home?.max).toBe(175000);
