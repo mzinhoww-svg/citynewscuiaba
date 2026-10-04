@@ -47,6 +47,11 @@ export interface TripadvisorOptions {
   http: HttpFetch;
   baseUrl?: string;
   userAgent?: string;
+  /**
+   * URL do site (APP_URL). A chave da Content API é restrita a domínios cadastrados no portal do
+   * TripAdvisor e conferida pelo `Referer`; sem ele a API responde 401/403 (chave "não autorizada").
+   */
+  referer?: string;
   /** Chamado a cada requisição feita (contagem de cota e custo). */
   onCall?: () => void;
 }
@@ -123,6 +128,7 @@ export function createTripadvisorProvider(
   const key = opts.apiKey?.trim();
   const base = opts.baseUrl ?? TRIPADVISOR_URL;
   const userAgent = opts.userAgent ?? guideUserAgent();
+  const referer = opts.referer ? `${opts.referer.replace(/\/+$/, "")}/` : null;
 
   async function get(
     path: string,
@@ -134,7 +140,11 @@ export function createTripadvisorProvider(
     let res: Response;
     try {
       res = await opts.http(`${base}${path}?${qs.toString()}`, {
-        headers: { "User-Agent": userAgent, Accept: "application/json" },
+        headers: {
+          "User-Agent": userAgent,
+          Accept: "application/json",
+          ...(referer ? { Referer: referer } : {}),
+        },
         signal: AbortSignal.timeout(15_000),
       });
     } catch {
