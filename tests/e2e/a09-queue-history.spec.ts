@@ -87,12 +87,12 @@ test("Marina pede, Marina não aprova, Helena aprova, histórico mostra quem ped
     await expect(dialog.getByText("A aprovação precisa ser de outra pessoa.")).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Aprovar" })).toBeDisabled();
     await marina.keyboard.press("Escape");
-    // Helena vê "Notificações (n)" no menu e aprova.
+    // Helena vê "Notificações push (n)" no menu e aprova.
     await gotoSettled(helena, `${URL}/fila`);
     await expect(
       helena
         .getByRole("navigation", { name: "Estúdio" })
-        .getByRole("link", { name: /Notificações \(\d+\)/ }),
+        .getByRole("link", { name: /Notificações push \(\d+\)/ }),
     ).toBeVisible();
     await helena.getByRole("button", { name: `Aprovar ${PUSH_TITLE}` }).click();
     await helena.getByRole("dialog").getByRole("button", { name: "Aprovar" }).click();

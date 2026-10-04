@@ -505,7 +505,27 @@ export async function run(o, deps) {
   report.stillInReview = after.length;
   report.hourly = hourlyReport(await publishedLast24h(db, now()), now());
   report.breaker = { ...(await snapshot(db, now())) };
+  await notifyBacklogReleased(db, report, o);
   return finish(report, o, log);
+}
+
+/** Cadastra no sino (central de notificações, BELL-T1) que o backlog foi liberado. Nunca derruba. */
+async function notifyBacklogReleased(db, report, o) {
+  if (report.mode !== "apply" || !report.published) return;
+  try {
+    await db.rpc("studio_notify", {
+      p_kind: "backlog_released",
+      p_severity: "info",
+      p_title: `Backlog liberado: ${report.published} matérias publicadas`,
+      p_body: `Ainda em revisão: ${report.backlogAfter ?? 0}.`,
+      p_href: "/estudio/fila",
+      p_object_ref: "queue:review",
+      p_roles: ["admin", "editor_chefe"],
+      p_dedupe: `backlog:${report.startedAt ?? ""}:${report.finishedAt ?? Date.now()}`,
+    });
+  } catch {
+    /* o aviso é um extra; a liberação já aconteceu */
+  }
 }
 
 async function finish(report, o, log) {
