@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · ADS-T3 (A-121): 48 peças da casa em `public/ads` e cadastro por `scripts/ads/house-ads.mjs` (78 veiculações). Próxima: ADS-T4.
+
 > 2026-10-04 · ADS-T2 (A-120): campos de banner montados na home, editorias e matéria; tablet com formato próprio, lateral abaixo do "Agora", rodapé fixo empilhado sobre a barra (decisões do dono). Migration 0083. Verify verde (3492 testes); e2e de anúncios 6/6 (desktop, tablet, celular, axe, CLS). Sem peça cadastrada, nada aparece no site.
 
 > 2026-10-04 · ADS-T1 (A-119): campos de banner, seleção, `AdSlot` e contagem (impressão, visualização >= 50% por 1 s, clique), migration 0082. Verify verde (3198 testes). Ainda sem campo montado nas páginas (ADS-T2).
