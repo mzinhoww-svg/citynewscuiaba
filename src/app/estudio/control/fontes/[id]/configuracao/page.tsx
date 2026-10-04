@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Panel } from "@/components";
 import { SourceConfigForm, SourceLogoForm } from "@/components/estudio";
 import { DETAIL_TEXT as T, LOGO_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { createServerClient } from "@/lib/db/client";
@@ -39,10 +40,7 @@ export default async function SourceConfigPage({ params }: Props) {
   return (
     <section className="flex flex-col gap-6">
       <h2 className="sr-only">{T.sections.config}</h2>
-      <section
-        aria-labelledby="logo-titulo"
-        className="flex flex-col gap-3 rounded-lg border border-line-section bg-card-white p-4 sm:p-5"
-      >
+      <Panel aria-labelledby="logo-titulo" className="flex flex-col gap-3 sm:p-5">
         <h2 id="logo-titulo" className="type-section text-strong">
           {LOGO_TEXT.title}
         </h2>
@@ -58,7 +56,7 @@ export default async function SourceConfigPage({ params }: Props) {
           discoverAction={discoverLogoAction}
           removeAction={removeLogoAction}
         />
-      </section>
+      </Panel>
       <SourceConfigForm
         source={{
           id: d.id,

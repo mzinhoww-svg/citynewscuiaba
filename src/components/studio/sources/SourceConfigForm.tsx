@@ -26,13 +26,16 @@ import type {
 } from "@/lib/sources/types";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
+import { DateField } from "../../ui/DateField";
+import { FieldShell } from "../../ui/Field";
+import { Panel } from "../../ui/Panel";
+import { Select, SelectControl } from "../../ui/Select";
 import { isConflict, type ActionFn, type ActionState } from "@/lib/sources/action-state";
 import {
   ActionMessage,
   CheckboxField,
   CriticalBadge,
   JustificationField,
-  SelectField,
   TextInput,
 } from "./fields";
 import {
@@ -309,7 +312,7 @@ export function SourceConfigForm({
         </Section>
 
         <Section title={WIZARD_TEXT.review.classification}>
-          <SelectField
+          <Select
             id={id("layer")}
             label={FIELD_TEXT.layer}
             name="layer"
@@ -325,7 +328,7 @@ export function SourceConfigForm({
             hint={FIELD_TEXT.categoriesHint(sections.map((s) => s.slug).join(", "))}
             error={errors.categories}
           />
-          <SelectField
+          <Select
             id={id("locality")}
             label={FIELD_TEXT.locality}
             name="locality"
@@ -333,11 +336,11 @@ export function SourceConfigForm({
             onChange={(v) => set("locality", v)}
             options={LOCALITY_OPTIONS}
           />
-          <SelectField
+          <Select
             id={id("reliability")}
             label={FIELD_TEXT.reliability}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("reliability")}
+            labelAside={criticalAside("reliability")}
             name="reliability"
             value={values.reliability}
             onChange={(v) => set("reliability", v as Reliability)}
@@ -346,21 +349,21 @@ export function SourceConfigForm({
         </Section>
 
         <Section title={WIZARD_TEXT.review.rights}>
-          <SelectField
+          <Select
             id={id("imagePolicy")}
             label={FIELD_TEXT.imagePolicy}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("imagePolicy")}
+            labelAside={criticalAside("imagePolicy")}
             name="imagePolicy"
             value={values.imagePolicy}
             onChange={(v) => set("imagePolicy", v as ImagePolicy)}
             options={IMAGE_POLICY_OPTIONS}
           />
-          <SelectField
+          <Select
             id={id("republish")}
             label={FIELD_TEXT.republishPolicy}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("republishPolicy")}
+            labelAside={criticalAside("republishPolicy")}
             name="republishPolicy"
             value={values.republishPolicy}
             onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
@@ -381,10 +384,10 @@ export function SourceConfigForm({
             onChange={(v) => set("trusted", v)}
             hint={FIELD_TEXT.trustedHint}
           />
-          <TextInput
+          <DateField
             id={id("agreementUntil")}
+            name="agreementUntil"
             label={FIELD_TEXT.agreementUntil}
-            type="date"
             value={values.agreementUntil}
             onChange={(v) => set("agreementUntil", v)}
           />
@@ -418,7 +421,7 @@ export function SourceConfigForm({
         )}
 
         <Section title={WIZARD_TEXT.review.collection}>
-          <SelectField
+          <Select
             id={id("strategy")}
             label={FIELD_TEXT.strategy}
             name="strategy"
@@ -444,18 +447,23 @@ export function SourceConfigForm({
               error={errors.pageSelectors}
             />
           )}
-          <SelectField
+          <FieldShell
             id={id("frequency")}
             label={FREQUENCY_FIELD_TEXT.label}
             hint={FREQUENCY_FIELD_TEXT.help}
             error={errors.frequencyMinutes}
             className="md:col-span-2"
-            name="frequencyMinutes"
-            value={values.frequency}
-            onChange={(v) => set("frequency", v)}
-            options={freq.options}
-            groups={freq.groups}
           >
+            <SelectControl
+              id={id("frequency")}
+              name="frequencyMinutes"
+              value={values.frequency}
+              onChange={(v) => set("frequency", v)}
+              options={freq.options}
+              groups={freq.groups}
+              hint={FREQUENCY_FIELD_TEXT.help}
+              error={errors.frequencyMinutes}
+            />
             <div
               aria-live="polite"
               className="flex flex-col gap-1 rounded-md bg-section px-3 py-2 type-meta text-strong"
@@ -468,7 +476,7 @@ export function SourceConfigForm({
               </p>
               <p className="text-meta">{FREQUENCY_FIELD_TEXT.lane(fastLane.used, fastLane.max)}</p>
             </div>
-          </SelectField>
+          </FieldShell>
           <TextInput
             id={id("rate")}
             label={FIELD_TEXT.rateLimit}
@@ -517,7 +525,7 @@ export function SourceConfigForm({
             </div>
             <p className="type-meta text-meta">{FIELD_TEXT.scoreHint}</p>
           </fieldset>
-          <SelectField
+          <Select
             id={id("priority")}
             label={FIELD_TEXT.priority}
             name="priority"
@@ -556,9 +564,9 @@ export function SourceConfigForm({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex min-w-0 flex-col gap-4 rounded-lg border border-line-section bg-card-white p-4 sm:p-5">
+    <Panel className="flex min-w-0 flex-col gap-4 sm:p-5">
       <h2 className="type-section text-strong">{title}</h2>
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
+    </Panel>
   );
 }

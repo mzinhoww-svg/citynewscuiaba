@@ -6,8 +6,10 @@ import { CONTROL_TEXT, stepLabel } from "@/content/pt-BR/control";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Table } from "../ui/Table";
 
 const T = CONTROL_TEXT.failures;
 
@@ -94,19 +96,15 @@ export function JobTable({ rows, actions, className }: JobTableProps) {
           <p className="w-full type-meta text-meta" aria-live="polite">
             {T.selected(ids.length)}
           </p>
-          <label className="inline-flex min-h-tap items-center gap-2 type-body text-strong">
-            <input
-              type="checkbox"
-              checked={keepHuman}
-              onChange={(e) => setKeepHuman(e.target.checked)}
-              aria-describedby={`${uid}-keep`}
-              className="size-5 accent-(--action-primary)"
-            />
-            {T.keepHuman}
-          </label>
-          <p id={`${uid}-keep`} className="w-full type-meta text-meta">
-            {T.keepHumanHint}
-          </p>
+          <Checkbox
+            id={`${uid}-keep-human`}
+            name="manter-decisoes"
+            label={T.keepHuman}
+            checked={keepHuman}
+            onChange={setKeepHuman}
+            hint={T.keepHumanHint}
+            className="w-full"
+          />
           <Button
             size="md"
             icon="refresh-cw"
@@ -132,86 +130,59 @@ export function JobTable({ rows, actions, className }: JobTableProps) {
       )}
       <p className="type-meta text-meta">{T.retryingNote}</p>
 
-      <div
-        role="region"
-        aria-label={T.caption}
-        tabIndex={0}
-        className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+      <Table
+        caption={T.caption}
+        minWidth="lg"
+        className="relative"
+        headers={[
+          ...(actions ? [{ label: T.col.select, srOnly: true }] : []),
+          T.col.kind,
+          T.col.step,
+          T.col.item,
+          T.col.error,
+          { label: T.col.attempts, align: "right" as const },
+          T.col.at,
+        ]}
       >
-        <table className="w-full min-w-[56rem] border-collapse text-left">
-          <caption className="sr-only">{T.caption}</caption>
-          <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-            <tr>
-              {actions && (
-                <th scope="col" className="w-12 px-3 py-3">
-                  <span className="sr-only">{T.col.select}</span>
-                </th>
-              )}
-              <th scope="col" className="px-3 py-3">
-                {T.col.kind}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {T.col.step}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {T.col.item}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {T.col.error}
-              </th>
-              <th scope="col" className="px-3 py-3 text-right">
-                {T.col.attempts}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {T.col.at}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr
-                key={`${r.kind}:${r.id}`}
-                className="border-b border-line-subtle align-top last:border-b-0"
-              >
-                {actions && (
-                  <td className="px-3 py-3">
-                    {r.kind === "quarantine" && (
-                      <input
-                        type="checkbox"
-                        aria-label={T.selectRow(`${stepLabel(r.step)} ${r.itemRef}`)}
-                        checked={selected.has(r.id)}
-                        onChange={(e) => toggle(r.id, e.target.checked)}
-                        className="size-5 accent-(--action-primary)"
-                      />
-                    )}
-                  </td>
+        {rows.map((r) => (
+          <tr
+            key={`${r.kind}:${r.id}`}
+            className="border-b border-line-subtle align-top last:border-b-0"
+          >
+            {actions && (
+              <td className="px-3 py-3">
+                {r.kind === "quarantine" && (
+                  <input
+                    type="checkbox"
+                    aria-label={T.selectRow(`${stepLabel(r.step)} ${r.itemRef}`)}
+                    checked={selected.has(r.id)}
+                    onChange={(e) => toggle(r.id, e.target.checked)}
+                    className="size-5 accent-(--action-primary)"
+                  />
                 )}
-                <td className="px-3 py-3 type-body">
-                  <span
-                    className={cx(
-                      "inline-flex items-center gap-1",
-                      r.kind === "quarantine" ? "font-semibold text-danger" : "text-warn",
-                    )}
-                  >
-                    <Icon
-                      name={r.kind === "quarantine" ? "circle-alert" : "refresh-cw"}
-                      size={16}
-                    />
-                    {T.kind[r.kind]}
-                  </span>
-                </td>
-                <th scope="row" className="px-3 py-3 type-body font-normal text-strong">
-                  {stepLabel(r.step)}
-                </th>
-                <td className="px-3 py-3 type-meta break-all text-body">{r.itemRef}</td>
-                <td className="px-3 py-3 type-meta max-w-md text-body">{r.error}</td>
-                <td className="px-3 py-3 text-right type-body tabular-nums">{r.attempts}</td>
-                <td className="px-3 py-3 type-body tabular-nums">{formatDateTime(r.at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              </td>
+            )}
+            <td className="px-3 py-3 type-body">
+              <span
+                className={cx(
+                  "inline-flex items-center gap-1",
+                  r.kind === "quarantine" ? "font-semibold text-danger" : "text-warn",
+                )}
+              >
+                <Icon name={r.kind === "quarantine" ? "circle-alert" : "refresh-cw"} size={16} />
+                {T.kind[r.kind]}
+              </span>
+            </td>
+            <th scope="row" className="px-3 py-3 type-body font-normal text-strong">
+              {stepLabel(r.step)}
+            </th>
+            <td className="px-3 py-3 type-meta break-all text-body">{r.itemRef}</td>
+            <td className="px-3 py-3 type-meta max-w-md text-body">{r.error}</td>
+            <td className="px-3 py-3 text-right type-body tabular-nums">{r.attempts}</td>
+            <td className="px-3 py-3 type-body tabular-nums">{formatDateTime(r.at)}</td>
+          </tr>
+        ))}
+      </Table>
 
       {actions && (
         <Dialog
