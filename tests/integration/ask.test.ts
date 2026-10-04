@@ -35,7 +35,7 @@ describe("busca com IA sobre o seed (P3-T11)", () => {
     }
   });
 
-  it("assunto sem 2 fontes independentes vira insufficient", async () => {
+  it("assunto sem fonte nenhuma vira insufficient (D-01: nunca responde sem fonte)", async () => {
     const a = await buildAnswer("Resuma saúde pública no Coxipó", ctx());
     expect(a.kind).toBe("insufficient");
   });
