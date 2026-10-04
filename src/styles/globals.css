@@ -153,7 +153,6 @@
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
-  --animate-ticker: cn-ticker var(--ticker-duration, 60s) linear infinite;
 }
 
 @keyframes cn-live-pulse {
@@ -180,14 +179,6 @@
   }
   to {
     transform: translateX(0);
-  }
-}
-@keyframes cn-ticker {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
   }
 }
 @keyframes cn-fade-in {
