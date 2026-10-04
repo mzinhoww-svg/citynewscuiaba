@@ -25,6 +25,7 @@ import {
 import { upcomingRecurring } from "@/lib/agenda/recurring";
 import { HOME, HOME_SERVICES } from "@/content/pt-BR/portal-home";
 import { NEWSLETTER } from "@/content/pt-BR/newsletter";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
 import { formatHour, formatLongDate } from "@/lib/format/date";
 import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
@@ -382,7 +383,13 @@ function Home({ data }: { data: HomeData }) {
         <AdSlot code="TOP" />
         {/* Manchete + Agora: 100% CityNews na primeira dobra */}
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-10">
-          <ArticleCard variant="lead" as="h1" article={lead} className="lg:col-span-8" />
+          <ArticleCard
+            variant="lead"
+            as="h1"
+            article={lead}
+            kicker={data.hotIds?.includes(lead.id) ? CARD.hot : undefined}
+            className="lg:col-span-8"
+          />
           {/* Retângulo lateral abaixo do "Agora" (decisão do dono, 04/10/2026): o Agora fica no topo. */}
           <div className="flex flex-col gap-8 lg:col-span-4">
             <NowList items={data.now} />
@@ -397,7 +404,12 @@ function Home({ data }: { data: HomeData }) {
             <ul className="grid grid-cols-1 gap-6 md:grid-cols-3 max-md:[&>li:nth-child(n+2)]:hidden">
               {data.highlights.map((a) => (
                 <li key={a.id} className="flex min-w-0">
-                  <ArticleCard variant="standard" article={a} className="flex-1" />
+                  <ArticleCard
+                    variant="standard"
+                    article={a}
+                    kicker={data.hotIds?.includes(a.id) ? CARD.hot : undefined}
+                    className="flex-1"
+                  />
                 </li>
               ))}
             </ul>

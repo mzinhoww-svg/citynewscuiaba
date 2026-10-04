@@ -3,6 +3,7 @@ import { z } from "zod";
 import type {
   ClusterRepo,
   EventSink,
+  FrontpageRepo,
   FlagKey,
   Flags,
   IngestRepo,
@@ -317,6 +318,70 @@ const toSource = (r: SourceRow): SourceRecord => ({
   lastModified: r.last_modified,
   consumption: r.consumption,
 });
+
+/**
+ * Banco do passo `frontpage` (HOT-T2, service role): fontes com `consumption.frontpage = true`,
+ * casamento de URL canônica com `collected_items` e gravação em `front_signals` (só URL, posição,
+ * fonte, item e assunto; `seen_at` é a hora do banco).
+ */
+export function createFrontpageRepo(db: DbClient): FrontpageRepo {
+  const ingest = createIngestRepo(db);
+  return {
+    hitRateLimit: ingest.hitRateLimit,
+
+    async frontpageSources() {
+      const { data, error } = await db
+        .from("sources")
+        .select(SOURCE_COLUMNS)
+        .eq("status", "active")
+        .eq("consumption->>frontpage", "true");
+      check("frontpageSources", error);
+      return (data ?? []).map(toSource);
+    },
+
+    async itemsByUrls(urls) {
+      if (urls.length === 0) return [];
+      const { data, error } = await db
+        .from("collected_items")
+        .select("id, canonical_url, topic_id, duplicate_of")
+        .in("canonical_url", urls);
+      check("itemsByUrls", error);
+      const rows = data ?? [];
+      // Duplicata sem assunto próprio herda o assunto do original.
+      const originals = [
+        ...new Set(rows.filter((r) => !r.topic_id && r.duplicate_of).map((r) => r.duplicate_of!)),
+      ];
+      const topicOf = new Map<string, string | null>();
+      if (originals.length > 0) {
+        const { data: orig, error: e2 } = await db
+          .from("collected_items")
+          .select("id, topic_id")
+          .in("id", originals);
+        check("itemsByUrls.originals", e2);
+        for (const o of orig ?? []) topicOf.set(o.id, o.topic_id);
+      }
+      return rows.map((r) => ({
+        id: r.id,
+        canonicalUrl: r.canonical_url,
+        topicId: r.topic_id ?? (r.duplicate_of ? (topicOf.get(r.duplicate_of) ?? null) : null),
+      }));
+    },
+
+    async record(signals) {
+      if (signals.length === 0) return;
+      const { error } = await db.from("front_signals").insert(
+        signals.map((s) => ({
+          source_id: s.sourceId,
+          item_id: s.itemId,
+          topic_id: s.topicId,
+          url: s.url,
+          rank: s.rank,
+        })),
+      );
+      check("front_signals", error);
+    },
+  };
+}
 
 /** Banco das etapas de Coleta (service role). */
 export function createIngestRepo(db: DbClient): IngestRepo {
@@ -931,7 +996,7 @@ const MediaContextSchema = z.object({
 });
 
 const ASSET_COLUMNS =
-  "id, kind, storage_path, origin_url, status, width, height, credit, source_id, tags";
+  "id, kind, storage_path, origin_url, status, width, height, credit, source_id, tags, rights_status";
 
 interface AssetRow {
   id: string;
@@ -944,6 +1009,7 @@ interface AssetRow {
   credit: string | null;
   source_id: string | null;
   tags: string[];
+  rights_status?: MediaAssetRecord["rightsStatus"] | null;
 }
 
 const toAsset = (r: AssetRow): MediaAssetRecord => ({
@@ -957,6 +1023,7 @@ const toAsset = (r: AssetRow): MediaAssetRecord => ({
   credit: r.credit,
   sourceId: r.source_id,
   tags: r.tags ?? [],
+  ...(r.rights_status ? { rightsStatus: r.rights_status } : {}),
 });
 
 /** Banco da etapa de imagem e da remoção de reproduções (service role). */
@@ -1329,6 +1396,7 @@ export function createPublishRepo(db: DbClient): PublishRepo {
           ...(p.quarantineReason !== undefined ? { quarantine_reason: p.quarantineReason } : {}),
           ...(p.autonomyLevel !== undefined ? { autonomy_level: p.autonomyLevel } : {}),
           ...(p.degradedReason !== undefined ? { degraded_reason: p.degradedReason } : {}),
+          ...(p.riskLevel !== undefined ? { risk_level: p.riskLevel } : {}),
         })
         .eq("id", articleId);
       check("setStatus", error);

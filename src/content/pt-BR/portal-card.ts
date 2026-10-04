@@ -25,6 +25,8 @@ export const MADE_HOW = {
 export const CARD = {
   origin: "Origem",
   summary20s: "Resumo em poucos segundos",
+  /** Chamada sobre o título da matéria que está no destaque pela pauta quente (HOT-T3). */
+  hot: "Em alta em Cuiabá",
   openIn: (source: string) => `Abrir em ${source}`,
   newTab: "abre em nova aba",
   openOriginal: "Abrir original",

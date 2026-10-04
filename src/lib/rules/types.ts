@@ -22,5 +22,11 @@ export interface RuleSet {
   breakingReview: boolean;
   /** Item marcado sensível pela classificação sobe para revisão. Desligado nas regras v3 (A2). */
   sensitiveFlagReview: boolean;
+  /**
+   * Níveis de risco editorial (D-05, regras v4): divergência em assunto comum publica com as
+   * versões atribuídas; só divergência sobre fato central em assunto grave vai para revisão.
+   * Corpos sem o campo (v3 e anteriores) mantêm o portão de conflito para tudo.
+   */
+  riskLevels: boolean;
   categories: Record<string, CategoryRule>;
 }

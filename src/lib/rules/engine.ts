@@ -1,5 +1,5 @@
 /**
- * Motor de decisão da publicação (A-134; "autonomia primeiro, exceção humana depois"). Recebe o
+ * Motor de decisão da publicação (A-143; "autonomia primeiro, exceção humana depois"). Recebe o
  * resultado de `decidePublication`/`routeArticle` (regra que decidiu e rota) e o estado do
  * conteúdo, calcula qualidade, confiança e risco (0 a 1), o nível de autonomia (A0 a A4) e uma
  * das saídas: PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION ou HOLD. Nunca
@@ -71,8 +71,19 @@ const REPROCESSABLE = new Set([
   "untrusted_grave",
   "rules_unavailable",
 ]);
-/** Configuração explícita do dono: exceção humana (é o dono quem pediu revisão). */
-const OWNER_REVIEW = new Set(["mode", "force_review", "never_auto", "breaking", "sensitive"]);
+/**
+ * Configuração explícita do dono: fila de revisão (o revisor automático decide os níveis 2 e 3,
+ * D-05). Inclui conteúdo duvidoso e divergência central em assunto grave (risco nível 3, D-05).
+ */
+const OWNER_REVIEW = new Set([
+  "mode",
+  "force_review",
+  "never_auto",
+  "breaking",
+  "sensitive",
+  "dubious",
+  "conflict_grave",
+]);
 
 export function riskOf(c: Candidate): number {
   let r = 0.1;
@@ -140,9 +151,6 @@ export function decideAutonomy(
       nextAction: "await_auto_publish",
       nextAttemptInMin: policy.reprocessDelaysMin[0] ?? 30,
     });
-
-  if (i.rule === "dubious")
-    return quarantine(T.dubious(), "conferir as fontes; só republicar com fonte que confirme");
 
   if (i.rule === "conflict") {
     if (

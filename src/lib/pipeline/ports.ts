@@ -2,6 +2,7 @@
  * Portas do pipeline: o domínio conversa com fila, banco e rede só por estas interfaces.
  * Implementações reais em `queue.ts` e `src/lib/db/pipeline-store.ts`; falsas em `testing/`.
  */
+import type { RightsStatus } from "@/lib/media/rights";
 import type { Result } from "@/lib/result";
 import type { ImagePolicy } from "@/lib/media/types";
 import type { RuleSet } from "@/lib/rules";
@@ -246,6 +247,39 @@ export interface EnrichmentPatch {
   sourceText?: string;
   publishedAt?: string;
   imageUrl?: string;
+}
+
+/**
+ * Um link no topo da página inicial de uma fonte (HOT-T2, `front_signals`). Só URL canônica,
+ * posição e fonte; o item e o assunto vêm do `collected_items` casado pela URL (nulos sem item).
+ * A hora (`seen_at`) é a do banco.
+ */
+export interface FrontSignalInput {
+  sourceId: string;
+  itemId: string | null;
+  topicId: string | null;
+  url: string;
+  rank: number;
+}
+
+/** Grava sinais em `front_signals` (service role). */
+export interface FrontSignalRepo {
+  record(signals: FrontSignalInput[]): Promise<void>;
+}
+
+/** Item coletado casado por URL canônica (passo `frontpage`). */
+export interface FrontItemMatch {
+  id: string;
+  canonicalUrl: string;
+  topicId: string | null;
+}
+
+/** Banco do passo `frontpage`. */
+export interface FrontpageRepo extends FrontSignalRepo, Pick<IngestRepo, "hitRateLimit"> {
+  /** Fontes ativas com `consumption.frontpage = true`. */
+  frontpageSources(): Promise<SourceRecord[]>;
+  /** Itens coletados (não duplicados) cujas URLs canônicas estão na lista. */
+  itemsByUrls(urls: string[]): Promise<FrontItemMatch[]>;
 }
 
 /** Acesso a banco das etapas de Coleta (fetch, validate, extract, normalize, enrich). */
@@ -548,6 +582,8 @@ export interface MediaAssetRecord {
   credit: string | null;
   sourceId: string | null;
   tags: string[];
+  /** Media Registry (D-02, 0152): direitos conhecidos; ausente em dado antigo ou em memória. */
+  rightsStatus?: RightsStatus;
 }
 
 /** Cópia de imagem de terceiro, com proveniência (A-010). */
@@ -725,11 +761,13 @@ export interface StatusPatch {
   nationalCommotion?: boolean;
   /** Rebaixa (false) ou marca (true) a matéria como urgente. */
   urgent?: boolean;
+  /** Nível de risco editorial (D-05), gravado pela etapa de regras. */
+  riskLevel?: 1 | 2 | 3 | 4;
   publishMode?: "auto" | null;
   publishedAt?: string;
   rulesVersion?: number | null;
   reviewReason?: string | null;
-  /** Motor de autonomia (A-134): próxima ação e quando; `null` limpa. */
+  /** Motor de autonomia (A-143): próxima ação e quando; `null` limpa. */
   nextAction?: "rewrite" | "reevaluate" | "await_auto_publish" | "breaker_recovery" | null;
   nextAttemptAt?: string | null;
   reprocessCount?: number;
@@ -740,7 +778,7 @@ export interface StatusPatch {
   degradedReason?: string | null;
 }
 
-/** Estado do motor de autonomia de uma matéria (A-134). */
+/** Estado do motor de autonomia de uma matéria (A-143). */
 export interface AutonomyState {
   reprocessCount: number;
   /** Publicação mais antiga entre os itens do assunto (idade da notícia). */
@@ -766,7 +804,7 @@ export interface PublishRepo {
   saveDraft(d: DraftInput): Promise<{ articleId: string; version: number }>;
   decisionContext(articleId: string): Promise<DecisionContext | null>;
   setStatus(articleId: string, patch: StatusPatch): Promise<void>;
-  /** Reprocessos feitos e idade da notícia, para o motor de autonomia (A-134). */
+  /** Reprocessos feitos e idade da notícia, para o motor de autonomia (A-143). */
   autonomyState(articleId: string): Promise<AutonomyState | null>;
   /** Matéria como o checklist e o portão de completude a enxergam (AUT-T4). */
   checkInput(articleId: string): Promise<ArticleCheck | null>;

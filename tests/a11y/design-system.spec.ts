@@ -86,7 +86,7 @@ test("mostrar senha funciona pelo teclado", async ({ page }) => {
 
 test("fontes: menu de ocultar abre com teclado e fica sem violações @a11y", async ({ page }) => {
   await page.goto("/design-system");
-  const trigger = page.getByRole("button", { name: "Ocultar Placar MT" }).first();
+  const trigger = page.getByRole("button", { name: "Mais opções de Placar MT" }).first();
   await trigger.focus();
   await page.keyboard.press("Enter");
   const menu = page.getByRole("menu", { name: "Por que ocultar Placar MT?" });

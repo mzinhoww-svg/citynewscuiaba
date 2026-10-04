@@ -5,6 +5,7 @@ import { gotoSettled } from "./helpers/nav";
 import { cronSecret, drain } from "./helpers/pipeline";
 import { loginAs, type StaffKey } from "./helpers/studio-login";
 import { createArticle, removeArticles, service, tag } from "./studio";
+import { openFilters } from "./helpers/filters";
 
 /*
  * A09 · Fila e aprovações e Histórico (spec 2026-09-28 §10.3, §10.4; critérios 20, 22; PW-T13).
@@ -116,6 +117,7 @@ test("Marina pede e aprova na mesma ação (A-128); histórico mostra quem pediu
 test("filtros do histórico ficam na URL; vazio mostra Sem envios no período", async ({ page }) => {
   await loginAs(page.context(), "helena");
   await gotoSettled(page, `${URL}/historico`);
+  await openFilters(page);
   await page.getByLabel("Período").selectOption("7");
   await page.getByLabel("Tipo").selectOption("highlight");
   await page.getByLabel("Estado").selectOption("expired");
@@ -169,7 +171,7 @@ test("Otávio vê só os próprios pedidos e envios de cidade", async ({ browser
     await otavio.getByRole("option", { name: new RegExp(mine) }).click();
     await otavio.getByLabel("Título").fill(`Destaque cidade ${t}`);
     await otavio.getByRole("button", { name: "Enviar para aprovação" }).click();
-    // A política de avisos decide na hora (A-133): o Destaque da própria editoria entra na fila.
+    // A política de avisos decide na hora (A-142): o Destaque da própria editoria entra na fila.
     await expect(otavio.getByRole("status").filter({ hasText: "Aplicado." })).toBeVisible();
     await gotoSettled(otavio, `${URL}/fila`);
     await expect(otavio.getByText(`Destaque cidade ${t}`)).toBeVisible();

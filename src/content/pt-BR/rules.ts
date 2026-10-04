@@ -34,6 +34,8 @@ export const RULE_RATIONALE = {
   primary: (category: string) =>
     `Categoria ${category} exige fonte primária e nenhuma foi encontrada.`,
   conflict: () => "Fontes divergem em fato central: vai para revisão.",
+  conflictGrave: () =>
+    "Fontes divergem sobre o fato central de um assunto grave (risco alto): vai para revisão.",
   dubious: () => "Conteúdo marcado como extremamente duvidoso: vai para revisão.",
   untrustedGrave: () =>
     "Fonte não confiável, assunto grave (acusação, saúde individual ou segurança) e sem segunda fonte: vai para revisão.",
@@ -72,8 +74,6 @@ export const AUTONOMY_TEXT = {
   duplicate: () => "Duplicata de matéria existente: isolada em quarentena (recomendação: mesclar).",
   stale: (hours: number) =>
     `Notícia com mais de ${hours} h: não publica, isolada em quarentena (recomendação: arquivar).`,
-  dubious: () =>
-    "Conteúdo marcado como extremamente duvidoso: isolado em quarentena, fora do ar, com recomendação registrada.",
   conflictHuman: () =>
     "Fontes divergem em fato central, com confiança baixa ou tema sensível: exceção humana.",
   conflictAttributed: (why: string) =>

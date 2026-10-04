@@ -33,7 +33,8 @@ export const PUBLIC_LABEL = {
   /** Legenda de foto, em frase. Imagem de gerador (hoje não há) sai como ilustrativa (R16). */
   image: {
     original: "Foto original",
-    reproduction: "Reprodução web",
+    /** Aviso da imagem encontrada na web (decisão do dono, D-02). */
+    reproduction: "Foto: reprodução web",
     licensed: "Imagem licenciada",
     illustrative: "Imagem ilustrativa",
     ai_generated: "Imagem ilustrativa",
@@ -54,7 +55,7 @@ export const PUBLIC_EXPLAIN = {
   aggregated: "Conteúdo de outro veículo. O CityNews mostra só o título e o link para o original.",
   imageOriginal: "Foto feita pela equipe do CityNews ou cedida com autorização.",
   imageReproduction: (source?: string) =>
-    `Reprodução web${source ? ` de ${source}` : ""}, com crédito. Sai do ar em até 24 h a pedido do veículo.`,
+    `Foto: reprodução web${source ? ` (${source})` : ""}, com crédito. Sai do ar em até 24 h a pedido do veículo.`,
   imageLicensed: "Imagem de banco de imagens, usada com licença.",
   imageIllustrative: "Imagem ilustrativa: não mostra o fato noticiado.",
   imageAi: "Imagem ilustrativa: não mostra o fato noticiado.",

@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Governança autônoma (A-133, 0151): todo pedido pendente tem prazo e vira estado terminal;
+// Governança autônoma (A-142, 0157): todo pedido pendente tem prazo e vira estado terminal;
 // decisão do motor fica na trilha `governance_decisions` (actor = system); termos restritivos são
 // o único bloqueio de ativação de fonte; o modo de uso deriva dos termos.
 import { afterAll, describe, expect, it } from "vitest";

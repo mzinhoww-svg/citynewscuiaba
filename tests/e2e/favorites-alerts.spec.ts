@@ -171,6 +171,10 @@ test("alerta por e-mail fica pendente até a confirmação", async ({ page }) =>
   await page.getByRole("textbox", { name: "E-mail" }).fill("nao-e-email");
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Confira o e-mail digitado/)).toBeVisible();
+  // UI-T14: o erro fica no campo, com ícone e exemplo, ligado por aria-describedby.
+  const field = page.getByRole("textbox", { name: "E-mail" });
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(/Exemplo: ana@exemplo.com/);
   await page.getByRole("textbox", { name: "E-mail" }).fill(email);
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Enviamos um link de confirmação/)).toBeVisible();
@@ -217,3 +221,43 @@ for (const path of ["/favoritos", "/alertas"]) {
     expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
   });
 }
+
+/*
+ * UI-T14: Perfil, Favoritos e Alertas no grid do portal (8 + 4 colunas) e com o convite de conta
+ * que explica os benefícios e sempre oferece "Agora não" (login nunca é obrigatório).
+ */
+for (const path of ["/perfil", "/favoritos", "/alertas"]) {
+  test(`${path}: convite de conta com benefícios e Agora não`, async ({ page }) => {
+    await page.goto(path);
+    const invite = page.getByRole("region", { name: "Por que criar uma conta" });
+    await expect(invite).toBeVisible();
+    await expect(
+      invite.getByRole("list", { name: "O que a conta guarda para você" }).getByRole("listitem"),
+    ).toHaveCount(3);
+    const h1 = page.locator("main h1");
+    expect(
+      await h1.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ).toBeLessThanOrEqual(28);
+    const notNow = invite.getByRole("button", { name: "Agora não" });
+    expect((await notNow.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // O convite vem no HTML do servidor; o toque só vale depois da hidratação (no WebKit, mais
+    // lenta), então toca de novo até o convite recolher.
+    await expect(async () => {
+      if (await notNow.isVisible()) await notNow.click();
+      await expect(invite).toBeHidden({ timeout: 1000 });
+    }).toPass();
+    await expect(page.getByText("Tudo bem: você continua sem conta.")).toBeFocused();
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Por que criar uma conta" })).toHaveCount(0);
+  });
+}
+
+test("coleção sem nome mostra erro com exemplo no campo", async ({ page }) => {
+  await page.goto("/favoritos");
+  await ready(page);
+  await page.getByRole("tab", { name: "Coleções pessoais" }).click();
+  await page.getByRole("button", { name: "Criar coleção" }).click();
+  const field = page.getByLabel("Nome da nova coleção");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(/Exemplo: Para ler no fim de semana/);
+});

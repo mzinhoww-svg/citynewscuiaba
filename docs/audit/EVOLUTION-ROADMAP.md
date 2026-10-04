@@ -4,16 +4,18 @@ Data: 04/10/2026. Iniciativas priorizadas a partir de `AUDIT-REPORT.md`. Cada um
 
 ## 1. Decisões do dono
 
-Pedem resposta do dono porque mudam o produto ou o risco jurídico. O trabalho que não depende delas segue.
+Tomadas em 04/10/2026 e implementadas no mesmo dia (relatório em `docs/reports/decisoes-auditoria-360.md`). A recomendação original da auditoria fica registrada para histórico; vale a decisão.
 
-| ID | Pergunta | Recomendação | Bloqueia |
-|---|---|---|---|
-| **D-01** | A R36 (Pergunte responde sem fonte) continua valendo depois de ver a alternativa de `EDITORIAL-POLICY.md` §6? | Adotar a alternativa: com 1 fonte responde atribuído; com 0 mostra busca e alerta; nunca afirma sem fonte | UI-T13 |
-| **D-02** | Reprodução de imagem de terceiros sem permissão: mantém, restringe ou suspende até a revisão jurídica (B-002)? | Manter só com as restrições de `MEDIA-POLICY.md` §4.2 (nunca `og:image`, sem recorte, prazo de 24 h medido) e fazer a revisão jurídica | EV-13 |
-| **D-03** | Linhagens independentes passam a valer nas regras (no lugar de veículos distintos) depois de 2 semanas em sombra? | Sim, para o portão "grave + não confiável" e para a confiança | EV-02 fase 2 |
-| ~~D-04~~ | Modelo de aprovação para operação de uma pessoa | **Resolvida pelo dono em 04/10 (A-128, PR #37):** fim da regra de duas pessoas em todas as mudanças críticas; uma pessoa com o papel de aprovar pede, aprova e aplica numa ação só, com `approvals` e auditoria registrando quem fez (migration 0149). | — |
-| **D-05** | À noite, conflito confirmado e conteúdo duvidoso vão ao revisor automático ou esperam pessoa? | Esperar pessoa (é o que a §1 da spec de autonomia diz) | — |
-| **D-06** | Texto e imagem gerados ganham rótulo discreto no público ("Ilustração gerada"; menção em "Como funciona" reaberta)? | Sim para imagem gerada (quando houver gerador); para texto, reabrir a página de método | ligar gerador de imagem |
+| ID | Decisão do dono | Recomendação original da auditoria | Implementação | Registro |
+|---|---|---|---|---|
+| **D-01** | Responder com fontes; sem fontes relevantes, informar a limitação | 1 fonte responde atribuído; 0 mostra busca | Uma fonte basta (`single_source`), `staleSince`, recusa só sem fonte ou sem fato sustentado | A-133 |
+| **D-02** | Imagens da web com crédito e "Foto: reprodução web", com Media Registry | Manter com restrições (sem `og:image`, sem recorte) e revisão jurídica | Legenda nova, migration 0152, visão `media_registry`, reuso bloqueado para vencido ou bloqueado. `og:image` e recorte **não** mudaram (fora da decisão) | A-134 |
+| **D-03** | Linhagens só como indicador informativo (opção C) | Usar nas regras após 2 semanas | Indicador com método e cálculo à prova de falha, visão `verify_lineage_daily`; nenhum portão usa | A-135 |
+| **D-04** | Alterações livres com histórico e reversão (opção C) | Aprovação por direção do risco | A-128 já tinha uma pessoa aprovando; acrescentado antes/depois na auditoria das flags | A-136 |
+| **D-05** | Níveis de risco, publicação flexível, cobertura noturna (opção B) | Conflito e duvidoso à noite esperam pessoa | `classifyRisk` 1 a 4, regras v4 (proposta inativa), revisor decide 2 e 3, nunca 4 | A-137 |
+| **D-06** | Sem rótulo público de IA, com rastreabilidade interna | Rótulo discreto para imagem gerada | Mantido sem selo; colunas internas fora da chave anônima (0153) | A-138 |
+
+**Evoluções futuras que exigem nova decisão explícita do dono** (nunca automáticas): linhagens como critério de confiança (D-03, C → B); aprovação proporcional ao risco quando houver mais operadores (D-04); `og:image` só com ativo de escopo `social` (D-02); rótulo para imagem gerada quando houver gerador (D-06).
 
 ## 2. Iniciativas
 
@@ -28,7 +30,7 @@ Complexidade: **P** pequena (≤ 1 dia), **M** média (2–5 dias), **G** grande
 - Aceite: rascunho sem IA não aparece em `review_due_articles` e `isReviewable` o recusa; o system prompt do revisor contém os dois sinais.
 - Testes: `auto-reviewer.test.ts` (2 novos), `aut-t6-reviewer.test.ts` (1 novo, integração). Pendente: aplicar 0150 em produção.
 
-**EV-02 · Linhagens independentes** · Fase 1 concluída (sombra)
+**EV-02 · Linhagens independentes** · Fase 1 concluída; fase 2 **suspensa** pela D-03 (indicador informativo)
 - Problema: P0-02. Causa raiz: `independentSources = new Set(sourceId).size`.
 - Fase 1 (feita): `independentLineages` gravado na decisão do `verify`. Fase 2 (após D-03): `computeConfidence` e o portão `untrusted_grave` usam linhagens; `topics.state` "confirmado" exige 2 linhagens.
 - Arquivos: `src/lib/confidence/lineage.ts`, `src/lib/pipeline/steps/verify.ts`; fase 2: `confidence/index.ts`, `rules/index.ts`, `topics/state.ts`, `rules/simulate.ts`.
@@ -43,7 +45,7 @@ Complexidade: **P** pequena (≤ 1 dia), **M** média (2–5 dias), **G** grande
 - Aceite: fixtures com número trocado, citação inventada, "culpado" sem condenação e menor nomeado são pegos; matéria correta passa.
 - Testes: unitários da função; caso no `write`.
 
-**EV-13 · Mídia com base de uso** · M, após D-02
+**EV-13 · Mídia com base de uso** · Primeira etapa concluída (Media Registry, A-134); restrições de `og:image` e recorte ficaram fora da D-02
 - Problema: P0-04, M-01 a M-05. Solução: `MEDIA-POLICY.md` §4: reprodução fora de `og:image`, sem recorte, prazo de 24 h medido; base de uso no ativo; envio de foto pelo Estúdio.
 - Arquivos: `src/lib/seo/metadata.ts`, `src/app/(public)/materia/[slug]/page.tsx`, `src/components/editorial/Photo.tsx`, `src/lib/media/*`, migration de `media_assets`.
 - Aceite: matéria com reprodução não emite `og:image` da reprodução; nenhuma reprodução renderizada com recorte; pedido de remoção vencido gera alerta.
@@ -98,11 +100,11 @@ Descoberta de fontes candidatas por links citados; dossiês por entidade; detec�
 ```mermaid
 flowchart LR
   EV01[EV-01 ✓] --> EV06
-  EV02a[EV-02 sombra ✓] --> D03{D-03} --> EV02b[EV-02 portão]
+  EV02a[EV-02 indicador ✓] -.->|nova decisão do dono| EV02b[EV-02 critério de confiança]
   EV03 --> EV16
   EV05 --> EV19
   EV04 --> EV17
-  D02{D-02} --> EV13
+  EV13a[EV-13 Media Registry ✓] --> EV13
   EV10 --> EV11
   EV07 --> EV11
   EV11 --> EV16

@@ -47,6 +47,8 @@ export const RuleSetInput = z.object({
     .optional(),
   breakingReview: z.boolean().optional(),
   sensitiveFlagReview: z.boolean().optional(),
+  /** Níveis de risco (D-05, regras v4); ausente herda da versão em vigor. */
+  riskLevels: z.boolean().optional(),
   categories: z.record(z.string().regex(/^[a-z0-9-]+$/), CategoryRuleSchema),
 });
 export type RuleSetInput = z.infer<typeof RuleSetInput>;
@@ -60,6 +62,7 @@ function withGates(input: RuleSetInput, current: RuleSet): Omit<RuleSet, "versio
     neverAuto: input.neverAuto ?? current.neverAuto,
     breakingReview: input.breakingReview ?? current.breakingReview,
     sensitiveFlagReview: input.sensitiveFlagReview ?? current.sensitiveFlagReview,
+    riskLevels: input.riskLevels ?? current.riskLevels,
   };
 }
 
@@ -147,7 +150,7 @@ export const proposeRulesCommand = studioAction(
       : current.forceReview && !i.rules.forceReview
         ? "force_review.disable"
         : "rules.activate";
-    // Motor de política (A-133): regras válidas e papel certo aplicam na hora; inválidas são
+    // Motor de política (A-142): regras válidas e papel certo aplicam na hora; inválidas são
     // recusadas; afrouxar a segurança sem ser admin é exceção (ação do admin).
     const next: RuleSet = { version, ...proposed };
     const sim = simulateRules(next, await recentCandidates(7, ctx.db), current);

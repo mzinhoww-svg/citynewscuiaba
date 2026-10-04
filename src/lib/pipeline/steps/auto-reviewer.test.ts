@@ -370,6 +370,10 @@ describe("autoReview", () => {
     const call = s.fake.calls.findLast((c) => c.agentId === "reviewer")!;
     expect(call.system).toContain("Fontes divergentes confirmadas: sim");
     expect(call.system).toContain("Conteúdo marcado como duvidoso: sim");
+    // D-05: o revisor decide com o nível de risco e os motivos calculados pela mesma regra.
+    expect(call.system).toMatch(/Nível de risco: 3 \(alto\)/);
+    expect(call.system).toContain("dubious");
+    expect(call.prompt).toMatch(/nível 3/i);
   });
 
   it("o texto da matéria vai ao modelo como dado externo, nunca como instrução", async () => {
@@ -427,5 +431,24 @@ describe("isReviewable", () => {
       sourceNames: [],
     };
     expect(isReviewable(item)).toBe(false);
+  });
+
+  it("nível 2 e 3 chegam ao revisor; o crítico (nível 4) nunca (D-05)", async () => {
+    const s = await setup();
+    const ctx = (await s.base.decisionContext(s.id))!;
+    const item: ReviewItem = {
+      ctx,
+      text: "x",
+      reviewReason: null,
+      dueAt: null,
+      fromPipeline: true,
+      openReports: 0,
+      openCorrections: 0,
+      openEscalations: 0,
+      sourceNames: [],
+    };
+    expect(isReviewable({ ...item, ctx: { ...ctx, centralConflict: true } })).toBe(true);
+    expect(isReviewable({ ...item, ctx: { ...ctx, dubious: true } })).toBe(true);
+    expect(isReviewable({ ...item, ctx: { ...ctx, aiFallback: true } })).toBe(false);
   });
 });

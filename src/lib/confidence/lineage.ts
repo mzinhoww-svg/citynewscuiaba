@@ -7,8 +7,9 @@ import { textTokens } from "@/lib/pipeline/text-features";
  * trechos compartilham a maior parte das sequências de 4 palavras (cópia, com ou sem acréscimo no
  * fim). Título sozinho nunca junta veículos: títulos curtos se repetem entre apurações distintas.
  *
- * Hoje é medida em sombra: gravada na decisão do `verify` ao lado de `independentSources`, sem
- * mudar portão nem score (ADR-012). Ligá-la às regras é decisão do dono.
+ * Indicador informativo (D-03, decisão do dono): gravado na decisão do `verify` ao lado de
+ * `independentSources`, sem mudar portão, score de confiança nem revisor (ADR-012). Passar a usá-lo
+ * na confiança é uma decisão futura e explícita do dono, nunca automática.
  */
 export interface LineageItem {
   id: string;
@@ -39,6 +40,9 @@ function copied(a: Set<string> | null, b: Set<string> | null): boolean {
   return shared / small.size >= CONTAINMENT;
 }
 
+/** Método registrado na decisão, para auditar falsos agrupamentos e comparar versões. */
+export const LINEAGE_METHOD = `shingle${SHINGLE}-containment${CONTAINMENT}-min${MIN_TOKENS}`;
+
 export function independentLineages(items: readonly LineageItem[]): number {
   const parent = items.map((_, i) => i);
   const find = (i: number): number => {
@@ -58,4 +62,13 @@ export function independentLineages(items: readonly LineageItem[]): number {
       if (items[a]!.sourceId === items[b]!.sourceId || copied(prints[a]!, prints[b]!)) union(a, b);
 
   return new Set(items.map((_, i) => find(i))).size;
+}
+
+/** Medição que nunca falha a etapa: erro no cálculo vira `null` (sem medida), nunca exceção. */
+export function safeIndependentLineages(items: readonly LineageItem[]): number | null {
+  try {
+    return independentLineages(items);
+  } catch {
+    return null;
+  }
 }

@@ -116,8 +116,13 @@ describe("decideAutonomy", () => {
     expect(d).toMatchObject({ outcome: "REPROCESS", nextAction: "await_auto_publish" });
   });
 
-  it("conteúdo duvidoso e duplicata vão para quarentena com recomendação", () => {
-    expect(decideAutonomy(input({ rule: "dubious", route: "review" })).outcome).toBe("QUARANTINE");
+  it("duvidoso e divergência grave vão à fila de revisão (D-05); duplicata, à quarentena", () => {
+    expect(decideAutonomy(input({ rule: "dubious", route: "review" })).outcome).toBe(
+      "HUMAN_EXCEPTION",
+    );
+    expect(decideAutonomy(input({ rule: "conflict_grave", route: "review" })).outcome).toBe(
+      "HUMAN_EXCEPTION",
+    );
     const dup = decideAutonomy(input({ duplicate: true }));
     expect(dup.outcome).toBe("QUARANTINE");
     expect(dup.reason).toMatch(/mesclar/);

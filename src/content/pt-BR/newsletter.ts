@@ -44,6 +44,34 @@ export const NEWSLETTER_PAGE = {
     "Este e-mail já recebe essas newsletters. Enviamos um link para você mudar as preferências.",
   privacy: "Usamos o e-mail só para as newsletters. Você pode sair a qualquer momento.",
   loading: "Carregando as newsletters",
+  /** UI-T11: hero, lista e FAQ em blocos de marketing. */
+  heroCta: "Escolher e inscrever",
+  listsTitle: "As newsletters",
+  faq: [
+    {
+      question: "Preciso criar conta?",
+      answer: "Não. Só pedimos o e-mail, mais nada.",
+    },
+    {
+      question: "Por que preciso confirmar?",
+      answer:
+        "Enviamos um link de confirmação para o seu e-mail. Sem confirmação, nada é enviado: ninguém inscreve você sem você saber.",
+    },
+    {
+      question: "Quando chega a primeira edição?",
+      answer:
+        "O envio das edições começa em breve. O dia e o horário de cada newsletter aparecem na lista.",
+    },
+    {
+      question: "Como mudo ou cancelo?",
+      answer:
+        "Peça a inscrição de novo com o mesmo e-mail: enviamos um link para você mudar as newsletters ou sair de todas.",
+    },
+    {
+      question: "O que vocês fazem com o meu e-mail?",
+      answer: "Usamos o e-mail só para as newsletters. Você pode sair a qualquer momento.",
+    },
+  ],
 } as const;
 
 export const NEWSLETTER_PREFS = {

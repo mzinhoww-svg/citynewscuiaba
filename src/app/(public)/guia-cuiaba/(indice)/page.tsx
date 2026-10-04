@@ -45,14 +45,9 @@ export default async function GuideIndexPage() {
           <p>{T.errorText}</p>
         </EmptyState>
       ) : result.value.editorial.length === 0 && result.value.sponsored.length === 0 ? (
-        <EmptyState
-          title={T.emptyTitle}
-          actions={
-            <Button href="/guia-cuiaba/materias" size="md">
-              {T.articlesLink}
-            </Button>
-          }
-        >
+        // Sem listas, o link "Matérias do Guia" do cabeçalho já é a saída: repeti-lo aqui dava dois
+        // links iguais na mesma tela.
+        <EmptyState title={T.emptyTitle}>
           <p>{T.emptyText}</p>
         </EmptyState>
       ) : (

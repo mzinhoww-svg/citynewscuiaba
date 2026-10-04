@@ -1,4 +1,4 @@
--- 0152 · Motor de autonomia do pipeline (A-134): nada parado, disjuntor que se recupera, itens
+-- 0158 · Motor de autonomia do pipeline (A-143): nada parado, disjuntor que se recupera, itens
 -- mortos com recomendação, incidente por causa comum e saúde da fila. Aditiva e idempotente.
 --
 --  1. `articles` ganha o estado do motor: próxima ação e quando (`next_action`, `next_attempt_at`),

@@ -5,7 +5,7 @@
 ## O que acontece
 
 1. `feature_flags.auto_publish` passa a `false` na hora; a ação fica em `audit_log` (`flag.set`, com motivo).
-2. A etapa 15 (regras) deixa o que publicaria em **rascunho com próxima ação** `await_auto_publish` (`rule = auto_publish_off`, decisão REPROCESS do motor de autonomia, A-134), sem fila humana; a etapa 17 (publicar) confere a flag de novo e faz o mesmo. A varredura de autonomia reconfere a cada 30 min e, religada a flag, as matérias seguem sozinhas.
+2. A etapa 15 (regras) deixa o que publicaria em **rascunho com próxima ação** `await_auto_publish` (`rule = auto_publish_off`, decisão REPROCESS do motor de autonomia, A-143), sem fila humana; a etapa 17 (publicar) confere a flag de novo e faz o mesmo. A varredura de autonomia reconfere a cada 30 min e, religada a flag, as matérias seguem sozinhas.
 3. Itens do **ciclo em andamento** que as regras já tinham mandado publicar e ainda não foram publicados vão para a fila de revisão, com a justificativa em `decisions` (`contingency_pause_cycle`). Matérias com edição humana não são tocadas.
 4. Nada é despublicado. Quem já publicou continua no ar; para tirar do ar, use "Despublicar automáticas" na fila do Estúdio.
 

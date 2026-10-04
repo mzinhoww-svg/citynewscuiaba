@@ -74,7 +74,9 @@ export function weakensSafety(current: RuleSet, next: RuleSet): boolean {
     current.sensitiveTopics.some((t) => !next.sensitiveTopics.includes(t)) ||
     current.neverAuto.some((t) => !next.neverAuto.includes(t)) ||
     (current.breakingReview && !next.breakingReview) ||
-    (current.sensitiveFlagReview && !next.sensitiveFlagReview)
+    (current.sensitiveFlagReview && !next.sensitiveFlagReview) ||
+    // Níveis de risco (D-05) liberam a divergência em assunto comum.
+    (!current.riskLevels && next.riskLevels)
   );
 }
 
@@ -92,7 +94,7 @@ export function ruleDiff(a: RuleSet, b: RuleSet): RuleChange[] {
   const out: RuleChange[] = [];
   if (a.forceReview !== b.forceReview)
     out.push({ path: "forceReview", from: String(a.forceReview), to: String(b.forceReview) });
-  for (const f of ["breakingReview", "sensitiveFlagReview"] as const)
+  for (const f of ["breakingReview", "sensitiveFlagReview", "riskLevels"] as const)
     if (a[f] !== b[f]) out.push({ path: f, from: String(a[f]), to: String(b[f]) });
   const droppedNever = a.neverAuto.filter((t) => !b.neverAuto.includes(t));
   const addedNever = b.neverAuto.filter((t) => !a.neverAuto.includes(t));

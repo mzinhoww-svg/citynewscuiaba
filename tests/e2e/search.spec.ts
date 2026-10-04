@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFilters } from "./helpers/filters";
 
 /* P3-T10 · busca tradicional (docs/screens.md P12). Dados do seed (supabase/seed.sql). */
 
@@ -25,6 +26,7 @@ test("sem acento encontra com acento e agrupa por assunto", async ({ page }) => 
 test("filtro de origem vai para a URL e só mostra outros veículos", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
   await expect(page.locator("mark").first()).toBeVisible();
+  await openFilters(page);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Origem").selectOption("outros");
   await expect(page).toHaveURL(/origem=outros/);
@@ -106,6 +108,7 @@ test("atalho Perguntar ao CityNews leva o mesmo texto", async ({ page }) => {
 
 test("filtros aplicam na hora, sem botão Aplicar, e ficam na URL", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
+  await openFilters(page);
   await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Período").selectOption("30d");

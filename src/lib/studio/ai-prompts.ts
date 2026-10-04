@@ -117,7 +117,7 @@ export const requestPromptPublishCommand = studioAction(
     if (!v) throw new StudioFailure("not_found");
     if (v.status !== "draft" && v.status !== "pending")
       throw new StudioFailure("conflict", PROMPTS_TEXT.conflict);
-    // Checagens automáticas (A-133): prompt inseguro é recusado e continua rascunho; seguro segue.
+    // Checagens automáticas (A-142): prompt inseguro é recusado e continua rascunho; seguro segue.
     const policy = evaluateGovernance({
       kind: "prompt.publish",
       actorRoles: ctx.session?.roles.map((r) => r.role) ?? [],

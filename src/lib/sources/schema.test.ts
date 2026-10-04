@@ -13,3 +13,11 @@ describe("consumptionSchema.enrich", () => {
     );
   });
 });
+
+describe("consumptionSchema.frontpage", () => {
+  it("é opcional (ausente = desligado) e só aceita booleano", () => {
+    expect(consumptionSchema.parse({ strategy: "rss" }).frontpage).toBeUndefined();
+    expect(consumptionSchema.parse({ strategy: "rss", frontpage: true }).frontpage).toBe(true);
+    expect(consumptionSchema.safeParse({ strategy: "rss", frontpage: "sim" }).success).toBe(false);
+  });
+});

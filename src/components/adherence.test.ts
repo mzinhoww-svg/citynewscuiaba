@@ -78,3 +78,25 @@ it("nenhum arquivo de src/ contém o componente OriginStrip", async () => {
   walk(join(process.cwd(), "src"));
   expect(offenders).toEqual([]);
 }, 30_000);
+
+// UI-T11: os blocos de marketing (adaptados do TripleD) seguem a mesma regra de tokens, sem
+// Framer Motion nem gradiente decorativo.
+it("blocos de marketing passam na aderência, sem Framer Motion nem gradiente", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const dir = join(process.cwd(), "src/components/editorial/marketing");
+  for (const f of ["Hero.tsx", "Benefits.tsx", "Cta.tsx", "Faq.tsx"]) {
+    const code = readFileSync(join(dir, f), "utf8");
+    const out = await messages(code, `src/components/editorial/marketing/${f}`);
+    expect(
+      out.filter((m) => /no-restricted/.test(m)),
+      f,
+    ).toEqual([]);
+    expect(code, f).not.toMatch(/gradient|framer-motion/i);
+  }
+  const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
+    dependencies?: Record<string, string>;
+  };
+  expect(pkg.dependencies?.["framer-motion"]).toBeUndefined();
+  expect(pkg.dependencies?.["motion"]).toBeUndefined();
+}, 30_000);

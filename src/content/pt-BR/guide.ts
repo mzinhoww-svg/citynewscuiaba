@@ -90,7 +90,7 @@ export const GUIDE = {
     priceLabel: "Faixa de preço",
     appearsIn: "Aparece nestas listas",
     photos: "Fotos",
-    photoCredit: (name: string) => `Reprodução web · ${name}`,
+    photoCredit: (name: string) => `Foto: reprodução web · ${name}`,
     photoSource: "Fonte",
     noPhoto: "Sem foto oficial por enquanto.",
     updated: (date: string) => `Dados atualizados em ${date}`,

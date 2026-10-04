@@ -128,7 +128,7 @@ describe("write (etapas 11 e 12)", () => {
     expect(store.calls.at(-1)).toMatchObject({ fallback_used: true, ok: true });
   });
 
-  it("Review Focus 4: principal e fallback fora → rascunho sem IA, sem fila humana (A-134), nada se perde", async () => {
+  it("Review Focus 4: principal e fallback fora → rascunho sem IA, sem fila humana (A-143), nada se perde", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([{ error: "timeout" }, { error: "provider" }]);
@@ -350,7 +350,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
       const s = setup({ rules, flags: { auto_publish: true } });
       const id = await drafted(s);
       await s.handlers.rules!(msg("rules", `article:${id}`));
-      // Falha fechada sem fila humana (A-134): rascunho com reavaliação agendada.
+      // Falha fechada sem fila humana (A-143): rascunho com reavaliação agendada.
       expect(s.repo.article(id)!.status).toBe("draft");
       expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "reevaluate" });
       expect(s.repo.decisions().at(-1)).toMatchObject({
@@ -421,7 +421,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     expect(order).toEqual(["decision:publish", "status:published"]);
 
     // Publicação desligada: as regras gravam a decisão e só depois deixam o rascunho com a
-    // próxima ação (A-134).
+    // próxima ação (A-143).
     const b = setup({ rules: async () => ok(OPEN), flags: { auto_publish: false } });
     const idB = await drafted(b);
     const orderB: string[] = [];
@@ -437,6 +437,40 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     };
     await unwrap(b.handlers.rules!(msg("rules", `article:${idB}`)));
     expect(orderB).toEqual(["status:draft", "decision:rules", "status:draft"]);
+  });
+
+  it("depois de publicar aplica a pauta quente (HOT-T3); falha dela não desfaz a publicação", async () => {
+    const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: true } });
+    const id = await drafted(s);
+    await s.handlers.rules!(msg("rules", `article:${id}`));
+    const seen: string[] = [];
+    const handlers = createPublishHandlers({
+      ...s.deps,
+      afterPublish: async () => {
+        seen.push(s.repo.article(id)!.status);
+        throw new Error("banco fora");
+      },
+    });
+    const next = await unwrap(handlers.publish!(msg("publish", `article:${id}`)));
+    expect(seen).toEqual(["published"]);
+    expect(next).toEqual([
+      msg("index", `article:${id}`),
+      msg("notify", `article:${id}#auto_published`),
+    ]);
+    expect(s.repo.article(id)!.status).toBe("published");
+  });
+
+  it("retida em revisão não chama a pauta quente", async () => {
+    const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: false } });
+    const id = await drafted(s);
+    await s.handlers.rules!(msg("rules", `article:${id}`));
+    let calls = 0;
+    const handlers = createPublishHandlers({
+      ...s.deps,
+      afterPublish: async () => void (calls += 1),
+    });
+    await handlers.publish!(msg("publish", `article:${id}`));
+    expect(calls).toBe(0);
   });
 
   it("flag auto_publish desligada ou modo leitura: rascunho esperando o religamento, sem fila humana", async () => {
@@ -493,7 +527,7 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     await s2.handlers.rules!(msg("rules", `article:${id2}`));
     s2.repo.addTopic(farmacias({ confidenceScore: 0.6 }));
     await s2.repo.saveDraft({ ...s2.repo.article(id2)!.input });
-    // Decisão desatualizada volta às regras (A-134), nunca publica e não vai para a fila humana.
+    // Decisão desatualizada volta às regras (A-143), nunca publica e não vai para a fila humana.
     const back = await unwrap(s2.handlers.publish!(msg("publish", `article:${id2}`)));
     expect(back).toEqual([msg("rules", `article:${id2}`)]);
     expect(s2.repo.article(id2)).toMatchObject({ status: "draft", publishMode: null });

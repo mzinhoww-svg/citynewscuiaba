@@ -77,4 +77,31 @@ export const APP_PAGE_TEXT = {
     "A página inicial, as editorias e as últimas matérias lidas ficam guardadas para leitura sem internet.",
     "Avisos do que você segue e de urgências, se você ativar em Alertas.",
   ],
+  /** UI-T11: títulos curtos e ícones dos benefícios, na mesma ordem de `why`. */
+  whyItems: [
+    { icon: "house", title: "Na tela inicial" },
+    { icon: "wifi-off", title: "Sem internet" },
+    { icon: "bell", title: "Avisos do que você segue" },
+  ],
+  faq: [
+    {
+      question: "Precisa passar por uma loja de aplicativos?",
+      answer:
+        "Não. O CityNews é um app de navegador: não passa por loja, não ocupa espaço à toa e continua sendo o mesmo site.",
+    },
+    {
+      question: "Funciona sem internet?",
+      answer:
+        "Sim, para o que já foi guardado: a página inicial, as editorias e as últimas matérias lidas.",
+    },
+    {
+      question: "Como recebo avisos?",
+      answer:
+        "Ative em Alertas. No iPhone e no iPad, abra o CityNews pela Tela de Início para receber avisos.",
+    },
+    {
+      question: "Meu navegador não permite instalar. E agora?",
+      answer: "Use o site normalmente: tudo continua funcionando no navegador.",
+    },
+  ],
 } as const;

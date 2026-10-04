@@ -577,6 +577,7 @@ export type Database = {
           caption: string | null;
           chosen_at: string;
           chosen_by: string;
+          credit_shown: string | null;
           media_id: string;
           position: number | null;
           rationale: string;
@@ -588,6 +589,7 @@ export type Database = {
           caption?: string | null;
           chosen_at?: string;
           chosen_by: string;
+          credit_shown?: string | null;
           media_id: string;
           position?: number | null;
           rationale: string;
@@ -599,6 +601,7 @@ export type Database = {
           caption?: string | null;
           chosen_at?: string;
           chosen_by?: string;
+          credit_shown?: string | null;
           media_id?: string;
           position?: number | null;
           rationale?: string;
@@ -833,6 +836,7 @@ export type Database = {
           reprocess_count: number;
           review_banner: boolean;
           review_reason: string | null;
+          risk_level: number | null;
           rules_version: number | null;
           scheduled_for: string | null;
           section_slug: string;
@@ -882,6 +886,7 @@ export type Database = {
           reprocess_count?: number;
           review_banner?: boolean;
           review_reason?: string | null;
+          risk_level?: number | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug: string;
@@ -930,6 +935,7 @@ export type Database = {
           reprocess_count?: number;
           review_banner?: boolean;
           review_reason?: string | null;
+          risk_level?: number | null;
           rules_version?: number | null;
           scheduled_for?: string | null;
           section_slug?: string;
@@ -1775,8 +1781,10 @@ export type Database = {
           article_id: string;
           created_at: string;
           created_by: string | null;
+          dismissed_at: string | null;
           ends_at: string | null;
           ended_at: string | null;
+          hot_sources: number | null;
           id: string;
           kind: string;
           note: string;
@@ -1784,13 +1792,16 @@ export type Database = {
           section_slug: string | null;
           slot_key: string;
           starts_at: string;
+          topic_id: string | null;
         };
         Insert: {
           article_id: string;
           created_at?: string;
           created_by?: string | null;
+          dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -1798,13 +1809,16 @@ export type Database = {
           section_slug?: string | null;
           slot_key: string;
           starts_at?: string;
+          topic_id?: string | null;
         };
         Update: {
           article_id?: string;
           created_at?: string;
           created_by?: string | null;
+          dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -1812,6 +1826,7 @@ export type Database = {
           section_slug?: string | null;
           slot_key?: string;
           starts_at?: string;
+          topic_id?: string | null;
         };
         Relationships: [
           {
@@ -1827,6 +1842,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "featured_slots";
             referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "featured_items_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -1853,6 +1875,44 @@ export type Database = {
           position?: number;
         };
         Relationships: [];
+      };
+      front_signals: {
+        Row: {
+          id: string;
+          item_id: string | null;
+          rank: number;
+          seen_at: string;
+          source_id: string;
+          topic_id: string | null;
+          url: string;
+        };
+        Insert: {
+          id?: string;
+          item_id?: string | null;
+          rank: number;
+          seen_at?: string;
+          source_id: string;
+          topic_id?: string | null;
+          url: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string | null;
+          rank?: number;
+          seen_at?: string;
+          source_id?: string;
+          topic_id?: string | null;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "front_signals_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       home_layouts: {
         Row: {
@@ -2030,10 +2090,12 @@ export type Database = {
       media_assets: {
         Row: {
           allowed_use: string;
+          archived_at: string | null;
           author: string | null;
           captured_at: string;
           content_type: string | null;
           credit: string | null;
+          disclaimer: string | null;
           height: number | null;
           id: string;
           kind: Database["public"]["Enums"]["media_kind"];
@@ -2046,20 +2108,25 @@ export type Database = {
           removal_reason: string | null;
           removed_at: string | null;
           risk: string;
+          rights_status: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256: string | null;
           source_id: string | null;
           source_name: string | null;
           status: string;
           storage_path: string;
           tags: string[];
+          updated_at: string;
+          usage_scope: string[];
           width: number | null;
         };
         Insert: {
           allowed_use: string;
+          archived_at?: string | null;
           author?: string | null;
           captured_at?: string;
           content_type?: string | null;
           credit?: string | null;
+          disclaimer?: string | null;
           height?: number | null;
           id?: string;
           kind: Database["public"]["Enums"]["media_kind"];
@@ -2072,20 +2139,25 @@ export type Database = {
           removal_reason?: string | null;
           removed_at?: string | null;
           risk?: string;
+          rights_status?: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256?: string | null;
           source_id?: string | null;
           source_name?: string | null;
           status?: string;
           storage_path: string;
           tags?: string[];
+          updated_at?: string;
+          usage_scope?: string[];
           width?: number | null;
         };
         Update: {
           allowed_use?: string;
+          archived_at?: string | null;
           author?: string | null;
           captured_at?: string;
           content_type?: string | null;
           credit?: string | null;
+          disclaimer?: string | null;
           height?: number | null;
           id?: string;
           kind?: Database["public"]["Enums"]["media_kind"];
@@ -2098,12 +2170,15 @@ export type Database = {
           removal_reason?: string | null;
           removed_at?: string | null;
           risk?: string;
+          rights_status?: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256?: string | null;
           source_id?: string | null;
           source_name?: string | null;
           status?: string;
           storage_path?: string;
           tags?: string[];
+          updated_at?: string;
+          usage_scope?: string[];
           width?: number | null;
         };
         Relationships: [
@@ -4813,6 +4888,32 @@ export type Database = {
       };
     };
     Views: {
+      media_registry: {
+        Row: {
+          archived_at: string | null;
+          article_ids: string[];
+          content_hash: string | null;
+          created_at: string;
+          credit: string | null;
+          disclaimer: string | null;
+          expiration: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["media_kind"];
+          license: string;
+          metadata: Json;
+          origin: string | null;
+          original_url: string | null;
+          author: string | null;
+          rights_status: Database["public"]["Enums"]["media_rights_status"];
+          source_url: string | null;
+          status: string;
+          storage_path: string;
+          updated_at: string;
+          usage_scope: string[];
+          uses: number;
+        };
+        Relationships: [];
+      };
       public_ad_placements: {
         Row: {
           allowed_sections: string[] | null;
@@ -5406,6 +5507,7 @@ export type Database = {
         Returns: boolean;
       };
       featured_assert_role: { Args: never; Returns: undefined };
+      featured_dismiss_hot: { Args: { p_id: string }; Returns: number };
       featured_has_cover: { Args: { p_article: string }; Returns: boolean };
       featured_pin: {
         Args: {
@@ -5421,6 +5523,7 @@ export type Database = {
       featured_reorder: { Args: { p_ids: string[]; p_slot: string }; Returns: number };
       featured_request_images: { Args: { p_ids: string[] }; Returns: number };
       featured_unpin: { Args: { p_id: string }; Returns: boolean };
+      front_signals_purge: { Args: Record<PropertyKey, never>; Returns: number };
       home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
@@ -6051,6 +6154,8 @@ export type Database = {
       content_kind: "original" | "normalized" | "aggregated";
       image_policy: "none" | "with_agreement" | "licensed_only" | "reproduction";
       media_kind: "original" | "licensed" | "illustrative" | "ai_generated" | "reproduction";
+      media_rights_status:
+        "authorized" | "licensed" | "unknown" | "pending" | "expired" | "blocked";
       publish_mode: "human" | "auto";
       republish_policy: "link_only" | "summary_2_sentences";
       source_kind: "rss" | "sitemap" | "api" | "page" | "newsletter" | "social" | "events";
@@ -6194,6 +6299,7 @@ export const Constants = {
       content_kind: ["original", "normalized", "aggregated"],
       image_policy: ["none", "with_agreement", "licensed_only", "reproduction"],
       media_kind: ["original", "licensed", "illustrative", "ai_generated", "reproduction"],
+      media_rights_status: ["authorized", "licensed", "unknown", "pending", "expired", "blocked"],
       publish_mode: ["human", "auto"],
       republish_policy: ["link_only", "summary_2_sentences"],
       source_kind: ["rss", "sitemap", "api", "page", "newsletter", "social", "events"],

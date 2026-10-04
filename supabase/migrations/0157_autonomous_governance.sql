@@ -1,4 +1,4 @@
--- 0151 · Governança autônoma: motor de política, aprovação pelo sistema e nada parado (A-133).
+-- 0157 · Governança autônoma: motor de política, aprovação pelo sistema e nada parado (A-142).
 --
 -- Complementa a A-128 (0149, uma pessoa pede, aprova e aplica). Decisão do dono (04/10/2026):
 -- "AUTONOMY FIRST, HUMAN EXCEPTION SECOND". PEDIDO → MOTOR DE POLÍTICA → VALIDAÇÃO → APLICAÇÃO →
@@ -469,7 +469,7 @@ begin
     select * into a from approvals
      where target_ref = 'push:' || s.id::text and kind = 'push.' || s.kind
      order by created_at desc limit 1 for update;
-    -- Aprovação válida (A-133): pela política de avisos (sistema) ou por quem tem push.approve.
+    -- Aprovação válida (A-142): pela política de avisos (sistema) ou por quem tem push.approve.
     if not found or a.status <> 'approved' or a.approved_by is null
        or a.requested_by is distinct from s.requested_by
        or not ((a.decision_mode = 'system' and a.outcome = 'auto_apply')

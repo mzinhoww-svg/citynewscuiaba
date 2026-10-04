@@ -21,7 +21,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 /**
  * Entrar (C02). Quem já entrou vai para o destino; quem chegou do Estúdio sem permissão vê o
- * motivo e pode trocar de conta. "Continuar sem login" sempre visível.
+ * motivo e pode trocar de conta. "Continuar sem entrar" sempre visível; Google no topo (UI-T12).
  */
 export default async function SignInPage({ searchParams }: { searchParams: Search }) {
   const sp = await searchParams;
@@ -37,6 +37,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Searc
       title={T.title}
       intro={T.intro}
       skipHref={skip}
+      benefits
       footer={
         <p>
           {T.noAccount}{" "}

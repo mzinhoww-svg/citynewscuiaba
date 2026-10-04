@@ -310,7 +310,7 @@ async function requestUrgentPush(articleId: string, justification: string) {
     justification,
   });
   if (!r.ok) return r;
-  // A política de avisos (0151, A-133) decide no próprio pedido: na fila ou recusado com motivo.
+  // A política de avisos (0157, A-142) decide no próprio pedido: na fila ou recusado com motivo.
   const { data: sent } = await db
     .from("push_sends")
     .select("status")

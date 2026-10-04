@@ -89,7 +89,7 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
       await deps.repo.setStatus(articleId, { status: "in_review", reviewReason: why });
       return ok([nextMessage(msg, "notify", `${msg.itemRef}#${notify}`)]);
     };
-    // Sem fila humana para o que o sistema resolve (A-134): decisão desatualizada volta às regras;
+    // Sem fila humana para o que o sistema resolve (A-143): decisão desatualizada volta às regras;
     // publicação desligada e disjuntor aberto deixam rascunho com próxima ação e prazo.
     const defer = async (
       why: string,
@@ -252,6 +252,13 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
       reviewReason: null,
       ...(shortReason !== input.shortReason ? { shortReason } : {}),
     });
+    if (deps.afterPublish) {
+      try {
+        await deps.afterPublish();
+      } catch {
+        /* pauta quente é melhor esforço: a publicação já está gravada */
+      }
+    }
     const kind = route === "publish_notify" ? "auto_published_notify" : "auto_published";
     return ok([index, nextMessage(msg, "notify", `${msg.itemRef}#${kind}`)]);
   };

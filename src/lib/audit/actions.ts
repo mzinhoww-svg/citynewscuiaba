@@ -137,11 +137,13 @@ export const AUDIT_ACTIONS = [
   "featured.pin",
   "featured.unpin",
   "featured.update",
+  // Pauta quente (HOT-T3, 0156)
+  "featured.dismiss_hot",
   // Banners (ADS-T4, 0144)
   "ads.banner.create",
   "ads.placement.status",
   "ads.report.export",
-  // Governança autônoma (A-133, 0151): decisões do sistema (actor = system)
+  // Governança autônoma (A-142, 0157): decisões do sistema (actor = system)
   "governance.auto_approved",
   "governance.auto_review",
   "governance.human_exception",
@@ -149,7 +151,7 @@ export const AUDIT_ACTIONS = [
   "governance.expired",
   "governance.auto_rollback",
   "governance.apply",
-  // Disjuntor que se recupera sozinho (A-134, 0152)
+  // Disjuntor que se recupera sozinho (A-143, 0158)
   "breaker.auto_recover",
 ] as const;
 

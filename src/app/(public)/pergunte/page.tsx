@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Form from "next/form";
 import Link from "next/link";
-import { Suspense } from "react";
 import {
   AiAnswer,
+  AskChatLazy,
   AiStatusPanel,
   Button,
   SearchGroupBlock,
@@ -28,18 +28,29 @@ import { searchHybrid } from "@/lib/search/server";
 import { pageMetadata } from "@/lib/seo/metadata";
 
 /**
- * Pergunte ao CityNews (P13, spec §5.5). A resposta chega por streaming (Suspense) dentro de
- * uma região `aria-live="polite"`; falha, limite ou IA desligada mostram a busca tradicional.
- * Sem login. Fora do índice (robots.txt e `noindex`, A-044).
+ * Pergunte ao CityNews (P13, spec §5.5) como chat (UI-T13, spec 2026-10-02-ui-publica §4.8).
+ * A página continua RSC (metadados e fallback); o chat é client e carrega por `next/dynamic` só
+ * aqui. `/pergunte?q=` abre a conversa já com a pergunta enviada.
+ *
+ * Sem JavaScript, o campo do chat é um formulário `GET /pergunte?q=&modo=simples`: nesse modo a
+ * resposta é montada no servidor e entregue inteira no HTML (sem Suspense, que precisaria de JS
+ * para trocar o "carregando" pela resposta). Falha, limite ou assistente desligado mostram a
+ * busca tradicional. Sem login. Fora do índice (robots.txt e `noindex`, A-044).
  */
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 const MAX_QUESTION = 300;
 
 type Props = { searchParams: Promise<SearchParamsInput> };
 
+/** Primeiro `q` não vazio (sem JS, a pergunta inicial tocada vem antes do campo vazio). */
 function readQuestion(sp: SearchParamsInput): string {
-  return normalizeQuery(firstParam(sp, "q")).slice(0, MAX_QUESTION);
+  const raw = sp instanceof URLSearchParams ? sp.getAll("q") : sp.q;
+  const all = Array.isArray(raw) ? raw : [raw ?? ""];
+  const q = all.map((v) => normalizeQuery(v)).find(Boolean) ?? "";
+  return q.slice(0, MAX_QUESTION);
 }
+
+const isSimple = (sp: SearchParamsInput) => firstParam(sp, "modo") === ASK.simpleMode;
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const q = readQuestion(await searchParams);
@@ -52,14 +63,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   });
 }
 
-const askHref = (q: string) => `/pergunte?q=${encodeURIComponent(q)}`;
+const askHref = (q: string) =>
+  `/pergunte?q=${encodeURIComponent(q)}&modo=${encodeURIComponent(ASK.simpleMode)}`;
 const traditionalHref = (q: string) => searchHref({ ...SEARCH_DEFAULTS, q: questionQuery(q) || q });
-
-function Processing() {
-  return (
-    <AiStatusPanel tone="processing" title={ASK.processingTitle} steps={ASK.processingSteps} />
-  );
-}
 
 /** Busca tradicional abaixo da falha (P13: "falha → fallback para busca tradicional"). */
 async function Fallback({ question }: { question: string }) {
@@ -134,9 +140,7 @@ function ErrorState({
       >
         <p>{text}</p>
       </AiStatusPanel>
-      <Suspense fallback={null}>
-        <Fallback question={question} />
-      </Suspense>
+      <Fallback question={question} />
     </div>
   );
 }
@@ -221,13 +225,29 @@ async function Answer({ question }: { question: string }) {
 }
 
 export default async function AskPage({ searchParams }: Props) {
-  const question = readQuestion(await searchParams);
+  const sp = await searchParams;
+  const question = readQuestion(sp);
+  if (question && isSimple(sp)) return <SimpleAsk question={question} />;
+  return (
+    <div className={`${CONTAINER} flex flex-col gap-6 py-6 lg:py-8`}>
+      <header className="flex max-w-read flex-col gap-2">
+        <h1 className="type-screen-title text-strong lg:type-display">{ASK.title}</h1>
+        <p className="type-body text-body">{ASK.intro}</p>
+      </header>
+      <AskChatLazy initialQuestion={question || undefined} />
+    </div>
+  );
+}
+
+/** Modo simples (sem JavaScript): formulário GET e resposta inteira no HTML do servidor. */
+function SimpleAsk({ question }: { question: string }) {
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
       <header className="flex max-w-read flex-col gap-4">
         <h1 className="type-display text-strong">{ASK.title}</h1>
         <p className="type-body text-body">{ASK.intro}</p>
         <Form action="/pergunte" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <input type="hidden" name="modo" value={ASK.simpleMode} />
           <TextField
             key={question}
             id="pergunta"
@@ -243,38 +263,20 @@ export default async function AskPage({ searchParams }: Props) {
             {ASK.submit}
           </Button>
         </Form>
-        {!question && (
-          <section aria-labelledby="exemplos" className="flex flex-col gap-2">
-            <h2 id="exemplos" className="type-eyebrow text-meta">
-              {ASK.examplesTitle}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {ASK.examples.map((e) => (
-                <SuggestionChip key={e} href={askHref(e)}>
-                  {e}
-                </SuggestionChip>
-              ))}
-            </div>
-          </section>
-        )}
       </header>
 
-      {question && (
-        <section aria-labelledby="conversa" className="flex flex-col gap-6">
-          <h2 id="conversa" className="sr-only">
-            {ASK.conversation}
-          </h2>
-          <div className="flex max-w-read flex-col gap-1 self-start rounded-lg bg-section px-4 py-3">
-            <p className="type-eyebrow text-meta">{ASK.youAsked}</p>
-            <p className="type-body font-semibold text-strong">{question}</p>
-          </div>
-          <div aria-live="polite" data-testid="resposta-ia">
-            <Suspense key={question} fallback={<Processing />}>
-              <Answer question={question} />
-            </Suspense>
-          </div>
-        </section>
-      )}
+      <section aria-labelledby="conversa" className="flex flex-col gap-6">
+        <h2 id="conversa" className="sr-only">
+          {ASK.conversation}
+        </h2>
+        <div className="flex max-w-read flex-col gap-1 self-start rounded-lg bg-section px-4 py-3">
+          <p className="type-eyebrow text-meta">{ASK.youAsked}</p>
+          <p className="type-body font-semibold text-strong">{question}</p>
+        </div>
+        <div aria-live="polite" data-testid="resposta-ia">
+          <Answer question={question} />
+        </div>
+      </section>
     </div>
   );
 }

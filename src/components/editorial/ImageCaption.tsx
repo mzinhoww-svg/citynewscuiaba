@@ -5,7 +5,7 @@ import { cx } from "../cx";
 import { VisuallyHidden } from "../ui/VisuallyHidden";
 
 /**
- * Legenda da foto de terceiros, sempre fora da área recortada: "Reprodução web · Fonte", crédito do
+ * Legenda da foto de terceiros, sempre fora da área recortada: "Foto: reprodução web · Fonte", crédito do
  * autor quando houver e o link "Ver original" para a página da fonte (regra 11 do CLAUDE.md).
  */
 export function ImageCaption({
@@ -15,7 +15,7 @@ export function ImageCaption({
   className,
 }: {
   image: ArticleImage;
-  /** Texto antes da fonte quando a foto é reprodução (padrão: "Reprodução web"). */
+  /** Texto antes da fonte quando a foto é reprodução (padrão: "Foto: reprodução web"). */
   prefix?: string;
   as?: "p" | "figcaption";
   className?: string;

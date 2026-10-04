@@ -8,11 +8,13 @@ import {
 } from "@/lib/geo/news-scope";
 import { err, ok, type Result } from "@/lib/result";
 import {
+  classifyRisk,
   decidePublication,
   isNeverAutoCategory,
   isSafetyCategory,
   type Candidate,
   type Decision,
+  type Risk,
   type RuleSet,
 } from "@/lib/rules";
 import { resolveRules } from "@/lib/rules/load";
@@ -130,6 +132,8 @@ export interface RouteDecision extends Decision {
   rulesVersion: number | null;
   /** Rota que a regra recomendou antes das travas (flag, IA, falha de regras). */
   recommended: Decision["route"];
+  /** Nível de risco editorial e motivos (D-05), registrados em toda decisão. */
+  risk: Risk;
 }
 
 /**
@@ -143,8 +147,15 @@ export function routeArticle(
   flags: { autoPublish: boolean; readOnly: boolean },
 ): RouteDecision {
   const { rules, rulesVersion, failure } = resolveRules(loaded);
-  const base = decidePublication(candidateOf(ctx), rules);
-  const out = (d: Decision): RouteDecision => ({ ...d, rulesVersion, recommended: base.route });
+  const candidate = candidateOf(ctx);
+  const base = decidePublication(candidate, rules);
+  const risk = classifyRisk(candidate, { aiFallback: ctx.aiFallback });
+  const out = (d: Decision): RouteDecision => ({
+    ...d,
+    rulesVersion,
+    recommended: base.route,
+    risk,
+  });
   if (failure && base.rule === "force_review")
     return out({
       route: "review",
@@ -210,14 +221,15 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
     // Escopo regional (A15): grava o escopo e rebaixa `urgent` de notícia nacional sem comoção.
     const scope = newsScopeOf(ctx);
     const demote = urgentDemoted(ctx);
+    const d0 = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
     await deps.repo.setStatus(articleId, {
       status: ctx.status,
       newsScope: scope,
       nationalCommotion: hasNationalCommotion(ctx),
+      riskLevel: d0.risk.level,
       ...(demote ? { urgent: false } : {}),
     });
-    const d0 = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
-    // Motor de autonomia (A-134): qualidade, confiança, risco, nível A0–A4 e a saída. Só a exceção
+    // Motor de autonomia (A-143): qualidade, confiança, risco, nível A0–A4 e a saída. Só a exceção
     // real vai para pessoa; o resto publica, reprocessa com espera ou vai para quarentena.
     const state = await deps.repo.autonomyState(articleId);
     const now = deps.now();
@@ -262,6 +274,7 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
           version: ctx.version,
           confidence: { level: ctx.confidence, score: ctx.confidenceScore },
           candidate: { ...candidate },
+          risk: d.risk,
           flags,
           rulesError: loaded.ok ? null : loaded.error,
           autonomy: {
@@ -313,7 +326,7 @@ export function withEngine(d: RouteDecision, e: EngineDecision): RouteDecision {
   return { ...d, route: "hold", rationale: e.reason };
 }
 
-/** Status da matéria para cada saída do motor (A-134). */
+/** Status da matéria para cada saída do motor (A-143). */
 export function statusFor(
   e: EngineDecision,
   d: RouteDecision,

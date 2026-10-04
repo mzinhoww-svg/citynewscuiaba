@@ -99,7 +99,7 @@ async function requestAndActivate(
   details: Record<string, unknown>,
   weights: { next: Weights; current: Weights | null },
 ): Promise<{ approvalId: string; status: "applied" | "pending" }> {
-  // Validar → simular → ativar → auditar (A-133): mudança brusca ou soma errada é recusada e os
+  // Validar → simular → ativar → auditar (A-142): mudança brusca ou soma errada é recusada e os
   // pesos em vigor continuam; segura, o sistema ativa na hora.
   const policy = evaluateGovernance({
     kind: "rec.weights",
