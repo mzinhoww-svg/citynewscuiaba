@@ -35,6 +35,8 @@ export { Tabs, type TabsProps } from "./ui/Tabs";
 export { TextField, type TextFieldProps } from "./ui/TextField";
 export { Toggle, type ToggleProps } from "./ui/Toggle";
 export { VisuallyHidden } from "./ui/VisuallyHidden";
+export { TagLink, type TagLinkProps } from "./ui/TagLink";
+export { LinkTabs, type LinkTabItem, type LinkTabsProps } from "./ui/LinkTabs";
 
 /* editorial: notícia, descoberta e marca */
 export { AggregatedCard, type AggregatedCardProps } from "./editorial/AggregatedCard";
