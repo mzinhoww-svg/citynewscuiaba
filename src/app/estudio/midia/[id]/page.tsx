@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EmptyState, InlineAlert, OriginLabel } from "@/components";
+import { EmptyState, InlineAlert, OriginLabel, Panel } from "@/components";
 import { ImageApproval, ImageTextForm, MediaThumb } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, IMAGE_TEXT, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
@@ -104,10 +104,7 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
             alt={m.credit ?? m.license}
             className="max-w-2xl"
           />
-          <section
-            aria-labelledby="origem-direitos"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="origem-direitos">
             <h2 id="origem-direitos" className="type-section text-strong">
               {T.details}
             </h2>
@@ -164,11 +161,8 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
                 </div>
               )}
             </dl>
-          </section>
-          <section
-            aria-labelledby="usada-em"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          </Panel>
+          <Panel aria-labelledby="usada-em">
             <h2 id="usada-em" className="type-section text-strong">
               {T.usedIn}
             </h2>
@@ -203,7 +197,7 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
                 ))}
               </ul>
             )}
-          </section>
+          </Panel>
         </div>
         <ImageApproval
           mediaId={m.id}

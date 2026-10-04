@@ -1,6 +1,7 @@
 "use client";
 
 import { cx } from "../../cx";
+import { Checkbox } from "../../ui/Checkbox";
 import { Icon } from "../../ui/Icon";
 import { Table } from "../../ui/Table";
 
@@ -50,12 +51,15 @@ export function CheckList({
   value,
   onChange,
   columns = 2,
+  name = "",
 }: {
   label: string;
   options: readonly CheckOption[];
   value: readonly string[];
   onChange: (next: string[]) => void;
   columns?: 1 | 2 | 3;
+  /** Nome no formulário; vazio (padrão) porque a lista é controlada e não vai no envio nativo. */
+  name?: string;
 }) {
   const set = new Set(value);
   return (
@@ -73,20 +77,18 @@ export function CheckList({
       >
         {options.map((o) => (
           <li key={o.value}>
-            <label className="flex min-h-tap items-center gap-2.5 type-body text-strong">
-              <input
-                type="checkbox"
-                checked={set.has(o.value)}
-                onChange={(e) => {
-                  const next = new Set(set);
-                  if (e.target.checked) next.add(o.value);
-                  else next.delete(o.value);
-                  onChange(options.filter((x) => next.has(x.value)).map((x) => x.value));
-                }}
-                className="size-5 shrink-0 accent-(--action-primary)"
-              />
-              {o.label}
-            </label>
+            <Checkbox
+              name={name}
+              value={o.value}
+              label={o.label}
+              checked={set.has(o.value)}
+              onChange={(on) => {
+                const next = new Set(set);
+                if (on) next.add(o.value);
+                else next.delete(o.value);
+                onChange(options.filter((x) => next.has(x.value)).map((x) => x.value));
+              }}
+            />
           </li>
         ))}
       </ul>

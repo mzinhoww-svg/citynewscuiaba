@@ -5,7 +5,7 @@ import { NEIGHBORHOODS } from "@/content/pt-BR/neighborhoods";
 import { NEW_PUSH_TEXT as T, PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
 import type { AdminAudience } from "@/lib/db/queries/push-admin";
 import { cx } from "../../cx";
-import { SelectField } from "../sources/fields";
+import { Select } from "../../ui/Select";
 
 export type ReachState =
   { state: "idle" } | { state: "loading" } | { state: "ready"; n: number } | { state: "error" };
@@ -71,7 +71,7 @@ export function AudienceField({
       </label>
       {segment && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <SelectField
+          <Select
             id={`${uid}-tipo`}
             name="audienceType"
             label={T.segmentType}
@@ -82,7 +82,7 @@ export function AudienceField({
               { value: "bairro", label: T.segmentBairro },
             ]}
           />
-          <SelectField
+          <Select
             id={`${uid}-alvo`}
             name="audienceSlug"
             label={segType === "bairro" ? T.segmentBairro : T.segmentSection}

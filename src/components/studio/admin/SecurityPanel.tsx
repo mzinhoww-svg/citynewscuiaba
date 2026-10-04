@@ -15,6 +15,7 @@ import { Button } from "../../ui/Button";
 import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
@@ -80,10 +81,7 @@ export function SecurityPanel({
     <div className="flex flex-col gap-10">
       <AdminStatus status={status} />
 
-      <section
-        aria-labelledby={`${uid}-pol`}
-        className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby={`${uid}-pol`} className="flex flex-col gap-4">
         <h2 id={`${uid}-pol`} className="type-section text-strong">
           {S.settings}
         </h2>
@@ -127,7 +125,7 @@ export function SecurityPanel({
             {S.save}
           </Button>
         </div>
-      </section>
+      </Panel>
 
       <section aria-labelledby={`${uid}-lgpd`} className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
