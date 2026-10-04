@@ -64,6 +64,8 @@ export interface ArticleSummary {
   /** Escopo regional (A15); ausente em dado antigo. */
   newsScope?: "cuiaba" | "mt" | "national";
   nationalCommotion?: boolean;
+  /** Matéria com 3 denúncias em 24 h: banner público "em revisão" (A9). */
+  reviewBanner?: boolean;
 }
 
 export type ArticleBlock =
@@ -160,6 +162,8 @@ export interface TopicView extends TopicRef {
   updatedAt: string;
   articleCount: number;
   sourceCount: number;
+  /** Capa aprovada de uma matéria do assunto (home: "Assuntos em destaque" só exibe com foto, R40). */
+  cover?: ArticleImage;
 }
 
 export interface TimelineEntry {
@@ -252,7 +256,9 @@ export interface ExploreData {
   sections: SectionShortcut[];
   topics: TopicView[];
   collections: CollectionView[];
-  /** Mais lidas dos últimos 7 dias. */
+  /** `explorar.topo`: matéria em evidência (pino ou automático, com capa); `null` sem candidata. */
+  featured: ArticleSummary | null;
+  /** Mais lidas dos últimos 7 dias (sem repetir a matéria em evidência). */
   mostRead: ArticleSummary[];
 }
 
@@ -261,12 +267,16 @@ export interface SourceView {
   name: string;
   href: string;
   locality: string;
+  /** Logotipo da fonte (bucket público `source-logos`); sem ele a interface usa o monograma. */
+  logo?: string;
 }
 
 export interface HomeData {
   generatedAt: string;
   urgent: ArticleSummary | null;
   lead: ArticleSummary | null;
+  /** `home.destaques`: até 3 matérias com capa, sem repetir a manchete (FD-T2). */
+  highlights: ArticleSummary[];
   now: ArticleSummary[];
   topics: TopicView[];
   collections: CollectionView[];
@@ -291,6 +301,8 @@ export type SourceEntry = ComputedSignals & {
   baseUrl: string;
   categories: string[];
   reliability: "primary" | "verified" | "standard" | "low";
+  /** Logotipo da fonte (bucket público `source-logos`), ou `null` (monograma de reserva). */
+  logoUrl: string | null;
   itemsToday: number;
   /** Último item publicado pela fonte (ou última coleta). */
   lastUpdatedAt: string | null;

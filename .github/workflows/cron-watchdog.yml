@@ -154,6 +154,14 @@ jobs:
             *) echo "::warning::Coleta da Agenda devolveu HTTP $code" ;;
           esac
 
+          # Revisor automático (AUT-T6): a rota decide pelo modo e pela janela noturna; aqui só garante a chamada.
+          code=$(curl -sS -o "$body" -w '%{http_code}' -X POST --max-time 75 -H "$auth" "$app/api/ingest/review-tick" || echo "000")
+          case "$code" in
+            2??) echo "Revisor automático (HTTP $code): $(head -c 200 "$body")" ;;
+            404) echo "::warning::/api/ingest/review-tick ainda não existe (HTTP 404); nada a fazer." ;;
+            *) echo "::warning::Revisor automático devolveu HTTP $code" ;;
+          esac
+
           if [ "$pending" = "0" ]; then
             echo "Fila vazia; drain não chamado."
             exit 0

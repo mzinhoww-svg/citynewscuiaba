@@ -30,6 +30,8 @@ export interface StudioShellProps {
   /** Grupos já filtrados pelo papel (Redação, Control Center, Governança). */
   nav: StudioNavGroup[];
   user: StudioUser;
+  /** Sino da central de notificações (Client Component injetado pelo layout; visível em todas as páginas). */
+  bell?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -38,7 +40,7 @@ export interface StudioShellProps {
  * Casca do Estúdio: cabeçalho com a assinatura e a conta, navegação lateral por grupo e área
  * de trabalho. A navegação chega filtrada pelo papel; o componente não conhece o banco.
  */
-export function StudioShell({ nav, user, children, className }: StudioShellProps) {
+export function StudioShell({ nav, user, bell, children, className }: StudioShellProps) {
   return (
     <div className={cx("min-h-dvh bg-section", className)}>
       <a
@@ -55,11 +57,14 @@ export function StudioShell({ nav, user, children, className }: StudioShellProps
           <Logo variant="symbol" size="sm" decorative />
           <span className="type-nav-title text-strong">{STUDIO_TEXT.name}</span>
         </Link>
-        <p className="ml-auto flex flex-col items-end text-right type-meta text-meta">
-          <span className="sr-only">{STUDIO_TEXT.signedInAs}</span>
-          <span className="font-semibold text-strong">{user.name}</span>
-          <span>{user.role}</span>
-        </p>
+        <div className="ml-auto flex items-center gap-3">
+          {bell}
+          <p className="flex flex-col items-end text-right type-meta text-meta">
+            <span className="sr-only">{STUDIO_TEXT.signedInAs}</span>
+            <span className="font-semibold text-strong">{user.name}</span>
+            <span>{user.role}</span>
+          </p>
+        </div>
       </header>
       <div className="lg:grid lg:grid-cols-[var(--spacing-rail)_minmax(0,1fr)]">
         <StudioNav nav={nav} />

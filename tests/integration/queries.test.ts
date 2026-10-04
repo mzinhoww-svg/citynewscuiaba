@@ -28,10 +28,25 @@ describe("queries públicas (P1-T1)", () => {
     expect(h.aggregated.every((a) => a.labels.shown[0]!.kind === "aggregated")).toBe(true);
     expect(new Set(h.aggregated.map((a) => a.sourceSlug)).size).toBe(h.aggregated.length);
     expect(h.now.length).toBeLessThanOrEqual(6);
-    expect(h.topics).toHaveLength(3);
+    // R40: assunto só com foto aprovada (o seed não tem capas, então o módulo some) e nenhuma
+    // matéria repetida entre manchete, destaques, Agora, assuntos, editorias e mais lidas.
+    expect(h.topics.length).toBeLessThanOrEqual(3);
+    expect(h.topics.every((t) => !!t.cover)).toBe(true);
+    const shown = [
+      h.urgent,
+      h.lead,
+      ...h.highlights,
+      ...h.now,
+      ...h.sectionBlocks.flatMap((b) => b.articles),
+      ...h.mostRead,
+    ]
+      .filter((a) => a !== null)
+      .map((a) => a.id);
+    expect(new Set(shown).size).toBe(shown.length);
     expect(h.collections).toHaveLength(4);
     expect(h.events.length).toBeLessThanOrEqual(3);
-    expect(h.mostRead).toHaveLength(5);
+    // Mais lidas leva só o que ainda não saiu acima (R40): até 5, menos num portal de poucas matérias.
+    expect(h.mostRead.length).toBeLessThanOrEqual(5);
     expect(h.urgent).toBeNull();
     for (const a of [h.lead!, ...h.now]) {
       expect(a.labels.shown.length).toBeGreaterThan(0);

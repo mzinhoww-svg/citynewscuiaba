@@ -9,6 +9,7 @@ import {
 } from "@/lib/ranking";
 import { parseRecConfig } from "@/lib/ranking/config";
 import type { Result } from "@/lib/result";
+import { sourceLogoUrl } from "@/lib/sources/logo-path";
 import { fetchAggregated } from "./aggregated";
 import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";
 import { many, one, readPublic, readService } from "./run";
@@ -65,7 +66,7 @@ async function fetchEntries(db: DbClient, q: SourceSignalsQuery): Promise<Source
     db
       .from("sources")
       .select(
-        "id, slug, name, display_name, base_url, categories, locality, reliability, status, rec_pinned, rec_excluded, rec_local_highlight, last_fetched_at",
+        "id, slug, name, display_name, base_url, logo_path, categories, locality, reliability, status, rec_pinned, rec_excluded, rec_local_highlight, last_fetched_at",
       )
       .in("status", [...VISIBLE_STATUSES])
       .order("slug")
@@ -162,6 +163,7 @@ async function fetchEntries(db: DbClient, q: SourceSignalsQuery): Promise<Source
         name: s.display_name ?? s.name,
         href: `/fontes/${s.slug}`,
         baseUrl: s.base_url,
+        logoUrl: sourceLogoUrl(s.logo_path) ?? null,
         categories: s.categories,
         reliability: s.reliability,
         itemsToday: it?.items_today ?? 0,

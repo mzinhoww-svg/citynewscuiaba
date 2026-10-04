@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { SWITCH_KEYS, SWITCH_TEXT as T } from "@/content/pt-BR/switches";
+import { REVIEWER_MODES } from "@/lib/pipeline/steps/auto-reviewer";
 import { createFlags } from "@/lib/db/flags-store";
 import { StudioFailure, studioAction } from "./action";
 
@@ -13,6 +14,7 @@ export const FREE_SWITCHES = [
   "personalization_enabled",
   "image_reproduction_enabled",
   "source_link_analysis",
+  "sponsored_native_enabled",
 ] as const;
 
 const Input = z.object({
@@ -103,6 +105,41 @@ export const resetBreakerCommand = studioAction(
     schema: ResetInput,
     auditAs: "flag.set",
     objectRef: () => "flag:auto_publish",
+    allowReadOnly: true,
+  },
+);
+
+/*
+ * Revisor automático (AUT-T6): modo `off`, `night` ou `always` (admin, com motivo). Mudar o modo
+ * não pede segunda pessoa: o revisor só age sobre matéria em revisão vencida, com publicação
+ * automática ligada, dentro das regras e do orçamento de IA.
+ */
+
+const ModeInput = z.object({
+  mode: z.enum(REVIEWER_MODES),
+  reason: z.string().trim().min(1, T.dialog.reasonRequired).max(500),
+});
+export type ReviewerModeInput = z.infer<typeof ModeInput>;
+
+export const setReviewerModeCommand = studioAction(
+  "users.manage",
+  () => ({}),
+  async (i: ReviewerModeInput, ctx): Promise<{ mode: ReviewerModeInput["mode"] }> => {
+    ctx.detail({ mode: i.mode, reason: i.reason });
+    const { error } = await ctx.db.rpc("ai_reviewer_set_mode", {
+      p_mode: i.mode,
+      p_ctx: { reason: i.reason },
+    });
+    if (error) {
+      if (error.code === "42501") throw new StudioFailure("forbidden", T.error.forbidden);
+      throw new StudioFailure("conflict", T.error.generic);
+    }
+    return { mode: i.mode };
+  },
+  {
+    schema: ModeInput,
+    auditAs: "flag.set",
+    objectRef: () => "flag:ai_reviewer",
     allowReadOnly: true,
   },
 );

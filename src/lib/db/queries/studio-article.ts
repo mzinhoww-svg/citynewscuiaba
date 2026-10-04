@@ -4,6 +4,7 @@ import { checklist, type Checklist } from "@/lib/studio/checklist";
 import { studioContext } from "@/lib/studio/context";
 import { loadDraftView } from "@/lib/studio/draft-view";
 import { EDITOR_TEXT } from "@/content/pt-BR/studio";
+import type { TopicState } from "@/lib/topics/state";
 import { ORIGIN_FIELDS, type FieldOrigins, type OriginField } from "@/lib/studio/save";
 
 /** Origem de um campo com o nome resolvido na leitura (o banco guarda só ids, achado 5). */
@@ -81,7 +82,7 @@ export interface StudioArticle {
   dek: string;
   body: Json;
   section: { slug: string; name: string };
-  topic: { id: string; title: string } | null;
+  topic: { id: string; title: string; state: TopicState } | null;
   tags: string[];
   neighborhoods: string[];
   seoTitle: string | null;
@@ -130,7 +131,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
   const { data: a, error } = await db
     .from("articles")
     .select(
-      "id, slug, kind, status, publish_mode, title, dek, body, section_slug, topic_id, tags, neighborhoods, seo_title, seo_description, field_origins, confidence, confidence_score, agent_id, author_id, review_reason, ai_fallback, urgent, ai_summary, updated_at, published_at, scheduled_for, sections(name), topics(id, title)",
+      "id, slug, kind, status, publish_mode, title, dek, body, section_slug, topic_id, tags, neighborhoods, seo_title, seo_description, field_origins, confidence, confidence_score, agent_id, author_id, review_reason, ai_fallback, urgent, ai_summary, updated_at, published_at, scheduled_for, sections(name), topics(id, title, state)",
     )
     .eq("id", id)
     .maybeSingle();
@@ -208,7 +209,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     dek: a.dek,
     body: a.body,
     section: { slug: a.section_slug, name: a.sections?.name ?? a.section_slug },
-    topic: a.topics ? { id: a.topics.id, title: a.topics.title } : null,
+    topic: a.topics ? { id: a.topics.id, title: a.topics.title, state: a.topics.state } : null,
     tags: a.tags,
     neighborhoods: a.neighborhoods,
     seoTitle: a.seo_title,

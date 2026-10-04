@@ -294,3 +294,68 @@ export async function adminOverview(): Promise<AdminOverview> {
     adminRequests,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Destaques (FD-T3)
+// ---------------------------------------------------------------------------
+export interface FeaturedHistoryRow {
+  id: string;
+  /** Quando foi fixado. */
+  at: string;
+  slotKey: string;
+  sectionSlug: string | null;
+  articleId: string;
+  title: string;
+  by: string | null;
+  note: string;
+  /** Fim marcado (`null` = até remover). */
+  endsAt: string | null;
+  endedAt: string | null;
+  state: "active" | "removed" | "expired";
+}
+
+/** Últimos `limit` pinos (ativos, removidos e expirados), do mais novo para o mais antigo. */
+export async function featuredHistory(
+  db: DbClient,
+  limit = 30,
+  now: Date = new Date(),
+): Promise<FeaturedHistoryRow[]> {
+  const { data, error } = await db
+    .from("featured_items")
+    .select(
+      "id, slot_key, section_slug, article_id, ends_at, ended_at, created_by, note, created_at",
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  check("featured_items", error);
+  const rows = data ?? [];
+  const articles = rows.length
+    ? await db
+        .from("articles")
+        .select("id, title")
+        .in("id", [...new Set(rows.map((r) => r.article_id))])
+    : { data: [], error: null };
+  check("featured articles", articles.error);
+  const titles = new Map((articles.data ?? []).map((a) => [a.id, a.title]));
+  const people = await names(
+    db,
+    rows.map((r) => r.created_by),
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    at: r.created_at,
+    slotKey: r.slot_key,
+    sectionSlug: r.section_slug,
+    articleId: r.article_id,
+    title: titles.get(r.article_id) ?? "Matéria",
+    by: r.created_by ? (people.get(r.created_by) ?? null) : null,
+    note: r.note,
+    endsAt: r.ends_at,
+    endedAt: r.ended_at,
+    state: r.ended_at
+      ? "removed"
+      : r.ends_at && Date.parse(r.ends_at) <= now.getTime()
+        ? "expired"
+        : "active",
+  }));
+}

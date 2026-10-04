@@ -39,6 +39,16 @@ const CRON_ROUTES: {
     load: () => import("@/app/api/ingest/guide/route"),
   },
   {
+    path: "/api/ingest/review-tick",
+    method: "POST",
+    load: () => import("@/app/api/ingest/review-tick/route"),
+  },
+  {
+    path: "/api/ingest/source-logos",
+    method: "POST",
+    load: () => import("@/app/api/ingest/source-logos/route"),
+  },
+  {
     path: "/api/ingest/status",
     method: "GET",
     load: () => import("@/app/api/ingest/status/route"),
@@ -113,6 +123,8 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/control/logs/export",
     "/api/control/run-now",
     "/api/estudio/midia/[id]",
+    "/api/estudio/notificacoes",
+    "/api/estudio/notificacoes/ler",
     "/estudio/admin/auditoria/export",
     "/estudio/admin/notificacoes/historico/exportar",
   ];

@@ -31,7 +31,7 @@ const folha: SourceRecord = {
   locality: "cuiaba",
   etag: null,
   lastModified: null,
-  consumption: {},
+  consumption: { enrich: false },
 };
 
 function setup(

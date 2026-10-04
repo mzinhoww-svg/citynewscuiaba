@@ -51,7 +51,7 @@
           "size": "~700×96"
         },
         "mobile_390": {
-          "position": "Depois dos 3 itens visíveis, coluna única",
+          "position": "OCULTO: abaixo de 768 px a lista usa `max-md:[&>li:nth-child(n+4)]:hidden` e o patrocinado é o 5º `li` (4 mais lidas + ele); só aparece se houver só 2 mais lidas",
           "size": "342×~96"
         }
       },
@@ -671,9 +671,9 @@
         "click": "nenhum",
         "viewability": "nenhum"
       },
-      "component": "src/lib/ads/rules.ts (placeSponsored: puro, testado, NÃO chamado por nenhuma página); src/lib/db/queries/sections.ts exclui `sponsored` das listas",
+      "component": "src/lib/ads/rules.ts (placeSponsored: puro, testado, NÃO chamado por nenhuma página); src/lib/db/queries/sections.ts só exclui `sponsored` de \"Mais lidas\" da editoria; a lista principal (`filtered`) não filtra",
       "status": "parcial",
-      "note": "Regra pronta e visível no painel A07, mas B-022: o portal não a chama. Hoje a editoria nem lista matéria patrocinada."
+      "note": "Regra pronta e visível no painel A07, mas B-022: o portal não a chama. Hoje a lista principal da editoria mostra a matéria com `sponsored = true` na ordem cronológica, sem a regra 1:6 e sem bloqueio de editoria (inclusive Política)."
     },
     {
       "slot_id": "STICKY",
@@ -991,6 +991,46 @@
       "component": "BottomNav.tsx + AdSlot",
       "status": "não implementado",
       "note": ""
+    },
+    {
+      "slot_id": "NATIVE-TOPIC-TIMELINE",
+      "screen": "assunto",
+      "route": "/assunto/[slug]",
+      "origin": "existe",
+      "breakpoints": {
+        "desktop_1280": {
+          "position": "Linha do tempo do assunto, na ordem de publicação",
+          "size": "card de matéria"
+        },
+        "tablet_768": {
+          "position": "idem",
+          "size": "card de matéria"
+        },
+        "mobile_390": {
+          "position": "idem",
+          "size": "card de matéria"
+        }
+      },
+      "sizes": [
+        "card de matéria"
+      ],
+      "kind": "nativo",
+      "sections_allowed": [
+        "qualquer (sem filtro; o assunto mistura editorias, inclusive Política)"
+      ],
+      "sections_blocked": [],
+      "frequency": "sem regra: todas as matérias patrocinadas do assunto",
+      "label": "\"Patrocinado\" em texto na meta do card",
+      "lazy_load": "não",
+      "dismiss_and_remember": "não",
+      "tracking_events": {
+        "impression": "nenhum",
+        "click": "nenhum",
+        "viewability": "nenhum"
+      },
+      "component": "src/lib/db/queries/topics.ts (consulta por `topic_id` sem filtro de `sponsored`)",
+      "status": "parcial",
+      "note": "Acidental, não é slot comercial. Some quando MS-T1 filtrar `sponsored` fora dos slots."
     },
     {
       "slot_id": "(nenhum)",

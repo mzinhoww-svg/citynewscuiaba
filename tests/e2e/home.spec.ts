@@ -119,7 +119,6 @@ test("home tem os blocos de P01 na ordem", async ({ page }) => {
   await page.goto("/");
   const names = [
     "Agora",
-    "Assuntos em destaque",
     "Coleções",
     "Perto de você",
     "Agenda",
@@ -132,6 +131,9 @@ test("home tem os blocos de P01 na ordem", async ({ page }) => {
     "Veja também em outros portais",
     "Receba a newsletter",
   ];
+  // R40: "Assuntos em destaque" só aparece com assunto de foto aprovada e sem repetir o que está
+  // acima; o seed não tem capas, então o módulo some e fica fora desta lista de blocos fixos (o
+  // caso com foto está em tests/e2e/featured-public.spec.ts).
   const tops: number[] = [];
   for (const name of names) {
     const region = page.getByRole("region", { name, exact: true });

@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { SUGGEST } from "@/content/pt-BR/portal-agenda";
 import { parseLocalDateTime, submitEvent, type SubmitDeps } from "./submission";
 
 const now = new Date("2026-09-27T18:00:00Z");
@@ -32,6 +33,16 @@ const valid = {
   email: "org@exemplo.com",
   consent: "1",
 };
+
+it("sugestão que já entrou na agenda mostra a mensagem de publicada", async () => {
+  const d = deps({ save: vi.fn(async () => ({ ok: true as const, value: { approved: true } })) });
+  const r = await submitEvent(form(valid), d);
+  expect(r).toMatchObject({ status: "success", message: SUGGEST.successPublished });
+  const pending = deps({
+    save: vi.fn(async () => ({ ok: true as const, value: { approved: false } })),
+  });
+  expect((await submitEvent(form(valid), pending)).message).toBe(SUGGEST.success);
+});
 
 it("hora local de Cuiabá vira instante UTC", () => {
   expect(parseLocalDateTime("2026-10-10T19:00")?.toISOString()).toBe("2026-10-10T23:00:00.000Z");

@@ -46,3 +46,12 @@ export const RULE_RATIONALE = {
     `Categoria ${category} em modo automático com aviso: ${sources} fonte(s), confiança ${n2(score)}.`,
   modeReview: (category: string) => `Categoria ${category} em modo revisão.`,
 } as const;
+
+/** Textos do revisor automático (AUT-T6): vão para `review_reason` e `decisions`, só no Estúdio. */
+export const REVIEW_TEXT = {
+  invalidAnswer: () =>
+    "O revisor não conseguiu decidir (resposta fora do formato): mantida para uma pessoa.",
+  neverArchiveByExpiry: () => "Prazo vencido nunca arquiva matéria: mantida para uma pessoa.",
+  heldPrefix: (why: string) => `Revisor automático manteve na fila: ${why}`,
+  archivedPrefix: (why: string) => `Arquivada pelo revisor automático: ${why}`,
+} as const;
