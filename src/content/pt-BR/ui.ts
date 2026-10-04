@@ -43,4 +43,6 @@ export const UI = {
   /** Texto padrão do botão em carregamento (`Button loading`, `SubmitButton`). */
   saving: "Salvando…",
   cancel: "Cancelar",
+  /** Toast (item 36): botão de fechar o aviso flutuante. */
+  closeToast: "Fechar aviso",
 } as const;

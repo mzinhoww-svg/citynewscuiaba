@@ -68,6 +68,8 @@ export { TabBar, DEFAULT_TABS, type TabBarItem, type TabBarProps } from "./ui/Ta
 export { Tabs, type TabsProps } from "./ui/Tabs";
 export { TextField, type TextFieldProps } from "./ui/TextField";
 export { Toggle, type ToggleProps } from "./ui/Toggle";
+export { ToastProvider, useToast, type ToastApi, type ToastInput } from "./ui/Toast";
+export { FormStatus, type FormStatusProps } from "./ui/FormStatus";
 export { VisuallyHidden } from "./ui/VisuallyHidden";
 
 /* editorial: notícia, descoberta e marca */
