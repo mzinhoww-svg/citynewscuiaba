@@ -116,6 +116,7 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/estudio/notificacoes",
     "/api/estudio/notificacoes/ler",
     "/estudio/admin/auditoria/export",
+    "/estudio/admin/publicidade/relatorio/csv",
     "/estudio/admin/notificacoes/historico/exportar",
   ];
   /** Públicas de propósito (leitura anônima, validação própria, limite por IP, Origin, consentimento). */

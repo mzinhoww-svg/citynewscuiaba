@@ -825,10 +825,15 @@
         "status": "done",
         "decision": "A-121",
         "assets": "public/ads (48 PNG)"
+      },
+      "ADS-T4": {
+        "status": "done",
+        "migration": "0144_ads_admin.sql",
+        "decision": "A-122"
       }
     },
     "next": [
-      "ADS-T4 (administração e relatório)"
+      "MS-T4 (relatório mensal por anunciante)"
     ]
   },
   "segurancaP1": {
