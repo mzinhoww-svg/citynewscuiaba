@@ -18,10 +18,9 @@ test("Explorar: âncoras só de seções presentes, Perguntar ao CityNews e atal
   const anchors = page.getByRole("navigation", { name: "Nesta página" }).getByRole("link");
   for (const href of await anchors.evaluateAll((els) => els.map((a) => a.getAttribute("href"))))
     await expect(page.locator(href!)).toHaveCount(1);
-  await expect(page.getByRole("link", { name: /^Perguntar ao CityNews/ })).toHaveAttribute(
-    "href",
-    "/pergunte",
-  );
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /^Perguntar ao CityNews/ }),
+  ).toHaveAttribute("href", "/pergunte");
   await expect(page.getByRole("link", { name: /^Ônibus e trânsito/ })).toHaveAttribute(
     "href",
     "/cidade?sub=mobilidade",

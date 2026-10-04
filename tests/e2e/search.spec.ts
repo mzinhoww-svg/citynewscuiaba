@@ -100,10 +100,9 @@ test("consulta com HTML aparece como texto e a página não é indexada", async 
 
 test("atalho Perguntar ao CityNews leva o mesmo texto", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
-  await expect(page.getByRole("link", { name: /Perguntar ao CityNews/ })).toHaveAttribute(
-    "href",
-    "/pergunte?q=viaduto",
-  );
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ }),
+  ).toHaveAttribute("href", "/pergunte?q=viaduto");
 });
 
 test("filtros aplicam na hora, sem botão Aplicar, e ficam na URL", async ({ page }) => {
@@ -145,7 +144,7 @@ test("desktop: Perguntar ao CityNews é a linha de destaque no topo, acima dos f
 }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/busca?q=viaduto");
-  const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
+  const ask = page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ });
   await expect(ask).toHaveAttribute("href", "/pergunte?q=viaduto");
   const askBox = (await ask.boundingBox())!;
   const tabsBox = (await page
@@ -178,7 +177,7 @@ test("busca a 360 px sem rolagem horizontal", async ({ page }) => {
 test("celular: resultados antes da linha do Pergunte, que vem compacta", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/busca?q=onibus");
-  const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
+  const ask = page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ });
   // Só uma linha visível por largura (a do topo some no celular).
   await expect(ask).toHaveCount(1);
   await expect(ask).toHaveAttribute("href", "/pergunte?q=onibus");

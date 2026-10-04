@@ -54,10 +54,11 @@ test.describe("cabeçalho que recolhe as editorias", () => {
     await makeTall(page);
     const sections = page.getByRole("navigation", { name: "Editorias" });
     const duration = await sections.evaluate((el) => getComputedStyle(el).transitionDuration);
-    expect(duration.split(",").every((d) => parseFloat(d) === 0)).toBe(true);
+    // O reset de `tokens.css` deixa as durações em 1 ms com movimento reduzido: sem animação visível.
+    expect(duration.split(",").every((d) => parseFloat(d) <= 0.01)).toBe(true);
     await scrollBy(page, 800);
     await expect(sections).toHaveAttribute("data-hidden", "true");
-    expect(await visiblePart(page)).toBe(0);
+    await expect.poll(() => visiblePart(page)).toBe(0);
   });
 
   test("um link da fileira recolhida focado por teclado a traz de volta", async ({

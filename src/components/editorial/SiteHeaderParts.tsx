@@ -19,8 +19,14 @@ import { LiveIndicator } from "./LiveIndicator";
 const SCROLLED_AT = 16;
 /** Rolagem (px) a partir da qual descer recolhe a fileira de editorias (item 62). */
 const HIDE_AFTER = 48;
-/** Movimento mínimo (px) para trocar de direção: ignora o tremor do toque e do elástico. */
+/** Descida mínima (px) para recolher: ignora o tremor do toque e do elástico. */
 const JITTER = 4;
+/**
+ * Subida mínima (px) para a fileira voltar. Maior que o ajuste que o navegador faz quando o
+ * cabeçalho encolhe (a ancoragem da rolagem devolve alguns pixels para cima), que não é a pessoa
+ * subindo.
+ */
+const REVEAL = 32;
 
 /** A fileira de editorias está recolhida? (dado pelo `StickyHeader`, lido pela `SectionsNav`) */
 const SectionsHidden = createContext(false);
@@ -56,10 +62,14 @@ export function StickyHeader({
         last = y;
         return;
       }
-      const dy = y - last;
-      if (Math.abs(dy) < JITTER) return;
-      setHidden(dy > 0);
-      last = y;
+      // `last` acompanha o ponto mais baixo enquanto desce e o mais alto enquanto sobe.
+      if (y > last) {
+        if (y - last > JITTER) setHidden(true);
+        last = y;
+      } else if (last - y > REVEAL) {
+        setHidden(false);
+        last = y;
+      }
     };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });

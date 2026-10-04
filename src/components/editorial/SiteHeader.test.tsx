@@ -155,6 +155,20 @@ describe("SiteHeader", () => {
     expect(sections).toHaveAttribute("data-hidden", "false");
   });
 
+  it("o ajuste de poucos pixels do navegador ao encolher o cabeçalho não traz a fileira de volta", () => {
+    render(<SiteHeader />);
+    const sections = screen.getByRole("navigation", { name: "Editorias" });
+    scrollTo(800);
+    scrollTo(812);
+    expect(sections).toHaveAttribute("data-hidden", "true");
+    // Ancoragem da rolagem: o navegador devolve 12 px para cima, em passos.
+    for (const y of [809, 804, 802, 800]) scrollTo(y);
+    expect(sections).toHaveAttribute("data-hidden", "true");
+    // A pessoa sobe de verdade.
+    scrollTo(700);
+    expect(sections).toHaveAttribute("data-hidden", "false");
+  });
+
   it("o recolhimento move só transform, com transição apenas sem movimento reduzido", () => {
     render(<SiteHeader />);
     const cls = screen.getByRole("navigation", { name: "Editorias" }).className;
