@@ -357,10 +357,18 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
                     <td className="px-3 py-3 type-body tabular-nums">
                       {r.dueAt ? (
                         <span
-                          className={cx(r.overdue ? "font-semibold text-danger" : "text-strong")}
+                          className={cx(
+                            "flex flex-col gap-1",
+                            r.overdue ? "font-semibold text-danger" : "text-strong",
+                          )}
                         >
-                          {r.overdue && <span className="sr-only">{T.overdue}: </span>}
-                          {formatDateTime(r.dueAt)}
+                          {r.overdue && (
+                            <span className="inline-flex items-center gap-1 type-meta">
+                              <Icon name="clock" size={16} />
+                              {T.overdue}
+                            </span>
+                          )}
+                          <span>{formatDateTime(r.dueAt)}</span>
                         </span>
                       ) : (
                         <span className="text-meta">{T.noDue}</span>
