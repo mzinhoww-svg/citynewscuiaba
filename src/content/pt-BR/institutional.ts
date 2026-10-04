@@ -81,6 +81,7 @@ export const DOC_TEXT = {
     "Os campos marcados como [PREENCHER] aguardam dados oficiais da empresa e serão atualizados antes do lançamento.",
   related: "Veja também",
   breadcrumb: "Você está em",
+  onThisPage: "Nesta página",
   home: "Início",
 } as const;
 

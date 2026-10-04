@@ -56,6 +56,19 @@ export const ACCOUNT_TEXT = {
   or: "ou",
 } as const;
 
+/**
+ * Convite de conta nas telas de Perfil, Favoritos e Alertas (UI-T14): por que criar conta, sem
+ * tornar o login obrigatório. "Agora não" recolhe o convite neste navegador.
+ */
+export const ACCOUNT_INVITE_TEXT = {
+  title: "Por que criar uma conta",
+  intro: "Opcional: tudo continua funcionando sem conta. Com ela, o que você guarda vai junto.",
+  create: "Criar conta",
+  signIn: "Entrar",
+  notNow: "Agora não",
+  dismissed: "Tudo bem: você continua sem conta.",
+} as const;
+
 /** Botão do Google no login e no cadastro (UI-T12, spec de UI pública §4.7). */
 export const GOOGLE_TEXT = {
   button: "Continuar com o Google",
@@ -136,7 +149,7 @@ export const RECOVER_TEXT = {
   resetIntro: "Escolha uma senha nova para a sua conta.",
   newPassword: "Nova senha",
   confirm: "Confirme a nova senha",
-  confirmError: "As senhas não são iguais.",
+  confirmError: "As senhas não são iguais. Digite a mesma senha nos dois campos.",
   resetSubmit: "Salvar nova senha",
   resetBusy: "Salvando…",
   resetExpired: "Este link expirou ou já foi usado.",
@@ -205,6 +218,9 @@ export const PROFILE_TEXT = {
   title: "Perfil",
   description: "Seu perfil neste navegador e, se quiser, sua conta para sincronizar.",
   loading: "Carregando seu perfil",
+  loadError: "Não conseguimos carregar os dados da sua conta agora",
+  loadErrorDetail: "Suas escolhas neste navegador continuam aqui. Tente de novo em instantes.",
+  retry: "Tentar de novo",
   anon: {
     title: "Seu perfil neste navegador",
     intro: "Sem conta, o CityNews guarda suas escolhas só aqui. Nada disso exige cadastro.",
@@ -241,7 +257,7 @@ export const PROFILE_TEXT = {
     none: "Não informar",
     save: "Salvar dados",
     saved: "Dados salvos.",
-    nameError: "Digite um nome de exibição (até 80 caracteres).",
+    nameError: "Digite um nome de exibição (até 80 caracteres). Exemplo: Ana Cuiabana",
   },
   sessions: {
     title: "Sessões",
