@@ -24,7 +24,6 @@ import {
   ReportProblemForm,
   ReviewBanner,
   SourcesList,
-  TopicStatus,
   UpdateNote,
   UpdatedWhileReading,
   NotificationInviteSlot,
@@ -194,7 +193,6 @@ function Article({ a }: { a: ArticleView }) {
             <header className="flex max-w-read flex-col gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag>{a.section.name}</CategoryTag>
-                {a.topic && <TopicStatus state={a.topic.state} />}
               </div>
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>

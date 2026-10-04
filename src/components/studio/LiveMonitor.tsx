@@ -75,8 +75,8 @@ const clock = (iso: string) =>
 /**
  * Tempo real (O02): ciclo atual por fase, fila por etapa e últimos eventos, atualizados a cada
  * 5 s enquanto a aba está visível (pausa em segundo plano e por botão, WCAG 2.2.2). O horário
- * da última atualização fica numa região `aria-live` discreta; a lista de eventos não é
- * anunciada a cada troca.
+ * da última atualização é texto comum (não é anunciado a cada 5 s); a região viva só muda com o
+ * estado (ciclo, pausa, falha ao atualizar). A lista de eventos não é anunciada a cada troca.
  */
 export function LiveMonitor({ initial, endpoint, intervalMs = 5_000 }: LiveMonitorProps) {
   const T = CONTROL_TEXT.live;
@@ -100,12 +100,24 @@ export function LiveMonitor({ initial, endpoint, intervalMs = 5_000 }: LiveMonit
     intervalMs,
   );
   const totalQueue = data.queue.reduce((s, q) => s + q.ready + q.inFlight + q.retrying, 0);
+  const liveState = hidden
+    ? T.paused
+    : paused
+      ? T.pausedByUser
+      : stale
+        ? T.stale
+        : data.run
+          ? T.runState(RUN_STATE_LABEL[data.run.state])
+          : T.noRun;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center gap-3">
-        <p role="status" aria-live="polite" className="type-meta text-meta">
+        <p className="type-meta text-meta">
           {hidden ? T.paused : T.updatedAt(clock(updatedAt ?? data.at))}
+        </p>
+        <p role="status" aria-live="polite" className="sr-only">
+          {liveState}
         </p>
         <Button
           size="sm"
