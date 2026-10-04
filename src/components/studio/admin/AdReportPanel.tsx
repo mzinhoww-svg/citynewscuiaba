@@ -1,6 +1,7 @@
 import { ADS_ADMIN_TEXT, SLOT_NAME } from "@/content/pt-BR/ads-admin";
 import { percent, type AdReport, type Group } from "@/lib/ads/report";
 import { Button } from "../../ui/Button";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { EmptyState } from "../../ui/EmptyState";
 import { AdminTable } from "./AdminStatus";
 
@@ -57,32 +58,37 @@ export function AdReportPanel({
       <h2 id="ads-rep" className="type-section text-strong">
         {T.title}
       </h2>
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
-          {T.from}
-          <input
-            type="date"
-            name="de"
-            defaultValue={period.from}
-            className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
-          {T.to}
-          <input
-            type="date"
-            name="ate"
-            defaultValue={period.to}
-            className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
-          />
-        </label>
-        <Button size="md" variant="outline" type="submit">
-          {T.apply}
-        </Button>
-        <Button size="md" variant="outline" icon="download" href={csvHref} download>
-          {T.csv}
-        </Button>
-      </form>
+      <CollapsibleFilters
+        actions={
+          <Button size="md" variant="outline" icon="download" href={csvHref} download>
+            {T.csv}
+          </Button>
+        }
+      >
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
+            {T.from}
+            <input
+              type="date"
+              name="de"
+              defaultValue={period.from}
+              className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
+            {T.to}
+            <input
+              type="date"
+              name="ate"
+              defaultValue={period.to}
+              className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
+            />
+          </label>
+          <Button size="md" variant="outline" type="submit">
+            {T.apply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       <p className="max-w-read type-meta text-meta">{T.note}</p>
       {t.impressions === 0 && t.clicks === 0 ? (
         <EmptyState title={T.empty} />

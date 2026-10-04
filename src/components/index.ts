@@ -19,6 +19,7 @@ export { ListRow, type ListRowProps } from "./ui/ListRow";
 export { NavHeader, type NavHeaderProps } from "./ui/NavHeader";
 export { NavLink, isCurrentPath, type NavLinkProps } from "./ui/NavLink";
 export { SearchBar, type SearchBarProps } from "./ui/SearchBar";
+export { CollapsibleFilters, type CollapsibleFiltersProps } from "./ui/CollapsibleFilters";
 export { SectionHeader, type SectionHeaderProps } from "./ui/SectionHeader";
 export { Select, type SelectOption, type SelectProps } from "./ui/Select";
 export {

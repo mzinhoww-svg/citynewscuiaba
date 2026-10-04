@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { controlFixture, type ControlFixture } from "./control";
 import { loginAs, service } from "./studio";
+import { openFilters } from "./helpers/filters";
 
 /*
  * P5-T3 · Control Center: visão geral (fonte com 3 falhas = "Pausada automaticamente"), tempo real por
@@ -99,6 +100,7 @@ test("execuções: detalhe do ciclo com gráfico de fases e resumo textual", asy
 
 test("logs: filtra por texto, mascara IP e exporta CSV", async ({ page }) => {
   await loginAs(page, "diego", "/estudio/control/logs");
+  await openFilters(page);
   await page.getByLabel("Buscar no texto").fill(fx.mark);
   await page.getByRole("button", { name: "Filtrar" }).click();
   await expect(page).toHaveURL(new RegExp(`q=${fx.mark}`));

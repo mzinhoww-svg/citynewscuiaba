@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { TOPIC } from "@/content/pt-BR/portal-topic";
 import { cx } from "../cx";
+import { CollapsibleFilters } from "../ui/CollapsibleFilters";
 import { Icon } from "../ui/Icon";
 import { SegmentedToggle } from "../ui/SegmentedToggle";
 
@@ -43,7 +44,10 @@ export function TopicCoverage({ sources, children, className }: TopicCoveragePro
 
   return (
     <div ref={box} className={cx("flex flex-col gap-8", className)}>
-      <div className="flex flex-wrap items-end gap-4">
+      <CollapsibleFilters
+        activeCount={(origin !== "all" ? 1 : 0) + (source !== "" ? 1 : 0)}
+        bodyClassName="flex flex-wrap items-end gap-4"
+      >
         <SegmentedToggle
           label={TOPIC.filterLabel}
           value={origin}
@@ -80,7 +84,7 @@ export function TopicCoverage({ sources, children, className }: TopicCoveragePro
             </div>
           </div>
         )}
-      </div>
+      </CollapsibleFilters>
       {children}
     </div>
   );

@@ -9,6 +9,7 @@ import { DISPLAY_SLOTS, SLOT_FORMATS, type DisplaySlot } from "@/lib/ads/slots";
 import type { BannerRow, PlacementStatus } from "@/lib/db/queries/ads-admin";
 import { formatDate } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
 import { Select } from "../../ui/Select";
@@ -71,15 +72,17 @@ export function BannersPanel({ banners, sections, create, setStatus }: BannersPa
           {T.banners.newTitle}
         </Button>
       </div>
-      <Select
-        id={`${uid}-f`}
-        name="filtro-campo"
-        label={T.banners.filter}
-        options={[{ value: ALL, label: T.banners.allSlots }, ...SLOT_OPTIONS]}
-        value={filter}
-        onChange={setFilter}
-        className="max-w-xs"
-      />
+      <CollapsibleFilters activeCount={filter === ALL ? 0 : 1}>
+        <Select
+          id={`${uid}-f`}
+          name="filtro-campo"
+          label={T.banners.filter}
+          options={[{ value: ALL, label: T.banners.allSlots }, ...SLOT_OPTIONS]}
+          value={filter}
+          onChange={setFilter}
+          className="max-w-xs"
+        />
+      </CollapsibleFilters>
       <AdminStatus status={status} />
       {shown.length === 0 ? (
         <EmptyState title={T.banners.empty} />
