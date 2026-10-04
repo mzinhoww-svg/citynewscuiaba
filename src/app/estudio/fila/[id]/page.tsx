@@ -18,10 +18,12 @@ import {
 } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
+import { nextQueueItem } from "@/lib/db/queries/queue-next";
 import { getStudioArticle } from "@/lib/db/queries/studio-article";
 import { diffWords } from "@/lib/diff/words";
 import { formatDateTime } from "@/lib/format/date";
 import { docText } from "@/lib/studio/doc";
+import { originFrom, withOrigin } from "@/lib/studio/origin";
 import {
   approveAction,
   rejectItemAction,
@@ -30,6 +32,7 @@ import {
 } from "../../actions";
 import { articleLabels } from "../../materias/view";
 import { LoadError, loadOrNull } from "../../load-error";
+import { queueFilterFromOrigin } from "../rows";
 
 export const metadata: Metadata = {
   title: "Revisão de item autônomo · Estúdio · CityNews Cuiabá",
@@ -37,9 +40,35 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const OPEN = new Set(["draft", "in_review", "changes_requested", "approved"]);
+const FALLBACK_ORIGIN = "/estudio/fila?aba=exceptions";
 
-export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
+type Params = Record<string, string | string[] | undefined>;
+
+/**
+ * Próximo item da lista de origem (mesma aba e filtros), com a mesma origem em `?de=`; `null`
+ * sem próximo, origem fora da fila ou falha de leitura (a revisão continua sem o atalho).
+ */
+async function nextHrefFor(origin: string, id: string): Promise<string | null> {
+  const filter = queueFilterFromOrigin(origin);
+  if (!filter) return null;
+  try {
+    const next = await nextQueueItem(filter, id);
+    return next ? withOrigin(`/estudio/fila/${next}`, origin) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ReviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Params>;
+}) {
   const { id } = await params;
+  // Lista de onde a pessoa veio (aba e filtros): "Voltar" e "Aprovar e ir para o próximo".
+  const origin = originFrom((await searchParams) ?? {}, FALLBACK_ORIGIN);
   const session = await requireRole("article.edit", undefined, { next: `/estudio/fila/${id}` });
   const loaded = await loadOrNull("fila", () => getStudioArticle(id));
   if (!loaded) return <LoadError retryHref={`/estudio/fila/${id}`} />;
@@ -52,7 +81,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         icon="circle-alert"
         title={EDITOR_TEXT.notFoundTitle}
         actions={
-          <Button href="/estudio/fila?aba=exceptions" size="md" variant="outline">
+          <Button href={origin} size="md" variant="outline">
             {EDITOR_TEXT.back}
           </Button>
         }
@@ -73,12 +102,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const rules = a.decisions.find((d) => d.step === "rules");
   const human = a.decisions.find((d) => d.humanDecision);
   const ai = a.aiVersion;
+  const decidable = open && (canDecide || canEdit);
+  const nextHref = decidable && canDecide ? await nextHrefFor(origin, a.id) : null;
 
   return (
-    <article className="flex flex-col gap-6">
+    // Abaixo de `xl` as ações da decisão ficam numa barra fixa: o fim da página reserva o espaço.
+    <article className={decidable ? "flex flex-col gap-6 max-xl:pb-36" : "flex flex-col gap-6"}>
       <header className="flex flex-col gap-3">
         <Link
-          href="/estudio/fila?aba=exceptions"
+          href={origin}
           className="type-meta font-medium text-link underline-offset-4 hover:underline"
         >
           {EDITOR_TEXT.back}
@@ -236,9 +268,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 : null
             }
             blocker={a.checklist.blocker}
-            editHref={`/estudio/materias/${a.id}`}
+            editHref={withOrigin(`/estudio/materias/${a.id}`, origin)}
+            nextHref={nextHref}
             actions={
-              open && (canDecide || canEdit)
+              decidable
                 ? {
                     approve: canDecide ? approveAction.bind(null, a.version) : undefined,
                     reject: canDecide ? rejectItemAction : undefined,
