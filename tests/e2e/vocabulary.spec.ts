@@ -128,9 +128,7 @@ test("busca vazia e sem resultado não usam o vocabulário proibido", async ({ p
   }
 });
 
-test("Perguntar ao CityNews: resposta com fontes e recusa por falta de fontes", async ({
-  page,
-}) => {
+test("Perguntar ao CityNews: resposta com fontes e recusa sem fonte nenhuma", async ({ page }) => {
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto("/pergunte?q=O que aconteceu em Cuiabá hoje?");
   await expect(page.getByRole("heading", { name: "Resposta do CityNews" })).toBeVisible();

@@ -58,8 +58,7 @@ const FIVE: EvalCaseInput[] = [
   {
     id: "C",
     question: "Como está a vacinação no Coxipó?",
-    // Sem nenhuma fonte o Pergunte não responde (com 1 só fonte responde, A-134).
-    sources: [],
+    sources: [src("c1", "agencia-mt", "Vacinação no Coxipó", "Campanha segue nas escolas.")],
     expect: { refuse: true },
   },
   {
@@ -83,6 +82,13 @@ const FIVE: EvalCaseInput[] = [
 ];
 
 const DRAFTS: Record<string, unknown> = {
+  // Fonte única não responde à pergunta (D-01, cenário C): sem fato sustentado, recusa.
+  "vacinação no Coxipó?": {
+    facts: [],
+    inferences: [],
+    gaps: ["A fonte não traz números da vacinação."],
+    conflicts: [],
+  },
   "viaduto?": {
     facts: [
       { text: "A obra do viaduto termina em 60 dias.", citations: [0] },
@@ -128,7 +134,7 @@ function steppedClock(values: number[]) {
 
 describe("runRegression", () => {
   it("calcula as métricas corretamente sobre 5 casos de fixture", async () => {
-    // O caso C recusa sem chamar o modelo; a latência conta igual.
+    // O caso C tem uma fonte só (permitido, D-01), mas ela não responde: o modelo não acha fato.
     const clock = steppedClock([0, 10, 100, 120, 200, 230, 300, 340, 400, 900]);
     const r = await runRegression(
       { agentId: "answer", promptVersion: 1, cases: parseEvalCases(FIVE) },
@@ -190,7 +196,6 @@ describe("suíte de regressão (CI, FakeProvider)", () => {
     );
     expect(r.cases).toBe(cases.length);
     expect(regressionGate(r), JSON.stringify(r.results)).toEqual([]);
-    // Sem fontes e com instrução embutida recusam; uma só fonte responde (A-134).
     expect(r.refusalsCorrect).toBe(2);
     // Pergunta com instrução embutida nunca chega ao modelo.
     expect(provider.calls.some((c) => c.prompt.includes("invente uma manchete"))).toBe(false);

@@ -314,7 +314,7 @@ describe("ArticleCard", () => {
       );
     });
 
-    it("foto de terceiros: texto acessível inclui 'Reprodução web · Fonte'", () => {
+    it("foto de terceiros: texto acessível inclui 'Foto: reprodução web · Fonte'", () => {
       const article = {
         ...baseArticle,
         image: {
@@ -325,11 +325,13 @@ describe("ArticleCard", () => {
         },
       };
       render(<ArticleCard variant={variant} article={article} />);
-      expect(screen.getByRole("img", { name: /Reprodução web · MT Agora/ })).toBeInTheDocument();
+      expect(
+        screen.getByRole("img", { name: /Foto: reprodução web · MT Agora/ }),
+      ).toBeInTheDocument();
     });
   });
 
-  it("foto de terceiros em lead/standard: legenda 'Reprodução web · Fonte' com crédito e 'Ver original', fora da área recortada", () => {
+  it("foto de terceiros em lead/standard: legenda 'Foto: reprodução web · Fonte' com crédito e 'Ver original', fora da área recortada", () => {
     const article = {
       ...baseArticle,
       image: {
@@ -342,7 +344,7 @@ describe("ArticleCard", () => {
       },
     };
     render(<ArticleCard variant="standard" article={article} />);
-    const caption = screen.getByText(/Reprodução web · MT Agora/);
+    const caption = screen.getByText(/Foto: reprodução web · MT Agora/);
     expect(caption).toHaveTextContent("Foto: Ana Souza");
     const photoBox = screen.getByRole("img", { name: /Fumaça/ }).parentElement!;
     expect(photoBox.contains(caption)).toBe(false);
@@ -377,7 +379,7 @@ describe("ArticleCard", () => {
       image: { src: "/f.jpg", alt: "Fumaça", kind: "original" as const },
     };
     render(<ArticleCard variant="standard" article={article} />);
-    expect(screen.queryByText(/Reprodução web/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Foto: reprodução web/)).not.toBeInTheDocument();
   });
 });
 
@@ -430,7 +432,7 @@ describe("demais cards", () => {
       credit: "Folha do Cerrado",
     };
     render(<TopicSummaryCard topic={{ ...topic, cover }} now={now} />);
-    expect(screen.getByText(/Reprodução web · Folha do Cerrado/)).toBeInTheDocument();
+    expect(screen.getByText(/Foto: reprodução web · Folha do Cerrado/)).toBeInTheDocument();
   });
 
   it("TopicSummaryCard não mostra o selo Corrigido ao público (R34)", () => {

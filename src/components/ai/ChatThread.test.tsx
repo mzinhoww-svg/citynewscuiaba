@@ -42,6 +42,7 @@ const sources: SourceRef[] = [
 
 const ANSWER: Extract<AiAnswerData, { kind: "answer" }> = {
   kind: "answer",
+  basis: "multiple_sources",
   confidence: "alta",
   facts: [{ text: "O plano começa em 6 de outubro.", citations: [0, 1] }],
   inferences: [{ text: "Deve haver ajuste de horários.", citations: [1] }],

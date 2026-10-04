@@ -40,7 +40,7 @@ sequenceDiagram
 | 4 | `verify` | `steps/verify.ts:120` | fato principal, papel dos itens, conflito central, duvidoso, sem atribuição | `schemas/verify.ts:9-31` | 30 s | R$ 4 | hash (assunto, revisão, prompt) | retentativa → quarentena; **matéria não sai** |
 | 5 | `write` | `steps/write.ts:190` | título, linha fina, resumo, 1–12 parágrafos citados | `schemas/write.ts:4-18` | 45 s | R$ 9 | hash | **rascunho sem IA** (`in_review`) |
 | 6 | `reviewer` | `steps/auto-reviewer.ts:125`, a cada 5 min, lote 8 | publicar, manter ou arquivar matéria vencida na fila | `schemas/review.ts:11-14` | 30 s | R$ 1 | decisão `review` depois da última mudança | manter; orçamento esgotado encerra a passada |
-| 7 | `answer` | `ai/answer.ts:267` via `search/ask.ts` | resposta do Pergunte com fatos, inferências, lacunas, conflitos citados | `schemas/answer.ts:12-24` | 25 s | R$ 6 | não | busca tradicional |
+| 7 | `answer` | `ai/answer.ts` via `search/ask.ts` | resposta do Pergunte com fatos, inferências, lacunas, conflitos citados; uma fonte basta, atribuída, e sem fonte informa (D-01) | `schemas/answer.ts:12-24` | 25 s | R$ 6 | não | busca tradicional |
 | 8 | `source_profiler` | `sources/profile.ts:104` (ação do Estúdio) | sugere editorias, localidade, seletores | `schemas/source-profile.ts:30-39` | 20 s (padrão) | R$ 1 | não | sugestões por regra |
 | 9 | `image` | `studio/media.ts:335` (só Estúdio) | decide se cabe ilustração e descreve | `schemas/image.ts:7-12` | 20 s | R$ 2 | não | mensagem ao editor; **não há gerador** |
 | 10 | `embed` | `call-agent.ts:239-288` | vetores de 1.536 dimensões para deduplicação, assunto, indexação, busca | comprimento e finitude | 15 s | R$ 1 | uma vez por item | deduplicação trava; busca e índice ficam só em FTS |
@@ -58,8 +58,9 @@ Modelos padrão [O]: todos os agentes de texto com `google/gemini-2.5-flash` e f
 | Parágrafo sem citação válida cai; 8 palavras copiadas cai | `write` | `write.ts:111-127` |
 | Resumo de agregado descartado se copiar 8 palavras | `aggregate_summary` | `schemas/aggregate-summary.ts:20-33` |
 | Bairro só se existir no dicionário | `locate` | `locate.ts:61-68` |
-| < 2 veículos → recusa antes de chamar o modelo; fato sem citação cai | `answer` | `answer.ts:78,187-245,264` |
-| Arquivar "por prazo" vira manter; rascunho sem IA nunca chega (P0-01) | `reviewer` | `auto-reviewer.ts:77-99` |
+| Sem fonte → recusa antes do modelo; fonte única → instrução de atribuição e `single_source`; fato sem citação cai (D-01) | `answer` | `answer.ts` |
+| Arquivar "por prazo" vira manter; risco crítico (rascunho sem IA) nunca chega; nível e motivos no contexto (P0-01, D-05) | `reviewer` | `auto-reviewer.ts` |
+| Divergência confirmada → versões atribuídas e preliminar marcado (D-05) | `write` | `write.ts` (`DIVERGENCE_RULE`) |
 | Ilustração bloqueada para crime, saúde, tragédia; nada fotorrealista | `image` | `media/choose.ts:36-92` |
 
 **Lacuna principal (P0-03):** não há guarda de afirmação no `write` nem no `answer`. A técnica já existe no `verify` (`extractNumbers`, comparação de lugares) e pode ser reaproveitada: todo número, data e nome próprio de um parágrafo precisa aparecer no material do item citado. Ver `EDITORIAL-POLICY.md` §4.

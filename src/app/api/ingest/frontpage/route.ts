@@ -12,7 +12,7 @@ const HARD_LIMIT_MS = 50_000;
 
 /**
  * Topo da página inicial das fontes (HOT-T2, spec 2026-10-03-destaques-e-profundidade R9): o
- * pg_cron (`ingest-frontpage`, a cada 20 min, migration 0151) chama esta rota. Roda o passo direto,
+ * pg_cron (`ingest-frontpage`, a cada 20 min, migration 0154) chama esta rota. Roda o passo direto,
  * como o `review-tick`, sem passar pela fila: é um lote curto (robots.txt + 1 GET por fonte, 4 por
  * vez, nenhuma fonte nova depois de 35 s) que não gera trabalho para as etapas seguintes.
  */

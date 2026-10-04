@@ -1,4 +1,4 @@
--- HOT-T1 · Limpeza de `front_signals` (linhas com mais de 7 dias). Arquivo separado da 0151 porque
+-- HOT-T1 · Limpeza de `front_signals` (linhas com mais de 7 dias). Arquivo separado da 0154 porque
 -- tem DELETE, que o conector Supabase retém: aplicado pelo dono no SQL Editor. A pauta quente não
 -- depende dele (toda leitura já ignora sinais com mais de 7 dias).
 

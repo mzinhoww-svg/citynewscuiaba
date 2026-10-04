@@ -1,5 +1,5 @@
 // @vitest-environment node
-// HOT-T1 (0151): `front_signals` com banco real. RLS ligada sem política: anônimo não lê nem
+// HOT-T1 (0154): `front_signals` com banco real. RLS ligada sem política: anônimo não lê nem
 // escreve; só o service role grava. `featured_items` ganha `topic_id` e `dismissed_at`; a flag
 // `hot_featured_enabled` nasce ligada e `featured.hot_min_sources` vale 3 em `app_settings`.
 import { randomUUID } from "node:crypto";

@@ -1022,7 +1022,7 @@
       "HOT-T1": {
         "status": "done",
         "commit": "c3bfeb5",
-        "migrations": "0151_hot_signals (aplicar após merge), 0152_front_signals_purge (dono)"
+        "migrations": "0154_hot_signals (aplicar após merge), 0155_front_signals_purge (dono)"
       },
       "HOT-T2": {
         "status": "done",
@@ -1032,7 +1032,7 @@
       "HOT-T3": {
         "status": "done",
         "commit": "01b00c7",
-        "migration": "0153_hot_pins (aplicar após merge, depois da 0151)"
+        "migration": "0156_hot_pins (aplicar após merge, depois da 0154)"
       },
       "GATE": {
         "status": "pending"

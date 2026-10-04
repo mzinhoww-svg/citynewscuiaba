@@ -355,6 +355,12 @@ describe("verify", () => {
       confidenceScore: 0.9,
       sectionSlug: "cidade",
     });
+    const recorded = repo.decisions().find((d) => d.step === "verify");
+    expect(recorded?.output).toMatchObject({
+      independentSources: 2,
+      independentLineages: 2,
+      lineageMethod: expect.stringMatching(/shingle4/),
+    });
     await handlers.verify!(msg);
     expect(fake.calls).toHaveLength(1);
     repo.add(item("folha-do-cerrado", "v3", "Passageiros aprovam linha expressa do CPA"));

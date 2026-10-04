@@ -3,7 +3,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 /*
  * docs/testing.md §2 item 6 · Pergunte ao CityNews (P13) como chat (UI-T13, spec
  * 2026-10-02-ui-publica-design §4.8 e critério 8), com o provedor falso e o seed: pergunta com
- * várias fontes gera resposta com citações; uma só fonte responde atribuída e sem fonte recusa (A-134); tempo esgotado
+ * várias fontes gera resposta com citações; uma só fonte responde atribuída e sem fonte recusa (D-01); tempo esgotado
  * oferece "Tentar de novo"; 21ª pergunta mostra o limite; rede caindo no meio vira falha com
  * "Tentar de novo"; duas perguntas seguidas rápidas viram uma só. Sem JavaScript, o formulário
  * GET (modo simples) continua respondendo no servidor (Review Focus 3).
@@ -77,12 +77,13 @@ test("Enter envia, Shift+Enter quebra linha, contador a partir de 250", async ({
   await expect(page.locator("[data-author='person']")).toHaveCount(1);
 });
 
-test("uma só fonte: a resposta mostra o fato atribuído e uma fonte só (A-134)", async ({
+test("uma só fonte: a resposta mostra o fato atribuído e uma fonte só (D-01, A-133)", async ({
   page,
 }) => {
   // A regra (responder com 1 veículo, atribuído) está em src/lib/ai/answer.test.ts; aqui, a tela.
   const answer = {
     kind: "answer",
+    basis: "single_source",
     confidence: "baixa",
     facts: [
       { text: "Segundo a Agência MT, a vacinação segue nas escolas do Coxipó.", citations: [0] },
@@ -116,6 +117,7 @@ test("uma só fonte: a resposta mostra o fato atribuído e uma fonte só (A-134)
   await expect(reply(page)).toHaveCount(1);
   await expect(reply(page).getByText(/Segundo a Agência MT/)).toBeVisible();
   await expect(reply(page).getByText("Nenhuma outra fonte confirmou.")).toBeVisible();
+  await expect(reply(page).getByText(/Baseada em uma única fonte \(Agência MT\)/)).toBeVisible();
   await expect(
     reply(page).getByRole("link", { name: "Fonte 1", exact: true }).first(),
   ).toBeVisible();

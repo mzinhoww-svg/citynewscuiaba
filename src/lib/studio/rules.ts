@@ -46,6 +46,8 @@ export const RuleSetInput = z.object({
     .optional(),
   breakingReview: z.boolean().optional(),
   sensitiveFlagReview: z.boolean().optional(),
+  /** Níveis de risco (D-05, regras v4); ausente herda da versão em vigor. */
+  riskLevels: z.boolean().optional(),
   categories: z.record(z.string().regex(/^[a-z0-9-]+$/), CategoryRuleSchema),
 });
 export type RuleSetInput = z.infer<typeof RuleSetInput>;
@@ -59,6 +61,7 @@ function withGates(input: RuleSetInput, current: RuleSet): Omit<RuleSet, "versio
     neverAuto: input.neverAuto ?? current.neverAuto,
     breakingReview: input.breakingReview ?? current.breakingReview,
     sensitiveFlagReview: input.sensitiveFlagReview ?? current.sensitiveFlagReview,
+    riskLevels: input.riskLevels ?? current.riskLevels,
   };
 }
 

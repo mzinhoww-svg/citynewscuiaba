@@ -20,7 +20,7 @@
 - Alvos ≥ 44 px; botão do Google com 56 px (`min-h-14`); contraste ≥ 4,5:1 no texto e ≥ 3:1 na borda do botão branco.
 - Pauta quente: ≥ 3 fontes distintas (`hot_min_sources`, padrão 3), rank ≤ 3, janela de 6 h; pino de 3 h, renovável até o teto de 12 h; só eleva matéria **já publicada** e não patrocinada; nunca publica nem tira de revisão.
 - `frontpage`: GET identificado como CityNewsBot, `robots.txt` respeitado, limite por hora da fonte, até 512 KB; guarda só URL, posição e hora; cron a cada 20 min.
-- Migrations: 0151 (aditiva e idempotente: `front_signals`, `featured_items.topic_id`, `featured_items.dismissed_at`, flags `hot_featured_enabled` ligada e `hot_min_sources` = 3, cron `ingest-frontpage`) e 0152 (só `front_signals_purge()` com `delete` e o agendamento dela; aplicada pelo dono no SQL Editor).
+- Migrations: 0154 (aditiva e idempotente: `front_signals`, `featured_items.topic_id`, `featured_items.dismissed_at`, flags `hot_featured_enabled` ligada e `hot_min_sources` = 3, cron `ingest-frontpage`) e 0155 (só `front_signals_purge()` com `delete` e o agendamento dela; aplicada pelo dono no SQL Editor).
 - TDD: teste vermelho antes. Commits Conventional com o ID da tarefa. `pnpm lint && pnpm typecheck && pnpm test` verdes por tarefa e `pnpm build` no fechamento de cada onda.
 
 ## Review Focus
@@ -40,7 +40,7 @@
 **Files:** Modify `.planning/progress.json`, `.planning/STATE.md`, `.planning/DECISIONS.md`.
 
 - [ ] **Step 1:** acrescentar em `progress.json` as chaves `uiPublica` (tarefas UI-T0 a T16, com as feitas marcadas pelos commits existentes) e `destaques` (BTN-T1, ART-T1, FD-T1 a T4, LAB-T1, CONF-T1 feitas; TXT-T1 a T3 `superseded` com referência a A-114, R41/AUT-T4 e A-126; CONF-T2, CONF-T3, HOT-T1 a T3 e GATE pendentes).
-- [ ] **Step 2:** registrar em `DECISIONS.md` a A-133 (TXT-T1 a T3 encerradas por outro caminho; R22 por portais nacionais fora desta rodada; HOT com numeração 0151/0152) e uma nota no topo do `STATE.md`.
+- [ ] **Step 2:** registrar em `DECISIONS.md` a A-140 (TXT-T1 a T3 encerradas por outro caminho; R22 por portais nacionais fora desta rodada; HOT com numeração 0151/0152) e uma nota no topo do `STATE.md`.
 - [ ] **Step 3: Commit** `docs: planos da UI e dos destaques no progress.json [R0]`.
 
 ## Onda 1 (paralela): UI-T12 ∥ UI-T13 ∥ HOT-T1
@@ -62,8 +62,8 @@ Exatamente como no plano-mãe (UI-T13), com estas emendas:
 ### Task HOT-T1: Sinal dos portais e pauta quente no domínio
 
 Como no plano-mãe (HOT-T1), com estas emendas:
-- Migration `supabase/migrations/0151_hot_signals.sql`, que **não** recria `featured_items.kind` (já existe na 0090). Ela acrescenta `topic_id uuid null references topics(id)` e `dismissed_at timestamptz null`; cria `front_signals(id uuid pk default gen_random_uuid(), source_id uuid not null references sources(id) on delete cascade, topic_id uuid null, item_id uuid null, url text not null, rank int not null check (rank between 1 and 10), seen_at timestamptz not null default now())` com índice `(topic_id, seen_at)`; liga RLS sem policy para anon/authenticated (só o service role escreve e lê); grava as flags `hot_featured_enabled` (true) e `hot_min_sources` (3) no mesmo mecanismo de `feature_flags` já usado pelos interruptores. O cron `ingest-frontpage` (`*/20 * * * *`, `pg_net` com `CRON_SECRET`, no mesmo formato dos crons existentes) entra aqui, apontando para a rota da HOT-T2.
-- `supabase/migrations/0152_front_signals_purge.sql`: `front_signals_purge()` apaga linhas com mais de 7 dias, mais o agendamento diário dela.
+- Migration `supabase/migrations/0154_hot_signals.sql`, que **não** recria `featured_items.kind` (já existe na 0090). Ela acrescenta `topic_id uuid null references topics(id)` e `dismissed_at timestamptz null`; cria `front_signals(id uuid pk default gen_random_uuid(), source_id uuid not null references sources(id) on delete cascade, topic_id uuid null, item_id uuid null, url text not null, rank int not null check (rank between 1 and 10), seen_at timestamptz not null default now())` com índice `(topic_id, seen_at)`; liga RLS sem policy para anon/authenticated (só o service role escreve e lê); grava as flags `hot_featured_enabled` (true) e `hot_min_sources` (3) no mesmo mecanismo de `feature_flags` já usado pelos interruptores. O cron `ingest-frontpage` (`*/20 * * * *`, `pg_net` com `CRON_SECRET`, no mesmo formato dos crons existentes) entra aqui, apontando para a rota da HOT-T2.
+- `supabase/migrations/0155_front_signals_purge.sql`: `front_signals_purge()` apaga linhas com mais de 7 dias, mais o agendamento diário dela.
 - O domínio `src/lib/featured/hot.ts` é exportado em `src/lib/featured/index.ts`. Os tipos e assinaturas são os do plano-mãe (`FrontSignal`, `HotTopic`, `detectHot`, `supportScore`).
 - Teste de integração `tests/integration/hot-signals.test.ts` (roda no CI): anon não lê `front_signals`.
 
@@ -103,4 +103,4 @@ Como no plano-mãe (UI-T15). As capturas usam `pnpm design:shoot` com o servidor
 
 ### Task GATE: Fechamento de destaques e profundidade
 
-Como no plano-mãe (GATE), com estas emendas: a Step 3 ("Aprofundar matérias curtas") sai, porque já foi feita pela A-126. As Steps 2 (aplicar 0151 em produção, ligar `consumption.frontpage` nas fontes com `robots.txt` permitindo `/`, conferir o lead em dois reloads) ficam para depois do merge da PR e entram no relatório como próxima ação. CONF-T2 e CONF-T3 seguem pendentes, registradas no relatório e no `progress.json`.
+Como no plano-mãe (GATE), com estas emendas: a Step 3 ("Aprofundar matérias curtas") sai, porque já foi feita pela A-126. As Steps 2 (aplicar 0154 e 0156 em produção, ligar `consumption.frontpage` nas fontes com `robots.txt` permitindo `/`, conferir o lead em dois reloads) ficam para depois do merge da PR e entram no relatório como próxima ação. CONF-T2 e CONF-T3 seguem pendentes, registradas no relatório e no `progress.json`.

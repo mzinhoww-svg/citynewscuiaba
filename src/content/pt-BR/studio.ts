@@ -573,7 +573,23 @@ export const MEDIA_TEXT = {
     allowedUse: "Uso permitido",
     provenance: "Proveniência",
     removal: "Motivo do bloqueio",
+    rights: "Direitos",
+    usageScope: "Usos permitidos",
+    disclaimer: "Aviso exibido",
   },
+  /** Media Registry (D-02): status de direitos, explícito e sem ambiguidade. */
+  rights: {
+    authorized: "Autorizada (própria ou com acordo)",
+    licensed: "Licença identificada",
+    unknown: "Direitos desconhecidos: reprodução web, sem autorização registrada",
+    pending: "Direitos em apuração",
+    expired: "Autorização vencida: não reutilizar",
+    blocked: "Bloqueada: não reutilizar",
+  } as Record<string, string>,
+  usageScope: { editorial: "matéria", social: "redes sociais", thumbnail: "miniatura" } as Record<
+    string,
+    string
+  >,
   noUntil: "Sem vencimento",
   expired: "Vencida",
   usedIn: "Usada em",

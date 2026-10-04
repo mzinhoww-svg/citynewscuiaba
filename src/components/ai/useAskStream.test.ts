@@ -10,6 +10,7 @@ import { useAskStream } from "./useAskStream";
 
 const ANSWER: Extract<AiAnswer, { kind: "answer" }> = {
   kind: "answer",
+  basis: "multiple_sources",
   confidence: "alta",
   facts: [{ text: "O plano começa em 6 de outubro.", citations: [0, 1] }],
   inferences: [],

@@ -19,6 +19,7 @@ Regra de bolso: **se errar prejudica terceiros ou a verdade do que foi publicado
 | Item | Tabela | Painel |
 |---|---|---|
 | Portões e modos por editoria | `rules` (versionada) | Control Center → Regras (com simulação de 7 dias) |
+| Níveis de risco editorial (D-05) | `rules.body.riskLevels` (v4, proposta em `supabase/bootstrap/rules-v4-proposal.sql`) | Governança: aprovar e aplicar a proposta; voltar com `rules_rollback` |
 | Publicação automática, modo leitura, IA, personalização, reprodução de imagem, análise de link, patrocinado, anúncios, guia | `feature_flags` (9) | Admin → Interruptores, Contingência |
 | Disjuntor | `publish_breaker` | Interruptores |
 | Revisor automático (off, night, always) | `ai_reviewer_settings` | Interruptores |
@@ -28,6 +29,8 @@ Regra de bolso: **se errar prejudica terceiros ou a verdade do que foi publicado
 | Layout da home, destaques, SEO, push | `home_layouts`, `featured_*`, `app_settings` | Admin |
 
 ## 3. Quem aprova o quê
+
+> D-04 (A-136): alterações livres por operador autorizado, com versão, auditoria de antes e depois e reversão. A tabela abaixo é alternativa futura, só com nova decisão do dono.
 
 > **Resolvida pelo dono em 04/10 (A-128, PR #37):** fim da regra de duas pessoas em todas as mudanças críticas; uma pessoa com o papel de aprovar pede, aprova e aplica numa ação só, com `approvals` e auditoria registrando quem fez (migration 0149). A proposta abaixo fica registrada como alternativa para quando houver equipe.
 

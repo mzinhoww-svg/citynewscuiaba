@@ -1,5 +1,5 @@
 // @vitest-environment node
-// HOT-T3 (0153): pauta quente vira destaque com banco real. O pino quente nunca impede o admin de
+// HOT-T3 (0156): pauta quente vira destaque com banco real. O pino quente nunca impede o admin de
 // fixar (capacidade por tipo), `featured_dismiss_hot` exige o papel dos destaques e encerra os
 // pinos quentes do assunto, e `applyHotPins` com o repositório de produção grava só pinos `hot`.
 import { randomUUID } from "node:crypto";

@@ -81,7 +81,13 @@ export const contingencyCommand = studioAction(
       if (r.error === "needs_approval") throw new StudioFailure("conflict", T.error.needs_approval);
       throw new StudioFailure("conflict", T.error.generic);
     }
-    ctx.detail({ key: flag.key, value: flag.value, changed: r.value.changed });
+    ctx.detail({
+      key: flag.key,
+      value: flag.value,
+      changed: r.value.changed,
+      from: r.value.previous,
+      to: flag.value,
+    });
 
     if (i.action === "pause_auto_publish") {
       // Itens do ciclo em andamento que as regras já mandaram publicar vão para revisão.

@@ -19,7 +19,7 @@ Data: 04/10/2026 · Filha de `2026-10-02-ui-publica-design.md` (§4.5 a §4.9, �
 | TXT-T3 | "Aprofundar matérias curtas" no Control Center | A-126: reescrita no ar (`live`, 0147) e script de recuperação das 550 matérias de uma frase | **Feita por outro caminho.** Fecha. |
 | HOT-T1 | criar `featured_items.kind`, `topic_id`, `dismissed_at` | `kind ('manual','hot')` já existe (0090); `topic_id` e `dismissed_at` não | Migration nova só acrescenta o que falta. |
 | HOT-T3 | precedência manual > quente > automático em `resolve.ts` | `resolveSlot` já aceita `hot` e devolve `source: "hot"`; rótulo "Em alta" já em `featured.ts` | Só falta alimentar `hot` a partir de `featured_items kind='hot'`. |
-| Numeração | 0053 a 0057 | última é 0150 | HOT usa 0151 (sinais, flags, colunas e cron) e 0152 (limpeza com `delete`, aplicada pelo dono no SQL Editor). |
+| Numeração | 0053 a 0057 | última é 0150 | HOT usa 0154 (sinais, flags, colunas e cron), 0155 (limpeza com `delete`, aplicada pelo dono no SQL Editor). |
 | R22 (comoção nacional pelo `frontpage`) | não estava no plano | `national_commotion` só por classificação ou marcação manual | **Fora desta rodada.** O passo `frontpage` fica genérico para servir depois; pendência registrada. |
 
 ## 3. Escopo desta rodada
@@ -37,7 +37,7 @@ Data: 04/10/2026 · Filha de `2026-10-02-ui-publica-design.md` (§4.5 a §4.9, �
   - Onda 2: HOT-T2 ∥ UI-T10 ∥ UI-T11 ∥ UI-T14 (UI-T14 depois de UI-T12, porque as duas mexem em `AccountShell`).
   - Onda 3: HOT-T3.
   - Onda 4: UI-T15 e GATE.
-- Produção (aplicar 0151, ligar `consumption.frontpage` nas fontes com `robots.txt` permitindo `/`, conferir lead em dois reloads) **só depois do merge da PR**, como nos fechamentos anteriores. A 0152 (com `delete`) fica para o dono.
+- Produção (aplicar 0154 e 0156, ligar `consumption.frontpage` nas fontes com `robots.txt` permitindo `/`, conferir lead em dois reloads) **só depois do merge da PR**, como nos fechamentos anteriores. A 0152 (com `delete`) fica para o dono.
 - Integração com banco: este container não tem a pilha Supabase local; testes de integração rodam no CI.
 
 ## 5. Fora do escopo

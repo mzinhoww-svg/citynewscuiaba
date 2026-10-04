@@ -31,6 +31,7 @@ const sources: SourceRef[] = [
 
 const answer: Extract<AiAnswerData, { kind: "answer" }> = {
   kind: "answer",
+  basis: "multiple_sources",
   confidence: "baixa",
   facts: [{ text: "O plano começa em 6 de outubro.", citations: [0, 1] }],
   inferences: [{ text: "Deve haver ajuste de horários.", citations: [1] }],
@@ -71,6 +72,21 @@ it("resposta não mostra nível de confiança, nem medidor nem aviso de baixa co
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     unmount();
   }
+});
+
+it("fonte única e informação antiga aparecem como aviso, sem rótulo de IA (D-01, D-06)", () => {
+  const single = {
+    ...answer,
+    basis: "single_source" as const,
+    sources: answer.sources.slice(0, 1),
+  };
+  const { container, unmount } = render(<AiAnswer answer={single} />);
+  expect(container.textContent).toMatch(/uma única fonte \(.+\), ainda sem confirmação/);
+  expect(container.textContent).not.toMatch(/\bIA\b|inteligência artificial|gerad[ao] por/i);
+  unmount();
+  render(<AiAnswer answer={{ ...answer, staleSince: "2026-08-01T12:00:00Z" }} />);
+  expect(screen.getByText(/Informação de .+: pode ter mudado/)).toBeInTheDocument();
+  expect(screen.queryByText(/uma única fonte/)).not.toBeInTheDocument();
 });
 
 it("lista de fontes numerada, com alvo das citações e link externo em nova aba", () => {

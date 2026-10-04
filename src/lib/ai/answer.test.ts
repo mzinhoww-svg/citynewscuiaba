@@ -57,8 +57,9 @@ function ctx(candidates: SourceCandidate[], script: ScriptStep[] = []) {
 }
 
 const srcs: SourceRef[] = viaduto.slice(0, 2).map(toSourceRef);
-const ans: AiAnswer = {
+const ans: Extract<AiAnswer, { kind: "answer" }> = {
   kind: "answer",
+  basis: "multiple_sources",
   confidence: "média",
   facts: [{ text: "A obra do viaduto está em andamento.", citations: [0, 1] }],
   inferences: [],
@@ -86,40 +87,103 @@ describe("validateAnswer (spec §5.5)", () => {
       ok: false,
       error: "sponsored_source",
     }));
-  it("uma só fonte independente sustenta resposta (A-134)", () =>
-    expect(validateAnswer(ans, [srcs[0]!, { ...srcs[0]!, id: "x2" }]).ok).toBe(true));
-  it("sem nenhuma fonte não há resposta", () =>
-    expect(validateAnswer(ans, [])).toEqual({ ok: false, error: "too_few_sources" }));
+  it("uma fonte relevante sustenta resposta (D-01); sem fonte nenhuma, não", () => {
+    const one = [srcs[0]!];
+    const single: AiAnswer = {
+      ...ans,
+      basis: "single_source",
+      facts: [{ text: "A obra segue.", citations: [0] }],
+      sources: one,
+    };
+    expect(validateAnswer(single, one).ok).toBe(true);
+    expect(validateAnswer({ ...single, sources: [] }, [])).toEqual({
+      ok: false,
+      error: "too_few_sources",
+    });
+  });
 });
 
 describe("buildAnswer", () => {
-  it("uma só fonte responde, atribuída e com confiança baixa (A-134)", async () => {
-    const one = ctx([cand("s1", "agencia-mt", "Campanha de vacinação nas escolas.")]);
-    const a = await buildAnswer("Resuma saúde pública no Coxipó", one.context);
+  it("uma fonte relevante: responde atribuído e marca fonte única (D-01, cenário A)", async () => {
+    const one = ctx([
+      cand("s1", "agencia-mt", "A campanha de vacinação nas escolas do Coxipó começa na segunda."),
+    ]);
+    const a = await buildAnswer("Quando começa a vacinação nas escolas do Coxipó?", one.context);
     expect(a.kind).toBe("answer");
     if (a.kind !== "answer") return;
+    expect(a.basis).toBe("single_source");
     expect(a.sources).toHaveLength(1);
+    expect(a.sources[0]!.sourceName).toBe("agencia-mt");
     expect(a.confidence).toBe("baixa");
-    for (const f of a.facts) expect(f.citations).toEqual([0]);
-    expect(one.fake.calls).toHaveLength(1);
-    expect(one.fake.lastPrompt).toContain("Há uma só fonte");
+    expect(one.fake.lastSystem).toContain("uma única fonte");
   });
 
-  it("duas matérias do mesmo veículo contam como uma fonte: responde atribuindo", async () => {
+  it("duas matérias do mesmo veículo são uma fonte só, nunca confirmação independente", async () => {
     const same = ctx([
-      cand("a", "mt-agora", "Texto um sobre a feira."),
-      cand("b", "mt-agora", "Texto dois sobre a feira."),
+      cand("a", "mt-agora", "A feira do Porto abre às 6h no sábado."),
+      cand("b", "mt-agora", "A feira do Porto terá 40 barracas no sábado."),
     ]);
-    const a = await buildAnswer("feira", same.context);
+    const a = await buildAnswer("Como vai ser a feira do Porto?", same.context);
     expect(a.kind).toBe("answer");
-    if (a.kind === "answer") expect(a.confidence).toBe("baixa");
-    expect(same.fake.lastPrompt).toContain("Há uma só fonte");
+    if (a.kind === "answer") expect(a.basis).toBe("single_source");
   });
 
-  it("com 2 veículos ou mais o pedido de atribuição única não vai ao modelo", async () => {
-    const c = ctx(viaduto);
-    await buildAnswer("viaduto", c.context);
-    expect(c.fake.lastPrompt).not.toContain("Há uma só fonte");
+  it("várias fontes de veículos diferentes: base múltipla (cenário B)", async () => {
+    const a = await buildAnswer("O que se sabe sobre o viaduto?", ctx(viaduto).context);
+    expect(a.kind === "answer" && a.basis).toBe("multiple_sources");
+  });
+
+  it("fontes irrelevantes: o modelo não acha fato sustentado e o leitor vê o que foi encontrado (cenário C)", async () => {
+    const c = ctx(viaduto, [
+      {
+        output: {
+          facts: [],
+          inferences: [],
+          gaps: ["As fontes não falam de vacinação."],
+          conflicts: [],
+        },
+      },
+    ]);
+    const a = await buildAnswer("Como está a vacinação?", c.context);
+    expect(a.kind).toBe("insufficient");
+    if (a.kind === "insufficient") expect(a.found.length).toBeGreaterThan(0);
+  });
+
+  it("fonte desatualizada: responde e informa a data da informação (cenário D)", async () => {
+    const old = cand("o1", "agencia-mt", "O viaduto da Miguel Sutil terá entrega em março.", {
+      publishedAt: "2026-08-01T12:00:00Z",
+    });
+    const a = await buildAnswer("Quando o viaduto fica pronto?", ctx([old]).context);
+    expect(a.kind).toBe("answer");
+    if (a.kind === "answer") expect(a.staleSince).toBe("2026-08-01T12:00:00Z");
+    const fresh = await buildAnswer("Quando o viaduto fica pronto?", ctx(viaduto).context);
+    if (fresh.kind === "answer") expect(fresh.staleSince).toBeUndefined();
+  });
+
+  it("resposta parcial: fica só o que a fonte sustenta, e a lacuna aparece", async () => {
+    const c = ctx(viaduto.slice(0, 1), [
+      {
+        output: {
+          facts: [{ text: "A obra do viaduto deve terminar em 60 dias.", citations: [0] }],
+          inferences: [],
+          gaps: ["A fonte não informa o custo da obra."],
+          conflicts: [],
+        },
+      },
+    ]);
+    const a = await buildAnswer("Quanto custa e quando termina o viaduto?", c.context);
+    expect(a.kind).toBe("answer");
+    if (a.kind === "answer") {
+      expect(a.facts).toHaveLength(1);
+      expect(a.gaps).toEqual(["A fonte não informa o custo da obra."]);
+    }
+  });
+
+  it("fonte sem URL continua citável e nenhuma URL é inventada", async () => {
+    const noUrl = cand("n1", "agencia-mt", "A feira do Porto abre às 6h no sábado.", { url: "" });
+    const a = await buildAnswer("Que horas abre a feira do Porto?", ctx([noUrl]).context);
+    expect(a.kind).toBe("answer");
+    if (a.kind === "answer") expect(a.sources[0]!.url).toBe("");
   });
 
   it("nada encontrado sugere pauta", async () => {

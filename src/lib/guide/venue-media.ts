@@ -32,7 +32,7 @@ export interface VenuePhotoCandidate {
   pageUrl: string;
   bytes: Uint8Array;
   analysis: ImageAnalysis;
-  /** "Reprodução web · {nome}". */
+  /** "Foto: reprodução web · {nome}". */
   credit: string;
   /** Ativo já guardado para esta origem (nada a copiar de novo). */
   existingAssetId: string | null;
@@ -76,10 +76,10 @@ export interface VenueMediaDeps {
   now: () => Date;
 }
 
-/** Texto do crédito: "Reprodução web · {nome do lugar}". */
+/** Texto do crédito: "Foto: reprodução web · {nome do lugar}" (D-02). */
 export { guideTags };
 
-export const photoCredit = (name: string) => `Reprodução web · ${name}`;
+export const photoCredit = (name: string) => `Foto: reprodução web · ${name}`;
 
 export async function officialPhotoFor(
   v: Pick<Venue, "name" | "website">,

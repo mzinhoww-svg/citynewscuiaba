@@ -60,7 +60,7 @@ const SENSITIVE = [
   "ingest_runs",
   "raw_items",
   "collected_items",
-  // HOT-T1 (0151): posição dos links no topo das fontes; só o service role lê e escreve.
+  // HOT-T1 (0154): posição dos links no topo das fontes; só o service role lê e escreve.
   "front_signals",
   "sources",
   "notifications",

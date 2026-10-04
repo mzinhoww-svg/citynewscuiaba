@@ -1,8 +1,8 @@
 -- HOT-T1 · Sinal de destaque dos portais e pauta quente (spec 2026-10-03-destaques-e-profundidade,
 -- emenda "pauta quente", R8 a R11; plano 2026-10-04-retomada-ui-e-pauta-quente). Aditiva e
 -- idempotente, sem DELETE (o conector Supabase retém DELETE): a limpeza de `front_signals` fica na
--- 0152, aplicada pelo dono. Numeração: o plano previa 0148/0149, já ocupadas na main por
--- 0148_source_activation_without_terms, 0149_single_approver e 0150_reviewer_skips_ai_fallback.
+-- 0155, aplicada pelo dono. Numeração: o plano previa 0148/0149 e depois 0151/0152, todas já
+-- ocupadas na main (0148 a 0153, as três últimas das decisões D-01 a D-06, A-139).
 --
 -- 1. `featured_items.topic_id` (assunto que gerou o pino quente) e `dismissed_at` (admin dispensou
 --    o quente; o mesmo sinal não volta). `kind` ('manual' | 'hot') já existe desde a 0090.
