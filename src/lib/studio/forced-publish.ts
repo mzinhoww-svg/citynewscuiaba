@@ -51,7 +51,7 @@ export const ForcedSelection = z.union([
 ]);
 export type ForcedSelection = z.input<typeof ForcedSelection>;
 
-export type ExcludedReason = "no_body" | "forbidden" | "status";
+export type ExcludedReason = "no_body" | "forbidden" | "status" | "unwritten";
 export type Excluded = { id: string; title: string; reason: ExcludedReason };
 
 export interface Resolved {
@@ -88,6 +88,8 @@ async function resolve(
   const ok: ReviewRiskRow[] = [];
   for (const r of rows) {
     if (r.status !== "in_review") excluded.push({ id: r.id, title: r.title, reason: "status" });
+    // Rascunho montado das fontes (sem redação) nunca vai ao ar, nem "mesmo assim".
+    else if (r.unwritten) excluded.push({ id: r.id, title: r.title, reason: "unwritten" });
     else if (
       !can(session.roles, "article.publish", { section: r.sectionSlug, userId: session.userId })
     )
@@ -124,8 +126,8 @@ const compact = (r: RiskEntry) => ({ key: r.key, count: r.count, example: r.exam
 /**
  * Publica a seleção mesmo assim: grava o pedido (quem, quando, quantas, resumo de riscos) como
  * trabalho, decisão `forced_publish` e auditoria, e enfileira lotes de 50 (passo `forced_publish`).
- * Não publica nada na hora. Sem corpo, sem permissão na editoria ou fora de revisão: ficam de
- * fora e voltam no resultado.
+ * Não publica nada na hora. Sem corpo, sem redação (rascunho das fontes), sem permissão na
+ * editoria ou fora de revisão: ficam de fora e voltam no resultado.
  */
 export async function startForcedPublish(
   raw: unknown,
