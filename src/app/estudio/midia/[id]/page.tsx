@@ -43,6 +43,10 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
     ...(section ? { section } : {}),
     userId: session.userId,
   });
+  const canTakedownAll = can(session.roles, "media.approve", {
+    section: MULTI_SECTION,
+    userId: session.userId,
+  });
   const today = localDateKey(new Date());
   const expired = m.licenseUntil !== null && m.licenseUntil < today;
   const publicArticles = m.articles.filter(
@@ -194,6 +198,7 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
           approve={canApprove ? approveImageAction : undefined}
           block={canApprove ? blockImageAction : undefined}
           takedown={canApprove && m.kind === "reproduction" ? takedownImageAction : undefined}
+          canTakedownAll={canTakedownAll}
           replace={
             replaceable.length
               ? {

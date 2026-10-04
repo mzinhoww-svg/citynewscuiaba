@@ -68,7 +68,7 @@ test.describe("posições com dados de teste", () => {
     topicB = await createTopic(fx, t("Assunto com foto"));
     topicC = await createTopic(fx, t("Assunto sem foto"));
     hero = await createPublished(fx, {
-      title: t("Manchete automática"),
+      title: t("Manchete da home"),
       hoursAgo: 4,
       confidence: 0.9,
       topicId: topicA,
