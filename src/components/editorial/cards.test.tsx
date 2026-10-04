@@ -121,6 +121,34 @@ describe("AggregatedCard", () => {
   });
 });
 
+describe("AggregatedCard · plaqueta única", () => {
+  it("sem rótulo AGREGADO nos dados, ainda mostra 1 plaqueta AGREGADO · fonte e nunca ORIGINAL", () => {
+    const item: AggregatedView = {
+      ...fixtureAgg,
+      labels: {
+        shown: [
+          { kind: "original", text: "ORIGINAL CITYNEWS" },
+          { kind: "ai_summary", text: "RESUMO POR IA" },
+        ],
+        hidden: [],
+      },
+    };
+    const { container } = render(<AggregatedCard item={item} now={now} />);
+    const plaques = screen.getAllByTestId("origin-label");
+    expect(plaques).toHaveLength(1);
+    expect(plaques[0]).toHaveTextContent("AGREGADO");
+    expect(plaques[0]).toHaveTextContent("Folha do Cerrado");
+    expect(container.textContent).not.toMatch(/ORIGINAL CITYNEWS|\bIA\b|intelig|normaliz/i);
+  });
+
+  it("resumo curto em texto simples, sem rótulo", () => {
+    render(<AggregatedCard item={fixtureAgg} now={now} />);
+    const summary = screen.getByText(fixtureAgg.summary!);
+    expect(summary.tagName).toBe("P");
+    expect(summary.className).toMatch(/line-clamp-2/);
+  });
+});
+
 describe("ArticleCard", () => {
   it("card com 4 rótulos de dados mostra no máximo 1 plaqueta e a origem em texto", () => {
     const article: ArticleSummary = {

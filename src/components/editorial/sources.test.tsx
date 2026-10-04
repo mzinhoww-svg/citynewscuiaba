@@ -29,20 +29,56 @@ const fixtureSource: SourceCardData = {
 };
 
 describe("SourceCard", () => {
-  it("SourceCard mostra alcance aproximado, tendência, matérias hoje, atualização e justificativa", () => {
-    render(<SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />);
-    for (const t of [
-      "~18 mil",
-      "estável",
-      "42 hoje",
-      "há 12 min",
-      "Mais acessada em Cuiabá esta semana",
-    ])
-      expect(screen.getByText(new RegExp(t))).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Seguir Folha do Cerrado" })).toHaveAttribute(
+  it("card enxuto: avatar, nome, categoria · local, uma justificativa, Seguir e Ver matérias", () => {
+    const { container } = render(
+      <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,
+    );
+    const card = screen.getByRole("article", { name: "Folha do Cerrado" });
+    expect(container.querySelector("[class*='bg-avatar-']")).not.toBeNull();
+    expect(within(card).getByText("Política · Cuiabá")).toBeInTheDocument();
+    expect(within(card).getAllByText(/^Por que aparece aqui:/)).toHaveLength(1);
+    expect(within(card).getByText("Mais acessada em Cuiabá esta semana")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Seguir Folha do Cerrado" })).toHaveAttribute(
       "aria-pressed",
       "false",
     );
+    expect(
+      within(card).getByRole("link", { name: "Ver matérias de Folha do Cerrado" }),
+    ).toBeInTheDocument();
+    // Sem botão "Ocultar" solto: ocultar vive no menu ⋯.
+    expect(within(card).queryByRole("button", { name: /^Ocultar/ })).not.toBeInTheDocument();
+    expect(within(card).queryByText("Ocultar")).not.toBeInTheDocument();
+  });
+
+  it("estatísticas e selos ficam dentro de <details> 'Detalhes', fechado por padrão", () => {
+    const { container } = render(
+      <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,
+    );
+    const details = container.querySelector("details");
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute("open");
+    expect(details?.querySelector("summary")?.textContent).toMatch(/^Detalhes/);
+    expect(details?.querySelector("summary")?.className).toMatch(/min-h-tap/);
+    for (const t of ["~18 mil", "estável", "42 hoje", "há 12 min"])
+      expect(details).toContainElement(screen.getByText(new RegExp(t)));
+    for (const b of screen.getAllByTestId("source-badge")) expect(details).toContainElement(b);
+  });
+
+  it("menu ⋯ com nome acessível oculta com motivo; Esc fecha e devolve o foco", async () => {
+    const onHide = vi.fn();
+    render(<SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={onHide} now={now} />);
+    const more = screen.getByRole("button", { name: "Mais opções de Folha do Cerrado" });
+    expect(more).toHaveAttribute("aria-haspopup", "menu");
+    expect(more.className).toMatch(/size-tap/);
+    more.focus();
+    await userEvent.keyboard("{Enter}");
+    expect(screen.getByRole("menu", { name: "Por que ocultar Folha do Cerrado?" })).toBeVisible();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(more).toHaveFocus();
+    await userEvent.click(more);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Não tenho interesse" }));
+    expect(onHide).toHaveBeenCalledWith("folha-do-cerrado", "not_interested");
   });
 
   it("nunca mostra contagem exata de leitores", () => {
@@ -74,6 +110,7 @@ describe("SourceCard", () => {
       />,
     );
     const badges = screen.getAllByTestId("source-badge");
+    expect(badges).toHaveLength(2);
     expect(badges.map((b) => b.textContent)).toEqual(["PREFERIDA", "VERIFICADA"]);
     for (const b of badges) expect(b.className).toMatch(/\bborder\b/);
     expect(container.textContent).not.toMatch(/melhor|\btop\b|★|☆|estrela/i);
@@ -130,9 +167,12 @@ describe("SourceCard", () => {
 });
 
 describe("DismissMenu", () => {
-  it("ocultar pede motivo com as 4 opções", async () => {
+  it("ocultar pede motivo com as 4 opções, num menu ⋯ com legenda visível", async () => {
     render(<DismissMenu onChoose={vi.fn()} sourceName="MT Agora" />);
-    await userEvent.click(screen.getByRole("button", { name: "Ocultar MT Agora" }));
+    const trigger = screen.getByRole("button", { name: "Mais opções de MT Agora" });
+    expect(trigger.textContent).toBe("");
+    await userEvent.click(trigger);
+    expect(screen.getByText("Ocultar esta fonte")).toBeVisible();
     for (const t of [
       "Não tenho interesse",
       "Já conheço esta fonte",
@@ -145,7 +185,7 @@ describe("DismissMenu", () => {
   it("escolher um motivo chama onChoose, fecha e devolve o foco", async () => {
     const onChoose = vi.fn();
     render(<DismissMenu onChoose={onChoose} sourceName="MT Agora" />);
-    const trigger = screen.getByRole("button", { name: "Ocultar MT Agora" });
+    const trigger = screen.getByRole("button", { name: "Mais opções de MT Agora" });
     await userEvent.click(trigger);
     await userEvent.click(
       screen.getByRole("menuitem", { name: "Não quero recomendações personalizadas" }),
@@ -157,7 +197,7 @@ describe("DismissMenu", () => {
 
   it("teclado: abre com foco no primeiro item, setas navegam, Esc fecha", async () => {
     render(<DismissMenu onChoose={vi.fn()} sourceName="MT Agora" />);
-    const trigger = screen.getByRole("button", { name: "Ocultar MT Agora" });
+    const trigger = screen.getByRole("button", { name: "Mais opções de MT Agora" });
     trigger.focus();
     await userEvent.keyboard("{Enter}");
     expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -182,7 +222,7 @@ describe("DismissMenu", () => {
         <DismissMenu onChoose={onChoose} sourceName="MT Agora" />
       </div>,
     );
-    await userEvent.click(screen.getByRole("button", { name: "Ocultar MT Agora" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mais opções de MT Agora" }));
     await userEvent.click(screen.getByText("fora"));
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(onChoose).not.toHaveBeenCalled();
@@ -190,7 +230,7 @@ describe("DismissMenu", () => {
 });
 
 describe("SourceRow", () => {
-  it("avatar, nome, justificativa em Azul IA, Seguir de 44 px e ocultar", async () => {
+  it("avatar, nome, justificativa em Azul IA, Seguir de 44 px e ocultar pelo menu ⋯", async () => {
     const onHide = vi.fn();
     render(
       <ul>
@@ -205,7 +245,9 @@ describe("SourceRow", () => {
     expect(within(row).getByRole("button", { name: "Seguir Folha do Cerrado" }).className).toMatch(
       /h-tap/,
     );
-    await userEvent.click(within(row).getByRole("button", { name: "Ocultar Folha do Cerrado" }));
+    await userEvent.click(
+      within(row).getByRole("button", { name: "Mais opções de Folha do Cerrado" }),
+    );
     await userEvent.click(screen.getByRole("menuitem", { name: "Já conheço esta fonte" }));
     expect(onHide).toHaveBeenCalledWith("folha-do-cerrado", "already_know");
   });
