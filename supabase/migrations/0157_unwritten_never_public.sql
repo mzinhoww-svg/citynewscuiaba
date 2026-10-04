@@ -171,8 +171,7 @@ begin
 end
 $$;
 revoke execute on function public.guard_unwritten_publish() from public, anon, authenticated;
-drop trigger if exists articles_guard_unwritten_publish on public.articles;
-create trigger articles_guard_unwritten_publish
+create or replace trigger articles_guard_unwritten_publish
   before insert or update of status on public.articles
   for each row execute function public.guard_unwritten_publish();
 
