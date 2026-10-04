@@ -2,7 +2,7 @@
 // P5-T10 · Contingência (Review Focus 4): pausar a publicação automática no meio de um ciclo
 // manda os itens restantes para revisão; `read_only` bloqueia as Server Actions do Estúdio com
 // mensagem; `ai_enabled` desligada faz a busca com IA recusar; rollback volta à versão
-// aprovada anterior; religar a publicação automática é ação direta do admin (A-122).
+// aprovada anterior; religar a publicação automática é ação direta do admin (A-125).
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ACTION_NAME } from "@/content/pt-BR/contingency";

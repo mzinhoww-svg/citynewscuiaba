@@ -23,6 +23,12 @@ export const STUDIO_TEXT = {
   errorCode: (digest: string) => `Código do erro: ${digest}`,
   retry: "Tentar de novo",
   backToNewsroom: "Voltar para a redação",
+  openMenu: "Abrir menu",
+  closeMenu: "Fechar menu",
+  menuLabel: "Menu",
+  menuTitle: "Menu do Estúdio",
+  menuSearch: "Buscar no menu",
+  menuEmpty: (q: string) => `Nenhuma tela com “${q}”.`,
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {

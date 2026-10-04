@@ -296,12 +296,34 @@ export type {
   SearchHit,
 } from "./studio/featured/types";
 export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
+export { AdsTabsNav } from "./studio/admin/AdsTabsNav";
+export { AdOccupancyPanel } from "./studio/admin/AdOccupancyPanel";
+export { AdReportPanel } from "./studio/admin/AdReportPanel";
+export { BannersPanel, type BannersPanelProps } from "./studio/admin/BannersPanel";
 export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
 export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";
 
+/* Guia Cuiabá (admin) */
+export { ProposalsPanel, type ProposalsPanelProps } from "./studio/guide/ProposalsPanel";
+export { ListsPanel, type ListsPanelProps, type SponsorPayload } from "./studio/guide/ListsPanel";
+export { VenuesPanel, type VenuePayload, type VenuesPanelProps } from "./studio/guide/VenuesPanel";
+export {
+  TemplatesPanel,
+  type TemplatePayload,
+  type TemplatesPanelProps,
+} from "./studio/guide/TemplatesPanel";
+export type {
+  AdminList,
+  AdminListItem,
+  AdminProposal,
+  AdminReport,
+  AdminTemplate,
+  AdminVenue,
+  CategoryOption,
+} from "./studio/guide/types";
 export {
   ReviewerModeCard,
   type ReviewerModeCardProps,

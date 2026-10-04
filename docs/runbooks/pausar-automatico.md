@@ -16,7 +16,7 @@
 
 ## Como voltar ao normal
 
-Religar é ação direta do admin (decisão do dono A-122, 04/10/2026): "Retomar publicação automática" em Control Center → Contingência, ou o interruptor em Interruptores, religa na hora, zera o disjuntor (`publish_breaker_reset`) e grava `flag.set` na auditoria. Não há segunda pessoa; o gatilho `guard_feature_flags` de 0035 foi removido em 0144.
+Religar é ação direta do admin (decisão do dono A-125, 04/10/2026): "Retomar publicação automática" em Control Center → Contingência, ou o interruptor em Interruptores, religa na hora, zera o disjuntor (`publish_breaker_reset`) e grava `flag.set` na auditoria. Não há segunda pessoa; o gatilho `guard_feature_flags` de 0035 foi removido em 0145.
 
 ## Verificação
 

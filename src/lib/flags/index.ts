@@ -14,6 +14,7 @@ export const FLAG_KEYS = [
   "image_reproduction_enabled",
   "source_link_analysis",
   "sponsored_native_enabled",
+  "ads_enabled",
 ] as const;
 export type FlagKey = (typeof FLAG_KEYS)[number];
 

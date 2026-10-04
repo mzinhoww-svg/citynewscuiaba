@@ -29,6 +29,16 @@ const CRON_ROUTES: {
     load: () => import("@/app/api/ingest/agenda/route"),
   },
   {
+    path: "/api/ingest/venues",
+    method: "POST",
+    load: () => import("@/app/api/ingest/venues/route"),
+  },
+  {
+    path: "/api/ingest/guide",
+    method: "POST",
+    load: () => import("@/app/api/ingest/guide/route"),
+  },
+  {
     path: "/api/ingest/review-tick",
     method: "POST",
     load: () => import("@/app/api/ingest/review-tick/route"),
@@ -116,6 +126,7 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/estudio/notificacoes",
     "/api/estudio/notificacoes/ler",
     "/estudio/admin/auditoria/export",
+    "/estudio/admin/publicidade/relatorio/csv",
     "/estudio/admin/notificacoes/historico/exportar",
   ];
   /** Públicas de propósito (leitura anônima, validação própria, limite por IP, Origin, consentimento). */
@@ -130,6 +141,7 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/editoria/[slug]/novas",
     "/api/events",
     "/api/fontes/onboarding",
+    "/api/guia/informar",
     "/api/ics/[slug]",
     "/api/materia/[slug]/atualizacao",
     "/api/media/[id]",
@@ -185,6 +197,7 @@ describe("classificação de todas as rotas de src/app", () => {
       "/api/ads/view",
       "/api/alertas",
       "/api/events",
+      "/api/guia/informar",
       "/api/newsletter",
       "/api/push/receipt",
       "/api/push/subscriptions",

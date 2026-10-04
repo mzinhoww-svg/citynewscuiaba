@@ -63,6 +63,7 @@ export const ICON_MAP = {
   lock: "Lock",
   "log-out": "LogOut",
   mail: "Mail",
+  menu: "Menu",
   "map-pin": "MapPin",
   "message-circle": "MessageCircle",
   moon: "Moon",

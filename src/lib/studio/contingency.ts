@@ -17,7 +17,7 @@ import { StudioFailure, studioAction } from "./action";
  * digitando o nome da ação, com motivo, auditada (`flag.set` / `rules.rollback`) e válida mesmo
  * em modo leitura (senão ninguém sairia dele). Pausar a publicação automática no meio de um
  * ciclo manda os itens restantes para revisão (`contingency_pause_cycle`, Review Focus 4).
- * Religar a publicação automática é ação direta do admin e zera o disjuntor (A-122).
+ * Religar a publicação automática é ação direta do admin e zera o disjuntor (A-125).
  */
 
 const Input = z.object({

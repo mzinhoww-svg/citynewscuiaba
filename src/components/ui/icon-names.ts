@@ -64,6 +64,7 @@ export const ICON_NAMES = [
   "lock",
   "log-out",
   "mail",
+  "menu",
   "map-pin",
   "message-circle",
   "moon",

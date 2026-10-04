@@ -35,6 +35,24 @@ export const PUSH_AUDIT_ACTIONS = [
   "push.resume_applied",
 ] as const;
 
+/** Guia Cuiabá (GUIA-T1, migration 0130): listas, lugares, modelos e reclamações. */
+export const GUIDE_AUDIT_ACTIONS = [
+  "guide.propose",
+  "guide.publish",
+  "guide.suspend",
+  "guide.adjust",
+  "guide.discard",
+  "guide.sponsor",
+  "guide.restore",
+  "guide.refresh",
+  "guide.venue.save",
+  "guide.template.save",
+  "guide.report.decide",
+  "guide.sync",
+] as const;
+
+export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];
+
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
  * lista (`studio_audit_actions()`, migrations 0025/0026/0033/0034); o teste de integração confere as
@@ -112,12 +130,17 @@ export const AUDIT_ACTIONS = [
   "privacy.request.save",
   "security.key.rotate",
   ...PUSH_AUDIT_ACTIONS,
+  ...GUIDE_AUDIT_ACTIONS,
   // Publicação forçada da fila de revisão (REV-T1, 0054)
   "article.force_publish",
   // Destaques por posição (FD-T1, 0090): `featured.manage` vem de ACTIONS
   "featured.pin",
   "featured.unpin",
   "featured.update",
+  // Banners (ADS-T4, 0144)
+  "ads.banner.create",
+  "ads.placement.status",
+  "ads.report.export",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

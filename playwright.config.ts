@@ -42,6 +42,8 @@ const FIXTURE_SPECS = [
   "**/control-sources-detail.spec.ts",
   "**/control-sources-flow.spec.ts",
   "**/roteiro/fontes.spec.ts",
+  // Guia: proposta por link com a página fictícia do portal Sabores MT (GUIA-T5).
+  "**/admin-guide-link.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para
