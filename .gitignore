@@ -1,7 +1,7 @@
 node_modules/
 .next/
-.env*.local
-.env
+.env*
+!.env.example
 coverage/
 playwright-report/
 test-results/
@@ -34,3 +34,6 @@ supabase/.branches/
 
 # capturas de tela e medições locais (pnpm design:shoot)
 /tmp/
+
+# venv do gerador do relatório de segurança
+docs/security-audit/.venv/

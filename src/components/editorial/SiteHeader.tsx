@@ -71,7 +71,7 @@ export function SiteHeader({
         <Link
           href="/"
           aria-label={NAV_TEXT.homeLink}
-          className="-ml-2.5 flex shrink-0 items-center rounded-xs px-2.5"
+          className="-ml-2.5 flex min-h-tap shrink-0 items-center rounded-xs px-2.5"
         >
           {/* Sem área de proteção vertical: o logo (h-10) cabe na linha principal (h-14, e h-tap
               ao rolar) e não invade a fileira de editorias. A folga lateral vem do `px-2.5`. */}

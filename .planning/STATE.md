@@ -5,6 +5,8 @@
 
 > 2026-10-04 · Estúdio no celular (A-122): menu em gaveta com busca, cabeçalho com a tela atual. Testes unitários verdes (2569) e build verde; integração depende da pilha local (não subiu neste container).
 
+> 2026-10-04 · segurança P1 (spec `docs/superpowers/specs/2026-10-04-seguranca-p1-design.md`, branch `claude/saas-security-audit-v2-p5kwh9`): C1-01 `af13470`, C1-03 `59f7d70`, C3-01 `1e26999`, C1-02 `d9c5196` (migration 0143), C4-01 `bb408fd`; main mesclada (`ff028b1`) e CI de destaques/OfflineNotice estabilizado. Verify verde (3513 testes; provedores fora da allowlist cobertos; expurgo C1-02 no projeto de integração). Pendente do dono: B-023 (ligar Confirm email no Supabase de produção; só corrige contas novas). Contas legadas auto-confirmadas e só de magic-link/OTP nunca provam posse: exportação por e-mail null e expurgo mantém newsletter/alertas `email:` (fail-closed aceito); follow-up B-024 (reverificação própria), até lá pedidos LGPD dessas contas são atendidos manualmente. Falta aplicar 0143 em produção.
+
 > 2026-10-04 · ADS-T3 (A-121): 48 peças da casa em `public/ads` e cadastro por `scripts/ads/house-ads.mjs` (78 veiculações). Próxima: ADS-T4.
 
 > 2026-10-04 · ADS-T2 (A-120): campos de banner montados na home, editorias e matéria; tablet com formato próprio, lateral abaixo do "Agora", rodapé fixo empilhado sobre a barra (decisões do dono). Migration 0083. Verify verde (3492 testes); e2e de anúncios 6/6 (desktop, tablet, celular, axe, CLS). Sem peça cadastrada, nada aparece no site.
@@ -64,6 +66,7 @@
 | 2026-09-28 | P2-GATE | 8c4782b | 21 achados corrigidos; 1188 testes; e2e 620; 0020/0021 em produção |
 | 2026-09-28 | P4-GATE | 96a31b4 | 20 achados corrigidos; 1272 testes; e2e 722 |
 | 2026-09-28 | P5-T3, P5-T6 | 8e16648 (branch p5-control) | 1337 testes; e2e 791 — aguardando merge após o painel |
+| 2026-10-04 | SEC-P1 (C1-01..03, C3-01, C4-01) | ver nota do topo | 3509 testes; B-023 pendente do dono |
 
 ## Degradados abertos
 

@@ -240,6 +240,14 @@
   max-width: var(--measure-read);
   text-wrap: pretty;
 }
+/* Coluna de leitura para blocos que não são texto corrido (foto da capa). A medida é em `ch`,
+   que depende da fonte e do tamanho do elemento; sem herdar os mesmos de `reading-body`, a foto
+   saía alguns pixels mais larga ou mais estreita que o texto (WebKit). */
+@utility reading-column {
+  font: var(--type-body-read);
+  font-size: calc(clamp(1.125rem, 1.08rem + 0.25vw, 1.25rem) * var(--reading-scale, 1));
+  max-width: var(--measure-read);
+}
 @utility type-body {
   font: var(--type-body);
 }

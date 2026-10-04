@@ -67,11 +67,11 @@ export function StudioShell({ nav, user, bell, children, className }: StudioShel
           </span>
         </Link>
         <StudioPageTitle nav={nav} className="min-w-0 flex-1 lg:hidden" />
-        <div className="ml-auto flex shrink-0 items-center gap-3">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-3">
           {bell}
-          <p className="hidden flex-col items-end text-right type-meta text-meta lg:flex">
+          <p className="hidden min-w-0 flex-col items-end text-right type-meta text-meta lg:flex">
             <span className="sr-only">{STUDIO_TEXT.signedInAs}</span>
-            <span className="font-semibold text-strong">{user.name}</span>
+            <span className="max-w-full break-all font-semibold text-strong">{user.name}</span>
             <span>{user.role}</span>
           </p>
         </div>

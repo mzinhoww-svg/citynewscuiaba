@@ -23,6 +23,8 @@ export interface ImageApprovalProps {
     options: readonly SelectOption[];
     run: (i: { articleId: string; mediaId: string }) => Promise<ActionReply>;
   };
+  /** Só quem aprova em todas as editorias pode remover todas as reproduções da fonte. */
+  canTakedownAll?: boolean;
   className?: string;
 }
 
@@ -38,6 +40,7 @@ export function ImageApproval({
   block,
   takedown,
   replace,
+  canTakedownAll = false,
   className,
 }: ImageApprovalProps) {
   const router = useRouter();
@@ -149,7 +152,11 @@ export function ImageApproval({
                 start(async () => {
                   const r =
                     mode === "takedown"
-                      ? await takedown!({ id: mediaId, reason, allFromSource })
+                      ? await takedown!({
+                          id: mediaId,
+                          reason,
+                          allFromSource: canTakedownAll && allFromSource,
+                        })
                       : await block!({ id: mediaId, reason });
                   setAsking(null);
                   setReason("");
@@ -195,7 +202,7 @@ export function ImageApproval({
               {asking === "takedown" ? T.takedownHint : T.blockReasonHint}
             </p>
           )}
-          {asking === "takedown" && (
+          {asking === "takedown" && canTakedownAll && (
             <label
               htmlFor={`${uid}-todas`}
               className="flex min-h-tap cursor-pointer items-start gap-3 type-body"
