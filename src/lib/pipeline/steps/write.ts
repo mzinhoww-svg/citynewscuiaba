@@ -1,6 +1,6 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
 import type { BreakerStore } from "../breaker";
-import { copiedRun } from "@/lib/ai/schemas/aggregate-summary";
+import { copiedPhrase } from "@/lib/ai/schemas/aggregate-summary";
 import { WriteSchema, type WriteOutput } from "@/lib/ai/schemas/write";
 import type { AiError } from "@/lib/ai/types";
 import { RULE_RATIONALE } from "@/content/pt-BR/rules";
@@ -118,8 +118,9 @@ export function citedParagraphs(
         citations: [...new Set(p.citations)].filter((c) => ids.has(c)),
       }))
       .filter((p) => p.text.length > 0 && p.citations.length > 0)
-      // Texto de terceiros não é republicado: parágrafo que copia 8 palavras seguidas cai.
-      .filter((p) => !sourceTexts.some((t) => copiedRun(p.text, t) !== null))
+      // Texto de terceiros não é republicado: parágrafo que copia 8 palavras seguidas cai
+      // (nome próprio e número são fato e quebram a sequência).
+      .filter((p) => !sourceTexts.some((t) => copiedPhrase(p.text, t) !== null))
   );
 }
 

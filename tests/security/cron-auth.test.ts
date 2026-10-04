@@ -130,6 +130,10 @@ describe("classificação de todas as rotas de src/app", () => {
   ];
   /** Públicas de propósito (leitura anônima, validação própria, limite por IP, Origin, consentimento). */
   const PUBLIC = [
+    // Anúncio (ADS-T1): contagem agregada sem identificador, deduplicada por hash de 30 min;
+    // o clique é GET de propósito (302 para o anunciante) e nunca quebra se a peça sumir.
+    "/api/ads/click/[id]",
+    "/api/ads/view",
     "/api/alertas",
     "/api/alertas/novidades",
     "/api/ask",
@@ -189,6 +193,7 @@ describe("classificação de todas as rotas de src/app", () => {
 
   it("nenhuma rota de estado aceita GET para gravar (métodos exportados)", () => {
     const writers = [
+      "/api/ads/view",
       "/api/alertas",
       "/api/events",
       "/api/guia/informar",

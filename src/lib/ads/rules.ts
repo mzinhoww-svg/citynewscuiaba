@@ -27,7 +27,8 @@ export interface Campaign {
   endsOn: string;
   allowedSections: string[];
   status: "draft" | "active" | "paused" | "ended";
-  creative: { title: string; href: string; imageUrl?: string; imageAlt?: string };
+  /** Card nativo (`NativeCreative` de `./creative`, sem os campos de rotação). */
+  creative: { kind?: "native"; title: string; href: string; imageUrl?: string; imageAlt?: string };
 }
 
 export interface PlacedCard<T extends AdCard = AdCard> {
