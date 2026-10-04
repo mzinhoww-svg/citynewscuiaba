@@ -51,6 +51,8 @@ export const GUIDE_AUDIT_ACTIONS = [
   "guide.sync",
 ] as const;
 
+export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];
+
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
  * lista (`studio_audit_actions()`, migrations 0025/0026/0033/0034); o teste de integração confere as

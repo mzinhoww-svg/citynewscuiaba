@@ -38,6 +38,8 @@ const SITES: Record<string, string> = {
   // Coletor da Agenda (AGE-T1).
   "cerradovivo.example": "cerrado-vivo",
   "bloqueado-agenda.example": "bloqueado-agenda",
+  // Proposta por link do Guia (GUIA-T4): portal fictício com uma lista de padarias.
+  "saboresmt.example": "sabores-mt",
 };
 
 const EXTRA: Record<string, Record<string, string>> = {
