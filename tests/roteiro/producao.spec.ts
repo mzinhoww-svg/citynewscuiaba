@@ -120,7 +120,7 @@ test("/entrar responde 200 com campos e botão do Google", async ({ page }) => {
   expect(res.status()).toBe(200);
   await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
   await expect(page.locator('input[type="password"]').first()).toBeVisible();
-  const google = page.getByRole("button", { name: /Entrar com (o )?Google/i });
+  const google = page.getByRole("button", { name: /(Continuar|Entrar) com (o )?Google/i });
   await expect(google, "botão do Google ausente").toBeVisible();
   if (await google.isDisabled()) {
     test.info().annotations.push({

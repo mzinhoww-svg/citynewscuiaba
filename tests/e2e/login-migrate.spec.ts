@@ -75,7 +75,7 @@ test("erro de login é claro e há saída sem login", async ({ page }) => {
   await expect(
     page.getByText("Restam 4 tentativas antes do bloqueio de 15 minutos."),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continuar sem login" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continuar sem entrar" })).toBeVisible();
   // O e-mail digitado continua no campo.
   await expect(page.getByLabel("E-mail", { exact: true })).toHaveValue("paulo.rezende@email.com");
 });
@@ -112,7 +112,7 @@ test("criar conta valida os campos e mostra a força da senha em texto", async (
   await expect(page.getByText("Muito curta: use pelo menos 8 caracteres")).toBeVisible();
   await page.getByLabel("Senha", { exact: true }).fill("Abcdefg1!xyz");
   await expect(page.getByText("Força da senha: forte")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Continuar sem login" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continuar sem entrar" })).toBeVisible();
 });
 
 test("anônimo cria conta e migra", async ({ page }) => {
@@ -196,7 +196,7 @@ test("link mágico: mensagem neutra e o link abre a sessão", async ({ page, con
   await page.goto("/entrar?next=%2Fagenda");
   await accountFormReady(page);
   await page.getByLabel("E-mail", { exact: true }).fill(email);
-  await page.getByRole("button", { name: "Receber link por e-mail" }).click();
+  await page.getByRole("button", { name: "Entrar sem senha" }).click();
   await expect(page.getByText(`Se houver conta com ${email}, enviamos um link`)).toBeVisible();
 
   const link = await lastLinkFor(email);
