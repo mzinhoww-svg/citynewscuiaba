@@ -5,3 +5,4 @@ export * from "./resolve";
 export * from "./validate";
 export * from "./used";
 export * from "./cover";
+export * from "./labels";

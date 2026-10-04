@@ -238,6 +238,7 @@ export const STUDIO_ROUTES: StudioRoute[] = [
   { name: "A04 equipes", path: P("/estudio/admin/equipes"), action: "users.manage" },
   { name: "A05 taxonomia", path: P("/estudio/admin/taxonomia"), action: "site.manage" },
   { name: "A06 home e módulos", path: P("/estudio/admin/home"), action: "site.manage" },
+  { name: "A06b destaques", path: P("/estudio/admin/destaques"), action: "featured.manage" },
   { name: "A07 publicidade", path: P("/estudio/admin/publicidade"), action: "site.manage" },
   { name: "A08 SEO", path: P("/estudio/admin/seo"), action: "site.manage" },
   // A09: Helena é coberta em 390, 768 e 1280 px por pwa.spec.ts; aqui entram os outros papéis.
