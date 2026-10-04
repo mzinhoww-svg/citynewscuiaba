@@ -3,7 +3,7 @@
 **Última atualização:** 2026-10-04 — governança autônoma e motor de autonomia (A-150, A-151), branch `claude/citynews-autonomous-governance-4vkloh`.
 **Atualizado por:** Claude Code
 
-> 2026-10-04 · **Governança autônoma (A-150, 0170) e motor de autonomia (A-151, 0171):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** aplicar 0170 e 0171 antes do deploy.
+> 2026-10-04 · **Governança autônoma (A-150, 0170) e motor de autonomia (A-151, 0171):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** 0170 e 0171 pendentes (B-030: o conector do Supabase exige confirmação humana para `drop`/`revoke`; o dono aplica pelo SQL Editor) e deploy da Vercel bloqueado pela cota (B-031).
 
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 
@@ -28,7 +28,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 ## Próximas ações
 
-1. **Produção:** aplicar `0170_autonomous_governance.sql` e `0171_autonomy_engine.sql` (A-150, A-151) antes do deploy do código.
+1. **Produção (B-030, B-031):** dono aplica `drop table if exists public._cn_probe;`, `0170_autonomous_governance.sql` e `0171_autonomy_engine.sql` no SQL Editor; depois merge do PR #47 e deploy quando a cota da Vercel liberar.
 2. **Merge do PR #44** (autorizado) assim que o CI ficar verde; o deploy da Vercel sai do merge.
 3. **Regras v4:** no painel de governança, conferir a simulação de 7 dias e aprovar o pedido `rules:4` (uma pessoa, A-128). Rollback: `rules_rollback()`.
 4. **Medir** por 2 semanas: `editorial_risk_daily` e `verify_lineage_daily`.
