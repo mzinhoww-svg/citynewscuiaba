@@ -100,9 +100,10 @@ test("operador propõe e o pedido aguarda; admin ativa; A-128: admin propõe e a
     await page.getByRole("spinbutton", { name: "Peso de Popularidade" }).fill("0.35");
     await page.getByLabel("Justificativa da proposta").fill(`${MARK}: volta ao padrão`);
     await page.getByRole("button", { name: "Propor pesos" }).click();
-    await expect(page.getByRole("status")).toContainText(
-      /rec-v\d+ em uso\. Fica registrado no histórico\./,
-    );
+    // Duas regiões de status (formulário de proposta e histórico): a da proposta é a que conta.
+    await expect(
+      page.getByRole("status").filter({ hasText: /Fica registrado no histórico/ }),
+    ).toContainText(/rec-v\d+ em uso\. Fica registrado no histórico\./);
     const own = await service()
       .from("rec_weights")
       .select("version, proposed_by, approved_by")
