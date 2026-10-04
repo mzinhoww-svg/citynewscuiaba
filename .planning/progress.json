@@ -885,5 +885,145 @@
       "p1Integration": 14
     },
     "pendingOwner": "B-023"
+  },
+  "uiPublica": {
+    "spec": "docs/superpowers/specs/2026-10-02-ui-publica-design.md",
+    "plan": "docs/superpowers/plans/2026-10-02-ui-publica.md",
+    "retomada": "docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md",
+    "report": "docs/reports/ui-publica.md",
+    "tasks": {
+      "UI-T0": {
+        "status": "done",
+        "commit": "e58f596"
+      },
+      "UI-T1": {
+        "status": "done",
+        "commit": "f58fc36"
+      },
+      "UI-T2": {
+        "status": "done",
+        "commit": "c4f875f"
+      },
+      "UI-T3": {
+        "status": "done",
+        "commit": "dc8ff27"
+      },
+      "UI-T4": {
+        "status": "done",
+        "commit": "ab3d8a2"
+      },
+      "UI-T5": {
+        "status": "done",
+        "commit": "44eef2b"
+      },
+      "UI-T6": {
+        "status": "done",
+        "commit": "55813eb"
+      },
+      "UI-T7": {
+        "status": "done",
+        "commit": "ddd741a"
+      },
+      "UI-T8": {
+        "status": "done",
+        "commit": "d9536a7"
+      },
+      "UI-T9": {
+        "status": "done",
+        "commit": "5aff587"
+      },
+      "UI-T16": {
+        "status": "done",
+        "commit": "85edf5b"
+      },
+      "UI-T10": {
+        "status": "pending"
+      },
+      "UI-T11": {
+        "status": "pending"
+      },
+      "UI-T12": {
+        "status": "pending"
+      },
+      "UI-T13": {
+        "status": "pending"
+      },
+      "UI-T14": {
+        "status": "pending"
+      },
+      "UI-T15": {
+        "status": "pending"
+      }
+    }
+  },
+  "destaques": {
+    "spec": "docs/superpowers/specs/2026-10-03-destaques-e-profundidade-design.md",
+    "plan": "docs/superpowers/plans/2026-10-03-destaques-e-profundidade.md",
+    "retomada": "docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md",
+    "tasks": {
+      "BTN-T1": {
+        "status": "done",
+        "commit": "5493474"
+      },
+      "ART-T1": {
+        "status": "done",
+        "commit": "06dc753"
+      },
+      "FD-T1": {
+        "status": "done",
+        "commit": "c5119e0"
+      },
+      "FD-T2": {
+        "status": "done",
+        "commit": "c5d737d"
+      },
+      "FD-T3": {
+        "status": "done",
+        "commit": "f5090d4"
+      },
+      "FD-T4": {
+        "status": "done",
+        "commit": "7b1102c"
+      },
+      "LAB-T1": {
+        "status": "done",
+        "commit": "5adfd50"
+      },
+      "CONF-T1": {
+        "status": "done",
+        "commit": "2323742"
+      },
+      "TXT-T1": {
+        "status": "superseded",
+        "by": "A-114 (source_text, 0074)"
+      },
+      "TXT-T2": {
+        "status": "superseded",
+        "by": "R41 / AUT-T4 (30 linhas, reescrita, short_reason)"
+      },
+      "TXT-T3": {
+        "status": "superseded",
+        "by": "A-126 (reescrita no ar, 0147)"
+      },
+      "CONF-T2": {
+        "status": "pending"
+      },
+      "CONF-T3": {
+        "status": "pending"
+      },
+      "HOT-T1": {
+        "status": "pending"
+      },
+      "HOT-T2": {
+        "status": "pending"
+      },
+      "HOT-T3": {
+        "status": "pending"
+      },
+      "GATE": {
+        "status": "pending"
+      }
+    },
+    "decision": "A-127"
   }
 }

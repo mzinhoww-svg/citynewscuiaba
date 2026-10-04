@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · retomada (A-127): UI-T12, UI-T13, HOT-T1..T3, UI-T10, UI-T11, UI-T14 e fechamentos em execução pelo plano `docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md` (branch `claude/peaceful-turing-6oaw2k`). TXT-T1..T3 encerradas por outro caminho.
+
 > 2026-10-04 · GUIA-T1..T7 (A-124): Guia Cuiabá integrado à main (PR #34, mergeado e em produção); migrations 0130–0133 aplicadas em produção (30 modelos, 3 crons agendados). Lint e typecheck verdes; testes de integração rodam no CI (sem pilha Supabase local aqui). `TRIPADVISOR_API_KEY` cadastrada (B-025 resolvido); falta só a primeira coleta (cron 03h23 UTC) e a rotação da chave pelo dono.
 
 > 2026-10-04 · ADS-T1 (A-117): campos de banner, seleção, `AdSlot` e contagem (impressão, visualização >= 50% por 1 s, clique), migration 0082. Verify verde (3198 testes). Ainda sem campo montado nas páginas (ADS-T2).
