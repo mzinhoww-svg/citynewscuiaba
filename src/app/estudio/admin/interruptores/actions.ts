@@ -1,9 +1,14 @@
 "use server";
 
 import { ACTION_NAME, type ContingencyAction } from "@/content/pt-BR/contingency";
-import { SWITCH_INFO, SWITCH_TEXT as T, type SWITCH_KEYS } from "@/content/pt-BR/switches";
+import {
+  REVIEWER_TEXT,
+  SWITCH_INFO,
+  SWITCH_TEXT as T,
+  type SWITCH_KEYS,
+} from "@/content/pt-BR/switches";
 import { contingencyCommand } from "@/lib/studio/contingency";
-import { isFreeSwitch, setSwitchCommand } from "@/lib/studio/switches";
+import { isFreeSwitch, setReviewerModeCommand, setSwitchCommand } from "@/lib/studio/switches";
 
 /* Server Action dos Interruptores: livres pela flag; guardados pela Contingência. */
 
@@ -36,4 +41,14 @@ export async function switchAction(i: {
   if (r.value.action === "resume_auto_publish") return { ok: true, message: T.result.pending };
   const changed = "changed" in r.value ? r.value.changed : true;
   return { ok: true, message: changed ? T.result.changed(label, i.value) : T.result.unchanged };
+}
+
+/** Modo do revisor automático (AUT-T6). */
+export async function reviewerModeAction(i: {
+  mode: "off" | "night" | "always";
+  reason: string;
+}): Promise<{ ok: boolean; message: string }> {
+  const r = await setReviewerModeCommand(i);
+  if (!r.ok) return { ok: false, message: r.message ?? T.error.generic };
+  return { ok: true, message: REVIEWER_TEXT.result(REVIEWER_TEXT.modes[i.mode].label) };
 }

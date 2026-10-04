@@ -2,6 +2,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/db/client";
 import { createProductionAi } from "@/lib/ai/server";
 import { createBreakerStore } from "@/lib/db/breaker-store";
+import { createReviewRepo } from "@/lib/db/review-store";
 import { createSupabaseMediaStore } from "@/lib/db/media-store";
 import { createPushSendStore } from "@/lib/db/push-send-store";
 import { pushSender } from "@/lib/push/deps";
@@ -41,6 +42,7 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import type { ReviewTickDeps } from "./steps/auto-reviewer";
 import type { StatusDeps } from "./status";
 import type { TickDeps } from "./tick";
 
@@ -192,5 +194,21 @@ export function defaultStatusDeps(): StatusDeps & { secret: string | undefined }
     queue: pipelineQueue(),
     now: () => new Date(),
     secret: process.env.CRON_SECRET,
+  };
+}
+
+/** Revisor automático (AUT-T6): rota `/api/ingest/review-tick`, a cada 5 min. */
+export function defaultReviewDeps(): ReviewTickDeps {
+  const db = createServiceClient();
+  const ai = createProductionAi();
+  return {
+    repo: createReviewRepo(db),
+    flags: createFlags(db),
+    callAgent: ai.callAgent,
+    promptVersion: () => ai.promptVersion("reviewer"),
+    queue: pipelineQueue(),
+    revalidate: revalidateTags,
+    breaker: createBreakerStore(db),
+    now: () => new Date(),
   };
 }

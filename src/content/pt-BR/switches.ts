@@ -107,3 +107,24 @@ export const SWITCH_TEXT = {
   errorBody: "O banco não respondeu agora. Tente de novo em instantes.",
   retry: "Tentar de novo",
 } as const;
+
+/** Revisor automático (AUT-T6): modo `off`, `night` (20h às 6h em Cuiabá, padrão) ou `always`. */
+export const REVIEWER_TEXT = {
+  title: "Revisor automático",
+  about:
+    "Decide sozinho o que ficou em revisão além do prazo (urgente 10 min, demais 30 min): publicar, manter para uma pessoa ou arquivar, sempre com justificativa na decisão. Nunca decide correção, direito de resposta, denúncia nem mudança de regra, e respeita o orçamento de IA.",
+  modes: {
+    off: {
+      label: "Desligado",
+      about: "Tudo o que vence o prazo fica na fila para uma pessoa decidir.",
+    },
+    night: {
+      label: "À noite",
+      about: "Decide das 20h às 6h, horário de Cuiabá. Padrão.",
+    },
+    always: { label: "Sempre", about: "Decide a qualquer hora do dia." },
+  },
+  choose: (label: string) => `Usar o modo ${label}`,
+  dialogTitle: (label: string) => `Mudar o revisor automático para "${label}"?`,
+  result: (label: string) => `Revisor automático: ${label}.`,
+} as const;

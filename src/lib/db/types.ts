@@ -2753,6 +2753,27 @@ export type Database = {
           },
         ];
       };
+      ai_reviewer_settings: {
+        Row: {
+          id: boolean;
+          mode: string;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: boolean;
+          mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: boolean;
+          mode?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
       review_escalations: {
         Row: {
           article_id: string;
@@ -4029,6 +4050,11 @@ export type Database = {
       consume_role_admin_ref: { Args: { p_ref: string }; Returns: boolean };
       consume_source_critical_approval: { Args: { p_target: string }; Returns: string };
       contingency_pause_cycle: { Args: { p_reason: string }; Returns: number };
+      ai_reviewer_set_mode: { Args: { p_mode: string; p_ctx?: Json }; Returns: string };
+      review_due_articles: {
+        Args: { p_now?: string; p_limit?: number };
+        Returns: { id: string }[];
+      };
       report_escalation_resolve: { Args: { p_id: string; p_note?: string }; Returns: Json };
       publish_counts: { Args: { p_now?: string }; Returns: Json };
       publish_breaker_trip: { Args: { p_reason: string; p_detail?: Json }; Returns: boolean };

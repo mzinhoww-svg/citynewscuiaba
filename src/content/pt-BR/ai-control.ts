@@ -11,6 +11,7 @@ export const AGENT_NAME: Record<string, string> = {
   aggregate_summary: "Resumo do agregado",
   embed: "Embeddings",
   source_profiler: "Perfil de fonte",
+  reviewer: "Revisor automático",
 };
 export const agentName = (id: string) => AGENT_NAME[id] ?? id;
 

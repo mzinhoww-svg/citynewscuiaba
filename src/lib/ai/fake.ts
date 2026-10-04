@@ -134,6 +134,11 @@ const RESPONDERS: Record<string, Responder> = {
     prompt: "",
     alt: "",
   }),
+  // Revisor automático: o provedor falso nunca publica nem arquiva sozinho.
+  reviewer: () => ({
+    verdict: "hold",
+    reason: "Provedor falso: mantida para uma pessoa decidir.",
+  }),
   // Resposta fixa que passa no schema estrito; com `estrutura` enviada, também sugere seletores.
   source_profiler: (data) => ({
     categories: ["cidade"],

@@ -289,3 +289,9 @@ export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExpl
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";
 export { SettingsForm, type SettingsFormProps } from "./studio/admin/SettingsForm";
 export { ConfidenceMeter, type ConfidenceMeterProps } from "./studio/ConfidenceMeter";
+
+export {
+  ReviewerModeCard,
+  type ReviewerModeCardProps,
+  type ReviewerModeValue,
+} from "./studio/ReviewerModeCard";

@@ -410,7 +410,8 @@ export interface TopicBundle {
 /** Registro de decisão automática (`decisions`), com a versão do prompt e o hash da entrada. */
 export interface DecisionRecord {
   objectRef: string;
-  step: StepName;
+  /** `review`: decisão do revisor automático (fora das 20 etapas, AUT-T6). */
+  step: StepName | "review";
   agentId: string | null;
   promptVersion: number | null;
   inputHash: string;
