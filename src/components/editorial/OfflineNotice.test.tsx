@@ -10,19 +10,29 @@ describe("OfflineNotice", () => {
       "Salva às 14h32, pode estar desatualizada.",
     );
     expect(query).toHaveBeenCalledWith(expect.stringMatching(/^\//));
-    // O ouvinte de "online" é ligado num efeito depois do primeiro texto aparecer; sob carga o
-    // evento pode chegar antes dele. Reenviar o evento (idempotente) a cada tentativa torna a
-    // espera determinística, sem afrouxar a asserção.
-    await waitFor(
-      () => {
-        act(() => {
-          window.dispatchEvent(new Event("online"));
-        });
-        expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta.");
-      },
-      { timeout: 5000 },
-    );
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Conexão de volta."));
     expect(screen.getByRole("button", { name: "Atualizar" })).toBeVisible();
+  });
+
+  it("online antes de a consulta ao cache responder termina em Conexão de volta", async () => {
+    let resolve: (at: string | null) => void = () => {};
+    const query = vi.fn().mockReturnValue(
+      new Promise<string | null>((r) => {
+        resolve = r;
+      }),
+    );
+    render(<OfflineNotice now={() => new Date("2026-09-28T20:00:00Z")} query={query} />);
+    act(() => {
+      window.dispatchEvent(new Event("online"));
+    });
+    await act(async () => {
+      resolve("2026-09-28T18:32:00Z");
+      await Promise.resolve();
+    });
+    expect(await screen.findByRole("status")).toHaveTextContent("Conexão de volta.");
   });
 
   it("é uma linha fina, sem a altura de um banner", async () => {
