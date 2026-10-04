@@ -4,7 +4,7 @@ import { useId, type ReactNode } from "react";
 import { UI } from "@/content/pt-BR/ui";
 import { cx } from "../cx";
 import { Icon } from "./Icon";
-import { useModalDialog } from "./useModalDialog";
+import { closedByUser, useModalDialog } from "./useModalDialog";
 
 export interface DrawerProps {
   open: boolean;
@@ -61,7 +61,9 @@ export function Drawer({
     <dialog
       ref={modalRef}
       aria-labelledby={titleId}
-      onClose={onClose}
+      onClose={(e) => {
+        if (closedByUser(e.currentTarget)) onClose();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

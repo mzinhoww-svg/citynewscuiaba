@@ -1,6 +1,6 @@
-import { fireEvent, render, screen } from "@testing-library/react";
-import { useState } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode, useState } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { stubDialog } from "./dialog-test-utils";
 import { Dialog } from "./Dialog";
 
@@ -73,5 +73,38 @@ describe("Dialog", () => {
     );
     expect(calls.showModal).toBe(0);
     expect(screen.getByRole("dialog", { name: "Vitrine" })).toHaveAccessibleDescription("Corpo");
+  });
+});
+
+describe("Dialog no StrictMode (desenvolvimento)", () => {
+  // O React monta, desmonta e remonta o diálogo; o `close()` da desmontagem gera um evento
+  // `close` atrasado que não pode fechar o diálogo recém-reaberto (e2e com `next dev`).
+  it("o evento close da remontagem não chama onClose", async () => {
+    stubDialog({ fireClose: true });
+    const onClose = vi.fn();
+    render(
+      <StrictMode>
+        <Dialog open title="Excluir fonte?" onClose={onClose}>
+          corpo
+        </Dialog>
+      </StrictMode>,
+    );
+    await act(() => new Promise((r) => setTimeout(r, 10)));
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Excluir fonte?" })).toHaveAttribute("open");
+  });
+
+  it("Esc (close do navegador com o diálogo montado) chama onClose uma vez", async () => {
+    stubDialog({ fireClose: true });
+    const onClose = vi.fn();
+    render(
+      <Dialog open title="Excluir fonte?" onClose={onClose}>
+        corpo
+      </Dialog>,
+    );
+    const dialog = screen.getByRole("dialog") as HTMLDialogElement;
+    act(() => dialog.close());
+    await act(() => new Promise((r) => setTimeout(r, 10)));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
