@@ -303,5 +303,6 @@ Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/c
 - **Ordem de leitura no celular:** Favoritos mostra abas e salvos antes do convite de conta; a caixa "Salvos só neste aparelho" vira nota do cabeçalho. Alertas: lista, formulário de criar, nota de avisos e convite, nessa ordem; sem suporte a push, uma linha de nota no lugar do bloco com título.
 - **Guia sem listas:** em vez de uma caixa "em breve", a página traz as 6 matérias mais recentes do Guia.
 - **Newsletters:** sem fio duplo entre o hero e a primeira newsletter.
+- **Fontes em destaque:** abaixo de `sm`, `SourceCard` vira linha com divisória (avatar 40, sem moldura, sem "Ver matérias", que repete o link do nome), como manda DESIGN.md §6; o card volta a partir de `sm`. A personalização perde a caixa e fica entre fios.
 - Fora deste pacote, já no plano `2026-10-04-melhorias-ux-ui-tecnica`: foto quebrada (item 78), ticker sem movimento (13) e "Agora" pulsando só na home (69).
 - **Para o dono:** `/principios-editoriais` diz que crimes, violência, saúde e eleições "nunca são publicados sem revisão humana", o que não vale mais com as regras v3 (CLAUDE.md §5 regra 8). O texto não foi alterado: é compromisso público e a redação é do dono.
