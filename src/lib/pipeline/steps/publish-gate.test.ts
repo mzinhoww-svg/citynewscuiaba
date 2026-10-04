@@ -208,7 +208,9 @@ describe("disjuntor no publish (AUT-T4)", () => {
     const r = await publish(s, id);
     expect(r).toEqual(ok([msg("notify", `article:${id}#breaker_open`)]));
     expect(trip).toHaveBeenCalledWith("hourly", expect.objectContaining({ limits }));
-    expect(s.repo.article(id)).toMatchObject({ status: "in_review" });
+    // Disjuntor não cria fila humana (A-134): rascunho com recuperação automática agendada.
+    expect(s.repo.article(id)).toMatchObject({ status: "draft" });
+    expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "breaker_recovery" });
     expect(s.repo.article(id)!.reviewReason).toMatch(/Disjuntor de publicação aberto/);
     expect(s.repo.audits().at(-1)).toMatchObject({ action: "breaker.trip" });
   });
@@ -228,7 +230,7 @@ describe("disjuntor no publish (AUT-T4)", () => {
     const id = await toPublish(s, SHORT);
     await publish(s, id);
     expect(trip).toHaveBeenCalledWith("reports", expect.anything());
-    expect(s.repo.article(id)!.status).toBe("in_review");
+    expect(s.repo.article(id)!.status).toBe("draft");
     expect(s.repo.audits()).toHaveLength(0);
   });
 

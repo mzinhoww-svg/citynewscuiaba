@@ -71,8 +71,12 @@ export function writeTaskFor(section: string, sensitive = false): string {
 /** Pedido extra quando o texto anterior ficou curto (R41, até 2 refações). */
 const REWRITE_TASK = `REESCRITA: o texto anterior ficou com menos de ${MIN_BODY_LINES} linhas. Refaça usando todos os fatos, números, citações e contexto de TODOS os itens, em 8 a 12 parágrafos curtos; não repita o título nem encha com frases vazias, e não invente nada.`;
 
-/** `topic:<id>`, ou `topic:<id>#rewrite<n>` quando o texto curto volta para ser refeito (R41). */
-const TOPIC_REF = /^topic:([^\s#]+)(?:#rewrite(\d+))?$/;
+/**
+ * `topic:<id>`; `topic:<id>#rewrite<n>` quando o texto curto volta para ser refeito (R41);
+ * `topic:<id>#retry<n>` quando o motor de autonomia agenda nova redação depois de falha da IA
+ * (A-134).
+ */
+const TOPIC_REF = /^topic:([^\s#]+)(?:#(rewrite|retry)(\d+))?$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
 const PIPELINE_OWNED = new Set(["draft", "in_review"]);
 /** Matéria no ar que a reescrita (`#rewrite<n>`) atualiza sem tirar do ar (A-126). */
@@ -167,7 +171,8 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
     const ref = TOPIC_REF.exec(msg.itemRef);
     const topicId = ref?.[1];
     if (!topicId) return err(stepError.invalid(`referência inválida: ${msg.itemRef}`));
-    const rewrite = Number(ref?.[2] ?? 0);
+    const rewrite = ref?.[2] === "rewrite" ? Number(ref?.[3] ?? 0) : 0;
+    const retry = ref?.[2] === "retry" ? Number(ref?.[3] ?? 0) : 0;
     const topicRef = `topic:${topicId}`;
     const ctx = await deps.repo.draftContext(topicId);
     if (!ctx) return err(stepError.notFound(`assunto ${topicId} não encontrado`));
@@ -189,7 +194,13 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       .map((i) => i.id)
       .sort()
       .join(",");
-    const hash = inputHash("write", version, revision, rewrite);
+    const hash = inputHash(
+      "write",
+      version,
+      revision,
+      rewrite,
+      ...(retry > 0 ? [`retry${retry}`] : []),
+    );
     if (existing && (await deps.repo.findDecision(topicRef, "summarize", hash)))
       return ok([nextMessage(msg, "image", `article:${existing.id}`)]);
 
@@ -246,6 +257,10 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
 
     // No ar, só troca o texto quando a redação deu certo: falha nunca substitui o que está publicado.
     if (live && failure !== null) return ok([]);
+    // Reescrita de rascunho que falhou mantém o texto que já existe (nunca troca um texto da IA
+    // pela lista de trechos) e segue: o portão de completude publica curto com o motivo.
+    if (rewrite > 0 && existing && failure !== null)
+      return ok([nextMessage(msg, "image", `article:${existing.id}`)]);
 
     const reason =
       failure === null
@@ -267,7 +282,9 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       aiSummary: draft.summary,
       confidence: ctx.topic.confidence,
       confidenceScore: ctx.topic.confidenceScore,
-      status: failure === null ? "draft" : "in_review",
+      // Rascunho sem IA não vai para a fila humana (A-134): fica rascunho e o motor de autonomia
+      // agenda nova redação; esgotada, quarentena (o texto de trechos nunca publica, regra 4).
+      status: "draft",
       aiFallback: failure !== null,
       reviewReason: reason,
       sources: ctx.items.map((i) => ({ itemId: i.id, role: roleOf(ctx, i) })),

@@ -126,7 +126,12 @@ describe("playground (provedor falso)", () => {
 
   it("resposta fora do schema vira inválida com a saída crua visível", async () => {
     const { callAgent, provider } = setup();
-    provider.script([{ text: '{"section": 42}' }, { text: '{"section": 42}' }]);
+    // Principal, reserva e prompt alternativo (degrau 3) fora do formato.
+    provider.script([
+      { text: '{"section": 42}' },
+      { text: '{"section": 42}' },
+      { text: '{"section": 42}' },
+    ]);
     const r = await playgroundRun(
       { agentId: "classify", task: "Classifique.", data: [{ id: "a", text: "Texto simples." }] },
       { callAgent, calls: () => [] },

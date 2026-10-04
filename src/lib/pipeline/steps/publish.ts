@@ -1,4 +1,4 @@
-import { RULE_RATIONALE } from "@/content/pt-BR/rules";
+import { AUTONOMY_TEXT, RULE_RATIONALE } from "@/content/pt-BR/rules";
 import { err, ok, type Result } from "@/lib/result";
 import type { RuleSet } from "@/lib/rules";
 import type { DecisionContext } from "../ports";
@@ -61,10 +61,16 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
     const { rules } = resolveRules(loaded);
 
     let blocked: string | null = null;
-    if (!last || (route !== "publish" && route !== "publish_notify") || !sameRevision)
+    let stale = false;
+    let flagOff = false;
+    if (!last || (route !== "publish" && route !== "publish_notify") || !sameRevision) {
       blocked = RULE_RATIONALE.staleDecision();
-    else if (neverAuto(ctx, rules)) blocked = RULE_RATIONALE.neverAuto();
-    else if (!autoPublish || readOnly) blocked = RULE_RATIONALE.autoPublishOff();
+      stale = true;
+    } else if (neverAuto(ctx, rules)) blocked = RULE_RATIONALE.neverAuto();
+    else if (!autoPublish || readOnly) {
+      blocked = RULE_RATIONALE.autoPublishOff();
+      flagOff = true;
+    }
 
     // A decisão vem antes da mudança de status: uma queda no meio nunca deixa matéria publicada
     // (ou retida) sem o registro do porquê; a nova tentativa grava de novo e muda o status.
@@ -83,6 +89,44 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
       await deps.repo.setStatus(articleId, { status: "in_review", reviewReason: why });
       return ok([nextMessage(msg, "notify", `${msg.itemRef}#${notify}`)]);
     };
+    // Sem fila humana para o que o sistema resolve (A-134): decisão desatualizada volta às regras;
+    // publicação desligada e disjuntor aberto deixam rascunho com próxima ação e prazo.
+    const defer = async (
+      why: string,
+      nextAction: "await_auto_publish" | "breaker_recovery",
+      minutes: number,
+      extra: Record<string, unknown>,
+      notify?: string,
+    ) => {
+      await deps.repo.recordDecision({
+        objectRef: msg.itemRef,
+        step: "publish",
+        agentId: null,
+        promptVersion: null,
+        rulesVersion: last?.rulesVersion ?? null,
+        inputHash: inputHash("publish", ctx.version, "deferred", nextAction),
+        output: {
+          published: false,
+          route: route ?? null,
+          autoPublish,
+          readOnly,
+          nextAction,
+          ...extra,
+        },
+        rationale: why,
+        recommended: "publish",
+      });
+      await deps.repo.setStatus(articleId, {
+        status: "draft",
+        reviewReason: why,
+        nextAction,
+        nextAttemptAt: new Date(deps.now().getTime() + minutes * 60_000).toISOString(),
+      });
+      return ok(notify ? [nextMessage(msg, "notify", `${msg.itemRef}#${notify}`)] : []);
+    };
+    // As regras só mandam publicar com decisão da revisão atual: aqui não há laço.
+    if (stale) return ok([nextMessage(msg, "rules", msg.itemRef)]);
+    if (flagOff) return defer(AUTONOMY_TEXT.awaitAutoPublish(), "await_auto_publish", 30, {});
     if (blocked) return hold(blocked, {});
 
     // Disjuntor de volume e de erro (AUT-T4, A8): não é freio editorial, é proteção contra erro.
@@ -99,8 +143,10 @@ export function createPublishStep(deps: PublishStepDeps): StepHandler {
             objectRef: msg.itemRef,
             details: { reason: b.reason, ...detail },
           });
-        return hold(
-          RULE_RATIONALE.breakerOpen(breakerText(b.reason, snap.limits)),
+        return defer(
+          AUTONOMY_TEXT.breakerHold(breakerText(b.reason, snap.limits)),
+          "breaker_recovery",
+          30,
           { breaker: b.reason },
           "breaker_open",
         );

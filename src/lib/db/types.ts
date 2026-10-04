@@ -808,9 +808,11 @@ export type Database = {
           ai_summary_reviewed_by: string | null;
           assignee_id: string | null;
           author_id: string | null;
+          autonomy_level: string | null;
           body: NonNullable<Json>;
           confidence: Database["public"]["Enums"]["confidence_level"];
           confidence_score: number;
+          degraded_reason: string | null;
           dek: string;
           due_at: string | null;
           embedding: string | null;
@@ -821,10 +823,14 @@ export type Database = {
           national_commotion: boolean;
           neighborhoods: string[];
           news_scope: string | null;
+          next_action: string | null;
+          next_attempt_at: string | null;
           publish_destinations: string[];
-          short_reason: string | null;
           publish_mode: Database["public"]["Enums"]["publish_mode"] | null;
           published_at: string | null;
+          quarantine_reason: string | null;
+          quarantined_at: string | null;
+          reprocess_count: number;
           review_banner: boolean;
           review_reason: string | null;
           rules_version: number | null;
@@ -832,6 +838,7 @@ export type Database = {
           section_slug: string;
           seo_description: string | null;
           seo_title: string | null;
+          short_reason: string | null;
           slug: string;
           sponsored: boolean;
           status: Database["public"]["Enums"]["article_status"];
@@ -850,9 +857,11 @@ export type Database = {
           ai_summary_reviewed_by?: string | null;
           assignee_id?: string | null;
           author_id?: string | null;
+          autonomy_level?: string | null;
           body: NonNullable<Json>;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
+          degraded_reason?: string | null;
           dek: string;
           due_at?: string | null;
           embedding?: string | null;
@@ -863,10 +872,14 @@ export type Database = {
           national_commotion?: boolean;
           neighborhoods?: string[];
           news_scope?: string | null;
+          next_action?: string | null;
+          next_attempt_at?: string | null;
           publish_destinations?: string[];
-          short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          quarantine_reason?: string | null;
+          quarantined_at?: string | null;
+          reprocess_count?: number;
           review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
@@ -874,6 +887,7 @@ export type Database = {
           section_slug: string;
           seo_description?: string | null;
           seo_title?: string | null;
+          short_reason?: string | null;
           slug: string;
           sponsored?: boolean;
           status?: Database["public"]["Enums"]["article_status"];
@@ -891,9 +905,11 @@ export type Database = {
           ai_summary_reviewed_by?: string | null;
           assignee_id?: string | null;
           author_id?: string | null;
+          autonomy_level?: string | null;
           body?: NonNullable<Json>;
           confidence?: Database["public"]["Enums"]["confidence_level"];
           confidence_score?: number;
+          degraded_reason?: string | null;
           dek?: string;
           due_at?: string | null;
           embedding?: string | null;
@@ -904,10 +920,14 @@ export type Database = {
           national_commotion?: boolean;
           neighborhoods?: string[];
           news_scope?: string | null;
+          next_action?: string | null;
+          next_attempt_at?: string | null;
           publish_destinations?: string[];
-          short_reason?: string | null;
           publish_mode?: Database["public"]["Enums"]["publish_mode"] | null;
           published_at?: string | null;
+          quarantine_reason?: string | null;
+          quarantined_at?: string | null;
+          reprocess_count?: number;
           review_banner?: boolean;
           review_reason?: string | null;
           rules_version?: number | null;
@@ -915,6 +935,7 @@ export type Database = {
           section_slug?: string;
           seo_description?: string | null;
           seo_title?: string | null;
+          short_reason?: string | null;
           slug?: string;
           sponsored?: boolean;
           status?: Database["public"]["Enums"]["article_status"];
@@ -2212,40 +2233,94 @@ export type Database = {
           },
         ];
       };
+      pipeline_incidents: {
+        Row: {
+          action: string | null;
+          count: number;
+          diagnosis: string | null;
+          error_class: string;
+          first_seen: string;
+          id: number;
+          last_seen: string;
+          resolved_at: string | null;
+          signature: string;
+          status: string;
+          step: string;
+        };
+        Insert: {
+          action?: string | null;
+          count?: number;
+          diagnosis?: string | null;
+          error_class: string;
+          first_seen?: string;
+          id?: number;
+          last_seen?: string;
+          resolved_at?: string | null;
+          signature: string;
+          status?: string;
+          step: string;
+        };
+        Update: {
+          action?: string | null;
+          count?: number;
+          diagnosis?: string | null;
+          error_class?: string;
+          first_seen?: string;
+          id?: number;
+          last_seen?: string;
+          resolved_at?: string | null;
+          signature?: string;
+          status?: string;
+          step?: string;
+        };
+        Relationships: [];
+      };
       pipeline_quarantine: {
         Row: {
+          auto_retries: number;
           dedupe_key: string;
           error: string;
           id: number;
           message: NonNullable<Json>;
           msg_id: number;
+          next_retry_at: string | null;
           quarantined_at: string;
           queue: string;
           read_ct: number;
+          reason_class: string | null;
+          recommendation: string | null;
           resolved_at: string | null;
           resolved_by: string | null;
         };
         Insert: {
+          auto_retries?: number;
           dedupe_key: string;
           error: string;
           id?: number;
           message: NonNullable<Json>;
           msg_id: number;
+          next_retry_at?: string | null;
           quarantined_at?: string;
           queue: string;
           read_ct: number;
+          reason_class?: string | null;
+          recommendation?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
         };
         Update: {
+          auto_retries?: number;
           dedupe_key?: string;
           error?: string;
           id?: number;
           message?: NonNullable<Json>;
           msg_id?: number;
+          next_retry_at?: string | null;
           quarantined_at?: string;
           queue?: string;
           read_ct?: number;
+          reason_class?: string | null;
+          recommendation?: string | null;
           resolved_at?: string | null;
           resolved_by?: string | null;
         };
@@ -2743,13 +2818,16 @@ export type Database = {
       publish_breaker: {
         Row: {
           ai_failures_per_hour: number;
+          auto_resume: boolean;
+          cooldown_minutes: number;
           daily_limit: number;
+          disabled_by_trip: boolean;
           hourly_limit: number;
           id: boolean;
           reports_per_hour: number;
           reset_at: string | null;
           reset_by: string | null;
-          trip_detail: Json;
+          trip_detail: NonNullable<Json>;
           trip_reason: string | null;
           tripped_at: string | null;
           updated_at: string;
@@ -2757,13 +2835,16 @@ export type Database = {
         };
         Insert: {
           ai_failures_per_hour?: number;
+          auto_resume?: boolean;
+          cooldown_minutes?: number;
           daily_limit?: number;
+          disabled_by_trip?: boolean;
           hourly_limit?: number;
           id?: boolean;
           reports_per_hour?: number;
           reset_at?: string | null;
           reset_by?: string | null;
-          trip_detail?: Json;
+          trip_detail?: NonNullable<Json>;
           trip_reason?: string | null;
           tripped_at?: string | null;
           updated_at?: string;
@@ -2771,13 +2852,16 @@ export type Database = {
         };
         Update: {
           ai_failures_per_hour?: number;
+          auto_resume?: boolean;
+          cooldown_minutes?: number;
           daily_limit?: number;
+          disabled_by_trip?: boolean;
           hourly_limit?: number;
           id?: boolean;
           reports_per_hour?: number;
           reset_at?: string | null;
           reset_by?: string | null;
-          trip_detail?: Json;
+          trip_detail?: NonNullable<Json>;
           trip_reason?: string | null;
           tripped_at?: string | null;
           updated_at?: string;
@@ -5915,6 +5999,23 @@ export type Database = {
         Args: { p_image: string; p_republish: string; p_status: string; p_terms: string };
         Returns: string;
       };
+      autonomy_claim_article: { Args: { p_id: string }; Returns: undefined };
+      autonomy_due_articles: {
+        Args: { p_limit?: number; p_now?: string };
+        Returns: {
+          ai_fallback: boolean;
+          id: string;
+          next_action: string;
+          reprocess_count: number;
+          topic_id: string;
+        }[];
+      };
+      autonomy_hold_cycle: {
+        Args: { p_minutes?: number; p_next_action: string; p_reason: string };
+        Returns: number;
+      };
+      autonomy_queue_health: { Args: { p_now?: string }; Returns: Json };
+      publish_breaker_auto_recover: { Args: { p_now?: string }; Returns: Json };
       guide_report_venue: {
         Args: { p_contact?: string; p_reason: string; p_venue: string };
         Returns: Json;

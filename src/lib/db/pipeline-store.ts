@@ -1322,9 +1322,38 @@ export function createPublishRepo(db: DbClient): PublishRepo {
           ...(p.nationalCommotion !== undefined ? { national_commotion: p.nationalCommotion } : {}),
           ...(p.urgent !== undefined ? { urgent: p.urgent } : {}),
           ...(p.shortReason !== undefined ? { short_reason: p.shortReason } : {}),
+          ...(p.nextAction !== undefined ? { next_action: p.nextAction } : {}),
+          ...(p.nextAttemptAt !== undefined ? { next_attempt_at: p.nextAttemptAt } : {}),
+          ...(p.reprocessCount !== undefined ? { reprocess_count: p.reprocessCount } : {}),
+          ...(p.quarantinedAt !== undefined ? { quarantined_at: p.quarantinedAt } : {}),
+          ...(p.quarantineReason !== undefined ? { quarantine_reason: p.quarantineReason } : {}),
+          ...(p.autonomyLevel !== undefined ? { autonomy_level: p.autonomyLevel } : {}),
+          ...(p.degradedReason !== undefined ? { degraded_reason: p.degradedReason } : {}),
         })
         .eq("id", articleId);
       check("setStatus", error);
+    },
+
+    async autonomyState(articleId) {
+      const { data, error } = await db
+        .from("articles")
+        .select("reprocess_count, topic_id, updated_at")
+        .eq("id", articleId)
+        .maybeSingle();
+      check("autonomyState", error);
+      if (!data) return null;
+      let oldest: string | null = data.updated_at;
+      if (data.topic_id) {
+        const { data: items } = await db
+          .from("collected_items")
+          .select("published_at")
+          .eq("topic_id", data.topic_id)
+          .not("published_at", "is", null)
+          .order("published_at", { ascending: true })
+          .limit(1);
+        oldest = items?.[0]?.published_at ?? oldest;
+      }
+      return { reprocessCount: data.reprocess_count ?? 0, oldestItemAt: oldest };
     },
 
     async articleText(articleId) {

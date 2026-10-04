@@ -9,6 +9,7 @@ import type {
   NotificationInput,
   PublishRepo,
   SourceReliability,
+  StatusPatch,
 } from "../ports";
 
 export interface MemoryTopicItem {
@@ -57,6 +58,17 @@ interface ArticleRow {
   cover: CoverState;
   coverAlt: string | null;
   shortReason: ShortReason | null;
+  /** Estado do motor de autonomia (A-134). */
+  autonomy: Pick<
+    StatusPatch,
+    | "nextAction"
+    | "nextAttemptAt"
+    | "reprocessCount"
+    | "quarantinedAt"
+    | "quarantineReason"
+    | "autonomyLevel"
+    | "degradedReason"
+  >;
   checklistPatch: ChecklistPatch | null;
   imageApproved: boolean;
   indexed: { embedding: number[] | null } | null;
@@ -158,6 +170,7 @@ export function createMemoryPublishRepo(
           cover: "typographic",
           coverAlt: null,
           shortReason: null,
+          autonomy: {},
           checklistPatch: null,
           imageApproved: false,
           indexed: null,
@@ -224,6 +237,21 @@ export function createMemoryPublishRepo(
       if (p.nationalCommotion !== undefined) a.nationalCommotion = p.nationalCommotion;
       if (p.urgent !== undefined) a.urgent = p.urgent;
       if (p.shortReason !== undefined) a.shortReason = p.shortReason;
+      for (const k of [
+        "nextAction",
+        "nextAttemptAt",
+        "reprocessCount",
+        "quarantinedAt",
+        "quarantineReason",
+        "autonomyLevel",
+        "degradedReason",
+      ] as const)
+        if (p[k] !== undefined) a.autonomy = { ...a.autonomy, [k]: p[k] };
+    },
+    async autonomyState(articleId) {
+      const a = articles.get(articleId);
+      if (!a) return null;
+      return { reprocessCount: a.autonomy.reprocessCount ?? 0, oldestItemAt: null };
     },
     async checkInput(articleId) {
       const a = articles.get(articleId);

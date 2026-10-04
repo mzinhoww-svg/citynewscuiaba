@@ -251,8 +251,9 @@ describe("runReviewTick", () => {
 
   it("veredito inválido do modelo vira manter, sem agente na decisão", async () => {
     const s = await setup();
-    // Principal e reserva respondem fora do formato.
+    // Principal, reserva e prompt alternativo (degrau 3) respondem fora do formato.
     s.fake.script([
+      { output: { verdict: "talvez", reason: "x" } },
       { output: { verdict: "talvez", reason: "x" } },
       { output: { verdict: "talvez", reason: "x" } },
     ]);

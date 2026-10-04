@@ -237,12 +237,12 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
     expect(log?.[0]?.details).toMatchObject({ reason: "Teste", movedToReview: 1 });
   });
 
-  it("a etapa 15 do item ainda não decidido passa a rotear para revisão", async () => {
+  it("a etapa 15 do item ainda não decidido espera o religamento em rascunho, sem fila humana (A-134)", async () => {
     const h = handlers();
     const r = await h.rules!(msg("rules", articles.pending));
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value.map((m) => m.step)).toEqual(["notify"]);
-    expect(await article(articles.pending)).toMatchObject({ status: "in_review" });
+    if (r.ok) expect(r.value).toEqual([]);
+    expect(await article(articles.pending)).toMatchObject({ status: "draft" });
     const { data } = await service
       .from("decisions")
       .select("output")
@@ -250,15 +250,22 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
       .eq("step", "rules")
       .order("created_at", { ascending: false })
       .limit(1);
-    expect(data?.[0]?.output).toMatchObject({ route: "review", rule: "auto_publish_off" });
+    expect(data?.[0]?.output).toMatchObject({
+      route: "hold",
+      rule: "auto_publish_off",
+      autonomy: expect.objectContaining({
+        decision: "REPROCESS",
+        nextAction: "await_auto_publish",
+      }),
+    });
   });
 
-  it("a etapa 17 do item já decidido não publica (fica em revisão)", async () => {
+  it("a etapa 17 do item já decidido não publica (fica em rascunho esperando o religamento)", async () => {
     const h = handlers();
     const r = await h.publish!(msg("publish", articles.decided));
     expect(r.ok).toBe(true);
-    if (r.ok) expect(r.value.map((m) => m.step)).toEqual(["notify"]);
-    expect(await article(articles.decided)).toMatchObject({ status: "in_review" });
+    if (r.ok) expect(r.value).toEqual([]);
+    expect(await article(articles.decided)).toMatchObject({ status: "draft" });
   });
 
   it("pausar de novo é idempotente; religar é direto do admin e zera o disjuntor", async () => {
@@ -308,7 +315,7 @@ describe("contingência: modo leitura e busca com IA", () => {
       publishArticle({ id: articles.decided, when: "now", destinations: ["home"] }),
     );
     expect(blocked).toEqual({ ok: false, error: "conflict", message: READ_ONLY_MESSAGE });
-    expect(await article(articles.decided)).toMatchObject({ status: "in_review" });
+    expect(await article(articles.decided)).toMatchObject({ status: "draft" });
     const off = await run("read_only_off");
     expect(off).toMatchObject({ ok: true, value: { changed: true } });
     expect(await flag("read_only")).toBe(false);

@@ -149,6 +149,8 @@ export const AUDIT_ACTIONS = [
   "governance.expired",
   "governance.auto_rollback",
   "governance.apply",
+  // Disjuntor que se recupera sozinho (A-134, 0152)
+  "breaker.auto_recover",
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

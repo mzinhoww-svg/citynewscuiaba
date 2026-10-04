@@ -16,7 +16,8 @@ import {
   type RuleSet,
 } from "@/lib/rules";
 import { resolveRules } from "@/lib/rules/load";
-import type { DecisionContext } from "../ports";
+import { decideAutonomy, type EngineDecision } from "@/lib/rules/engine";
+import type { DecisionContext, StatusPatch } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import { inputHash } from "./understanding";
 import type { PublishStepDeps } from "./write";
@@ -215,7 +216,25 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
       nationalCommotion: hasNationalCommotion(ctx),
       ...(demote ? { urgent: false } : {}),
     });
-    const d = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
+    const d0 = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
+    // Motor de autonomia (A-134): qualidade, confiança, risco, nível A0–A4 e a saída. Só a exceção
+    // real vai para pessoa; o resto publica, reprocessa com espera ou vai para quarentena.
+    const state = await deps.repo.autonomyState(articleId);
+    const now = deps.now();
+    const ageHours = state?.oldestItemAt
+      ? Math.max(0, (now.getTime() - Date.parse(state.oldestItemAt)) / 3_600_000)
+      : null;
+    const reprocessCount = state?.reprocessCount ?? 0;
+    const engine = decideAutonomy({
+      rule: d0.rule,
+      route: d0.route,
+      candidate: candidateOf(ctx),
+      aiFallback: ctx.aiFallback,
+      reprocessCount,
+      ageHours,
+      rationale: d0.rationale,
+    });
+    const d = withEngine(d0, engine);
     const hash = inputHash(
       "rules",
       ctx.version,
@@ -224,6 +243,7 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
       String(flags.readOnly),
       String(ctx.imageApproved),
       loaded.ok ? "" : loaded.error,
+      `r${reprocessCount}`,
     );
 
     if (!(await deps.repo.findDecision(msg.itemRef, "rules", hash))) {
@@ -244,25 +264,109 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
           candidate: { ...candidate },
           flags,
           rulesError: loaded.ok ? null : loaded.error,
+          autonomy: {
+            decision: engine.outcome,
+            level: engine.level,
+            policy: "autonomy",
+            policyVersion: engine.policyVersion,
+            qualityScore: engine.qualityScore,
+            confidenceScore: engine.confidenceScore,
+            riskScore: engine.riskScore,
+            reason: engine.reason,
+            nextAction: engine.nextAction,
+            nextAttemptInMin: engine.nextAttemptInMin,
+            recommendation: engine.recommendation,
+            reprocessCount,
+            actor: "system",
+          },
         },
         rationale: d.rationale,
         recommended: d.recommended,
       });
-      if (d.route === "review")
-        await deps.repo.setStatus(articleId, {
-          status: "in_review",
-          rulesVersion: d.rulesVersion,
-          reviewReason: d.rationale,
-        });
-      else if (d.route === "hold")
-        await deps.repo.setStatus(articleId, {
-          status: "draft",
-          rulesVersion: d.rulesVersion,
-          reviewReason: d.rationale,
-        });
+      await deps.repo.setStatus(articleId, statusFor(engine, d, now, reprocessCount));
     }
 
     if (isPublish(d)) return ok([nextMessage(msg, "publish", msg.itemRef)]);
+    // Reprocesso por causa técnica (IA ou regras fora) avisa o Control Center como incidente; não
+    // é pedido de aprovação. Os demais reprocessos seguem em silêncio, com prazo.
+    if (engine.outcome === "REPROCESS")
+      return d.rule === "ai_unavailable" || d.rule === "rules_unavailable"
+        ? ok([nextMessage(msg, "notify", `${msg.itemRef}#${d.rule}`)])
+        : ok([]);
+    if (engine.outcome === "QUARANTINE")
+      return ok([nextMessage(msg, "notify", `${msg.itemRef}#quarantine`)]);
     return ok([nextMessage(msg, "notify", `${msg.itemRef}#${notifyKindFor(d)}`)]);
   };
+}
+
+/** Rota final depois do motor: publicar (inclusive degradado), exceção humana ou não seguir. A
+ * regra que decidiu continua registrada; a saída do motor vai em `output.autonomy`. */
+export function withEngine(d: RouteDecision, e: EngineDecision): RouteDecision {
+  if (e.outcome === "PUBLISH" || e.outcome === "PUBLISH_DEGRADED")
+    return {
+      ...d,
+      route: d.route === "publish_notify" ? "publish_notify" : "publish",
+      rationale: isPublish(d) ? d.rationale : e.reason,
+    };
+  if (e.outcome === "HOLD") return d;
+  if (e.outcome === "HUMAN_EXCEPTION") return { ...d, route: "review" };
+  return { ...d, route: "hold", rationale: e.reason };
+}
+
+/** Status da matéria para cada saída do motor (A-134). */
+export function statusFor(
+  e: EngineDecision,
+  d: RouteDecision,
+  now: Date,
+  reprocessCount: number,
+): StatusPatch {
+  const base = { rulesVersion: d.rulesVersion, autonomyLevel: e.level } as const;
+  switch (e.outcome) {
+    case "PUBLISH":
+    case "PUBLISH_DEGRADED":
+      return {
+        ...base,
+        status: "draft",
+        nextAction: null,
+        nextAttemptAt: null,
+        degradedReason: e.outcome === "PUBLISH_DEGRADED" ? e.reason : null,
+      };
+    case "REPROCESS":
+      return {
+        ...base,
+        status: "draft",
+        reviewReason: e.reason,
+        nextAction: e.nextAction,
+        nextAttemptAt: new Date(now.getTime() + (e.nextAttemptInMin ?? 30) * 60_000).toISOString(),
+        reprocessCount: e.nextAction === "await_auto_publish" ? reprocessCount : reprocessCount + 1,
+      };
+    case "QUARANTINE":
+      return {
+        ...base,
+        status: "draft",
+        reviewReason: e.reason,
+        nextAction: null,
+        nextAttemptAt: null,
+        quarantinedAt: now.toISOString(),
+        quarantineReason: e.recommendation
+          ? `${e.reason} Recomendação: ${e.recommendation}.`
+          : e.reason,
+      };
+    case "HUMAN_EXCEPTION":
+      return {
+        ...base,
+        status: "in_review",
+        reviewReason: e.reason,
+        nextAction: null,
+        nextAttemptAt: null,
+      };
+    case "HOLD":
+      return {
+        ...base,
+        status: "draft",
+        reviewReason: d.rationale,
+        nextAction: null,
+        nextAttemptAt: null,
+      };
+  }
 }

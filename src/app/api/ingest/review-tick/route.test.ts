@@ -4,6 +4,10 @@ const { defaultReviewDeps, sweep } = vi.hoisted(() => ({
   sweep: vi.fn(async () => 2),
 }));
 vi.mock("@/lib/pipeline/deps", () => ({ defaultReviewDeps, defaultTopicSweep: () => sweep }));
+const autonomy = vi.hoisted(() => vi.fn(async () => ({ rewrites: 1, reevaluations: 0 })));
+vi.mock("@/lib/pipeline/autonomy-sweep", () => ({ runAutonomySweep: autonomy }));
+vi.mock("@/lib/db/autonomy-store", () => ({ createAutonomySweepPort: () => ({}) }));
+vi.mock("@/lib/db/client", () => ({ createServiceClient: () => ({}) }));
 
 const req = (secret?: string) =>
   new Request("http://localhost/api/ingest/review-tick", {
@@ -35,13 +39,21 @@ describe("POST /api/ingest/review-tick", () => {
     expect((await POST(req())).status).toBe(401);
     expect((await POST(req("errado"))).status).toBe(401);
     expect(defaultReviewDeps).not.toHaveBeenCalled();
+    expect(autonomy).not.toHaveBeenCalled();
   });
 
   it("com o segredo devolve o resultado do revisor (modo off: inativo)", async () => {
     const { POST } = await import("./route");
     const res = await POST(req(SECRET));
     expect(res.status).toBe(200);
-    // A varredura de assuntos encerrados roda mesmo com o revisor desligado (AUT-T7).
-    expect(await res.json()).toEqual({ status: "inactive", mode: "off", topicsClosed: 2 });
+    // As varreduras de assuntos encerrados (AUT-T7) e de autonomia (A-134) rodam mesmo com o
+    // revisor desligado.
+    expect(await res.json()).toEqual({
+      status: "inactive",
+      mode: "off",
+      topicsClosed: 2,
+      autonomy: { rewrites: 1, reevaluations: 0 },
+    });
+    expect(autonomy).toHaveBeenCalledTimes(1);
   });
 });
