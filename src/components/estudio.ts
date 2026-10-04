@@ -10,6 +10,7 @@ export {
   type StudioShellProps,
   type StudioUser,
 } from "./studio/StudioShell";
+export { NotificationBell, type NotificationBellProps } from "./studio/NotificationBell";
 export { KpiStrip, type KpiItem, type KpiStripProps } from "./studio/KpiStrip";
 export { QueueTabs, type QueueTabItem, type QueueTabsProps } from "./studio/QueueTabs";
 export { QueueFilters, type QueueFiltersProps } from "./studio/QueueFilters";
@@ -198,6 +199,8 @@ export { SourceRecForm, type SourceRecFormProps } from "./studio/sources/SourceR
 export { SourceRunsTable, type SourceRunsTableProps } from "./studio/sources/SourceRunsTable";
 export { SourceSectionNav, type SourceSectionNavProps } from "./studio/sources/SourceSectionNav";
 export { SuggestionField, type SuggestionFieldProps } from "./studio/sources/SuggestionField";
+export { PushHomeCard, type PushHomeCardProps } from "./studio/push/PushHomeCard";
+export { StaffUrgentOptIn, type StaffUrgentOptInProps } from "./studio/push/StaffUrgentOptIn";
 export { PushBanners, type PushBannersProps } from "./studio/push/PushBanners";
 export { PushPreview, type PushPreviewProps } from "./studio/push/PushPreview";
 export { ArticlePicker, type ArticlePickerProps } from "./studio/push/ArticlePicker";

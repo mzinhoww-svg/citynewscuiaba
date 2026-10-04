@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { StudioShell } from "@/components/estudio";
+import { NotificationBell, StudioShell } from "@/components/estudio";
 import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import { canAccess, loginRedirect } from "@/lib/auth";
+import { hasAnyPushAction } from "@/lib/push/permissions";
 import { getSession } from "@/lib/auth/require-role";
 import { pendingCount } from "@/lib/db/queries/push-admin";
-import { studioNav } from "./nav";
+import { pushHrefFor, studioNav } from "./nav";
 
 /* Sessão por requisição: nunca pré-renderizar nem cachear o Estúdio. */
 export const dynamic = "force-dynamic";
@@ -23,6 +24,11 @@ export default async function StudioLayout({ children }: Readonly<{ children: Re
     <StudioShell
       nav={studioNav(session.roles, { pendingPush })}
       user={{ name: session.email ?? role, role }}
+      bell={
+        <NotificationBell
+          pushHref={hasAnyPushAction(session.roles) ? pushHrefFor(session.roles) : null}
+        />
+      }
     >
       {children}
     </StudioShell>
