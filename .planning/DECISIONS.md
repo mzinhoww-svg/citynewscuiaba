@@ -306,8 +306,8 @@ Pedido do dono: todos os filtros colapsáveis. Novo `CollapsibleFilters` (`src/c
 
 ## A-147 · Banner de consentimento legível no celular, mais alto (04/10/2026)
 
-W1-T5 (item 11 do plano de melhorias): texto de 14 px sem corte, "Saiba mais" com alvo de 44 px e botões de 14 px não cabem no limite antigo de 15% da altura da tela (96 px em 360×640). O banner passa a ter cerca de 169 px no celular, em duas linhas de ações; o e2e limita a 180 px e a spec `2026-10-02-ui-publica-design.md` foi corrigida. Legibilidade no sol (PRODUCT.md) vence a altura mínima. O botão de aceite diz o que liga: "Aceitar métricas e recomendações".
+W1-T5 (item 11 do plano de melhorias): texto de 14 px sem corte, "Saiba mais" com alvo de 44 px e botões de 14 px não cabem no limite antigo de 15% da altura da tela (96 px em 360×640). O banner passa a ter cerca de 169 px no celular, em duas linhas de ações; o e2e limita a 180 px (`consent.spec.ts` e `keyboard.spec.ts`, que também reserva até 40% da tela para os fixos de baixo e compacta o 404 no celular para a busca e o "Voltar ao início" ficarem acima do banner) e a spec `2026-10-02-ui-publica-design.md` foi corrigida. Legibilidade no sol (PRODUCT.md) vence a altura mínima. O botão de aceite diz o que liga: "Aceitar métricas e recomendações".
 
 ## A-148 · Alerta de tema sensível na revisão segue as regras v3 (04/10/2026)
 
-O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contradiz o CLAUDE.md §5.8 (nas regras v3, tema sensível publica sozinho com a fonte citada). O texto passa a ser "Tema sensível: confira a fonte citada e o tom antes de decidir." Os números reservados no plano mudam: o "A-142" do plano (select em pílula da FilterBar) vira A-146 e o "A-146" (papel de admin numa ação) vira A-147.
+O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contradiz o CLAUDE.md §5.8 (nas regras v3, tema sensível publica sozinho com a fonte citada). O texto passa a ser "Tema sensível: confira a fonte citada e o tom antes de decidir." Os números reservados no plano mudam: o "A-142" do plano (select em pílula da FilterBar) vira A-149 e o "A-146" (papel de admin numa ação) vira A-150.
