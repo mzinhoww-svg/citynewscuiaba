@@ -34,8 +34,10 @@ export const PUBLIC_ROUTES: string[] = [
   "/busca?q=viadutu",
   "/pergunte", // P13
   "/pergunte?q=O%20que%20aconteceu%20em%20Cuiab%C3%A1%20hoje%3F",
-  "/pergunte?q=Resuma%20sa%C3%BAde%20p%C3%BAblica%20no%20Coxip%C3%B3",
-  "/pergunte?q=viaduto%20%5Bteste%3Atempo-esgotado%5D",
+  // Modo simples (sem JS, UI-T13): resposta, recusa e falha inteiras no HTML do servidor.
+  "/pergunte?q=O%20que%20aconteceu%20em%20Cuiab%C3%A1%20hoje%3F&modo=simples",
+  "/pergunte?q=Resuma%20sa%C3%BAde%20p%C3%BAblica%20no%20Coxip%C3%B3&modo=simples",
+  "/pergunte?q=viaduto%20%5Bteste%3Atempo-esgotado%5D&modo=simples",
   "/fontes", // P14
   "/fontes/folha-do-cerrado", // P15
   "/panorama", // P16
