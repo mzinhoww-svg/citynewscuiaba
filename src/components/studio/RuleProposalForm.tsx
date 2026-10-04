@@ -12,6 +12,7 @@ import {
 } from "@/content/pt-BR/rules-admin";
 import type { CategoryRule, Mode, Route, RuleSet } from "@/lib/rules";
 import type { RouteChange } from "@/lib/rules/simulate";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -73,6 +74,12 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, start] = useTransition();
   const [phase, setPhase] = useState<"idle" | "simulating" | "proposing">("idle");
+  // Item 47: o que foi proposto por último (ou a versão ativa) é o ponto "salvo".
+  const snapshot = (dr: RuleSetDraft, tp: string, j: string) => JSON.stringify([dr, tp, j]);
+  const [saved, setSaved] = useState(() =>
+    snapshot(toDraft(current), current.sensitiveTopics.join("\n"), ""),
+  );
+  useUnsavedGuard(snapshot(draft, topics, justification) !== saved);
 
   const current_ = (): RuleSetDraft => ({
     ...draft,
@@ -115,6 +122,7 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
           setPhase("idle");
           if (r.ok) {
             setSim(null);
+            setSaved(snapshot(draft, topics, justification));
             router.refresh();
           }
         });

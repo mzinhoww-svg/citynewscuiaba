@@ -225,6 +225,11 @@ export const CHECKLIST_TEXT = {
   missing: "pendente",
 } as const;
 
+/** Saída com alterações não salvas (item 47, E-03). */
+export const UNSAVED_TEXT = {
+  leave: "Há alterações não salvas. Sair mesmo assim?",
+} as const;
+
 export const EDITOR_TEXT = {
   title: "Editor de matéria",
   conflict:
@@ -247,6 +252,12 @@ export const EDITOR_TEXT = {
   saved: (v: number) => `Rascunho salvo · versão ${v}`,
   save: "Salvar rascunho",
   saving: "Salvando…",
+  /** Barra de salvar (item 48, E-18). */
+  savedAt: (hour: string) => `Salvo às ${hour}`,
+  unsaved: "Alterações não salvas",
+  autosaved: (hour: string) => `Guardado neste aparelho às ${hour}`,
+  titleCounter: (n: number, max: number) => `${n}/${max}`,
+  titleTooLong: (max: number) => `Título longo: o ideal é até ${max} caracteres.`,
   fields: {
     title: "Título",
     dek: "Linha fina",
@@ -454,6 +465,7 @@ export const PUBLISH_TEXT = {
   published: "Matéria publicada",
   scheduled: (when: string) => `Matéria agendada para ${when}`,
   pastDate: "Escolha um horário futuro",
+  noDestination: "Escolha ao menos um destino.",
   invalidDate: "Data ou hora inválida",
   tooFar: "Agende para no máximo 90 dias",
   blocked: (why: string) => `Publicação indisponível: ${why}`,

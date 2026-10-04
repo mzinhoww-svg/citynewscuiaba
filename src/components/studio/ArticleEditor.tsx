@@ -16,6 +16,8 @@ import {
 } from "react";
 import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import type { DiffPart } from "@/lib/diff/words";
+import { formatHour } from "@/lib/format/date";
+import { ARTICLE_LIMITS } from "@/lib/studio/checklist";
 import {
   clearDraft,
   hasDraft,
@@ -24,6 +26,7 @@ import {
   subscribeDrafts,
   type DraftData,
 } from "@/lib/studio/draft-store";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { cx } from "../cx";
 import { VersionDiff } from "../editorial/VersionDiff";
 import { Button } from "../ui/Button";
@@ -70,6 +73,8 @@ export interface ArticleEditorProps {
   notice?: ReactNode;
   save?: (i: { id: string; baseVersion: number; doc: unknown }) => Promise<SaveReply>;
   seoLimits: { title: number; description: number };
+  /** ISO do último salvamento no servidor, para a barra "Salvo às 14h02" (item 48). */
+  savedAt?: string;
   /** Avisa quando o formulário passa a ter (ou deixa de ter) alterações não salvas. */
   onDirtyChange?: (dirty: boolean) => void;
   /** Controle para quem publica: salvar o formulário antes (item 4). */
@@ -117,6 +122,9 @@ const fromDraft = (r: DraftData): FormState => ({
   placesText: r.neighborhoods.join(", "),
 });
 
+/** Rascunho automático: grava neste aparelho 5 s depois da última edição (item 48, E-18). */
+const AUTOSAVE_MS = 5000;
+
 const toParts = (ops: DiffOp[]): DiffPart[] =>
   ops.map((o) => ({ type: o.op === "eq" ? "same" : o.op, text: o.text }));
 
@@ -150,6 +158,7 @@ export function ArticleEditor({
   notice,
   save,
   seoLimits,
+  savedAt,
   onDirtyChange,
   handleRef,
   className,
@@ -166,11 +175,18 @@ export function ArticleEditor({
   // o formulário volta ao que está salvo, sem desmontar (a mensagem de status fica).
   const [synced, setSynced] = useState(baseVersion);
   const [editorKey, setEditorKey] = useState(0);
+  // Documento do último salvamento feito aqui, até a versão nova chegar do servidor.
+  const [savedSnap, setSavedSnap] = useState<string | null>(null);
   if (synced !== baseVersion) {
     setSynced(baseVersion);
     setD(fromInitial());
+    setSavedSnap(null);
     setEditorKey((k) => k + 1);
   }
+  const [lastSavedAt, setLastSavedAt] = useState(savedAt ?? null);
+  // Rascunho automático desta sessão: não vira aviso de "restaurar" e some ao salvar.
+  const [autoOwned, setAutoOwned] = useState(false);
+  const [autoAt, setAutoAt] = useState<string | null>(null);
   const [status, setStatus] = useState<SaveReply | null>(null);
   const [pending, start] = useTransition();
   const [reloading, startReload] = useTransition();
@@ -184,16 +200,38 @@ export function ArticleEditor({
   );
   // Sem armazenamento local (janela privada, cota), o texto fica na memória desta página.
   const [memDraft, setMemDraft] = useState<DraftData | null>(null);
-  const kept = stored || memDraft !== null;
+  const kept = (stored && !autoOwned) || memDraft !== null;
   const disabled = readOnly || !save;
+  const offerPending = kept && !disabled;
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setD((p) => ({ ...p, [k]: v }));
 
-  const savedDoc = JSON.stringify(toDoc(fromInitial()));
+  const savedDoc = savedSnap ?? JSON.stringify(toDoc(fromInitial()));
   const dirty = useMemo(
     () => !disabled && JSON.stringify(toDoc(d)) !== savedDoc,
     [d, savedDoc, disabled],
   );
+  useUnsavedGuard(dirty);
+
+  // Debounce de 5 s: cada edição reinicia a contagem. Com um texto guardado à espera de decisão
+  // (restaurar ou descartar), não grava por cima dele. Voltar ao salvo apaga o rascunho desta
+  // sessão, para ele não ser oferecido depois sem motivo.
+  useEffect(() => {
+    if (disabled || offerPending || (!dirty && !autoOwned)) return;
+    const t = setTimeout(() => {
+      if (!dirty) {
+        clearDraft(articleId);
+        setAutoOwned(false);
+        setAutoAt(null);
+        return;
+      }
+      const now = new Date().toISOString();
+      setAutoOwned(true);
+      saveDraft(articleId, { ...toDoc(d), baseVersion, savedAt: now });
+      setAutoAt(hasDraft(articleId) ? now : null);
+    }, AUTOSAVE_MS);
+    return () => clearTimeout(t);
+  }, [d, dirty, disabled, offerPending, autoOwned, articleId, baseVersion]);
   const lastDirty = useRef<boolean | null>(null);
   useEffect(() => {
     if (lastDirty.current === dirty) return;
@@ -203,9 +241,19 @@ export function ArticleEditor({
 
   const persist = async (): Promise<SaveReply | null> => {
     if (!save || readOnly) return null;
-    const r = await save({ id: articleId, baseVersion, doc: toDoc(d) });
+    const doc = toDoc(d);
+    const r = await save({ id: articleId, baseVersion, doc });
     setStatus(r);
-    if (r.ok) router.refresh();
+    if (r.ok) {
+      setSavedSnap(JSON.stringify(doc));
+      setLastSavedAt(new Date().toISOString());
+      if (autoOwned) {
+        clearDraft(articleId);
+        setAutoOwned(false);
+        setAutoAt(null);
+      }
+      router.refresh();
+    }
     return r;
   };
 
@@ -220,6 +268,8 @@ export function ArticleEditor({
   // Conflito: guarda o texto local antes de trazer a versão atual (nada se perde).
   const reload = () => {
     const local: DraftData = { ...toDoc(d), baseVersion, savedAt: new Date().toISOString() };
+    setAutoOwned(false);
+    setAutoAt(null);
     saveDraft(articleId, local);
     setMemDraft(hasDraft(articleId) ? null : local);
     setStatus(null);
@@ -257,6 +307,12 @@ export function ArticleEditor({
           value={d.title}
           maxLength={200}
           readOnly={disabled}
+          hint={disabled ? undefined : T.titleCounter(d.title.length, ARTICLE_LIMITS.title)}
+          error={
+            !disabled && d.title.length > ARTICLE_LIMITS.title
+              ? T.titleTooLong(ARTICLE_LIMITS.title)
+              : undefined
+          }
           onChange={(e) => set("title", e.target.value)}
         />
         <OriginNote origin={origins.title} />
@@ -366,9 +422,6 @@ export function ArticleEditor({
         <OriginNote origin={origins.seoDescription} />
       </div>
 
-      <p role="status" aria-live="polite" className="type-body">
-        {status?.ok && <span className="text-service">{status.message}</span>}
-      </p>
       {status && !status.ok && (
         <InlineAlert
           tone="error"
@@ -412,11 +465,35 @@ export function ArticleEditor({
           </div>
         </InlineAlert>
       )}
-      {!disabled && (
-        <div>
+      {disabled ? (
+        <p role="status" aria-live="polite" className="type-body empty:hidden">
+          {status?.ok && <span className="text-service">{status.message}</span>}
+        </p>
+      ) : (
+        // Barra de salvar fixa no pé da tela (item 48): ação e estado sempre à vista.
+        <div className="sticky bottom-0 z-sticky flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line-subtle bg-page pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <Button type="submit" size="md" disabled={pending}>
             {pending ? T.saving : T.save}
           </Button>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            {dirty ? (
+              <p className="flex items-center gap-1.5 type-meta font-semibold text-warn">
+                <Icon name="pencil" size={16} className="shrink-0" />
+                <span>{T.unsaved}</span>
+              </p>
+            ) : lastSavedAt ? (
+              <p className="flex items-center gap-1.5 type-meta text-service">
+                <Icon name="check" size={16} className="shrink-0" />
+                <span>{T.savedAt(formatHour(lastSavedAt))}</span>
+              </p>
+            ) : null}
+            {dirty && autoAt && (
+              <p className="type-meta text-meta">{T.autosaved(formatHour(autoAt))}</p>
+            )}
+            <p role="status" aria-live="polite" className="type-meta empty:hidden">
+              {status?.ok && <span className="text-service">{status.message}</span>}
+            </p>
+          </div>
         </div>
       )}
     </form>
