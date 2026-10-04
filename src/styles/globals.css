@@ -302,19 +302,20 @@
 
 /*
  * R4 + R5 no contêiner de campo: foco troca a borda para Tinta 2 px (1 px de borda + 1 px
- * interno) e mostra o anel Urucum no contêiner. O anel do input some porque o contêiner o
- * substitui; botões internos (mostrar senha, filtros) mantêm o anel próprio.
+ * interno) e mostra o anel Urucum no contêiner. O anel do input, select ou textarea (item 27)
+ * some porque o contêiner o substitui; botões internos (mostrar senha, filtros) mantêm o anel
+ * próprio.
  */
 @utility control-field {
   &:focus-within {
     border-color: var(--border-strong);
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
-  &:has(input:focus-visible) {
+  &:has(:is(input, select, textarea):focus-visible) {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  & input:focus-visible {
+  & :is(input, select, textarea):focus-visible {
     outline: none;
   }
 }

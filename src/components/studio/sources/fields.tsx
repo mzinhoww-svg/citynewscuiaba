@@ -3,67 +3,25 @@
 import type { ReactNode } from "react";
 import { FIELD_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { cx } from "../../cx";
+import { describedBy, FieldShell } from "../../ui/Field";
 import { Icon } from "../../ui/Icon";
+import { SelectControl } from "../../ui/Select";
 
 /**
  * Peças internas dos formulários do painel de fontes (assistente e aba Configuração): rótulo
  * visível, dica e erro ligados por `aria-describedby`, controle com a borda de controle do kit
  * (R4). Controladas (o formulário precisa do valor para o diff de mudança crítica e para a prévia
- * da frequência), ao contrário do `Select` do kit, que é só para formulários GET.
+ * da frequência). As listas de opções usam o controle do `Select` do kit.
  */
 
 export const CONTROL_CLASS =
   "border-control h-input w-full rounded-lg bg-input px-4 type-body text-strong disabled:cursor-not-allowed disabled:bg-section";
 
-export function describedBy(id: string, hint?: ReactNode, error?: string | null) {
-  return (
-    [hint ? `${id}-dica` : null, error ? `${id}-erro` : null].filter(Boolean).join(" ") || undefined
-  );
-}
-
-export interface FieldShellProps {
-  id: string;
-  label: string;
-  hint?: ReactNode;
-  error?: string | null;
-  /** Conteúdo à direita do rótulo (selo "Mudança crítica", "opcional"). */
-  aside?: ReactNode;
-  children: ReactNode;
-  className?: string;
-}
-
-export function FieldShell({
-  id,
-  label,
-  hint,
-  error,
-  aside,
-  children,
-  className,
-}: FieldShellProps) {
-  return (
-    <div className={cx("flex min-w-0 flex-col gap-2", className)}>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-        <label htmlFor={id} className="type-label text-strong">
-          {label}
-        </label>
-        {aside}
-      </div>
-      {children}
-      {hint && (
-        <div id={`${id}-dica`} className="type-meta text-meta">
-          {hint}
-        </div>
-      )}
-      {error && (
-        <p id={`${id}-erro`} className="flex items-start gap-1.5 type-meta text-danger">
-          <Icon name="circle-alert" size={16} className="mt-0.5 shrink-0" />
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+/**
+ * Moldura e ids de dica/erro moveram para `ui/Field` (UX-W2-T2); reexportados aqui até as
+ * migrações da W2-T11 trocarem os imports.
+ */
+export { describedBy, FieldShell, type FieldShellProps } from "../../ui/Field";
 
 export interface OptionLike {
   value: string;
@@ -76,6 +34,10 @@ export interface OptionGroupLike {
   options: readonly OptionLike[];
 }
 
+/**
+ * Temporário (removido na W2-T11): mesma API de antes, agora sobre o controle do `Select` do kit
+ * no tamanho compacto (`size="sm"`), sem rótulo próprio (quem chama já tem o rótulo).
+ */
 export function NativeSelect({
   id,
   name,
@@ -98,49 +60,25 @@ export function NativeSelect({
   disabled?: boolean;
 }) {
   return (
-    <div className="relative">
-      <select
-        id={id}
-        name={name}
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, hint, error)}
-        className={cx(
-          CONTROL_CLASS,
-          "cursor-pointer appearance-none pr-11",
-          error && "field-error",
-        )}
-      >
-        {options?.map((o) => (
-          <option key={o.value} value={o.value} disabled={o.disabled}>
-            {o.label}
-          </option>
-        ))}
-        {groups?.map((g) => (
-          <optgroup key={g.label} label={g.label}>
-            {g.options.map((o) => (
-              <option key={o.value} value={o.value} disabled={o.disabled}>
-                {o.label}
-              </option>
-            ))}
-          </optgroup>
-        ))}
-      </select>
-      <Icon
-        name="chevron-down"
-        size={20}
-        className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-meta"
-      />
-    </div>
+    <SelectControl
+      id={id}
+      name={name}
+      size="sm"
+      value={value}
+      onChange={onChange}
+      options={options}
+      groups={groups}
+      hint={hint}
+      error={error}
+      disabled={disabled}
+    />
   );
 }
 
 /**
- * Rótulo + `NativeSelect`: dica e erro informados uma vez só (o `FieldShell` renderiza os
- * elementos; o `<select>` recebe o `aria-describedby` correspondente). `children` entra depois
- * do controle e antes da dica (prévia da frequência).
+ * Rótulo + controle do `Select` do kit no tamanho de formulário: dica e erro informados uma vez só
+ * (o `FieldShell` renderiza os elementos; o `<select>` recebe o `aria-describedby`
+ * correspondente). `children` entra depois do controle e antes da dica (prévia da frequência).
  */
 export function SelectField({
   id,
@@ -173,7 +111,7 @@ export function SelectField({
 }) {
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} aside={aside} className={className}>
-      <NativeSelect
+      <SelectControl
         id={id}
         name={name}
         value={value}
