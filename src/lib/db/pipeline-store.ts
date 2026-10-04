@@ -931,7 +931,7 @@ const MediaContextSchema = z.object({
 });
 
 const ASSET_COLUMNS =
-  "id, kind, storage_path, origin_url, status, width, height, credit, source_id, tags";
+  "id, kind, storage_path, origin_url, status, width, height, credit, source_id, tags, rights_status";
 
 interface AssetRow {
   id: string;
@@ -944,6 +944,7 @@ interface AssetRow {
   credit: string | null;
   source_id: string | null;
   tags: string[];
+  rights_status?: MediaAssetRecord["rightsStatus"] | null;
 }
 
 const toAsset = (r: AssetRow): MediaAssetRecord => ({
@@ -957,6 +958,7 @@ const toAsset = (r: AssetRow): MediaAssetRecord => ({
   credit: r.credit,
   sourceId: r.source_id,
   tags: r.tags ?? [],
+  ...(r.rights_status ? { rightsStatus: r.rights_status } : {}),
 });
 
 /** Banco da etapa de imagem e da remoção de reproduções (service role). */

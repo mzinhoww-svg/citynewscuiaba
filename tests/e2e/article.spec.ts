@@ -349,7 +349,7 @@ test("matéria no modo escuro sem violações graves @a11y", async ({ page }) =>
 
 /*
  * UI-T16 · capa e imagem no texto: matéria com dois ativos de fontes diferentes (capa sob o título
- * e figura depois do 3º parágrafo), ambas com "Reprodução web · Fonte", crédito e "Ver original".
+ * e figura depois do 3º parágrafo), ambas com "Foto: reprodução web · Fonte", crédito e "Ver original".
  * As imagens são fictícias (a pilha local não tem Storage: o arquivo não carrega, a caixa de
  * proporção fixa continua no lugar).
  */
@@ -456,7 +456,9 @@ test.describe("capa e imagem no texto", () => {
 
     const cover = figures.nth(0);
     await expect(cover.getByRole("img", { name: "Barracas da feira na Orla" })).toBeAttached();
-    await expect(cover.locator("figcaption")).toContainText("Reprodução web · Folha do Cerrado");
+    await expect(cover.locator("figcaption")).toContainText(
+      "Foto: reprodução web · Folha do Cerrado",
+    );
     await expect(cover.locator("figcaption")).toContainText("Foto: Ana Prado");
     await expect(cover.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -481,7 +483,7 @@ test.describe("capa e imagem no texto", () => {
     const inline = body.locator("figure");
     await expect(inline).toHaveCount(1);
     await expect(inline.getByRole("img", { name: "Artesã trabalha na feira" })).toBeAttached();
-    await expect(inline.locator("figcaption")).toContainText("Reprodução web · MT Agora");
+    await expect(inline.locator("figcaption")).toContainText("Foto: reprodução web · MT Agora");
     await expect(inline.locator("figcaption")).toContainText("Foto: Rui Lopes");
     await expect(inline.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -520,7 +522,7 @@ test.describe("capa e imagem no texto", () => {
       expect(Math.abs(photo.width - body.width)).toBeLessThanOrEqual(1);
       expect(Math.abs(photo.x - body.x)).toBeLessThanOrEqual(1);
       // legenda e foto no mesmo <figure>, crédito com o nome do veículo (nunca o host da CDN)
-      await expect(fig.locator("figcaption")).toContainText("Reprodução web · RDNews");
+      await expect(fig.locator("figcaption")).toContainText("Foto: reprodução web · RDNews");
       await expect(fig.locator("figcaption")).not.toContainText("cdn.rdnews");
       // foto e título na primeira dobra
       const h1 = (await page.getByRole("heading", { level: 1 }).boundingBox())!;

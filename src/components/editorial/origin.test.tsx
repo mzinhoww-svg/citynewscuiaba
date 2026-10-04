@@ -65,7 +65,7 @@ describe("MadeHow", () => {
     expect(within(region).queryByText("Quem revisou")).not.toBeInTheDocument();
     expect(region.textContent).not.toMatch(/revis|regras|automátic|gerad/i);
     expect(
-      within(region).getByText(/Reprodução web de folhadocerrado.example/),
+      within(region).getByText(/Foto: reprodução web \(folhadocerrado.example\)/),
     ).toBeInTheDocument();
     expect(within(region).getByText(/pago por um anunciante/i)).toBeInTheDocument();
     expect(within(region).queryAllByTestId("origin-label")).toHaveLength(0);

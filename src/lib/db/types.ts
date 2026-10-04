@@ -550,6 +550,7 @@ export type Database = {
           caption: string | null;
           chosen_at: string;
           chosen_by: string;
+          credit_shown: string | null;
           media_id: string;
           position: number | null;
           rationale: string;
@@ -561,6 +562,7 @@ export type Database = {
           caption?: string | null;
           chosen_at?: string;
           chosen_by: string;
+          credit_shown?: string | null;
           media_id: string;
           position?: number | null;
           rationale: string;
@@ -572,6 +574,7 @@ export type Database = {
           caption?: string | null;
           chosen_at?: string;
           chosen_by?: string;
+          credit_shown?: string | null;
           media_id?: string;
           position?: number | null;
           rationale?: string;
@@ -1985,10 +1988,12 @@ export type Database = {
       media_assets: {
         Row: {
           allowed_use: string;
+          archived_at: string | null;
           author: string | null;
           captured_at: string;
           content_type: string | null;
           credit: string | null;
+          disclaimer: string | null;
           height: number | null;
           id: string;
           kind: Database["public"]["Enums"]["media_kind"];
@@ -2001,20 +2006,25 @@ export type Database = {
           removal_reason: string | null;
           removed_at: string | null;
           risk: string;
+          rights_status: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256: string | null;
           source_id: string | null;
           source_name: string | null;
           status: string;
           storage_path: string;
           tags: string[];
+          updated_at: string;
+          usage_scope: string[];
           width: number | null;
         };
         Insert: {
           allowed_use: string;
+          archived_at?: string | null;
           author?: string | null;
           captured_at?: string;
           content_type?: string | null;
           credit?: string | null;
+          disclaimer?: string | null;
           height?: number | null;
           id?: string;
           kind: Database["public"]["Enums"]["media_kind"];
@@ -2027,20 +2037,25 @@ export type Database = {
           removal_reason?: string | null;
           removed_at?: string | null;
           risk?: string;
+          rights_status?: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256?: string | null;
           source_id?: string | null;
           source_name?: string | null;
           status?: string;
           storage_path: string;
           tags?: string[];
+          updated_at?: string;
+          usage_scope?: string[];
           width?: number | null;
         };
         Update: {
           allowed_use?: string;
+          archived_at?: string | null;
           author?: string | null;
           captured_at?: string;
           content_type?: string | null;
           credit?: string | null;
+          disclaimer?: string | null;
           height?: number | null;
           id?: string;
           kind?: Database["public"]["Enums"]["media_kind"];
@@ -2053,12 +2068,15 @@ export type Database = {
           removal_reason?: string | null;
           removed_at?: string | null;
           risk?: string;
+          rights_status?: Database["public"]["Enums"]["media_rights_status"] | null;
           sha256?: string | null;
           source_id?: string | null;
           source_name?: string | null;
           status?: string;
           storage_path?: string;
           tags?: string[];
+          updated_at?: string;
+          usage_scope?: string[];
           width?: number | null;
         };
         Relationships: [
@@ -4607,6 +4625,32 @@ export type Database = {
       };
     };
     Views: {
+      media_registry: {
+        Row: {
+          archived_at: string | null;
+          article_ids: string[];
+          content_hash: string | null;
+          created_at: string;
+          credit: string | null;
+          disclaimer: string | null;
+          expiration: string | null;
+          id: string;
+          kind: Database["public"]["Enums"]["media_kind"];
+          license: string;
+          metadata: Json;
+          origin: string | null;
+          original_url: string | null;
+          author: string | null;
+          rights_status: Database["public"]["Enums"]["media_rights_status"];
+          source_url: string | null;
+          status: string;
+          storage_path: string;
+          updated_at: string;
+          usage_scope: string[];
+          uses: number;
+        };
+        Relationships: [];
+      };
       public_ad_placements: {
         Row: {
           allowed_sections: string[] | null;
@@ -5791,6 +5835,8 @@ export type Database = {
       content_kind: "original" | "normalized" | "aggregated";
       image_policy: "none" | "with_agreement" | "licensed_only" | "reproduction";
       media_kind: "original" | "licensed" | "illustrative" | "ai_generated" | "reproduction";
+      media_rights_status:
+        "authorized" | "licensed" | "unknown" | "pending" | "expired" | "blocked";
       publish_mode: "human" | "auto";
       republish_policy: "link_only" | "summary_2_sentences";
       source_kind: "rss" | "sitemap" | "api" | "page" | "newsletter" | "social" | "events";
@@ -5934,6 +5980,7 @@ export const Constants = {
       content_kind: ["original", "normalized", "aggregated"],
       image_policy: ["none", "with_agreement", "licensed_only", "reproduction"],
       media_kind: ["original", "licensed", "illustrative", "ai_generated", "reproduction"],
+      media_rights_status: ["authorized", "licensed", "unknown", "pending", "expired", "blocked"],
       publish_mode: ["human", "auto"],
       republish_policy: ["link_only", "summary_2_sentences"],
       source_kind: ["rss", "sitemap", "api", "page", "newsletter", "social", "events"],

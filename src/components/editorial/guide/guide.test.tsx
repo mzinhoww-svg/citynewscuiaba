@@ -80,7 +80,7 @@ describe("VenueCard", () => {
 });
 
 describe("VenueCover", () => {
-  it("foto oficial leva crédito 'Reprodução web · nome' e link da fonte", () => {
+  it("foto oficial leva crédito 'Foto: reprodução web · nome' e link da fonte", () => {
     render(
       <VenueCover
         name="Padaria Pão Dourado"
@@ -88,7 +88,7 @@ describe("VenueCover", () => {
         size="hero"
         photo={{
           src: "/api/media/abc",
-          credit: "Reprodução web · Padaria Pão Dourado",
+          credit: "Foto: reprodução web · Padaria Pão Dourado",
           originUrl: "https://paodourado.example/",
         }}
       />,
@@ -98,7 +98,7 @@ describe("VenueCover", () => {
       "src",
       "/api/media/abc",
     );
-    expect(fig).toHaveTextContent("Reprodução web · Padaria Pão Dourado");
+    expect(fig).toHaveTextContent("Foto: reprodução web · Padaria Pão Dourado");
     expect(within(fig).getByRole("link", { name: "Fonte" })).toHaveAttribute(
       "href",
       "https://paodourado.example/",

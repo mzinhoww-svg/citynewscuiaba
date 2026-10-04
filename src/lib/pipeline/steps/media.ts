@@ -1,3 +1,4 @@
+import { isReusable } from "@/lib/media/rights";
 import { LABEL_TEXT } from "@/lib/labels";
 import { META_SEPARATOR } from "@/content/pt-BR/labels";
 import {
@@ -100,6 +101,11 @@ export function imageLabel(choice: MediaChoice): string | null {
  * `robots.txt` e o limite da fonte, e é copiada inteira para o Storage com proveniência. Imagem
  * removida a pedido (asset bloqueado) nunca volta. Próxima etapa: `rules`.
  */
+/** Ativo já registrado pode voltar a ser usado? Nunca bloqueado nem com autorização vencida (D-02). */
+export function reusableAsset(a: MediaAssetRecord): boolean {
+  return a.status !== "blocked" && (a.rightsStatus === undefined || isReusable(a.rightsStatus));
+}
+
 export function createMediaStep(deps: MediaStepDeps): StepHandler {
   const prepare = async (
     item: MediaSourceItem,
@@ -108,7 +114,12 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     use: Prepared["use"],
   ): Promise<Result<Prepared, string>> => {
     const existing = await deps.repo.assetByOrigin(imageUrl);
-    if (existing?.status === "blocked") return err("imagem removida a pedido");
+    if (existing && !reusableAsset(existing))
+      return err(
+        existing.status === "blocked"
+          ? "imagem removida a pedido"
+          : "autorização da imagem vencida",
+      );
     const base = {
       url: item.pageUrl,
       imageUrl,

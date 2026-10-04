@@ -114,6 +114,19 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
             <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               {[
                 [T.field.kind, T.kind[m.kind] ?? m.kind],
+                [
+                  T.field.rights,
+                  expired
+                    ? T.rights.expired
+                    : m.rightsStatus
+                      ? (T.rights[m.rightsStatus] ?? m.rightsStatus)
+                      : "—",
+                ],
+                [
+                  T.field.usageScope,
+                  m.usageScope.map((u) => T.usageScope[u] ?? u).join(", ") || "—",
+                ],
+                [T.field.disclaimer, m.disclaimer ?? "—"],
                 [T.field.credit, m.credit ?? "—"],
                 [T.field.license, m.license],
                 [
