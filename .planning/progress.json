@@ -815,10 +815,20 @@
         "status": "done",
         "migration": "0082_ad_slots.sql",
         "decision": "A-119"
+      },
+      "ADS-T2": {
+        "status": "done",
+        "migration": "0083_ad_slots_tablet.sql",
+        "decision": "A-120"
+      },
+      "ADS-T3": {
+        "status": "done",
+        "decision": "A-121",
+        "assets": "public/ads (48 PNG)"
       }
     },
     "next": [
-      "ADS-T2 (depende das decisões do dono: tablet, coluna da home, STICKY)"
+      "ADS-T4 (administração e relatório)"
     ]
   },
   "segurancaP1": {
