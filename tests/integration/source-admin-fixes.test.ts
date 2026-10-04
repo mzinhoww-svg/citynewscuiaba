@@ -660,3 +660,40 @@ describe("#10 runs pulados com o gatilho real", () => {
     });
   });
 });
+
+describe("ativar sem termos revisados (A-127)", () => {
+  it("fonte sem a caixa de termos ativa pelo Estúdio; termos seguem não revisados", async () => {
+    process.env.CRAWLER_FIXTURES = "1";
+    try {
+      const created = await asUser(DIEGO, () =>
+        createSourceAction(
+          formFrom({
+            name: "Sem Termos MT",
+            slug: "sem-termos-mt-teste",
+            baseUrl: "https://cadencia.example",
+            strategy: "rss",
+            feedUrl: "https://cadencia.example/feed",
+            locality: "cuiaba",
+          }),
+        ),
+      );
+      expect(created).toMatchObject({ ok: true });
+      if (!created.ok) throw new Error("cadastro");
+      const id = (created.data as { id: string }).id;
+      createdSources.push(id);
+      const row = (await svc.from("sources").select("*").eq("id", id).single()).data!;
+      expect(row.terms_reviewed_at).toBeNull();
+
+      const activated = await asUser(DIEGO, () =>
+        activateSourceAction(formFrom({ id, version: row.version })),
+      );
+      expect(activated).toMatchObject({ ok: true });
+      const after = (await svc.from("sources").select("*").eq("id", id).single()).data!;
+      expect(after.status).toBe("active");
+      expect(after.terms_reviewed_at).toBeNull();
+      await svc.from("sources").update({ status: "paused" }).eq("id", id);
+    } finally {
+      delete process.env.CRAWLER_FIXTURES;
+    }
+  });
+});

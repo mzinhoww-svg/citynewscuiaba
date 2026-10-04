@@ -322,14 +322,13 @@ export function TermsStep({ uid, termsLinks, fields, set, fieldErrors, onFocus }
 export interface SaveStepProps {
   uid: string;
   saving: boolean;
-  termsReviewed: boolean;
   result: ActionState | null;
   onSave: (activate: boolean) => void;
   onFocus: () => void;
 }
 
-/** Etapa 5 · Salvar: pausada (sempre) ou ativar já (só com os termos revisados). */
-export function SaveStep({ uid, saving, termsReviewed, result, onSave, onFocus }: SaveStepProps) {
+/** Etapa 5 · Salvar: pausada ou ativar já (termos revisados não são exigidos, A-127). */
+export function SaveStep({ uid, saving, result, onSave, onFocus }: SaveStepProps) {
   return (
     <Panel title={WIZARD_TEXT.save.title} id={`${uid}-salvar`} onFocus={onFocus}>
       <p className="type-body text-meta">{WIZARD_TEXT.save.hint}</p>
@@ -338,12 +337,7 @@ export function SaveStep({ uid, saving, termsReviewed, result, onSave, onFocus }
         <Button size="md" onClick={() => onSave(false)} disabled={saving}>
           {saving ? WIZARD_TEXT.save.saving : WIZARD_TEXT.save.paused}
         </Button>
-        <Button
-          size="md"
-          variant="outline"
-          onClick={() => onSave(true)}
-          disabled={saving || !termsReviewed}
-        >
+        <Button size="md" variant="outline" onClick={() => onSave(true)} disabled={saving}>
           {WIZARD_TEXT.save.activate}
         </Button>
       </div>

@@ -321,7 +321,6 @@ export function AddSourceWizard({
           <SaveStep
             uid={uid}
             saving={saving}
-            termsReviewed={fields.termsReviewed}
             result={saveResult}
             onSave={save}
             onFocus={() => setFocusStep(5)}

@@ -189,7 +189,6 @@ export const SOURCE_ACTION_TEXT = {
   created: "Fonte salva pausada. Ative quando os termos estiverem revisados e o teste passar.",
   createdActive: "Fonte salva e ativada.",
   createdNotActivated: (why: string) => `Fonte salva pausada. Não foi possível ativar: ${why}`,
-  termsRequired: "Revise os termos de uso antes de ativar.",
   status: {
     pause: "Fonte pausada",
     resume: "Fonte retomada",

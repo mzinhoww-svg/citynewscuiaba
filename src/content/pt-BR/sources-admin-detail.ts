@@ -106,14 +106,14 @@ export const WIZARD_TEXT = {
     none: "Não encontramos link de termos de uso. Cole o endereço, se houver.",
     robotsOk: "O robots.txt permite a coleta deste endereço.",
     checkbox: "Li os termos de uso e a coleta é permitida",
-    checkboxHint: "Obrigatório para ativar. Sem isso, a fonte é salva pausada.",
+    checkboxHint: "Opcional: registra quando os termos foram revisados.",
   },
   save: {
     title: "Salvar",
     paused: "Salvar pausada",
     activate: "Salvar e ativar",
     saving: "Salvando…",
-    hint: "Fonte nova entra pausada. Para ativar, os termos precisam estar revisados e o teste de conexão precisa passar.",
+    hint: "Salve pausada ou ative já. Para ativar, o teste de conexão precisa passar.",
   },
 } as const;
 
