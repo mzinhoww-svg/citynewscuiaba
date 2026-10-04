@@ -352,6 +352,40 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     expect(orderB).toEqual(["decision:publish", "status:in_review"]);
   });
 
+  it("depois de publicar aplica a pauta quente (HOT-T3); falha dela não desfaz a publicação", async () => {
+    const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: true } });
+    const id = await drafted(s);
+    await s.handlers.rules!(msg("rules", `article:${id}`));
+    const seen: string[] = [];
+    const handlers = createPublishHandlers({
+      ...s.deps,
+      afterPublish: async () => {
+        seen.push(s.repo.article(id)!.status);
+        throw new Error("banco fora");
+      },
+    });
+    const next = await unwrap(handlers.publish!(msg("publish", `article:${id}`)));
+    expect(seen).toEqual(["published"]);
+    expect(next).toEqual([
+      msg("index", `article:${id}`),
+      msg("notify", `article:${id}#auto_published`),
+    ]);
+    expect(s.repo.article(id)!.status).toBe("published");
+  });
+
+  it("retida em revisão não chama a pauta quente", async () => {
+    const s = setup({ rules: async () => ok(OPEN), flags: { auto_publish: false } });
+    const id = await drafted(s);
+    await s.handlers.rules!(msg("rules", `article:${id}`));
+    let calls = 0;
+    const handlers = createPublishHandlers({
+      ...s.deps,
+      afterPublish: async () => void (calls += 1),
+    });
+    await handlers.publish!(msg("publish", `article:${id}`));
+    expect(calls).toBe(0);
+  });
+
   it("flag auto_publish desligada ou modo leitura: revisão", async () => {
     for (const flags of [{ auto_publish: false }, { auto_publish: true, read_only: true }]) {
       const s = setup({ rules: async () => ok(OPEN), flags });

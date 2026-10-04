@@ -106,15 +106,19 @@ export const pinArticle = studioAction(
       ctx.db.rpc("featured_has_cover", { p_article: i.articleId }),
       ctx.db
         .from("featured_items")
-        .select("id, ends_at")
+        .select("id, ends_at, kind")
         .eq("slot_key", i.slotKey)
         .is("ended_at", null)
         .then((r) => r),
     ]);
     if (articleRes.error) throw new Error(`featured article: ${articleRes.error.message}`);
     if (!articleRes.data) throw new StudioFailure("not_found", T.error.ineligible);
+    // Só os manuais ocupam vaga do admin: a pauta quente nunca impede fixar (R8, manual vence).
     const active = (activeRes.data ?? []).filter(
-      (p) => (!p.ends_at || Date.parse(p.ends_at) > now.getTime()) && p.id !== i.replaceId,
+      (p) =>
+        p.kind !== "hot" &&
+        (!p.ends_at || Date.parse(p.ends_at) > now.getTime()) &&
+        p.id !== i.replaceId,
     ).length;
 
     const checked = validatePin({
@@ -188,6 +192,49 @@ export const unpin = studioAction(
   { schema: UnpinSchema, auditAs: "featured.unpin", objectRef: (i) => `featured:${i.id}` },
 );
 
+const DismissSchema = z.object({ id: z.string().uuid() });
+
+/**
+ * Dispensa a pauta quente (HOT-T3): encerra os pinos quentes vigentes do assunto e grava
+ * `dismissed_at`; o mesmo sinal dos portais não traz o assunto de volta (só um sinal novo, depois
+ * da dispensa). Mesma permissão das outras ações de destaque; modo leitura bloqueia.
+ */
+export const dismissHot = studioAction(
+  "featured.manage",
+  () => ({}),
+  async (i: z.output<typeof DismissSchema>, ctx): Promise<{ id: string; count: number }> => {
+    const found = await ctx.db
+      .from("featured_items")
+      .select("slot_key, section_slug, article_id, topic_id, kind, hot_sources")
+      .eq("id", i.id)
+      .maybeSingle();
+    if (found.error) throw new Error(`featured dismiss: ${found.error.message}`);
+    if (!found.data || found.data.kind !== "hot")
+      throw new StudioFailure("not_found", T.error.not_found);
+    const { data, error } = await ctx.db.rpc("featured_dismiss_hot", { p_id: i.id });
+    if (error) throw dbFailure(error);
+    ctx.detail({
+      slot: found.data.slot_key,
+      section: found.data.section_slug,
+      article: found.data.article_id,
+      topic: found.data.topic_id,
+      portals: found.data.hot_sources,
+      ended: Number(data ?? 0),
+    });
+    // O assunto pode ocupar a home e a editoria: invalida as duas.
+    await ctx.revalidate([
+      "home",
+      ...(found.data.section_slug ? [`section:${found.data.section_slug}`] : []),
+    ]);
+    return { id: i.id, count: Number(data ?? 0) };
+  },
+  {
+    schema: DismissSchema,
+    auditAs: "featured.dismiss_hot",
+    objectRef: (i) => `featured:${i.id}`,
+  },
+);
+
 const ReorderSchema = z.object({
   slotKey: z.string().trim().min(1).max(60),
   ids: z.array(z.string().uuid()).min(1).max(20),
@@ -259,6 +306,8 @@ export interface BoardItem {
   pinnedBy: string | null;
   note: string;
   endsAt: string | null;
+  /** Pauta quente (HOT-T3): o pino quente que mantém a matéria aqui e quantos portais a sustentam. */
+  hot: { pinId: string; portals: number; endsAt: string | null } | null;
 }
 
 export interface BoardSlot {
@@ -290,6 +339,7 @@ async function titlesOf(db: BoardDb, ids: string[]): Promise<Map<string, string>
 function toBoardItem(
   a: ArticleSummary,
   pin: { id: string; endsAt: string | null; by: string | null; note: string } | undefined,
+  hot: BoardItem["hot"] = null,
 ): BoardItem {
   return {
     pinId: pin?.id ?? null,
@@ -302,6 +352,7 @@ function toBoardItem(
     pinnedBy: pin?.by ?? null,
     note: pin?.note ?? "",
     endsAt: pin?.endsAt ?? null,
+    hot,
   };
 }
 
@@ -322,7 +373,9 @@ export async function currentBoard(now?: Date): Promise<BoardSlot[]> {
     db.from("sections").select("slug, name, parent_slug").then(many),
     db
       .from("featured_items")
-      .select("id, slot_key, section_slug, article_id, ends_at, created_by, note, starts_at")
+      .select(
+        "id, kind, slot_key, section_slug, article_id, ends_at, created_by, note, starts_at, dismissed_at, hot_sources",
+      )
       .is("ended_at", null)
       .then(many),
   ]);
@@ -348,19 +401,24 @@ export async function currentBoard(now?: Date): Promise<BoardSlot[]> {
   const board = await Promise.all(
     expanded.map(async ({ s, section }): Promise<BoardSlot> => {
       const r: FeaturedResult = await getFeatured(db, s.key, { section: section?.slug, now: at });
-      const mine = pinRows.filter(
+      const here = pinRows.filter(
         (p) =>
           p.slot_key === s.key &&
           (p.section_slug ?? null) === (section?.slug ?? null) &&
           (!p.ends_at || Date.parse(p.ends_at) > at.getTime()) &&
           Date.parse(p.starts_at) <= at.getTime(),
       );
+      // Vaga do admin = pinos manuais; a pauta quente nunca bloqueia fixar (manual vence).
+      const mine = here.filter((p) => p.kind !== "hot");
+      const hotHere = here.filter((p) => p.kind === "hot" && !p.dismissed_at);
       const byArticle = new Map(mine.map((p) => [p.article_id, p]));
+      const hotByArticle = new Map(hotHere.map((p) => [p.article_id, p]));
       const items = r.items.map((a) => {
         const p = byArticle.get(a.id);
+        const h = r.hot.includes(a.id) ? hotByArticle.get(a.id) : undefined;
         return toBoardItem(
           a,
-          p && r.source === "manual"
+          p
             ? {
                 id: p.id,
                 endsAt: p.ends_at,
@@ -368,6 +426,7 @@ export async function currentBoard(now?: Date): Promise<BoardSlot[]> {
                 note: p.note,
               }
             : undefined,
+          h ? { pinId: h.id, portals: h.hot_sources ?? 0, endsAt: h.ends_at } : null,
         );
       });
       const titles = await titlesOf(

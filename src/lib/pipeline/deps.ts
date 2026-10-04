@@ -45,6 +45,7 @@ import {
   createUnderstandHandlers,
 } from "./steps";
 import { revalidateTags } from "./revalidate";
+import { runHotPins } from "./hot-pins";
 import type { ReviewTickDeps } from "./steps/auto-reviewer";
 import type { FrontpageDeps } from "./steps/frontpage";
 import type { StatusDeps } from "./status";
@@ -107,6 +108,7 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       now: () => new Date(),
       copyGuard: process.env.AI_PROVIDER !== "fake",
       breaker: createBreakerStore(db),
+      afterPublish: () => runHotPins("publish"),
     }),
     // Publicação forçada da fila de revisão (REV-T1): lote de até 50 por mensagem.
     ...createForcedPublishHandlers({

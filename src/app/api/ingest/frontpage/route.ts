@@ -1,4 +1,5 @@
 import { defaultFrontpageDeps } from "@/lib/pipeline/deps";
+import { runHotPins } from "@/lib/pipeline/hot-pins";
 import { runFrontpage } from "@/lib/pipeline/steps/frontpage";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 
@@ -20,5 +21,7 @@ export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
   const report = await runFrontpage(defaultFrontpageDeps(AbortSignal.timeout(HARD_LIMIT_MS)));
-  return Response.json(report);
+  // Sinal novo acabou de chegar: a pauta quente vira destaque já (HOT-T3). Falha não derruba a rota.
+  const hot = await runHotPins("frontpage");
+  return Response.json({ ...report, hot });
 }

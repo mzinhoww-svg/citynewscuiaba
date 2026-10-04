@@ -14,6 +14,10 @@ const { defaultFrontpageDeps, runFrontpage } = vi.hoisted(() => ({
 }));
 vi.mock("@/lib/pipeline/deps", () => ({ defaultFrontpageDeps }));
 vi.mock("@/lib/pipeline/steps/frontpage", () => ({ runFrontpage }));
+const { runHotPins } = vi.hoisted(() => ({
+  runHotPins: vi.fn(async () => ({ pinned: 1, renewed: 0, skipped: 0 })),
+}));
+vi.mock("@/lib/pipeline/hot-pins", () => ({ runHotPins }));
 
 const req = (secret?: string) =>
   new Request("http://localhost/api/ingest/frontpage", {
@@ -25,6 +29,7 @@ beforeEach(() => {
   vi.stubEnv("CRON_SECRET", SECRET);
   defaultFrontpageDeps.mockClear();
   runFrontpage.mockClear();
+  runHotPins.mockClear();
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -42,6 +47,7 @@ describe("POST /api/ingest/frontpage", () => {
     expect((await POST(req("errado"))).status).toBe(401);
     expect(defaultFrontpageDeps).not.toHaveBeenCalled();
     expect(runFrontpage).not.toHaveBeenCalled();
+    expect(runHotPins).not.toHaveBeenCalled();
   });
 
   it("com o segredo roda o passo e devolve o relatório", async () => {
@@ -50,5 +56,20 @@ describe("POST /api/ingest/frontpage", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ status: "done", signals: 0 });
     expect(runFrontpage).toHaveBeenCalledTimes(1);
+  });
+
+  it("depois do passo aplica a pauta quente (HOT-T3) e devolve o resultado junto", async () => {
+    const { POST } = await import("./route");
+    const res = await POST(req(SECRET));
+    expect(runHotPins).toHaveBeenCalledWith("frontpage");
+    expect(await res.json()).toMatchObject({ hot: { pinned: 1 } });
+  });
+
+  it("pauta quente indisponível (null) não derruba a rota", async () => {
+    runHotPins.mockResolvedValueOnce(null as never);
+    const { POST } = await import("./route");
+    const res = await POST(req(SECRET));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ status: "done", hot: null });
   });
 });

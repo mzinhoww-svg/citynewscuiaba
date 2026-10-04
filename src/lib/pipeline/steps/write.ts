@@ -34,6 +34,11 @@ export interface PublishStepDeps {
   copyGuard?: boolean;
   /** Disjuntor de volume e de erro (AUT-T4); ausente = sem disjuntor (testes). */
   breaker?: BreakerStore;
+  /**
+   * Depois de publicar (HOT-T3): aplica a pauta quente, porque a matéria do assunto em alta pode
+   * ter acabado de sair. Melhor esforço: a falha nunca desfaz nem atrasa a publicação.
+   */
+  afterPublish?: () => Promise<unknown>;
 }
 
 /**
