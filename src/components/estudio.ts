@@ -296,6 +296,10 @@ export type {
   SearchHit,
 } from "./studio/featured/types";
 export { CampaignsPanel, type CampaignsPanelProps } from "./studio/admin/CampaignsPanel";
+export { AdsTabsNav } from "./studio/admin/AdsTabsNav";
+export { AdOccupancyPanel } from "./studio/admin/AdOccupancyPanel";
+export { AdReportPanel } from "./studio/admin/AdReportPanel";
+export { BannersPanel, type BannersPanelProps } from "./studio/admin/BannersPanel";
 export { SeoPanel, type SeoPanelProps } from "./studio/admin/SeoPanel";
 export { AuditExplorer, type AuditExplorerProps } from "./studio/admin/AuditExplorer";
 export { SecurityPanel, type SecurityPanelProps } from "./studio/admin/SecurityPanel";

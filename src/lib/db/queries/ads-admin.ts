@@ -116,3 +116,15 @@ export async function adReportRows(
     clicks: r.clicks,
   }));
 }
+
+/** Flag `ads_enabled` (0143): sem a linha, vale ligada, como na view. */
+export async function adsEnabled(db?: DbClient): Promise<boolean> {
+  const client = db ?? (await studioContext()).db;
+  const { data, error } = await client
+    .from("feature_flags")
+    .select("enabled")
+    .eq("key", "ads_enabled")
+    .maybeSingle();
+  check("flag", error);
+  return data?.enabled ?? true;
+}

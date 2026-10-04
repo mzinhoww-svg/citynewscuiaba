@@ -3,10 +3,12 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ADS_ADMIN_TEXT as T } from "@/content/pt-BR/ads-admin";
 import { parseCreative } from "@/lib/ads/creative";
+import { reportCsv, reportPeriod } from "@/lib/ads/report";
 import { isNeverSection } from "@/lib/ads/rules";
 import { DISPLAY_SLOTS, fitsSlot } from "@/lib/ads/slots";
 import { validateUpload } from "@/lib/ads/upload";
 import type { DbClient } from "@/lib/db/client";
+import { adReportRows } from "@/lib/db/queries/ads-admin";
 import type { Json } from "@/lib/db/types";
 import { StudioFailure, studioAction } from "./action";
 
@@ -183,5 +185,25 @@ export const setPlacementStatusCommand = studioAction(
     schema: StatusInput,
     auditAs: "ads.placement.status",
     objectRef: (i) => `placement:${i.id}`,
+  },
+);
+
+/** CSV do relatório no período (só leitura; vale também em modo leitura). */
+export const exportAdReportCommand = studioAction(
+  "site.manage",
+  () => ({}),
+  async (
+    i: { from?: string; to?: string },
+    ctx,
+  ): Promise<{ csv: string; from: string; to: string }> => {
+    const period = reportPeriod(i, ctx.now());
+    const rows = await adReportRows(period, ctx.db);
+    ctx.detail({ period: [period.from, period.to], rows: rows.length });
+    return { csv: reportCsv(rows), ...period };
+  },
+  {
+    auditAs: "ads.report.export",
+    objectRef: () => "ads:report",
+    allowReadOnly: true,
   },
 );

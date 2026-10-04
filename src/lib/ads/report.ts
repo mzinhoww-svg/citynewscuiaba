@@ -164,3 +164,24 @@ export function slotOccupancy(
     };
   });
 }
+
+const MAX_DAYS = 92;
+function isDay(v: string | undefined): v is string {
+  if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+  const d = new Date(`${v}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v;
+}
+
+/** Período do relatório: padrão, os últimos 7 dias; datas trocadas são invertidas; até 92 dias. */
+export function reportPeriod(
+  q: { from?: string; to?: string },
+  now: Date,
+): { from: string; to: string } {
+  const today = cuiabaDay(now);
+  let to = isDay(q.to) ? q.to : today;
+  let from = isDay(q.from) ? q.from : addDays(to, -6);
+  if (from > to) [from, to] = [to, from];
+  const floor = addDays(to, -(MAX_DAYS - 1));
+  if (from < floor) from = floor;
+  return { from, to };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, reportCsv, slotOccupancy, type ReportRow } from "./report";
+import { buildReport, reportCsv, reportPeriod, slotOccupancy, type ReportRow } from "./report";
 
 const row = (over: Partial<ReportRow>): ReportRow => ({
   day: "2026-10-04",
@@ -74,5 +74,27 @@ describe("ocupação dos campos (ADS-T4)", () => {
     expect(by.MID).toMatchObject({ state: "house", paid: 0, house: 1 });
     expect(by["RAIL-B"]).toMatchObject({ state: "empty" });
     expect(by["ART-1"]?.endingSoon).toBe(1);
+  });
+});
+
+describe("período do relatório (ADS-T4)", () => {
+  const now = new Date("2026-10-04T12:00:00Z");
+  it("padrão: últimos 7 dias até hoje (dia de Cuiabá)", () => {
+    expect(reportPeriod({}, now)).toEqual({ from: "2026-09-28", to: "2026-10-04" });
+  });
+  it("aceita datas válidas, inverte se vierem trocadas e limita a 92 dias", () => {
+    expect(reportPeriod({ from: "2026-10-01", to: "2026-10-03" }, now)).toEqual({
+      from: "2026-10-01",
+      to: "2026-10-03",
+    });
+    expect(reportPeriod({ from: "2026-10-03", to: "2026-10-01" }, now)).toEqual({
+      from: "2026-10-01",
+      to: "2026-10-03",
+    });
+    expect(reportPeriod({ from: "2025-01-01", to: "2026-10-04" }, now).from).toBe("2026-07-05");
+    expect(reportPeriod({ from: "lixo", to: "2026-13-40" }, now)).toEqual({
+      from: "2026-09-28",
+      to: "2026-10-04",
+    });
   });
 });

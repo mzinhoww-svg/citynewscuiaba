@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · ADS-T4 (A-122): Publicidade no Estúdio em 4 abas (Campos, Banners com envio de imagem ao Storage, Relatório com CSV, Patrocinados); interruptor `ads_enabled` (migration 0143). Peças da casa no ar em produção (78 veiculações).
+
 > 2026-10-04 · ADS-T3 (A-121): 48 peças da casa em `public/ads` e cadastro por `scripts/ads/house-ads.mjs` (78 veiculações). Próxima: ADS-T4.
 
 > 2026-10-04 · ADS-T2 (A-120): campos de banner montados na home, editorias e matéria; tablet com formato próprio, lateral abaixo do "Agora", rodapé fixo empilhado sobre a barra (decisões do dono). Migration 0083. Verify verde (3492 testes); e2e de anúncios 6/6 (desktop, tablet, celular, axe, CLS). Sem peça cadastrada, nada aparece no site.

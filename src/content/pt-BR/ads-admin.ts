@@ -42,6 +42,8 @@ export const ADS_ADMIN_TEXT = {
     title: "Banners",
     newTitle: "Novo banner",
     empty: "Nenhum banner cadastrado.",
+    allSlots: "Todos os campos",
+    filter: "Mostrar campo",
     house: "CityNews (casa)",
     period: (from: string, to: string) => `${from} a ${to}`,
     sectionsAll: "Todas as editorias permitidas",

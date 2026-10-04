@@ -4,7 +4,11 @@ import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { listSlotPlacements } from "@/lib/db/queries/ads";
 import { adReportRows, listBanners } from "@/lib/db/queries/ads-admin";
-import { createBannerCommand, setPlacementStatusCommand } from "@/lib/studio/ads";
+import {
+  createBannerCommand,
+  exportAdReportCommand,
+  setPlacementStatusCommand,
+} from "@/lib/studio/ads";
 import { asUser, service } from "./studio";
 
 const run = randomUUID().slice(0, 8);
@@ -156,5 +160,16 @@ describe("banners no Estúdio (ADS-T4)", () => {
       section: "cidade",
       impressions: 1,
     });
+  });
+});
+
+describe("CSV do relatório (ADS-T4)", () => {
+  it("exporta com cabeçalho pt-BR e audita; repórter não exporta", async () => {
+    const r = await asUser("marina", () => exportAdReportCommand({}));
+    expect(r.ok && r.value.csv.split("\n")[0]).toBe(
+      "dia;campo;anunciante;peça;editoria;impressões;visualizações;cliques;ctr",
+    );
+    const denied = await asUser("diego", () => exportAdReportCommand({}));
+    expect(denied).toMatchObject({ ok: false, error: "forbidden" });
   });
 });
