@@ -36,14 +36,6 @@ export interface FlagsPort {
   write(key: FlagKey, value: boolean, actor: string): Promise<Result<void, SetFlagError>>;
 }
 
-/**
- * Religar `auto_publish` é "autonomia para automático" (spec §8): passa por aprovação de duas
- * pessoas (`safety.disable`, `flag:auto_publish=true`), nunca por `setFlag`.
- */
-export function needsApproval(key: FlagKey, value: boolean): boolean {
-  return key === "auto_publish" && value === true;
-}
-
 export interface FlagsService {
   getFlag(key: FlagKey): Promise<boolean>;
   getAll(): Promise<FlagRow[]>;
@@ -66,7 +58,6 @@ export function createFlagsService(port: FlagsPort): FlagsService {
     },
     getAll: () => port.readAll(),
     async setFlag(key, value, actor) {
-      if (needsApproval(key, value)) return err("needs_approval");
       const current = await port.read(key);
       if (!current) return err("not_found");
       if (current.enabled === value) return ok({ changed: false });

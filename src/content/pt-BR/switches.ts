@@ -20,8 +20,6 @@ export interface SwitchInfo {
   /** Efeito de ligada / desligada. */
   on: string;
   off: string;
-  /** Ligar passa por aprovação de outra pessoa. */
-  guarded?: boolean;
 }
 
 export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
@@ -30,7 +28,6 @@ export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
     about: "Deixa o motor publicar sozinho o que as regras aprovam.",
     on: "Ligada: publica dentro das regras.",
     off: "Desligada: tudo vai para a fila de revisão.",
-    guarded: true,
   },
   read_only: {
     title: "Modo leitura",
@@ -88,7 +85,6 @@ export const SWITCH_TEXT = {
   offWord: "Desligado",
   turnOn: "Ligar",
   turnOff: "Desligar",
-  guardedNote: "Religar abre um pedido para outra pessoa aprovar.",
   missing: "Chave não encontrada no banco.",
   since: (who: string, when: string) => `desde ${when}, por ${who}`,
   unknownWho: "sistema",
@@ -103,7 +99,6 @@ export const SWITCH_TEXT = {
   result: {
     changed: (label: string, on: boolean) => `${label}: ${on ? "ligado" : "desligado"}.`,
     unchanged: "Já estava neste estado. Nada foi alterado.",
-    pending: "Pedido aberto. Outra pessoa (admin) precisa aprovar na caixa de aprovações.",
   },
   error: {
     forbidden: "Só a administração muda os interruptores.",

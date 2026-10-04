@@ -2,7 +2,7 @@
 // P5-T10 · Contingência (Review Focus 4): pausar a publicação automática no meio de um ciclo
 // manda os itens restantes para revisão; `read_only` bloqueia as Server Actions do Estúdio com
 // mensagem; `ai_enabled` desligada faz a busca com IA recusar; rollback volta à versão
-// aprovada anterior; religar a publicação automática só por aprovação de outra pessoa.
+// aprovada anterior; religar a publicação automática é ação direta do admin (A-125).
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ACTION_NAME } from "@/content/pt-BR/contingency";
@@ -16,7 +16,6 @@ import { createPublishHandlers } from "@/lib/pipeline/steps";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
 import { ok } from "@/lib/result";
 import type { RuleSet } from "@/lib/rules";
-import { decideApprovalCommand } from "@/lib/studio/approvals";
 import { contingencyCommand } from "@/lib/studio/contingency";
 import { publishArticle } from "@/lib/studio/publish";
 import { READ_ONLY_MESSAGE } from "@/lib/studio/read-only";
@@ -262,20 +261,14 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
     expect(await article(articles.decided)).toMatchObject({ status: "in_review" });
   });
 
-  it("pausar de novo é idempotente; religar exige aprovação de outra pessoa", async () => {
+  it("pausar de novo é idempotente; religar é direto do admin e zera o disjuntor", async () => {
     const again = await run("pause_auto_publish");
     expect(again).toMatchObject({ ok: true, value: { changed: false, movedToReview: 0 } });
 
-    // Direto no banco, admin não religa sozinha (guard_feature_flags, 0035).
-    const { clientOf } = await import("./studio");
-    const helena = await clientOf("helena");
-    const direct = await helena
-      .from("feature_flags")
-      .update({ enabled: true })
-      .eq("key", "auto_publish")
-      .select("key");
-    expect(direct.error?.message).toMatch(/exige aprovação/);
-    expect(await flag("auto_publish")).toBe(false);
+    await service
+      .from("publish_breaker")
+      .update({ tripped_at: new Date().toISOString(), trip_reason: "hourly" })
+      .eq("id", true);
     const resume = await run(
       "resume_auto_publish",
       ACTION_NAME.resume_auto_publish,
@@ -283,32 +276,26 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
     );
     expect(resume).toMatchObject({
       ok: true,
-      value: { action: "resume_auto_publish", existing: false },
+      value: { action: "resume_auto_publish", changed: true },
     });
-    if (resume.ok && resume.value.action === "resume_auto_publish")
-      approvals.push(resume.value.approvalId);
-    expect(await flag("auto_publish")).toBe(false);
-    const id = approvals[0]!;
-    const self = await asUser("helena", () => decideApprovalCommand({ id, decision: "approve" }));
-    expect(self).toMatchObject({ ok: false, error: "forbidden" });
-    // Só admin aprova `safety.disable`; a editora-chefe não.
-    const marina = await asUser("marina", () => decideApprovalCommand({ id, decision: "approve" }));
-    expect(marina).toMatchObject({ ok: false, error: "forbidden" });
-    await service.from("user_roles").insert({ user_id: SEED_USERS.thiago.id, role: "admin" });
-    try {
-      const other = await asUser("thiago", () =>
-        decideApprovalCommand({ id, decision: "approve" }),
-      );
-      expect(other).toMatchObject({ ok: true, value: { applied: true } });
-    } finally {
-      await service
-        .from("user_roles")
-        .delete()
-        .eq("user_id", SEED_USERS.thiago.id)
-        .eq("role", "admin");
-    }
     expect(await flag("auto_publish")).toBe(true);
+    const { data: breaker } = await service
+      .from("publish_breaker")
+      .select("tripped_at, trip_reason")
+      .eq("id", true)
+      .single();
+    expect(breaker).toMatchObject({ tripped_at: null, trip_reason: null });
+    // Só admin: a editora-chefe não usa a contingência.
     await setFlagDirect("auto_publish", false);
+    const marina = await asUser("marina", () =>
+      contingencyCommand({
+        action: "resume_auto_publish",
+        typed: ACTION_NAME.resume_auto_publish,
+        reason: "x",
+      }),
+    );
+    expect(marina).toMatchObject({ ok: false, error: "forbidden" });
+    expect(await flag("auto_publish")).toBe(false);
   });
 });
 
