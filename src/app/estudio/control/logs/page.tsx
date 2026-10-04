@@ -19,7 +19,7 @@ import { searchLogs, sourceOptions } from "@/lib/db/queries/control";
 import { STEP_NAMES } from "@/lib/pipeline/types";
 import { loadOrNull } from "../../load-error";
 
-export const metadata: Metadata = { title: "Logs · Control Center · CityNews Cuiabá" };
+export const metadata: Metadata = { title: "Registros · Control Center · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
 
 const PAGE = 50;

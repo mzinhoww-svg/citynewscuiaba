@@ -163,6 +163,29 @@ export async function listQueueThrough(
   return r.rows;
 }
 
+/**
+ * Quantas matérias há em cada aba (item 51: contagem nas abas da fila), com a sessão de quem
+ * consulta. Sem os demais filtros: o número é o da aba que o link abre. "Tudo" fica sem número.
+ * Erro numa aba deixa só ela sem número; nunca derruba a tela.
+ */
+export async function queueTabCounts(): Promise<Partial<Record<QueueTab, number>>> {
+  const tabs = QUEUE_TABS.filter((t) => t !== "all");
+  const counts = await Promise.all(
+    tabs.map((tab) =>
+      queryQueue({ tab }, { limit: 1, countOnly: true }).then(
+        (r) => r.total,
+        () => undefined,
+      ),
+    ),
+  );
+  const out: Partial<Record<QueueTab, number>> = {};
+  tabs.forEach((tab, i) => {
+    const n = counts[i];
+    if (n !== undefined) out[tab] = n;
+  });
+  return out;
+}
+
 /** Teto de matérias da seleção "todas em revisão" (uma publicação forçada). */
 export const REVIEW_SELECTION_MAX = 2000;
 

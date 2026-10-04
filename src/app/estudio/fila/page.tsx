@@ -12,8 +12,10 @@ import {
   listSectionOptions,
   QUEUE_ORIGINS,
   QUEUE_TABS,
+  queueTabCounts,
   type QueueFilter,
   type QueueRow,
+  type QueueTab,
 } from "@/lib/db/queries/queue";
 import {
   assignAction,
@@ -62,6 +64,8 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   // "Carregar mais": o cursor marca o último item já mostrado; a página mostra tudo até ele e
   // a próxima página, com o foco no primeiro item novo (#mais-<n>).
   const cursor = /^[A-Za-z0-9_-]{1,512}$/.test(one(sp.cursor)) ? one(sp.cursor) : undefined;
+  // Contagem por aba (item 51), em paralelo com a fila; falha deixa as abas sem número.
+  const tabCountsP = queueTabCounts().catch((): Partial<Record<QueueTab, number>> => ({}));
   let rows: QueueRow[] | null = null;
   let firstNew = -1;
   let total = 0;
@@ -108,6 +112,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   }))
     if (v) forceFilter[k] = v;
 
+  const tabCounts = await tabCountsP;
   const now = new Date();
   const manageDesk = canAccess(session.roles, "article.publish");
   const canUnpublishAny = canAccess(session.roles, "article.unpublish_auto");
@@ -118,7 +123,12 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
       <QueueTabs
         label={T.tabsLabel}
         current={tab}
-        items={QUEUE_TABS.map((k) => ({ key: k, label: T.tabs[k], href: tabHref(k) }))}
+        items={QUEUE_TABS.map((k) => ({
+          key: k,
+          label: T.tabs[k],
+          href: tabHref(k),
+          count: tabCounts[k],
+        }))}
       />
       <QueueFilters
         action="/estudio/fila"

@@ -14,10 +14,24 @@ export interface StudioNavItem {
   icon: IconName;
   /** Marca como atual só na rota exata (a entrada do Estúdio). */
   exact?: boolean;
+  /** Pendências do item (exceções, denúncias vencidas…); ausente ou zero = sem contagem. */
+  count?: number;
+  /** Como a contagem é lida: "3 pendentes" (padrão) ou "2 vencidas". */
+  countKind?: StudioNavCountKind;
+  /** Item de atenção (Contingência): rótulo em destaque. */
+  emphasis?: boolean;
+  /**
+   * Subgrupo dentro do grupo (Control Center: Operação, IA, Fontes e regras). Itens do mesmo
+   * subgrupo vêm juntos; itens sem subgrupo aparecem antes, sem título.
+   */
+  subgroup?: string;
 }
+
+export type StudioNavCountKind = "pending" | "overdue";
 
 export interface StudioNavGroup {
   label: string;
+  /** Lista plana, na ordem de exibição; os subgrupos saem de `StudioNavItem.subgroup`. */
   items: StudioNavItem[];
 }
 
@@ -28,7 +42,7 @@ export interface StudioUser {
 }
 
 export interface StudioShellProps {
-  /** Grupos já filtrados pelo papel (Redação, Control Center, Governança). */
+  /** Grupos já filtrados pelo papel (Redação, Control Center, Administração). */
   nav: StudioNavGroup[];
   user: StudioUser;
   /** Sino da central de notificações (Client Component injetado pelo layout; visível em todas as páginas). */
@@ -77,7 +91,7 @@ export function StudioShell({ nav, user, bell, children, className }: StudioShel
         </div>
       </header>
       <div className="lg:grid lg:grid-cols-[var(--spacing-rail)_minmax(0,1fr)]">
-        <StudioNav nav={nav} className="hidden border-r border-line-subtle lg:block" />
+        <StudioNav nav={nav} search className="hidden border-r border-line-subtle lg:block" />
         <main id="conteudo" className="min-w-0 px-gutter py-6 lg:py-8">
           {children}
         </main>
