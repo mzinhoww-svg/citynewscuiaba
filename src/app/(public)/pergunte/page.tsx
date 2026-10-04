@@ -221,7 +221,11 @@ async function Answer({ question }: { question: string }) {
           </div>
         </section>
       </div>
-      <SourceRail sources={answer.sources} now={now} className="lg:sticky lg:top-6 lg:self-start" />
+      <SourceRail
+        sources={answer.sources}
+        now={now}
+        className="lg:sticky lg:top-sticky-public lg:self-start"
+      />
     </div>
   );
 }

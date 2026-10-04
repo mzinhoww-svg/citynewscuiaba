@@ -44,10 +44,13 @@ async function focused(page: Page): Promise<Focus> {
     // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do input some de
     // propósito (evita anel duplo). Só o contorno do contêiner conta, não a sombra do foco interno.
     const field = el.tagName === "INPUT" ? el.closest(".control-field") : null;
+    // R7 + UX-W1-T9: no `card-link` o anel é do `::after`, que cobre o card inteiro.
+    const card = el.classList.contains("card-link");
     const ring =
       outlined(cs) ||
       cs.boxShadow !== "none" ||
-      (field !== null && outlined(getComputedStyle(field)));
+      (field !== null && outlined(getComputedStyle(field))) ||
+      (card && outlined(getComputedStyle(el, "::after")));
     const r = el.getBoundingClientRect();
     const inView = r.bottom > 0 && r.top < window.innerHeight && r.width > 0 && r.height > 0;
     // 2.4.11: um cabeçalho fixo ou a barra inferior não podem esconder o elemento com foco por
@@ -140,7 +143,11 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
     const el = document.activeElement!;
     // R4/R5 + A-123: o anel de um input em `.control-field` é pintado no contêiner; a captura
     // precisa cobrir o contêiner, senão o contorno cai fora do recorte.
-    const host = (el.tagName === "INPUT" && el.closest(".control-field")) || el;
+    // No `card-link` o anel contorna o card (o bloco posicionado que contém o `::after`).
+    const host =
+      (el.tagName === "INPUT" && el.closest(".control-field")) ||
+      (el.classList.contains("card-link") && (el as HTMLElement).offsetParent) ||
+      el;
     const r = host.getBoundingClientRect();
     return { x: r.left, y: r.top, width: r.width, height: r.height };
   });

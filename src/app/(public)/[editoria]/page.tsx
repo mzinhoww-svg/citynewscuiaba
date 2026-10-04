@@ -233,7 +233,7 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
           )}
           {/* Lateral abaixo de "Mais lidas": retângulo e arranha-céu (este fixo ao rolar). */}
           <AdSlot code="RAIL-A" sectionSlug={adSection} />
-          <div className="lg:sticky lg:top-6">
+          <div className="lg:sticky lg:top-sticky-public">
             <AdSlot code="RAIL-B" sectionSlug={adSection} />
           </div>
         </div>

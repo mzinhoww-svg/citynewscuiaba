@@ -309,7 +309,7 @@ function Article({ a }: { a: ArticleView }) {
             </section>
           </article>
 
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
             <MadeHow
               article={a}
               versionsHref={historyHref}

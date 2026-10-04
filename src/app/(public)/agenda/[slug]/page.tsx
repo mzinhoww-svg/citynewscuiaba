@@ -177,7 +177,7 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
             </p>
           </article>
 
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
             <section aria-labelledby="adicionar" className="flex flex-col gap-3 bg-section p-5">
               <h2 id="adicionar" className="type-section text-strong">
                 {AGENDA.addToCalendar}

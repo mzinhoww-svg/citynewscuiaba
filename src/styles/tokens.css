@@ -98,8 +98,10 @@
   --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-40: 40px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
   --gutter: 24px; --container-max: 1200px;
   --h-input: 52px; --h-button: 56px; --h-button-sm: 36px; --h-chip: 36px; --h-icon-btn: 48px; --h-tabbar: 64px;
-  /* Cabeçalhos fixos (medidos no navegador, com folga): base do scroll-padding (WCAG 2.4.11) */
-  --h-sticky-public: 128px; --h-sticky-studio: 60px;
+  /* Cabeçalhos fixos (medidos no navegador, com folga): base do scroll-padding (WCAG 2.4.11) e
+     do topo das colunas `sticky` do portal (`top-sticky-public`). Público: 102 px medidos em
+     04/10/2026 (56 da linha principal + 44 das editorias + 2 de bordas; 90 ao rolar) + 16 de folga. */
+  --h-sticky-public: 118px; --h-sticky-studio: 60px;
   --tap-min: 44px;
 
   /* Raios: app suave, web editorial */
@@ -141,12 +143,19 @@
   --focus-ring: 3px solid #f06a43;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+/*
+ * Padrões globais em `@layer base` (UX-W1-T9): fora de camada eles venciam qualquer utilitário
+ * do Tailwind (o anel duplo do `card-link`, o `truncate` desfeito em `<p>`, o `!important` do
+ * `control-field`). Na camada base, um utilitário explícito (`outline-none`, `truncate`) vence.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  :where(h1, h2, h3) { text-wrap: balance; }
+  :where(p) { text-wrap: pretty; }
 }
-:where(h1, h2, h3) { text-wrap: balance; }
-:where(p) { text-wrap: pretty; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

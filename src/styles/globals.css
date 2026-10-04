@@ -314,9 +314,8 @@
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
   & input:focus-visible {
-    outline: none !important;
+    outline: none;
   }
 }
 
@@ -367,6 +366,16 @@
   }
 }
 
+/* Coluna `sticky` do portal: para logo abaixo do cabeçalho fixo (altura medida + folga). */
+@utility top-sticky-public {
+  top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
+}
+/* Área segura superior (entalhe do iPhone com `viewport-fit=cover`): zero onde não há entalhe,
+   para o cabeçalho não mudar de altura no desktop. */
+@utility pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Área segura inferior (barra de gestos) e espaço da barra inferior do app. */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
@@ -399,7 +408,7 @@
  * deles. Cada cabeçalho fixo se declara com `data-sticky`.
  */
 :root:has(header[data-sticky="public"]) {
-  scroll-padding-top: var(--h-sticky-public);
+  scroll-padding-top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
 }
 :root:has(header[data-sticky="studio"]) {
   scroll-padding-top: var(--h-sticky-studio);

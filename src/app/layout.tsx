@@ -40,6 +40,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // A página ocupa a tela inteira do iPhone (atrás do entalhe e da barra de gestos); o cabeçalho
+  // (`pt-safe-top`) e as barras inferiores (`*-safe`) devolvem a área segura.
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0b1320" },

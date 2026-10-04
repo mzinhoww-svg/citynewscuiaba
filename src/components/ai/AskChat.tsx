@@ -266,7 +266,10 @@ export function AskChat({ initialQuestion, historyStore }: AskChatProps) {
         </div>
       </section>
 
-      <aside aria-label={ASK.chat.panelTitle} className="hidden lg:sticky lg:top-24 lg:block">
+      <aside
+        aria-label={ASK.chat.panelTitle}
+        className="hidden lg:sticky lg:top-sticky-public lg:block"
+      >
         {panelSources.length > 0 && panelTurn ? (
           <ChatSources
             variant="panel"
@@ -299,7 +302,7 @@ function HistoryColumn({
 }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-3 lg:sticky lg:top-24">
+    <section aria-labelledby={id} className="flex flex-col gap-3 lg:sticky lg:top-sticky-public">
       <h2 id={id} className="type-eyebrow text-meta">
         {ASK.chat.historyTitle}
       </h2>
