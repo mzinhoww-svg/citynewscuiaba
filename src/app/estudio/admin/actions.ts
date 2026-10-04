@@ -17,12 +17,7 @@ import {
   togglePlaceCommand,
 } from "@/lib/studio/admin-taxonomy";
 import { deleteTeamCommand, saveTeamCommand } from "@/lib/studio/admin-teams";
-import {
-  applyAdminRevokeCommand,
-  applyAdminRoleCommand,
-  inviteUserCommand,
-  setRolesCommand,
-} from "@/lib/studio/admin-users";
+import { inviteUserCommand, setRolesCommand } from "@/lib/studio/admin-users";
 import type { StudioResult } from "@/lib/studio/action";
 
 /* Server Actions da Administração (P5-T8): camada fina sobre src/lib/studio/admin-*. */
@@ -47,24 +42,12 @@ export async function setRolesAction(i: {
   justification: string;
 }) {
   return reply(await setRolesCommand(i), (v) =>
-    v.adminApplied
+    v.granted.includes("admin")
       ? T.users.rolesDialog.adminAppliedNow
-      : v.adminRevokeApplied
+      : v.revoked.includes("admin")
         ? T.users.rolesDialog.revokeAppliedNow
-        : v.adminApprovalId
-          ? T.users.rolesDialog.adminRequested
-          : v.adminRevokeApprovalId
-            ? T.users.rolesDialog.revokeRequested
-            : T.users.rolesDialog.saved,
+        : T.users.rolesDialog.saved,
   );
-}
-
-export async function applyAdminRoleAction(i: { userId: string }) {
-  return reply(await applyAdminRoleCommand(i), () => T.users.rolesDialog.applied);
-}
-
-export async function applyAdminRevokeAction(i: { userId: string }) {
-  return reply(await applyAdminRevokeCommand(i), () => T.users.rolesDialog.revokeApplied);
 }
 
 export async function saveTeamAction(i: {
