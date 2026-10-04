@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Button, EmptyState, InlineAlert, OriginLabel, Panel } from "@/components";
 import {
   AiSuggestionInline,
@@ -11,12 +10,14 @@ import {
   SourcesEditor,
   ImageTextForm,
   MediaThumb,
+  StudioScreen,
 } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   CORRECTIONS_TEXT,
   EDITOR_TEXT as T,
   IMAGE_TEXT,
+  QUEUE_TEXT,
   TOPIC_STATE_STUDIO,
 } from "@/content/pt-BR/studio";
 import { can, canAccess } from "@/lib/auth";
@@ -105,6 +106,7 @@ export default async function ArticleEditorPage({
     canPublish ? currentHeadline(a.id) : Promise.resolve(null),
   ]);
   const labels = articleLabels(a);
+  // Caminho de volta para a lista de origem (item 58; `originFrom` quando houver `?de=`).
   const body: EditorDoc = isDoc(a.body) ? a.body : { type: "doc", content: [] };
 
   const sidebar = (
@@ -160,45 +162,44 @@ export default async function ArticleEditorPage({
   );
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <Link
-          href={backHref}
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {T.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">
-          {T.title} · {a.section.name}
-        </p>
-        <h1 className="type-screen-title text-strong">{a.title}</h1>
-        {a.topic && (
-          <p className="type-meta text-meta" title={TOPIC_STATE_STUDIO.auto}>
-            {TOPIC_STATE_STUDIO.line(a.topic.title, TOPIC_STATE_STUDIO.state[a.topic.state])}
+    <StudioScreen
+      as="article"
+      section={`${T.title} · ${a.section.name}`}
+      title={a.title}
+      breadcrumbs={[
+        { href: backHref, label: QUEUE_TEXT.queueTitle },
+        { href: `/estudio/materias/${a.id}`, label: a.title },
+      ]}
+      intro={
+        <>
+          {a.topic && (
+            <p className="type-meta text-meta" title={TOPIC_STATE_STUDIO.auto}>
+              {TOPIC_STATE_STUDIO.line(a.topic.title, TOPIC_STATE_STUDIO.state[a.topic.state])}
+            </p>
+          )}
+          <p className="type-meta text-meta">
+            {T.statusLine(ARTICLE_STATUS_LABEL[a.status], a.version)}
+            {a.authorName ? ` · ${a.authorName}` : ""} · {formatDateTime(a.updatedAt)}
           </p>
-        )}
-        <p className="type-meta text-meta">
-          {T.statusLine(ARTICLE_STATUS_LABEL[a.status], a.version)}
-          {a.authorName ? ` · ${a.authorName}` : ""} · {formatDateTime(a.updatedAt)}
-        </p>
-        <div className="flex flex-wrap items-center gap-2" aria-label={T.labels} role="group">
-          {labels.map((l) => (
-            <OriginLabel key={l.kind} label={l} />
-          ))}
-          <ConfidenceMeter level={a.confidence} />
-        </div>
-        <div>
-          <Button
-            href={`/estudio/materias/${a.id}/versoes`}
-            size="sm"
-            variant="outline"
-            icon="history"
-          >
-            {T.openHistory}
-          </Button>
-        </div>
-      </header>
-
+          <div className="flex flex-wrap items-center gap-2" aria-label={T.labels} role="group">
+            {labels.map((l) => (
+              <OriginLabel key={l.kind} label={l} />
+            ))}
+            <ConfidenceMeter level={a.confidence} />
+          </div>
+        </>
+      }
+      actions={
+        <Button
+          href={`/estudio/materias/${a.id}/versoes`}
+          size="sm"
+          variant="outline"
+          icon="history"
+        >
+          {T.openHistory}
+        </Button>
+      }
+    >
       {isPublic && canEdit ? (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="flex flex-col gap-4">
@@ -281,6 +282,6 @@ export default async function ArticleEditorPage({
           {sidebar}
         </EditorWithPublish>
       )}
-    </article>
+    </StudioScreen>
   );
 }

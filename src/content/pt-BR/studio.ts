@@ -36,6 +36,12 @@ export const STUDIO_TEXT = {
       : `, ${n} ${n === 1 ? "pendente" : "pendentes"}`,
   /** Final do nome acessível de uma aba com contagem: "Fila de exceção, 3 itens". */
   tabCount: (n: number) => `, ${n} ${n === 1 ? "item" : "itens"}`,
+  breadcrumbs: "Caminho",
+  sections: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
 } as const;
 
 /** Grupos e subgrupos do menu do Estúdio (item 50). */
@@ -111,6 +117,7 @@ export const QUEUE_TEXT = {
       : `${n} matérias foram publicadas automaticamente nas últimas 24 h. Confira e despublique com motivo se algo estiver errado.`,
   autoBannerLink: "Ver publicadas automaticamente",
   seeAll: "Ver fila completa",
+  seeInQueue: "Ver na Fila",
   loadMore: "Carregar mais",
   caption: "Matérias da fila",
   scrollRegion: "Tabela da fila (role para os lados no celular)",

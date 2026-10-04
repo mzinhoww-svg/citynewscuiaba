@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, Icon, type IconName } from "@/components";
+import { StudioScreen } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, CALENDAR_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { calendarItems, type CalendarItem } from "@/lib/db/queries/studio-corrections";
@@ -49,11 +50,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   }
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen title={T.title} intro={T.intro}>
       <nav aria-label={T.nav} className="flex flex-wrap items-center gap-2">
         <Button
           href={`/estudio/calendario?semana=${addDays(start, -7)}`}
@@ -163,6 +160,6 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           </ol>
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

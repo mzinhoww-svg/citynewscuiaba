@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState, InlineAlert, StatGrid, Table } from "@/components";
-import { EvalCasesTable, EvalRunner } from "@/components/estudio";
+import { EvalCasesTable, EvalRunner, StudioScreen } from "@/components/estudio";
 import { AI_TEXT, GATE_LABEL, agentName, formatDec, formatPct } from "@/content/pt-BR/ai-control";
 import type { GateFailure } from "@/lib/ai/eval";
 import { REGRESSION_THRESHOLDS } from "@/lib/ai/eval";
@@ -27,12 +27,7 @@ export default async function EvaluationsPage() {
   const data = await loadOrNull("ai evals", () => evalOverview("answer"));
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{AI_TEXT.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen section={AI_TEXT.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -219,6 +214,6 @@ export default async function EvaluationsPage() {
           );
         })()
       )}
-    </section>
+    </StudioScreen>
   );
 }

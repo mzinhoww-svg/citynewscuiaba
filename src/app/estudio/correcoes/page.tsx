@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, Table } from "@/components";
-import { QueueTabs } from "@/components/estudio";
+import { QueueTabs, StudioScreen } from "@/components/estudio";
 import { CORRECTIONS_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listCorrectionQueue, type CorrectionRow } from "@/lib/db/queries/studio-corrections";
@@ -25,11 +25,7 @@ export default async function CorrectionsPage({ searchParams }: { searchParams: 
   const now = new Date().getTime();
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen title={T.title} intro={T.intro}>
       <QueueTabs
         label={T.tabsLabel}
         current={tab}
@@ -136,7 +132,7 @@ export default async function CorrectionsPage({ searchParams }: { searchParams: 
           </Table>
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }
 

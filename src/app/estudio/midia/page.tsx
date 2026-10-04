@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { MediaGrid, QueueTabs } from "@/components/estudio";
+import { MediaGrid, QueueTabs, StudioScreen } from "@/components/estudio";
 import { MEDIA_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listMedia, type MediaCardData } from "@/lib/db/queries/studio-media";
@@ -32,16 +32,15 @@ export default async function MediaLibraryPage({
   const today = localDateKey(new Date());
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-        <div>
-          <Button href="/estudio/midia/licencas" size="sm" variant="outline" icon="file-check">
-            {T.licensesLink}
-          </Button>
-        </div>
-      </header>
+    <StudioScreen
+      title={T.title}
+      intro={T.intro}
+      actions={
+        <Button href="/estudio/midia/licencas" size="sm" variant="outline" icon="file-check">
+          {T.licensesLink}
+        </Button>
+      }
+    >
       <QueueTabs
         label={T.tabsLabel}
         current={tab}
@@ -100,6 +99,6 @@ export default async function MediaLibraryPage({
           })}
         />
       )}
-    </section>
+    </StudioScreen>
   );
 }
