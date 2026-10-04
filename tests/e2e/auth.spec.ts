@@ -1,7 +1,6 @@
 import { loadEnvConfig } from "@next/env";
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousViolations } from "../a11y/axe";
-import { googleEnabled } from "../../src/lib/auth/reader";
 import { accountFormReady } from "./account-form";
 
 /*
@@ -11,7 +10,8 @@ import { accountFormReady } from "./account-form";
  * "G" e 56 px; desligado, não sobra botão, divisor nem frase de indisponível (Review Focus 1).
  */
 loadEnvConfig(process.cwd(), true, { info: () => {}, error: console.error });
-const GOOGLE_ON = googleEnabled();
+// Mesma regra de `googleEnabled` (`src/lib/auth/reader.ts`), que é server-only e não importa aqui.
+const GOOGLE_ON = ["1", "true"].includes(process.env.AUTH_GOOGLE_ENABLED ?? "");
 
 const FOCUSABLE =
   'main button:not([disabled]), main a[href], main input:not([type="hidden"]), main select, main textarea';
