@@ -2,6 +2,107 @@
 
 Instruções permanentes para o Claude Code neste repositório. Leia inteiro antes de qualquer tarefa.
 
+## OPERATING MODE — AUTONOMOUS EXECUTION
+
+```
+AUTONOMOUS BY DEFAULT
+HUMAN EXCEPTION ONLY
+```
+
+Esta é a regra operacional de maior prioridade do projeto (decisão do dono, A-127). Ela governa **como o agente trabalha**; as regras de produto do §5 continuam governando **o que o produto faz**. Em conflito sobre modo de operação, esta seção vence qualquer documento mais antigo, inclusive a spec mestre, os planos e `docs/AUTONOMY.md`.
+
+### Política
+
+O CityNews opera autonomamente por padrão. Uma instrução do usuário que define um objetivo constitui autorização para executar todas as operações técnicas necessárias para concluir esse objetivo, dentro das permissões disponíveis ao agente. O agente não pede aprovação intermediária para tarefas rotineiras, técnicas ou necessárias à execução do objetivo.
+
+```
+DIAGNOSTICAR → DECIDIR → IMPLEMENTAR → TESTAR → REVISAR → CORRIGIR → VALIDAR → CONCLUIR
+```
+
+```
+USER DEFINES OBJECTIVE → CLAUDE EXECUTES → CLAUDE VALIDATES → CLAUDE CORRECTS → CLAUDE CLOSES
+```
+
+Nunca `EXECUTAR → PEDIR APROVAÇÃO → ESPERAR → EXECUTAR`. Dentro de um objetivo já autorizado, o agente **não** interrompe o fluxo com "Posso continuar?", "Quer que eu execute?", "Devo aplicar?", "Posso rodar o SQL?", "Quer que eu corrija?", "Devo fazer o deploy?" ou "Quer que eu teste?". Ele faz, valida e relata.
+
+### Exceção humana (a lista é fechada)
+
+A intervenção humana existe somente quando:
+
+1. a plataforma exige interação humana (OAuth, captcha, 2FA, aceite de termos, painel sem API);
+2. a decisão é explicitamente reservada ao proprietário: gasto de dinheiro (plano pago, domínio, cota), exclusão irreversível de dado de produção ou de recurso fora do repositório, ou mudança do produto quando a spec se contradiz (não da implementação);
+3. há uma dependência externa que o agente não pode executar (segredo que só o dono tem, conta de terceiro, cadastro em painel);
+4. há uma exceção de segurança, jurídica ou operacional que a política determina expressamente como humana: pedido LGPD que exige prova de identidade, remoção legal de conteúdo, e as retenções editoriais do §5.8.
+
+Aprovação humana **nunca** é fallback para falha de IA, timeout, provider indisponível, erro transitório, SQL autorizado, migration, testes, build, lint, typecheck, Git, debugging, reprocessamento ou outra tarefa técnica necessária ao objetivo.
+
+### FAILURE ≠ STOP
+
+```
+FAIL → DIAGNOSE → IDENTIFY ROOT CAUSE → RETRY → ALTERNATIVE STRATEGY → FALLBACK → VERIFY → CONTINUE
+```
+
+Vale para AI, MCP, Supabase, SQL, API, provider, network, build, test, migration, deployment, source extraction, enrichment, publication e queue processing. O agente esgota retry, estratégia alternativa, fallback, reprocessamento ou correção antes de escalar. Detalhes da escada em `docs/AUTONOMY.md` §4.
+
+**AI failure must trigger recovery, not automatic human approval.** No produto e na operação:
+
+```
+AI FAIL → RETRY → ALTERNATE MODEL → ALTERNATE PROMPT → ENRICH → FALLBACK → DEGRADED MODE → HUMAN EXCEPTION ONLY IF STILL UNRESOLVED
+```
+
+### Filas
+
+Fila não substitui automação. Nenhum item fica indefinidamente em `PENDING`, `WAITING`, `REVIEW`, `APPROVAL` ou `QUEUED` sem `next_action`, `retry`, `fallback`, `timeout` e `terminal_state`. Fila crescendo é incidente: `DETECT → DIAGNOSE → IDENTIFY ROOT CAUSE → RECOVER → DRAIN`, nunca `QUEUE → WAIT FOR HUMAN`. Código novo que cria estado de espera define os cinco campos acima; código antigo sem eles é corrigido quando o objetivo tocar nele.
+
+### Governança sem gargalo humano
+
+```
+REQUEST → POLICY ENGINE → VALIDATE → APPLY → AUDIT        (padrão)
+REQUEST → POLICY → HUMAN_EXCEPTION                         (só nos casos da lista fechada)
+```
+
+O CityNews não depende de duas pessoas para operações normais. Onde existir um mecanismo de proteção necessário, ele é **authorization + policy validation + audit trail + rollback + automated safeguards**, não uma segunda assinatura. Documento antigo que exija segunda pessoa, segunda aprovação ou "aguarde aprovação" para operação técnica ou administrativa é obsoleto nesse ponto e não deve ser reintroduzido. *Transição:* o banco ainda impõe `approved_by <> requested_by` no fluxo de `approvals` (inventário em `.planning/BLOCKERS.md` B-026). Isso é dívida técnica, não regra: não reforce, não estenda a novos fluxos, e substitua por autoaprovação auditada quando o objetivo tocar nesse fluxo.
+
+### Auditoria permanece
+
+Autonomia não é ausência de controle. Toda ação automática relevante é **AUDITABLE, TRACEABLE, REVERSIBLE WHEN POSSIBLE**, com `decision`, `reason`, `policy`, `policy_version`, `actor`, `timestamp` e `result` quando aplicável (no produto: `decisions`, `studio_audit`, regras versionadas; no repositório: commits, `.planning/DECISIONS.md` e `.planning/BLOCKERS.md`).
+
+### Skills por natureza da tarefa
+
+Selecione a skill adequada em vez de improvisar um processo inferior:
+
+| Situação | Skill |
+|---|---|
+| Bug, teste falhando, comportamento inesperado | `systematic-debugging` |
+| Sessão que deu errado, retrabalho, skill que não disparou | `diagnosing-superpowers` |
+| Feature ou mudança de comportamento ainda sem desenho | `brainstorming` → `writing-plans` |
+| Plano pronto | `subagent-driven-development` (ou `executing-plans` sem subagentes); tarefas independentes em `dispatching-parallel-agents`; isolamento em `using-git-worktrees` |
+| Código novo ou correção | `test-driven-development` |
+| Antes de declarar pronto, commitar ou abrir PR | `verification-before-completion` |
+| Fim de tarefa grande ou antes do merge | `requesting-code-review`; ao receber revisão, `receiving-code-review` |
+| Integrar o branch | `finishing-a-development-branch` |
+| Interface | `impeccable` (auditoria e polimento) e `ui-ux-pro-max` (checagens de UX) |
+
+### Self-review e verificação obrigatórios
+
+```
+IMPLEMENTED → SELF-REVIEW → ADVERSARIAL CHECK → FIX → RETEST → VERIFY
+```
+
+"Implementado" não é "concluído", e "teste local passou" não é automaticamente "concluído". Valide a camada que o problema exige, sem declarar conclusão sem evidência:
+
+```
+CODE → TEST → DATABASE → INTEGRATION → BUILD → DEPLOY → RUNTIME → VERIFY
+```
+
+### Bloqueio externo
+
+Quando uma ação realmente não pode ser executada por limitação externa: (1) faça todo o trabalho possível; (2) identifique exatamente o bloqueio; (3) classifique como `OWNER_ACTION_REQUIRED` ou `BLOCKED_EXTERNAL` em `.planning/BLOCKERS.md`; (4) descreva o único passo que depende do ambiente externo; (5) continue todas as atividades independentes. Um bloqueio nunca para o projeto inteiro.
+
+### Permissões da plataforma não são regra do CityNews
+
+Esta política orienta o comportamento do agente, mas **não substitui** o permissionamento do Claude Code (modo de permissão, allowlist de ferramentas, sandbox, proxy de rede, aprovação de conector). Quando a plataforma bloquear uma ferramenta: identifique a causa, use a configuração disponível no ambiente (`.claude/settings.json`, conectores, variáveis), não transforme o bloqueio em regra de negócio do CityNews e não trate a aprovação de ferramenta da plataforma como aprovação editorial humana.
+
 ## 1. O que é este projeto
 
 Portal de notícias híbrido de Cuiabá:
