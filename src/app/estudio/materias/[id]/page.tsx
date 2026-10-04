@@ -32,6 +32,7 @@ import { formatDateTime } from "@/lib/format/date";
 import { canRequestUrgent } from "@/lib/push/permissions";
 import { SEO_DESCRIPTION_MAX, SEO_TITLE_MAX } from "@/lib/studio/checklist";
 import type { EditorDoc } from "@/lib/studio/doc";
+import { originFrom } from "@/lib/studio/origin";
 import {
   acceptSuggestionAction,
   openCorrectionAction,
@@ -53,8 +54,16 @@ function isDoc(v: unknown): v is EditorDoc {
   return typeof v === "object" && v !== null && (v as { type?: unknown }).type === "doc";
 }
 
-export default async function ArticleEditorPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ArticleEditorPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id } = await params;
+  // "Voltar" leva à lista de onde a pessoa veio (`?de=`, item 58); sem origem, à Fila.
+  const backHref = originFrom(await searchParams, "/estudio/fila");
   const session = await requireRole("article.edit", undefined, { next: `/estudio/materias/${id}` });
   const loaded = await loadOrNull("materia", () => getStudioArticle(id));
   if (!loaded) return <LoadError retryHref={`/estudio/materias/${id}`} />;
@@ -67,7 +76,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
         icon="circle-alert"
         title={T.notFoundTitle}
         actions={
-          <Button href="/estudio/fila" size="md" variant="outline">
+          <Button href={backHref} size="md" variant="outline">
             {T.back}
           </Button>
         }
@@ -154,7 +163,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
     <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <Link
-          href="/estudio/fila"
+          href={backHref}
           className="type-meta font-medium text-link underline-offset-4 hover:underline"
         >
           {T.back}
@@ -252,6 +261,7 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
             ) : undefined,
             save: canEdit && !isPublic ? saveDraftAction : undefined,
             seoLimits: { title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX },
+            savedAt: a.updatedAt,
           }}
           publish={
             canPublish

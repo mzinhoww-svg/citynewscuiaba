@@ -1,5 +1,6 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import Link from "next/link";
 import { createRef } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadDraft } from "@/lib/studio/draft-store";
@@ -193,5 +194,101 @@ describe("ArticleEditor · conflito (item 5, E-04)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Restaurar meu texto" }));
     expect(screen.getByRole("textbox", { name: "Texto" })).toHaveValue("texto local");
     setItem.mockRestore();
+  });
+});
+
+describe("ArticleEditor · barra de salvar e rascunho automático (item 48, E-18)", () => {
+  afterEach(() => vi.useRealTimers());
+
+  it("editar o título mostra Alterações não salvas e o contador do título", async () => {
+    render(<ArticleEditor {...base} save={vi.fn()} savedAt="2026-10-04T18:02:00.000Z" />);
+    // "Título salvo" tem 12 caracteres; o limite do título é 110.
+    expect(screen.getByText("12/110")).toBeInTheDocument();
+    expect(screen.getByText("Salvo às 14h02")).toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: "Título" }), "!");
+    expect(screen.getByText("Alterações não salvas")).toBeInTheDocument();
+    expect(screen.getByText("13/110")).toBeInTheDocument();
+    expect(screen.queryByText("Salvo às 14h02")).not.toBeInTheDocument();
+  });
+
+  it("título acima do limite fica marcado com erro", () => {
+    render(<ArticleEditor {...base} save={vi.fn()} />);
+    const title = screen.getByRole("textbox", { name: "Título" });
+    fireEvent.change(title, { target: { value: "x".repeat(111) } });
+    expect(title).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByText("111/110")).toBeInTheDocument();
+  });
+
+  it("depois de salvar, a barra mostra a hora do salvamento", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date("2026-10-04T18:05:00.000Z") });
+    const save = vi
+      .fn()
+      .mockResolvedValue({ ok: true, message: "Rascunho salvo · versão 4", version: 4 });
+    render(<ArticleEditor {...base} save={save} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Título" }), {
+      target: { value: "Novo título" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Salvar rascunho" }));
+    });
+    expect(await screen.findByText("Salvo às 14h05")).toBeInTheDocument();
+  });
+
+  it("guarda o rascunho neste aparelho 5 s depois da última edição", () => {
+    vi.useFakeTimers({ now: new Date("2026-10-04T18:10:00.000Z") });
+    render(<ArticleEditor {...base} save={vi.fn()} />);
+    const title = screen.getByRole("textbox", { name: "Título" });
+    fireEvent.change(title, { target: { value: "Título a" } });
+    act(() => vi.advanceTimersByTime(3000));
+    fireEvent.change(title, { target: { value: "Título ab" } });
+    act(() => vi.advanceTimersByTime(3000));
+    // Debounce: a segunda edição reinicia a contagem.
+    expect(loadDraft("a1")).toBeNull();
+    act(() => vi.advanceTimersByTime(2000));
+    expect(loadDraft("a1")?.title).toBe("Título ab");
+    expect(loadDraft("a1")?.baseVersion).toBe(3);
+    // O rascunho automático desta sessão não vira aviso de "restaurar".
+    expect(screen.queryByRole("button", { name: "Restaurar meu texto" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Guardado neste aparelho às 14h10/)).toBeInTheDocument();
+  });
+
+  it("salvar no servidor apaga o rascunho automático", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const save = vi
+      .fn()
+      .mockResolvedValue({ ok: true, message: "Rascunho salvo · versão 4", version: 4 });
+    render(<ArticleEditor {...base} save={save} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Título" }), {
+      target: { value: "Outro" },
+    });
+    act(() => vi.advanceTimersByTime(5000));
+    expect(loadDraft("a1")).not.toBeNull();
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Salvar rascunho" }));
+    });
+    expect(loadDraft("a1")).toBeNull();
+  });
+
+  it("modo leitura não guarda rascunho nem mostra a barra de salvar", () => {
+    vi.useFakeTimers();
+    render(<ArticleEditor {...base} readOnly />);
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(loadDraft("a1")).toBeNull();
+    expect(screen.queryByText("Alterações não salvas")).not.toBeInTheDocument();
+    expect(screen.queryByText(/\/110$/)).not.toBeInTheDocument();
+  });
+
+  it("com alteração pendente, sair por link pede confirmação", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    render(
+      <>
+        <Link href="/estudio/fila">Fila</Link>
+        <ArticleEditor {...base} save={vi.fn()} />
+      </>,
+    );
+    await userEvent.type(screen.getByRole("textbox", { name: "Título" }), "!");
+    fireEvent.click(screen.getByRole("link", { name: "Fila" }));
+    expect(confirm).toHaveBeenCalled();
+    confirm.mockRestore();
   });
 });

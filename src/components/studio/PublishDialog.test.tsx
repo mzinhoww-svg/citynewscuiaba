@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -49,7 +49,10 @@ describe("PublishDialog · push urgente (E06, spec §10.7)", () => {
     expect(just).toBeVisible();
     await userEvent.click(screen.getByRole("button", { name: "Confirmar publicação" }));
     expect(publish).not.toHaveBeenCalled();
-    expect(screen.getByRole("alert")).toHaveTextContent("Informe a justificativa do push urgente.");
+    expect(screen.getByText("Informe a justificativa do push urgente.")).toHaveAttribute(
+      "role",
+      "alert",
+    );
     await userEvent.type(just, "Alerta da Defesa Civil");
     await userEvent.click(screen.getByRole("button", { name: "Confirmar publicação" }));
     expect(publish).toHaveBeenCalledWith({
@@ -148,5 +151,68 @@ describe("PublishDialog · edição não salva (item 4, E-02)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
     await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
     expect(screen.getByRole("button", { name: "Salvar e agendar" })).toBeInTheDocument();
+  });
+});
+
+describe("PublishDialog · validação (item 49, E-19)", () => {
+  const field = () => screen.getByLabelText("Data e hora (fuso de Cuiabá)");
+
+  it("o campo de agendamento começa em agora (fuso de Cuiabá)", async () => {
+    render(<PublishDialog {...base} publish={vi.fn()} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
+    expect(field()).toHaveAttribute(
+      "min",
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/),
+    );
+  });
+
+  it("agendar no passado mostra erro ligado ao campo e não envia", async () => {
+    const publish = vi.fn();
+    render(<PublishDialog {...base} publish={publish} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
+    fireEvent.change(field(), { target: { value: "2020-01-01T10:00" } });
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar agendamento" }));
+    expect(publish).not.toHaveBeenCalled();
+    expect(field()).toHaveAttribute("aria-invalid", "true");
+    expect(field()).toHaveAccessibleDescription(
+      expect.stringContaining("Escolha um horário futuro"),
+    );
+  });
+
+  it("agendar sem data também fica no campo", async () => {
+    const publish = vi.fn();
+    render(<PublishDialog {...base} publish={publish} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar agendamento" }));
+    expect(publish).not.toHaveBeenCalled();
+    expect(field()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("agendar no futuro envia o horário", async () => {
+    const publish = vi.fn().mockResolvedValue({ ok: true, message: "Matéria agendada" });
+    render(<PublishDialog {...base} publish={publish} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Agendar" }));
+    const soon = new Date(Date.now() + 2 * 86_400_000);
+    const at = `${soon.getUTCFullYear()}-${String(soon.getUTCMonth() + 1).padStart(2, "0")}-${String(soon.getUTCDate()).padStart(2, "0")}T10:00`;
+    fireEvent.change(field(), { target: { value: at } });
+    await userEvent.click(screen.getByRole("button", { name: "Confirmar agendamento" }));
+    expect(publish).toHaveBeenCalledWith(expect.objectContaining({ when: { at } }));
+  });
+
+  it("desmarcar todos os destinos desabilita Publicar e diz por quê", async () => {
+    const publish = vi.fn();
+    render(<PublishDialog {...base} publish={publish} />);
+    await userEvent.click(screen.getByRole("button", { name: "Publicar" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Home" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Editoria" }));
+    const confirm = screen.getByRole("button", { name: "Confirmar publicação" });
+    expect(confirm).toBeDisabled();
+    expect(confirm).toHaveAccessibleDescription("Escolha ao menos um destino.");
+    await userEvent.click(screen.getByRole("checkbox", { name: "Newsletter" }));
+    expect(screen.getByRole("button", { name: "Confirmar publicação" })).toBeEnabled();
   });
 });
