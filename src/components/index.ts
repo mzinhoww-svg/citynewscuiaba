@@ -9,6 +9,15 @@ export { BottomSheet, type BottomSheetProps } from "./ui/BottomSheet";
 export { Button, type ButtonProps, type ButtonVariant } from "./ui/Button";
 export { Chip, ChipGroup, type ChipGroupProps, type ChipProps } from "./ui/Chip";
 export { Dialog, type DialogProps } from "./ui/Dialog";
+export { Drawer, type DrawerProps } from "./ui/Drawer";
+export { Menu, type MenuItem, type MenuProps } from "./ui/Menu";
+export {
+  Popover,
+  type PopoverControls,
+  type PopoverProps,
+  type PopoverTriggerProps,
+  type PopoverTriggerRender,
+} from "./ui/Popover";
 export { EmptyState, type EmptyStateProps } from "./ui/EmptyState";
 export { Icon, type IconName, type IconProps } from "./ui/Icon";
 export { ICON_NAMES } from "./ui/icon-names";

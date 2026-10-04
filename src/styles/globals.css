@@ -153,6 +153,7 @@
   --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
+  --animate-drawer-in-right: cn-drawer-in-right var(--dur-slow) var(--ease-out); /* [UX-W2-T8] */
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
 }
 
@@ -177,6 +178,14 @@
 @keyframes cn-drawer-in {
   from {
     transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes cn-drawer-in-right {
+  from {
+    transform: translateX(100%);
   }
   to {
     transform: translateX(0);
