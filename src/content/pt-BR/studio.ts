@@ -90,6 +90,7 @@ export const QUEUE_TEXT = {
       : `${n} matérias foram publicadas automaticamente nas últimas 24 h. Confira e despublique com motivo se algo estiver errado.`,
   autoBannerLink: "Ver publicadas automaticamente",
   seeAll: "Ver fila completa",
+  loadMore: "Carregar mais",
   caption: "Matérias da fila",
   scrollRegion: "Tabela da fila (role para os lados no celular)",
   col: {

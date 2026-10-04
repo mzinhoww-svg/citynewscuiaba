@@ -138,6 +138,7 @@ export const AGENDA = {
   day: (date: string) => `Eventos de ${date}`,
   seeAllDates: "Ver todas as datas",
   results: (n: number) => (n === 1 ? "1 evento" : `${n} eventos`),
+  loadMore: "Carregar mais",
   free: "Gratuito",
   recurring: {
     title: "Datas e eventos recorrentes de Cuiabá",

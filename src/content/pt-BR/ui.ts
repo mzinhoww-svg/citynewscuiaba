@@ -25,4 +25,7 @@ export const UI = {
   trendUp: "alta",
   trendDown: "queda",
   chartSummary: "Valores do gráfico",
+  /** Contagem real de uma lista paginada ("Carregar mais"). */
+  showing: (shown: number, total: number) => `Mostrando ${shown} de ${total}`,
+  loadMore: "Carregar mais",
 } as const;
