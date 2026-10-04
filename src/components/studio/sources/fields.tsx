@@ -6,6 +6,8 @@ import { cx } from "../../cx";
 import { describedBy, FieldShell } from "../../ui/Field";
 import { Icon } from "../../ui/Icon";
 import { SelectControl } from "../../ui/Select";
+import { StatusBadge } from "../../ui/StatusBadge";
+import { TextArea } from "../../ui/TextArea";
 
 /**
  * Peças internas dos formulários do painel de fontes (assistente e aba Configuração): rótulo
@@ -130,10 +132,9 @@ export function SelectField({
 /** Selo de campo crítico: ícone + texto, nunca só cor. */
 export function CriticalBadge({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-xs border border-warn bg-atencao-soft px-2 py-0.5 type-meta font-semibold text-warn">
-      <Icon name="shield" size={14} />
+    <StatusBadge tone="warn" icon="shield">
       {children}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -266,27 +267,17 @@ export function JustificationField({
   error?: string | null;
 }) {
   return (
-    <FieldShell
+    <TextArea
       id={id}
+      name="justification"
       label={FIELD_TEXT.justification}
       hint={FIELD_TEXT.justificationHint}
       error={error}
       aside={<CriticalBadge>{FIELD_TEXT.critical}</CriticalBadge>}
-    >
-      <textarea
-        id={id}
-        name="justification"
-        value={value}
-        rows={3}
-        required
-        onChange={(e) => onChange(e.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(id, FIELD_TEXT.justificationHint, error)}
-        className={cx(
-          "border-control min-h-24 w-full rounded-lg bg-input px-4 py-3 type-body text-strong",
-          error && "field-error",
-        )}
-      />
-    </FieldShell>
+      value={value}
+      rows={3}
+      required
+      onChange={onChange}
+    />
   );
 }

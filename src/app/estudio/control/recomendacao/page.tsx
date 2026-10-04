@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert, StatGrid, Table } from "@/components";
 import {
   ApprovalBanner,
   CampaignForm,
@@ -137,15 +137,11 @@ function Body({
             {T.concentrationAlert}
           </InlineAlert>
         )}
-        <dl aria-label={T.kpisTitle} className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {kpis.map(([k, v, hint]) => (
-            <div key={k} className="rounded-lg border border-line-subtle bg-card-white p-3">
-              <dt className="type-meta text-meta">{k}</dt>
-              <dd className="text-20 font-bold tabular-nums text-strong break-words">{v}</dd>
-              {hint && <dd className="type-meta text-meta">{hint}</dd>}
-            </div>
-          ))}
-        </dl>
+        <StatGrid
+          aria-label={T.kpisTitle}
+          columns={4}
+          items={kpis.map(([k, v, hint]) => ({ label: k, value: v, hint: hint || undefined }))}
+        />
         <p className="type-body text-body">
           <span className="font-medium text-strong">{T.return7d}:</span>{" "}
           {T.return7dText(returns.returned, returns.followed)}
@@ -186,85 +182,52 @@ function Body({
             <h2 id="razoes" className="type-section text-strong">
               {T.reasonsTitle}
             </h2>
-            <div
-              role="region"
-              aria-label={T.reasonsCaption}
-              tabIndex={0}
-              className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+            <Table
+              caption={T.reasonsCaption}
+              headers={[
+                T.reasonCol.reason,
+                { label: T.reasonCol.clicks, align: "right" },
+                { label: T.reasonCol.share, align: "right" },
+              ]}
             >
-              <table className="w-full border-collapse text-left">
-                <caption className="sr-only">{T.reasonsCaption}</caption>
-                <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                  <tr>
-                    <th scope="col" className="px-3 py-3">
-                      {T.reasonCol.reason}
-                    </th>
-                    <th scope="col" className="px-3 py-3 text-right">
-                      {T.reasonCol.clicks}
-                    </th>
-                    <th scope="col" className="px-3 py-3 text-right">
-                      {T.reasonCol.share}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {m.byReason.map((r) => (
-                    <tr key={r.reason} className="border-b border-line-subtle last:border-0">
-                      <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
-                        {reasonText(r.reason)}
-                      </th>
-                      <td className="px-3 py-2 text-right type-body tabular-nums">
-                        {formatInt(r.clicks)}
-                      </td>
-                      <td className="px-3 py-2 text-right type-body tabular-nums">
-                        {formatPct(r.share)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              {m.byReason.map((r) => (
+                <tr key={r.reason} className="border-b border-line-subtle last:border-0">
+                  <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
+                    {reasonText(r.reason)}
+                  </th>
+                  <td className="px-3 py-2 text-right type-body tabular-nums">
+                    {formatInt(r.clicks)}
+                  </td>
+                  <td className="px-3 py-2 text-right type-body tabular-nums">
+                    {formatPct(r.share)}
+                  </td>
+                </tr>
+              ))}
+            </Table>
             <h3 className="type-label text-strong">{T.dismissTitle}</h3>
-            <div
-              role="region"
-              aria-label={T.dismissCaption}
-              tabIndex={0}
-              className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+            <Table
+              caption={T.dismissCaption}
+              headers={[T.dismissCol.reason, { label: T.dismissCol.count, align: "right" }]}
             >
-              <table className="w-full border-collapse text-left">
-                <caption className="sr-only">{T.dismissCaption}</caption>
-                <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                  <tr>
-                    <th scope="col" className="px-3 py-3">
-                      {T.dismissCol.reason}
+              {m.byDismissReason.length === 0 ? (
+                <tr>
+                  <td colSpan={2} className="px-3 py-2 type-body text-meta">
+                    —
+                  </td>
+                </tr>
+              ) : (
+                m.byDismissReason.map((r) => (
+                  <tr key={r.reason} className="border-b border-line-subtle last:border-0">
+                    <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
+                      {DISMISS_TEXT[r.reason] ?? r.reason}
                     </th>
-                    <th scope="col" className="px-3 py-3 text-right">
-                      {T.dismissCol.count}
-                    </th>
+                    <td className="px-3 py-2 text-right type-body tabular-nums">
+                      {formatInt(r.count)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {m.byDismissReason.length === 0 ? (
-                    <tr>
-                      <td colSpan={2} className="px-3 py-2 type-body text-meta">
-                        —
-                      </td>
-                    </tr>
-                  ) : (
-                    m.byDismissReason.map((r) => (
-                      <tr key={r.reason} className="border-b border-line-subtle last:border-0">
-                        <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
-                          {DISMISS_TEXT[r.reason] ?? r.reason}
-                        </th>
-                        <td className="px-3 py-2 text-right type-body tabular-nums">
-                          {formatInt(r.count)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))
+              )}
+            </Table>
           </section>
         </div>
       )}
@@ -299,54 +262,37 @@ function Body({
         {panel.campaigns.length === 0 ? (
           <p className="type-body text-meta">{T.noCampaigns}</p>
         ) : (
-          <div
-            role="region"
-            aria-label={T.campaignsCaption}
-            tabIndex={0}
-            className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+          <Table
+            caption={T.campaignsCaption}
+            minWidth="xl"
+            headers={(
+              ["name", "sources", "period", "quota", "audience", "status", "clicks"] as const
+            ).map((k) => T.campaignCol[k])}
           >
-            <table className="w-full min-w-[56rem] border-collapse text-left">
-              <caption className="sr-only">{T.campaignsCaption}</caption>
-              <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                <tr>
-                  {(
-                    ["name", "sources", "period", "quota", "audience", "status", "clicks"] as const
-                  ).map((k) => (
-                    <th key={k} scope="col" className="px-3 py-3">
-                      {T.campaignCol[k]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {panel.campaigns.map((c) => (
-                  <tr key={c.id} className="border-b border-line-subtle last:border-0 align-top">
-                    <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                      {c.name}
-                    </th>
-                    <td className="px-3 py-3 type-meta text-body">
-                      {c.sources.map((s) => s.name).join(", ")}
-                    </td>
-                    <td className="px-3 py-3 type-body whitespace-nowrap">
-                      {formatDayMonth(c.startsOn)} – {formatDayMonth(c.endsOn)}
-                    </td>
-                    <td className="px-3 py-3 type-body tabular-nums">{c.quota}</td>
-                    <td className="px-3 py-3 type-body">
-                      {AUDIENCE_TEXT[c.audience] ?? c.audience}
-                    </td>
-                    <td className="px-3 py-3 type-body">
-                      {c.endsOn < today
-                        ? T.campaignEnded
-                        : c.startsOn > today
-                          ? T.campaignScheduled
-                          : T.campaignActive}
-                    </td>
-                    <td className="px-3 py-3 type-body tabular-nums">{formatInt(c.clicks30d)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {panel.campaigns.map((c) => (
+              <tr key={c.id} className="border-b border-line-subtle last:border-0 align-top">
+                <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                  {c.name}
+                </th>
+                <td className="px-3 py-3 type-meta text-body">
+                  {c.sources.map((s) => s.name).join(", ")}
+                </td>
+                <td className="px-3 py-3 type-body whitespace-nowrap">
+                  {formatDayMonth(c.startsOn)} – {formatDayMonth(c.endsOn)}
+                </td>
+                <td className="px-3 py-3 type-body tabular-nums">{c.quota}</td>
+                <td className="px-3 py-3 type-body">{AUDIENCE_TEXT[c.audience] ?? c.audience}</td>
+                <td className="px-3 py-3 type-body">
+                  {c.endsOn < today
+                    ? T.campaignEnded
+                    : c.startsOn > today
+                      ? T.campaignScheduled
+                      : T.campaignActive}
+                </td>
+                <td className="px-3 py-3 type-body tabular-nums">{formatInt(c.clicks30d)}</td>
+              </tr>
+            ))}
+          </Table>
         )}
         {canManage && (
           <>
@@ -364,51 +310,38 @@ function Body({
         {panel.experiments.length === 0 ? (
           <p className="type-body text-meta">{T.noExperiments}</p>
         ) : (
-          <div
-            role="region"
-            aria-label={T.experimentsCaption}
-            tabIndex={0}
-            className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+          <Table
+            caption={T.experimentsCaption}
+            minWidth="lg"
+            headers={(["name", "variants", "split", "status", "started"] as const).map(
+              (k) => T.experimentCol[k],
+            )}
           >
-            <table className="w-full min-w-[48rem] border-collapse text-left">
-              <caption className="sr-only">{T.experimentsCaption}</caption>
-              <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                <tr>
-                  {(["name", "variants", "split", "status", "started"] as const).map((k) => (
-                    <th key={k} scope="col" className="px-3 py-3">
-                      {T.experimentCol[k]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {panel.experiments.map((e) => (
-                  <tr key={e.id} className="border-b border-line-subtle last:border-0">
-                    <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                      <Link
-                        href={`/estudio/control/recomendacao/testes/${e.id}`}
-                        className="text-link underline"
-                      >
-                        {e.name}
-                      </Link>
-                    </th>
-                    <td className="px-3 py-3 type-meta text-body">
-                      {e.variants.map((v) => `${v.name}: ${v.weightsVersion}`).join(" · ")}
-                    </td>
-                    <td className="px-3 py-3 type-body tabular-nums">
-                      {e.split.map((s) => `${s}%`).join(" / ")}
-                    </td>
-                    <td className="px-3 py-3 type-body">
-                      {EXPERIMENT_STATUS_TEXT[e.status] ?? e.status}
-                    </td>
-                    <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
-                      {formatDayMonth(e.startedAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {panel.experiments.map((e) => (
+              <tr key={e.id} className="border-b border-line-subtle last:border-0">
+                <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                  <Link
+                    href={`/estudio/control/recomendacao/testes/${e.id}`}
+                    className="text-link underline"
+                  >
+                    {e.name}
+                  </Link>
+                </th>
+                <td className="px-3 py-3 type-meta text-body">
+                  {e.variants.map((v) => `${v.name}: ${v.weightsVersion}`).join(" · ")}
+                </td>
+                <td className="px-3 py-3 type-body tabular-nums">
+                  {e.split.map((s) => `${s}%`).join(" / ")}
+                </td>
+                <td className="px-3 py-3 type-body">
+                  {EXPERIMENT_STATUS_TEXT[e.status] ?? e.status}
+                </td>
+                <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                  {formatDayMonth(e.startedAt)}
+                </td>
+              </tr>
+            ))}
+          </Table>
         )}
         {canManage && (
           <>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert, StatGrid, Table } from "@/components";
 import { EvalCasesTable, EvalRunner } from "@/components/estudio";
 import { AI_TEXT, GATE_LABEL, agentName, formatDec, formatPct } from "@/content/pt-BR/ai-control";
 import type { GateFailure } from "@/lib/ai/eval";
@@ -120,20 +120,12 @@ export default async function EvaluationsPage() {
                         <p>{T.failedList(failures.map((f) => GATE_LABEL[f]).join(", "))}</p>
                       )}
                     </InlineAlert>
-                    <dl
+                    <StatGrid
                       aria-label={T.metricsLabel}
-                      className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7"
-                    >
-                      {metricRows.map(([k, v]) => (
-                        <div
-                          key={k}
-                          className="rounded-lg border border-line-subtle bg-card-white p-3"
-                        >
-                          <dt className="type-meta text-meta">{k}</dt>
-                          <dd className="text-20 font-bold tabular-nums text-strong">{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
+                      columns={4}
+                      className="xl:grid-cols-7"
+                      items={metricRows.map(([k, v]) => ({ label: k, value: v }))}
+                    />
                   </>
                 )}
               </section>
@@ -143,83 +135,56 @@ export default async function EvaluationsPage() {
                   <h2 id="historico" className="type-section text-strong">
                     {T.historyTitle}
                   </h2>
-                  <div
-                    role="region"
-                    aria-label={T.historyCaption}
-                    tabIndex={0}
-                    className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+                  <Table
+                    caption={T.historyCaption}
+                    minWidth="lg"
+                    headers={[
+                      T.historyCol.when,
+                      T.historyCol.prompt,
+                      T.historyCol.trigger,
+                      T.historyCol.provider,
+                      { label: T.historyCol.precision, align: "right" },
+                      { label: T.historyCol.coverage, align: "right" },
+                      { label: T.historyCol.refusals, align: "right" },
+                      T.historyCol.result,
+                    ]}
                   >
-                    <table className="w-full min-w-[52rem] border-collapse text-left">
-                      <caption className="sr-only">{T.historyCaption}</caption>
-                      <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                        <tr>
-                          <th scope="col" className="px-3 py-3">
-                            {T.historyCol.when}
-                          </th>
-                          <th scope="col" className="px-3 py-3">
-                            {T.historyCol.prompt}
-                          </th>
-                          <th scope="col" className="px-3 py-3">
-                            {T.historyCol.trigger}
-                          </th>
-                          <th scope="col" className="px-3 py-3">
-                            {T.historyCol.provider}
-                          </th>
-                          <th scope="col" className="px-3 py-3 text-right">
-                            {T.historyCol.precision}
-                          </th>
-                          <th scope="col" className="px-3 py-3 text-right">
-                            {T.historyCol.coverage}
-                          </th>
-                          <th scope="col" className="px-3 py-3 text-right">
-                            {T.historyCol.refusals}
-                          </th>
-                          <th scope="col" className="px-3 py-3">
-                            {T.historyCol.result}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {runs.map((r) => (
-                          <tr key={r.id} className="border-b border-line-subtle last:border-b-0">
-                            <th
-                              scope="row"
-                              className="px-3 py-2 type-body font-normal tabular-nums text-strong"
-                            >
-                              {formatDateTime(r.createdAt)}
-                            </th>
-                            <td className="px-3 py-2 type-body">
-                              {r.promptVersion ? `v${r.promptVersion}` : AI_TEXT.none}
-                            </td>
-                            <td className="px-3 py-2 type-body">
-                              {T.trigger[r.trigger] ?? r.trigger}
-                            </td>
-                            <td className="px-3 py-2 type-body">
-                              {T.provider[r.provider] ?? r.provider}
-                            </td>
-                            <td className="px-3 py-2 text-right type-body tabular-nums">
-                              {formatPct(r.metrics.precision)}
-                            </td>
-                            <td className="px-3 py-2 text-right type-body tabular-nums">
-                              {formatPct(r.metrics.coverage)}
-                            </td>
-                            <td className="px-3 py-2 text-right type-body tabular-nums">
-                              {r.metrics.refusalsWrong}
-                            </td>
-                            <td
-                              className={
-                                r.gateFailures.length === 0
-                                  ? "px-3 py-2 type-body text-service"
-                                  : "px-3 py-2 type-body font-semibold text-warn"
-                              }
-                            >
-                              {r.gateFailures.length === 0 ? T.passed : T.failed}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    {runs.map((r) => (
+                      <tr key={r.id} className="border-b border-line-subtle last:border-b-0">
+                        <th
+                          scope="row"
+                          className="px-3 py-2 type-body font-normal tabular-nums text-strong"
+                        >
+                          {formatDateTime(r.createdAt)}
+                        </th>
+                        <td className="px-3 py-2 type-body">
+                          {r.promptVersion ? `v${r.promptVersion}` : AI_TEXT.none}
+                        </td>
+                        <td className="px-3 py-2 type-body">{T.trigger[r.trigger] ?? r.trigger}</td>
+                        <td className="px-3 py-2 type-body">
+                          {T.provider[r.provider] ?? r.provider}
+                        </td>
+                        <td className="px-3 py-2 text-right type-body tabular-nums">
+                          {formatPct(r.metrics.precision)}
+                        </td>
+                        <td className="px-3 py-2 text-right type-body tabular-nums">
+                          {formatPct(r.metrics.coverage)}
+                        </td>
+                        <td className="px-3 py-2 text-right type-body tabular-nums">
+                          {r.metrics.refusalsWrong}
+                        </td>
+                        <td
+                          className={
+                            r.gateFailures.length === 0
+                              ? "px-3 py-2 type-body text-service"
+                              : "px-3 py-2 type-body font-semibold text-warn"
+                          }
+                        >
+                          {r.gateFailures.length === 0 ? T.passed : T.failed}
+                        </td>
+                      </tr>
+                    ))}
+                  </Table>
                 </section>
               )}
 

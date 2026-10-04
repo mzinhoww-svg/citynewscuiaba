@@ -14,6 +14,8 @@ import type { Weights } from "@/lib/ranking/types";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
+import { TextArea } from "../ui/TextArea";
 
 export type RecReply = { ok: boolean; message: string };
 
@@ -67,10 +69,7 @@ export function WeightSliders({ current, version, propose, className }: WeightSl
         {WEIGHT_KEYS.map((k) => {
           const id = `${uid}-${k}`;
           return (
-            <div
-              key={k}
-              className="flex flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-3"
-            >
+            <Panel key={k} as="div" pad="sm" className="flex flex-col gap-1">
               <label htmlFor={id} className="type-label text-strong">
                 {WEIGHT_TEXT[k].label}
               </label>
@@ -102,7 +101,7 @@ export function WeightSliders({ current, version, propose, className }: WeightSl
                   className="border-control h-10 w-24 rounded-md bg-input px-2 type-body tabular-nums text-strong"
                 />
               </div>
-            </div>
+            </Panel>
           );
         })}
       </div>
@@ -116,16 +115,14 @@ export function WeightSliders({ current, version, propose, className }: WeightSl
         <Icon name={valid.ok ? "check" : "circle-alert"} size={18} />
         {T.sum(formatSum(valid.sum))} · {valid.ok ? T.sumOk : T.sumBad}
       </p>
-      <label htmlFor={`${uid}-just`} className="type-label text-strong">
-        {T.justification}
-      </label>
-      <textarea
+      <TextArea
         id={`${uid}-just`}
+        name="justificativa"
+        label={T.justification}
         rows={3}
         required
         value={justification}
-        onChange={(e) => setJustification(e.target.value)}
-        className="border-control min-h-20 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+        onChange={setJustification}
       />
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="md" icon="check" disabled={busy || !valid.ok || !changed}>
