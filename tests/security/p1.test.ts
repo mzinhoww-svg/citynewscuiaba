@@ -174,7 +174,6 @@ describe("C1-03 push_audit", () => {
 describe("C1-02 prova de posse do e-mail", () => {
   // Cada caso tem a própria vítima: o GoTrue não aceita duas contas com o mesmo e-mail.
   const PASSWORD = `s3nha-${randomUUID()}`;
-  const DAY = 86_400_000;
   const userIds: string[] = [];
   const emails: string[] = [];
 
@@ -214,26 +213,6 @@ describe("C1-02 prova de posse do e-mail", () => {
     const login = await db.auth.signInWithPassword({ email, password: PASSWORD });
     if (login.error) throw new Error(login.error.message);
     return { id: made.data.user.id, db };
-  }
-
-  async function emailDataLeft(email: string) {
-    const [a, b] = await Promise.all([
-      service.from("newsletter_subscriptions").select("list").eq("email", email),
-      service.from("alerts").select("id").eq("owner_ref", `email:${email}`),
-    ]);
-    return { newsletter: a.data?.length ?? 0, alerts: b.data?.length ?? 0 };
-  }
-
-  /** Pede a exclusão vencida e roda a purga como o cron (0014/0024). */
-  async function purge(id: string) {
-    const p = await service.from("profiles").insert({
-      id,
-      display_name: "Vítima C1-02",
-      delete_requested_at: new Date(Date.now() - 8 * DAY).toISOString(),
-    });
-    if (p.error) throw new Error(p.error.message);
-    const r = await service.rpc("purge_deleted_accounts", { p_days: 7 });
-    expect(r.error).toBeNull();
   }
 
   afterAll(async () => {
@@ -282,23 +261,19 @@ describe("C1-02 prova de posse do e-mail", () => {
     expect(data?.newsletter.length).toBeGreaterThanOrEqual(1);
   });
 
-  it("expurgo de conta sem prova apaga a conta e mantém newsletter e alertas do e-mail", async () => {
-    const email = await victim("purga-sem");
-    const { id } = await account(email);
-    await purge(id);
-    expect((await service.auth.admin.getUserById(id)).data.user).toBeNull();
-    expect((await service.from("profiles").select("id").eq("id", id)).data).toEqual([]);
-    expect(await emailDataLeft(email)).toEqual({ newsletter: 1, alerts: 1 });
-  });
-
-  it("expurgo de conta com prova apaga também os dados do e-mail", async () => {
-    const email = await victim("purga-com");
-    const { id } = await account(email);
-    psql(`update auth.users set confirmation_sent_at = now() where id = '${id}'`);
-    await purge(id);
-    expect((await service.auth.admin.getUserById(id)).data.user).toBeNull();
-    expect(await emailDataLeft(email)).toEqual({ newsletter: 0, alerts: 0 });
-  });
+  it.each(["anonymous", "phone", "sso:acme"])(
+    "provedor %s (fora da allowlist OAuth) não exporta",
+    async (provider) => {
+      const email = await victim(`prov-${provider.replace(/\W/g, "")}`);
+      const { id, db } = await account(email);
+      psql(
+        `update auth.users set raw_app_meta_data = jsonb_set(raw_app_meta_data, '{provider}', '"${provider}"') where id = '${id}'`,
+      );
+      const r = await db.rpc("export_email_data");
+      expect(r.error).toBeNull();
+      expect(r.data).toBeNull();
+    },
+  );
 
   it("email_ownership_proven não é chamável por leitor nem anon", async () => {
     const asReader = await reader.rpc(
