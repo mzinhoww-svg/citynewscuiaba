@@ -24,7 +24,7 @@ export function CriteriaNote({
   return (
     <section
       aria-labelledby="como-escolhemos"
-      className="flex flex-col gap-3 border-l-4 border-cerrado bg-section px-5 py-4"
+      className="flex flex-col gap-3 border-t-2 border-cerrado bg-section px-5 py-4"
     >
       <h2 id="como-escolhemos" className="type-section text-strong">
         {GUIDE.list.criteriaTitle}
