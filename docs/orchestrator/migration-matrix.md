@@ -4,7 +4,7 @@
 >
 > | Migration | Estado em produção | Evidência |
 > |---|---|---|
-> | 0143 | **PARCIAL** (A-143, 04/10 ~18h UTC) | Parte A aplicada: `email_ownership_proven` existe, `push_audit` exige `push.settings` e 2 KB, `export_email_data` usa a prova de posse. Parte B: `article_versions_read_public` com `using (false)` (o conector trava com `drop policy`). Parte C (`purge_deleted_accounts`) **não aplicada**: a função tem `delete` e o conector pede confirmação humana; está em `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (B-028). |
+> | 0143 | **PARCIAL** (A-144, 04/10 ~18h UTC) | Parte A aplicada: `email_ownership_proven` existe, `push_audit` exige `push.settings` e 2 KB, `export_email_data` usa a prova de posse. Parte B: `article_versions_read_public` com `using (false)` (o conector trava com `drop policy`). Parte C (`purge_deleted_accounts`) **não aplicada**: a função tem `delete` e o conector pede confirmação humana; está em `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (B-029). |
 > | 0144 | PRODUCTION_VERIFIED | histórico + view filtra `ads_enabled` |
 > | 0145 | PRODUCTION_VERIFIED (sem linha no histórico) | sem trigger `feature_flags_two_person`, sem `guard_feature_flags` (aplicada por outra sessão entre 12h47 e 13h20) |
 > | 0146 | PRODUCTION_VERIFIED | função com `origin 'ai'`, 0 versões humanas de publicação forçada, padrões 300/3000 aplicados nesta sessão (histórico `0146_forced_publish_not_human`) |

@@ -48,7 +48,7 @@ em `docs/reports/destaques-estaveis.md`.
   Agora, O Documento, RDNews, Olhar Direto e Circuito MT. Ficaram de fora órgãos públicos, fontes
   nacionais e de nicho. Reverter: `update sources set consumption = consumption - 'frontpage'`.
 
-## Primeiros ciclos (04/10, A-143)
+## Primeiros ciclos (04/10, A-144)
 
 O cron `ingest-frontpage` rodou às 17h40 e às 18h00 (UTC), as duas vezes com sucesso. Sinais gravados
 por portal (lidos / casados com item já coletado):
@@ -68,7 +68,7 @@ Relatório da rota no último ciclo: 8 fontes, 6 lidas, 18 sinais, 12 casados, p
 
 ## Pendências
 
-- Dono: rodar `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0155 e a parte C da 0143, B-028).
+- Dono: rodar `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0155 e a parte C da 0143, B-029).
 - FolhaMax e Leia Agora: os links do topo não casam com os itens coletados (URL da página inicial
   diferente da URL do feed: parâmetros, domínio ou caminho). Comparar as duas e normalizar no casamento.
 - RDNews e Olhar Direto: um pulou pelo limite por hora da fonte e o outro por erro HTTP; conferir se o
