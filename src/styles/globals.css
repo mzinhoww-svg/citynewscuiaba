@@ -348,6 +348,32 @@
 }
 
 /*
+ * Utilitários de layout (item 41, D-17). `grid-rail`: coluna principal + barra lateral com a
+ * largura do token `--layout-rail` a partir de `lg` (64rem); no celular, só define a grade e
+ * as colunas seguem o padrão (uma). `table-*`: largura mínima da tabela dentro da região
+ * rolável, para colunas não espremerem no celular.
+ */
+@utility grid-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  @media (width >= 64rem) {
+    grid-template-columns: minmax(0, 1fr) var(--layout-rail);
+  }
+}
+@utility table-sm {
+  min-width: 36rem;
+}
+@utility table-md {
+  min-width: 44rem;
+}
+@utility table-lg {
+  min-width: 52rem;
+}
+@utility table-xl {
+  min-width: 64rem;
+}
+
+/*
  * R7: o título do card é o link; o pseudo-elemento cobre o card inteiro (que precisa de
  * `relative`). O anel de foco aparece em volta do card, não só do texto.
  */
