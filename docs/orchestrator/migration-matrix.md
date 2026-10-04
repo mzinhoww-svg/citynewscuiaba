@@ -11,6 +11,7 @@
 > | 0147 | PRODUCTION_VERIFIED (sem linha no histórico) | `save_pipeline_draft` com `v_live`; as duas chamadas do MCP expiraram em 60 s, a segunda deixou o corpo aplicado |
 > | 0148 | PRODUCTION_VERIFIED | `guard_source_changes` sem a recusa de termos; histórico `0148_source_activation_without_terms` |
 > | 0149 | PRODUCTION_VERIFIED (esquema) / fluxo de UI não testado | 0 CHECK de aprovador diferente; funções com corpo A-128; histórico `0149_single_approver` |
+> | 0150 | PRODUCTION_VERIFIED (15h35 UTC) | veio da main (A-129, auditoria 360). Antes: o revisor automático decidiu 19 rascunhos sem IA (nenhum publicado: 16 em revisão, 3 arquivados). Depois: `review_due_articles` com `not a.ai_fallback`, 0 rascunhos sem IA no lote, anon sem execute, histórico `0150_reviewer_skips_ai_fallback` |
 >
 > O relatório abaixo é o levantamento anterior às aplicações (subagente, ~13h15), mantido como trilha.
 
