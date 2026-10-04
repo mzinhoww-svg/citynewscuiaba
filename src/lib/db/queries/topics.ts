@@ -99,6 +99,8 @@ export async function getTopicBySlug(
         .select(ARTICLE_COLUMNS)
         .eq("topic_id", row.id)
         .in("status", [...PUBLIC_STATUSES])
+        // A linha do tempo não tem rótulo de patrocínio: matéria patrocinada fica fora (MS-T1).
+        .eq("sponsored", false)
         .order("published_at", { ascending: false })
         .then(many),
       fetchAggregated(db, { topicId: row.id, limit: 30 }),
