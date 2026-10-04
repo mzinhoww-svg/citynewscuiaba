@@ -70,7 +70,7 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
         {toc && (
           <nav
             aria-label={DOC_TEXT.onThisPage}
-            className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-6 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start"
+            className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-sticky-public lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start"
           >
             <h2 className="type-eyebrow text-meta">{DOC_TEXT.onThisPage}</h2>
             <ol className="-mx-gutter flex snap-x gap-2 overflow-x-auto px-gutter py-1 scrollbar-none lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0">

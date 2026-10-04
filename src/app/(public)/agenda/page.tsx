@@ -377,7 +377,7 @@ async function Results({ f }: { f: AgendaFilters }) {
       {mini && (
         <aside
           aria-label={AGENDA.miniCalendar}
-          className="hidden lg:sticky lg:top-40 lg:block lg:self-start"
+          className="hidden lg:sticky lg:top-sticky-public lg:block lg:self-start"
         >
           {mini}
         </aside>
