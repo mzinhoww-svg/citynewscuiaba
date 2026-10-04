@@ -1,5 +1,7 @@
 # Arquitetura · CityNews Cuiabá
 
+> Documento normativo. O retrato do que está construído e as divergências encontradas na auditoria de 04/10/2026 estão em `docs/audit/CURRENT-ARCHITECTURE.md` §7; as notas "Implementação" abaixo apontam onde o código difere. ADRs a partir do 010 ficam em `docs/adr/`.
+
 ## 1. Visão de componentes
 
 ```
@@ -72,9 +74,9 @@
 ## 3. Decisões de arquitetura (ADRs resumidos)
 
 - **ADR-001 Next.js App Router na Vercel.** RSC para páginas públicas com ISR e `revalidateTag` por matéria, assunto, editoria e fonte. Estúdio sem cache (`dynamic = "force-dynamic"`).
-- **ADR-002 Supabase como estado, fila e auth.** Um só banco com RLS. Migrations versionadas em `/supabase/migrations`, aplicadas por CI no merge para `main`.
+- **ADR-002 Supabase como estado, fila e auth.** Um só banco com RLS. Migrations versionadas em `/supabase/migrations`, aplicadas por CI no merge para `main`. *Implementação:* hoje aplicadas à mão pelo conector do Supabase e registradas em `.planning/DECISIONS.md`; não há projeto de staging (B-004). Iniciativa EV-12 do roadmap da auditoria.
 - **ADR-003 Agendamento.** `pg_cron` agenda `select net.http_post(url := '<APP_URL>/api/ingest/tick', headers := jsonb_build_object('Authorization', 'Bearer ' || <CRON_SECRET>))` a cada 30 min (`*/30 * * * *`). O segredo fica no Vault do Supabase. GitHub Actions `cron-watchdog.yml` roda a cada 15 min e chama o tick se `ingest_runs.started_at` mais recente tiver mais de 45 min. Vercel Cron **não** é usada para o ciclo (limites de frequência variam por plano; verificar antes se quiser trocar).
-- **ADR-004 Filas por etapa.** `pgmq` com filas `pipeline`, `media`, `notify`. O tick enfileira um job `fetch` por fonte ativa. `/api/jobs/drain` lê até N mensagens com visibilidade de 120 s, executa a etapa, grava resultado e enfileira a próxima. `maxDuration` da rota configurado no limite do plano; a rota encerra ao atingir 80% do tempo e devolve o restante à fila. `pg_cron` também chama `drain` a cada minuto enquanto houver mensagens.
+- **ADR-004 Filas por etapa.** `pgmq` com filas `pipeline`, `media`, `notify`. O tick enfileira um job `fetch` por fonte ativa. `/api/jobs/drain` lê até N mensagens com visibilidade de 120 s, executa a etapa, grava resultado e enfileira a próxima. `maxDuration` da rota configurado no limite do plano; a rota encerra ao atingir 80% do tempo e devolve o restante à fila. `pg_cron` também chama `drain` a cada minuto enquanto houver mensagens. *Implementação:* a fila é a tabela própria `jobs` (`0004_pipeline.sql`, `FOR UPDATE SKIP LOCKED`, `unique(queue, dedupe_key)`, quarentena em `pipeline_quarantine`); `pgmq` é instalado quando existe, mas não é usado (ADR-014).
 - **ADR-005 IA desacoplada via OpenRouter.** Um provedor compatível com OpenAI no AI SDK aponta para `https://openrouter.ai/api/v1` com `OPENROUTER_API_KEY` e os cabeçalhos `HTTP-Referer` e `X-Title`. Os modelos por agente ficam em `ai_models` (ids do OpenRouter) e o embedding usa `POST /embeddings`. Agentes declarados em `ai_agents` (função, modelo principal, fallback, prompt ativo, limites). Chamadas via `callAgent(agentId, input)` que carrega o prompt aprovado, aplica `wrapAsData`, valida a saída com o schema zod do agente, registra custo e latência em `ai_calls`. Falha → fallback → erro tipado.
 - **ADR-006 Busca híbrida.** Coluna `tsv` (`to_tsvector('portuguese', unaccent(...))`) + `embedding vector(1536)` (dimensão definida pelo modelo de embedding escolhido; parametrizar). Consulta faz FTS e kNN separadamente e funde por RRF (k = 60).
 - **ADR-007 Personalização no cliente.** Perfil anônimo em IndexedDB. Servidor recebe eventos com `anonId` apenas com consentimento de personalização; com só métricas, recebe eventos sem id. Ranking individual calculado no servidor a partir dos eventos do `anonId` (quando consentido) ou no cliente a partir do perfil local (sem envio).
@@ -164,6 +166,6 @@ Mudança crítica cria registro em `approvals` com `requested_by`; `approve` exi
 ## 10. Observabilidade e recuperação
 
 - `ingest_runs`, `pipeline_events`, `ai_calls` e `audit_log` alimentam o Control Center.
-- Alertas: tick atrasado > 45 min, fila > 2.000 mensagens, taxa de erro > 2% em 1 h, respostas sem fonte > 2% no dia, custo > 90% do orçamento, fonte com 3 falhas seguidas.
+- Alertas (*implementação:* aparecem no Control Center; o canal `oncall_email` fica na fila sem envio, B-005, e `SENTRY_DSN` não é lido; iniciativa EV-04): tick atrasado > 45 min, fila > 2.000 mensagens, taxa de erro > 2% em 1 h, respostas sem fonte > 2% no dia, custo > 90% do orçamento, fonte com 3 falhas seguidas.
 - Backups: PITR do Supabase (plano) + `backup.yml` diário com `pg_dump` para armazenamento externo. Teste de restauração mensal documentado em `docs/runbooks/restore.md`.
 - Contingência (A15): pausar publicação automática (`feature_flags.auto_publish=false`), modo leitura (`feature_flags.read_only=true` → Estúdio bloqueia escrita, portal serve cache), desligar IA (`feature_flags.ai_enabled=false` → busca tradicional), rollback de regras (ativar versão anterior).
