@@ -1,6 +1,8 @@
 --- ISSUE 1 ---
 ## [Segurança] Anônimos leem todas as versões de matérias publicadas, inclusive rascunhos pré-publicação
 
+**Status:** C1-01: corrigido em af13470
+
 **Labels sugeridas:** `security`, `severity:média`
 
 ### Descrição
@@ -29,6 +31,8 @@ Nova migration com `drop policy article_versions_read_public on article_versions
 
 --- ISSUE 2 ---
 ## [Segurança] Sem confirmação de e-mail, conta com e-mail alheio exporta e apaga dados da vítima
+
+**Status:** C1-02: corrigido em d9c5196
 
 **Labels sugeridas:** `security`, `severity:média`
 
@@ -60,6 +64,8 @@ Ligar "Confirm email" no projeto de produção e em `supabase/config.toml`. Como
 
 --- ISSUE 3 ---
 ## [Segurança] push_audit permite que qualquer conta grave entradas falsas e imutáveis no audit_log
+
+**Status:** C1-03: corrigido em 59f7d70
 
 **Labels sugeridas:** `security`, `severity:média`
 
@@ -93,6 +99,8 @@ Em `push_audit`: exigir `push_can(auth.uid(), ...)` ou `is_staff`, limitar `p_de
 --- ISSUE 4 ---
 ## [Segurança] Editor de editoria remove imagens de outras editorias via "remover todas da fonte"
 
+**Status:** C3-01: corrigido em 1e26999
+
 **Labels sugeridas:** `security`, `severity:média`
 
 ### Descrição
@@ -123,6 +131,8 @@ Para `allFromSource`, exigir `can(session, "media.approve", { section: "*" })` (
 
 --- ISSUE 5 ---
 ## [Segurança] .gitignore não cobre .env.prod / .env.production (risco de commitar service role)
+
+**Status:** C4-01: corrigido em bb408fd
 
 **Labels sugeridas:** `security`, `severity:média`
 

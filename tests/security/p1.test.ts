@@ -305,11 +305,11 @@ describe("C1-02 prova de posse do e-mail", () => {
       "email_ownership_proven" as never,
       { p_uid: readerId } as never,
     );
-    expect(asReader.error).not.toBeNull();
+    expect(asReader.error?.code).toBe("42501");
     const asAnon = await anonClient().rpc(
       "email_ownership_proven" as never,
       { p_uid: readerId } as never,
     );
-    expect(asAnon.error).not.toBeNull();
+    expect(asAnon.error?.code).toBe("42501");
   });
 });

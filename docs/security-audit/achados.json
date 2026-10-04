@@ -98,6 +98,7 @@
   ],
   "achados": [
     {
+      "status": "corrigido em af13470",
       "id": "C1-01", "categoria": "c1", "severidade": "média",
       "titulo": "Anônimos leem todas as versões (inclusive rascunhos pré-publicação) de matérias publicadas",
       "locais": ["supabase/migrations/0002_rls.sql:164-165", "supabase/migrations/0008_portal.sql:64-73 (view que deveria recortar)"],
@@ -106,6 +107,7 @@
       "trecho": "create policy article_versions_read_public on article_versions for select to anon, authenticated\n  using (exists (select 1 from articles a where a.id = article_id\n                 and a.status in ('published', 'updated')));"
     },
     {
+      "status": "corrigido em d9c5196",
       "id": "C1-02", "categoria": "c1", "severidade": "média",
       "titulo": "Sem confirmação de e-mail, quem cadastra o e-mail de outra pessoa exporta e apaga os dados dela",
       "locais": ["supabase/config.toml:225", "supabase/migrations/0021_reader_email_gate.sql:112-144", "supabase/migrations/0021_reader_email_gate.sql:47-63", "supabase/migrations/0024_profiles_on_delete.sql:43-89"],
@@ -114,6 +116,7 @@
       "trecho": "# supabase/config.toml:225\nenable_confirmations = false\n-- 0021:123-124\nselect lower(u.email) into e from auth.users u\n where u.id = (select auth.uid()) and u.email_confirmed_at is not null;"
     },
     {
+      "status": "corrigido em 59f7d70",
       "id": "C1-03", "categoria": "c1", "severidade": "média",
       "titulo": "Qualquer conta grava entradas falsas e imutáveis no audit_log via push_audit",
       "locais": ["supabase/migrations/0041_push_admin.sql:138-153", "supabase/migrations/0002_rls.sql:379-380"],
@@ -178,6 +181,7 @@
       "descricao": "A UI só oferece o urgente com `canRequestUrgent`, mas a ação chama `requestUrgentPush` sem rechecar. Não é explorável: o trigger `guard_push_sends` barra (`0047_push_gate_fixes.sql:115-116`). Falta uma camada de defesa, mas não há falha."
     },
     {
+      "status": "corrigido em 1e26999",
       "id": "C3-01", "categoria": "c3", "severidade": "média",
       "titulo": "Editor de uma editoria remove imagens de todas as editorias (\"remover todas da fonte\")",
       "locais": ["src/lib/studio/media.ts:119-137", "src/app/estudio/actions.ts:367-373", "src/lib/db/pipeline-store.ts:1060-1068", "src/lib/auth/permissions.ts:73"],
@@ -200,6 +204,7 @@
       "descricao": "O código não confere se o conteúdo existe ou é público antes de gravar com a service role. Só polui a fila de denúncias (limite de 5 por hora por IP) e não escala: `openCorrection` confere a matéria."
     },
     {
+      "status": "corrigido em bb408fd",
       "id": "C4-01", "categoria": "c4", "severidade": "média",
       "titulo": ".gitignore não cobre .env.prod e um script manda criá-lo com a service role de produção",
       "locais": [".gitignore:3-4", "scripts/release-backlog.mjs:11"],

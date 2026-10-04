@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-02 — P0 a P6 concluídos; verify verde (2546 testes). Falta só merge da PR #1 na main, deploy e teste em produção. Pendências do dono em BLOCKERS (B-012, B-013, B-016, B-021, B-022).
 **Atualizado por:** Claude Code
 
+> 2026-10-04 · segurança P1 (spec `docs/superpowers/specs/2026-10-04-seguranca-p1-design.md`, branch `claude/saas-security-audit-v2-p5kwh9`): C1-01 `af13470`, C1-03 `59f7d70`, C3-01 `1e26999`, C1-02 `d9c5196` (migration 0143), C4-01 `bb408fd`; main mesclada (`ff028b1`) e CI de destaques/OfflineNotice estabilizado. Verify verde (3509 testes; `tests/security/p1.test.ts` 14 casos). Pendente do dono: B-023 (ligar Confirm email no Supabase de produção; contas auto-confirmadas e só de magic-link/OTP perdem a exportação por e-mail até confirmar). Falta aplicar 0143 em produção.
+
 > 2026-10-04 · ADS-T1 (A-119): campos de banner, seleção, `AdSlot` e contagem (impressão, visualização >= 50% por 1 s, clique), migration 0082. Verify verde (3198 testes). Ainda sem campo montado nas páginas (ADS-T2).
 
 > 2026-10-04 · MS-T2 (A-118): peça tipada por `kind` e anunciante estruturado (migration 0081). Verify verde (3174 testes). Próxima: ADS-T1.
@@ -58,6 +60,7 @@
 | 2026-09-28 | P2-GATE | 8c4782b | 21 achados corrigidos; 1188 testes; e2e 620; 0020/0021 em produção |
 | 2026-09-28 | P4-GATE | 96a31b4 | 20 achados corrigidos; 1272 testes; e2e 722 |
 | 2026-09-28 | P5-T3, P5-T6 | 8e16648 (branch p5-control) | 1337 testes; e2e 791 — aguardando merge após o painel |
+| 2026-10-04 | SEC-P1 (C1-01..03, C3-01, C4-01) | ver nota do topo | 3509 testes; B-023 pendente do dono |
 
 ## Degradados abertos
 

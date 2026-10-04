@@ -257,6 +257,8 @@ def build() -> None:
             desc = f"<b>{f['id']} · {t(f['titulo'])}</b><br/>{t(f['descricao'])}"
             if f.get("condicoes"):
                 desc += f"<br/><i>Condições:</i> {t(f['condicoes'])}"
+            if f.get("status"):
+                desc += f"<br/><font color='{STRONG}'><b>Status: {t(f['status'])}</b></font>"
             rows.append([chip(f["severidade"]), p(t("\n".join(f["locais"])).replace("\n", "<br/>"), "path"),
                          p(desc, "cell")])
         story.append(table(rows, [2.6 * cm, 5.4 * cm, W - 8.0 * cm], zebra=False))
@@ -311,9 +313,11 @@ def issue_markdown(issue: dict, findings: list[dict]) -> str:
         ev.append(f"- **{fid}** — " + ", ".join(f"`{x}`" for x in f["locais"]))
         if f.get("trecho"):
             ev.append("  ```\n" + "\n".join("  " + ln for ln in f["trecho"].splitlines()) + "\n  ```")
+    status = [f"{fid}: {by_id[fid]['status']}" for fid in issue["achados"] if by_id[fid].get("status")]
     lines = [
         f"## {issue['titulo']}",
         "",
+        *([f"**Status:** {'; '.join(status)}", ""] if status else []),
         f"**Labels sugeridas:** `security`, `severity:{issue['severidade']}`",
         "",
         "### Descrição",
