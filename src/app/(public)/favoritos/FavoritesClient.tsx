@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useState } from "react";
 import {
+  AccountInvite,
   Button,
   Chip,
   EmptyState,
@@ -35,7 +36,6 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
   const { profile, degraded, ready, act } = useAnonProfile();
   const [tab, setTab] = useState<Tab>("saved");
   const [notice, setNotice] = useState<Undo>(null);
-  const [syncAsked, setSyncAsked] = useState(false);
   const id = useId();
 
   const savedPaths = (profile?.saved ?? []).flatMap((s) => (s.href ? [s.href] : [])).join("|");
@@ -45,99 +45,91 @@ export function FavoritesClient({ sourceNames }: FavoritesClientProps) {
 
   const tabIndex = TABS.indexOf(tab);
   return (
-    <div data-ready={ready ? "true" : undefined} className="flex flex-col gap-6">
-      <InlineAlert
-        tone="info"
-        title={T.deviceOnly}
-        role="none"
-        action={
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              setSyncAsked(true);
-              requestLoginInvite("sync", { explicit: true });
-            }}
-          >
-            {T.sync}
-          </Button>
-        }
-      >
-        <p>{syncAsked ? T.syncSoon : T.deviceOnlyText}</p>
-      </InlineAlert>
-      {degraded && (
-        <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
-          <p>{ANON_TEXT.degradedDetail}</p>
+    <div
+      data-ready={ready ? "true" : undefined}
+      className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-6"
+    >
+      <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:col-start-9 lg:row-start-1">
+        <InlineAlert tone="info" title={T.deviceOnly} role="none">
+          <p>{T.deviceOnlyText}</p>
         </InlineAlert>
-      )}
-      <Tabs
-        label={T.tabsLabel}
-        items={TABS.map((t) => T.tabs[t])}
-        value={T.tabs[tab]}
-        onChange={(label) => {
-          const next = TABS.find((t) => T.tabs[t] === label);
-          if (next) {
-            setTab(next);
-            setNotice(null);
-          }
-        }}
-        idPrefix={id}
-        layout="scroll"
-      />
-      {notice && (
-        <InlineAlert
-          tone="success"
-          action={
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                notice.undo();
-                setNotice(null);
-              }}
+        <AccountInvite next="/favoritos" />
+      </aside>
+      <div className="flex min-w-0 flex-col gap-6 lg:col-span-8 lg:row-start-1">
+        {degraded && (
+          <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
+            <p>{ANON_TEXT.degradedDetail}</p>
+          </InlineAlert>
+        )}
+        <Tabs
+          label={T.tabsLabel}
+          items={TABS.map((t) => T.tabs[t])}
+          value={T.tabs[tab]}
+          onChange={(label) => {
+            const next = TABS.find((t) => T.tabs[t] === label);
+            if (next) {
+              setTab(next);
+              setNotice(null);
+            }
+          }}
+          idPrefix={id}
+          layout="scroll"
+        />
+        {notice && (
+          <InlineAlert
+            tone="success"
+            action={
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  notice.undo();
+                  setNotice(null);
+                }}
+              >
+                {T.undo}
+              </Button>
+            }
+          >
+            <p>{notice.text}</p>
+          </InlineAlert>
+        )}
+        {TABS.map((t, i) =>
+          i === tabIndex ? (
+            <div
+              key={t}
+              role="tabpanel"
+              id={`${id}-painel-${i}`}
+              aria-labelledby={`${id}-aba-${i}`}
+              className="flex flex-col gap-4"
             >
-              {T.undo}
-            </Button>
-          }
-        >
-          <p>{notice.text}</p>
-        </InlineAlert>
-      )}
-      {TABS.map((t, i) =>
-        i === tabIndex ? (
-          <div
-            key={t}
-            role="tabpanel"
-            id={`${id}-painel-${i}`}
-            aria-labelledby={`${id}-aba-${i}`}
-            className="flex flex-col gap-4"
-          >
-            {!profile ? (
-              <div aria-busy="true" className="flex flex-col gap-3">
-                <p className="sr-only">{T.loading}</p>
-                <Skeleton lines={2} />
-                <Skeleton lines={2} />
-              </div>
-            ) : t === "saved" ? (
-              <Saved profile={profile} act={act} onNotice={setNotice} />
-            ) : t === "sources" ? (
-              <Sources profile={profile} act={act} names={sourceNames} />
-            ) : t === "topics" ? (
-              <Topics profile={profile} act={act} />
-            ) : (
-              <Collections profile={profile} act={act} />
-            )}
-          </div>
-        ) : (
-          <div
-            key={t}
-            role="tabpanel"
-            id={`${id}-painel-${i}`}
-            aria-labelledby={`${id}-aba-${i}`}
-            hidden
-          />
-        ),
-      )}
+              {!profile ? (
+                <div aria-busy="true" className="flex flex-col gap-3">
+                  <p className="sr-only">{T.loading}</p>
+                  <Skeleton lines={2} />
+                  <Skeleton lines={2} />
+                </div>
+              ) : t === "saved" ? (
+                <Saved profile={profile} act={act} onNotice={setNotice} />
+              ) : t === "sources" ? (
+                <Sources profile={profile} act={act} names={sourceNames} />
+              ) : t === "topics" ? (
+                <Topics profile={profile} act={act} />
+              ) : (
+                <Collections profile={profile} act={act} />
+              )}
+            </div>
+          ) : (
+            <div
+              key={t}
+              role="tabpanel"
+              id={`${id}-painel-${i}`}
+              aria-labelledby={`${id}-aba-${i}`}
+              hidden
+            />
+          ),
+        )}
+      </div>
     </div>
   );
 }
@@ -368,15 +360,22 @@ function Topics({ profile, act }: { profile: AnonProfile; act: Act }) {
 function Collections({ profile, act }: { profile: AnonProfile; act: Act }) {
   const id = useId();
   const [name, setName] = useState("");
+  const [nameError, setNameError] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   return (
     <>
       <form
-        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        noValidate
+        className="flex flex-col items-start gap-3"
         onSubmit={(e) => {
           e.preventDefault();
-          if (!name.trim()) return;
+          if (!name.trim()) {
+            setNameError(true);
+            document.getElementById(`${id}-nova`)?.focus();
+            return;
+          }
+          setNameError(false);
           void act((s) => s.createCollection(name));
           setName("");
           requestLoginInvite("collection");
@@ -388,8 +387,12 @@ function Collections({ profile, act }: { profile: AnonProfile; act: Act }) {
           placeholder={T.newCollectionPlaceholder}
           value={name}
           maxLength={80}
-          onChange={(e) => setName(e.target.value)}
-          className="flex-1"
+          onChange={(e) => {
+            setName(e.target.value);
+            if (e.target.value.trim()) setNameError(false);
+          }}
+          error={nameError ? T.collectionNameError : undefined}
+          className="w-full max-w-read"
         />
         <Button type="submit" icon="plus">
           {T.create}

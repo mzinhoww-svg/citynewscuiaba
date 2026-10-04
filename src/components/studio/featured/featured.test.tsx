@@ -36,6 +36,7 @@ const item = (over: Partial<BoardItem> = {}): BoardItem => ({
   pinnedBy: null,
   note: "",
   endsAt: null,
+  hot: null,
   ...over,
 });
 
@@ -60,6 +61,7 @@ function api(over: Partial<FeaturedApi> = {}): FeaturedApi {
     unpin: vi.fn().mockResolvedValue({ ok: true, message: "Fixação removida." }),
     reorder: vi.fn().mockResolvedValue({ ok: true, message: "Ordem atualizada." }),
     search: vi.fn().mockResolvedValue([]),
+    dismiss: vi.fn().mockResolvedValue({ ok: true, message: "Pauta quente dispensada." }),
     ...over,
   };
 }
@@ -125,6 +127,45 @@ describe("FeaturedBoard · estados", () => {
     );
     expect(screen.getByText(/saiu do ar/)).toBeInTheDocument();
     expect(screen.getByText("Matéria antiga")).toBeInTheDocument();
+  });
+});
+
+describe("FeaturedBoard · pauta quente (HOT-T3)", () => {
+  const HOT_PIN = "4b0f6f9e-1b2c-4d3e-8f40-0123456789ef";
+  const hotSlot = () =>
+    slot({
+      source: "hot",
+      until: inHours(3),
+      items: [item({ hot: { pinId: HOT_PIN, portals: 3, endsAt: inHours(3) } })],
+    });
+
+  it("mostra a pílula 'Em alta · 3 portais', o prazo e o botão Dispensar; pode fixar por cima", () => {
+    render(<FeaturedBoard board={[hotSlot()]} api={api()} nowIso={NOW} />);
+    expect(screen.getByTestId("slot-source")).toHaveTextContent("Em alta");
+    expect(screen.getByTestId("hot-pill")).toHaveTextContent("Em alta · 3 portais");
+    expect(screen.getByRole("button", { name: /Dispensar/ })).toBeEnabled();
+    // Manual vence: a vaga continua livre para o admin.
+    expect(screen.getByRole("button", { name: /Fixar matéria/ })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Remover/ })).not.toBeInTheDocument();
+  });
+
+  it("Dispensar chama a ação com o pino quente e recarrega", async () => {
+    const a = api();
+    render(<FeaturedBoard board={[hotSlot()]} api={a} nowIso={NOW} />);
+    await userEvent.click(screen.getByRole("button", { name: /Dispensar/ }));
+    await waitFor(() => expect(a.dismiss).toHaveBeenCalledWith({ id: HOT_PIN }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    expect(await screen.findByText("Pauta quente dispensada.")).toBeInTheDocument();
+  });
+
+  it("falha ao dispensar aparece como alerta e não recarrega", async () => {
+    const a = api({
+      dismiss: vi.fn().mockResolvedValue({ ok: false, message: "Modo leitura ativo." }),
+    });
+    render(<FeaturedBoard board={[hotSlot()]} api={a} nowIso={NOW} />);
+    await userEvent.click(screen.getByRole("button", { name: /Dispensar/ }));
+    expect(await screen.findByText("Modo leitura ativo.")).toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 

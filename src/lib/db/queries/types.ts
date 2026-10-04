@@ -288,6 +288,8 @@ export interface HomeData {
   aggregated: AggregatedView[];
   /** Ordem e ativação dos módulos abaixo da primeira dobra (A06, `home_layouts`). */
   modules: HomeModule[];
+  /** Manchete e destaques que estão ali pela pauta quente (HOT-T3): "Em alta em Cuiabá". */
+  hotIds?: string[];
 }
 
 /**

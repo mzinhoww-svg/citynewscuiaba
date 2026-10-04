@@ -320,6 +320,12 @@ export async function getHomeData(
         }
       }
 
+      // Pauta quente (HOT-T3): só o que de fato saiu da posição (a manchete de reserva não conta).
+      const hotIds = [
+        ...(lead && featuredLead.hot.includes(lead.id) ? [lead.id] : []),
+        ...highlights.filter((a) => featuredHighlights.hot.includes(a.id)).map((a) => a.id),
+      ];
+
       return {
         generatedAt: now.toISOString(),
         urgent,
@@ -335,6 +341,7 @@ export async function getHomeData(
         sources,
         aggregated,
         modules,
+        hotIds,
       };
     },
     opts.cache ? { tags: ["home"], revalidate: HOME_REVALIDATE } : undefined,

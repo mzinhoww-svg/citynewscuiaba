@@ -630,7 +630,7 @@
       "id": "L-029",
       "categoria": "pipeline",
       "status": "TESTED_LOCALLY",
-      "evidence": "76 rate_limited no refetch; A-140",
+      "evidence": "76 rate_limited no refetch; A-143",
       "next_action": "merge e deploy"
     },
     {

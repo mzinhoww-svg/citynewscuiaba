@@ -53,6 +53,9 @@ describe("AggregatedSection", () => {
     const { rerender, container } = render(<AggregatedSection items={[agg(1), agg(2)]} />);
     const region = screen.getByRole("region", { name: "Veja também em outros portais" });
     expect(within(region).getAllByText("AGREGADO")).toHaveLength(2);
+    expect(region.className).toMatch(/bg-aggregated/);
+    for (const card of within(region).getAllByRole("article"))
+      expect(within(card).getAllByTestId("origin-label")).toHaveLength(1);
     expect(within(region).getByText(/não republica/)).toBeInTheDocument();
     rerender(<AggregatedSection items={[]} />);
     expect(container).toBeEmptyDOMElement();

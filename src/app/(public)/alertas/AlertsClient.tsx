@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import {
+  AccountInvite,
   Button,
   EmptyState,
   InlineAlert,
@@ -14,6 +15,7 @@ import {
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
 import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import { requestLoginInvite } from "@/lib/anon/invite";
+import { looksLikeEmail } from "@/lib/auth/email-shape";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { showNotification } from "@/lib/offline/sw";
@@ -23,6 +25,8 @@ type Option = { value: string; label: string };
 
 export interface AlertsClientProps {
   targets: { bairro: Option[]; tema: Option[]; assunto: Option[] };
+  /** A lista de assuntos não carregou (banco fora): o tipo Assunto explica em vez de calar. */
+  topicsError?: boolean;
 }
 
 const KINDS: AlertKind[] = ["bairro", "tema", "assunto", "urgentes", "agenda"];
@@ -43,7 +47,7 @@ async function askPermission(): Promise<"granted" | "denied" | "unsupported"> {
   }
 }
 
-export function AlertsClient({ targets }: AlertsClientProps) {
+export function AlertsClient({ targets, topicsError = false }: AlertsClientProps) {
   const id = useId();
   const { profile, degraded, ready, act } = useAnonProfile();
   const [kind, setKind] = useState<AlertKind>("bairro");
@@ -53,6 +57,12 @@ export function AlertsClient({ targets }: AlertsClientProps) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [emailError, setEmailError] = useState(false);
+  const emailId = `${id}-email`;
+  const flagEmail = () => {
+    setEmailError(true);
+    document.getElementById(emailId)?.focus();
+  };
 
   const options = kind === "bairro" || kind === "tema" || kind === "assunto" ? targets[kind] : [];
   const chosen = options.find((o) => o.value === target) ?? options[0];
@@ -66,8 +76,13 @@ export function AlertsClient({ targets }: AlertsClientProps) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!resolved || busy) return;
-    setBusy(true);
     setFeedback(null);
+    if (channel === "email" && !looksLikeEmail(email)) {
+      flagEmail();
+      return;
+    }
+    setEmailError(false);
+    setBusy(true);
     try {
       const base = { kind, target: resolved.value, label: resolved.label, frequency, channel };
       if (channel === "browser") {
@@ -97,15 +112,11 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           setFeedback({ tone: "success", text: T.createdEmail });
           setEmail("");
           requestLoginInvite("alert");
-        } else
+        } else if (body?.status === "invalid") flagEmail();
+        else
           setFeedback({
             tone: "error",
-            text:
-              body?.status === "invalid"
-                ? T.invalidEmail
-                : body?.status === "rate_limited"
-                  ? T.rateLimited
-                  : T.error,
+            text: body?.status === "rate_limited" ? T.rateLimited : T.error,
           });
       }
     } finally {
@@ -118,9 +129,9 @@ export function AlertsClient({ targets }: AlertsClientProps) {
   return (
     <div
       data-ready={ready ? "true" : undefined}
-      className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14"
+      className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:gap-x-6"
     >
-      <div className="flex min-w-0 flex-col gap-10">
+      <div className="flex min-w-0 flex-col gap-10 lg:col-span-8">
         <PushSettings />
         <section aria-labelledby={`${id}-ativos`} className="flex min-w-0 flex-col gap-4">
           <h2 id={`${id}-ativos`} className="type-section text-strong">
@@ -175,11 +186,12 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           )}
           <p className="type-meta text-meta">{T.whileOpen}</p>
         </section>
+        <AccountInvite next="/alertas" />
       </div>
 
       <section
         aria-labelledby={`${id}-criar`}
-        className="flex flex-col gap-4 self-start border border-line-strong bg-card-white p-5"
+        className="flex min-w-0 flex-col gap-4 self-start border border-line-strong bg-card-white p-5 lg:col-span-4"
       >
         <h2 id={`${id}-criar`} className="type-section text-strong">
           {T.createTitle}
@@ -208,6 +220,11 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               onChange={setTarget}
               options={options}
             />
+          )}
+          {kind === "assunto" && options.length === 0 && (
+            <InlineAlert tone={topicsError ? "error" : "info"} role="none">
+              <p>{topicsError ? T.topicsError : T.topicsEmpty}</p>
+            </InlineAlert>
           )}
           <fieldset className="flex flex-col gap-1">
             <legend className="mb-1 type-label text-16 text-strong">{T.frequency}</legend>
@@ -249,7 +266,7 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           </fieldset>
           {channel === "email" && (
             <TextField
-              id={`${id}-email`}
+              id={emailId}
               name="email"
               type="email"
               icon="mail"
@@ -258,7 +275,11 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               hint={T.emailHint}
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError && looksLikeEmail(e.target.value)) setEmailError(false);
+              }}
+              error={emailError ? T.invalidEmail : undefined}
             />
           )}
           <Button type="submit" icon="bell" disabled={busy || !resolved}>

@@ -5,6 +5,7 @@ import {
   AggregatedCard,
   Button,
   Chip,
+  CollapsibleFilters,
   EmptyState,
   InlineAlert,
   PopularSourcesRail,
@@ -228,46 +229,44 @@ export function SourcesClient({
         </InlineAlert>
       )}
 
-      <nav aria-label={T.filtersLabel} className="flex flex-col gap-3">
-        {(
-          [
-            ["period", PERIODS],
-            ["region", REGIONS],
-            ["theme", THEMES],
-          ] as const
-        ).map(([group, values]) => (
-          <div key={group} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-            <p className="w-24 shrink-0 type-meta font-semibold text-strong">{T.groups[group]}</p>
-            <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
-              {values.map((v) => {
-                const active = query[group] === v;
-                const href =
-                  group === "period"
-                    ? sourcesHref(
-                        { ...query, tab },
-                        { period: active ? "semana" : (v as SourcesQuery["period"]) },
-                      )
-                    : sourcesHref({ ...query, tab }, { [group]: active ? null : v });
-                return (
-                  <li key={v} className="snap-start">
-                    <Chip href={href} active={active}>
-                      {T.filters[v]}
-                    </Chip>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-        {filtered && (
-          <a
-            href={sourcesHref({ tab, period: "semana" })}
-            className="inline-flex min-h-tap items-center self-start text-14 font-semibold text-link underline underline-offset-4"
-          >
-            {T.clearFilters}
-          </a>
-        )}
-      </nav>
+      <CollapsibleFilters
+        activeCount={[query.region, query.theme, query.period !== "semana"].filter(Boolean).length}
+        clearHref={sourcesHref({ tab, period: "semana" })}
+        clearLabel={T.clearFilters}
+      >
+        <nav aria-label={T.filtersLabel} className="flex flex-col gap-3">
+          {(
+            [
+              ["period", PERIODS],
+              ["region", REGIONS],
+              ["theme", THEMES],
+            ] as const
+          ).map(([group, values]) => (
+            <div key={group} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+              <p className="w-24 shrink-0 type-meta font-semibold text-strong">{T.groups[group]}</p>
+              <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
+                {values.map((v) => {
+                  const active = query[group] === v;
+                  const href =
+                    group === "period"
+                      ? sourcesHref(
+                          { ...query, tab },
+                          { period: active ? "semana" : (v as SourcesQuery["period"]) },
+                        )
+                      : sourcesHref({ ...query, tab }, { [group]: active ? null : v });
+                  return (
+                    <li key={v} className="snap-start">
+                      <Chip href={href} active={active}>
+                        {T.filters[v]}
+                      </Chip>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </CollapsibleFilters>
 
       <div className="flex flex-col gap-5">
         <Tabs

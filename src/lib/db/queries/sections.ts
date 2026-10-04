@@ -29,6 +29,8 @@ export interface SectionPage {
   activeSub: SectionRef | null;
   /** Destaque da editoria (`editoria.lead`), com capa aprovada; `null` sem posição ou fora da visão padrão. */
   featured: ArticleSummary | null;
+  /** O destaque está ali pela pauta quente (HOT-T3): "Em alta em Cuiabá". */
+  featuredHot?: boolean;
   /** Matérias da página 1 até `page` (carregar mais acumula), sem o destaque. */
   articles: ArticleSummary[];
   total: number;
@@ -174,9 +176,11 @@ export async function listSection(
       !filters.neighborhood &&
       (filters.origin ?? "all") === "all" &&
       (filters.order ?? "recent") === "recent";
-    const featured = defaultView
-      ? ((await getFeatured(db, "editoria.lead", { section: slug, now })).items[0] ?? null)
+    const lead = defaultView
+      ? await getFeatured(db, "editoria.lead", { section: slug, now })
       : null;
+    const featured = lead?.items[0] ?? null;
+    const featuredHot = featured !== null && (lead?.hot ?? []).includes(featured.id);
     const listed = await summarize(db, res.data);
     return {
       section: {
@@ -187,6 +191,7 @@ export async function listSection(
       subsections: scope.subsections,
       activeSub: scope.activeSub,
       featured,
+      featuredHot,
       articles: listed.filter((a) => a.id !== featured?.id),
       total,
       page: current,

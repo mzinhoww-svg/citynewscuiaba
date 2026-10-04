@@ -4,6 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { loginAs } from "./helpers/studio-login";
 import { service } from "./studio";
+import { openFilters } from "./helpers/filters";
 
 /*
  * Funil do app (spec 2026-09-28 §10.6; PW-T14): Thiago (analista) só vê o Funil; 7 etapas com
@@ -71,6 +72,7 @@ test("Thiago (analista) vê só o Funil com 7 etapas, filtros na URL e o aviso '
   await expect(page.getByText(/convites de instalação/)).toBeVisible();
   await expect(page.getByText("Permissões dadas em Alertas")).toBeVisible();
   await expect(page.getByText("Inscrições ativas por navegador")).toBeVisible();
+  await openFilters(page);
   await page.getByLabel("Período").selectOption("7");
   await page.getByLabel("Classe de aparelho").selectOption("desktop");
   await page.getByRole("button", { name: "Filtrar" }).click();

@@ -46,10 +46,34 @@ export const ACCOUNT_TEXT = {
   emailError: "Confira o e-mail. Exemplo: ana@exemplo.com",
   password: "Senha",
   continueWithout: "Continuar sem login",
+  /** Login e cadastro (UI-T12): a mesma saída, em botão de contorno ("Agora não"). */
+  continueWithoutSignIn: "Continuar sem entrar",
+  benefitsLabel: "O que a conta guarda para você",
+  benefits: ["Salvos em todos os aparelhos", "Alertas do seu bairro", "Fontes que você segue"],
   optionalNote: "A conta é opcional: ler, buscar, ver a agenda e seguir fontes funcionam sem ela.",
   unavailable: "Não conseguimos falar com o serviço de contas agora. Tente de novo em instantes.",
   rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
   or: "ou",
+} as const;
+
+/**
+ * Convite de conta nas telas de Perfil, Favoritos e Alertas (UI-T14): por que criar conta, sem
+ * tornar o login obrigatório. "Agora não" recolhe o convite neste navegador.
+ */
+export const ACCOUNT_INVITE_TEXT = {
+  title: "Por que criar uma conta",
+  intro: "Opcional: tudo continua funcionando sem conta. Com ela, o que você guarda vai junto.",
+  create: "Criar conta",
+  signIn: "Entrar",
+  notNow: "Agora não",
+  dismissed: "Tudo bem: você continua sem conta.",
+} as const;
+
+/** Botão do Google no login e no cadastro (UI-T12, spec de UI pública §4.7). */
+export const GOOGLE_TEXT = {
+  button: "Continuar com o Google",
+  privacy: "Usamos seu nome e e-mail para criar a conta.",
+  divider: "ou use seu e-mail",
 } as const;
 
 /** C02 · Entrar. */
@@ -71,14 +95,10 @@ export const SIGN_IN_TEXT = {
     `Muitas tentativas. Por segurança, o acesso com senha fica bloqueado até ${time}. Você pode entrar por link no e-mail ou redefinir a senha.`,
   notConfirmed: "Confirme seu e-mail antes de entrar.",
   resendConfirm: "Reenviar confirmação",
-  magicTitle: "Entrar sem senha",
-  magicIntro: "Receba no seu e-mail um link para entrar, sem digitar senha.",
-  magicSubmit: "Receber link por e-mail",
+  /** Botão secundário compacto: envia um link de acesso para o e-mail digitado. */
+  magicSubmit: "Entrar sem senha",
   magicSent: (email: string) =>
     `Se houver conta com ${email}, enviamos um link para entrar. Ele vale por 1 hora.`,
-  google: "Entrar com Google",
-  googleOff:
-    "Entrar com Google ainda não está disponível. Use e-mail e senha ou o link por e-mail.",
   noAccount: "Ainda não tem conta?",
   create: "Criar conta",
   noPermission:
@@ -129,7 +149,7 @@ export const RECOVER_TEXT = {
   resetIntro: "Escolha uma senha nova para a sua conta.",
   newPassword: "Nova senha",
   confirm: "Confirme a nova senha",
-  confirmError: "As senhas não são iguais.",
+  confirmError: "As senhas não são iguais. Digite a mesma senha nos dois campos.",
   resetSubmit: "Salvar nova senha",
   resetBusy: "Salvando…",
   resetExpired: "Este link expirou ou já foi usado.",
@@ -198,6 +218,9 @@ export const PROFILE_TEXT = {
   title: "Perfil",
   description: "Seu perfil neste navegador e, se quiser, sua conta para sincronizar.",
   loading: "Carregando seu perfil",
+  loadError: "Não conseguimos carregar os dados da sua conta agora",
+  loadErrorDetail: "Suas escolhas neste navegador continuam aqui. Tente de novo em instantes.",
+  retry: "Tentar de novo",
   anon: {
     title: "Seu perfil neste navegador",
     intro: "Sem conta, o CityNews guarda suas escolhas só aqui. Nada disso exige cadastro.",
@@ -234,7 +257,7 @@ export const PROFILE_TEXT = {
     none: "Não informar",
     save: "Salvar dados",
     saved: "Dados salvos.",
-    nameError: "Digite um nome de exibição (até 80 caracteres).",
+    nameError: "Digite um nome de exibição (até 80 caracteres). Exemplo: Ana Cuiabana",
   },
   sessions: {
     title: "Sessões",

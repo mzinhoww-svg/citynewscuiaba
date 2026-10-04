@@ -1733,8 +1733,10 @@ export type Database = {
           article_id: string;
           created_at: string;
           created_by: string | null;
+          dismissed_at: string | null;
           ends_at: string | null;
           ended_at: string | null;
+          hot_sources: number | null;
           id: string;
           kind: string;
           note: string;
@@ -1742,13 +1744,16 @@ export type Database = {
           section_slug: string | null;
           slot_key: string;
           starts_at: string;
+          topic_id: string | null;
         };
         Insert: {
           article_id: string;
           created_at?: string;
           created_by?: string | null;
+          dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -1756,13 +1761,16 @@ export type Database = {
           section_slug?: string | null;
           slot_key: string;
           starts_at?: string;
+          topic_id?: string | null;
         };
         Update: {
           article_id?: string;
           created_at?: string;
           created_by?: string | null;
+          dismissed_at?: string | null;
           ends_at?: string | null;
           ended_at?: string | null;
+          hot_sources?: number | null;
           id?: string;
           kind?: string;
           note?: string;
@@ -1770,6 +1778,7 @@ export type Database = {
           section_slug?: string | null;
           slot_key?: string;
           starts_at?: string;
+          topic_id?: string | null;
         };
         Relationships: [
           {
@@ -1785,6 +1794,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "featured_slots";
             referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "featured_items_topic_id_fkey";
+            columns: ["topic_id"];
+            isOneToOne: false;
+            referencedRelation: "topics";
+            referencedColumns: ["id"];
           },
         ];
       };
@@ -1811,6 +1827,44 @@ export type Database = {
           position?: number;
         };
         Relationships: [];
+      };
+      front_signals: {
+        Row: {
+          id: string;
+          item_id: string | null;
+          rank: number;
+          seen_at: string;
+          source_id: string;
+          topic_id: string | null;
+          url: string;
+        };
+        Insert: {
+          id?: string;
+          item_id?: string | null;
+          rank: number;
+          seen_at?: string;
+          source_id: string;
+          topic_id?: string | null;
+          url: string;
+        };
+        Update: {
+          id?: string;
+          item_id?: string | null;
+          rank?: number;
+          seen_at?: string;
+          source_id?: string;
+          topic_id?: string | null;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "front_signals_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       home_layouts: {
         Row: {
@@ -5244,6 +5298,7 @@ export type Database = {
         Returns: boolean;
       };
       featured_assert_role: { Args: never; Returns: undefined };
+      featured_dismiss_hot: { Args: { p_id: string }; Returns: number };
       featured_has_cover: { Args: { p_article: string }; Returns: boolean };
       featured_pin: {
         Args: {
@@ -5259,6 +5314,7 @@ export type Database = {
       featured_reorder: { Args: { p_ids: string[]; p_slot: string }; Returns: number };
       featured_request_images: { Args: { p_ids: string[] }; Returns: number };
       featured_unpin: { Args: { p_id: string }; Returns: boolean };
+      front_signals_purge: { Args: Record<PropertyKey, never>; Returns: number };
       home_layout_publish: { Args: { p_id: string }; Returns: number };
       image_policy_rank: {
         Args: { p: Database["public"]["Enums"]["image_policy"] };
