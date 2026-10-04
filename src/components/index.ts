@@ -71,6 +71,8 @@ export { Toggle, type ToggleProps } from "./ui/Toggle";
 export { ToastProvider, useToast, type ToastApi, type ToastInput } from "./ui/Toast";
 export { FormStatus, type FormStatusProps } from "./ui/FormStatus";
 export { VisuallyHidden } from "./ui/VisuallyHidden";
+export { TagLink, type TagLinkProps } from "./ui/TagLink";
+export { LinkTabs, type LinkTabItem, type LinkTabsProps } from "./ui/LinkTabs";
 
 /* editorial: notícia, descoberta e marca */
 export { AggregatedCard, type AggregatedCardProps } from "./editorial/AggregatedCard";
