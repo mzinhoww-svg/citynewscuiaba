@@ -29,6 +29,12 @@ export const STUDIO_TEXT = {
   menuTitle: "Menu do Estúdio",
   menuSearch: "Buscar no menu",
   menuEmpty: (q: string) => `Nenhuma tela com “${q}”.`,
+  breadcrumbs: "Caminho",
+  sections: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -90,6 +96,7 @@ export const QUEUE_TEXT = {
       : `${n} matérias foram publicadas automaticamente nas últimas 24 h. Confira e despublique com motivo se algo estiver errado.`,
   autoBannerLink: "Ver publicadas automaticamente",
   seeAll: "Ver fila completa",
+  seeInQueue: "Ver na Fila",
   loadMore: "Carregar mais",
   caption: "Matérias da fila",
   scrollRegion: "Tabela da fila (role para os lados no celular)",

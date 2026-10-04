@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { EmptyState, Button, LoadMore, loadMoreAnchor } from "@/components";
-import { QueueFilters, QueueTable, QueueTabs } from "@/components/estudio";
+import { QueueFilters, QueueTable, QueueTabs, StudioScreen } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, CONFIDENCE_LABEL, QUEUE_TEXT as T } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -113,8 +113,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const canUnpublishAny = canAccess(session.roles, "article.unpublish_auto");
 
   return (
-    <section className="flex flex-col gap-6">
-      <h1 className="type-screen-title text-strong">{T.queueTitle}</h1>
+    <StudioScreen title={T.queueTitle}>
       <QueueTabs
         label={T.tabsLabel}
         current={tab}
@@ -200,6 +199,6 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           )}
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

@@ -9,10 +9,11 @@ import {
   SectionHeader,
   Table,
 } from "@/components";
-import { ConfidenceMeter, DecisionPanel, FieldDiff } from "@/components/estudio";
+import { ConfidenceMeter, DecisionPanel, FieldDiff, StudioScreen } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   EDITOR_TEXT,
+  QUEUE_TEXT,
   RECOMMENDED_LABEL,
   REVIEW_TEXT as T,
 } from "@/content/pt-BR/studio";
@@ -73,31 +74,32 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const rules = a.decisions.find((d) => d.step === "rules");
   const human = a.decisions.find((d) => d.humanDecision);
   const ai = a.aiVersion;
+  // Caminho de volta para a lista de origem (item 58; `originFrom` quando houver `?de=`).
+  const backHref = "/estudio/fila?aba=exceptions";
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <Link
-          href="/estudio/fila?aba=exceptions"
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {EDITOR_TEXT.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">
-          {T.title} · {a.section.name}
-        </p>
-        <h1 className="type-screen-title text-strong">{a.title}</h1>
-        <p className="type-meta text-meta">
-          {T.state}: {ARTICLE_STATUS_LABEL[a.status]} · {formatDateTime(a.updatedAt)}
-        </p>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={T.labels}>
-          {articleLabels(a).map((l) => (
-            <OriginLabel key={l.kind} label={l} />
-          ))}
-          <ConfidenceMeter level={a.confidence} />
-        </div>
-      </header>
-
+    <StudioScreen
+      as="article"
+      section={`${T.title} · ${a.section.name}`}
+      title={a.title}
+      breadcrumbs={[
+        { href: backHref, label: QUEUE_TEXT.queueTitle },
+        { href: `/estudio/fila/${a.id}`, label: a.title },
+      ]}
+      intro={
+        <>
+          <p className="type-meta text-meta">
+            {T.state}: {ARTICLE_STATUS_LABEL[a.status]} · {formatDateTime(a.updatedAt)}
+          </p>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={T.labels}>
+            {articleLabels(a).map((l) => (
+              <OriginLabel key={l.kind} label={l} />
+            ))}
+            <ConfidenceMeter level={a.confidence} />
+          </div>
+        </>
+      }
+    >
       <section aria-labelledby="alertas" className="flex flex-col gap-2">
         <h2 id="alertas" className="sr-only">
           {T.alerts}
@@ -295,6 +297,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           </Panel>
         </aside>
       </div>
-    </article>
+    </StudioScreen>
   );
 }

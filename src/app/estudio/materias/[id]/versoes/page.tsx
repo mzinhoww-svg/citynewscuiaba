@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { Button, EmptyState, Select } from "@/components";
-import { VersionCompare } from "@/components/estudio";
-import { EDITOR_TEXT, VERSIONS_TEXT as T } from "@/content/pt-BR/studio";
+import { StudioScreen, VersionCompare } from "@/components/estudio";
+import { EDITOR_TEXT, QUEUE_TEXT, VERSIONS_TEXT as T } from "@/content/pt-BR/studio";
 import { requireRole } from "@/lib/auth/require-role";
 import { listVersions } from "@/lib/db/queries/studio-article";
 import { formatDateTime } from "@/lib/format/date";
@@ -54,18 +53,16 @@ export default async function VersionsPage({
   const diff = from && to ? versionDiff(from.snapshot, to.snapshot) : null;
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link
-          href={`/estudio/materias/${id}`}
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {T.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">{T.title}</p>
-        <h1 className="type-screen-title text-strong">{data.title}</h1>
-      </header>
-
+    <StudioScreen
+      as="article"
+      section={T.title}
+      title={data.title}
+      breadcrumbs={[
+        { href: "/estudio/fila", label: QUEUE_TEXT.queueTitle },
+        { href: `/estudio/materias/${id}`, label: data.title },
+        { href: `/estudio/materias/${id}/versoes`, label: T.title },
+      ]}
+    >
       {versions.length < 2 || !from || !to || !diff ? (
         <EmptyState title={T.title} icon="history">
           {T.single}
@@ -128,6 +125,6 @@ export default async function VersionsPage({
           ))}
         </ol>
       </section>
-    </article>
+    </StudioScreen>
   );
 }
