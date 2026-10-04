@@ -57,7 +57,7 @@ export function MetaRow({
         {avatar !== undefined && (
           <span
             aria-hidden="true"
-            className="size-5 shrink-0 rounded-pill bg-nevoa-2 bg-cover bg-center"
+            className="size-5 shrink-0 rounded-pill bg-section bg-cover bg-center"
             style={avatar ? { backgroundImage: `url(${JSON.stringify(avatar)})` } : undefined}
           />
         )}

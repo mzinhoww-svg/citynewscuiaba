@@ -50,22 +50,16 @@ test("ticker na página de matéria e sem violações de acessibilidade", async 
   expect(violations.filter((v) => blocking(v.impact))).toEqual([]);
 });
 
-test("a rolagem pausa ao focar um link", async ({ page }) => {
+// UX-W1-T6: nada se move sozinho, nem sem preferência de movimento reduzido.
+test("não rola sozinho: sem animação e com rolagem manual", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await page.goto("/");
   const ticker = page.getByRole("region", { name: "Últimas notícias" });
-  const link = ticker.getByRole("link").first();
-  await link.focus();
-  const state = await ticker
-    .locator("ul")
-    .evaluate((el) => getComputedStyle(el).animationPlayState);
-  expect(state).toBe("paused");
-});
-
-test("com movimento reduzido não rola e a lista tem rolagem manual", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  const ticker = page.getByRole("region", { name: "Últimas notícias" });
-  const name = await ticker.locator("ul").evaluate((el) => getComputedStyle(el).animationName);
-  expect(name).toBe("none");
+  const ul = ticker.locator("ul");
+  expect(await ul.evaluate((el) => getComputedStyle(el).animationName)).toBe("none");
+  const overflow = await ul.evaluate((el) => getComputedStyle(el.parentElement!).overflowX);
+  expect(overflow).toBe("auto");
+  const first = ticker.getByRole("link").first();
+  expect(await first.evaluate((el) => getComputedStyle(el).textTransform)).toBe("none");
+  expect((await first.boundingBox())!.height).toBeGreaterThanOrEqual(44);
 });

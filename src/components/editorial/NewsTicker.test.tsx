@@ -16,20 +16,29 @@ describe("NewsTicker", () => {
     expect(links[0]).toHaveAttribute("href", "/materia/obra");
   });
 
-  it("duplica o laço escondido dos leitores de tela e fora do Tab", () => {
+  it("uma lista só, sem cópia escondida (não há laço)", () => {
     const { container } = render(<NewsTicker items={ITEMS} />);
-    const hidden = container.querySelectorAll('li[aria-hidden="true"] a');
-    expect(hidden).toHaveLength(2);
-    hidden.forEach((a) => expect(a).toHaveAttribute("tabindex", "-1"));
+    expect(container.querySelectorAll('[aria-hidden="true"] a')).toHaveLength(0);
+    expect(container.querySelectorAll("li")).toHaveLength(2);
     expect(screen.getAllByRole("link")).toHaveLength(2);
   });
 
-  it("pausa no hover e no foco e respeita movimento reduzido", () => {
+  it("não se move sozinho: sem animação, com rolagem manual e encaixe", () => {
     const { container } = render(<NewsTicker items={ITEMS} />);
-    const ul = container.querySelector("ul");
-    expect(ul?.className).toContain("group-hover/ticker:[animation-play-state:paused]");
-    expect(ul?.className).toContain("group-focus-within/ticker:[animation-play-state:paused]");
-    expect(ul?.className).toContain("motion-safe:animate-ticker");
+    expect(container.innerHTML).not.toMatch(/animate-ticker|animation-play-state/);
+    expect(container.querySelector("[aria-live]")).toBeNull();
+    const scroller = container.querySelector("ul")!.parentElement!;
+    expect(scroller).toHaveClass("overflow-x-auto", "snap-x");
+  });
+
+  it("manchetes e rótulo em caixa de frase, 14 px", () => {
+    const { container } = render(<NewsTicker items={ITEMS} />);
+    expect(container.innerHTML).not.toMatch(/uppercase/);
+    for (const a of screen.getAllByRole("link")) {
+      expect(a).toHaveClass("text-14", "min-h-tap");
+      expect(a.className).not.toMatch(/text-12/);
+    }
+    expect(screen.getByText("Última hora")).toHaveClass("text-14");
   });
 
   it("não renderiza sem itens", () => {

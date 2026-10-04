@@ -46,6 +46,7 @@
   --surface-photo: var(--cn-foto);
   --surface-overlay: rgb(15 27 45 / 0.48);
   --surface-aggregated: var(--cn-nevoa);       /* Panorama de fontes */
+  --surface-hover: var(--cn-nevoa-2);          /* [UX-W1-T1] hover, pressionado e selecionado */
   --text-strong: var(--cn-tinta);
   --text-body: var(--cn-tinta);
   --text-meta: var(--cn-grafite);
@@ -98,8 +99,10 @@
   --sp-20: 20px; --sp-24: 24px; --sp-32: 32px; --sp-40: 40px; --sp-48: 48px; --sp-64: 64px; --sp-96: 96px;
   --gutter: 24px; --container-max: 1200px;
   --h-input: 52px; --h-button: 56px; --h-button-sm: 36px; --h-chip: 36px; --h-icon-btn: 48px; --h-tabbar: 64px;
-  /* Cabeçalhos fixos (medidos no navegador, com folga): base do scroll-padding (WCAG 2.4.11) */
-  --h-sticky-public: 128px; --h-sticky-studio: 60px;
+  /* Cabeçalhos fixos (medidos no navegador, com folga): base do scroll-padding (WCAG 2.4.11) e
+     do topo das colunas `sticky` do portal (`top-sticky-public`). Público: 102 px medidos em
+     04/10/2026 (56 da linha principal + 44 das editorias + 2 de bordas; 90 ao rolar) + 16 de folga. */
+  --h-sticky-public: 118px; --h-sticky-studio: 60px;
   --tap-min: 44px;
 
   /* Raios: app suave, web editorial */
@@ -130,21 +133,30 @@
   color-scheme: dark;
   --bg-page: #0b1320; --bg-section: #121c2c; --bg-inverse: #e9edf3; --surface-card: #121c2c; --surface-card-white: #0b1320;
   --surface-input: #0b1320; --surface-photo: #1b2638; --surface-aggregated: #121c2c;
+  --surface-hover: #1b2638;      /* texto forte 12,9:1; metadado 6,2:1 */
   --text-strong: #e9edf3; --text-body: #e9edf3; --text-meta: #9aa6b8; --text-placeholder: #9aa6b8;
   --text-inverse: #0b1320; --text-link: #f39a78; --text-eyebrow: #f39a78; --text-service: #6fc3a2;
   --text-danger: #f28b82; --text-ai: #8fb4e8; --text-warn: #e7b85c;
   --accent: #f06a43; --action-primary: #e9edf3; --action-primary-pressed: #c9d0da; --action-secondary: #121c2c;
   --border-subtle: #243145; --border-section: #243145; --border-control: #6b778a; --border-strong: #e9edf3;
   --cn-urgente: #f06a43; --cn-ia-soft: #111f35; --cn-cerrado-soft: #10261f; --cn-atencao-soft: #2a2110; --cn-erro-soft: #2c1413;
+  --cn-urucum-soft: #2e1810;     /* nota "Corrigido": link #f39a78 sobre ele 7,7:1 */
   --focus-ring: 3px solid #f06a43;
 }
 
-:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: var(--focus-ring);
-  outline-offset: var(--focus-offset);
+/*
+ * Padrões globais em `@layer base` (UX-W1-T9): fora de camada eles venciam qualquer utilitário
+ * do Tailwind (o anel duplo do `card-link`, o `truncate` desfeito em `<p>`, o `!important` do
+ * `control-field`). Na camada base, um utilitário explícito (`outline-none`, `truncate`) vence.
+ */
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: var(--focus-ring);
+    outline-offset: var(--focus-offset);
+  }
+  :where(h1, h2, h3) { text-wrap: balance; }
+  :where(p) { text-wrap: pretty; }
 }
-:where(h1, h2, h3) { text-wrap: balance; }
-:where(p) { text-wrap: pretty; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

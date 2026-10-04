@@ -53,12 +53,14 @@ export { FieldDiff, type FieldDiffItem, type FieldDiffProps } from "./studio/Fie
 export { DecisionPanel, type DecisionPanelProps } from "./studio/DecisionPanel";
 export {
   ArticleEditor,
+  type ArticleEditorHandle,
   type ArticleEditorProps,
   type EditorDraft,
   type OriginField,
   type SaveReply,
 } from "./studio/ArticleEditor";
 export { RichEditor, type RichEditorProps } from "./studio/editor/Editor";
+export { EditorWithPublish, type EditorWithPublishProps } from "./studio/editor/EditorWithPublish";
 export {
   VersionCompare,
   type VersionCompareField,

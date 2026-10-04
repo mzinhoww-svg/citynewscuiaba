@@ -26,6 +26,8 @@ export interface TextFieldProps {
   /** Erro com ícone e texto; inclua um exemplo ("Exemplo: ana@exemplo.com"). */
   error?: string;
   disabled?: boolean;
+  /** Só leitura: o valor continua legível, selecionável e focável, mas não muda. */
+  readOnly?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -58,6 +60,7 @@ export function TextField({
   hint,
   error,
   disabled = false,
+  readOnly = false,
   className,
   style,
 }: TextFieldProps) {
@@ -95,6 +98,7 @@ export function TextField({
           inputMode={inputMode}
           maxLength={maxLength}
           disabled={disabled}
+          readOnly={readOnly}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className="min-w-0 flex-1 bg-transparent type-body text-strong placeholder:text-placeholder disabled:cursor-not-allowed"

@@ -164,8 +164,5 @@ export function StudioPageTitle({ nav, className }: { nav: StudioNavGroup[]; cla
   const href = currentNavHref(pathname, items);
   const label = items.find((it) => it.href === href)?.label;
   if (!label) return null;
-  // `span`: o `text-wrap: pretty` global de `<p>` venceria o `truncate` (uma linha só).
-  return (
-    <span className={cx("block truncate type-nav-title text-strong", className)}>{label}</span>
-  );
+  return <p className={cx("truncate type-nav-title text-strong", className)}>{label}</p>;
 }

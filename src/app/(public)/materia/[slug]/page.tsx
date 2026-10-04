@@ -24,7 +24,6 @@ import {
   ReportProblemForm,
   ReviewBanner,
   SourcesList,
-  TopicStatus,
   UpdateNote,
   UpdatedWhileReading,
   NotificationInviteSlot,
@@ -194,7 +193,6 @@ function Article({ a }: { a: ArticleView }) {
             <header className="flex max-w-read flex-col gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag>{a.section.name}</CategoryTag>
-                {a.topic && <TopicStatus state={a.topic.state} />}
               </div>
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
@@ -269,7 +267,7 @@ function Article({ a }: { a: ArticleView }) {
                 <li>
                   <Link
                     href={`/${a.section.slug}`}
-                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
                   >
                     {a.section.name}
                   </Link>
@@ -278,7 +276,7 @@ function Article({ a }: { a: ArticleView }) {
                   <li>
                     <Link
                       href={`/assunto/${a.topic.slug}`}
-                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
                     >
                       {ARTICLE.topicTag(a.topic.title)}
                     </Link>
@@ -311,7 +309,7 @@ function Article({ a }: { a: ArticleView }) {
             </section>
           </article>
 
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
             <MadeHow
               article={a}
               versionsHref={historyHref}

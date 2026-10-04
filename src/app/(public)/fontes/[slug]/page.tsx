@@ -280,7 +280,7 @@ export default async function SourceRoute({ params, searchParams }: Props) {
             </ul>
           )}
         </section>
-        <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+        <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
           <About s={s} />
         </aside>
       </div>

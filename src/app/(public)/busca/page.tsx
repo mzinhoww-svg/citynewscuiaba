@@ -205,7 +205,7 @@ async function Start() {
               <li key={t.id}>
                 <Link
                   href={t.href}
-                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-hover"
                 >
                   {t.title}
                 </Link>

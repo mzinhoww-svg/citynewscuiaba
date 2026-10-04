@@ -23,6 +23,8 @@ export interface SelectProps {
   hint?: string;
   error?: string;
   required?: boolean;
+  /** Campo só de leitura (modo leitura do editor): não abre nem muda. */
+  disabled?: boolean;
   /** Conteúdo extra à direita do rótulo (ex.: "opcional"). */
   labelAside?: ReactNode;
   className?: string;
@@ -48,6 +50,7 @@ export function Select({
   hint,
   error,
   required,
+  disabled = false,
   labelAside,
   className,
 }: SelectProps) {
@@ -70,10 +73,12 @@ export function Select({
             ? { value, onChange: (e: ChangeEvent<HTMLSelectElement>) => onChange?.(e.target.value) }
             : { defaultValue: defaultValue ?? "" })}
           required={required}
+          disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
           className={cx(
             "border-control h-input w-full cursor-pointer appearance-none rounded-lg bg-input pr-11 pl-4 type-body text-strong",
+            "disabled:cursor-not-allowed",
             error && "field-error",
           )}
         >
@@ -84,11 +89,13 @@ export function Select({
             </option>
           ))}
         </select>
-        <Icon
-          name="chevron-down"
-          size={20}
-          className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-meta"
-        />
+        {!disabled && (
+          <Icon
+            name="chevron-down"
+            size={20}
+            className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-meta"
+          />
+        )}
       </div>
       {hint && (
         <p id={hintId} className="type-meta text-meta">

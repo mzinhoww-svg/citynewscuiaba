@@ -203,7 +203,7 @@ export function NotificationBell({
           <span
             aria-hidden="true"
             data-testid="bell-count"
-            className="absolute top-1 right-0 inline-flex min-w-5 items-center justify-center rounded-pill bg-tinta px-1 type-meta font-semibold text-branco ring-2 ring-page"
+            className="absolute top-1 right-0 inline-flex min-w-5 items-center justify-center plate-edge rounded-pill border bg-tinta px-1 type-meta font-semibold text-branco ring-2 ring-page"
           >
             {badge}
           </span>

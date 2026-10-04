@@ -15,7 +15,11 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: "unit", environment: "jsdom", include: ["src/**/*.test.{ts,tsx}"] },
+        test: {
+          name: "unit",
+          environment: "jsdom",
+          include: ["src/**/*.test.{ts,tsx}", "tests/ci/**/*.test.ts"],
+        },
       },
       {
         // Scripts de build (SW, ícones): Node puro, sem banco.

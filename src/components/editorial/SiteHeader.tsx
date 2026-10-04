@@ -60,6 +60,8 @@ export function SiteHeader({
     <StickyHeader
       className={cx(
         "group/header sticky top-0 z-sticky border-b border-line-subtle bg-page",
+        // Com `viewport-fit=cover` (layout raiz) o cabeçalho desce abaixo do entalhe do iPhone.
+        "pt-safe-top",
         // Encolher a linha principal (3,5 rem para 2,75 rem) é compensado aqui: o bloco ocupa
         // a mesma altura no fluxo e o conteúdo não pula.
         "data-[scrolled=true]:mb-3",

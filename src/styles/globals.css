@@ -45,6 +45,7 @@
   --color-photo: var(--surface-photo);
   --color-overlay: var(--surface-overlay);
   --color-aggregated: var(--surface-aggregated);
+  --color-hover: var(--surface-hover);
 
   /* Texto */
   --color-strong: var(--text-strong);
@@ -153,7 +154,6 @@
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
-  --animate-ticker: cn-ticker var(--ticker-duration, 60s) linear infinite;
 }
 
 @keyframes cn-live-pulse {
@@ -180,14 +180,6 @@
   }
   to {
     transform: translateX(0);
-  }
-}
-@keyframes cn-ticker {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
   }
 }
 @keyframes cn-fade-in {
@@ -322,9 +314,21 @@
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
   & input:focus-visible {
-    outline: none !important;
+    outline: none;
+  }
+}
+
+/*
+ * Placa Tinta (UX-W1-T1, D-18): no claro a borda é transparente (a placa já contrasta com a
+ * página); no escuro a Tinta quase some sobre o fundo, então a placa ganha a hairline do tema.
+ * Só a cor: a largura vem do componente (`border`, `border-t`), para não brigar com a ordem dos
+ * utilitários de largura do Tailwind.
+ */
+@utility plate-edge {
+  border-color: transparent;
+  :root[data-theme="dark"] & {
+    border-color: var(--border-subtle);
   }
 }
 
@@ -362,6 +366,16 @@
   }
 }
 
+/* Coluna `sticky` do portal: para logo abaixo do cabeçalho fixo (altura medida + folga). */
+@utility top-sticky-public {
+  top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
+}
+/* Área segura superior (entalhe do iPhone com `viewport-fit=cover`): zero onde não há entalhe,
+   para o cabeçalho não mudar de altura no desktop. */
+@utility pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Área segura inferior (barra de gestos) e espaço da barra inferior do app. */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
@@ -394,7 +408,7 @@
  * deles. Cada cabeçalho fixo se declara com `data-sticky`.
  */
 :root:has(header[data-sticky="public"]) {
-  scroll-padding-top: var(--h-sticky-public);
+  scroll-padding-top: calc(var(--h-sticky-public) + env(safe-area-inset-top, 0px));
 }
 :root:has(header[data-sticky="studio"]) {
   scroll-padding-top: var(--h-sticky-studio);

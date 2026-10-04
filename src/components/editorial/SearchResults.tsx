@@ -11,7 +11,6 @@ import { Icon } from "../ui/Icon";
 import { ArticleThumb } from "./ArticleCard";
 import { Highlight } from "./Highlight";
 import { OriginLabel } from "./OriginLabel";
-import { TopicStatus } from "./TopicStatus";
 
 export interface SearchResultItemProps {
   hit: SearchHit;
@@ -149,7 +148,6 @@ export function SearchResultItem({ hit, terms, now, className }: SearchResultIte
         <article className={cx(ROW, className)}>
           <div className="relative flex flex-wrap items-center gap-2">
             <span className="type-eyebrow text-eyebrow">{SEARCH.topicEyebrow}</span>
-            <TopicStatus state={t.state} />
           </div>
           <h3 className={TITLE}>
             <Link href={t.href} className="card-link no-underline hover:underline">
@@ -192,7 +190,6 @@ export function SearchGroupBlock({ group, terms, now }: SearchGroupBlockProps) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="type-eyebrow text-eyebrow">{SEARCH.topicEyebrow}</span>
-        <TopicStatus state={topic.state} />
       </div>
       <h3 id={id} className="mt-2 type-headline text-strong">
         <Link href={topic.href} className="no-underline hover:underline">

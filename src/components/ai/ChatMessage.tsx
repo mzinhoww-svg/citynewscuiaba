@@ -130,7 +130,9 @@ function Reply({
         title={ASK.errorTitle.rate_limited(turn.limit ?? 20)}
         actions={<Traditional question={turn.question} />}
       >
-        <p>{ASK.errorText.rate_limited(retryAt ? formatHour(retryAt) : "")}</p>
+        <p>
+          {retryAt ? ASK.errorText.rate_limited(formatHour(retryAt)) : ASK.errorText.limitNoTime}
+        </p>
       </AiStatusPanel>
     );
   }
