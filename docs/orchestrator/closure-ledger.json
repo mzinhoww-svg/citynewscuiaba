@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-04T15:40:00Z",
+  "updated_at": "2026-10-04T16:30:00Z",
   "items": [
     {
       "id": "L-001",
@@ -579,8 +579,8 @@
     {
       "id": "L-022",
       "categoria": "IA/fila",
-      "status": "TESTED_LOCALLY",
-      "evidence": "3e32a98+f110605",
+      "status": "PRODUCTION_APPLIED",
+      "evidence": "3e32a98+f110605; 22 redação adiada 16h03-16h20",
       "next_action": "PR, CI, deploy; medir ai_fallback por hora",
       "reviewed": true
     },
@@ -588,7 +588,7 @@
       "id": "L-023",
       "categoria": "fila",
       "status": "DRAINING",
-      "evidence": "15h30: 253 sem texto, 55 IA indisponivel, 42 auto_publish off, 42 corpo cortado; fila a126 373 enrich + 438 summarize; 185 publicadas/h",
+      "evidence": "16h25: 42 em revisão; fila a126 38 enrich + 52 summarize",
       "next_action": "recuperacao, reprocessar, L-022"
     },
     {
@@ -622,9 +622,30 @@
     {
       "id": "L-028",
       "categoria": "ci",
-      "status": "IN_PROGRESS",
+      "status": "CLOSED",
       "evidence": "PR #41 dirty impedia CI; merge 37e031c; unit 2807 verde",
-      "next_action": "acompanhar CI no novo head"
+      "next_action": null
+    },
+    {
+      "id": "L-029",
+      "categoria": "pipeline",
+      "status": "TESTED_LOCALLY",
+      "evidence": "76 rate_limited no refetch; A-143",
+      "next_action": "merge e deploy"
+    },
+    {
+      "id": "L-030",
+      "categoria": "fontes",
+      "status": "BLOCKED_EXTERNAL",
+      "evidence": "RDNews http_403 8/8 da Vercel; 200 fora; B-028",
+      "next_action": "dono pede liberacao a RDNews"
+    },
+    {
+      "id": "L-031",
+      "categoria": "publicacao",
+      "status": "IDENTIFIED",
+      "evidence": "force_publish em lote 16h04; 500/h; breaker hourly 16h07",
+      "next_action": "admin religa na Contingencia (A-125)"
     }
   ]
 }

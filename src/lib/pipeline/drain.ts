@@ -207,7 +207,12 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             let e: StepError;
             if (res.ok) {
               try {
-                for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+                for (const next of res.value)
+                  await queue.enqueue(
+                    queueFor(next.step),
+                    next,
+                    next.delaySec ? { delaySec: next.delaySec } : undefined,
+                  );
                 await queue.ack(name, q.msgId);
                 r.succeeded++;
                 await push(
@@ -234,7 +239,11 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
               await push(event(q, "info", "prazo do drain: devolvida à fila", { kind: e.kind }));
               continue;
             }
-            const decision = retryPolicy(q.readCt, { retryable: e.retryable });
+            const policy = retryPolicy(q.readCt, { retryable: e.retryable });
+            const decision =
+              policy.action === "retry" && e.retryAfterSec !== undefined
+                ? { ...policy, delaySec: Math.max(policy.delaySec, Math.ceil(e.retryAfterSec)) }
+                : policy;
             const details = { kind: e.kind, ...(e.details ?? {}) };
             if (decision.action === "retry") {
               await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);

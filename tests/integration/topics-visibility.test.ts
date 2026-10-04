@@ -132,6 +132,33 @@ describe("visibilidade dos assuntos", () => {
     expect((await readTopic(urg.id)).visibility).toBe("public");
   });
 
+  it("assunto público preso no título provisório ganha o título da próxima matéria publicada", async () => {
+    const t = await internalTopic("servicos");
+    // Estado de produção em 04/10: aberto por uma matéria sem redação, título e slug feios.
+    await service
+      .from("topics")
+      .update({
+        visibility: "public",
+        title: "Assunto em apuração · Serviços",
+        slug: `assunto-em-apuracao-servicos-${t.slug.slice(-8)}`,
+      })
+      .eq("id", t.id);
+    const slug = (await readTopic(t.id)).slug;
+    const a = await article(t.id);
+    await publish(a.id, "auto");
+    const after = await readTopic(t.id);
+    expect(after.title).toBe(a.title);
+    expect(after.slug).toBe(slug); // link público não quebra
+  });
+
+  it("matéria com título provisório não vai ao ar nem abre o assunto", async () => {
+    const t = await internalTopic("servicos");
+    const a = await article(t.id, { title: "Assunto em apuração · Serviços" });
+    const r = await publish(a.id, "auto");
+    expect(r.error?.code).toBe("23514");
+    expect((await readTopic(t.id)).visibility).toBe("internal");
+  });
+
   it("interno fica fora de lista, página e sitemap", async () => {
     const t = await internalTopic("cidade");
     await article(t.id); // rascunho: não publica

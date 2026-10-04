@@ -297,7 +297,9 @@ const overlap = (a: Box, b: Box) =>
 test("360×640 com consentimento pendente e aviso offline: fixos empilhados, linha fina e manchete visível", async ({
   page,
   context,
-}) => {
+}, info) => {
+  // Medida do celular (toque, barra inferior): o projeto desktop só encolhe a janela.
+  test.skip(!info.project.name.startsWith("mobile"), "layout do celular");
   // A faixa Urgente não entra aqui: o seed não tem urgente e a home guarda os dados por 60 s
   // (tag `home`); a altura dela é conferida no teste do componente (UrgentBar, home.test.tsx).
   await context.clearCookies();
@@ -319,9 +321,9 @@ test("360×640 com consentimento pendente e aviso offline: fixos empilhados, lin
   expect(overlap(c, n)).toBe(false);
   expect(overlap(h, c)).toBe(false);
   expect(overlap(h, n)).toBe(false);
-  // Soma dos fixos de baixo ≤ 25% da altura; banner ≤ 15%.
-  expect(c.height).toBeLessThanOrEqual(640 * 0.15);
-  expect(c.height + n.height).toBeLessThanOrEqual(640 * 0.25);
+  // Banner legível (A-147): até 180 px, como em consent.spec; soma dos fixos de baixo ≤ 40%.
+  expect(c.height).toBeLessThanOrEqual(180);
+  expect(c.height + n.height).toBeLessThanOrEqual(640 * 0.4);
   // O aviso de cópia antiga é uma linha fina.
   expect(o.height).toBeLessThanOrEqual(36);
   // Nada está coberto por outro fixo: o centro de cada um acerta nele mesmo.
@@ -344,7 +346,8 @@ test("360×640 com consentimento pendente e aviso offline: fixos empilhados, lin
 test("404 a 360×640 com consentimento pendente: busca e volta ao início ficam acima do banner", async ({
   page,
   context,
-}) => {
+}, info) => {
+  test.skip(!info.project.name.startsWith("mobile"), "layout do celular");
   await context.clearCookies();
   await page.setViewportSize({ width: 360, height: 640 });
   await page.goto("/materia/nao-existe");
