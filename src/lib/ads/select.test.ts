@@ -54,9 +54,10 @@ describe("eligibleCandidates (ADS-T1)", () => {
   it("editorias permitidas da peça: vazio vale para todas; lista restringe (e tira da home)", () => {
     const list = [place("todas"), place("so-cultura", { allowedSections: ["cultura"] })];
     expect(eligibleCandidates(list, ctx).map((c) => c.id)).toEqual(["todas"]);
-    expect(
-      eligibleCandidates(list, { ...ctx, sectionSlug: "cultura" }).map((c) => c.id),
-    ).toEqual(["todas", "so-cultura"]);
+    expect(eligibleCandidates(list, { ...ctx, sectionSlug: "cultura" }).map((c) => c.id)).toEqual([
+      "todas",
+      "so-cultura",
+    ]);
     expect(eligibleCandidates(list, { ...ctx, sectionSlug: null }).map((c) => c.id)).toEqual([
       "todas",
     ]);
