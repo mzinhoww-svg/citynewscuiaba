@@ -6,6 +6,7 @@ import { Fragment } from "react";
 
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
+  AdSlot,
   AiSummaryBlock,
   ArticleActions,
   ArticleCard,
@@ -39,7 +40,6 @@ import { formatDateTime } from "@/lib/format/date";
 import { withInlineFigure } from "@/lib/media/inline-figure";
 import { publicLabels } from "@/lib/labels";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
-import { AdSlot } from "@/components/editorial/AdSlot";
 import { reportProblemAction } from "./actions";
 
 /** Matéria: leituras em cache por 300 s com a tag `article:<id>` (architecture §8; A-038). */

@@ -148,9 +148,10 @@ test.describe("desktop e tablet", () => {
     await expect(top.getByText("Publicidade").first()).toBeVisible();
     const link = top.getByRole("link", { name: "Padaria do Porto TOP 970x250" });
     await expect(link).toHaveAttribute("rel", "sponsored noopener");
+    // A rotação pode escolher a peça igual de outro processo de teste: confere só o formato.
     await expect(link).toHaveAttribute(
       "href",
-      `/api/ads/click/${created.placements["TOP-970x250"]}?s=${SECTION}`,
+      new RegExp(`^/api/ads/click/[0-9a-f-]{36}\\?s=${SECTION}$`),
     );
     await expect(page.locator('[data-ad-slot="RAIL-A"] [data-ad-device="desktop"]')).toBeVisible();
     await expect(page.locator('[data-ad-slot="RAIL-B"] [data-ad-device="desktop"]')).toBeVisible();

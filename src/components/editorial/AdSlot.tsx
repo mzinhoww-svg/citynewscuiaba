@@ -1,4 +1,3 @@
-import "server-only";
 import { eligibleCandidates } from "@/lib/ads/select";
 import type { DisplaySlot } from "@/lib/ads/slots";
 import { getSectionCategory, listSlotPlacements } from "@/lib/db/queries/ads";

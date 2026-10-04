@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { ADS_TEXT } from "@/content/pt-BR/ads";
 import { useCurrentInvite } from "@/lib/app/slot";
 import { formatFor, pickCandidate, type AdPlacement } from "@/lib/ads/select";
@@ -137,6 +137,15 @@ function Variant({
   );
 }
 
+/** Rodapé fechado nesta sessão (lembrado no sessionStorage; avisa os inscritos ao fechar). */
+let closedLocally = false;
+const closedSubs = new Set<() => void>();
+function subscribeClosed(cb: () => void) {
+  closedSubs.add(cb);
+  return () => {
+    closedSubs.delete(cb);
+  };
+}
 function stickyClosed(): boolean {
   try {
     return window.sessionStorage.getItem(STICKY_CLOSED) === "1";
@@ -144,11 +153,28 @@ function stickyClosed(): boolean {
     return false;
   }
 }
+function closeSticky() {
+  try {
+    window.sessionStorage.setItem(STICKY_CLOSED, "1");
+  } catch {
+    // sem armazenamento: o rodapé some só até a próxima página
+  }
+  closedLocally = true;
+  for (const cb of closedSubs) cb();
+}
 
 /** Passou de 40% da rolagem? (o rodapé nunca aparece junto com a faixa de topo, que já saiu) */
 function scrolledEnough(): boolean {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   return max > 0 && window.scrollY / max >= STICKY_AFTER;
+}
+function subscribeScroll(cb: () => void) {
+  window.addEventListener("scroll", cb, { passive: true });
+  window.addEventListener("resize", cb, { passive: true });
+  return () => {
+    window.removeEventListener("scroll", cb);
+    window.removeEventListener("resize", cb);
+  };
 }
 
 function Sticky({
@@ -158,30 +184,14 @@ function Sticky({
   candidates: readonly AdPlacement[];
   sectionSlug: string | null;
 }) {
-  const [show, setShow] = useState(false);
-  const [closed, setClosed] = useState(false);
+  const closed = useSyncExternalStore(
+    subscribeClosed,
+    () => closedLocally || stickyClosed(),
+    () => true,
+  );
+  const show = useSyncExternalStore(subscribeScroll, scrolledEnough, () => false);
   const invite = useCurrentInvite();
-  useEffect(() => {
-    if (stickyClosed()) {
-      setClosed(true);
-      return;
-    }
-    const check = () => {
-      if (scrolledEnough()) setShow(true);
-    };
-    check();
-    window.addEventListener("scroll", check, { passive: true });
-    return () => window.removeEventListener("scroll", check);
-  }, []);
   if (!show || closed || invite !== null) return null;
-  const close = () => {
-    try {
-      window.sessionStorage.setItem(STICKY_CLOSED, "1");
-    } catch {
-      // sem armazenamento: fecha só nesta página
-    }
-    setClosed(true);
-  };
   return (
     <div
       data-ad-sticky=""
@@ -190,7 +200,13 @@ function Sticky({
       <div className="min-w-0 flex-1">
         <Variant code="STICKY" device="mobile" candidates={candidates} sectionSlug={sectionSlug} />
       </div>
-      <IconButton icon="x" label={ADS_TEXT.closeSticky} variant="ghost" size={44} onClick={close} />
+      <IconButton
+        icon="x"
+        label={ADS_TEXT.closeSticky}
+        variant="ghost"
+        size={44}
+        onClick={closeSticky}
+      />
     </div>
   );
 }

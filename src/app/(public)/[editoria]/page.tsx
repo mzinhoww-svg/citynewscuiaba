@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AdSlot } from "@/components/editorial/AdSlot";
 import { Suspense } from "react";
 import {
+  AdSlot,
   ArticleCard,
   Button,
   Chip,

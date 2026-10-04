@@ -4,6 +4,7 @@ import type { HomeModuleId } from "@/lib/admin/home-layout";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import {
+  AdSlot,
   AggregatedSection,
   ArticleCard,
   Button,
@@ -29,7 +30,6 @@ import { formatHour, formatLongDate } from "@/lib/format/date";
 import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { SITE } from "@/content/pt-BR/site";
-import { AdSlot } from "@/components/editorial/AdSlot";
 import { subscribeNewsletterAction } from "./actions";
 
 /** Home: dados em cache por 60 s com a tag `home` (P1 Global Constraints; HTML por requisição por causa do nonce da CSP, A-038). */
