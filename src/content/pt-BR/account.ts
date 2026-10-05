@@ -20,7 +20,8 @@ export const FIRST_VISIT_TEXT = {
   region: "Personalizar fontes",
   title: "Personalize suas fontes e receba uma experiência mais relevante.",
   choose: "Escolher fontes agora",
-  skip: "Continuar sem personalizar",
+  intro: "Escolha quem você quer acompanhar. Fica neste navegador, sem conta.",
+  skip: "Agora não",
   account: "Entrar ou criar conta",
   pickerTitle: "Escolha as fontes que você quer acompanhar",
   pickerIntro: "Fica guardado neste navegador. Você pode mudar quando quiser em Favoritos.",
@@ -36,7 +37,6 @@ export const FIRST_VISIT_TEXT = {
       : n === 1
         ? "1 fonte seguida neste navegador."
         : `${n} fontes seguidas neste navegador.`,
-  close: "Fechar",
 } as const;
 
 /** Partes comuns das telas de conta. */

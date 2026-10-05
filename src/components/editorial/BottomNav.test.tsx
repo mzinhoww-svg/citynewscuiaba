@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import { BottomNav } from "./BottomNav";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+let pathname = "/";
+vi.mock("next/navigation", () => ({ usePathname: () => pathname }));
 
 describe("BottomNav", () => {
   it("é a navegação Principal com 5 destinos e marca o atual", () => {
@@ -20,5 +21,21 @@ describe("BottomNav", () => {
     }
     // Nenhuma camada numérica solta: só os tokens de --z-*.
     expect(nav.className).not.toMatch(/z-\[|z-\d/);
+  });
+
+  it.each([
+    ["/agenda", "Explorar"],
+    ["/cidade", "Explorar"],
+    ["/materia/onibus-cpa", "Início"],
+    ["/pergunte", "Busca"],
+    ["/entrar", "Perfil"],
+  ])("sem `active`, a aba vem do mapa de rotas (%s → %s)", (path, tab) => {
+    pathname = path;
+    render(<BottomNav />);
+    const current = screen
+      .getAllByRole("link")
+      .filter((a) => a.getAttribute("aria-current") === "page");
+    expect(current.map((a) => a.textContent)).toEqual([tab]);
+    pathname = "/";
   });
 });

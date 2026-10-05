@@ -7,6 +7,7 @@ import { CORRECTIONS_TEXT as C, EDITOR_TEXT as T } from "@/content/pt-BR/studio"
 import { cx } from "../cx";
 import { VersionDiff } from "../editorial/VersionDiff";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
@@ -90,7 +91,7 @@ export function CorrectionForm({
         onChange={(e) => setTitle(e.target.value)}
       />
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-linha`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-linha`} className="type-label text-strong">
           {T.fields.dek}
         </label>
         <textarea
@@ -104,7 +105,7 @@ export function CorrectionForm({
       </div>
       <RichEditor label={T.fields.body} value={body} userId={userId} onChange={setBody} />
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-nota`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-nota`} className="type-label text-strong">
           {correction ? C.publicNote : C.updateNote}
         </label>
         <textarea
@@ -135,21 +136,14 @@ export function CorrectionForm({
         )}
       </div>
       {correction && (
-        <label className="flex min-h-tap items-start gap-3 type-body text-strong">
-          <input
-            type="checkbox"
-            checked={notify}
-            onChange={(e) => setNotify(e.target.checked)}
-            aria-describedby={`${uid}-avisar`}
-            className="mt-0.5 size-5 accent-(--action-primary)"
-          />
-          <span className="flex flex-col">
-            {C.notify}
-            <span id={`${uid}-avisar`} className="type-meta text-meta">
-              {C.notifyHint}
-            </span>
-          </span>
-        </label>
+        <Checkbox
+          id={`${uid}-avisar`}
+          name="avisar"
+          label={C.notify}
+          hint={C.notifyHint}
+          checked={notify}
+          onChange={setNotify}
+        />
       )}
       <p role="status" aria-live="polite" className="type-body">
         {status?.ok && <span className="text-service">{status.message}</span>}

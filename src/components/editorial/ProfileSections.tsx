@@ -8,6 +8,7 @@ import type { ProfileState } from "@/lib/auth/form-state";
 import { formatLongDate } from "@/lib/format/date";
 import { BottomSheet } from "../ui/BottomSheet";
 import { Button } from "../ui/Button";
+import { FormStatus } from "../ui/FormStatus";
 import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { ListRow } from "../ui/ListRow";
@@ -48,9 +49,7 @@ export function EditProfile({ action, name, email, neighborhood }: EditProfilePr
       >
         {T.account.edit}
       </Button>
-      <p role="status" className="type-meta text-service empty:hidden">
-        {saved ? T.account.saved : ""}
-      </p>
+      <FormStatus tone="success" message={saved ? T.account.saved : ""} />
       <BottomSheet open={open} title={T.account.editTitle} onClose={() => setOpen(false)}>
         <ProfileDetailsForm
           action={save}

@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
@@ -58,10 +59,7 @@ export function SeoPanel({
     <div className="flex flex-col gap-10">
       <AdminStatus status={status} />
 
-      <section
-        aria-labelledby={`${uid}-title`}
-        className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby={`${uid}-title`} className="flex flex-col gap-3">
         <h2 id={`${uid}-title`} className="type-section text-strong">
           {S.titleTemplate}
         </h2>
@@ -89,13 +87,10 @@ export function SeoPanel({
             {S.titleTemplateSave}
           </Button>
         </form>
-      </section>
+      </Panel>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section
-          aria-labelledby={`${uid}-sm`}
-          className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-        >
+        <Panel aria-labelledby={`${uid}-sm`} className="flex flex-col gap-2">
           <h2 id={`${uid}-sm`} className="type-section text-strong">
             {S.sitemaps}
           </h2>
@@ -114,11 +109,8 @@ export function SeoPanel({
               </li>
             ))}
           </ul>
-        </section>
-        <section
-          aria-labelledby={`${uid}-robots`}
-          className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-        >
+        </Panel>
+        <Panel aria-labelledby={`${uid}-robots`} className="flex flex-col gap-2">
           <h2 id={`${uid}-robots`} className="type-section text-strong">
             {S.robots}
           </h2>
@@ -135,11 +127,8 @@ export function SeoPanel({
             {" · Disallow: "}
             {robotsDisallow.join(", ")}
           </p>
-        </section>
-        <section
-          aria-labelledby={`${uid}-ld`}
-          className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-        >
+        </Panel>
+        <Panel aria-labelledby={`${uid}-ld`} className="flex flex-col gap-2">
           <h2 id={`${uid}-ld`} className="type-section text-strong">
             {S.structured}
           </h2>
@@ -149,11 +138,8 @@ export function SeoPanel({
               <li key={t}>{t}</li>
             ))}
           </ul>
-        </section>
-        <section
-          aria-labelledby={`${uid}-missing`}
-          className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-        >
+        </Panel>
+        <Panel aria-labelledby={`${uid}-missing`} className="flex flex-col gap-2">
           <h2 id={`${uid}-missing`} className="type-section text-strong">
             {S.missing}
           </h2>
@@ -178,7 +164,7 @@ export function SeoPanel({
               </ul>
             </>
           )}
-        </section>
+        </Panel>
       </div>
 
       <section aria-labelledby={`${uid}-red`} className="flex flex-col gap-3">

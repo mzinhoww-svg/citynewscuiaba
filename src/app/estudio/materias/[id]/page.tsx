@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, OriginLabel } from "@/components";
+import { Button, EmptyState, InlineAlert, OriginLabel, Panel } from "@/components";
 import {
   AiSuggestionInline,
   ConfidenceMeter,
-  ArticleEditor,
   ChecklistPanel,
   CorrectionForm,
+  EditorWithPublish,
   GenerateImageDrawer,
-  PublishDialog,
   SourcesEditor,
   ImageTextForm,
   MediaThumb,
@@ -99,6 +98,58 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
   const labels = articleLabels(a);
   const body: EditorDoc = isDoc(a.body) ? a.body : { type: "doc", content: [] };
 
+  const sidebar = (
+    <>
+      <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
+      <Panel aria-labelledby="imagem-da-materia" className="flex flex-col gap-4">
+        <h2 id="imagem-da-materia" className="type-section text-strong">
+          {IMAGE_TEXT.title}
+        </h2>
+        {a.images.length === 0 ? (
+          <p className="type-body text-meta">{IMAGE_TEXT.none}</p>
+        ) : (
+          a.images.map((img) => (
+            <div key={img.mediaId} className="flex flex-col gap-3">
+              <MediaThumb
+                src={`/api/estudio/midia/${img.mediaId}`}
+                alt={img.alt ?? ""}
+                className="max-w-sm"
+              />
+              <ImageTextForm
+                key={img.mediaId}
+                articleId={a.id}
+                mediaId={img.mediaId}
+                alt={img.alt}
+                caption={img.caption}
+                heading={img.credit ?? img.license}
+                save={canEditImageText ? setImageTextAction : undefined}
+              />
+            </div>
+          ))
+        )}
+      </Panel>
+      {canEdit && !isPublic && (
+        <GenerateImageDrawer articleId={a.id} suggest={suggestIllustrationAction} />
+      )}
+      <AiSuggestionInline
+        articleId={a.id}
+        baseVersion={a.version}
+        suggestions={a.suggestions}
+        apply={canEdit && !isPublic ? acceptSuggestionAction : undefined}
+        discard={canEdit && !isPublic ? rejectSuggestionAction : undefined}
+      />
+      <SourcesEditor
+        key={`fontes:${a.version}:${a.sources.map((s) => `${s.itemId}${s.role}${s.confirmed}`).join()}`}
+        articleId={a.id}
+        sources={a.sources}
+        candidates={candidates}
+        centralConflict={a.centralConflict}
+        now={new Date().toISOString()}
+        save={canEdit && canAccess(session.roles, "article.edit") ? updateSourcesAction : undefined}
+      />
+    </>
+  );
+
   return (
     <article className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
@@ -139,8 +190,8 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
-        {isPublic && canEdit ? (
+      {isPublic && canEdit ? (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
           <div className="flex flex-col gap-4">
             <InlineAlert tone="info" role="none" title={CORRECTIONS_TEXT.updateMode}>
               {CORRECTIONS_TEXT.updateModeIntro}
@@ -165,13 +216,18 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
               />
             ) : null}
           </div>
-        ) : (
-          <ArticleEditor
-            key={a.id}
-            articleId={a.id}
-            baseVersion={a.version}
-            userId={session.userId}
-            initial={{
+          <aside className="flex flex-col gap-4" aria-label={T.title}>
+            {sidebar}
+          </aside>
+        </div>
+      ) : (
+        <EditorWithPublish
+          key={a.id}
+          editor={{
+            articleId: a.id,
+            baseVersion: a.version,
+            userId: session.userId,
+            initial: {
               title: a.title,
               dek: a.dek,
               body,
@@ -181,91 +237,40 @@ export default async function ArticleEditorPage({ params }: { params: Promise<{ 
               neighborhoods: a.neighborhoods,
               seoTitle: a.seoTitle ?? "",
               seoDescription: a.seoDescription ?? "",
-            }}
-            origins={originNotes(a)}
-            options={{ sections, topics }}
-            readOnly={!canEdit || isPublic}
-            notice={
-              !canEdit ? (
-                <InlineAlert tone="info" role="none">
-                  {T.readonly}
-                </InlineAlert>
-              ) : isPublic ? (
-                <InlineAlert tone="warn" role="none">
-                  {T.publishedNeedsMode}
-                </InlineAlert>
-              ) : undefined
-            }
-            save={canEdit && !isPublic ? saveDraftAction : undefined}
-            seoLimits={{ title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX }}
-          />
-        )}
-        <aside className="flex flex-col gap-4" aria-label={T.title}>
-          {canPublish && (
-            <PublishDialog
-              articleId={a.id}
-              blocker={a.checklist.blocker}
-              labels={articleLabels({ ...a, publishMode: "human" })}
-              hasTopic={a.topic !== null}
-              headline={headline}
-              canRequestUrgent={canRequestUrgent(session.roles)}
-              publish={publishAction.bind(null, a.version)}
-            />
-          )}
-          <ChecklistPanel items={a.checklist.items} complete={a.checklist.complete} />
-          <section
-            aria-labelledby="imagem-da-materia"
-            className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
-            <h2 id="imagem-da-materia" className="type-section text-strong">
-              {IMAGE_TEXT.title}
-            </h2>
-            {a.images.length === 0 ? (
-              <p className="type-body text-meta">{IMAGE_TEXT.none}</p>
-            ) : (
-              a.images.map((img) => (
-                <div key={img.mediaId} className="flex flex-col gap-3">
-                  <MediaThumb
-                    src={`/api/estudio/midia/${img.mediaId}`}
-                    alt={img.alt ?? ""}
-                    className="max-w-sm"
-                  />
-                  <ImageTextForm
-                    key={img.mediaId}
-                    articleId={a.id}
-                    mediaId={img.mediaId}
-                    alt={img.alt}
-                    caption={img.caption}
-                    heading={img.credit ?? img.license}
-                    save={canEditImageText ? setImageTextAction : undefined}
-                  />
-                </div>
-              ))
-            )}
-          </section>
-          {canEdit && !isPublic && (
-            <GenerateImageDrawer articleId={a.id} suggest={suggestIllustrationAction} />
-          )}
-          <AiSuggestionInline
-            articleId={a.id}
-            baseVersion={a.version}
-            suggestions={a.suggestions}
-            apply={canEdit && !isPublic ? acceptSuggestionAction : undefined}
-            discard={canEdit && !isPublic ? rejectSuggestionAction : undefined}
-          />
-          <SourcesEditor
-            key={`fontes:${a.version}:${a.sources.map((s) => `${s.itemId}${s.role}${s.confirmed}`).join()}`}
-            articleId={a.id}
-            sources={a.sources}
-            candidates={candidates}
-            centralConflict={a.centralConflict}
-            now={new Date().toISOString()}
-            save={
-              canEdit && canAccess(session.roles, "article.edit") ? updateSourcesAction : undefined
-            }
-          />
-        </aside>
-      </div>
+            },
+            origins: originNotes(a),
+            options: { sections, topics },
+            readOnly: !canEdit || isPublic,
+            notice: !canEdit ? (
+              <InlineAlert tone="info" role="none">
+                {T.readonly}
+              </InlineAlert>
+            ) : isPublic ? (
+              <InlineAlert tone="warn" role="none">
+                {T.publishedNeedsMode}
+              </InlineAlert>
+            ) : undefined,
+            save: canEdit && !isPublic ? saveDraftAction : undefined,
+            seoLimits: { title: SEO_TITLE_MAX, description: SEO_DESCRIPTION_MAX },
+          }}
+          publish={
+            canPublish
+              ? {
+                  articleId: a.id,
+                  blocker: a.checklist.blocker,
+                  labels: articleLabels({ ...a, publishMode: "human" }),
+                  hasTopic: a.topic !== null,
+                  headline,
+                  canRequestUrgent: canRequestUrgent(session.roles),
+                  action: publishAction,
+                }
+              : undefined
+          }
+          asideLabel={T.title}
+        >
+          {sidebar}
+        </EditorWithPublish>
+      )}
     </article>
   );
 }

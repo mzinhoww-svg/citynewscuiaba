@@ -74,9 +74,9 @@ export function ListRow({
       )}
       {value && <span className="text-14 text-meta">{value}</span>}
       {trailing === "chevron" && (
-        <Icon name="chevron-right" size={20} color="var(--text-placeholder)" />
+        <Icon name="chevron-right" size={20} className="text-placeholder" />
       )}
-      {trailing === "check" && selected && <Icon name="check" size={20} color="var(--text-link)" />}
+      {trailing === "check" && selected && <Icon name="check" size={20} className="text-link" />}
       {trailing !== "chevron" && trailing !== "check" && trailing}
     </>
   );

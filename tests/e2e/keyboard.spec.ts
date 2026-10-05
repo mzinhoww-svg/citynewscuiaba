@@ -41,13 +41,19 @@ async function focused(page: Page): Promise<Focus> {
     const cs = getComputedStyle(el);
     const outlined = (s: CSSStyleDeclaration) =>
       s.outlineStyle !== "none" && parseFloat(s.outlineWidth) >= 2;
-    // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do input some de
-    // propósito (evita anel duplo). Só o contorno do contêiner conta, não a sombra do foco interno.
-    const field = el.tagName === "INPUT" ? el.closest(".control-field") : null;
+    // R4/R5 + A-123: em campo com `control-field` o anel é do contêiner; o do controle some de
+    // propósito (evita anel duplo). Desde a UX-W2-T2 vale também para select e textarea. Só o
+    // contorno do contêiner conta, não a sombra do foco interno.
+    const field = ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName)
+      ? el.closest(".control-field")
+      : null;
+    // R7 + UX-W1-T9: no `card-link` o anel é do `::after`, que cobre o card inteiro.
+    const card = el.classList.contains("card-link");
     const ring =
       outlined(cs) ||
       cs.boxShadow !== "none" ||
-      (field !== null && outlined(getComputedStyle(field)));
+      (field !== null && outlined(getComputedStyle(field))) ||
+      (card && outlined(getComputedStyle(el, "::after")));
     const r = el.getBoundingClientRect();
     const inView = r.bottom > 0 && r.top < window.innerHeight && r.width > 0 && r.height > 0;
     // 2.4.11: um cabeçalho fixo ou a barra inferior não podem esconder o elemento com foco por
@@ -140,7 +146,11 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
     const el = document.activeElement!;
     // R4/R5 + A-123: o anel de um input em `.control-field` é pintado no contêiner; a captura
     // precisa cobrir o contêiner, senão o contorno cai fora do recorte.
-    const host = (el.tagName === "INPUT" && el.closest(".control-field")) || el;
+    // No `card-link` o anel contorna o card (o bloco posicionado que contém o `::after`).
+    const host =
+      (el.tagName === "INPUT" && el.closest(".control-field")) ||
+      (el.classList.contains("card-link") && (el as HTMLElement).offsetParent) ||
+      el;
     const r = host.getBoundingClientRect();
     return { x: r.left, y: r.top, width: r.width, height: r.height };
   });
@@ -238,9 +248,10 @@ test("só teclado: da home até ler uma matéria, com foco sempre visível", asy
   await expect(page).toHaveURL(/\/materia\//);
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
-  // Na matéria o Next leva o foco ao conteúdo novo; seguimos só com Tab até os controles da
-  // matéria (Informar problema), conferindo o foco a cada parada.
-  await tabUntil(page, (x) => x.text === "Informar problema", { max: 80 });
+  // Na matéria o Next leva o foco ao conteúdo novo; seguimos só com Tab até "Informar problema"
+  // (entrada única, no bloco "De onde veio" depois do texto: UX item 74), conferindo o foco a
+  // cada parada.
+  await tabUntil(page, (x) => x.text === "Informar problema", { max: 160 });
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -290,7 +301,9 @@ const overlap = (a: Box, b: Box) =>
 test("360×640 com consentimento pendente e aviso offline: fixos empilhados, linha fina e manchete visível", async ({
   page,
   context,
-}) => {
+}, info) => {
+  // Medida do celular (toque, barra inferior): o projeto desktop só encolhe a janela.
+  test.skip(!info.project.name.startsWith("mobile"), "layout do celular");
   // A faixa Urgente não entra aqui: o seed não tem urgente e a home guarda os dados por 60 s
   // (tag `home`); a altura dela é conferida no teste do componente (UrgentBar, home.test.tsx).
   await context.clearCookies();
@@ -312,9 +325,9 @@ test("360×640 com consentimento pendente e aviso offline: fixos empilhados, lin
   expect(overlap(c, n)).toBe(false);
   expect(overlap(h, c)).toBe(false);
   expect(overlap(h, n)).toBe(false);
-  // Soma dos fixos de baixo ≤ 25% da altura; banner ≤ 15%.
-  expect(c.height).toBeLessThanOrEqual(640 * 0.15);
-  expect(c.height + n.height).toBeLessThanOrEqual(640 * 0.25);
+  // Banner legível (A-147): até 180 px, como em consent.spec; soma dos fixos de baixo ≤ 40%.
+  expect(c.height).toBeLessThanOrEqual(180);
+  expect(c.height + n.height).toBeLessThanOrEqual(640 * 0.4);
   // O aviso de cópia antiga é uma linha fina.
   expect(o.height).toBeLessThanOrEqual(36);
   // Nada está coberto por outro fixo: o centro de cada um acerta nele mesmo.
@@ -337,7 +350,8 @@ test("360×640 com consentimento pendente e aviso offline: fixos empilhados, lin
 test("404 a 360×640 com consentimento pendente: busca e volta ao início ficam acima do banner", async ({
   page,
   context,
-}) => {
+}, info) => {
+  test.skip(!info.project.name.startsWith("mobile"), "layout do celular");
   await context.clearCookies();
   await page.setViewportSize({ width: 360, height: 640 });
   await page.goto("/materia/nao-existe");
@@ -434,7 +448,11 @@ test("diálogo Informar problema: foco preso, Esc fecha e o foco volta ao botão
   page,
 }) => {
   await page.goto("/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro");
-  const trigger = page.locator("#materia").getByRole("button", { name: "Informar problema" });
+  // Entrada única (UX item 74): no bloco "De onde veio"; a versão visível na largura atual.
+  const trigger = page
+    .getByRole("region", { name: "De onde veio" })
+    .getByRole("button", { name: "Informar problema" })
+    .first();
   await expectHydrated(trigger);
   await trigger.focus();
   await page.keyboard.press("Enter");

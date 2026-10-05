@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { DOC_TEXT, PENDING, RELATED_LINKS, type DocSection } from "@/content/pt-BR/institutional";
+import { TagLink } from "../ui/TagLink";
 import { PAGE_CONTAINER, PageHeader } from "./PageHeader";
 
 export interface DocPageProps {
@@ -70,7 +71,7 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
         {toc && (
           <nav
             aria-label={DOC_TEXT.onThisPage}
-            className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-6 lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start"
+            className="flex min-w-0 flex-col gap-2 lg:sticky lg:top-sticky-public lg:col-span-4 lg:col-start-9 lg:row-start-1 lg:self-start"
           >
             <h2 className="type-eyebrow text-meta">{DOC_TEXT.onThisPage}</h2>
             <ol className="-mx-gutter flex snap-x gap-2 overflow-x-auto px-gutter py-1 scrollbar-none lg:mx-0 lg:flex-col lg:gap-0 lg:overflow-visible lg:px-0">
@@ -78,7 +79,7 @@ export function DocPage({ title, intro, sections = [], children, path }: DocPage
                 <li key={s.title} className="snap-start lg:border-b lg:border-line-subtle">
                   <a
                     href={`#${anchor(s.title)}`}
-                    className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2 lg:flex lg:whitespace-normal lg:rounded-none lg:bg-transparent lg:px-0 lg:py-2 lg:hover:bg-transparent lg:hover:text-link"
+                    className="inline-flex min-h-tap items-center whitespace-nowrap rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-hover lg:flex lg:whitespace-normal lg:rounded-none lg:bg-transparent lg:px-0 lg:py-2 lg:hover:bg-transparent lg:hover:text-link"
                   >
                     {s.title}
                   </a>
@@ -154,12 +155,7 @@ export function DocRelated({ path }: { path: string }) {
       <ul className="flex flex-wrap gap-2">
         {related.map((l) => (
           <li key={l.href}>
-            <Link
-              href={l.href}
-              className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 font-medium text-strong no-underline hover:bg-nevoa-2"
-            >
-              {l.label}
-            </Link>
+            <TagLink href={l.href}>{l.label}</TagLink>
           </li>
         ))}
       </ul>

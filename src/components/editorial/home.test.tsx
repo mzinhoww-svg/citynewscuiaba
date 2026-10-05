@@ -27,9 +27,10 @@ const agg = (i: number): AggregatedView => ({
 });
 
 describe("UrgentBar", () => {
-  it("é alerta com nome Urgente e link para a matéria", () => {
+  it("é região nomeada Urgente (não alerta) com link para a matéria", () => {
     render(<UrgentBar article={article} now={new Date("2026-09-27T18:00:00Z")} />);
-    const alert = screen.getByRole("alert", { name: /Urgente/ });
+    expect(screen.queryByRole("alert")).toBeNull();
+    const alert = screen.getByRole("region", { name: "Urgente" });
     expect(within(alert).getByRole("link", { name: article.title })).toHaveAttribute(
       "href",
       "/materia/alerta",
@@ -39,7 +40,7 @@ describe("UrgentBar", () => {
 
   it("é uma linha fina: título e hora correm no mesmo parágrafo, sem faixa alta", () => {
     render(<UrgentBar article={article} now={new Date("2026-09-27T18:00:00Z")} />);
-    const alert = screen.getByRole("alert", { name: /Urgente/ });
+    const alert = screen.getByRole("region", { name: "Urgente" });
     const row = alert.querySelector("p");
     expect(row).not.toBeNull();
     expect(row).toContainElement(within(alert).getByRole("link", { name: article.title }));

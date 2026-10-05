@@ -4,7 +4,7 @@ import type { Consent } from "@/lib/consent";
 import { ConsentProvider } from "@/lib/consent/client";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
-import { FirstVisitGate, LoginInviteGate, NotificationWatchers } from "./DeferredShell";
+import { LoginInviteGate, NotificationWatchers } from "./DeferredShell";
 import { HideOnRoutes } from "./HideOnRoutes";
 import { InstallInviteSlot } from "./InstallInviteSlot";
 import { listTickerItems } from "@/lib/db/queries/ticker";
@@ -51,7 +51,6 @@ export async function PublicShell({ children, consent }: PublicShellProps) {
         </main>
         <SiteFooter />
         <BottomNav />
-        <FirstVisitGate />
         <LoginInviteGate />
         <InstallInviteSlot />
         <SwRegistrar />

@@ -76,7 +76,7 @@ export function ProfileDetailsForm({
         error={state.status === "invalid" ? T.account.nameError : undefined}
       />
       <div className="flex flex-col gap-1">
-        <span className="type-label text-16 text-strong">{T.account.email}</span>
+        <span className="type-label text-strong">{T.account.email}</span>
         <span className="type-body break-all text-body">{email}</span>
         <span className="type-meta text-meta">{T.account.emailHint}</span>
       </div>

@@ -122,7 +122,9 @@ function ErrorState({
   const text = aiOff
     ? ASK.errorText.off
     : answer.reason === "rate_limited"
-      ? ASK.errorText.rate_limited(answer.retryAt ? formatHour(answer.retryAt) : "")
+      ? answer.retryAt
+        ? ASK.errorText.rate_limited(formatHour(answer.retryAt))
+        : ASK.errorText.limitNoTime
       : ASK.errorText[answer.reason];
   const canRetry = !aiOff && answer.reason !== "rate_limited";
   return (
@@ -219,7 +221,11 @@ async function Answer({ question }: { question: string }) {
           </div>
         </section>
       </div>
-      <SourceRail sources={answer.sources} now={now} className="lg:sticky lg:top-6 lg:self-start" />
+      <SourceRail
+        sources={answer.sources}
+        now={now}
+        className="lg:sticky lg:top-sticky-public lg:self-start"
+      />
     </div>
   );
 }
