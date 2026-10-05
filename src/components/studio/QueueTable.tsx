@@ -39,6 +39,8 @@ export interface QueueTableRow {
   overdue: boolean;
   /** Pode despublicar (automática publicada e papel com `article.unpublish_auto`). */
   canUnpublish: boolean;
+  /** Âncora do primeiro item novo depois de "Carregar mais" (recebe o foco). */
+  anchorId?: string;
 }
 
 export interface ActionReply {
@@ -303,7 +305,12 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
+                  <tr
+                    key={r.id}
+                    id={r.anchorId}
+                    tabIndex={r.anchorId ? -1 : undefined}
+                    className="border-b border-line-subtle align-top last:border-b-0"
+                  >
                     {bulk && (
                       <td className="px-3 py-3">
                         <input
@@ -357,10 +364,18 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
                     <td className="px-3 py-3 type-body tabular-nums">
                       {r.dueAt ? (
                         <span
-                          className={cx(r.overdue ? "font-semibold text-danger" : "text-strong")}
+                          className={cx(
+                            "flex flex-col gap-1",
+                            r.overdue ? "font-semibold text-danger" : "text-strong",
+                          )}
                         >
-                          {r.overdue && <span className="sr-only">{T.overdue}: </span>}
-                          {formatDateTime(r.dueAt)}
+                          {r.overdue && (
+                            <span className="inline-flex items-center gap-1 type-meta">
+                              <Icon name="clock" size={16} />
+                              {T.overdue}
+                            </span>
+                          )}
+                          <span>{formatDateTime(r.dueAt)}</span>
                         </span>
                       ) : (
                         <span className="text-meta">{T.noDue}</span>
@@ -415,7 +430,7 @@ export function QueueTable({ rows, bulk, unpublish, empty, className }: QueueTab
         <div className="flex flex-col gap-3 text-left">
           <p>{target ? target.title : T.unpublishedMany(autoSelected.length)}</p>
           <p>{T.unpublishIntro}</p>
-          <label htmlFor={`${uid}-reason`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-reason`} className="type-label text-strong">
             {T.reason}
           </label>
           <textarea

@@ -71,7 +71,7 @@ describe("pesos de recomendação (banco real)", () => {
   let version = "";
   let approvalId = "";
 
-  it("operador propõe rec-v2: validar → simular → ativar → auditar, sem fila (A-150)", async () => {
+  it("operador propõe rec-v2: validar → simular → ativar → auditar, sem fila (A-160)", async () => {
     const r = await asUser("diego", () =>
       proposeWeightsCommand({ weights: W2, justification: "Mais diversidade nas Recomendadas" }),
     );

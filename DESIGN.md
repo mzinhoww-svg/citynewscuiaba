@@ -112,9 +112,71 @@ Complementos: `ConfidenceMeter` (três barras + "Confiança alta/média/baixa"),
 
 ## 7. Inventário de componentes
 
-**Do kit, portados para TSX com as correções da seção 2:** Icon, Button, IconButton, TextField, SearchBar, Toggle, Slider, SegmentedToggle, Chip/ChipGroup, Tabs, TabBar, NavHeader, SectionHeader, NewsCard, FeatureCard, StoryCard, Photo, CategoryTag, MetaRow, LiveIndicator, TopicCard, SourceAvatar, AgendaList, StatCard, BarChart, ListRow, ArticleActionBar, Dialog, BottomSheet, Logo, SiteHeader, VideoLowerThird.
+Inventário real de `src/components` (UX-W2-T15). Tudo se importa de `@/components` (Estúdio: `@/components/estudio`); o ESLint bloqueia import direto das pastas e, fora de `src/components/ui`, `<select>`/`<textarea>` crus e névoa em estado interativo (`hover:`/`aria-pressed:`/`aria-[current=page]:bg-nevoa(-2)`: use `bg-hover`). As exceções documentadas ficam em `eslint.config.mjs` (`RAW_CONTROL_EXCEPTIONS`).
 
-**Novos (o kit não tem):** OriginLabel, ConfidenceMeter, TopicStatus, MadeHow, UrgentBar, NowList, AggregatedCard, AggregatedSection, CoverageCompare, SourceCard, SourceRow, PopularSourcesRail, DismissMenu, RecommendationReason, WhyThisDrawer, ConsentBanner, LoginInvite, FirstVisitInvite, AiAnswer, Citation, SourceRail, AiStatusPanel, SuggestionChip, EmptyState, ErrorState, Skeleton, Toast, InlineAlert, Popover, Menu, Tooltip, Pagination, Table, AgendaCalendar, ServiceTile, NewsletterForm, ReportProblemForm, ShareSheet, ReadingSettings, SiteFooter e, no Estúdio, StudioShell, QueueTable, DecisionPanel, FieldDiff, VersionDiff, ChecklistPanel, RuleMatrix, CycleStrip, JobTable, SourceHealthTable, WeightSliders, AbTestCard, AuditLogTable, CostTable.
+### 7.1 Primitivas (`src/components/ui`)
+
+Formulário:
+
+- **Field** (`FieldShell`, `FieldError`, `describedBy`): moldura de campo com rótulo visível, dica `<id>-dica` e erro `<id>-erro` ligados por `aria-describedby`; use em todo controle que não seja uma das primitivas abaixo.
+- **TextField**: entrada de uma linha com a borda de controle (R4); texto, e-mail, URL, número.
+- **Select / SelectControl**: lista nativa estilizada; `Select` com rótulo, `SelectControl` só o controle (tabela, rótulo próprio); `size="sm"` compacto, `groups` vira `optgroup`, funciona sem JS em `<form method="get">`.
+- **TextArea**: texto longo com a mesma moldura; `maxLength` mostra o contador "n/máx".
+- **DateField**: data, data e hora ou hora (`type`), com `min`/`max`, dica e erro.
+- **Checkbox**: caixa de 20 px em linha `min-h-tap`, `onChange(boolean)`, dica opcional.
+- **RadioGroup**: `fieldset`/`legend` com opções e dica por opção.
+- **Toggle**: interruptor de preferência binária com efeito imediato.
+- **Slider**: valor contínuo (pesos, limiares) com rótulo e valor visíveis.
+- **SegmentedToggle**: 2 a 4 modos mutuamente exclusivos de uma mesma vista.
+- **SearchBar**: campo de busca do portal com ícone e limpar.
+- **Chip / ChipGroup**: filtro ou escolha rápida em pílula; `ChipGroup` agrupa com rótulo.
+- **SubmitButton**: `Button` de envio que lê o `useFormStatus` e troca o texto por `pendingLabel`.
+- **FormStatus**: resultado de envio (`success`, `error`, `info`) com ícone, em região viva.
+- **useHydratedForm**: recupera o que foi digitado antes da hidratação.
+
+Ação e navegação:
+
+- **Button**: `primary`, `secondary`, `outline`, `outline-strong`, `accent`, `text`, `danger`; `loading` com `loadingLabel` (desabilita e marca `aria-busy`); `destructive` só na ação final de um `ConfirmDialog`.
+- **IconButton**: ação só com ícone, nome acessível obrigatório, alvo de 44 px.
+- **NavLink** (`isCurrentPath`, `currentNavHref`): link de navegação com `aria-current="page"`.
+- **LinkTabs**: abas que são links (rotas ou `?aba=`), com `aria-current`.
+- **Tabs**: abas com painel na mesma página (estado no cliente).
+- **TabBar**: barra inferior do app no celular.
+- **NavHeader**: cabeçalho de tela interna com voltar e título.
+- **SectionHeader**: título de seção com link "ver tudo" opcional.
+- **TagLink**: tag de assunto ou bairro como link em pílula, `active` para a atual.
+- **Pagination** (`paginationSlots`): páginas numeradas com reticências por `hrefFor(page)`.
+- **LoadMore** (`loadMoreAnchor`, `FocusLoadMoreTarget`): "Carregar mais" por link, foco no primeiro item novo.
+- **Menu**: lista de ações num botão (`trigger`), navegável por teclado.
+- **Popover**: conteúdo ancorado a um gatilho (`trigger` render prop), fecha com Esc e clique fora.
+
+Superfície, dados e retorno:
+
+- **Panel**: bloco de conteúdo com hairline; `tone` `white`/`section`, `pad` `sm`/`md`/`lg`; nunca dentro de outro `Panel`.
+- **StatGrid**: números do painel em `<dl>`; item com `href` vira link de 44 px.
+- **StatusBadge** (`STATUS_TONE_CLASSES`): estado em ícone + texto (`success`, `warn`, `danger`, `info`, `neutral`, `ai`, `correction`), nunca só cor.
+- **Table**: tabela com legenda (visível ou não), cabeçalhos tipados e rolagem horizontal por `minWidth` (`table-sm` a `table-xl`).
+- **ListRow**: linha de lista com mídia, texto e ação; lista com divisória, não card.
+- **CollapsibleFilters**: filtros recolhíveis no celular, com contagem ativa e "Limpar".
+- **EmptyState**: vazio ou erro de lista com título, texto e ações (`tone`).
+- **InlineAlert**: aviso no fluxo (`info`, `success`, `warn`, `error`) com ação opcional.
+- **Skeleton**: carregamento com a forma do conteúdo (`text`, `line`, `block`, `card`), pulso só com `motion-safe`.
+- **Toast** (`ToastProvider` + `useToast`): confirmação passageira com ação "Desfazer" opcional; erro que exige ação vai em `InlineAlert`.
+
+Camadas:
+
+- **Dialog**: modal nativo (`<dialog>`) com título, conteúdo e ações; `wide` para formulário.
+- **ConfirmDialog**: confirmação de ação com `destructive` e `pending`; é o único lugar de `Button variant="destructive"`.
+- **Drawer**: painel lateral (`left`/`right`) com cabeçalho, corpo rolável e rodapé.
+- **BottomSheet**: folha inferior do celular (filtros, compartilhar).
+
+Base: **Icon** (sprite `IconSprite`, nomes em `icon-names.ts`), **VisuallyHidden**, `useModalDialog` (foco e rolagem dos modais).
+
+### 7.2 Editorial, IA e Estúdio
+
+**Do kit, portados para TSX com as correções da seção 2:** NewsCard, FeatureCard, StoryCard, Photo, CategoryTag, MetaRow, LiveIndicator, TopicCard, SourceAvatar, AgendaList, StatCard, BarChart, ArticleActionBar, Logo, SiteHeader, VideoLowerThird.
+
+**Novos (o kit não tem):** OriginLabel, ConfidenceMeter, TopicStatus, MadeHow, UrgentBar, NowList, AggregatedCard, AggregatedSection, CoverageCompare, SourceCard, SourceRow, PopularSourcesRail, DismissMenu, RecommendationReason, WhyThisDrawer, ConsentBanner, LoginInvite, FirstVisitInvite, AiAnswer, Citation, SourceRail, AiStatusPanel, SuggestionChip, ErrorState, AgendaCalendar, ServiceTile, NewsletterForm, ReportProblemForm, ShareSheet, ReadingSettings, SiteFooter e, no Estúdio, StudioShell, QueueTable, DecisionPanel, FieldDiff, VersionDiff, ChecklistPanel, RuleMatrix, CycleStrip, JobTable, SourceHealthTable, WeightSliders, AbTestCard, CostChart.
 
 `design-system/components/*/*.prompt.md` documenta o uso de cada componente do kit e deve ser mantido como docstring do componente portado.
 

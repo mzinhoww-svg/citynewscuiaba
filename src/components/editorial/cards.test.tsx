@@ -466,6 +466,9 @@ describe("demais cards", () => {
     expect(within(region).getAllByRole("listitem")).toHaveLength(6);
     expect(region.textContent).not.toMatch(/revisad|Marina Couto/i);
     expect(within(region).getByText("Próximo ciclo em 18 min")).toBeInTheDocument();
+    // UX-W1-T10 (item 23): lista estática, sem região viva.
+    expect(region.querySelector("[aria-live]")).toBeNull();
+    expect(region).not.toHaveAttribute("aria-live");
   });
 
   it("EventDateBadge mostra dia e mês com data legível por máquina", () => {

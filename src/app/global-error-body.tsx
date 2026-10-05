@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Button } from "@/components";
 import { SYSTEM } from "@/content/pt-BR/system";
 
 /** Conteúdo do erro no layout raiz; carregado sob demanda por `global-error.tsx` (B-018). */
@@ -19,19 +19,12 @@ export default function GlobalErrorBody({
         <p className="max-w-read type-body text-body">{SYSTEM.errorText}</p>
         {error.digest && <p className="type-meta text-meta">{SYSTEM.errorCode(error.digest)}</p>}
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={reset}
-            className="inline-flex min-h-tap cursor-pointer items-center rounded-pill bg-tinta px-6 font-semibold text-branco"
-          >
+          <Button size="md" onClick={reset}>
             {SYSTEM.retry}
-          </button>
-          <Link
-            href="/"
-            className="inline-flex min-h-tap items-center rounded-pill border border-line-control px-6 font-semibold text-strong no-underline"
-          >
+          </Button>
+          <Button href="/" size="md" variant="outline">
             {SYSTEM.backHome}
-          </Link>
+          </Button>
         </div>
       </main>
     </>

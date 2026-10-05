@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { UI } from "@/content/pt-BR/ui";
 import { cx } from "../cx";
 import { IconButton } from "./IconButton";
+import { closedByUser, useModalDialog } from "./useModalDialog";
 
 export interface DialogProps {
   open?: boolean;
@@ -27,6 +28,8 @@ export interface DialogProps {
  * ```
  * - `<dialog>` nativo com `showModal()`: foco preso, Esc fecha, camada superior do navegador
  *   (sem z-index). Clique no scrim também fecha.
+ * - Ao fechar, chama `close()` antes de desmontar e devolve o foco ao elemento que estava ativo
+ *   quando abriu. O corpo é a descrição acessível (`aria-describedby`).
  */
 export function Dialog({
   open = true,
@@ -38,17 +41,13 @@ export function Dialog({
   wide = false,
   className,
 }: DialogProps) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const modalRef = useModalDialog();
   const titleId = useId();
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || inline) return;
-    if (open && !el.open) el.showModal?.();
-    if (!open && el.open) el.close?.();
-  }, [open, inline]);
+  const bodyId = useId();
 
   if (!open) return null;
+  const labelledBy = title ? titleId : undefined;
+  const describedBy = children ? bodyId : undefined;
 
   const box = (
     <div
@@ -64,28 +63,35 @@ export function Dialog({
         </span>
       )}
       {title && (
-        <h2 id={titleId} className="text-18 font-semibold leading-snug text-strong">
+        <h2 id={titleId} className="type-nav-title text-strong">
           {title}
         </h2>
       )}
-      {children && <div className="mt-2.5 type-body text-meta">{children}</div>}
+      {children && (
+        <div id={bodyId} className="mt-2.5 type-body text-meta">
+          {children}
+        </div>
+      )}
       {actions && <div className="mt-6 flex flex-col items-center gap-4">{actions}</div>}
     </div>
   );
 
   if (inline) {
     return (
-      <div role="dialog" aria-labelledby={title ? titleId : undefined}>
+      <div role="dialog" aria-labelledby={labelledBy} aria-describedby={describedBy}>
         {box}
       </div>
     );
   }
   return (
     <dialog
-      ref={ref}
+      ref={modalRef}
       tabIndex={-1}
-      aria-labelledby={title ? titleId : undefined}
-      onClose={() => onClose?.()}
+      aria-labelledby={labelledBy}
+      aria-describedby={describedBy}
+      onClose={(e) => {
+        if (closedByUser(e.currentTarget)) onClose?.();
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}

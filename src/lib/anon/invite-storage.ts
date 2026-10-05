@@ -5,6 +5,7 @@ import { parseInviteHistory, recordInvite, type InviteShown, type InviteTrigger 
  * armazenamento bloqueado, o convite ainda aparece (e o painel da primeira visita não).
  * - `cn_invites` (localStorage): último convite exibido por gatilho (regra dos 7 dias).
  * - `cn_first_visit` (localStorage): o leitor já decidiu no painel da primeira visita.
+ * - `cn_first_visit_later` (sessionStorage): "Agora não" no painel; volta só em outra sessão.
  * - `cn_qreads` (sessionStorage): leituras qualificadas nesta sessão. Fica só na aba, nunca
  *   sai do navegador, e some ao fechar.
  */
@@ -44,6 +45,25 @@ export function firstVisitDecided(): boolean {
 export function decideFirstVisit(): void {
   try {
     window.localStorage.setItem(DECIDED_KEY, "1");
+  } catch {
+    // Nada a guardar.
+  }
+}
+
+const LATER_KEY = "cn_first_visit_later";
+
+/** O leitor disse "Agora não" nesta sessão? Sem armazenamento, não insiste. */
+export function firstVisitLater(): boolean {
+  try {
+    return window.sessionStorage.getItem(LATER_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+export function postponeFirstVisit(): void {
+  try {
+    window.sessionStorage.setItem(LATER_KEY, "1");
   } catch {
     // Nada a guardar.
   }

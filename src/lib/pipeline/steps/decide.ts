@@ -229,7 +229,7 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
       riskLevel: d0.risk.level,
       ...(demote ? { urgent: false } : {}),
     });
-    // Motor de autonomia (A-151): qualidade, confiança, risco, nível A0–A4 e a saída. Só a exceção
+    // Motor de autonomia (A-161): qualidade, confiança, risco, nível A0–A4 e a saída. Só a exceção
     // real vai para pessoa; o resto publica, reprocessa com espera ou vai para quarentena.
     const state = await deps.repo.autonomyState(articleId);
     const now = deps.now();
@@ -326,7 +326,7 @@ export function withEngine(d: RouteDecision, e: EngineDecision): RouteDecision {
   return { ...d, route: "hold", rationale: e.reason };
 }
 
-/** Status da matéria para cada saída do motor (A-151). */
+/** Status da matéria para cada saída do motor (A-161). */
 export function statusFor(
   e: EngineDecision,
   d: RouteDecision,

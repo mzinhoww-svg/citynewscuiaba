@@ -6,7 +6,9 @@ import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import type { SelectOption } from "../ui/Select";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Dialog } from "../ui/Dialog";
+import { Panel } from "../ui/Panel";
 import { Select } from "../ui/Select";
 import type { ActionReply } from "./QueueTable";
 
@@ -59,13 +61,7 @@ export function ImageApproval({
   };
 
   return (
-    <section
-      aria-labelledby={`${uid}-acoes`}
-      className={cx(
-        "flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4",
-        className,
-      )}
-    >
+    <Panel aria-labelledby={`${uid}-acoes`} className={cx("flex flex-col gap-4", className)}>
       <h2 id={`${uid}-acoes`} className="type-section text-strong">
         {T.approvalTitle}
       </h2>
@@ -103,7 +99,7 @@ export function ImageApproval({
 
       {replace && replace.articles.length > 0 && (
         <div className="flex flex-col gap-3 border-t border-line-subtle pt-4">
-          <h3 className="type-label text-16 text-strong">{T.replace}</h3>
+          <h3 className="type-label text-strong">{T.replace}</h3>
           {replace.articles.map((a, i) => (
             <div key={a.id} className="flex flex-wrap items-end gap-2">
               <Select
@@ -174,7 +170,7 @@ export function ImageApproval({
         }
       >
         <div className="flex flex-col gap-2 text-left">
-          <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-motivo`} className="type-label text-strong">
             {asking === "takedown" ? T.takedownReason : T.blockReason}
           </label>
           <textarea
@@ -203,22 +199,16 @@ export function ImageApproval({
             </p>
           )}
           {asking === "takedown" && canTakedownAll && (
-            <label
-              htmlFor={`${uid}-todas`}
-              className="flex min-h-tap cursor-pointer items-start gap-3 type-body"
-            >
-              <input
-                id={`${uid}-todas`}
-                type="checkbox"
-                checked={allFromSource}
-                onChange={(e) => setAllFromSource(e.target.checked)}
-                className="mt-0.5 size-5 shrink-0 accent-(--action-primary)"
-              />
-              <span className="text-body">{T.takedownAll}</span>
-            </label>
+            <Checkbox
+              id={`${uid}-todas`}
+              name="todas-da-fonte"
+              label={T.takedownAll}
+              checked={allFromSource}
+              onChange={setAllFromSource}
+            />
           )}
         </div>
       </Dialog>
-    </section>
+    </Panel>
   );
 }

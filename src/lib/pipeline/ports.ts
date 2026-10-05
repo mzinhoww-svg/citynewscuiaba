@@ -767,7 +767,7 @@ export interface StatusPatch {
   publishedAt?: string;
   rulesVersion?: number | null;
   reviewReason?: string | null;
-  /** Motor de autonomia (A-151): próxima ação e quando; `null` limpa. */
+  /** Motor de autonomia (A-161): próxima ação e quando; `null` limpa. */
   nextAction?: "rewrite" | "reevaluate" | "await_auto_publish" | "breaker_recovery" | null;
   nextAttemptAt?: string | null;
   reprocessCount?: number;
@@ -778,7 +778,7 @@ export interface StatusPatch {
   degradedReason?: string | null;
 }
 
-/** Estado do motor de autonomia de uma matéria (A-151). */
+/** Estado do motor de autonomia de uma matéria (A-161). */
 export interface AutonomyState {
   reprocessCount: number;
   /** Publicação mais antiga entre os itens do assunto (idade da notícia). */
@@ -804,7 +804,7 @@ export interface PublishRepo {
   saveDraft(d: DraftInput): Promise<{ articleId: string; version: number }>;
   decisionContext(articleId: string): Promise<DecisionContext | null>;
   setStatus(articleId: string, patch: StatusPatch): Promise<void>;
-  /** Reprocessos feitos e idade da notícia, para o motor de autonomia (A-151). */
+  /** Reprocessos feitos e idade da notícia, para o motor de autonomia (A-161). */
   autonomyState(articleId: string): Promise<AutonomyState | null>;
   /** Matéria como o checklist e o portão de completude a enxergam (AUT-T4). */
   checkInput(articleId: string): Promise<ArticleCheck | null>;

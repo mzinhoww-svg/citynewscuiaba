@@ -150,7 +150,7 @@ export const proposeRulesCommand = studioAction(
       : current.forceReview && !i.rules.forceReview
         ? "force_review.disable"
         : "rules.activate";
-    // Motor de política (A-150): regras válidas e papel certo aplicam na hora; inválidas são
+    // Motor de política (A-160): regras válidas e papel certo aplicam na hora; inválidas são
     // recusadas; afrouxar a segurança sem ser admin é exceção (ação do admin).
     const next: RuleSet = { version, ...proposed };
     const sim = simulateRules(next, await recentCandidates(7, ctx.db), current);

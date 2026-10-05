@@ -1,4 +1,4 @@
-# Runbook · Operação autônoma (A-150, A-151)
+# Runbook · Operação autônoma (A-160, A-161)
 
 O CityNews resolve sozinho falha de IA, fila crescendo, disjuntor e pedidos de mudança. Este runbook diz onde olhar e quando uma pessoa entra. Desenho em `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`.
 

@@ -41,7 +41,9 @@ export default async function StudioHomePage() {
   try {
     [kpis, rows] = await Promise.all([
       newsroomKpis(),
-      desk ? listQueue({ tab: "exceptions", limit: PREVIEW }) : Promise.resolve([]),
+      desk
+        ? listQueue({ tab: "exceptions" }, { limit: PREVIEW }).then((p) => p.rows)
+        : Promise.resolve([]),
     ]);
   } catch {
     kpis = null;

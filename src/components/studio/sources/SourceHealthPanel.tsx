@@ -4,6 +4,7 @@ import { HEALTH_PANEL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import type { HealthDay, SourceHealth } from "@/lib/db/queries/sources-admin";
 import { cx } from "../../cx";
 import { Icon } from "../../ui/Icon";
+import { Panel } from "../../ui/Panel";
 
 export interface SourceHealthPanelProps {
   health: SourceHealth;
@@ -99,11 +100,11 @@ function HealthChart({
 
 function Stat({ label, value, note }: { label: string; value: string; note?: string | null }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-lg border border-line-section bg-card-white p-4">
+    <Panel as="div" className="flex min-w-0 flex-col gap-1">
       <p className="type-meta text-meta">{label}</p>
       <p className="type-section text-strong">{value}</p>
       {note && <p className="type-meta text-meta">{note}</p>}
-    </div>
+    </Panel>
   );
 }
 

@@ -46,7 +46,7 @@ describe("POST /api/ingest/review-tick", () => {
     const { POST } = await import("./route");
     const res = await POST(req(SECRET));
     expect(res.status).toBe(200);
-    // As varreduras de assuntos encerrados (AUT-T7) e de autonomia (A-151) rodam mesmo com o
+    // As varreduras de assuntos encerrados (AUT-T7) e de autonomia (A-161) rodam mesmo com o
     // revisor desligado.
     expect(await res.json()).toEqual({
       status: "inactive",

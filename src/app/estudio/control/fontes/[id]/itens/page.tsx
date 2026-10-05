@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Icon, Table } from "@/components";
 import { fullDateTime } from "@/content/pt-BR/sources-admin";
 import { DETAIL_TEXT, ITEMS_TAB_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { sourceRecentItems } from "@/lib/db/queries/sources-admin";
@@ -31,69 +31,46 @@ export default async function SourceItemsPage({ params }: Props) {
       ) : items.value.length === 0 ? (
         <p className="type-body text-meta">{T.empty}</p>
       ) : (
-        <div
-          className="overflow-x-auto rounded-lg border border-line-section bg-card-white p-4"
-          role="region"
-          aria-label={T.title}
-          tabIndex={0}
+        <Table
+          caption={T.title}
+          minWidth="md"
+          headers={[T.columns.title, T.columns.date, T.columns.state, T.columns.topic]}
         >
-          <table className="w-full min-w-2xl border-collapse type-body">
-            <thead>
-              <tr className="border-b border-line-section text-left type-meta text-meta">
-                <th scope="col" className="py-2 pr-3 font-semibold">
-                  {T.columns.title}
-                </th>
-                <th scope="col" className="py-2 pr-3 font-semibold">
-                  {T.columns.date}
-                </th>
-                <th scope="col" className="py-2 pr-3 font-semibold">
-                  {T.columns.state}
-                </th>
-                <th scope="col" className="py-2 font-semibold">
-                  {T.columns.topic}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.value.map((it) => (
-                <tr key={it.id} className="border-b border-line-section align-top">
-                  <td className="py-2 pr-3">
-                    <a
-                      href={it.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-link underline-offset-4 hover:underline"
-                    >
-                      {it.title}
-                      <Icon name="external-link" size={14} className="ml-1 inline align-baseline" />
-                    </a>
-                    <p className="type-meta text-meta">
-                      {T.collected(fullDateTime(it.collectedAt))}
-                    </p>
-                  </td>
-                  <td className="py-2 pr-3 whitespace-nowrap text-strong">
-                    {it.publishedAt ? fullDateTime(it.publishedAt) : T.noDate}
-                  </td>
-                  <td className="py-2 pr-3 whitespace-nowrap text-strong">
-                    {T.state[it.state] ?? it.state}
-                  </td>
-                  <td className="py-2 text-strong">
-                    {it.topicId ? (
-                      <Link
-                        href={`/estudio/assuntos/${it.topicId}`}
-                        className="text-link underline-offset-4 hover:underline"
-                      >
-                        {T.topic}
-                      </Link>
-                    ) : (
-                      T.noTopic
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {items.value.map((it) => (
+            <tr key={it.id} className="border-b border-line-section align-top type-body">
+              <td className="px-3 py-2">
+                <a
+                  href={it.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-link underline-offset-4 hover:underline"
+                >
+                  {it.title}
+                  <Icon name="external-link" size={14} className="ml-1 inline align-baseline" />
+                </a>
+                <p className="type-meta text-meta">{T.collected(fullDateTime(it.collectedAt))}</p>
+              </td>
+              <td className="px-3 py-2 whitespace-nowrap text-strong">
+                {it.publishedAt ? fullDateTime(it.publishedAt) : T.noDate}
+              </td>
+              <td className="px-3 py-2 whitespace-nowrap text-strong">
+                {T.state[it.state] ?? it.state}
+              </td>
+              <td className="px-3 py-2 text-strong">
+                {it.topicId ? (
+                  <Link
+                    href={`/estudio/assuntos/${it.topicId}`}
+                    className="text-link underline-offset-4 hover:underline"
+                  >
+                    {T.topic}
+                  </Link>
+                ) : (
+                  T.noTopic
+                )}
+              </td>
+            </tr>
+          ))}
+        </Table>
       )}
     </section>
   );

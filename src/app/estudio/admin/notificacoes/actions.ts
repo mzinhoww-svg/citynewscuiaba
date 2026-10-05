@@ -186,7 +186,7 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
   const r = await ctx.store.request(parsed.data);
   if (!r.ok) return storeFailure(r.error);
   refresh();
-  // A política de avisos (0170, A-150) decide no próprio pedido: papel, limite por hora e por
+  // A política de avisos (0170, A-160) decide no próprio pedido: papel, limite por hora e por
   // dia e matéria no ar. Na fila, agendado ou recusado com motivo; nunca esperando pessoa.
   const { data: decided } = await ctx.db
     .from("push_sends")

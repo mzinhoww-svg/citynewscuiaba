@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, InlineAlert } from "@/components";
+import { Button, EmptyState, InlineAlert, Table } from "@/components";
 import { CostChart } from "@/components/estudio";
 import { AI_TEXT, agentName, formatInt, formatPct } from "@/content/pt-BR/ai-control";
 import { formatBrl } from "@/content/pt-BR/control";
@@ -127,137 +127,103 @@ export default async function CostsPage() {
                 <h2 id="agentes" className="type-section text-strong">
                   {T.agentsTitle}
                 </h2>
-                <div
-                  role="region"
-                  aria-label={T.agentsCaption}
-                  tabIndex={0}
-                  className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+                <Table
+                  caption={T.agentsCaption}
+                  minWidth="xl"
+                  headers={[
+                    T.agentCol.agent,
+                    ...(
+                      [
+                        "today",
+                        "budget",
+                        "used",
+                        "last7",
+                        "calls",
+                        "errors",
+                        "fallbacks",
+                        "latency",
+                      ] as const
+                    ).map((k) => ({ label: T.agentCol[k], align: "right" as const })),
+                  ]}
                 >
-                  <table className="w-full min-w-[56rem] border-collapse text-left">
-                    <caption className="sr-only">{T.agentsCaption}</caption>
-                    <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                      <tr>
-                        <th scope="col" className="px-3 py-3">
-                          {T.agentCol.agent}
-                        </th>
-                        {(
-                          [
-                            "today",
-                            "budget",
-                            "used",
-                            "last7",
-                            "calls",
-                            "errors",
-                            "fallbacks",
-                            "latency",
-                          ] as const
-                        ).map((k) => (
-                          <th key={k} scope="col" className="px-3 py-3 text-right">
-                            {T.agentCol[k]}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.perAgent.map((a) => (
-                        <tr key={a.agentId} className="border-b border-line-subtle last:border-b-0">
-                          <th scope="row" className="px-3 py-2 type-body font-semibold text-strong">
-                            {agentName(a.agentId)}
-                          </th>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatBrl(a.todayBrl)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {a.budgetBrl === null ? AI_TEXT.none : formatBrl(a.budgetBrl)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {a.budgetShare === null ? (
-                              AI_TEXT.none
-                            ) : (
-                              <span
-                                className={
-                                  a.budgetShare >= 0.9 ? "font-semibold text-warn" : undefined
-                                }
-                              >
-                                {formatPct(a.budgetShare)}
-                                {a.budgetShare >= 1
-                                  ? ` · ${T.overBudget}`
-                                  : a.budgetShare >= 0.9
-                                    ? ` · ${T.nearBudget}`
-                                    : ""}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatBrl(a.last7Brl)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatInt(a.calls7)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatInt(a.errors7)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatInt(a.fallbacks7)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {a.calls7 > 0 ? `${formatInt(a.avgLatencyMs7)} ms` : AI_TEXT.none}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  {s.perAgent.map((a) => (
+                    <tr key={a.agentId} className="border-b border-line-subtle last:border-b-0">
+                      <th scope="row" className="px-3 py-2 type-body font-semibold text-strong">
+                        {agentName(a.agentId)}
+                      </th>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatBrl(a.todayBrl)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {a.budgetBrl === null ? AI_TEXT.none : formatBrl(a.budgetBrl)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {a.budgetShare === null ? (
+                          AI_TEXT.none
+                        ) : (
+                          <span
+                            className={a.budgetShare >= 0.9 ? "font-semibold text-warn" : undefined}
+                          >
+                            {formatPct(a.budgetShare)}
+                            {a.budgetShare >= 1
+                              ? ` · ${T.overBudget}`
+                              : a.budgetShare >= 0.9
+                                ? ` · ${T.nearBudget}`
+                                : ""}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatBrl(a.last7Brl)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatInt(a.calls7)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatInt(a.errors7)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatInt(a.fallbacks7)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {a.calls7 > 0 ? `${formatInt(a.avgLatencyMs7)} ms` : AI_TEXT.none}
+                      </td>
+                    </tr>
+                  ))}
+                </Table>
               </section>
 
               <section aria-labelledby="modelos" className="flex flex-col gap-3">
                 <h2 id="modelos" className="type-section text-strong">
                   {T.modelsTitle}
                 </h2>
-                <div
-                  role="region"
-                  aria-label={T.modelsCaption}
-                  tabIndex={0}
-                  className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+                <Table
+                  caption={T.modelsCaption}
+                  minWidth="sm"
+                  headers={[
+                    T.modelCol.model,
+                    { label: T.modelCol.cost, align: "right" },
+                    { label: T.modelCol.calls, align: "right" },
+                    { label: T.modelCol.tokens, align: "right" },
+                  ]}
                 >
-                  <table className="w-full min-w-[36rem] border-collapse text-left">
-                    <caption className="sr-only">{T.modelsCaption}</caption>
-                    <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                      <tr>
-                        <th scope="col" className="px-3 py-3">
-                          {T.modelCol.model}
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-right">
-                          {T.modelCol.cost}
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-right">
-                          {T.modelCol.calls}
-                        </th>
-                        <th scope="col" className="px-3 py-3 text-right">
-                          {T.modelCol.tokens}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {s.perModel.map((m) => (
-                        <tr key={m.modelId} className="border-b border-line-subtle last:border-b-0">
-                          <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
-                            {m.modelId}
-                          </th>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatBrl(m.costBrl)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatInt(m.calls)}
-                          </td>
-                          <td className="px-3 py-2 text-right type-body tabular-nums">
-                            {formatInt(m.tokensIn)} / {formatInt(m.tokensOut)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  {s.perModel.map((m) => (
+                    <tr key={m.modelId} className="border-b border-line-subtle last:border-b-0">
+                      <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
+                        {m.modelId}
+                      </th>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatBrl(m.costBrl)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatInt(m.calls)}
+                      </td>
+                      <td className="px-3 py-2 text-right type-body tabular-nums">
+                        {formatInt(m.tokensIn)} / {formatInt(m.tokensOut)}
+                      </td>
+                    </tr>
+                  ))}
+                </Table>
               </section>
             </>
           );

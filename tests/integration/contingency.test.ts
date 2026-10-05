@@ -243,7 +243,7 @@ describe("contingência: pausar publicação automática no meio do ciclo (Revie
     });
   });
 
-  it("a etapa 15 do item ainda não decidido espera o religamento em rascunho, sem fila humana (A-151)", async () => {
+  it("a etapa 15 do item ainda não decidido espera o religamento em rascunho, sem fila humana (A-161)", async () => {
     const h = handlers();
     const r = await h.rules!(msg("rules", articles.pending));
     expect(r.ok).toBe(true);

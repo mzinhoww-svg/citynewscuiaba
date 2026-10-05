@@ -6,7 +6,10 @@ import { agentName } from "@/content/pt-BR/ai-control";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 import { Select } from "../ui/Select";
+import { StatGrid } from "../ui/StatGrid";
+import { TextArea } from "../ui/TextArea";
 
 export interface PlaygroundAgentOption {
   id: string;
@@ -132,20 +135,15 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
             onChange={setModelId}
           />
         </div>
-        <label htmlFor={`${uid}-task`} className="type-label text-16 text-strong">
-          {T.task}
-        </label>
-        <textarea
+        <TextArea
           id={`${uid}-task`}
+          name="tarefa"
+          label={T.task}
           rows={2}
           value={task}
-          onChange={(e) => setTask(e.target.value)}
-          aria-describedby={`${uid}-task-hint`}
-          className="border-control min-h-16 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+          onChange={setTask}
+          hint={T.taskHint}
         />
-        <p id={`${uid}-task-hint`} className="type-meta text-meta">
-          {T.taskHint}
-        </p>
         {agent && agent.cases.length > 0 && (
           <Select
             id={`${uid}-case`}
@@ -157,21 +155,16 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
             onChange={setCaseId}
           />
         )}
-        <label htmlFor={`${uid}-data`} className="type-label text-16 text-strong">
-          {T.data}
-        </label>
-        <textarea
+        <TextArea
           id={`${uid}-data`}
+          name="dados"
+          label={T.data}
           rows={6}
           value={text}
           disabled={chosenCase !== null}
-          onChange={(e) => setText(e.target.value)}
-          aria-describedby={`${uid}-data-hint`}
-          className="border-control min-h-32 w-full rounded-lg bg-input px-4 py-3 type-body text-strong disabled:opacity-60"
+          onChange={setText}
+          hint={T.dataHint}
         />
-        <p id={`${uid}-data-hint`} className="type-meta text-meta">
-          {T.dataHint}
-        </p>
         <div>
           <Button type="submit" size="md" icon="play" disabled={busy}>
             {busy ? T.running : T.run}
@@ -200,8 +193,10 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
       {reply?.result && (
         <section aria-label={T.resultTitle} className="flex flex-col gap-4">
           <h2 className="type-section text-strong">{T.resultTitle}</h2>
-          <dl aria-label={T.resultTitle} className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            {[
+          <StatGrid
+            aria-label={T.resultTitle}
+            columns={4}
+            items={[
               [
                 reply.result.valid ? T.valid : T.invalid,
                 reply.result.error
@@ -211,30 +206,27 @@ export function Playground({ agents, models, providerKind, run, className }: Pla
               [T.cost, formatBrlPrecise(reply.result.costBrl)],
               [T.latency, `${reply.result.latencyMs} ms`],
               [T.model, reply.result.modelId],
-            ].map(([k, v]) => (
-              <div key={k} className="rounded-lg border border-line-subtle bg-card-white p-3">
-                <dt className="type-meta text-meta">{k}</dt>
-                <dd className="type-body font-semibold text-strong break-words">{v}</dd>
-              </div>
-            ))}
-          </dl>
-          <h3 className="type-label text-16 text-strong">{T.sanitized}</h3>
+            ].map(([k, v]) => ({ label: k!, value: v }))}
+          />
+          <h3 className="type-label text-strong">{T.sanitized}</h3>
           <ul className="flex flex-col gap-2">
             {reply.result.sanitizedInput.map((d) => (
-              <li key={d.id} className="rounded-lg border border-line-subtle bg-card-white p-3">
-                <p className="type-meta text-meta">
-                  {d.id}
-                  {d.injection && (
-                    <span className="ml-2 font-semibold text-danger">· {T.injection}</span>
-                  )}
-                </p>
-                <pre className="mt-1 whitespace-pre-wrap break-words type-body text-body">
-                  {d.text}
-                </pre>
+              <li key={d.id}>
+                <Panel as="div" pad="sm">
+                  <p className="type-meta text-meta">
+                    {d.id}
+                    {d.injection && (
+                      <span className="ml-2 font-semibold text-danger">· {T.injection}</span>
+                    )}
+                  </p>
+                  <pre className="mt-1 whitespace-pre-wrap break-words type-body text-body">
+                    {d.text}
+                  </pre>
+                </Panel>
               </li>
             ))}
           </ul>
-          <h3 className="type-label text-16 text-strong">{T.output}</h3>
+          <h3 className="type-label text-strong">{T.output}</h3>
           <pre className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white p-3 type-body text-strong whitespace-pre-wrap break-words">
             {reply.result.output === null
               ? T.noOutput

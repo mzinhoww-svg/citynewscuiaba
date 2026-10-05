@@ -86,7 +86,7 @@ const REWRITE_TASK = `REESCRITA: o texto anterior ficou com menos de ${MIN_BODY_
 /**
  * `topic:<id>`; `topic:<id>#rewrite<n>` quando o texto curto volta para ser refeito (R41);
  * `topic:<id>#retry<n>` quando o motor de autonomia agenda nova redação depois de falha da IA
- * (A-151).
+ * (A-161).
  */
 const TOPIC_REF = /^topic:([^\s#]+)(?:#(rewrite|retry)(\d+))?$/;
 /** Pipeline só reescreve a própria matéria enquanto ela está em rascunho ou revisão. */
@@ -304,7 +304,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
       aiSummary: draft.summary,
       confidence: ctx.topic.confidence,
       confidenceScore: ctx.topic.confidenceScore,
-      // Rascunho sem IA não vai para a fila humana (A-151): fica rascunho e o motor de autonomia
+      // Rascunho sem IA não vai para a fila humana (A-161): fica rascunho e o motor de autonomia
       // agenda nova redação; esgotada, quarentena (o texto de trechos nunca publica, regra 4).
       status: "draft",
       aiFallback: failure !== null,

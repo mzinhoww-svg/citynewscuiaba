@@ -54,7 +54,7 @@ describe("callAgent", () => {
     expect(store.calls[1]).toMatchObject({ model_id: "C", ok: true, prompt_version: 1 });
   });
 
-  it("degrau 3 (A-151): formato errado em todos os modelos tenta o prompt alternativo estrito", async () => {
+  it("degrau 3 (A-161): formato errado em todos os modelos tenta o prompt alternativo estrito", async () => {
     const { fake, callAgent, store } = setup({ models: { primary: "A", fallback: "C" } });
     fake.script([
       { model: "A", output: { wrong: true } },

@@ -62,6 +62,9 @@ test.describe("posições com dados de teste", () => {
 
   test.beforeAll(async ({}, info) => {
     if (info.project.name !== "desktop") return;
+    // O `beforeAll` tem tempo próprio (30 s), fora do `test.setTimeout` do grupo; a espera pelo
+    // cadeado dos destaques chega a 240 s quando outro grupo (pauta quente, admin) o segura.
+    test.setTimeout(300_000);
     release = await acquireFeaturedLock();
     await endAllPins();
     topicA = await createTopic(fx, t("Assunto da manchete"));
@@ -214,9 +217,15 @@ test.describe("posições com dados de teste", () => {
     await reloadUntil(
       page,
       "/",
-      async () => (await page.getByRole("alert").filter({ hasText: urgent.title }).count()) > 0,
+      async () =>
+        (await page
+          .getByRole("region", { name: "Urgente" })
+          .filter({ hasText: urgent.title })
+          .count()) > 0,
     );
-    await expect(page.getByRole("alert").filter({ hasText: urgent.title })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Urgente" }).filter({ hasText: urgent.title }),
+    ).toBeVisible();
     expect(await h1Text(page)).toBe(pinned.title);
   });
 

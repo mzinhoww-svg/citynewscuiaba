@@ -10,7 +10,7 @@ const check = (what: string, error: { message: string } | null) => {
   if (error) throw new Error(`autonomia: ${what}: ${error.message}`);
 };
 
-/** Porta da varredura de autonomia (A-151) sobre o Supabase, com a service role. */
+/** Porta da varredura de autonomia (A-161) sobre o Supabase, com a service role. */
 export function createAutonomySweepPort(db: DbClient): AutonomySweepPort {
   const queue = pipelineQueue();
   return {

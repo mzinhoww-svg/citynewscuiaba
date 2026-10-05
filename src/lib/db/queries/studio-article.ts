@@ -95,6 +95,8 @@ export interface StudioArticle {
   authorName: string | null;
   reviewReason: string | null;
   aiFallback: boolean;
+  /** Tema sensível: a mesma regra da fila (`studio_queue.sensitive`: Segurança ou fonte marcada). */
+  sensitive: boolean;
   urgent: boolean;
   aiSummary: string[] | null;
   updatedAt: string;
@@ -138,7 +140,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
   if (error) throw new Error(`matéria: ${error.message}`);
   if (!a) return null;
 
-  const [versions, sources, media, suggestions, decisions, view] = await Promise.all([
+  const [versions, sources, media, suggestions, decisions, view, queue] = await Promise.all([
     db
       .from("article_versions")
       .select("number, origin, author_id, change_kind, public_note, created_at, snapshot")
@@ -171,6 +173,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
       .order("created_at", { ascending: false })
       .limit(40),
     loadDraftView(ctx, id),
+    db.from("studio_queue").select("sensitive").eq("id", id).maybeSingle(),
   ]);
 
   const people = new Set<string>();
@@ -230,6 +233,7 @@ export async function getStudioArticle(id: string): Promise<StudioArticle | null
     authorName: a.author_id ? (nameOf.get(a.author_id) ?? null) : null,
     reviewReason: a.review_reason,
     aiFallback: a.ai_fallback,
+    sensitive: queue.data?.sensitive ?? false,
     urgent: a.urgent,
     aiSummary: a.ai_summary,
     updatedAt: a.updated_at,

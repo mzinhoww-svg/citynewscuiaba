@@ -48,6 +48,9 @@ test.describe("pauta quente na home", () => {
 
   test.beforeAll(async ({}, info) => {
     if (info.project.name !== "desktop") return;
+    // O `beforeAll` tem tempo próprio (30 s), fora do `test.setTimeout` do grupo; a espera pelo
+    // cadeado dos destaques chega a 240 s quando outro grupo (pauta quente, admin) o segura.
+    test.setTimeout(300_000);
     release = await acquireFeaturedLock();
     await endAllPins();
     const db = service();

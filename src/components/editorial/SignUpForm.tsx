@@ -218,8 +218,8 @@ export function SignUpForm({ action, google, next }: SignUpFormProps) {
           )}
         </div>
 
-        <Button type="submit" fullWidth disabled={pending}>
-          {pending ? T.busy : T.submit}
+        <Button type="submit" fullWidth loading={pending} loadingLabel={T.busy}>
+          {T.submit}
         </Button>
       </form>
     </div>

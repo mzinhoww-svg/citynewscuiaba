@@ -58,7 +58,7 @@ interface ArticleRow {
   cover: CoverState;
   coverAlt: string | null;
   shortReason: ShortReason | null;
-  /** Estado do motor de autonomia (A-151). */
+  /** Estado do motor de autonomia (A-161). */
   autonomy: Pick<
     StatusPatch,
     | "nextAction"

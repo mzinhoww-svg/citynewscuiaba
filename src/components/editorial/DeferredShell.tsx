@@ -13,6 +13,7 @@ import {
 import { safeDefault } from "@/lib/lazy";
 import { INVITE_EVENT } from "@/lib/anon/invite";
 import { QUALIFIED_READ_EVENT, qualifiedReadsThisSession } from "@/lib/anon/invite-storage";
+import type { FirstVisitPlacement } from "./FirstVisitInvite";
 
 /*
  * Partes da moldura que só valem depois de um gatilho (B-018, orçamento de 170 kB de JS na
@@ -81,12 +82,15 @@ function subscribeReads(onChange: () => void): () => void {
 
 const hasReads = () => qualifiedReadsThisSession() > 0;
 
-/** Painel da primeira visita: só depois da primeira leitura qualificada da sessão. */
-export function FirstVisitGate() {
+/**
+ * Convite da primeira visita (item 63): montado no fim da matéria e na home, não na moldura.
+ * O código só baixa depois da primeira leitura qualificada da sessão.
+ */
+export function FirstVisitGate({ placement }: { placement: FirstVisitPlacement }) {
   const started = useSyncExternalStore(subscribeReads, hasReads, onServer);
   return started ? (
     <Suspense fallback={null}>
-      <FirstVisitInvite />
+      <FirstVisitInvite placement={placement} />
     </Suspense>
   ) : null;
 }

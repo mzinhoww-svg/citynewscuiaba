@@ -1,5 +1,5 @@
 /**
- * Varredura de autonomia (A-151), a cada 5 min junto do revisor: nada fica parado e falha
+ * Varredura de autonomia (A-161), a cada 5 min junto do revisor: nada fica parado e falha
  * recorrente vira um incidente, não dezenas de pedidos.
  *
  * 1. Disjuntor: TRIP → THROTTLE → DIAGNOSE → AUTO-RECOVER (`publish_breaker_auto_recover`).

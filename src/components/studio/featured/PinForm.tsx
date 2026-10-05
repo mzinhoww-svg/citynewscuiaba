@@ -8,6 +8,7 @@ import { parseCuiabaDateTime } from "@/lib/studio/plan";
 import type { BoardSlot } from "@/lib/studio/featured";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
+import { DateField } from "../../ui/DateField";
 import { Icon } from "../../ui/Icon";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, type AdminReply } from "../admin/AdminStatus";
@@ -206,12 +207,13 @@ export function PinForm({ slot, replaceId, api, nowIso, onDone, onCancel }: PinF
           ))}
         </div>
         {choice === "until_date" && (
-          <TextField
+          <DateField
             id={`${uid}-until`}
+            name="ate"
             label={F.untilDateLabel}
             type="datetime-local"
             value={until}
-            onChange={(e) => setUntil(e.target.value)}
+            onChange={setUntil}
             error={until && !untilDate ? T.error.duration : undefined}
           />
         )}

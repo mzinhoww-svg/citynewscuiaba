@@ -66,10 +66,24 @@ export interface ProposeDeps {
   }) => Promise<{ published: boolean }>;
 }
 
+/** Teto de modelos tentados por chamada (o catálogo tem cerca de 30). */
+const MAX_TEMPLATE_ATTEMPTS = 40;
+
+/**
+ * Proposta do próximo modelo. Um modelo sem lugares suficientes é adiado e a chamada segue para o
+ * seguinte, para a coleta (que avança por categoria) e a proposta (3 por semana) não se
+ * desencontrarem; para ao voltar a um modelo já tentado.
+ */
 export async function proposeNextTemplate(deps: ProposeDeps): Promise<ProposeOutcome> {
-  const template = await deps.store.nextTemplate(deps.now());
-  if (!template) return { status: "none" };
-  return proposeForTemplate(deps, template);
+  const tried = new Set<string>();
+  for (let i = 0; i < MAX_TEMPLATE_ATTEMPTS; i++) {
+    const template = await deps.store.nextTemplate(deps.now());
+    if (!template || tried.has(template.id)) break;
+    tried.add(template.id);
+    const outcome = await proposeForTemplate(deps, template);
+    if (outcome.status === "proposed") return outcome;
+  }
+  return { status: "none" };
 }
 
 /** Proposta de um modelo específico (o cron escolhe o próximo; o Estúdio, "Propor agora"). */

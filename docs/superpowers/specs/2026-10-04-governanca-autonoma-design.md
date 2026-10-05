@@ -1,4 +1,4 @@
-# Governança autônoma e motor de decisão de IA (A-150, A-151)
+# Governança autônoma e motor de decisão de IA (A-160, A-161)
 
 **Data:** 04/10/2026 · **Autor:** Claude Code · **Decisão do dono:** "AUTONOMY FIRST, HUMAN EXCEPTION SECOND"
 **Complementa:** A-125 (religar sem segunda pessoa), A-127 (ativar fonte sem termos revisados), A-128 (uma pessoa pede, aprova e aplica; 0149).
