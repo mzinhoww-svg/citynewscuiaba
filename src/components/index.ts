@@ -304,3 +304,4 @@ export {
   type VenueCardProps,
 } from "./editorial/guide/VenueCard";
 export { VenueCover, type VenueCoverProps } from "./editorial/guide/VenueCover";
+export { FirstVisitGate } from "./editorial/DeferredShell";

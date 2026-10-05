@@ -7,8 +7,44 @@ test("explorar leva a editorias, assuntos, coleções, fontes e agenda", async (
     await expect(page.getByRole("link", { name: new RegExp(n) }).first()).toBeVisible();
   const sections = page.getByRole("region", { name: "Editorias" });
   await expect(sections.getByRole("link").first()).toBeVisible();
-  await expect(page.getByRole("region", { name: "Guia Cuiabá" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Serviços da cidade" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Mais lidas da semana" })).toBeVisible();
+});
+
+test("Explorar: âncoras só de seções presentes, Perguntar ao CityNews e atalhos coerentes", async ({
+  page,
+}) => {
+  await page.goto("/explorar");
+  const anchors = page.getByRole("navigation", { name: "Nesta página" }).getByRole("link");
+  for (const href of await anchors.evaluateAll((els) => els.map((a) => a.getAttribute("href"))))
+    await expect(page.locator(href!)).toHaveCount(1);
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /^Perguntar ao CityNews/ }),
+  ).toHaveAttribute("href", "/pergunte");
+  await expect(page.getByRole("link", { name: /^Ônibus e trânsito/ })).toHaveAttribute(
+    "href",
+    "/cidade?sub=mobilidade",
+  );
+});
+
+test("aba certa acesa na barra inferior", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const nav = page.getByRole("navigation", { name: "Principal" });
+  for (const [path, tab] of [
+    ["/agenda", "Explorar"],
+    ["/pergunte", "Busca"],
+    ["/entrar", "Perfil"],
+  ] as const) {
+    await page.goto(path);
+    await expect(nav.getByRole("link", { name: tab })).toHaveAttribute("aria-current", "page");
+  }
+});
+
+test("rodapé tem a entrada Perguntar ao CityNews", async ({ page }) => {
+  await page.goto("/explorar");
+  await expect(
+    page.getByRole("contentinfo").getByRole("link", { name: "Perguntar ao CityNews" }),
+  ).toHaveAttribute("href", "/pergunte");
 });
 
 test("coleção mostra capa, itens em ordem e agregado que abre no original", async ({ page }) => {

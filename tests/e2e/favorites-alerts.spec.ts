@@ -43,9 +43,13 @@ test("salvos anônimos mostram aviso de aparelho e funcionam", async ({ page }) 
 
   await page.getByRole("button", { name: `Remover dos salvos: ${TITLE}` }).click();
   await expect(link).toHaveCount(0);
-  await expect(page.getByText("Nenhuma matéria salva")).toBeVisible();
-  await page.getByRole("button", { name: "Desfazer" }).click();
+  // UX-W4-T4 (item 71): o "Desfazer" fica no lugar do item e recebe o foco.
+  const undo = page.getByRole("button", { name: `Desfazer a remoção de ${TITLE}` });
+  await expect(undo).toBeFocused();
+  await expect(page.getByText(`Removido: ${TITLE}`)).toBeVisible();
+  await undo.click();
   await expect(page.getByRole("link", { name: TITLE })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Remover dos salvos: ${TITLE}` })).toBeFocused();
 });
 
 test("salva fica disponível para leitura offline", async ({ page, browserName }) => {

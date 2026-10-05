@@ -123,7 +123,7 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 - Banner da primeira visita (rodapé, não modal) e página com o texto da política em linguagem simples, cookies por categoria, direitos LGPD e contato do encarregado.
 
 ### P23 · Onboarding de fontes · componente `FirstVisitInvite` · **Nova no desktop**
-- Aparece após 3 leituras qualificadas na sessão, como painel lateral não modal: "Personalize suas fontes e receba uma experiência mais relevante." Ações "Escolher fontes agora" (abre seletor com 12 fontes: 6 locais, 3 estaduais, 3 temáticas), "Continuar sem personalizar", "Entrar ou criar conta".
+- Aparece após 3 leituras qualificadas na sessão, como faixa compacta no fluxo da página (item 63, UX-W4-T2): no fim da matéria (depois do corpo, das fontes e do Pergunte) ou na home (abaixo dos destaques); nunca fixa nem sobre o texto. "Personalize suas fontes e receba uma experiência mais relevante." Ações "Escolher fontes agora" (expande o seletor com 12 fontes: 6 locais, 3 estaduais, 3 temáticas), "Agora não" (ou Esc: fecha até o fim da sessão), "Entrar ou criar conta". Um convite por vez, com o banner de consentimento na frente.
 
 ### P24 · Institucionais · **Novas**
 - `/sobre`, `/principios-editoriais`, `/correcoes` (lista pública de correções com data e link), `/direito-de-resposta` (formulário), `/anuncie`, `/contato`, `/termos`.

@@ -48,10 +48,30 @@ em `docs/reports/destaques-estaveis.md`.
   Agora, O Documento, RDNews, Olhar Direto e Circuito MT. Ficaram de fora órgãos públicos, fontes
   nacionais e de nicho. Reverter: `update sources set consumption = consumption - 'frontpage'`.
 
+## Primeiros ciclos (04/10, A-152)
+
+O cron `ingest-frontpage` rodou às 17h40 e às 18h00 (UTC), as duas vezes com sucesso. Sinais gravados
+por portal (lidos / casados com item já coletado):
+
+| Portal | Sinais | Casados |
+|---|---|---|
+| Circuito MT | 6 | 6 |
+| Gazeta Digital | 6 | 6 |
+| HiperNotícias | 6 | 5 |
+| O Documento | 6 | 5 |
+| FolhaMax | 6 | 0 |
+| Leia Agora | 6 | 0 |
+| RDNews, Olhar Direto | 0 | 0 |
+
+Relatório da rota no último ciclo: 8 fontes, 6 lidas, 18 sinais, 12 casados, puladas
+`rate_limited: 1` e `http: 1`, nenhum pino quente (nenhum assunto em 3 portais ao mesmo tempo ainda).
+
 ## Pendências
 
-- Dono: aplicar a 0155 no SQL Editor.
-- Conferir os primeiros ciclos do cron: sinais gravados por fonte e se algum portal bloqueia por
-  `robots.txt` ou limite.
+- Dono: rodar `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0155 e a parte C da 0143, B-029).
+- FolhaMax e Leia Agora: os links do topo não casam com os itens coletados (URL da página inicial
+  diferente da URL do feed: parâmetros, domínio ou caminho). Comparar as duas e normalizar no casamento.
+- RDNews e Olhar Direto: um pulou pelo limite por hora da fonte e o outro por erro HTTP; conferir se o
+  limite da fonte comporta a leitura a cada 20 min e qual status o portal devolve.
 - R22 (comoção nacional pelo sinal dos portais nacionais) ficou fora desta rodada.
 - CONF-T2 (painel "Por que esta verificação") e CONF-T3 (revisão do padrão de fonte confiável).

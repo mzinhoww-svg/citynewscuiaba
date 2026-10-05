@@ -48,6 +48,22 @@ describe("MadeHow recolhível", () => {
     // Versão para o desktop (aberta, escolhida por CSS) vem no mesmo HTML.
     expect(screen.getAllByRole("region", { name: "De onde veio" })).toHaveLength(2);
   });
+  it("com collapsible, Informar problema fica visível no celular, fora do <details> (UX item 74)", () => {
+    const { container } = render(
+      <MadeHow
+        article={article}
+        versionsHref="/x"
+        collapsible
+        report={<button type="button">Informar problema</button>}
+      />,
+    );
+    const details = container.querySelector("details")!;
+    expect(details.querySelector("button")).toBeNull();
+    // Uma entrada por largura: a do celular (fora do <details>) e a do painel do desktop.
+    const regions = screen.getAllByRole("region", { name: "De onde veio" });
+    for (const r of regions)
+      expect(within(r).getAllByRole("button", { name: "Informar problema" })).toHaveLength(1);
+  });
   it("sem collapsible, não usa <details>", () => {
     const { container } = render(<MadeHow article={article} versionsHref="/x" />);
     expect(container.querySelector("details")).toBeNull();
