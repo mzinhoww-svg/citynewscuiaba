@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
 import { cx } from "../cx";
-import { Icon } from "../ui/Icon";
+import { Button } from "../ui/Button";
 
 export interface NewItemsPillProps {
   /** Rota que responde `{ count: number }` com as novas desde o carregamento. */
@@ -66,18 +66,17 @@ export function NewItemsPill({
       className={cx("flex justify-center", className)}
     >
       {count > 0 && (
-        <button
-          type="button"
+        <Button
+          size="md"
+          icon="arrow-up"
           onClick={() => {
             setCount(0);
             router.refresh();
             if (targetId) document.getElementById(targetId)?.scrollIntoView({ block: "start" });
           }}
-          className="inline-flex min-h-tap cursor-pointer items-center gap-2 rounded-pill bg-action-primary px-5 text-14 font-semibold text-on-inverse hover:bg-action-primary-pressed"
         >
-          <Icon name="arrow-up" size={16} />
           {SECTION_PAGE.newItems(count)}
-        </button>
+        </Button>
       )}
     </div>
   );

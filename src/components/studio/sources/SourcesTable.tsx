@@ -240,7 +240,7 @@ export function SourcesTable({
                   aria-label={T.columns.selectAll}
                   checked={allSelected}
                   onChange={toggleAll}
-                  className="size-5 accent-action-primary"
+                  className="size-5 accent-(--action-primary)"
                 />
               </th>
               <SortableHeader
@@ -310,7 +310,7 @@ export function SourcesTable({
                       aria-label={T.columns.selectOne(row.name)}
                       checked={selected.has(row.id)}
                       onChange={() => toggle(row.id)}
-                      className="size-5 accent-action-primary"
+                      className="size-5 accent-(--action-primary)"
                     />
                   </td>
                   <td className="w-[1%] max-w-[13rem] p-3 wide:max-w-[16rem]">

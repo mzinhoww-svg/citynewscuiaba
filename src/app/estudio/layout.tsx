@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { ToastProvider } from "@/components";
 import { NotificationBell, StudioShell } from "@/components/estudio";
 import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import { canAccess, loginRedirect } from "@/lib/auth";
@@ -21,16 +22,18 @@ export default async function StudioLayout({ children }: Readonly<{ children: Re
   const pendingPush = canAccess(session.roles, "push.approve") ? await pendingCount() : 0;
   const role = [...new Set(session.roles.map((r) => ROLE_LABEL[r.role]))].join(" · ");
   return (
-    <StudioShell
-      nav={studioNav(session.roles, { pendingPush })}
-      user={{ name: session.email ?? role, role }}
-      bell={
-        <NotificationBell
-          pushHref={hasAnyPushAction(session.roles) ? pushHrefFor(session.roles) : null}
-        />
-      }
-    >
-      {children}
-    </StudioShell>
+    <ToastProvider>
+      <StudioShell
+        nav={studioNav(session.roles, { pendingPush })}
+        user={{ name: session.email ?? role, role }}
+        bell={
+          <NotificationBell
+            pushHref={hasAnyPushAction(session.roles) ? pushHrefFor(session.roles) : null}
+          />
+        }
+      >
+        {children}
+      </StudioShell>
+    </ToastProvider>
   );
 }

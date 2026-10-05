@@ -8,6 +8,7 @@ import {
   InlineAlert,
   NotificationInviteSlot,
   PushSettings,
+  RadioGroup,
   Select,
   Skeleton,
   TextField,
@@ -226,44 +227,20 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
               <p>{topicsError ? T.topicsError : T.topicsEmpty}</p>
             </InlineAlert>
           )}
-          <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.frequency}</legend>
-            {FREQS.map((f) => (
-              <label
-                key={f}
-                className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-              >
-                <input
-                  type="radio"
-                  name="frequency"
-                  value={f}
-                  checked={frequency === f}
-                  onChange={() => setFrequency(f)}
-                  className="size-5 accent-(--action-primary)"
-                />
-                {T.frequencies[f]}
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.channel}</legend>
-            {CHANNELS.map((c) => (
-              <label
-                key={c}
-                className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-              >
-                <input
-                  type="radio"
-                  name="channel"
-                  value={c}
-                  checked={channel === c}
-                  onChange={() => setChannel(c)}
-                  className="size-5 accent-(--action-primary)"
-                />
-                {T.channels[c]}
-              </label>
-            ))}
-          </fieldset>
+          <RadioGroup
+            name="frequency"
+            legend={T.frequency}
+            options={FREQS.map((f) => ({ value: f, label: T.frequencies[f] }))}
+            value={frequency}
+            onChange={(v) => setFrequency(FREQS.find((f) => f === v) ?? "immediate")}
+          />
+          <RadioGroup
+            name="channel"
+            legend={T.channel}
+            options={CHANNELS.map((c) => ({ value: c, label: T.channels[c] }))}
+            value={channel}
+            onChange={(v) => setChannel(CHANNELS.find((c) => c === v) ?? "browser")}
+          />
           {channel === "email" && (
             <TextField
               id={emailId}

@@ -55,6 +55,13 @@ beforeAll(async () => {
   await article("ok", {});
   await article("semcorpo", { body: doc("") });
   await article("politica", { section_slug: "politica" });
+  // Rascunho sem IA: título provisório do assunto e corpo que é o texto da fonte.
+  await article("semredacao", {
+    title: "Assunto em apuração · Política",
+    dek: "",
+    ai_fallback: true,
+    body: doc("Folha do Cerrado: Original fictício. Trecho do feed da fonte sem redação nenhuma."),
+  });
   await article("jarevisada", {
     status: "published",
     publish_mode: "human",
@@ -187,6 +194,49 @@ describe("publicação forçada (banco real)", () => {
     );
     expect(r).toMatchObject({ ok: false, error: "invalid" });
     expect(q.enqueued).toEqual([]);
+  });
+
+  it("rascunho sem redação fica de fora do pedido e do lote, e o banco recusa pôr no ar", async () => {
+    const q = fakeQueue();
+    const r = await asUser("marina", () =>
+      startForcedPublish({ ids: [ids.semredacao!] }, { queue: () => q.queue }),
+    );
+    expect(r).toMatchObject({ ok: false, error: "invalid" });
+    expect(q.enqueued).toEqual([]);
+
+    // Pedido gravado antes da correção (lote com o rascunho): a função do banco também o recusa.
+    const job = await service
+      .from("forced_publish_jobs")
+      .insert({
+        requested_by: SEED_USERS.marina.id,
+        total: 1,
+        batches: [[ids.semredacao!]],
+        excluded: [],
+        risks: {},
+      })
+      .select("id")
+      .single();
+    expect(job.error).toBeNull();
+    jobs.push(job.data!.id);
+    const run = await service.rpc("forced_publish_batch", { p_job: job.data!.id, p_batch: 0 });
+    expect(run.data).toMatchObject({
+      status: "ok",
+      done: 0,
+      failures: [{ id: ids.semredacao, reason: "unwritten" }],
+    });
+
+    // Nenhum caminho põe no ar: UPDATE direto com service role também é recusado.
+    const direct = await service
+      .from("articles")
+      .update({ status: "published", publish_mode: "auto", published_at: new Date().toISOString() })
+      .eq("id", ids.semredacao!);
+    expect(direct.error?.code).toBe("23514");
+    const after = await service
+      .from("articles")
+      .select("status")
+      .eq("id", ids.semredacao!)
+      .single();
+    expect(after.data?.status).toBe("in_review");
   });
 
   it("jornalista não pode", async () => {

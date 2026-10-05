@@ -10,6 +10,8 @@ import {
 import { NEWSLETTER, NEWSLETTER_PAGE } from "@/content/pt-BR/newsletter";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { FieldError } from "../ui/Field";
 import { Icon } from "../ui/Icon";
 import { TextField } from "../ui/TextField";
 
@@ -44,7 +46,7 @@ export function NewsletterForm({ action, lists, className }: NewsletterFormProps
     <form action={formAction} noValidate className={cx("flex flex-col gap-3", className)}>
       {lists && (
         <fieldset
-          aria-describedby={listsError ? `${id}-lists-error` : undefined}
+          aria-describedby={listsError ? `${id}-lists-erro` : undefined}
           className="flex flex-col gap-1"
         >
           <legend className="mb-1 type-body font-semibold text-strong">
@@ -52,28 +54,19 @@ export function NewsletterForm({ action, lists, className }: NewsletterFormProps
           </legend>
           <input type="hidden" name={LISTS_PICKED_FIELD} value="1" />
           {lists.map((l, i) => (
-            <label
+            <Checkbox
               key={l.id}
-              className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-            >
-              <input
-                type="checkbox"
-                name="lists"
-                value={l.id}
-                defaultChecked={i === 0}
-                className="size-5 accent-(--action-primary)"
-              />
-              <span>
-                {l.name} <span className="type-meta text-meta">· {l.when}</span>
-              </span>
-            </label>
+              name="lists"
+              value={l.id}
+              defaultChecked={i === 0}
+              label={
+                <span>
+                  {l.name} <span className="type-meta text-meta">· {l.when}</span>
+                </span>
+              }
+            />
           ))}
-          {listsError && (
-            <p id={`${id}-lists-error`} className="flex items-start gap-1.5 type-meta text-danger">
-              <Icon name="circle-alert" size={16} />
-              {listsError}
-            </p>
-          )}
+          <FieldError id={`${id}-lists`} error={listsError} />
         </fieldset>
       )}
       <div className={cx("flex flex-col gap-3", !lists && "sm:flex-row sm:items-start")}>

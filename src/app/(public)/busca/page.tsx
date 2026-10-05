@@ -10,6 +10,7 @@ import {
   KeepFocusInView,
   SearchGroupBlock,
   Skeleton,
+  TagLink,
 } from "@/components";
 import { SEARCH } from "@/content/pt-BR/search";
 import { listTopics } from "@/lib/db/queries";
@@ -58,26 +59,48 @@ function keptFilters(f: SearchFilters): Record<string, string> {
 
 const askHref = (q: string) => `/pergunte?q=${encodeURIComponent(q)}`;
 
-/** Linha de destaque no topo dos resultados: leva a mesma pergunta ao chat. */
-function AskRow({ q }: { q: string }) {
+/** Resultados antes da linha do Pergunte no celular (UX item 76). */
+const ASK_AFTER_MOBILE = 3;
+
+/**
+ * Linha que leva a mesma pergunta ao chat. No desktop, no topo dos resultados; no celular,
+ * compacta e depois dos primeiros resultados (`compact`), para a busca mostrar primeiro o que
+ * encontrou.
+ */
+function AskRow({ q, compact = false }: { q: string; compact?: boolean }) {
   return (
     <Link
       href={askHref(q)}
       prefetch={false}
-      className="flex min-h-tap items-center gap-3 border-y border-line-section py-3 no-underline hover:bg-section"
+      data-ask-row={compact ? "compact" : "top"}
+      className={
+        compact
+          ? "flex min-h-tap items-center gap-3 border-y border-line-section py-2 no-underline hover:bg-section lg:hidden"
+          : "hidden min-h-tap items-center gap-3 border-y border-line-section py-3 no-underline hover:bg-section lg:flex"
+      }
     >
       <span
         aria-hidden="true"
-        className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-ia-soft text-ai"
+        className={`flex shrink-0 items-center justify-center rounded-pill bg-ia-soft text-ai ${compact ? "size-8" : "size-10"}`}
       >
-        <Icon name="message-circle" size={20} />
+        <Icon name="message-circle" size={compact ? 16 : 20} />
       </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="type-body font-semibold text-strong">{SEARCH.askAi}</span>
-        <span className="type-meta text-meta">
-          {SEARCH.askAiHint}: <span className="text-strong">“{q}”</span>
+      {compact ? (
+        <span className="min-w-0 flex-1 truncate type-body font-semibold text-strong">
+          {SEARCH.askAi}
+          <span className="sr-only">
+            {" "}
+            {SEARCH.askAiHint}: “{q}”
+          </span>
         </span>
-      </span>
+      ) : (
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="type-body font-semibold text-strong">{SEARCH.askAi}</span>
+          <span className="type-meta text-meta">
+            {SEARCH.askAiHint}: <span className="text-strong">“{q}”</span>
+          </span>
+        </span>
+      )}
       <Icon name="chevron-right" size={20} className="shrink-0 text-meta" />
     </Link>
   );
@@ -170,19 +193,32 @@ async function ResultsBody({ filters }: { filters: SearchFilters }) {
   if (r.total === 0) return <Empty filters={filters} didYouMean={r.didYouMean} />;
   const terms = queryTerms(filters.q);
   const now = new Date();
+  // Celular: a linha do Pergunte entra depois dos primeiros resultados; a lista se divide em
+  // duas (a segunda continua a numeração) para a linha não virar um item de resultado.
+  const head = r.groups.slice(0, ASK_AFTER_MOBILE);
+  const tail = r.groups.slice(ASK_AFTER_MOBILE);
+  const items = (groups: typeof r.groups) =>
+    groups.map((g) => (
+      <li key={g.topic ? `topic:${g.topic.id}` : `${g.items[0]?.kind}:${g.items[0]?.item.id}`}>
+        <SearchGroupBlock group={g} terms={terms} now={now} />
+      </li>
+    ));
   return (
     <section aria-labelledby="resultados-titulo" className="flex flex-col gap-2">
       <h2 id="resultados-titulo" className="type-section text-strong">
         {SEARCH.count(r.total, filters.q)}
       </h2>
       {r.semantic && <p className="type-meta text-meta">{SEARCH.semantic}</p>}
-      <ol className="flex flex-col divide-y divide-line-section">
-        {r.groups.map((g) => (
-          <li key={g.topic ? `topic:${g.topic.id}` : `${g.items[0]?.kind}:${g.items[0]?.item.id}`}>
-            <SearchGroupBlock group={g} terms={terms} now={now} />
-          </li>
-        ))}
-      </ol>
+      <ol className="flex flex-col divide-y divide-line-section">{items(head)}</ol>
+      <AskRow q={filters.q} compact />
+      {tail.length > 0 && (
+        <ol
+          start={ASK_AFTER_MOBILE + 1}
+          className="flex flex-col divide-y divide-line-section lg:border-t lg:border-line-section"
+        >
+          {items(tail)}
+        </ol>
+      )}
     </section>
   );
 }
@@ -203,12 +239,12 @@ async function Start() {
           <ul className="flex flex-wrap gap-2">
             {list.map((t) => (
               <li key={t.id}>
-                <Link
+                <TagLink
                   href={t.href}
-                  className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                  className="max-w-full whitespace-normal! py-2.5 leading-snug!"
                 >
                   {t.title}
-                </Link>
+                </TagLink>
               </li>
             ))}
           </ul>

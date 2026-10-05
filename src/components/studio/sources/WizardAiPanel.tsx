@@ -36,7 +36,7 @@ export function AiPanel({ analysis, titleId }: { analysis: LinkAnalysis; titleId
             campos abaixo, com o botão “Usar sugestão”.
           </p>
           <div className="flex flex-col gap-1">
-            <p className="type-label text-16 text-strong">{WIZARD_TEXT.ai.qualityTitle}</p>
+            <p className="type-label text-strong">{WIZARD_TEXT.ai.qualityTitle}</p>
             {ai.qualityFlags.value.length === 0 ? (
               <p className="type-meta text-meta">{WIZARD_TEXT.ai.noQuality}</p>
             ) : (
@@ -52,7 +52,7 @@ export function AiPanel({ analysis, titleId }: { analysis: LinkAnalysis; titleId
           </div>
           {ai.rationale.value && (
             <div className="flex flex-col gap-1">
-              <p className="type-label text-16 text-strong">{WIZARD_TEXT.ai.rationale}</p>
+              <p className="type-label text-strong">{WIZARD_TEXT.ai.rationale}</p>
               <p className="type-meta text-strong">{ai.rationale.value}</p>
             </div>
           )}

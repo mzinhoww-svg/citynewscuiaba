@@ -48,7 +48,7 @@ export function SourceRowMobile({
           aria-label={T.columns.selectOne(row.name)}
           checked={selected}
           onChange={onToggle}
-          className="mt-0.5 size-6 shrink-0 accent-action-primary"
+          className="mt-0.5 size-6 shrink-0 accent-(--action-primary)"
         />
         <div className="min-w-0 flex-1">
           <Link href={href} className="type-section text-strong no-underline hover:underline">

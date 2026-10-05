@@ -11,13 +11,14 @@ import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
 import type { ActionState } from "@/lib/sources/action-state";
 import type { ImagePolicy, Reliability, RepublishPolicy } from "@/lib/sources/types";
 import { Button } from "../../ui/Button";
+import { DateField } from "../../ui/DateField";
 import { Icon } from "../../ui/Icon";
+import { Select } from "../../ui/Select";
 import {
   ActionMessage,
   CheckboxField,
   CriticalBadge,
   JustificationField,
-  SelectField,
   TextInput,
 } from "./fields";
 import {
@@ -147,7 +148,7 @@ export function ReviewStep({
         />
       </FieldGroup>
       <FieldGroup title={WIZARD_TEXT.review.rights}>
-        <SelectField
+        <Select
           id={`${uid}-imagePolicy`}
           name="imagePolicy"
           label={FIELD_TEXT.imagePolicy}
@@ -155,9 +156,9 @@ export function ReviewStep({
           onChange={(v) => set("imagePolicy", v as ImagePolicy)}
           options={IMAGE_POLICY_OPTIONS}
           hint={FIELD_TEXT.criticalStatic}
-          aside={criticalAside("imagePolicy")}
+          labelAside={criticalAside("imagePolicy")}
         />
-        <SelectField
+        <Select
           id={`${uid}-republish`}
           name="republishPolicy"
           label={FIELD_TEXT.republishPolicy}
@@ -165,7 +166,7 @@ export function ReviewStep({
           onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
           options={REPUBLISH_OPTIONS}
           hint={FIELD_TEXT.criticalStatic}
-          aside={criticalAside("republishPolicy")}
+          labelAside={criticalAside("republishPolicy")}
         />
         <CheckboxField
           id={`${uid}-sole`}
@@ -175,10 +176,10 @@ export function ReviewStep({
           hint={FIELD_TEXT.criticalStatic}
           aside={criticalAside("maySoleSource")}
         />
-        <TextInput
+        <DateField
           id={`${uid}-agreementUntil`}
+          name="agreementUntil"
           label={FIELD_TEXT.agreementUntil}
-          type="date"
           value={fields.agreementUntil}
           onChange={(v) => set("agreementUntil", v)}
         />
@@ -228,7 +229,7 @@ export function ReviewStep({
         />
       </FieldGroup>
       <FieldGroup title={WIZARD_TEXT.review.importance}>
-        <SelectField
+        <Select
           id={`${uid}-score`}
           name="editorialScore"
           label={FIELD_TEXT.score}
@@ -237,7 +238,7 @@ export function ReviewStep({
           options={[1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: scoreText(n) }))}
           hint={FIELD_TEXT.scoreHint}
         />
-        <SelectField
+        <Select
           id={`${uid}-priority`}
           name="priority"
           label={FIELD_TEXT.priority}

@@ -144,31 +144,34 @@ export default async function ProfilePage({ searchParams }: { searchParams: Sear
 
           <LocalProfileCard signedIn={Boolean(reader)} accountActions={Boolean(reader)} />
 
+          {/* A sessão existe mesmo quando a leitura da conta falha: "Sair" continua (item 70). */}
+          {reader && (
+            <Section id="perfil-sessoes" title={T.sessions.title}>
+              <p className="type-body text-body">
+                <span className="font-semibold text-strong">{T.sessions.current}</span>
+                {reader.user.last_sign_in_at &&
+                  ` · ${T.sessions.since(formatWhen(reader.user.last_sign_in_at))}`}
+              </p>
+              <p className="type-meta text-meta">{T.sessions.note}</p>
+              <div className="flex flex-wrap gap-3">
+                <form action={signOutAction}>
+                  <input type="hidden" name="scope" value="local" />
+                  <Button type="submit" size="md" variant="outline" icon="log-out">
+                    {T.sessions.signOut}
+                  </Button>
+                </form>
+                <form action={signOutAction}>
+                  <input type="hidden" name="scope" value="global" />
+                  <Button type="submit" size="md" variant="outline">
+                    {T.sessions.signOutAll}
+                  </Button>
+                </form>
+              </div>
+            </Section>
+          )}
+
           {reader && account && (
             <>
-              <Section id="perfil-sessoes" title={T.sessions.title}>
-                <p className="type-body text-body">
-                  <span className="font-semibold text-strong">{T.sessions.current}</span>
-                  {reader.user.last_sign_in_at &&
-                    ` · ${T.sessions.since(formatWhen(reader.user.last_sign_in_at))}`}
-                </p>
-                <p className="type-meta text-meta">{T.sessions.note}</p>
-                <div className="flex flex-wrap gap-3">
-                  <form action={signOutAction}>
-                    <input type="hidden" name="scope" value="local" />
-                    <Button type="submit" size="md" variant="outline" icon="log-out">
-                      {T.sessions.signOut}
-                    </Button>
-                  </form>
-                  <form action={signOutAction}>
-                    <input type="hidden" name="scope" value="global" />
-                    <Button type="submit" size="md" variant="outline">
-                      {T.sessions.signOutAll}
-                    </Button>
-                  </form>
-                </div>
-              </Section>
-
               <Section id="perfil-senha" title={T.password.title}>
                 <NewPasswordForm action={newPasswordAction} submit={T.password.submit} />
               </Section>

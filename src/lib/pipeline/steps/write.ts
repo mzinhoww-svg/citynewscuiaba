@@ -138,11 +138,20 @@ export function citedParagraphs(
   );
 }
 
-/** Rascunho sem IA (Review Focus 4): lista as fontes para a redação escrever. */
-function fallbackDraft(ctx: DraftContext): { title: string; dek: string; body: Paragraph[] } {
+/**
+ * Rascunho sem IA (Review Focus 4): lista as fontes para a redação escrever. Nasce com o título
+ * da fonte principal, nunca com o título provisório do assunto ("Assunto em apuração · …"), e
+ * sem linha fina: o aviso para a redação fica no motivo da revisão, não num campo público.
+ */
+export function fallbackDraft(ctx: DraftContext): {
+  title: string;
+  dek: string;
+  body: Paragraph[];
+} {
+  const lead = ctx.items.find((i) => i.reliability === "primary") ?? ctx.items[0];
   return {
-    title: ctx.topic.title,
-    dek: `Rascunho sem IA com ${ctx.items.length} fonte(s): revise e escreva antes de publicar.`,
+    title: lead?.title.trim() || ctx.topic.title,
+    dek: "",
     body: ctx.items.map((i) => ({
       text: `${i.sourceName}: ${i.title}${i.excerpt ? `. ${i.excerpt}` : ""} (${i.canonicalUrl})`,
       citations: [i.id],

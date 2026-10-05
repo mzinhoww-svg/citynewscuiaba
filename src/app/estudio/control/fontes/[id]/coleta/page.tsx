@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Panel } from "@/components";
 import { CollectionActions, SourceRunsTable } from "@/components/estudio";
 import { formatMinutes, fullDateTime } from "@/content/pt-BR/sources-admin";
 import {
@@ -37,10 +38,7 @@ export default async function SourceCollectionPage({ params }: Props) {
   return (
     <section className="flex flex-col gap-6">
       <h2 className="sr-only">{DETAIL_TEXT.sections.collection}</h2>
-      <section
-        aria-labelledby="como-coletamos"
-        className="flex flex-col gap-3 rounded-lg border border-line-section bg-card-white p-4 sm:p-5"
-      >
+      <Panel aria-labelledby="como-coletamos" className="flex flex-col gap-3 sm:p-5">
         <h2 id="como-coletamos" className="type-section text-strong">
           {T.strategyTitle}
         </h2>
@@ -92,11 +90,8 @@ export default async function SourceCollectionPage({ params }: Props) {
           collectNowAction={collectNowAction}
           reanalyzeHref={`${BASE}/nova?url=${encodeURIComponent(d.config.baseUrl)}`}
         />
-      </section>
-      <section
-        aria-labelledby="runs-titulo"
-        className="flex flex-col gap-3 rounded-lg border border-line-section bg-card-white p-4 sm:p-5"
-      >
+      </Panel>
+      <Panel aria-labelledby="runs-titulo" className="flex flex-col gap-3 sm:p-5">
         <h2 id="runs-titulo" className="type-section text-strong">
           {T.runsTitle}
         </h2>
@@ -105,7 +100,7 @@ export default async function SourceCollectionPage({ params }: Props) {
         ) : (
           <p className="type-body text-meta">{DETAIL_TEXT.error.tab}</p>
         )}
-      </section>
+      </Panel>
     </section>
   );
 }

@@ -16,6 +16,7 @@ import {
   CorrectionNote,
   CreditLine,
   EmptyState,
+  FirstVisitGate,
   GoneState,
   JsonLd,
   MadeHow,
@@ -24,10 +25,10 @@ import {
   ReportProblemForm,
   ReviewBanner,
   SourcesList,
-  TopicStatus,
   UpdateNote,
   UpdatedWhileReading,
   NotificationInviteSlot,
+  TagLink,
 } from "@/components";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { CARD } from "@/content/pt-BR/portal-card";
@@ -194,7 +195,6 @@ function Article({ a }: { a: ArticleView }) {
             <header className="flex max-w-read flex-col gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag>{a.section.name}</CategoryTag>
-                {a.topic && <TopicStatus state={a.topic.state} />}
               </div>
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
@@ -205,7 +205,6 @@ function Article({ a }: { a: ArticleView }) {
 
             <ArticleActions
               article={{ id: a.id, title: a.title, href: a.href, section: a.section.name }}
-              reportAction={reportProblemAction}
             />
 
             {a.image && <ArticleFigure image={a.image} priority className="reading-column -my-2" />}
@@ -267,21 +266,16 @@ function Article({ a }: { a: ArticleView }) {
               </h2>
               <ul className="flex flex-wrap gap-2">
                 <li>
-                  <Link
-                    href={`/${a.section.slug}`}
-                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
-                  >
-                    {a.section.name}
-                  </Link>
+                  <TagLink href={`/${a.section.slug}`}>{a.section.name}</TagLink>
                 </li>
                 {a.topic && (
                   <li>
-                    <Link
+                    <TagLink
                       href={`/assunto/${a.topic.slug}`}
-                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                      className="max-w-full whitespace-normal! py-2.5 leading-snug!"
                     >
                       {ARTICLE.topicTag(a.topic.title)}
-                    </Link>
+                    </TagLink>
                   </li>
                 )}
               </ul>
@@ -309,9 +303,12 @@ function Article({ a }: { a: ArticleView }) {
                 ))}
               </ul>
             </section>
+
+            {/* Convite da primeira visita (item 63): só no fim da leitura, nunca sobre o texto. */}
+            <FirstVisitGate placement="article-end" />
           </article>
 
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
             <MadeHow
               article={a}
               versionsHref={historyHref}

@@ -12,6 +12,7 @@ import { OriginLabel } from "../../editorial/OriginLabel";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, AdminTable, CheckList, type AdminReply } from "./AdminStatus";
@@ -47,10 +48,7 @@ export function CampaignsPanel({ campaigns, sections, save, remove }: CampaignsP
   const nameOf = (slug: string) => sections.find((s) => s.slug === slug)?.name ?? slug;
   return (
     <div className="flex flex-col gap-8">
-      <section
-        aria-labelledby={`${uid}-rules`}
-        className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby={`${uid}-rules`} className="flex flex-col gap-2">
         <h2 id={`${uid}-rules`} className="type-section text-strong">
           {A.rulesTitle}
         </h2>
@@ -59,7 +57,7 @@ export function CampaignsPanel({ campaigns, sections, save, remove }: CampaignsP
             <li key={r}>{r}</li>
           ))}
         </ul>
-      </section>
+      </Panel>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <AdminStatus status={status} />
         <Button size="md" icon="plus" onClick={() => setOpen("new")}>

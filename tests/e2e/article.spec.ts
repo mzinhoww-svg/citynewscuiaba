@@ -100,7 +100,8 @@ for (const width of [1280, 800]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/materia/${SLUG}`);
     const { group, box } = await barBox(page);
-    expect(box.height).toBeLessThanOrEqual(56);
+    // botões md de 44 px + py-2 (UX item 75)
+    expect(box.height).toBeLessThanOrEqual(64);
     const boxes = [];
     for (const name of ACTIONS)
       boxes.push((await group.getByRole("button", { name }).boundingBox())!);
@@ -108,7 +109,7 @@ for (const width of [1280, 800]) {
       Math.max(...boxes.map((b) => b.height)) - Math.min(...boxes.map((b) => b.height)),
     ).toBeLessThan(1);
     expect(Math.max(...boxes.map((b) => b.y)) - Math.min(...boxes.map((b) => b.y))).toBeLessThan(2);
-    for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(34);
+    for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(44);
     const summary = page.getByRole("heading", { name: "Resumo em poucos segundos" });
     const block = (await summary
       .locator("xpath=ancestor::*[self::section or self::div][1]")
@@ -125,17 +126,22 @@ for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(`/materia/${SLUG}`);
     const { group, box } = await barBox(page);
-    expect(box.height).toBeLessThanOrEqual(56 * 2);
+    expect(box.height).toBeLessThanOrEqual(16 + 44 * 2 + 12);
+    const boxes = [];
     for (const name of ACTIONS) {
       const btn = group.getByRole("button", { name });
       await expect(btn).toBeVisible();
-      // alvo de toque de 44 px (padding invisível): o ::before cobre a área.
-      const hit = await btn.evaluate((el) => {
-        const r = getComputedStyle(el, "::before");
-        return [parseFloat(r.width), parseFloat(r.height)];
-      });
-      expect(hit[0]).toBeGreaterThanOrEqual(44);
-      expect(hit[1]).toBeGreaterThanOrEqual(44);
+      // UX item 75: o botão visível tem 44 px (md), não só o alvo invisível.
+      const b = (await btn.boundingBox())!;
+      expect(b.height).toBeGreaterThanOrEqual(44);
+      expect(b.width).toBeGreaterThanOrEqual(44);
+      boxes.push(b);
+    }
+    // folga de pelo menos 8 px entre botões vizinhos na mesma linha
+    const sorted = boxes.sort((a, b) => a.y - b.y || a.x - b.x);
+    for (let i = 1; i < sorted.length; i++) {
+      const [p, c] = [sorted[i - 1]!, sorted[i]!];
+      if (Math.abs(p.y - c.y) < 2) expect(c.x - (p.x + p.width)).toBeGreaterThanOrEqual(8);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
@@ -160,13 +166,25 @@ test("depois de salvar, a mensagem fica abaixo dos botões e não quebra a linha
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
 
-test("Informar problema é link discreto fora do grupo de botões", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`/materia/${SLUG}`);
-  const { group } = await barBox(page);
-  await expect(group.getByRole("button", { name: "Informar problema" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Informar problema" }).first()).toBeVisible();
-});
+for (const width of [1280, 390]) {
+  test(`Informar problema tem uma entrada só, em "De onde veio" (${width} px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/materia/${SLUG}`);
+    const { bar } = await barBox(page);
+    await expect(bar.getByRole("button", { name: "Informar problema" })).toHaveCount(0);
+    // getByRole ignora a versão escondida por CSS: só uma entrada visível por largura.
+    const visible = page.getByRole("button", { name: "Informar problema" });
+    await expect(visible).toHaveCount(1);
+    await expect(visible).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "De onde veio" }).getByRole("button", {
+        name: "Informar problema",
+      }),
+    ).toHaveCount(1);
+  });
+}
 
 test("'De onde veio' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
   browser,

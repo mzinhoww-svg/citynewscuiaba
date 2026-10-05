@@ -9,6 +9,7 @@ import {
 import type { HealthLabel } from "@/lib/sources";
 import type { SourceFilters as Filters } from "@/lib/db/queries/sources-admin";
 import { Button } from "../../ui/Button";
+import { Checkbox } from "../../ui/Checkbox";
 import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
@@ -113,16 +114,12 @@ export function SourceFilters({ filters, basePath, className }: SourceFiltersPro
           />
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          <label className="flex min-h-tap items-center gap-2 type-body text-strong">
-            <input
-              type="checkbox"
-              name="pendente"
-              value="1"
-              defaultChecked={filters.pending}
-              className="size-5 accent-action-primary"
-            />
-            {T.filters.pending}
-          </label>
+          <Checkbox
+            name="pendente"
+            value="1"
+            label={T.filters.pending}
+            defaultChecked={filters.pending}
+          />
           <Button type="submit" size="sm" variant="secondary">
             {T.filters.submit}
           </Button>

@@ -10,6 +10,7 @@ import type { ActionFn, ActionState } from "@/lib/sources/action-state";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
 import { EmptyState } from "../../ui/EmptyState";
+import { Table } from "../../ui/Table";
 import { ActionMessage } from "../sources/fields";
 import { DecideDialog, type DecideMode } from "./DecideDialog";
 import { PushStatusBadge } from "./PushStatusBadge";
@@ -119,94 +120,86 @@ export function PushQueueTable({
           {T.emptyHint}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto" role="region" aria-label={T.title} tabIndex={0}>
-          <table className="w-full min-w-4xl border-collapse type-body">
-            <thead>
-              <tr className="border-b border-line-section text-left type-meta text-meta">
-                {Object.values(T.columns).map((h) => (
-                  <th key={h} scope="col" className="py-2 pr-3 font-semibold">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-line-section align-top">
-                  <td className="py-2 pr-3 text-strong">{PUSH_ADMIN_TEXT.kind[r.kind]}</td>
-                  <td className="py-2 pr-3 text-strong">
-                    {r.article.slug ? (
-                      <Link
-                        href={`/materia/${r.article.slug}`}
-                        className="text-link underline-offset-4 hover:underline"
-                      >
-                        {r.article.title}
-                      </Link>
-                    ) : (
-                      r.article.title
-                    )}
-                  </td>
-                  <td className="py-2 pr-3 text-strong">
-                    <p className="font-semibold">{r.title}</p>
-                    <p className="type-meta text-meta">{r.body}</p>
-                  </td>
-                  <td className="py-2 pr-3 text-strong">
-                    {r.audienceLabel}
-                    {r.reach !== null && <p className="type-meta text-meta">{T.reach(r.reach)}</p>}
-                  </td>
-                  <td className="py-2 pr-3 text-strong">
-                    {r.requestedBy?.name ?? "Sistema"}
-                    <p className="type-meta text-meta">{fullDateTime(r.requestedAt)}</p>
-                  </td>
-                  <td className="py-2 pr-3 text-strong">
-                    {r.approvedBy && r.approvedAt
-                      ? PUSH_ADMIN_TEXT.approval.by(r.approvedBy.name, clockTime(r.approvedAt))
-                      : PUSH_ADMIN_TEXT.approval.pending}
-                  </td>
-                  <td className="py-2 pr-3 whitespace-nowrap text-strong">
-                    {r.scheduledAt ? fullDateTime(r.scheduledAt) : T.now}
-                  </td>
-                  <td className="py-2 pr-3">
-                    <PushStatusBadge status={r.status} reason={r.statusReason} />
-                  </td>
-                  <td className="py-2">
-                    <div className="flex flex-wrap gap-2">
-                      {/* A-128: decide quem tem push.approve, inclusive o próprio pedido. */}
-                      {r.status === "pending_approval" && canApprove && (
-                        <Button
-                          size="sm"
-                          variant="outline-strong"
-                          aria-label={T.approve(r.title)}
-                          onClick={(e) => {
-                            setTrigger(e.currentTarget);
-                            setError(null);
-                            setOpen({ row: r, mode: "decide" });
-                          }}
-                        >
-                          {T.review}
-                        </Button>
-                      )}
-                      {canCancel(r) && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          aria-label={T.cancel(r.title)}
-                          onClick={(e) => {
-                            setTrigger(e.currentTarget);
-                            setError(null);
-                            setOpen({ row: r, mode: "cancel" });
-                          }}
-                        >
-                          {T.dialog.cancel}
-                        </Button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          caption={T.title}
+          minWidth="xl"
+          headers={Object.values(T.columns)}
+          className="type-body"
+        >
+          {rows.map((r) => (
+            <tr key={r.id} className="border-b border-line-section align-top">
+              <td className="px-3 py-2 text-strong">{PUSH_ADMIN_TEXT.kind[r.kind]}</td>
+              <td className="px-3 py-2 text-strong">
+                {r.article.slug ? (
+                  <Link
+                    href={`/materia/${r.article.slug}`}
+                    className="text-link underline-offset-4 hover:underline"
+                  >
+                    {r.article.title}
+                  </Link>
+                ) : (
+                  r.article.title
+                )}
+              </td>
+              <td className="px-3 py-2 text-strong">
+                <p className="font-semibold">{r.title}</p>
+                <p className="type-meta text-meta">{r.body}</p>
+              </td>
+              <td className="px-3 py-2 text-strong">
+                {r.audienceLabel}
+                {r.reach !== null && <p className="type-meta text-meta">{T.reach(r.reach)}</p>}
+              </td>
+              <td className="px-3 py-2 text-strong">
+                {r.requestedBy?.name ?? "Sistema"}
+                <p className="type-meta text-meta">{fullDateTime(r.requestedAt)}</p>
+              </td>
+              <td className="px-3 py-2 text-strong">
+                {r.approvedBy && r.approvedAt
+                  ? PUSH_ADMIN_TEXT.approval.by(r.approvedBy.name, clockTime(r.approvedAt))
+                  : PUSH_ADMIN_TEXT.approval.pending}
+              </td>
+              <td className="px-3 py-2 whitespace-nowrap text-strong">
+                {r.scheduledAt ? fullDateTime(r.scheduledAt) : T.now}
+              </td>
+              <td className="px-3 py-2">
+                <PushStatusBadge status={r.status} reason={r.statusReason} />
+              </td>
+              <td className="px-3 py-2">
+                <div className="flex flex-wrap gap-2">
+                  {/* A-128: decide quem tem push.approve, inclusive o próprio pedido. */}
+                  {r.status === "pending_approval" && canApprove && (
+                    <Button
+                      size="sm"
+                      variant="outline-strong"
+                      aria-label={T.approve(r.title)}
+                      onClick={(e) => {
+                        setTrigger(e.currentTarget);
+                        setError(null);
+                        setOpen({ row: r, mode: "decide" });
+                      }}
+                    >
+                      {T.review}
+                    </Button>
+                  )}
+                  {canCancel(r) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      aria-label={T.cancel(r.title)}
+                      onClick={(e) => {
+                        setTrigger(e.currentTarget);
+                        setError(null);
+                        setOpen({ row: r, mode: "cancel" });
+                      }}
+                    >
+                      {T.dialog.cancel}
+                    </Button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </Table>
       )}
       {open && (
         <DecideDialog

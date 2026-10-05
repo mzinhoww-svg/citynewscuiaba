@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Table } from "@/components";
 import { AbTestCard, ShareChart } from "@/components/estudio";
 import {
   AB_TEXT as T,
@@ -127,58 +127,43 @@ export default async function AbTestPage({ params }: { params: Promise<{ id: str
         <h2 id="variantes" className="type-section text-strong">
           {T.variantsTitle}
         </h2>
-        <div
-          role="region"
-          aria-label={T.variantsCaption}
-          tabIndex={0}
-          className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.variantsCaption}
+          minWidth="xl"
+          headers={(
+            [
+              "variant",
+              "version",
+              "split",
+              "label",
+              "impressions",
+              "clicks",
+              "ctr",
+              "return7d",
+              "diversity",
+              "hideRate",
+            ] as const
+          ).map((k) => T.col[k])}
         >
-          <table className="w-full min-w-[64rem] border-collapse text-left">
-            <caption className="sr-only">{T.variantsCaption}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                {(
-                  [
-                    "variant",
-                    "version",
-                    "split",
-                    "label",
-                    "impressions",
-                    "clicks",
-                    "ctr",
-                    "return7d",
-                    "diversity",
-                    "hideRate",
-                  ] as const
-                ).map((k) => (
-                  <th key={k} scope="col" className="px-3 py-3">
-                    {T.col[k]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.index} className="border-b border-line-subtle last:border-0">
-                  <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                    {r.name}
-                  </th>
-                  <td className="px-3 py-3 type-body">{r.version}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{r.split}%</td>
-                  <td className="px-3 py-3 type-meta text-meta">{r.label}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.impressions)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.clicks)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.ctr)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">
-                    {r.return7d === null ? "—" : formatPct(r.return7d)}
-                  </td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatWeight(r.diversity)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.hideRate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {rows.map((r) => (
+            <tr key={r.index} className="border-b border-line-subtle last:border-0">
+              <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                {r.name}
+              </th>
+              <td className="px-3 py-3 type-body">{r.version}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{r.split}%</td>
+              <td className="px-3 py-3 type-meta text-meta">{r.label}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.impressions)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.clicks)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.ctr)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">
+                {r.return7d === null ? "—" : formatPct(r.return7d)}
+              </td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatWeight(r.diversity)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.hideRate)}</td>
+            </tr>
+          ))}
+        </Table>
         {hasData ? (
           <ShareChart
             label={T.chart}

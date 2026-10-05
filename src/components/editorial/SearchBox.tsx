@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent 
 import { SEARCH } from "@/content/pt-BR/search";
 import { normalizeQuery } from "@/lib/search/query";
 import { cx } from "../cx";
+import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 
 export interface SearchBoxProps {
@@ -203,12 +204,9 @@ export function SearchBox({
             onKeyDown={onKeyDown}
             className="min-w-0 flex-1 bg-transparent type-body text-strong placeholder:text-placeholder"
           />
-          <button
-            type="submit"
-            className="inline-flex min-h-tap shrink-0 cursor-pointer items-center rounded-pill bg-action-primary px-4 text-14 font-semibold text-on-inverse hover:bg-action-primary-pressed"
-          >
+          <Button type="submit" size="md" className="shrink-0">
             {submitLabel}
-          </button>
+          </Button>
         </div>
         <div
           className={cx(

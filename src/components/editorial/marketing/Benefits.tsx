@@ -39,7 +39,7 @@ export function Benefits({ id, title, intro, items, className }: BenefitsProps) 
           <li key={it.text} className="flex gap-3 border-t-2 border-line-strong pt-4">
             {it.icon && (
               <span className="mt-0.5 shrink-0 text-strong">
-                <Icon name={it.icon} size={22} />
+                <Icon name={it.icon} size={20} />
               </span>
             )}
             <div className="flex flex-col gap-1">

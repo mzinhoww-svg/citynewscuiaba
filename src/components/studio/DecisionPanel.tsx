@@ -7,6 +7,7 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 import type { ActionReply } from "./QueueTable";
 
 export interface DecisionPanelProps {
@@ -72,10 +73,7 @@ export function DecisionPanel({
   };
 
   return (
-    <section
-      aria-labelledby={`${uid}-titulo`}
-      className={cx("rounded-lg border border-line-subtle bg-card-white p-4", className)}
-    >
+    <Panel aria-labelledby={`${uid}-titulo`} className={className}>
       <h2 id={`${uid}-titulo`} className="type-section text-strong">
         {T.recommendedVsHuman}
       </h2>
@@ -181,7 +179,7 @@ export function DecisionPanel({
         }
       >
         <div className="flex flex-col gap-2 text-left">
-          <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-motivo`} className="type-label text-strong">
             {asking === "reject" ? T.reasonLabel : T.noteLabel}
           </label>
           <textarea
@@ -207,6 +205,6 @@ export function DecisionPanel({
           )}
         </div>
       </Dialog>
-    </section>
+    </Panel>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
-import { PublicShell } from "@/components";
+import { PublicShell, ToastProvider } from "@/components";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
 /**
@@ -13,6 +13,8 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "CityNews",
+    /* eslint-disable no-restricted-syntax -- consultas de mídia da splash do iOS: o Safari exige px
+       do aparelho, não é classe de UI */
     startupImage: [
       {
         url: "/icons/splash-1170x2532.png",
@@ -30,6 +32,7 @@ export const metadata: Metadata = {
           "(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3)",
       },
     ],
+    /* eslint-enable no-restricted-syntax */
   },
   icons: { apple: [{ url: "/icons/apple-touch-icon-180.png", sizes: "180x180" }] },
 };
@@ -40,5 +43,9 @@ export const metadata: Metadata = {
  */
 export default async function PublicLayout({ children }: Readonly<{ children: ReactNode }>) {
   const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
-  return <PublicShell consent={consent}>{children}</PublicShell>;
+  return (
+    <ToastProvider>
+      <PublicShell consent={consent}>{children}</PublicShell>
+    </ToastProvider>
+  );
 }

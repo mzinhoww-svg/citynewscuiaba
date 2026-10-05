@@ -6,6 +6,7 @@ import { CollapsibleFilters } from "../ui/CollapsibleFilters";
 import { EmptyState } from "../ui/EmptyState";
 import { Icon, type IconName } from "../ui/Icon";
 import { Select, type SelectOption } from "../ui/Select";
+import { Table } from "../ui/Table";
 import { TextField } from "../ui/TextField";
 
 const T = CONTROL_TEXT.logs;
@@ -143,75 +144,48 @@ export function LogExplorer({
           }
         />
       ) : (
-        <div
-          role="region"
-          aria-label={T.caption}
-          tabIndex={0}
-          className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.caption}
+          minWidth="xl"
+          className="relative"
+          headers={[T.col.at, T.col.level, T.col.step, T.col.item, T.col.message]}
         >
-          <table className="w-full min-w-[56rem] border-collapse text-left">
-            <caption className="sr-only">{T.caption}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.at}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.level}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.step}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.item}
-                </th>
-                <th scope="col" className="px-3 py-3">
-                  {T.col.message}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
-                  <th
-                    scope="row"
-                    className="px-3 py-2 type-meta font-normal tabular-nums text-body"
-                  >
-                    <time dateTime={r.at}>{formatDateTime(r.at)}</time>
-                  </th>
-                  <td className="px-3 py-2 type-meta">
-                    <span
-                      className={cx(
-                        "inline-flex items-center gap-1 font-semibold",
-                        r.level === "info"
-                          ? "text-service"
-                          : r.level === "warn"
-                            ? "text-warn"
-                            : "text-danger",
-                      )}
-                    >
-                      <Icon name={LEVEL_ICON[r.level] ?? "info"} size={14} />
-                      {LEVEL_LABEL[r.level] ?? r.level}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 type-meta text-strong">{stepLabel(r.step)}</td>
-                  <td className="px-3 py-2 type-meta break-all text-body">{r.itemRef ?? ""}</td>
-                  <td className="px-3 py-2 type-meta text-body">
-                    {r.message}
-                    {r.details !== "{}" && (
-                      <details className="mt-1">
-                        <summary className="cursor-pointer text-link">{T.details}</summary>
-                        <pre className="mt-1 max-w-xl overflow-x-auto whitespace-pre-wrap break-all rounded-sm bg-section p-2 text-12">
-                          {r.details}
-                        </pre>
-                      </details>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
+              <th scope="row" className="px-3 py-2 type-meta font-normal tabular-nums text-body">
+                <time dateTime={r.at}>{formatDateTime(r.at)}</time>
+              </th>
+              <td className="px-3 py-2 type-meta">
+                <span
+                  className={cx(
+                    "inline-flex items-center gap-1 font-semibold",
+                    r.level === "info"
+                      ? "text-service"
+                      : r.level === "warn"
+                        ? "text-warn"
+                        : "text-danger",
+                  )}
+                >
+                  <Icon name={LEVEL_ICON[r.level] ?? "info"} size={14} />
+                  {LEVEL_LABEL[r.level] ?? r.level}
+                </span>
+              </td>
+              <td className="px-3 py-2 type-meta text-strong">{stepLabel(r.step)}</td>
+              <td className="px-3 py-2 type-meta break-all text-body">{r.itemRef ?? ""}</td>
+              <td className="px-3 py-2 type-meta text-body">
+                {r.message}
+                {r.details !== "{}" && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-link">{T.details}</summary>
+                    <pre className="mt-1 max-w-xl overflow-x-auto whitespace-pre-wrap break-all rounded-sm bg-section p-2 text-12">
+                      {r.details}
+                    </pre>
+                  </details>
+                )}
+              </td>
+            </tr>
+          ))}
+        </Table>
       )}
       {moreHref && (
         <div>

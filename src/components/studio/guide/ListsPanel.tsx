@@ -251,7 +251,7 @@ function SponsorDialog({
             type="checkbox"
             checked={on}
             onChange={(e) => setOn(e.target.checked)}
-            className="size-5 shrink-0 accent-action-primary"
+            className="size-5 shrink-0 accent-(--action-primary)"
           />
           Patrocinado
         </label>
