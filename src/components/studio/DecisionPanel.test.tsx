@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -38,6 +38,10 @@ describe("DecisionPanel · atalhos (UX-W3-T5, item 53)", () => {
     const { approve } = setup();
     await user.keyboard("a");
     expect(approve).toHaveBeenCalledWith({ id: "a1" });
+    // Com a aprovação em andamento os atalhos ficam travados (como os botões): espera terminar.
+    await waitFor(() =>
+      expect(screen.getAllByRole("button", { name: "Aprovar e publicar" })[0]).toBeEnabled(),
+    );
 
     await user.keyboard("r");
     const dialog = screen.getByRole("dialog", { hidden: true });
