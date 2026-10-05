@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { expectNoSeriousViolations } from "../a11y/axe";
+import { decisionTrigger, pressDecision } from "./helpers/decision";
 import { expectHydrated } from "./helpers/hydration";
 import { createArticle, loginAs, removeArticles, service, tag } from "./studio";
 import { forwardedFor } from "./own-ip";
@@ -389,11 +390,12 @@ test("Estúdio: aprovar um item da fila só com o teclado", async ({ page }) => 
   await loginAs(page, "marina", "/estudio/fila");
   await expectHydrated(page.getByRole("main"));
   // Da fila até a revisão do item: só Tab e Enter.
-  await tabUntil(page, (x) => (x.href ?? "").endsWith(`/estudio/fila/${id}`), {
+  // O link do item leva a origem da lista (`?de=`, UX-W3-T1) para o "Voltar" e o "próximo".
+  await tabUntil(page, (x) => (x.href ?? "").replace(/\?.*$/, "").endsWith(`/estudio/fila/${id}`), {
     max: 200,
   });
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(new RegExp(`/estudio/fila/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/estudio/fila/${id}(\\?|$)`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText(title);
 
   // Da revisão até "Aprovar e publicar", e Enter aprova.
@@ -487,17 +489,17 @@ test("diálogo Rejeitar no Estúdio: foco preso, Esc fecha e o foco volta @a11y"
   });
   created.push(id);
   await loginAs(page, "marina", `/estudio/fila/${id}`);
-  const trigger = page.getByRole("button", { name: "Rejeitar", exact: true });
-  await expectHydrated(trigger);
+  // No celular, Rejeitar fica no menu "Mais ações" da barra fixa (UX-W3-T1): o foco volta a ele.
+  const trigger = await decisionTrigger(page, "Rejeitar");
   await trigger.focus();
-  await page.keyboard.press("Enter");
+  await pressDecision(page, trigger, "Rejeitar");
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expectFocusTrapped(page, dialog);
   await expectNoSeriousViolations(page, "dialog");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expectFocusOn(trigger, "Rejeitar");
+  await expectFocusOn(trigger, "o gatilho de Rejeitar");
 });
 
 test("gaveta Geração de imagem (E12): foco preso, Esc fecha e o foco volta @a11y", async ({

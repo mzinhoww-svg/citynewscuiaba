@@ -5,7 +5,7 @@ import { createArticle, loginAs, removeArticles, service } from "./studio";
 /*
  * Decisão rápida (UX-W3-T1, itens 45 e 46): no celular a barra de decisão fica no rodapé, visível
  * sem rolar; "Aprovar e ir para o próximo" segue para o próximo item da mesma aba e filtros e
- * mantém a origem (`?de=`) para o "Voltar".
+ * mantém a origem (`?de=`) para o caminho de volta à fila.
  */
 const created: string[] = [];
 const sections: string[] = [];
@@ -56,7 +56,9 @@ test("aprovar e ir para o próximo mantém a aba e os filtros", async ({ page },
   const slug = `fluxo-${letters()}`;
   const s = await service()
     .from("sections")
-    .insert({ slug, name: `Fluxo ${slug}`, autonomy_category: "cidade" } as never);
+    // Categoria cuja regra ativa não exige fonte primária: o item de teste não tem fonte, e o
+    // checklist bloquearia "Aprovar" numa categoria que exige (cidade exige).
+    .insert({ slug, name: `Fluxo ${slug}`, autonomy_category: "cultura" } as never);
   if (s.error) throw s.error;
   sections.push(slug);
   const a = await pipelineItem(slug, `Primeiro da sequência ${slug}`);
@@ -81,7 +83,10 @@ test("aprovar e ir para o próximo mantém a aba e os filtros", async ({ page },
   expect(origin).toContain("aba=exceptions");
   expect(origin).toContain(`editoria=${slug}`);
 
-  const back = page.getByRole("link", { name: "Voltar para a fila" });
+  // O "Voltar" virou o caminho (breadcrumbs, UX-W3-T7): o elo da fila leva à mesma aba e filtros.
+  const back = page
+    .getByRole("navigation", { name: "Caminho" })
+    .getByRole("link", { name: "Fila de matérias" });
   await expect(back).toHaveAttribute("href", origin);
   const { data } = await service().from("articles").select("status").eq("id", first).single();
   expect(data?.status).toBe("published");
