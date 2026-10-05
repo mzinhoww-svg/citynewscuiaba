@@ -29,9 +29,15 @@ test("busca no menu: “regis” acha Registros (desktop no trilho, celular na g
   const scope = (await page.getByRole("button", { name: "Abrir menu" }).isVisible())
     ? page.getByRole("dialog", { name: "Menu do Estúdio" })
     : nav;
-  await scope.getByRole("searchbox", { name: "Buscar no menu" }).fill("regis");
+  const search = scope.getByRole("searchbox", { name: "Buscar no menu" });
+  await search.fill("regis");
   await expect(nav.getByRole("link", { name: "Registros" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Usuários" })).toHaveCount(0);
+  // Esc num campo de busca preenchido primeiro limpa o texto (comportamento nativo do navegador,
+  // que não deixa o Esc chegar à gaveta); o menu volta inteiro e o próximo Esc fecha a gaveta.
+  await page.keyboard.press("Escape");
+  await expect(search).toHaveValue("");
+  await expect(nav.getByRole("link", { name: "Usuários" })).toBeVisible();
   await closeStudioMenu(page);
 });
 
@@ -76,4 +82,8 @@ test("abas da fila mostram a contagem", async ({ page }) => {
   await loginAs(page, "marina", "/estudio/fila");
   const tabs = page.getByRole("navigation", { name: "Abas da fila" });
   await expect(tabs.getByRole("link", { name: /^Fila de exceção, \d+ itens?$/ })).toBeVisible();
+  // As contagens só para leitor de tela (absolutas) não podem escapar da rolagem das abas: no
+  // celular a página ficava com 800 px e o navegador afastava o zoom da tela inteira.
+  const width = page.viewportSize()?.width ?? 0;
+  expect(await page.evaluate(() => window.innerWidth)).toBe(width);
 });

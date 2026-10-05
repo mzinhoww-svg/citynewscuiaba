@@ -239,6 +239,13 @@ function ItemList({
             href={it.href}
             current={it.href === winner}
             onClick={onNavigate}
+            // Nome com a contagem por extenso ("Denúncias, 2 vencidas"). Em `aria-label`, não num
+            // span `sr-only`: absoluto vira bloco e o Chromium separa com espaço ("Denúncias , 2").
+            ariaLabel={
+              hasCount(it)
+                ? `${it.label}${STUDIO_TEXT.navCount(it.count, it.countKind)}`
+                : undefined
+            }
             className={cx(
               "flex min-h-tap items-center gap-3 rounded-sm px-3 text-16 text-strong no-underline hover:bg-hover",
               "aria-[current=page]:bg-section aria-[current=page]:font-semibold",
@@ -251,20 +258,21 @@ function ItemList({
               className={cx("shrink-0", it.emphasis && "text-danger")}
             />
             <span className="min-w-0 flex-1">{it.label}</span>
-            {it.count !== undefined && it.count > 0 && (
-              <>
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 rounded-pill border border-line-subtle bg-page px-2 text-13 font-semibold tabular-nums text-strong"
-                >
-                  {it.count}
-                </span>
-                <span className="sr-only">{STUDIO_TEXT.navCount(it.count, it.countKind)}</span>
-              </>
+            {hasCount(it) && (
+              <span
+                aria-hidden="true"
+                className="shrink-0 rounded-pill border border-line-subtle bg-page px-2 text-13 font-semibold tabular-nums text-strong"
+              >
+                {it.count}
+              </span>
             )}
           </NavLink>
         </li>
       ))}
     </ul>
   );
+}
+
+function hasCount(it: StudioNavItem): it is StudioNavItem & { count: number } {
+  return it.count !== undefined && it.count > 0;
 }
