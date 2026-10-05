@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, OriginLabel, SectionHeader } from "@/components";
+import {
+  Button,
+  EmptyState,
+  InlineAlert,
+  OriginLabel,
+  Panel,
+  SectionHeader,
+  Table,
+} from "@/components";
 import { ConfidenceMeter, DecisionPanel, FieldDiff } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
@@ -64,7 +72,6 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const open = OPEN.has(a.status);
   const rules = a.decisions.find((d) => d.step === "rules");
   const human = a.decisions.find((d) => d.humanDecision);
-  const sensitive = a.section.slug === "seguranca";
   const ai = a.aiVersion;
 
   return (
@@ -105,7 +112,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {T.aiFallbackAlert}
           </InlineAlert>
         )}
-        {sensitive && (
+        {a.sensitive && (
           <InlineAlert tone="warn" role="none">
             {T.sensitiveAlert}
           </InlineAlert>
@@ -170,64 +177,40 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {a.decisions.length === 0 ? (
               <p className="type-body text-meta">{T.noDecisions}</p>
             ) : (
-              <div
-                role="region"
-                aria-label={T.justificationTable}
-                tabIndex={0}
-                className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+              <Table
+                caption={T.justificationTable}
+                minWidth="md"
+                headers={[T.stepCol, T.agent, T.promptVersion, T.rulesVersion, T.at]}
               >
-                <table className="w-full min-w-[40rem] border-collapse text-left">
-                  <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                    <tr>
-                      <th scope="col" className="px-3 py-2">
-                        {T.stepCol}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.agent}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.promptVersion}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.rulesVersion}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.at}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {a.decisions.map((d, i) => (
-                      <tr key={i} className="border-b border-line-subtle align-top last:border-b-0">
-                        <th scope="row" className="px-3 py-2 font-normal">
-                          <span className="type-body font-semibold text-strong">
-                            {T.step[d.step] ?? d.step}
-                            {d.humanDecision
-                              ? ` · ${T.humanDecision[d.humanDecision] ?? d.humanDecision}`
-                              : ""}
-                          </span>
-                          {d.rationale && (
-                            <span className="block type-meta text-meta">{d.rationale}</span>
-                          )}
-                          {d.humanName && (
-                            <span className="block type-meta text-meta">{d.humanName}</span>
-                          )}
-                        </th>
-                        <td className="px-3 py-2 type-body">{d.agentId ?? "—"}</td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {d.promptVersion !== null ? `v${d.promptVersion}` : "—"}
-                        </td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {d.rulesVersion !== null ? `v${d.rulesVersion}` : "—"}
-                        </td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {formatDateTime(d.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                {a.decisions.map((d, i) => (
+                  <tr key={i} className="border-b border-line-subtle align-top last:border-b-0">
+                    <th scope="row" className="px-3 py-2 font-normal">
+                      <span className="type-body font-semibold text-strong">
+                        {T.step[d.step] ?? d.step}
+                        {d.humanDecision
+                          ? ` · ${T.humanDecision[d.humanDecision] ?? d.humanDecision}`
+                          : ""}
+                      </span>
+                      {d.rationale && (
+                        <span className="block type-meta text-meta">{d.rationale}</span>
+                      )}
+                      {d.humanName && (
+                        <span className="block type-meta text-meta">{d.humanName}</span>
+                      )}
+                    </th>
+                    <td className="px-3 py-2 type-body">{d.agentId ?? "—"}</td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {d.promptVersion !== null ? `v${d.promptVersion}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {d.rulesVersion !== null ? `v${d.rulesVersion}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {formatDateTime(d.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </Table>
             )}
           </section>
         </div>
@@ -265,10 +248,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 : undefined
             }
           />
-          <section
-            aria-labelledby="imagem"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="imagem">
             <h2 id="imagem" className="type-section text-strong">
               {T.image}
             </h2>
@@ -289,11 +269,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 ))}
               </ul>
             )}
-          </section>
-          <section
-            aria-labelledby="historico"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          </Panel>
+          <Panel aria-labelledby="historico">
             <h2 id="historico" className="type-section text-strong">
               {T.history}
             </h2>
@@ -315,7 +292,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             >
               {EDITOR_TEXT.openHistory}
             </Button>
-          </section>
+          </Panel>
         </aside>
       </div>
     </article>

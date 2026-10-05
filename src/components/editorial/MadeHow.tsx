@@ -76,7 +76,7 @@ export function MadeHow({
       {MADE_HOW.title}
     </Heading>
   );
-  const body = (
+  const body = (withReport: boolean) => (
     <>
       <dl className="flex flex-col gap-3">
         {rows.map((r) => (
@@ -101,13 +101,14 @@ export function MadeHow({
             {MADE_HOW.methodology}
           </Link>
         )}
-        {report}
+        {withReport && report}
       </div>
     </>
   );
   if (collapsible) {
     // Celular: <details> recolhido. Desktop (lg): painel aberto. Os dois vêm no HTML do servidor
-    // e o CSS escolhe, sem salto de layout e sem depender de JavaScript.
+    // e o CSS escolhe, sem salto de layout e sem depender de JavaScript. "Informar problema"
+    // (única entrada na matéria, UX item 74) fica fora do <details> no celular, sempre à vista.
     return (
       <>
         <section aria-labelledby={id} className={cx("bg-section lg:hidden", className)}>
@@ -120,8 +121,9 @@ export function MadeHow({
                 className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
               />
             </summary>
-            <div className="flex flex-col gap-4 px-5 pb-5">{body}</div>
+            <div className="flex flex-col gap-4 px-5 pb-5">{body(false)}</div>
           </details>
+          {report && <div className="-mt-3 flex px-5 pb-3">{report}</div>}
         </section>
         <section
           aria-labelledby={`${id}-wide`}
@@ -130,7 +132,7 @@ export function MadeHow({
           <Heading id={`${id}-wide`} className="type-section text-strong">
             {MADE_HOW.title}
           </Heading>
-          {body}
+          {body(true)}
         </section>
       </>
     );
@@ -138,7 +140,7 @@ export function MadeHow({
   return (
     <section aria-labelledby={id} className={cx("flex flex-col gap-4 bg-section p-5", className)}>
       {title}
-      {body}
+      {body(true)}
     </section>
   );
 }

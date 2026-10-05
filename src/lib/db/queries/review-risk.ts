@@ -5,7 +5,15 @@ import { WORDS_PER_LINE, type RiskItem } from "@/lib/review/bulk-risk";
 /** Matéria da seleção com os fatos de risco e o necessário para checar o escopo. */
 export interface ReviewRiskRow extends RiskItem {
   status: string;
+  /**
+   * Rascunho sem IA ainda com o texto das fontes (`studio_fallback_pending`) ou com o título
+   * provisório do assunto: não é matéria, nunca vai ao ar.
+   */
+  unwritten: boolean;
 }
+
+/** Título que o assunto tem enquanto ninguém escreveu a matéria (`cluster`, trigger do banco). */
+const PROVISIONAL_TITLE = "Assunto em apuração";
 
 const CHUNK = 100;
 /** Regras e verificação que marcam o assunto como duvidoso ou com fontes divergentes. */
@@ -43,7 +51,7 @@ export async function loadRiskRows(db: DbClient, ids: string[]): Promise<ReviewR
     const [arts, sources, media, reported, decisions] = await Promise.all([
       db
         .from("articles")
-        .select("id, title, section_slug, body, status, confidence, review_reason")
+        .select("id, title, section_slug, body, status, confidence, review_reason, ai_fallback")
         .in("id", part),
       db
         .from("article_sources")
@@ -92,6 +100,18 @@ export async function loadRiskRows(db: DbClient, ids: string[]): Promise<ReviewR
         doubtful.add(id);
     }
 
+    // A regra de "ainda é texto das fontes" mora no banco (a mesma do checklist e da publicação).
+    const pending = new Set<string>();
+    await Promise.all(
+      (arts.data ?? [])
+        .filter((a) => a.ai_fallback)
+        .map(async (a) => {
+          const r = await db.rpc("studio_fallback_pending", { p_id: a.id });
+          // Sem resposta do banco: pendente (falha fechada).
+          if (r.error || r.data !== false) pending.add(a.id);
+        }),
+    );
+
     for (const a of arts.data ?? []) {
       const words = wordCountOf(a.body);
       out.push({
@@ -110,6 +130,7 @@ export async function loadRiskRows(db: DbClient, ids: string[]): Promise<ReviewR
         confidence: a.confidence,
         reported: reportedSet.has(a.id),
         hasBody: words > 0,
+        unwritten: pending.has(a.id) || a.title.startsWith(PROVISIONAL_TITLE),
       });
     }
   }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cx } from "../cx";
 import { Icon, type IconName } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 
 export interface KpiItem {
   label: string;
@@ -57,9 +58,9 @@ export function KpiStrip({ label, items, className }: KpiStripProps) {
                   {body}
                 </Link>
               ) : (
-                <div className="flex h-full flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4">
+                <Panel as="div" className="flex h-full flex-col gap-1">
                   {body}
-                </div>
+                </Panel>
               )}
             </li>
           );

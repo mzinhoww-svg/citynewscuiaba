@@ -19,14 +19,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default async function FavoritesRoute() {
+type Search = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function FavoritesRoute({ searchParams }: { searchParams: Search }) {
+  // Aba aberta em `?aba=` (UX-W4-T4, item 71): voltar ou compartilhar mantém a aba.
+  const aba = (await searchParams).aba;
   // Nomes das fontes para a aba de seguidas; sem banco, a aba mostra o identificador.
   const signals = await getSourceSignals({ window: "7d" });
   const names = signals.ok ? Object.fromEntries(signals.value.map((s) => [s.slug, s.name])) : {};
   return (
     <div className={`${PAGE_CONTAINER} flex flex-col gap-6 py-8 lg:py-10`}>
       <PageHeader title={T.title} intro={<p>{T.intro}</p>} meta={<p>{T.deviceOnlyText}</p>} />
-      <FavoritesClient sourceNames={names} />
+      <FavoritesClient sourceNames={names} initialTab={Array.isArray(aba) ? aba[0] : aba} />
     </div>
   );
 }

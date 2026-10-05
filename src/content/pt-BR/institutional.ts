@@ -1,6 +1,6 @@
 /**
  * Páginas institucionais (P24). Dados jurídicos e de contato ficam como `[PREENCHER]` até o
- * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-146). Nada aqui
+ * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-152). Nada aqui
  * promete prazo ou serviço que o produto não entrega.
  */
 export const PENDING = "[PREENCHER]";

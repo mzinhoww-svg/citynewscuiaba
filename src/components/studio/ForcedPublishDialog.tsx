@@ -262,7 +262,7 @@ function Preview({ preview }: { preview: Extract<PreviewReply, { ok: true }> }) 
         preview.total > 0 && <p className="type-body text-meta">{T.noRisks}</p>
       ) : (
         <section aria-label={T.risksTitle}>
-          <h3 className="type-label text-16 text-strong">{T.risksTitle}</h3>
+          <h3 className="type-label text-strong">{T.risksTitle}</h3>
           <ol className="mt-2 flex flex-col gap-2">
             {preview.top.map((r) => (
               <li key={r.key} className="rounded-lg border border-line-subtle p-3">
@@ -304,7 +304,7 @@ function Result({ status }: { status: Extract<StatusReply, { ok: true }> }) {
       </p>
       {items.length > 0 && (
         <section aria-label={T.resultTitle}>
-          <h3 className="type-label text-16 text-strong">{T.resultTitle}</h3>
+          <h3 className="type-label text-strong">{T.resultTitle}</h3>
           <ul className="mt-2 flex flex-col gap-1.5">
             {items.map((i) => (
               <li key={`${i.id}:${i.reason}`} className="type-meta text-meta">

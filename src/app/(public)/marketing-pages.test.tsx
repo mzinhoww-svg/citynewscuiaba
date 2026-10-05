@@ -37,7 +37,7 @@ describe("/sobre", () => {
       "href",
       "/principios-editoriais",
     );
-    // Dado institucional pendente não vai à tela (A-146).
+    // Dado institucional pendente não vai à tela (A-152).
     expect(container.textContent).not.toMatch(/PREENCHER|aguardam dados oficiais/);
     expect(container.querySelectorAll("details").length).toBeGreaterThan(0);
     expect(container.querySelector('a[href="/como-usamos-ia"]')).toBeNull();

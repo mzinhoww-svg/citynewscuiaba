@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Icon } from "@/components";
+import { Icon, Panel } from "@/components";
 import { AdminTable } from "@/components/estudio";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import { FLAG_TEXT } from "@/content/pt-BR/approvals";
@@ -68,10 +68,7 @@ export default async function IntegrationsPage() {
               </tr>
             ))}
           </AdminTable>
-          <section
-            aria-labelledby="int-flags"
-            className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="int-flags" className="flex flex-col gap-2">
             <h2 id="int-flags" className="type-section text-strong">
               {I.flags}
             </h2>
@@ -94,7 +91,7 @@ export default async function IntegrationsPage() {
                 </li>
               ))}
             </ul>
-          </section>
+          </Panel>
         </div>
       )}
     </AdminScreen>

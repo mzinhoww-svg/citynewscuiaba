@@ -91,7 +91,11 @@ export default async function NewsletterRoute() {
             </li>
           ))}
         </ul>
-        <Cta id="inscrever" title={T.submit} className="scroll-mt-6 self-start lg:sticky lg:top-6">
+        <Cta
+          id="inscrever"
+          title={T.submit}
+          className="scroll-mt-6 self-start lg:sticky lg:top-sticky-public"
+        >
           <NewsletterForm
             action={subscribeListsAction}
             lists={NEWSLETTER_LISTS.map((l) => ({ id: l.id, name: l.name, when: l.when }))}

@@ -11,7 +11,6 @@ import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { AnalysisProgress, type AnalysisPhase } from "./AnalysisProgress";
-import { CONTROL_CLASS } from "./fields";
 import { looseningFields } from "./form-options";
 import { SourcePreviewList } from "./SourcePreviewList";
 import { suggestionText } from "./SuggestionField";
@@ -216,23 +215,31 @@ export function AddSourceWizard({
         noValidate
       >
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <label htmlFor={urlId} className="type-label text-16 text-strong">
+          <label htmlFor={urlId} className="type-label text-strong">
             {WIZARD_TEXT.address.label}
           </label>
-          <input
-            id={urlId}
-            name="url"
-            type="url"
-            inputMode="url"
-            autoComplete="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            aria-invalid={analyzeError ? true : undefined}
-            aria-describedby={[`${urlId}-dica`, analyzeError ? `${urlId}-erro` : null]
-              .filter(Boolean)
-              .join(" ")}
-            className={cx(CONTROL_CLASS, analyzeError && "field-error")}
-          />
+          <div
+            className={cx(
+              "border-control control-field flex h-input items-center rounded-lg bg-input px-4",
+              "transition-[border-color,box-shadow] duration-(--dur-base) ease-(--ease-standard)",
+              analyzeError && "field-error",
+            )}
+          >
+            <input
+              id={urlId}
+              name="url"
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              aria-invalid={analyzeError ? true : undefined}
+              aria-describedby={[`${urlId}-dica`, analyzeError ? `${urlId}-erro` : null]
+                .filter(Boolean)
+                .join(" ")}
+              className="min-w-0 flex-1 bg-transparent type-body text-strong"
+            />
+          </div>
           <p id={`${urlId}-dica`} className="type-meta text-meta">
             {WIZARD_TEXT.address.hint}
           </p>

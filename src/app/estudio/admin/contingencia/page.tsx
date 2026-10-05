@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, Panel } from "@/components";
 import { ApprovalBanner, ContingencyPanel, type ContingencyCard } from "@/components/estudio";
 import { CONTINGENCY_TEXT as T } from "@/content/pt-BR/contingency";
 import { requireRole } from "@/lib/auth/require-role";
@@ -96,10 +96,7 @@ export default async function ContingencyPage() {
         <>
           <ApprovalBanner approvals={data.value.resumeRequests} currentUserId={session.userId} />
           <ContingencyPanel cards={cardsOf(data.value)} run={contingencyAction} />
-          <section
-            aria-labelledby="restore"
-            className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="restore" className="flex flex-col gap-2">
             <h2 id="restore" className="type-section text-strong">
               {T.restore.title}
             </h2>
@@ -107,7 +104,7 @@ export default async function ContingencyPage() {
             <a href={T.restore.runbook} className="type-body font-medium text-link underline">
               {T.runbook}
             </a>
-          </section>
+          </Panel>
         </>
       )}
     </section>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Pagination } from "@/components";
 import {
   CollectionSettingsDialog,
   FastLaneSkippedNotice,
@@ -137,7 +136,7 @@ export default async function SourcesListPage({ searchParams }: Props) {
             defaultFrequencyMinutes={sourcesResult.value.defaultFrequency}
             fastLane={sourcesResult.value.fastLane}
           />
-          <Pagination
+          <SourcesPagination
             page={filters.page}
             total={sourcesResult.value.total}
             basePath={BASE}
@@ -149,7 +148,7 @@ export default async function SourcesListPage({ searchParams }: Props) {
   );
 }
 
-function Pagination({
+function SourcesPagination({
   page,
   total,
   basePath,
@@ -161,37 +160,10 @@ function Pagination({
   query: URLSearchParams;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / SOURCES_PAGE_SIZE));
-  if (totalPages <= 1) return null;
   const hrefFor = (p: number) => {
     const params = new URLSearchParams(query);
     params.set("pagina", String(p));
     return `${basePath}?${params.toString()}`;
   };
-  return (
-    <nav aria-label="Paginação" className="flex items-center justify-between gap-4">
-      {page > 1 ? (
-        <Link
-          href={hrefFor(page - 1)}
-          className="inline-flex items-center gap-1 type-body text-link no-underline hover:underline"
-        >
-          <Icon name="chevron-left" size={18} />
-          {T.pagination.prev}
-        </Link>
-      ) : (
-        <span />
-      )}
-      <p className="type-meta text-meta">{T.pagination.of(page, totalPages)}</p>
-      {page < totalPages ? (
-        <Link
-          href={hrefFor(page + 1)}
-          className="inline-flex items-center gap-1 type-body text-link no-underline hover:underline"
-        >
-          {T.pagination.next}
-          <Icon name="chevron-right" size={18} />
-        </Link>
-      ) : (
-        <span />
-      )}
-    </nav>
-  );
+  return <Pagination page={page} totalPages={totalPages} hrefFor={hrefFor} label="Paginação" />;
 }

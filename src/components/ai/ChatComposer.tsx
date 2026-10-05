@@ -108,7 +108,7 @@ export function ChatComposer({
               : "bg-action-primary text-on-inverse hover:bg-action-primary-pressed",
           )}
         >
-          <Icon name="arrow-up" size={22} />
+          <Icon name="arrow-up" size={20} />
         </button>
       </div>
       <div className="flex items-center justify-between gap-3 px-1">

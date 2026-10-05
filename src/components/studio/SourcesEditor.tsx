@@ -5,11 +5,11 @@ import { useId, useMemo, useState, useTransition } from "react";
 import { EDITOR_TEXT as T } from "@/content/pt-BR/studio";
 import { computeConfidence } from "@/lib/confidence";
 import { formatDateTime } from "@/lib/format/date";
-import { cx } from "../cx";
 import { ConfidenceMeter } from "./ConfidenceMeter";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
+import { Panel } from "../ui/Panel";
 import { Select, type SelectOption } from "../ui/Select";
 import type { ActionReply } from "./QueueTable";
 
@@ -95,10 +95,7 @@ export function SourcesEditor({
   const candidateLabel = new Map(candidates.map((c) => [c.value, c.label]));
 
   return (
-    <section
-      aria-labelledby={`${uid}-titulo`}
-      className={cx("rounded-lg border border-line-subtle bg-card-white p-4", className)}
-    >
+    <Panel aria-labelledby={`${uid}-titulo`} className={className}>
       <h2 id={`${uid}-titulo`} className="type-section text-strong">
         {T.sources}
       </h2>
@@ -229,6 +226,6 @@ export function SourcesEditor({
           </Button>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }

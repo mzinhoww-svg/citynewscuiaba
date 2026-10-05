@@ -72,6 +72,13 @@ test("trilhos da home rolam por teclado, sem rolagem automática", async ({ page
   await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
   await page.keyboard.press("Home");
   await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBe(0);
+  // Celular: a borda que ainda tem itens esmaece (UX item 77).
+  // O véu fica no invólucro do trilho, nunca na lista rolável (A-152).
+  await expect(rail.locator("xpath=..")).toHaveAttribute("data-fade", /end|both/);
+  // Desktop: o trilho vira grade e não rola, então não é parada de Tab (UX item 77).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(rail).not.toHaveAttribute("tabindex", /.*/);
+  expect(await rail.evaluate((el) => getComputedStyle(el).maskImage)).toBe("none");
 });
 
 test("editorias em abas no celular trocam o painel; no desktop, três colunas", async ({ page }) => {

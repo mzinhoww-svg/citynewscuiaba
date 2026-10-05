@@ -1,10 +1,16 @@
-/** Pergunte ao CityNews (Perguntar ao CityNews, docs/screens.md P13; spec §5.5). */
+/** Perguntar ao CityNews (rota /pergunte, docs/screens.md P13; spec §5.5). */
+
+/** Nome único do Pergunte em toda tela pública (UX-W4-T3, item 66): título, busca, Explorar e rodapé. */
+export const ASK_NAME = "Perguntar ao CityNews";
+
+const LIMIT_NO_TIME = "O limite libera em até uma hora. A busca tradicional continua sem limite.";
+
 export const ASK = {
-  title: "Pergunte ao CityNews",
+  title: ASK_NAME,
   metaDescription:
     "Faça uma pergunta sobre Cuiabá e receba uma resposta curta com as fontes de cada frase.",
   documentTitle: (q: string) =>
-    q ? `Pergunte: ${q} · CityNews Cuiabá` : "Pergunte ao CityNews · CityNews Cuiabá",
+    q ? `Perguntar: ${q} · CityNews Cuiabá` : `${ASK_NAME} · CityNews Cuiabá`,
   intro:
     "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem fonte sobre o assunto, o CityNews diz que não encontrou e mostra onde procurar. Não precisa de conta.",
   label: "Sua pergunta",
@@ -52,8 +58,8 @@ export const ASK = {
   insufficientTitle: "Não encontramos fontes para responder",
   insufficientText: (n: number) =>
     n === 0
-      ? "O Perguntar ao CityNews só responde com fontes, e não achamos nenhuma sobre isso."
-      : `O Perguntar ao CityNews só responde com fontes. Encontramos ${n === 1 ? "1 fonte relacionada" : `${n} fontes relacionadas`}, mas nenhuma responde à pergunta.`,
+      ? `O ${ASK_NAME} só responde com fontes, e não achamos nenhuma sobre isso.`
+      : `O ${ASK_NAME} só responde com fontes. Encontramos ${n === 1 ? "1 fonte relacionada" : `${n} fontes relacionadas`}, mas nenhuma responde à pergunta.`,
   suggestion: {
     traditional_search: "Ver na busca tradicional",
     widen_period: "Buscar em qualquer data",
@@ -70,7 +76,9 @@ export const ASK = {
     timeout: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     provider: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     rate_limited: (hour: string) =>
-      `O limite libera às ${hour}. A busca tradicional continua sem limite.`,
+      hour ? `O limite libera às ${hour}. A busca tradicional continua sem limite.` : LIMIT_NO_TIME,
+    /** Sem `retryAt` (horário desconhecido): nunca "libera às ." (UX-W1-T10). */
+    limitNoTime: LIMIT_NO_TIME,
     unavailable: "Pode ser uma instabilidade passageira. A busca tradicional continua funcionando.",
     off: "A redação pausou o assistente. A busca tradicional continua funcionando.",
   },

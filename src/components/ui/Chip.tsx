@@ -24,7 +24,7 @@ const chipClass = (active: boolean, onDark: boolean) =>
         : "bg-action-primary font-semibold text-on-inverse"
       : onDark
         ? "border border-branco/40 bg-transparent text-branco"
-        : "bg-section text-meta hover:bg-nevoa-2 hover:text-strong",
+        : "bg-section text-meta hover:bg-hover hover:text-strong",
   );
 
 /**

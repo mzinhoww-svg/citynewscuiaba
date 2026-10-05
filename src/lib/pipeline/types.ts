@@ -68,6 +68,8 @@ export const PipelineMessageSchema = z.object({
   step: z.enum(JOB_STEPS),
   itemRef: z.string().min(1).max(400),
   attempt: z.number().int().min(1),
+  /** Espera antes de a mensagem ficar visível na fila (nova tentativa agendada). */
+  delaySec: z.number().int().min(0).max(86_400).optional(),
 });
 
 export type PipelineMessage = z.infer<typeof PipelineMessageSchema>;

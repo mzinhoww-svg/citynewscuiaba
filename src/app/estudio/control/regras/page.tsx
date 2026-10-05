@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Icon, Panel, Table } from "@/components";
 import { ApprovalBanner, RuleMatrix, RuleProposalForm } from "@/components/estudio";
 import { RULES_TEXT as T } from "@/content/pt-BR/rules-admin";
 import { requireRole } from "@/lib/auth/require-role";
@@ -108,25 +108,24 @@ function Body({
             {overview.proposals.map((p) => {
               const diff = p.rules ? ruleDiff(rules, p.rules) : [];
               return (
-                <li
-                  key={p.version}
-                  className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4"
-                >
-                  <p className="type-body font-semibold text-strong">
-                    {T.proposalLine(p.version, who(p.proposedBy))} · {formatDateTime(p.createdAt)}
-                  </p>
-                  <p className="type-meta text-meta">{T.diffTitle(p.version)}</p>
-                  {diff.length === 0 ? (
-                    <p className="type-body text-meta">{T.noDiff}</p>
-                  ) : (
-                    <ul className="flex flex-col gap-1 type-body text-body">
-                      {diff.map((d) => (
-                        <li key={d.path}>
-                          {d.path}: {d.from} → {d.to}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
+                <li key={p.version}>
+                  <Panel as="div" className="flex flex-col gap-2">
+                    <p className="type-body font-semibold text-strong">
+                      {T.proposalLine(p.version, who(p.proposedBy))} · {formatDateTime(p.createdAt)}
+                    </p>
+                    <p className="type-meta text-meta">{T.diffTitle(p.version)}</p>
+                    {diff.length === 0 ? (
+                      <p className="type-body text-meta">{T.noDiff}</p>
+                    ) : (
+                      <ul className="flex flex-col gap-1 type-body text-body">
+                        {diff.map((d) => (
+                          <li key={d.path}>
+                            {d.path}: {d.from} → {d.to}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </Panel>
                 </li>
               );
             })}
@@ -150,45 +149,30 @@ function Body({
         <h2 id="historico" className="type-section text-strong">
           {T.versionsTitle}
         </h2>
-        <div
-          role="region"
-          aria-label={T.versionsTitle}
-          tabIndex={0}
-          className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.versionsTitle}
+          minWidth="md"
+          headers={(
+            ["version", "status", "forceReview", "proposedBy", "approvedBy", "when"] as const
+          ).map((k) => T.col[k])}
         >
-          <table className="w-full min-w-[40rem] border-collapse text-left">
-            <caption className="sr-only">{T.versionsTitle}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                {(
-                  ["version", "status", "forceReview", "proposedBy", "approvedBy", "when"] as const
-                ).map((k) => (
-                  <th key={k} scope="col" className="px-3 py-3">
-                    {T.col[k]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {overview.versions.map((v) => (
-                <tr key={v.version} className="border-b border-line-subtle last:border-0">
-                  <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                    v{v.version}
-                  </th>
-                  <td className="px-3 py-3 type-body text-body">{statusOf(v)}</td>
-                  <td className="px-3 py-3 type-body text-body">{v.forceReview ? T.yes : T.no}</td>
-                  <td className="px-3 py-3 type-body text-body">{who(v.proposedBy)}</td>
-                  <td className="px-3 py-3 type-body text-body">
-                    {v.approvedBy ? who(v.approvedBy) : "—"}
-                  </td>
-                  <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
-                    {formatDateTime(v.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {overview.versions.map((v) => (
+            <tr key={v.version} className="border-b border-line-subtle last:border-0">
+              <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                v{v.version}
+              </th>
+              <td className="px-3 py-3 type-body text-body">{statusOf(v)}</td>
+              <td className="px-3 py-3 type-body text-body">{v.forceReview ? T.yes : T.no}</td>
+              <td className="px-3 py-3 type-body text-body">{who(v.proposedBy)}</td>
+              <td className="px-3 py-3 type-body text-body">
+                {v.approvedBy ? who(v.approvedBy) : "—"}
+              </td>
+              <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                {formatDateTime(v.createdAt)}
+              </td>
+            </tr>
+          ))}
+        </Table>
       </section>
     </>
   );

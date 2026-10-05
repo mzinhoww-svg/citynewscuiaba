@@ -1,6 +1,7 @@
 import { VERSIONS_TEXT as T } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 import { VersionDiff } from "../editorial/VersionDiff";
+import { Panel } from "../ui/Panel";
 
 export type VersionDiffOp = { op: "eq" | "add" | "del"; text: string };
 
@@ -43,7 +44,7 @@ export function VersionCompare({ fromLabel, toLabel, fields, className }: Versio
         {fields.map((f) => {
           const changed = f.ops.some((o) => o.op !== "eq");
           return (
-            <div key={f.label} className="rounded-lg border border-line-subtle bg-card-white p-4">
+            <Panel as="div" key={f.label}>
               <dt className="type-eyebrow text-meta">{f.label}</dt>
               <dd className="mt-2">
                 {changed ? (
@@ -58,7 +59,7 @@ export function VersionCompare({ fromLabel, toLabel, fields, className }: Versio
                   <p className="type-body text-meta">{T.unchanged}</p>
                 )}
               </dd>
-            </div>
+            </Panel>
           );
         })}
       </dl>

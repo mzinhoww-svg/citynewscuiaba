@@ -212,7 +212,7 @@ export function PushSettings({ support: forced }: PushSettingsProps) {
         ))}
       </ul>
       <fieldset className="flex flex-col gap-3">
-        <legend className="mb-1 type-label text-16 text-strong">{T.settings.quiet}</legend>
+        <legend className="mb-1 type-label text-strong">{T.settings.quiet}</legend>
         <div className="grid grid-cols-2 gap-3">
           <Select
             id={`${id}-qs`}
@@ -242,7 +242,7 @@ export function PushSettings({ support: forced }: PushSettingsProps) {
         options={LIMITS.map((n) => ({ value: String(n), label: String(n) }))}
       />
       <div className="flex flex-col gap-2">
-        <h3 className="type-label text-16 text-strong">{T.settings.targetsTitle}</h3>
+        <h3 className="type-label text-strong">{T.settings.targetsTitle}</h3>
         {targets.length === 0 ? (
           <p className="type-meta text-meta">{T.settings.targetsEmpty}</p>
         ) : (

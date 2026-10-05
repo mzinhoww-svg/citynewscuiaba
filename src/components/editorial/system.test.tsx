@@ -26,7 +26,7 @@ it("500 tenta de novo e mostra o código", async () => {
   expect(reset).toHaveBeenCalled();
 });
 
-it("institucional esconde dado pendente e a seção que fica vazia (A-146)", () => {
+it("institucional esconde dado pendente e a seção que fica vazia (A-152)", () => {
   const { container } = render(
     <DocPage
       title="Sobre"
@@ -46,9 +46,9 @@ it("institucional esconde dado pendente e a seção que fica vazia (A-146)", () 
 
 it("404 e 500 são compactos no celular (busca e ações sobem acima do banner)", () => {
   const { container, unmount } = render(<NotFoundState />);
-  expect(container.firstElementChild).toHaveClass("py-6");
+  expect(container.firstElementChild).toHaveClass("py-4");
   expect(container.firstElementChild).not.toHaveClass("py-12");
   unmount();
   const r = render(<ErrorState reset={() => {}} />);
-  expect(r.container.firstElementChild).toHaveClass("py-6");
+  expect(r.container.firstElementChild).toHaveClass("py-4");
 });

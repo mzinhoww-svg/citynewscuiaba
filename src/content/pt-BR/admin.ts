@@ -13,6 +13,25 @@ export const ADMIN_TEXT = {
   save: "Salvar",
   cancel: "Cancelar",
   none: "—",
+  /** Confirmação das ações sensíveis (item 24): nome de quem ou do quê, e o efeito. */
+  confirm: {
+    revokeTitle: (name: string) => `Revogar o acesso de administração de ${name}?`,
+    revokeEffect: (name: string) =>
+      `${name} deixa de administrar o Estúdio agora: perde usuários, papéis, interruptores e configurações. Os outros papéis continuam. Fica registrado na auditoria.`,
+    revokeConfirm: (name: string) => `Revogar acesso de ${name}`,
+    grantTitle: (name: string) => `Conceder administração a ${name}?`,
+    grantEffect: (name: string) =>
+      `${name} passa a administrar o Estúdio agora: usuários, papéis, interruptores e configurações. Fica registrado na auditoria.`,
+    grantConfirm: (name: string) => `Conceder administração a ${name}`,
+    rotateTitle: (key: string) => `Marcar ${key} como rotacionada?`,
+    rotateEffect:
+      "Registra hoje como a última rotação e reinicia o prazo da próxima. Faça isso só depois de trocar o valor na Vercel e no Supabase. Fica registrado na auditoria.",
+    rotateConfirm: (key: string) => `Marcar ${key} como rotacionada`,
+    policyTitle: "Aplicar as políticas de segurança?",
+    policyEffect: (hours: number, days: number) =>
+      `Vale para toda a equipe: a sessão dura no máximo ${hours} h e os eventos individuais perdem o que identifica o leitor depois de ${days} dias. Fica registrado na auditoria.`,
+    policyConfirm: "Aplicar políticas",
+  },
   dashboard: {
     title: "Administração",
     intro:

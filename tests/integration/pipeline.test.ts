@@ -244,9 +244,23 @@ async function runCycle(opts: {
   expect(tick).toMatchObject({ status: "started", enqueued: 3 });
   trash.runIds.add(tick.runId);
 
+  // Nova tentativa da foto (`#photo<n>`) e a página pedida de novo (`#refetch`) ficam agendadas
+  // para depois (A-145): não são trabalho pendente deste ciclo.
+  const scheduled = async () => {
+    const { data, error } = await db
+      .from("jobs")
+      .select("message")
+      .like("queue", `${namespace}:%`)
+      .gt("visible_at", new Date().toISOString());
+    if (error) throw error;
+    return (data ?? []).filter((j) =>
+      /#(photo\d+|refetch)$/.test(String((j.message as { itemRef?: unknown }).itemRef)),
+    ).length;
+  };
   let result = { remaining: 1, retried: 0, quarantined: 0 };
+  let ready = 1;
   let quarantined = 0;
-  for (let i = 0; i < 8 && result.remaining > 0; i++) {
+  for (let i = 0; i < 8 && ready > 0; i++) {
     result = await drain({
       queue,
       runStep: createRunStep(handlers),
@@ -256,8 +270,9 @@ async function runCycle(opts: {
     });
     quarantined += result.quarantined;
     expect(result.retried).toBe(0);
+    ready = result.remaining - (await scheduled());
   }
-  expect(result.remaining).toBe(0);
+  expect(ready).toBe(0);
   return { tick, tag, ref, namespace, quarantined };
 }
 
