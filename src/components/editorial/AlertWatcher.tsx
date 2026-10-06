@@ -9,6 +9,7 @@ import {
   pollSince,
 } from "@/lib/alerts/match";
 import { getAnonStore } from "@/lib/anon/store";
+import { fetchJson } from "@/lib/http/fetch-json";
 import { showNotification } from "@/lib/offline/sw";
 import { usePushState } from "@/lib/push/client";
 
@@ -38,6 +39,12 @@ function writeState(s: NotifyState) {
   }
 }
 
+function isNews(v: unknown): v is { items?: AlertItem[] } {
+  if (typeof v !== "object" || v === null) return false;
+  const items = (v as { items?: unknown }).items;
+  return items === undefined || Array.isArray(items);
+}
+
 async function check(pushOn: boolean) {
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   const profile = await getAnonStore().get();
@@ -49,14 +56,14 @@ async function check(pushOn: boolean) {
   if (alerts.length === 0) return;
   // Janela de 15 min, nunca o horário exato do alerta (não vira identificador do aparelho).
   const since = pollSince(alerts, new Date());
-  const res = await fetch(`/api/alertas/novidades?desde=${encodeURIComponent(since)}`, {
-    cache: "no-store",
+  // Com prazo (item 83): resposta lenta ou inválida fica para a próxima rodada.
+  const r = await fetchJson(`/api/alertas/novidades?desde=${encodeURIComponent(since)}`, {
+    guard: isNews,
   });
-  if (!res.ok) return;
-  const body = (await res.json()) as { items?: AlertItem[] };
+  if (!r.ok) return;
   const { notifications, state } = dueNotifications(
     alerts,
-    body.items ?? [],
+    r.value.items ?? [],
     readState(),
     new Date(),
   );
