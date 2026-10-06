@@ -49,6 +49,8 @@ export interface GuideVenueView {
   ratingSource: "tripadvisor" | "google" | "manual" | null;
   tripadvisorRank: number | null;
   tripadvisorUrl: string | null;
+  /** Link do Google Maps (atribuição exigida pelos termos do Google). */
+  googleMapsUrl: string | null;
   lat: number | null;
   lng: number | null;
   sources: DataSource[];
@@ -109,6 +111,7 @@ function toVenue(v: VenueRow, photos: GuidePhoto[]): GuideVenueView {
         : null,
     tripadvisorRank: v.tripadvisor_rank,
     tripadvisorUrl: v.tripadvisor_url,
+    googleMapsUrl: v.google_maps_url,
     lat: v.lat,
     lng: v.lng,
     sources: v.data_sources.filter(isSource),
