@@ -100,10 +100,19 @@ async function focused(page: Page): Promise<Focus> {
 /** Lê o foco depois que a rolagem que o leva à vista termina (pode levar alguns quadros). */
 async function settledFocus(page: Page, f?: Focus): Promise<Focus> {
   let at = f ?? (await focused(page));
-  for (let i = 0; i < 15 && (!at.inView || at.covered); i++) {
-    await page.waitForTimeout(100);
-    at = await focused(page);
-  }
+  if (at.inView && !at.covered) return at;
+  // Sonda até o foco estar à vista e descoberto (até 1,5 s); se não chegar, devolve a última
+  // leitura e quem chamou reprova com o motivo.
+  await expect
+    .poll(
+      async () => {
+        at = await focused(page);
+        return at.inView && !at.covered;
+      },
+      { timeout: 1_500, intervals: [100] },
+    )
+    .toBe(true)
+    .catch(() => {});
   return at;
 }
 
@@ -189,8 +198,8 @@ async function expectVisibleFocus(page: Page, f?: Focus): Promise<Focus> {
   await frames();
   let without = await shot(page, clip);
   if (Buffer.compare(withFocus, without) === 0) {
-    await page.waitForTimeout(250);
-    await frames();
+    // Mais alguns quadros para a pintura sem o anel assentar antes de repetir a captura.
+    for (let i = 0; i < 3; i++) await frames();
     without = await shot(page, clip);
   }
   expect(

@@ -153,7 +153,7 @@ export function PromptVersions({
                       <Button
                         size="sm"
                         variant="outline"
-                        aria-pressed={compare === v.version}
+                        pressed={compare === v.version}
                         onClick={() => setCompare(compare === v.version ? null : v.version)}
                       >
                         {T.compare(v.version)}

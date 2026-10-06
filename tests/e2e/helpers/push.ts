@@ -87,6 +87,44 @@ export async function shownNotifications(
 }
 
 /**
+ * Consentimento que o SW guardou (IndexedDB `cn-sw`, store `meta`, chave `consent`; src/sw/
+ * shared-db.ts): prova que o `postMessage` da página chegou. `null` enquanto não chegou. Abre o
+ * banco com a mesma versão e as mesmas stores do SW, para nunca criar um banco vazio no lugar.
+ */
+export async function swConsent(page: Page): Promise<{ metrics: boolean } | null> {
+  return page.evaluate(
+    () =>
+      new Promise<{ metrics: boolean } | null>((resolve) => {
+        const req = indexedDB.open("cn-sw", 1);
+        req.onupgradeneeded = () => {
+          const db = req.result;
+          if (!db.objectStoreNames.contains("entries"))
+            db.createObjectStore("entries", { keyPath: "url" });
+          if (!db.objectStoreNames.contains("meta")) db.createObjectStore("meta");
+        };
+        req.onerror = () => resolve(null);
+        req.onsuccess = () => {
+          const db = req.result;
+          try {
+            const get = db.transaction("meta", "readonly").objectStore("meta").get("consent");
+            get.onsuccess = () => {
+              db.close();
+              resolve((get.result as { metrics: boolean } | undefined) ?? null);
+            };
+            get.onerror = () => {
+              db.close();
+              resolve(null);
+            };
+          } catch {
+            db.close();
+            resolve(null);
+          }
+        };
+      }),
+  );
+}
+
+/**
  * Inscrição falsa no navegador: `PushManager.prototype.subscribe`/`getSubscription` devolvem um
  * endpoint do servidor de push falso; a permissão só vira "granted" depois do pedido nativo
  * (como num navegador de verdade). Inscrição e permissão sobrevivem à navegação (sessionStorage).

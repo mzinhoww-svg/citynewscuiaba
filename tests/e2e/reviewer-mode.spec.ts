@@ -1,16 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 import { loginAs, service } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * AUT-T6 · Interruptores: o modo do revisor automático (Desligado, À noite, Sempre) muda com
- * motivo e fica na auditoria. Só o projeto desktop muda o banco; o teste devolve o modo padrão.
+ * motivo e fica na auditoria. Só o projeto serial-flags muda o banco; o teste devolve o modo padrão.
  */
 
 test("o admin muda o modo do revisor automático com motivo e vê o estado novo", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda o modo no banco: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda o modo no banco: só no projeto serial do desktop");
   const db = service();
   try {
     await db.from("ai_reviewer_settings").update({ mode: "night" }).eq("id", true);

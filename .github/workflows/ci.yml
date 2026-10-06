@@ -87,9 +87,11 @@ jobs:
       - if: always()
         run: supabase stop --no-backup
 
-  # E2E em 7 partes em paralelo: a suíte inteira num job só passou de 90 min, e `--shard` sozinho
+  # E2E em 9 partes em paralelo: a suíte inteira num job só passou de 90 min, e `--shard` sozinho
   # não serve (o projeto `fixtures` depende dos outros e um shard saiu vazio). Cada parte roda um
   # projeto do Playwright (metade dele, nos três grandes) com a sua pilha local e o seu build.
+  # Os specs que mudam estado global (tests/e2e/projects.ts) rodam em `serial-flags*`, um worker
+  # por vez, em jobs próprios: o do desktop muda dado; o do celular e do WebKit confere leitura.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -105,6 +107,11 @@ jobs:
           - { name: webkit 1/2, args: "--project=mobile-webkit --shard=1/2" }
           - { name: webkit 2/2, args: "--project=mobile-webkit --shard=2/2" }
           - { name: fixtures, args: "--project=fixtures --no-deps" }
+          - { name: serial desktop, args: "--project=serial-flags --no-deps" }
+          - {
+              name: serial mobile e webkit,
+              args: "--project=serial-flags-mobile --project=serial-flags-webkit --no-deps --workers=1",
+            }
     env:
       AI_PROVIDER: fake
       # Valor fictício, só para o runner (a pilha local do CI não é acessível de fora).

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { serviceClient } from "./helpers/pipeline";
+import { nextFrames } from "./helpers/wait";
 
 /*
  * Avisos do leitor (spec 2026-09-28 §7.4 C09, §7.5 P18; critérios 9, 10; PW-T10). Chromium com
@@ -82,6 +83,19 @@ async function ready(page: Page) {
   await expect(page.locator('[data-ready="true"]').first()).toBeAttached();
 }
 
+/**
+ * Depois de seguir: o gatilho do pré-prompt (`cn:notif-invite`, espiado no `beforeEach`) já saiu e
+ * a vaga decidiu na mesma rodada; dois quadros depois, "não apareceu" é a resposta.
+ */
+async function afterInviteRequest(page: Page) {
+  await page.waitForFunction(
+    () => ((window as unknown as { __cnNotifAsked?: number }).__cnNotifAsked ?? 0) > 0,
+    undefined,
+    { timeout: 10_000 },
+  );
+  await nextFrames(page, 2);
+}
+
 test.skip(
   ({ browserName }) => browserName === "webkit",
   "push no WebKit do Playwright não é estável",
@@ -96,6 +110,10 @@ test.beforeEach(async ({ context, baseURL }) => {
   // de login já mostrado nesta semana para "seguir" (um convite por vez: login vem antes e adiaria
   // o pré-prompt para a próxima navegação; spec §7.1).
   await context.addInitScript(() => {
+    window.addEventListener("cn:notif-invite", () => {
+      const w = window as unknown as { __cnNotifAsked?: number };
+      w.__cnNotifAsked = (w.__cnNotifAsked ?? 0) + 1;
+    });
     if (!localStorage.getItem("cn_invites"))
       localStorage.setItem(
         "cn_invites",
@@ -218,7 +236,7 @@ test("Agora não não chama requestPermission (espião no addInitScript) e silen
   await page.goto("/fontes/placar-mt");
   await ready(page);
   await page.getByRole("button", { name: "Seguir Placar MT" }).click();
-  await page.waitForTimeout(1000);
+  await afterInviteRequest(page);
   await expect(page.getByRole("region", { name: "Quer receber avisos?" })).toHaveCount(0);
 });
 
@@ -233,7 +251,7 @@ test.describe("iPhone fora do app", () => {
     await page.goto("/fontes/mt-agora");
     await ready(page);
     await page.getByRole("button", { name: "Seguir MT Agora" }).click();
-    await page.waitForTimeout(800);
+    await afterInviteRequest(page);
     await expect(page.getByRole("region", { name: "Quer receber avisos?" })).toHaveCount(0);
     await page.goto("/alertas");
     const block = page.getByRole("region", { name: "Avisos no celular e no computador" });

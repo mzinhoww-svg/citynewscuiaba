@@ -698,3 +698,14 @@ cross join lateral generate_series(1, a.per_day) g;
 
 -- Fonte confiável (AUT-T2): mesmo padrão do backfill da migration 0071 para as fontes do seed.
 update sources set trusted = true where reliability in ('primary', 'verified');
+
+-- ---------------------------------------------------------------------------
+-- W5-T8 (item 92) · Uma peça de anúncio da casa (sem anunciante) ativa no campo TOP de Cidade, no
+-- formato do celular (320x100): o Lighthouse mede /cidade com banner, como em produção. Link e
+-- imagem fictícios (*.example).
+-- ---------------------------------------------------------------------------
+insert into ad_creatives (id, slot, name, status, creative) values
+ ('ad000000-0000-4000-8000-000000000001', 'TOP', 'Anuncie no CityNews (casa)', 'active',
+  '{"kind": "display", "slot": "TOP", "width": 320, "height": 100, "imageUrl": "https://img.citynews.example/casa/anuncie-320x100.png", "alt": "Anuncie no CityNews: fale com a equipe comercial", "href": "https://citynews.example/anuncie", "weight": 1}'::jsonb);
+insert into ad_placements (id, creative_id, slot, starts_on, ends_on, allowed_sections, status) values
+ ('ad000000-0000-4000-8000-000000000002', 'ad000000-0000-4000-8000-000000000001', 'TOP', '2026-01-01', '2099-12-31', '{cidade}', 'active');

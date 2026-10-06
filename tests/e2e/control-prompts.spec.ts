@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service, STAFF } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T5 · Agentes, modelos, prompts versionados e playground (O10, O11, O12, O15).
  * A jornada de publicação muda o prompt em produção do agente `locate` (compartilhado entre
- * projetos): só no projeto desktop, e devolve a v1 do seed no fim.
+ * projetos): só no projeto serial do desktop, e devolve a v1 do seed no fim.
  */
 
 const AGENT = "locate";
@@ -80,7 +81,10 @@ test("playground: analista só lê", async ({ page }) => {
 test("prompts: rascunho, pedido de quem não aprova, publicação e rollback", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda o prompt em produção: só no projeto desktop");
+  test.skip(
+    !mutatesGlobalState(info),
+    "muda o prompt em produção: só no projeto serial do desktop",
+  );
   test.setTimeout(120_000);
   await restorePrompt();
   try {

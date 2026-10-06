@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T10 · Contingência (A15): botões com confirmação digitando o nome da ação, motivo e
- * registro. Só no projeto desktop (as flags são globais) e restaura o seed no fim
+ * registro. Só no projeto serial-flags (as flags são globais) e restaura o seed no fim
  * (auto_publish=false, read_only=false, ai_enabled=true).
  */
 
@@ -12,8 +13,8 @@ async function flag(key: string) {
   return data?.enabled;
 }
 
-// Os testes deste arquivo mudam flags globais: em série, num só worker (os dois projetos
-// continuam em paralelo, mas só o desktop muta), e cada um restaura só o que mexeu.
+// Os testes deste arquivo mudam flags globais: em série, num só worker (projetos serial-flags*,
+// tests/e2e/projects.ts; só o do desktop muta), e cada um restaura só o que mexeu.
 test.describe.configure({ mode: "serial" });
 
 async function restoreAi() {
@@ -55,7 +56,7 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
   page,
   context,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "flags globais: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "flags globais: só no projeto serial do desktop");
   try {
     await loginAs(page, "helena", "/estudio/admin/contingencia");
     await page.getByRole("button", { name: "Desligar busca com IA" }).click();
@@ -107,7 +108,7 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
 test("modo leitura bloqueia o Estúdio e a contingência continua valendo", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "flags globais: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "flags globais: só no projeto serial do desktop");
   try {
     await loginAs(page, "helena", "/estudio/admin/contingencia");
     await page.getByRole("button", { name: "Ativar modo leitura" }).click();

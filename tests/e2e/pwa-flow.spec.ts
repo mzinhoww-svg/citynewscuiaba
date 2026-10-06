@@ -9,6 +9,7 @@ import {
   receivedByFakeServer,
   shownNotifications,
   stubPushManager,
+  swConsent,
   swReady,
 } from "./helpers/push";
 import { loginAs } from "./helpers/studio-login";
@@ -179,8 +180,10 @@ test("push entregue mostra o aviso; com Métricas gera recibo; sem Métricas nã
   const send = await seedSend();
   await page.goto("/");
   await swReady(page);
-  // Consentimento chega ao SW pela página (SwRegistrar); espera o postMessage assentar.
-  await page.waitForTimeout(500);
+  // Consentimento chega ao SW pela página (SwRegistrar): espera o SW tê-lo guardado.
+  await expect
+    .poll(() => swConsent(page), { timeout: 10_000 })
+    .toEqual(expect.objectContaining({ metrics: true }));
   await deliverPush(page, {
     v: 1,
     t: "Chuva forte",
@@ -235,7 +238,9 @@ test("Só o necessário: nenhum evento do app e nenhum recibo (Review Focus 5)",
   const marker = `/flow-${randomUUID().slice(0, 8)}`;
   await page.goto(`/?ref=${marker.slice(1)}`);
   await swReady(page);
-  await page.waitForTimeout(500);
+  await expect
+    .poll(() => swConsent(page), { timeout: 10_000 })
+    .toEqual(expect.objectContaining({ metrics: false }));
   const posted: string[] = [];
   page.on("request", (r) => {
     if (/\/api\/(events|push\/receipt)/.test(r.url())) posted.push(r.url());
@@ -245,8 +250,9 @@ test("Só o necessário: nenhum evento do app e nenhum recibo (Review Focus 5)",
     .poll(() => shownNotifications(page), { timeout: 20_000 })
     .toEqual(expect.arrayContaining([expect.objectContaining({ title: "Sem métricas" })]));
   // Um gatilho de evento do app: a faixa de instalação (2ª visita) mostra e registra `install_prompt_shown`
-  // só com Métricas; aqui nada sai.
-  await page.waitForTimeout(1500);
+  // só com Métricas; aqui nada sai. O recibo sai do SW logo depois de mostrar o aviso e só com
+  // `metrics` no consentimento guardado (falso, conferido acima): espera a página assentar.
+  await page.waitForLoadState("networkidle");
   expect(posted.filter((u) => u.includes("/api/push/receipt"))).toEqual([]);
   expect(await counters(send.id)).toEqual({ delivered: 0, clicked: 0 });
   // A rota do recibo recusa gravar sem Métricas no cookie mesmo se chamada direto.
