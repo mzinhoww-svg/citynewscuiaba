@@ -11,7 +11,7 @@ O `/guia-cuiaba` está vazio em produção. A API do TripAdvisor recusa a chave 
 ## 2. Decisões do dono
 
 - **A-210 · Google Places entra como fonte principal**, como a spec original previa (G2). A chave `GOOGLE_PLACES_API_KEY` já está na Vercel. Substitui a R33 ("sem chaves de API") só nesse ponto. A TripAdvisor continua no código e volta a somar quando a chave funcionar.
-- **A-211 · Uma fonte por lugar basta.** As listas são informativas, então a exigência de 2 fontes (G4) cai, tanto para entrar na lista quanto para publicar sozinha. Os outros critérios de publicação automática ficam: mínimo de lugares, critério escrito, sem patrocínio e **nota em cada lugar** (sinal de qualidade). Lista com lugar sem nota fica como proposta para a redação.
+- **A-211 · Uma fonte por lugar basta.** As listas são informativas, então a exigência de 2 fontes (G4) cai, tanto para entrar na lista quanto para publicar sozinha. Os outros critérios de publicação automática ficam como estão: mínimo de lugares conferidos, critério escrito, sem patrocínio e **sinal de qualidade** (nota, ranking ou menção nas matérias) em pelo menos o mínimo de lugares. Lista sem esse sinal fica como proposta para a redação.
 
 ## 3. Coleta
 
@@ -31,12 +31,12 @@ O `/guia-cuiaba` está vazio em produção. A API do TripAdvisor recusa a chave 
 
 - **Retenção:** o identificador do lugar (`place_ids.google`) é guardado sem prazo. Nota, contagem, telefone, horário, site, faixa de preço e link do Maps vindos do Google ficam no máximo 30 dias, contados de `google_fetched_at`.
 - **Atualização:** a rotina diária de atualização (`staleRatings`, até 25 lugares por dia) passa a cobrir o Google: busca os detalhes pelo identificador (Place Details, mesmos campos) quando `google_fetched_at` tem mais de 25 dias.
-- **Expurgo:** se a atualização falhar e o dado passar de 30 dias, a rotina apaga os campos do Google e tira `google` de `data_sources`. O lugar perde a nota até a próxima coleta bem-sucedida.
+- **Expurgo:** se a atualização falhar e o dado passar de 30 dias, a rotina apaga a nota, a contagem e o link do Maps quando a nota é do Google, e tira `google` de `data_sources`. Telefone, site, horário e faixa de preço só são apagados quando o Google era a única fonte do lugar (sem como saber de onde veio cada campo quando há outras fontes). O lugar perde a nota até a próxima coleta bem-sucedida.
 - **Nunca guardado:** fotos do Google e texto de avaliação (G3, R1).
 
 ## 5. Tela pública
 
-- **Card do lugar e página do lugar:** "4,6 no Google (1.234 avaliações)" e o link "Ver no Google Maps" (`google_maps_url`). Com a TripAdvisor de volta, as duas notas aparecem, cada uma com a fonte.
+- **Card do lugar e página do lugar:** "4,6 no Google (1.234 avaliações)" e o link "Ver no Google Maps" (`google_maps_url`). O lugar guarda uma nota só: a do Google tem precedência; com a TripAdvisor de volta, o ranking dela aparece ao lado ("7º no ranking do TripAdvisor em Cuiabá").
 - **Linha de origem:** `dataLine` ganha o Google em primeiro lugar, por exemplo "Dados: Google, OpenStreetMap e sites dos lugares". O rótulo vai em `DATA_SOURCE_LABEL.google = "Google"`.
 - **Atribuição no rodapé da lista:** "Avaliações: Google." junto da linha do OpenStreetMap que já existe.
 - **Sem logotipo:** tudo em texto simples (R3). O vocabulário público continua passando em `src/content/vocabulary.test.ts`.
