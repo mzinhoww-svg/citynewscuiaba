@@ -81,6 +81,9 @@ function depsFor(ta: boolean) {
     now: () => now,
     taCallsLeft: async () => 50,
     taCallsMade: () => made,
+    google: null,
+    googleCallsLeft: async () => 0,
+    googleCallsMade: () => 0,
   };
 }
 

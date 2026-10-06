@@ -4,6 +4,7 @@ import type { HttpFetch } from "@/lib/pipeline/ports";
 import { fixtureHttp, fixturesEnabled, realHttp } from "@/lib/sources/http-deps";
 import { createOsmProvider, OVERPASS_URL } from "./osm";
 import { siteUrl } from "@/lib/seo/jsonld";
+import { createGoogleProvider } from "./google";
 import { createTripadvisorProvider } from "./tripadvisor";
 import type { VenueProvider } from "./types";
 
@@ -48,16 +49,30 @@ export function guideHttp(): HttpFetch {
 }
 
 export interface GuideProviders {
+  /** `null` sem `GOOGLE_PLACES_API_KEY` ou no modo de fixtures. */
+  google: (VenueProvider & { readonly enabled: boolean }) | null;
   osm: VenueProvider;
   /** `null` sem chave no ambiente (modo de pesquisa web). */
   tripadvisor: (VenueProvider & { readonly enabled: boolean }) | null;
 }
 
-export function buildProviders(opts: { onTaCall?: () => void } = {}): GuideProviders {
+export function buildProviders(
+  opts: { onTaCall?: () => void; onGoogleCall?: () => void; googleCallsLeft?: () => number } = {},
+): GuideProviders {
   const fixtures = fixturesEnabled();
   const http = guideHttp();
   const key = fixtures ? undefined : process.env.TRIPADVISOR_API_KEY;
+  const googleKey = fixtures ? undefined : process.env.GOOGLE_PLACES_API_KEY;
   return {
+    google: googleKey?.trim()
+      ? createGoogleProvider({
+          apiKey: googleKey,
+          http,
+          onError: (d) => console.warn(`google recusou (${d.status}): ${d.message}`),
+          ...(opts.onGoogleCall ? { onCall: opts.onGoogleCall } : {}),
+          ...(opts.googleCallsLeft ? { callsLeft: opts.googleCallsLeft } : {}),
+        })
+      : null,
     osm: createOsmProvider({
       http,
       url: fixtures ? FIXTURE_OVERPASS : OVERPASS_URL,

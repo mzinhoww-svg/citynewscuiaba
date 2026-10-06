@@ -14,6 +14,9 @@ import type { Result } from "@/lib/result";
  */
 
 export const RATING_MAX_AGE_DAYS = 30;
+/** Termos do Google: dado guardado por no máximo 30 dias; buscamos de novo aos 25 (A-210). */
+export const GOOGLE_REFRESH_DAYS = 25;
+export const GOOGLE_MAX_AGE_DAYS = 30;
 
 export interface StoredVenue extends Venue {
   /** Quando a nota e a contagem foram conferidas por último. */
@@ -46,6 +49,12 @@ export interface VenueSyncStore {
 }
 
 export interface VenueSyncDeps {
+  /** Google Places; `null` sem `GOOGLE_PLACES_API_KEY`. */
+  google: VenueProvider | null;
+  /** Chamadas ao Google que ainda cabem hoje (`GUIDE_GOOGLE_DAILY_CALLS`). */
+  googleCallsLeft: () => Promise<number>;
+  /** Chamadas ao Google feitas nesta execução (a rota liga a `onCall` do provedor). */
+  googleCallsMade: () => number;
   osm: VenueProvider;
   /** `null` = sem chave (modo de pesquisa web). */
   tripadvisor: VenueProvider | null;
@@ -73,16 +82,25 @@ export type ProviderStatus = "ok" | "no_key" | "budget" | `error:${ProviderError
 
 export interface VenueSyncReport {
   startedAt: string;
-  providers: { osm: ProviderStatus; tripadvisor: ProviderStatus; site: "ok" | "skipped" };
+  providers: {
+    google: ProviderStatus;
+    osm: ProviderStatus;
+    tripadvisor: ProviderStatus;
+    site: "ok" | "skipped";
+  };
   categories: {
     category: string;
     subcategory: string | null;
+    google: number;
     osm: number;
     tripadvisor: number;
     inserted: number;
     updated: number;
   }[];
   taCalls: number;
+  googleCalls: number;
+  /** Lugares cujos dados do Google venceram (30 dias) e foram apagados. */
+  expired: number;
   sitesChecked: number;
   sitesBlocked: number;
   refreshed: number;
@@ -98,14 +116,41 @@ export async function runVenueSync(
   const ta = deps.tripadvisor;
   const report: VenueSyncReport = {
     startedAt: at.toISOString(),
-    providers: { osm: "ok", tripadvisor: ta ? "ok" : "no_key", site: "ok" },
+    providers: {
+      google: deps.google ? "ok" : "no_key",
+      osm: "ok",
+      tripadvisor: ta ? "ok" : "no_key",
+      site: "ok",
+    },
     categories: [],
     taCalls: 0,
+    googleCalls: 0,
+    expired: 0,
     sitesChecked: 0,
     sitesBlocked: 0,
     refreshed: 0,
   };
   let taOff = ta === null;
+  const google = deps.google;
+  let googleOff = google === null;
+  const googleBudget = google ? await deps.googleCallsLeft() : 0;
+
+  /** Ainda há cota do Google nesta execução; sem espaço, para até o dia seguinte. */
+  const googleAllowed = (): boolean => {
+    if (googleOff) return false;
+    if (googleBudget - deps.googleCallsMade() <= 0) {
+      googleOff = true;
+      report.providers.google = "budget";
+      return false;
+    }
+    return true;
+  };
+  const googleFailed = (e: ProviderError) => {
+    if (e === "no_key" || e === "unauthorized" || e === "rate_limited") {
+      googleOff = true;
+      report.providers.google = e === "no_key" ? "no_key" : `error:${e}`;
+    }
+  };
 
   /** Reserva uma chamada da cota; sem espaço, o TripAdvisor para até a próxima janela. */
   const taAllowed = async (): Promise<boolean> => {
@@ -155,9 +200,32 @@ export async function runVenueSync(
   };
 
   for (const { category, subcategory = null } of plan.categories) {
-    const entry = { category, subcategory, osm: 0, tripadvisor: 0, inserted: 0, updated: 0 };
+    const entry = {
+      category,
+      subcategory,
+      google: 0,
+      osm: 0,
+      tripadvisor: 0,
+      inserted: 0,
+      updated: 0,
+    };
     const incoming: VenueRecord[] = [];
     const rated = new Set<string>();
+    const fetched = new Set<string>();
+
+    if (google && googleAllowed()) {
+      const g = await google.search({ category, subcategory, area: plan.area });
+      if (g.ok) {
+        for (const rec of g.value) {
+          incoming.push({ ...rec, category, subcategory: subcategory ?? rec.subcategory });
+          if (rec.placeIds.google) fetched.add(rec.placeIds.google);
+        }
+        entry.google = g.value.length;
+      } else {
+        googleFailed(g.error);
+      }
+      googleAllowed();
+    }
 
     const o = await deps.osm.search({ category, subcategory, area: plan.area });
     if (o.ok) {
@@ -202,6 +270,10 @@ export async function runVenueSync(
       const id = rec.placeIds.tripadvisor;
       return id !== undefined && rated.has(id);
     };
+    const googleChecked = (rec: VenueRecord) => {
+      const id = rec.placeIds.google;
+      return id !== undefined && fetched.has(id);
+    };
     const saved = await deps.store.save(
       {
         inserts,
@@ -209,6 +281,7 @@ export async function runVenueSync(
           id: u.existing.id,
           record: updatedRecords[i] ?? u.record,
           ratingChecked: ratingChecked(u.record),
+          googleChecked: googleChecked(u.record),
         })),
       },
       at,
@@ -240,6 +313,39 @@ export async function runVenueSync(
     if (updates.length > 0) await deps.store.save({ inserts: [], updates }, at);
   }
 
+  // Dados do Google com mais de 25 dias: busca de novo pelo Place ID, dentro da cota.
+  if (google && !googleOff) {
+    const before = new Date(at.getTime() - GOOGLE_REFRESH_DAYS * 86_400_000);
+    const stale = await deps.store.staleGoogle(before, plan.maxRefresh ?? 25);
+    const updates: VenueUpdate[] = [];
+    for (const v of stale) {
+      const id = v.placeIds.google;
+      if (!id || !googleAllowed()) break;
+      const d = await google.details(id);
+      if (!d.ok) {
+        googleFailed(d.error);
+        if (googleOff) break;
+        continue;
+      }
+      if (d.value) {
+        updates.push({
+          id: v.id,
+          record: mergeRecord(v, d.value),
+          ratingChecked: false,
+          googleChecked: true,
+        });
+        report.refreshed += 1;
+      }
+    }
+    if (updates.length > 0) await deps.store.save({ inserts: [], updates }, at);
+  }
+
+  // O que passou de 30 dias sem atualizar sai, com ou sem chave (termos do Google).
+  report.expired = await deps.store.expireGoogle(
+    new Date(at.getTime() - GOOGLE_MAX_AGE_DAYS * 86_400_000),
+  );
+
   report.taCalls = deps.taCallsMade();
+  report.googleCalls = deps.googleCallsMade();
   return report;
 }
