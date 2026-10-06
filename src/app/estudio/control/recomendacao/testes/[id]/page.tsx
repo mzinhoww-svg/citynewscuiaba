@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { Button, EmptyState, Table } from "@/components";
-import { AbTestCard, ShareChart } from "@/components/estudio";
+import { AbTestCard, ShareChart, StudioScreen } from "@/components/estudio";
 import {
   AB_TEXT as T,
   EXPERIMENT_STATUS_TEXT,
   formatInt,
   formatPct,
   formatWeight,
+  REC_TEXT,
 } from "@/content/pt-BR/recommendation-admin";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { experimentById, recPanel } from "@/lib/db/queries/recommendation";
@@ -102,27 +104,23 @@ export default async function AbTestPage({ params }: { params: Promise<{ id: str
   const hasData = rows.some((r) => r.impressions > 0 || r.clicks > 0);
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title(exp.name)}</h1>
+    <StudioScreen
+      section={T.sectionLabel}
+      title={T.title(exp.name)}
+      gap="lg"
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: "/estudio/control/recomendacao", label: REC_TEXT.title },
+        { href: `/estudio/control/recomendacao/testes/${exp.id}`, label: T.title(exp.name) },
+      ]}
+      intro={
         <p className="type-body text-meta">
           {T.status}: {EXPERIMENT_STATUS_TEXT[exp.status] ?? exp.status} · {T.started}:{" "}
           {formatDateTime(exp.startedAt)}
           {exp.endedAt && ` · ${T.ended}: ${formatDateTime(exp.endedAt)}`}
         </p>
-        <div>
-          <Button
-            href="/estudio/control/recomendacao"
-            size="sm"
-            variant="outline"
-            icon="arrow-left"
-          >
-            {T.back}
-          </Button>
-        </div>
-      </header>
-
+      }
+    >
       <section aria-labelledby="variantes" className="flex flex-col gap-3">
         <h2 id="variantes" className="type-section text-strong">
           {T.variantsTitle}
@@ -198,6 +196,6 @@ export default async function AbTestPage({ params }: { params: Promise<{ id: str
         end={endExperimentAction}
         promote={promoteExperimentAction}
       />
-    </section>
+    </StudioScreen>
   );
 }

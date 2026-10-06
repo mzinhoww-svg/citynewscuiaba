@@ -3,6 +3,7 @@
 **Última atualização:** 2026-10-04 — 0143 aplicada em partes (A e B) em produção; parte C e 0155 com o dono no SQL Editor (A-152, B-029); primeiros ciclos da pauta quente conferidos.
 **Atualizado por:** Claude Code
 
+> 2026-10-05 · Melhorias W3 (itens 45–61): revisão com barra fixa de decisão no celular, "Aprovar e ir para o próximo" mantendo aba e filtros, aprovação em lote só do que as regras recomendam (0159), editor com barra de salvar, rascunho automático e proteção ao sair, agendamento validado no campo, menu do Estúdio com busca no trilho, subgrupos e contagens, Redação/Testar prompts/Registros, falhas agrupadas e tabelas em cartões no celular, atalhos de teclado (`?`), `StudioScreen` com caminho, e papel de admin numa ação auditada (0158, A-150; produção segue B-009).
 > 2026-10-04 · Logotipos das fontes (A-153): 12 fontes em destaque com o logotipo do pacote do dono, no ar em produção como `manual` (`assets/source-logos`, `scripts/sources/build-source-logos.mjs`). A política temporária do envio já saiu de produção (B-030 resolvido).
 > 2026-10-04 · Melhorias W4 (itens 62–77): editorias recolhem ao rolar e voltam ao subir, anúncio fixo reserva espaço, "Agora" leva ao bloco da home, convite da primeira visita no fim da leitura, aba certa acesa na barra inferior, "Perguntar ao CityNews" no Explorar e no rodapé, estados de erro e vazio em Perfil, Favoritos ("Desfazer" com foco), Agora e Panorama, ações da matéria com 44 px, Pergunte depois dos 3 primeiros resultados no celular, trilho acessível e ticker rolável no desktop.
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, InlineAlert } from "@/components";
-import { CycleStrip, RunNowForm, SourceHealthTable } from "@/components/estudio";
+import { CycleStrip, RunNowForm, SourceHealthTable, StudioScreen } from "@/components/estudio";
 import { ALERT_TEXT, CONTROL_TEXT as T, RUN_STATE_LABEL, formatBrl } from "@/content/pt-BR/control";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -35,13 +35,7 @@ export default async function ControlOverviewPage() {
   });
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{O.title}</h1>
-        <p className="type-body text-meta">{O.intro}</p>
-      </header>
-
+    <StudioScreen section={T.sectionLabel} title={O.title} intro={O.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -62,7 +56,7 @@ export default async function ControlOverviewPage() {
           manageSources={canAccess(session.roles, "source.manage")}
         />
       )}
-    </section>
+    </StudioScreen>
   );
 }
 

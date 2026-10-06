@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { Playground, type PlaygroundAgentOption } from "@/components/estudio";
+import { Playground, type PlaygroundAgentOption, StudioScreen } from "@/components/estudio";
 import { PLAYGROUND_TEXT as T, PROMPT_STATUS_TEXT } from "@/content/pt-BR/ai-prompts";
 import { resolveProviderKind } from "@/lib/ai/registry";
 import { AGENT_IDS } from "@/lib/ai/types";
@@ -12,7 +12,7 @@ import { loadOrNull } from "../../load-error";
 import { playgroundAction } from "../ai-prompt-actions";
 
 export const metadata: Metadata = {
-  title: "Playground de testes · Control Center · CityNews Cuiabá",
+  title: "Testar prompts · Control Center · CityNews Cuiabá",
 };
 export const dynamic = "force-dynamic";
 
@@ -47,12 +47,7 @@ export default async function PlaygroundPage() {
   });
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen section={T.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -76,6 +71,6 @@ export default async function PlaygroundPage() {
           run={playgroundAction}
         />
       )}
-    </section>
+    </StudioScreen>
   );
 }

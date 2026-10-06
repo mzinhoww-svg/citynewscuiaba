@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, InlineAlert, Table } from "@/components";
-import { LicenseActions } from "@/components/estudio";
+import { LicenseActions, StudioScreen } from "@/components/estudio";
 import { MEDIA_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -25,17 +25,14 @@ export default async function LicensesPage() {
   const manage = canAccess(session.roles, "media.approve");
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link
-          href="/estudio/midia"
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {T.back}
-        </Link>
-        <h1 className="type-screen-title text-strong">{T.licensesTitle}</h1>
-        <p className="type-body text-meta">{T.licensesIntro}</p>
-      </header>
+    <StudioScreen
+      title={T.licensesTitle}
+      intro={T.licensesIntro}
+      breadcrumbs={[
+        { href: "/estudio/midia", label: T.title },
+        { href: "/estudio/midia/licencas", label: T.licensesTitle },
+      ]}
+    >
       {data === null ? (
         <EmptyState
           tone="error"
@@ -147,6 +144,6 @@ export default async function LicensesPage() {
           </section>
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

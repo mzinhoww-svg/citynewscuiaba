@@ -6,7 +6,7 @@ const NAV: StudioNavGroup[] = [
   {
     label: "Redação",
     items: [
-      { href: "/estudio", label: "Newsroom", icon: "layout-dashboard", exact: true },
+      { href: "/estudio", label: "Redação", icon: "layout-dashboard", exact: true },
       { href: "/estudio/fila", label: "Fila de matérias", icon: "newspaper" },
       { href: "/estudio/midia", label: "Mídia", icon: "camera" },
     ],
@@ -14,7 +14,7 @@ const NAV: StudioNavGroup[] = [
   {
     label: "Control Center",
     items: [
-      { href: "/estudio/control/logs", label: "Logs", icon: "scroll-text" },
+      { href: "/estudio/control/logs", label: "Registros", icon: "scroll-text" },
       { href: "/estudio/control/falhas", label: "Falhas", icon: "circle-alert" },
     ],
   },
@@ -37,6 +37,20 @@ describe("filterStudioNav", () => {
 
   it("busca pelo nome do grupo mostra o grupo inteiro", () => {
     expect(filterStudioNav(NAV, "control")).toEqual([NAV[1]]);
+  });
+
+  it("busca pelo subgrupo traz os itens dele e mantém contagem e destaque", () => {
+    const nav: StudioNavGroup[] = [
+      {
+        label: "Control Center",
+        items: [
+          { href: "/a", label: "Contingência", icon: "triangle-alert", emphasis: true },
+          { href: "/b", label: "Falhas", icon: "circle-alert", subgroup: "Operação", count: 2 },
+          { href: "/c", label: "Modelos", icon: "layers", subgroup: "IA" },
+        ],
+      },
+    ];
+    expect(filterStudioNav(nav, "opera")[0]!.items).toEqual([nav[0]!.items[1]]);
   });
 
   it("remove grupos sem resultado e devolve vazio quando nada casa", () => {

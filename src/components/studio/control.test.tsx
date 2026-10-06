@@ -102,7 +102,9 @@ describe("JobTable", () => {
     const retry = vi.fn(async () => ({ ok: true, message: "1 objeto voltou à fila." }));
     render(<JobTable rows={rows} actions={{ retry, discard: vi.fn() }} />);
     expect(screen.getByRole("checkbox", { name: "Manter decisões humanas" })).toBeChecked();
-    fireEvent.click(screen.getByRole("checkbox", { name: /Selecionar 8 · Classificar/ }));
+    // Cartões (< md) e tabela (≥ md) convivem no DOM; o CSS esconde um deles. Marca na tabela.
+    const table = screen.getByRole("table");
+    fireEvent.click(within(table).getByRole("checkbox", { name: /Selecionar 8 · Classificar/ }));
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Reprocessar selecionadas" }));
     });

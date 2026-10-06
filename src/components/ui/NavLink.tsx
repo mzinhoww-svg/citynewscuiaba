@@ -12,6 +12,8 @@ export interface NavLinkProps {
   exact?: boolean;
   className?: string;
   onClick?: () => void;
+  /** Nome acessível quando o texto visível não basta (ex.: contagem só em número). */
+  ariaLabel?: string;
   children: ReactNode;
 }
 
@@ -50,13 +52,22 @@ export function currentNavHref(
  * Link de navegação que marca `aria-current="page"` na rota atual. O estilo ativo vem de
  * `aria-[current=page]:` nas classes de quem usa, então não depende só de cor.
  */
-export function NavLink({ href, current, exact, className, onClick, children }: NavLinkProps) {
+export function NavLink({
+  href,
+  current,
+  exact,
+  className,
+  onClick,
+  ariaLabel,
+  children,
+}: NavLinkProps) {
   const pathname = usePathname();
   const isCurrent = current ?? isCurrentPath(pathname, href, exact);
   return (
     <Link
       href={href}
       aria-current={isCurrent ? "page" : undefined}
+      aria-label={ariaLabel}
       className={className}
       onClick={onClick}
     >

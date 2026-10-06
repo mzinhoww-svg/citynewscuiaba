@@ -13,6 +13,7 @@ import {
 } from "@/lib/admin/home-layout";
 import type { HomeLayoutsView } from "@/lib/db/queries/admin";
 import { formatDateTime } from "@/lib/format/date";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
@@ -56,6 +57,8 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
   const [busy, start] = useTransition();
   const dirty = !base || !sameLayout(modules, base.modules) || note !== (data.draft?.note ?? "");
   const valid = validateHomeLayout(modules);
+  // Item 47: sem versão salva, só a nota pode mudar (a lista nasce vazia).
+  useUnsavedGuard(base ? dirty : note !== "");
 
   const done = (r: AdminReply) => {
     setStatus(r);

@@ -5,9 +5,9 @@ import { loginAs, service, STAFF, tag } from "./studio";
 
 /*
  * P5-T8 · Administração (A01–A06): convidar pessoa mostra "Convite pendente" e manda o link;
- * conceder admin registra o pedido `role.admin` e a admin aprova e aplica na mesma ação (A-128);
- * mesclar tags duplicadas
- * preserva vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
+ * conceder admin é uma ação só, confirmada pelo nome: o pedido `role.grant` nasce aprovado e
+ * aplicado pela própria admin (A-128, A-150, `role_set` 0158); mesclar tags duplicadas preserva
+ * vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
  * Mutações só no projeto desktop e cada teste restaura o que criou.
  */
 
@@ -58,7 +58,7 @@ test("A02 · convidar pessoa envia link e aparece como convite pendente", async 
   }
 });
 
-test("A03 · admin concede admin numa ação só; o pedido role.admin fica no histórico (A-128)", async ({
+test("A03 · admin concede admin numa ação só; o pedido role.grant fica no histórico (A-150)", async ({
   page,
 }, info) => {
   test.skip(info.project.name !== "desktop", "muda papéis do seed: só no projeto desktop");
@@ -71,6 +71,10 @@ test("A03 · admin concede admin numa ação só; o pedido role.admin fica no hi
     await dialog.getByLabel("Administração").check();
     await dialog.getByLabel(/Justificativa/).fill("Cobrir férias da administração");
     await dialog.getByRole("button", { name: "Salvar papéis" }).click();
+    await page
+      .getByRole("dialog", { name: "Conceder administração a Thiago Moraes?" })
+      .getByRole("button", { name: "Conceder administração a Thiago Moraes" })
+      .click();
     await expect(page.getByRole("status")).toContainText(
       "Papel de administração aplicado. Fica registrado no histórico.",
     );
@@ -83,8 +87,8 @@ test("A03 · admin concede admin numa ação só; o pedido role.admin fica no hi
     const { data: ap } = await db
       .from("approvals")
       .select("status, requested_by, approved_by")
-      .eq("kind", "role.admin")
-      .eq("target_ref", STAFF.thiago.id)
+      .eq("kind", "role.grant")
+      .eq("target_ref", `user:${STAFF.thiago.id}:admin`)
       .single();
     expect(ap).toEqual({
       status: "applied",
@@ -94,10 +98,14 @@ test("A03 · admin concede admin numa ação só; o pedido role.admin fica no hi
     // O pedido aplicado aparece no histórico da caixa de aprovações.
     await page.goto("/estudio/control/aprovacoes");
     await expect(page.getByRole("table", { name: "Últimas decisões" })).toContainText(
-      "Conceder papel de administração",
+      "Conceder papel",
     );
   } finally {
-    await db.from("approvals").delete().eq("kind", "role.admin").eq("target_ref", STAFF.thiago.id);
+    await db
+      .from("approvals")
+      .delete()
+      .in("kind", ["role.grant", "role.revoke"])
+      .like("target_ref", `user:${STAFF.thiago.id}:%`);
     await db.from("user_roles").delete().eq("user_id", STAFF.thiago.id).eq("role", "admin");
   }
 });

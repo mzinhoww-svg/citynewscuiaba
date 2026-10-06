@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { LiveMonitor } from "@/components/estudio";
+import { LiveMonitor, StudioScreen } from "@/components/estudio";
 import { CONTROL_TEXT as T } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
 import { controlAbilities } from "@/lib/control";
@@ -18,12 +18,7 @@ export default async function LivePage() {
     liveSnapshot({ maskIp: !controlAbilities(session.roles).admin }),
   );
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.live.title}</h1>
-        <p className="type-body text-meta">{T.live.intro}</p>
-      </header>
+    <StudioScreen section={T.sectionLabel} title={T.live.title} intro={T.live.intro}>
       {data === null ? (
         <EmptyState
           tone="error"
@@ -40,6 +35,6 @@ export default async function LivePage() {
       ) : (
         <LiveMonitor initial={data.value} endpoint="/api/control/live" />
       )}
-    </section>
+    </StudioScreen>
   );
 }

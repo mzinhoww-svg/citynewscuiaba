@@ -1,7 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Icon } from "@/components";
-import { PushBanners, PushTabsNav, type PushTabKey } from "@/components/estudio";
+import { PushBanners, PushTabsNav, StudioScreen, type PushTabKey } from "@/components/estudio";
+import { ADMIN_TEXT } from "@/content/pt-BR/admin";
 import { PUSH_ADMIN_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import { canAccess, type RoleGrant } from "@/lib/auth";
 import { requireAnyRole } from "@/lib/auth/require-role";
@@ -38,32 +39,30 @@ export default async function PushAdminLayout({ children }: Readonly<{ children:
   ]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <h1 className="type-screen-title text-strong">{T.title}</h1>
-            <p className="max-w-read type-body text-meta">{T.intro}</p>
-          </div>
-          {canAccess(roles, "push.metrics") && (
-            <Link
-              href={`${PUSH_ADMIN_PATH}/funil`}
-              className="inline-flex min-h-tap items-center gap-1.5 text-16 font-medium text-link underline-offset-4 hover:underline"
-            >
-              <Icon name="chart-column" size={18} />
-              {T.funnelLink}
-            </Link>
-          )}
-        </div>
-        <PushBanners
-          paused={settings.paused}
-          pending={pending}
-          vapidMissing={settings.vapid.missing}
-          showVapid={canAccess(roles, "push.settings")}
-        />
-      </header>
+    <StudioScreen
+      section={ADMIN_TEXT.sectionLabel}
+      title={T.title}
+      intro={T.intro}
+      actions={
+        canAccess(roles, "push.metrics") ? (
+          <Link
+            href={`${PUSH_ADMIN_PATH}/funil`}
+            className="inline-flex min-h-tap items-center gap-1.5 text-16 font-medium text-link underline-offset-4 hover:underline"
+          >
+            <Icon name="chart-column" size={18} />
+            {T.funnelLink}
+          </Link>
+        ) : undefined
+      }
+    >
+      <PushBanners
+        paused={settings.paused}
+        pending={pending}
+        vapidMissing={settings.vapid.missing}
+        showVapid={canAccess(roles, "push.settings")}
+      />
       {tabs.length > 0 && <PushTabsNav tabs={tabs} />}
       <div className="min-w-0">{children}</div>
-    </div>
+    </StudioScreen>
   );
 }

@@ -51,6 +51,8 @@ export interface ButtonProps {
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   children?: ReactNode;
   "aria-label"?: string;
+  /** Texto que explica o botão (ex.: o motivo de estar desabilitado). */
+  "aria-describedby"?: string;
   /** Só quando outro elemento precisa apontar para este botão (ex.: âncora "#id"). */
   id?: string;
   className?: string;
@@ -117,6 +119,7 @@ export function Button({
   className,
   style,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: ButtonProps) {
   const inline = variant === "text" || variant === "danger";
   const disabled = disabledProp || loading;
@@ -170,6 +173,7 @@ export function Button({
       aria-pressed={pressed}
       aria-busy={loading || undefined}
       aria-label={loading ? undefined : ariaLabel}
+      aria-describedby={ariaDescribedBy}
       className={classes}
       style={style}
     >

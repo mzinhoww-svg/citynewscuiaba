@@ -20,6 +20,8 @@ export interface MenuProps {
   /** Desenha o gatilho: espalhe `props` e passe `ref` no `<button>` (dê a ele um nome). */
   trigger: (p: PopoverTriggerRender) => ReactNode;
   align?: "start" | "end";
+  /** Abre acima do gatilho a partir de `sm` (gatilho numa barra fixa no rodapé). */
+  side?: "bottom" | "top";
   className?: string;
 }
 
@@ -36,7 +38,14 @@ export interface MenuProps {
  * - Escolher um item fecha o menu, devolve o foco ao gatilho e só então chama `onSelect` (um
  *   diálogo aberto pela ação devolve o foco ao mesmo gatilho).
  */
-export function Menu({ label, items, trigger, align = "end", className }: MenuProps) {
+export function Menu({
+  label,
+  items,
+  trigger,
+  align = "end",
+  side = "bottom",
+  className,
+}: MenuProps) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -79,6 +88,7 @@ export function Menu({ label, items, trigger, align = "end", className }: MenuPr
       label={label}
       role="menu"
       align={align}
+      side={side}
       open={open}
       onOpenChange={(next) => (next ? openAt(0) : setOpen(false))}
       onTriggerKeyDown={onTriggerKeyDown}

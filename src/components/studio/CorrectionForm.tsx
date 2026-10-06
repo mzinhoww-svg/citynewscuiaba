@@ -4,6 +4,7 @@ import type { JSONContent } from "@tiptap/react";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { CORRECTIONS_TEXT as C, EDITOR_TEXT as T } from "@/content/pt-BR/studio";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { cx } from "../cx";
 import { VersionDiff } from "../editorial/VersionDiff";
 import { Button } from "../ui/Button";
@@ -55,6 +56,13 @@ export function CorrectionForm({
   const [status, setStatus] = useState<SaveReply | null>(null);
   const [pending, start] = useTransition();
   const correction = mode === "correction";
+  // Item 47: depois de enviar com sucesso, nada fica pendente (o botão também trava).
+  const changed =
+    title !== initial.title ||
+    dek !== initial.dek ||
+    note.trim() !== "" ||
+    JSON.stringify(body) !== JSON.stringify(initial.body);
+  useUnsavedGuard(status?.ok !== true && changed);
 
   const send = () => {
     if (!note.trim()) {
