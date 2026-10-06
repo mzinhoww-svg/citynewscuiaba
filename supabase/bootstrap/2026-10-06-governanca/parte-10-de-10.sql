@@ -1,0 +1,1 @@
+select (select count(*) from public.governance_policies where active) gov, (select count(*) from cron.job where jobname = 'governance-sweep') sweep, (select count(*) from pg_proc where proname = 'publish_breaker_auto_recover') recover, (select count(*) from pg_proc where proname = 'autonomy_queue_health') health, to_regclass('public._cn_probe') probe;
