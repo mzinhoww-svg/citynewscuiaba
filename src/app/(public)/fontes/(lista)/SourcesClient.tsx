@@ -13,6 +13,7 @@ import {
   SourceRow,
   Tabs,
   Toggle,
+  useToast,
 } from "@/components";
 import { SOURCE_TEXT } from "@/content/pt-BR/recommendations";
 import { SOURCES_PAGE as T } from "@/content/pt-BR/sources";
@@ -78,6 +79,12 @@ export function SourcesClient({
   const personalization = consent.decided ? consent.personalization : initialPersonalization;
   const { profile, degraded, ready, act } = useAnonProfile();
   const send = useTrack();
+  const toast = useToast();
+  // Falha ao gravar no perfil local (item 88): avisa e não segue como se tivesse dado certo.
+  const saved = (r: { ok: boolean }) => {
+    if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    return r.ok;
+  };
   const [tab, setTab] = useState<RankList>(query.tab);
   const [notice, setNotice] = useState<Notice | null>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -139,7 +146,8 @@ export function SourcesClient({
   };
 
   const onFollow = (slug: string, next: boolean) => {
-    void act((s) => (next ? s.follow("source", slug) : s.unfollow("source", slug))).then(() => {
+    void act((s) => (next ? s.follow("source", slug) : s.unfollow("source", slug))).then((r) => {
+      if (!saved(r)) return;
       if (next) {
         void send(
           "source_followed",
@@ -170,10 +178,12 @@ export function SourcesClient({
       });
       return;
     }
-    void act((s) => s.hide(slug, reason));
-    show({
-      text: T.hiddenDone(card?.name ?? slug),
-      undo: () => void act((s) => s.unhide(slug)),
+    void act((s) => s.hide(slug, reason)).then((r) => {
+      if (!saved(r)) return;
+      show({
+        text: T.hiddenDone(card?.name ?? slug),
+        undo: () => void act((s) => s.unhide(slug)).then(saved),
+      });
     });
   };
 
@@ -381,7 +391,7 @@ export function SourcesClient({
                   size="sm"
                   variant="outline"
                   aria-label={T.showAgainLabel(h.name)}
-                  onClick={() => void act((s) => s.unhide(h.slug))}
+                  onClick={() => void act((s) => s.unhide(h.slug)).then(saved)}
                 >
                   {T.showAgain}
                 </Button>

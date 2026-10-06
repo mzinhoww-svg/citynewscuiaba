@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useState } from "react";
 import {
   AccountInvite,
   Button,
@@ -13,12 +13,13 @@ import {
   Skeleton,
   Tabs,
   TextField,
+  useToast,
 } from "@/components";
 import { FAVORITES_TEXT as T } from "@/content/pt-BR/favorites";
 import { SECTIONS } from "@/content/pt-BR/nav";
 import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import { requestLoginInvite } from "@/lib/anon/invite";
-import type { AnonProfile } from "@/lib/anon/types";
+import type { AnonProfile, AnonStore } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { formatWhen } from "@/lib/format/date";
 import { cacheSaved } from "@/lib/offline/sw";
@@ -42,7 +43,17 @@ export interface FavoritesClientProps {
 }
 
 export function FavoritesClient({ sourceNames, initialTab }: FavoritesClientProps) {
-  const { profile, degraded, ready, act } = useAnonProfile();
+  const { profile, degraded, ready, act: rawAct } = useAnonProfile();
+  const toast = useToast();
+  // Toda gravação no perfil local que falha vira aviso (item 88); cada ação desfaz o otimismo.
+  const act: Act = useCallback(
+    async <T,>(fn: (s: AnonStore) => Promise<T>) => {
+      const r = await rawAct(fn);
+      if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+      return r;
+    },
+    [rawAct, toast],
+  );
   const [tab, setTab] = useState<Tab>(() => tabFromSlug(initialTab));
   const router = useRouter();
   const pathname = usePathname();
@@ -176,16 +187,23 @@ function Saved({ profile, act }: { profile: AnonProfile; act: Act }) {
       placeholder: pending.state === "removed",
     });
 
+  // Se a gravação falhar, volta ao estado anterior (o foco acompanha pelo efeito acima).
+  const revert = (ref: string, state: NonNullable<Pending>["state"]) =>
+    setPending((cur) => (cur?.item.ref === ref ? { ...cur, state } : cur));
   const remove = (s: SavedItem, index: number) => {
-    void act((st) => st.unsave(s.ref));
     setPending({ item: s, index, state: "removed" });
+    void act((st) => st.unsave(s.ref)).then((r) => {
+      if (!r.ok) revert(s.ref, "restored");
+    });
   };
   const undo = (p: NonNullable<Pending>) => {
     const s = p.item;
+    setPending({ ...p, state: "restored" });
     void act((st) =>
       st.save(s.ref, s.progress, { title: s.title, href: s.href, section: s.section }),
-    );
-    setPending({ ...p, state: "restored" });
+    ).then((r) => {
+      if (!r.ok) revert(s.ref, "removed");
+    });
   };
 
   return (
@@ -409,9 +427,12 @@ function Collections({ profile, act }: { profile: AnonProfile; act: Act }) {
             return;
           }
           setNameError(false);
-          void act((s) => s.createCollection(name));
-          setName("");
-          requestLoginInvite("collection");
+          // Só limpa o campo e convida depois de gravar; na falha o nome digitado fica.
+          void act((s) => s.createCollection(name)).then((r) => {
+            if (!r.ok) return;
+            setName("");
+            requestLoginInvite("collection");
+          });
         }}
       >
         <TextField
@@ -447,8 +468,9 @@ function Collections({ profile, act }: { profile: AnonProfile; act: Act }) {
                   className="flex flex-1 flex-wrap items-end gap-2"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    void act((s) => s.renameCollection(c.id, draft));
-                    setEditing(null);
+                    void act((s) => s.renameCollection(c.id, draft)).then((r) => {
+                      if (r.ok) setEditing((cur) => (cur === c.id ? null : cur));
+                    });
                   }}
                 >
                   <TextField

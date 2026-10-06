@@ -12,6 +12,7 @@ import {
   Select,
   Skeleton,
   TextField,
+  useToast,
 } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
 import { ANON_TEXT } from "@/content/pt-BR/privacy";
@@ -51,6 +52,7 @@ async function askPermission(): Promise<"granted" | "denied" | "unsupported"> {
 export function AlertsClient({ targets, topicsError = false }: AlertsClientProps) {
   const id = useId();
   const { profile, degraded, ready, act } = useAnonProfile();
+  const toast = useToast();
   const [kind, setKind] = useState<AlertKind>("bairro");
   const [target, setTarget] = useState("");
   const [frequency, setFrequency] = useState<AlertFrequency>("immediate");
@@ -135,7 +137,11 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
     }
   };
 
-  const remove = (a: LocalAlert) => void act((s) => s.removeAlert(a.id));
+  // Remover que falha ao gravar (item 88): o alerta continua na lista e o toast avisa.
+  const remove = (a: LocalAlert) =>
+    void act((s) => s.removeAlert(a.id)).then((r) => {
+      if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    });
 
   return (
     // Ordem de leitura no celular: o que já existe e os avisos do navegador, o formulário de criar
