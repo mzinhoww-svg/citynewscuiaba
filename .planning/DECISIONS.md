@@ -321,3 +321,11 @@ O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contra
 ## A-151 · Orçamento de JS provisório da W4 (04/10/2026)
 
 **Status:** vigente, provisório. A W4 trouxe interações que pedem JavaScript no cliente (fileira de editorias que recolhe, ticker que rola pela roda do mouse e por botões, aba certa acesa pela rota, convite no fim da leitura). O Lighthouse do PR #61 mediu 178,1 kB na home, 178,0 kB na busca, 187,2 kB na matéria e 188,6 kB em Fontes, acima dos limites da A-146 (175 e 185 kB). O orçamento sobe para 180 kB (home e busca) e 190 kB (matéria e Fontes) até a W5-T5, que corta o bundle (itens 85 e 86) com a meta de 165 kB em home e busca; ao entregar o corte, a W5-T5 reduz estes limites. O LCP continua como alerta (L-026).
+
+## A-210 · Google Places entra como fonte do Guia (06/10/2026)
+
+**Status:** vigente. Decisão do dono. A chave do TripAdvisor é recusada pela própria TripAdvisor (403, "explicit deny"; diagnóstico do #63) e o OpenStreetMap sozinho é fraco em Cuiabá. O Google Places (API oficial, `GOOGLE_PLACES_API_KEY` na Vercel) passa a ser a fonte principal do Guia, como a spec original previa (G2). Substitui a R33 ("sem chaves de API") só nesse ponto. Uma nota por lugar, com precedência Google > TripAdvisor > manual; o ranking do TripAdvisor continua quando houver. Dados do Google valem 30 dias (termos de uso): busca de novo aos 25 dias e expurga aos 30. Spec: `docs/superpowers/specs/2026-10-06-guia-google-places-design.md`.
+
+## A-211 · Uma fonte de dados por lugar basta no Guia (06/10/2026)
+
+**Status:** vigente. Decisão do dono ("as listas são informativas, não precisa dessa regra rigorosa"). Altera a G4: `MIN_SOURCES_PER_VENUE` passa de 2 para 1, para entrar na lista e para publicar sozinha. Os outros critérios da publicação automática ficam (mínimo de lugares conferidos, critério escrito, sem patrocínio e sinal de qualidade em pelo menos o mínimo de lugares). O texto público do critério deixa de citar "duas fontes".

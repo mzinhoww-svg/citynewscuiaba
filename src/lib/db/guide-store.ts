@@ -45,6 +45,7 @@ export function venueFromRow(r: VenueRow): StoredVenue {
       source === "tripadvisor" || source === "google" || source === "manual" ? source : null,
     tripadvisorRank: r.tripadvisor_rank,
     tripadvisorUrl: r.tripadvisor_url,
+    googleMapsUrl: null,
     placeIds,
     sources: r.data_sources.filter(isSource),
   };

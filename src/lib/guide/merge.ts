@@ -123,13 +123,21 @@ export function isSameVenue(a: Matchable, b: Matchable): boolean {
 
 const unionSources = (a: DataSource[], b: DataSource[]): DataSource[] => [...new Set([...a, ...b])];
 
+/** Precedência da nota (A-210): Google > TripAdvisor > manual; uma nota por lugar. */
+function ratingRank(source: VenueRecord["ratingSource"]): number {
+  return source === "google" ? 3 : source === "tripadvisor" ? 2 : source === "manual" ? 1 : 0;
+}
+
 /**
  * Junta `incoming` em `base`: o que já existe ganha, o que falta é preenchido, e a nota, a
  * contagem e o ranking vêm do dado novo (são os que envelhecem).
  */
 export function mergeRecord(base: VenueRecord, incoming: VenueRecord): VenueRecord {
   const pick = <T>(a: T | null, b: T | null): T | null => (a !== null && a !== undefined ? a : b);
-  const fresh = incoming.rating !== null && incoming.ratingCount !== null;
+  const fresh =
+    incoming.rating !== null &&
+    incoming.ratingCount !== null &&
+    (base.rating === null || ratingRank(incoming.ratingSource) >= ratingRank(base.ratingSource));
   return {
     name: base.name,
     category: base.category,
@@ -148,6 +156,7 @@ export function mergeRecord(base: VenueRecord, incoming: VenueRecord): VenueReco
     ratingSource: fresh ? incoming.ratingSource : base.ratingSource,
     tripadvisorRank: incoming.tripadvisorRank ?? base.tripadvisorRank,
     tripadvisorUrl: pick(incoming.tripadvisorUrl, base.tripadvisorUrl),
+    googleMapsUrl: pick(incoming.googleMapsUrl, base.googleMapsUrl),
     placeIds: { ...incoming.placeIds, ...base.placeIds },
     sources: unionSources(base.sources, incoming.sources),
   };

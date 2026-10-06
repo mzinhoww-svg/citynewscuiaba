@@ -89,6 +89,42 @@ describe("mergeRecord", () => {
     expect(m.sources.sort()).toEqual(["osm", "tripadvisor"]);
   });
 
+  it("nota do Google fica quando a TripAdvisor chega depois, e o ranking entra", () => {
+    const base = rec({
+      rating: 4.6,
+      ratingCount: 900,
+      ratingSource: "google",
+      placeIds: { google: "ChIJ-1" },
+      sources: ["google"],
+    });
+    const incoming = rec({
+      rating: 4.2,
+      ratingCount: 50,
+      ratingSource: "tripadvisor",
+      tripadvisorRank: 7,
+      placeIds: { tripadvisor: "55" },
+      sources: ["tripadvisor"],
+    });
+    const m = mergeRecord(base, incoming);
+    expect(m.rating).toBe(4.6);
+    expect(m.ratingCount).toBe(900);
+    expect(m.ratingSource).toBe("google");
+    expect(m.tripadvisorRank).toBe(7);
+    expect([...m.sources].sort()).toEqual(["google", "tripadvisor"]);
+  });
+
+  it("nota nova da mesma fonte substitui a anterior", () => {
+    const base = rec({ rating: 4.6, ratingCount: 900, ratingSource: "google" });
+    const m = mergeRecord(base, rec({ rating: 4.7, ratingCount: 950, ratingSource: "google" }));
+    expect(m.rating).toBe(4.7);
+    expect(m.ratingCount).toBe(950);
+  });
+
+  it("link do Google Maps vem do dado novo", () => {
+    const m = mergeRecord(rec(), rec({ googleMapsUrl: "https://maps.google.com/?cid=1" }));
+    expect(m.googleMapsUrl).toBe("https://maps.google.com/?cid=1");
+  });
+
   it("dado novo sem nota não apaga a nota que já existe", () => {
     const base = rec({ rating: 4.5, ratingCount: 100, ratingSource: "tripadvisor" });
     const m = mergeRecord(base, rec());

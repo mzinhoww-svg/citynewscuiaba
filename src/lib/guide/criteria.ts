@@ -52,6 +52,6 @@ export function listCriteriaText(
   const where = t.neighborhood ? `Cuiabá, no bairro ${t.neighborhood}` : "Cuiabá";
   return (
     `Reunimos ${what} de ${where} com dados públicos e ordenamos por ${used.length === 1 ? "um sinal" : `${used.length} sinais`}: ${list}. ` +
-    `Só entram lugares com pelo menos duas fontes de dados. Patrocínio nunca altera a ordem da lista.`
+    `Os dados vêm de fontes públicas, citadas na lista. Patrocínio nunca altera a ordem da lista.`
   );
 }

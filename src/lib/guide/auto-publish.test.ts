@@ -44,8 +44,13 @@ describe("canAutoPublish", () => {
     expect(r.missing).toContain("criteria");
   });
 
-  it("falha quando algum lugar tem menos de 2 fontes de dados", () => {
-    const items = [1, 2, 3, 4, 5].map((n) => item(n, n === 2 ? { sources: 1 } : {}));
+  it("publica com uma fonte por lugar (A-211)", () => {
+    const items = [1, 2, 3, 4, 5].map((n) => item(n, { sources: 1 }));
+    expect(canAutoPublish(draft({ items }))).toEqual({ ok: true, missing: [] });
+  });
+
+  it("falha quando algum lugar não tem fonte de dados", () => {
+    const items = [1, 2, 3, 4, 5].map((n) => item(n, n === 2 ? { sources: 0 } : {}));
     expect(canAutoPublish(draft({ items })).missing).toContain("sources");
   });
 
@@ -66,7 +71,7 @@ describe("canAutoPublish", () => {
   });
 
   it("junta todos os motivos faltantes", () => {
-    const r = canAutoPublish(draft({ criteria: "", items: [item(1, { sources: 1 })] }));
+    const r = canAutoPublish(draft({ criteria: "", items: [item(1, { sources: 0 })] }));
     expect(r.missing).toEqual(
       expect.arrayContaining(["min_venues", "criteria", "sources", "quality_signal"]),
     );
