@@ -189,27 +189,38 @@ export async function applyMigration(
     );
     if (error) throw new Error(error.message);
   }
-  for (const c of plan.collections) {
+  if (plan.collections.length) {
+    // Todas as coleções numa inserção e todos os itens noutra (antes, duas chamadas por coleção).
+    const created = plan.collections.map((c) => ({
+      slug: `pessoal-${crypto.randomUUID()}`,
+      title: c.name.slice(0, 80),
+      items: [...new Set(c.items)].slice(0, 500),
+    }));
     const { data, error } = await db
       .from("collections")
-      .insert({
-        slug: `pessoal-${crypto.randomUUID()}`,
-        title: c.name.slice(0, 80),
-        description: "",
-        owner_ref: owner,
-        is_editorial: false,
-      })
-      .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    if (c.items.length) {
-      const { error: e2 } = await db.from("collection_items").insert(
-        [...new Set(c.items)].slice(0, 500).map((ref, position) => ({
-          collection_id: data.id,
-          content_ref: ref,
-          position,
+      .insert(
+        created.map((c) => ({
+          slug: c.slug,
+          title: c.title,
+          description: "",
+          owner_ref: owner,
+          is_editorial: false,
         })),
-      );
+      )
+      .select("id, slug");
+    if (error) throw new Error(error.message);
+    const idBySlug = new Map((data ?? []).map((r) => [r.slug, r.id]));
+    const items = created.flatMap((c) => {
+      const collectionId = idBySlug.get(c.slug);
+      if (!collectionId) throw new Error(`coleção não gravada: ${c.slug}`);
+      return c.items.map((ref, position) => ({
+        collection_id: collectionId,
+        content_ref: ref,
+        position,
+      }));
+    });
+    if (items.length) {
+      const { error: e2 } = await db.from("collection_items").insert(items);
       if (e2) throw new Error(e2.message);
     }
   }
