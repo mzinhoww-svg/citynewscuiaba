@@ -28,6 +28,7 @@ import { HOME, HOME_SERVICES } from "@/content/pt-BR/portal-home";
 import { NEWSLETTER } from "@/content/pt-BR/newsletter";
 import { CARD } from "@/content/pt-BR/portal-card";
 import { getHomeData, type EventView, type HomeData } from "@/lib/db/queries";
+import { withDirectImage } from "@/lib/db/media-direct";
 import { formatHour, formatLongDate } from "@/lib/format/date";
 import { ldScript, organizationJsonLd, websiteJsonLd } from "@/lib/seo/jsonld";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -440,10 +441,15 @@ function Home({ data }: { data: HomeData }) {
 export default async function HomePage() {
   const result = await getHomeData(new Date(), { cache: true });
   if (result.ok) {
+    // Foto da manchete com URL direta do Storage (LCP sem o redirecionamento da rota, item 79).
+    const { lead } = result.value;
+    const data = lead?.image
+      ? { ...result.value, lead: { ...lead, image: await withDirectImage(lead.image) } }
+      : result.value;
     return (
       <>
         <SiteJsonLd />
-        <Home data={result.value} />
+        <Home data={data} />
       </>
     );
   }

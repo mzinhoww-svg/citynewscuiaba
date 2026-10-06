@@ -41,6 +41,7 @@ import { formatDateTime } from "@/lib/format/date";
 import { withInlineFigure } from "@/lib/media/inline-figure";
 import { publicLabels } from "@/lib/labels";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
+import { withDirectImage } from "@/lib/db/media-direct";
 import { reportProblemAction } from "./actions";
 
 /** Matéria: leituras em cache por 300 s com a tag `article:<id>` (architecture §8; A-038). */
@@ -384,5 +385,7 @@ export default async function ArticleRoute({ params }: Props) {
   if (!result.value) notFound();
   // O status 410 vem do proxy (src/proxy.ts); a página mostra o motivo (P25, Review Focus 2).
   if ("gone" in result.value) return <GoneState reason={result.value.reason} />;
-  return <Article a={result.value} />;
+  // Capa com URL direta do Storage (LCP sem o redirecionamento da rota, item 79).
+  const a = result.value;
+  return <Article a={a.image ? { ...a, image: await withDirectImage(a.image) } : a} />;
 }

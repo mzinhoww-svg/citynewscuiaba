@@ -1,4 +1,5 @@
 import type { MediaStore } from "./store";
+import { VARIANT_CONTENT_TYPE, pickVariantWidth, variantPath } from "./variants";
 
 /** Validade da URL assinada do bucket privado `media` (ADR-009). */
 export const MEDIA_URL_TTL_SEC = 300;
@@ -15,6 +16,8 @@ export interface ServableAsset {
   status: "pending" | "approved" | "blocked";
   storagePath: string;
   contentType: string | null;
+  /** Largura do original (`media_assets.width`): define quais variantes existem. */
+  width?: number | null;
 }
 
 export interface ServeMediaDeps {
@@ -35,19 +38,39 @@ const notFound = () =>
     headers: { "Cache-Control": "no-store", "Content-Type": "text/plain; charset=utf-8" },
   });
 
+/** Pode ir ao público: aprovada; reprodução só com a flag ligada (ADR-009). */
+export async function isServable(
+  asset: ServableAsset | null,
+  deps: Pick<ServeMediaDeps, "reproductionEnabled">,
+): Promise<boolean> {
+  if (!asset || asset.status !== "approved") return false;
+  if (asset.kind === "reproduction" && !(await deps.reproductionEnabled())) return false;
+  return true;
+}
+
 /**
  * `/api/media/[id]` (ADR-009): só imagem `approved`; reprodução só com a flag
  * `image_reproduction_enabled` ligada. Com Storage do Supabase, redireciona para URL assinada
  * curta; sem URL assinada (Storage em memória), serve os bytes com cache curto.
+ * `width` (`?w=`, item 79): a menor variante ≥ w; variante ausente cai no original.
  */
-export async function serveMedia(id: string, deps: ServeMediaDeps): Promise<Response> {
+export async function serveMedia(
+  id: string,
+  deps: ServeMediaDeps,
+  opts: { width?: number } = {},
+): Promise<Response> {
   if (!UUID.test(id)) return notFound();
   const asset = await deps.asset(id);
-  if (!asset || asset.status !== "approved") return notFound();
-  if (asset.kind === "reproduction" && !(await deps.reproductionEnabled())) return notFound();
+  if (!asset || !(await isServable(asset, deps))) return notFound();
+
+  const w = opts.width === undefined ? null : pickVariantWidth(opts.width, asset.width);
+  const variant = w === null ? null : variantPath(asset.storagePath, w);
 
   if (deps.store.signedUrl) {
-    const url = await deps.store.signedUrl(asset.storagePath, MEDIA_URL_TTL_SEC);
+    const signed = variant ? await deps.store.signedUrl(variant, MEDIA_URL_TTL_SEC) : null;
+    const url = signed?.ok
+      ? signed
+      : await deps.store.signedUrl(asset.storagePath, MEDIA_URL_TTL_SEC);
     if (!url.ok) return notFound();
     return new Response(null, {
       status: 302,
@@ -57,16 +80,27 @@ export async function serveMedia(id: string, deps: ServeMediaDeps): Promise<Resp
       },
     });
   }
-  const file = await deps.store.read(asset.storagePath);
+  const fromVariant = variant ? await deps.store.read(variant) : null;
+  const file = fromVariant?.ok ? fromVariant : await deps.store.read(asset.storagePath);
   if (!file.ok) return notFound();
   const body = new Uint8Array(file.value.bytes);
+  const contentType = fromVariant?.ok
+    ? VARIANT_CONTENT_TYPE
+    : (asset.contentType ?? file.value.contentType);
   return new Response(body, {
     status: 200,
     headers: {
-      "Content-Type": asset.contentType ?? file.value.contentType,
+      "Content-Type": contentType,
       "Content-Length": String(body.byteLength),
       "Cache-Control": `public, max-age=${BYTES_CACHE_SEC}, s-maxage=${BYTES_CACHE_SEC}`,
       "X-Content-Type-Options": "nosniff",
     },
   });
+}
+
+/** `?w=` da URL: inteiro positivo, senão nenhum (original). */
+export function parseWidthParam(value: string | null): number | undefined {
+  if (!value || !/^\d{1,5}$/.test(value)) return undefined;
+  const n = Number(value);
+  return n > 0 ? n : undefined;
 }
