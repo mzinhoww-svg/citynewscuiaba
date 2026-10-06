@@ -16,7 +16,7 @@ const isSource = (s: string): s is DataSource => (DATA_SOURCES as readonly strin
 export function venueFromRow(r: VenueRow): StoredVenue {
   const ids = (r.place_ids ?? {}) as Record<string, unknown>;
   const placeIds: PlaceIds = {};
-  for (const k of ["osm", "tripadvisor", "wikidata"] as const) {
+  for (const k of ["google", "osm", "tripadvisor", "wikidata"] as const) {
     const v = ids[k];
     if (typeof v === "string" && v) placeIds[k] = v;
   }
@@ -27,6 +27,7 @@ export function venueFromRow(r: VenueRow): StoredVenue {
     status: r.status === "suspended" || r.status === "inactive" ? r.status : "active",
     dataUpdatedAt: r.data_updated_at,
     ratingUpdatedAt: r.rating_updated_at,
+    googleFetchedAt: r.google_fetched_at,
     name: r.name,
     category: r.category,
     subcategory: r.subcategory,
@@ -45,7 +46,7 @@ export function venueFromRow(r: VenueRow): StoredVenue {
       source === "tripadvisor" || source === "google" || source === "manual" ? source : null,
     tripadvisorRank: r.tripadvisor_rank,
     tripadvisorUrl: r.tripadvisor_url,
-    googleMapsUrl: null,
+    googleMapsUrl: r.google_maps_url,
     placeIds,
     sources: r.data_sources.filter(isSource),
   };
@@ -70,6 +71,7 @@ function rowFields(rec: VenueRecord) {
     rating_source: rec.ratingSource,
     tripadvisor_rank: rec.tripadvisorRank,
     tripadvisor_url: rec.tripadvisorUrl,
+    google_maps_url: rec.googleMapsUrl,
     place_ids: rec.placeIds as Json,
     data_sources: rec.sources,
   };
@@ -78,6 +80,20 @@ function rowFields(rec: VenueRecord) {
 /** Slug do lugar: nome e bairro (ou "cuiaba"), único com sufixo numérico. */
 export function venueSlugBase(rec: Pick<VenueRecord, "name" | "neighborhood">): string {
   return slugify(`${rec.name} ${rec.neighborhood ?? "cuiaba"}`, 100);
+}
+
+/** Soma um contador de chamadas dos relatórios de coleta de hoje (dia de Cuiabá). */
+async function callsToday(db: DbClient, now: Date, key: "taCalls" | "googleCalls") {
+  const { data, error } = await db
+    .from("guide_runs")
+    .select("report")
+    .eq("kind", "venue_sync")
+    .gte("started_at", dayStartCuiaba(now).toISOString());
+  if (error) throw new Error(`guide ${key}: ${error.message}`);
+  return (data ?? []).reduce((sum, r) => {
+    const n = (r.report as Record<string, unknown> | null)?.[key];
+    return sum + (typeof n === "number" ? n : 0);
+  }, 0);
 }
 
 /** Acesso a banco da coleta de lugares (service role). */
@@ -90,6 +106,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
   finishRun(id: string, report: unknown): Promise<void>;
   lastRunStartedAt(kind: "venue_sync" | "propose" | "refresh"): Promise<Date | null>;
   taCallsToday(now: Date): Promise<number>;
+  googleCallsToday(now: Date): Promise<number>;
   lastSyncedTargets(): Promise<Map<string, string>>;
   templateTargets(): Promise<SyncTarget[]>;
 } {
@@ -117,6 +134,27 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
       return (data ?? []).map(venueFromRow);
     },
 
+    async staleGoogle(before, limit) {
+      const { data, error } = await db
+        .from("venues")
+        .select("*")
+        .eq("status", "active")
+        .not("place_ids->>google", "is", null)
+        .or(`google_fetched_at.is.null,google_fetched_at.lt.${before.toISOString()}`)
+        .order("google_fetched_at", { ascending: true, nullsFirst: true })
+        .limit(limit);
+      if (error) throw new Error(`venues stale google: ${error.message}`);
+      return (data ?? []).map(venueFromRow);
+    },
+
+    async expireGoogle(before) {
+      const { data, error } = await db.rpc("guide_expire_google", {
+        p_before: before.toISOString(),
+      });
+      if (error) throw new Error(`venues expire google: ${error.message}`);
+      return typeof data === "number" ? data : 0;
+    },
+
     async save({ inserts, updates }, at) {
       let inserted = 0;
       if (inserts.length > 0) {
@@ -137,6 +175,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
             slug,
             data_updated_at: at.toISOString(),
             rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
+            google_fetched_at: rec.sources.includes("google") ? at.toISOString() : null,
           };
         });
         const { error } = await db.from("venues").insert(rows);
@@ -150,6 +189,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
             ...rowFields(u.record),
             data_updated_at: at.toISOString(),
             ...(u.ratingChecked ? { rating_updated_at: at.toISOString() } : {}),
+            ...(u.googleChecked ? { google_fetched_at: at.toISOString() } : {}),
           })
           .eq("id", u.id);
         if (error) throw new Error(`venues update: ${error.message}`);
@@ -189,16 +229,12 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
 
     /** Chamadas ao TripAdvisor já feitas hoje (dia de Cuiabá), somadas dos relatórios. */
     async taCallsToday(now) {
-      const { data, error } = await db
-        .from("guide_runs")
-        .select("report")
-        .eq("kind", "venue_sync")
-        .gte("started_at", dayStartCuiaba(now).toISOString());
-      if (error) throw new Error(`guide ta calls: ${error.message}`);
-      return (data ?? []).reduce((sum, r) => {
-        const n = (r.report as { taCalls?: unknown } | null)?.taCalls;
-        return sum + (typeof n === "number" ? n : 0);
-      }, 0);
+      return callsToday(db, now, "taCalls");
+    },
+
+    /** Chamadas ao Google já feitas hoje (dia de Cuiabá), somadas dos relatórios. */
+    async googleCallsToday(now: Date) {
+      return callsToday(db, now, "googleCalls");
     },
 
     async lastSyncedTargets() {

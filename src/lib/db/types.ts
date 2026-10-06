@@ -4233,6 +4233,8 @@ export type Database = {
           created_at: string;
           data_sources: string[];
           data_updated_at: string | null;
+          google_fetched_at: string | null;
+          google_maps_url: string | null;
           hours: string | null;
           id: string;
           instagram: string | null;
@@ -4263,6 +4265,8 @@ export type Database = {
           created_at?: string;
           data_sources?: string[];
           data_updated_at?: string | null;
+          google_fetched_at?: string | null;
+          google_maps_url?: string | null;
           hours?: string | null;
           id?: string;
           instagram?: string | null;
@@ -4293,6 +4297,8 @@ export type Database = {
           created_at?: string;
           data_sources?: string[];
           data_updated_at?: string | null;
+          google_fetched_at?: string | null;
+          google_maps_url?: string | null;
           hours?: string | null;
           id?: string;
           instagram?: string | null;
@@ -5865,6 +5871,7 @@ export type Database = {
         Returns: Json;
       };
       can_manage_guide: { Args: { uid: string }; Returns: boolean };
+      guide_expire_google: { Args: { p_before: string }; Returns: number };
     };
     Enums: {
       app_role:

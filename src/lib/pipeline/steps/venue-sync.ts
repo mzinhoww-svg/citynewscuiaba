@@ -18,6 +18,16 @@ export const RATING_MAX_AGE_DAYS = 30;
 export interface StoredVenue extends Venue {
   /** Quando a nota e a contagem foram conferidas por último. */
   ratingUpdatedAt: string | null;
+  /** Quando o Google trouxe os dados por último (valem 30 dias). */
+  googleFetchedAt: string | null;
+}
+
+/** Lugar alterado numa gravação; `googleChecked` renova a validade dos dados do Google. */
+export interface VenueUpdate {
+  id: string;
+  record: VenueRecord;
+  ratingChecked: boolean;
+  googleChecked?: boolean;
 }
 
 export interface VenueSyncStore {
@@ -25,11 +35,12 @@ export interface VenueSyncStore {
   loadCategory(category: string): Promise<StoredVenue[]>;
   /** Com TripAdvisor e nota vencida (mais velhos primeiro). */
   staleRatings(before: Date, limit: number): Promise<StoredVenue[]>;
+  /** Com Google e dado anterior a `before` (mais velhos primeiro), para buscar de novo. */
+  staleGoogle(before: Date, limit: number): Promise<StoredVenue[]>;
+  /** Apaga os dados do Google sem atualização desde `before`; devolve quantos lugares mudaram. */
+  expireGoogle(before: Date): Promise<number>;
   save(
-    changes: {
-      inserts: VenueRecord[];
-      updates: { id: string; record: VenueRecord; ratingChecked: boolean }[];
-    },
+    changes: { inserts: VenueRecord[]; updates: VenueUpdate[] },
     at: Date,
   ): Promise<{ inserted: number; updated: number }>;
 }
@@ -211,7 +222,7 @@ export async function runVenueSync(
   if (ta && !taOff) {
     const before = new Date(at.getTime() - RATING_MAX_AGE_DAYS * 86_400_000);
     const stale = await deps.store.staleRatings(before, plan.maxRefresh ?? 25);
-    const updates: { id: string; record: VenueRecord; ratingChecked: boolean }[] = [];
+    const updates: VenueUpdate[] = [];
     for (const v of stale) {
       const id = v.placeIds.tripadvisor;
       if (!id || !(await taAllowed())) break;

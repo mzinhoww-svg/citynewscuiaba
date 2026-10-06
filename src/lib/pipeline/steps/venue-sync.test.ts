@@ -28,6 +28,16 @@ function memoryStore(initial: StoredVenue[] = []) {
         )
         .slice(0, limit);
     },
+    async staleGoogle(before, limit) {
+      return rows
+        .filter(
+          (r) => r.placeIds.google && (!r.googleFetchedAt || new Date(r.googleFetchedAt) < before),
+        )
+        .slice(0, limit);
+    },
+    async expireGoogle() {
+      return 0;
+    },
     async save(changes, at) {
       saves.push({
         inserts: changes.inserts.length,
@@ -41,6 +51,7 @@ function memoryStore(initial: StoredVenue[] = []) {
           status: "active",
           dataUpdatedAt: at.toISOString(),
           ratingUpdatedAt: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
+          googleFetchedAt: rec.sources.includes("google") ? at.toISOString() : null,
         });
       }
       for (const u of changes.updates) {
@@ -260,6 +271,7 @@ describe("runVenueSync", () => {
       status: "active",
       dataUpdatedAt: "2026-08-01T00:00:00Z",
       ratingUpdatedAt: "2026-08-01T00:00:00Z",
+      googleFetchedAt: null,
       rating: 4.0,
       ratingCount: 50,
       ratingSource: "tripadvisor",
