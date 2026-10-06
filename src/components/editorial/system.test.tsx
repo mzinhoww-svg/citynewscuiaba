@@ -26,6 +26,17 @@ it("500 tenta de novo e mostra o código", async () => {
   expect(reset).toHaveBeenCalled();
 });
 
+it("500 sem código (erro no navegador) recarrega a página em vez de só refazer o render", async () => {
+  const reload = vi.fn();
+  vi.stubGlobal("location", { ...window.location, reload });
+  const reset = vi.fn();
+  render(<ErrorState reset={reset} />);
+  await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+  expect(reload).toHaveBeenCalled();
+  expect(reset).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
+});
+
 it("institucional destaca dado pendente e explica", () => {
   render(
     <DocPage

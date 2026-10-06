@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { LOAD_FAILED } from "@/content/pt-BR/system-min";
 import type { ErrorStateProps } from "./ErrorState";
 
@@ -31,8 +31,28 @@ const ErrorState = lazy(() =>
     .catch(() => ({ default: LoadFailed })),
 );
 
+const RELOAD_KEY = "cn_error_reload";
+
+/**
+ * Erro sem `digest` nasceu no navegador, tipicamente aba ou cópia em cache de antes de um deploy
+ * pedindo arquivos que já mudaram. Recarrega uma vez por aba antes de mostrar o erro.
+ */
+function useReloadOnceOnClientError(digest: string | undefined) {
+  useEffect(() => {
+    if (digest) return;
+    try {
+      if (window.sessionStorage.getItem(RELOAD_KEY)) return;
+      window.sessionStorage.setItem(RELOAD_KEY, "1");
+      window.location.reload();
+    } catch {
+      // sem armazenamento: não recarrega sozinho (evita laço); o botão faz o mesmo
+    }
+  }, [digest]);
+}
+
 /** Mesmo contrato do `ErrorState`; use nos `error.tsx` das rotas públicas. */
 export function LazyErrorState(props: ErrorStateProps) {
+  useReloadOnceOnClientError(props.digest);
   return (
     <Suspense fallback={null}>
       <ErrorState {...props} />
