@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { DbClient } from "@/lib/db/client";
 import {
   computeSignals,
@@ -285,9 +286,9 @@ function defaultFrequency(value: unknown): number {
     : FALLBACK_DEFAULT_FREQUENCY;
 }
 
-export async function getSourceDetail(
-  slug: string,
-): Promise<Result<SourceDetail | null, QueryError>> {
+export const getSourceDetail = cache(readSourceDetail);
+
+async function readSourceDetail(slug: string): Promise<Result<SourceDetail | null, QueryError>> {
   return readService(async (db) => {
     const [all, meta, health, defaults] = await Promise.all([
       fetchEntries(db, { window: "7d" }),

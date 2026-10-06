@@ -4,6 +4,7 @@ import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
 import { Fragment } from "react";
 
+import { headers } from "next/headers";
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AdSlot,
@@ -38,6 +39,7 @@ import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
 import { findRedirect } from "@/lib/db/queries/redirects";
 import { formatDateTime } from "@/lib/format/date";
+import { proxyGoneHint } from "@/lib/http/gone";
 import { withInlineFigure } from "@/lib/media/inline-figure";
 import { publicLabels } from "@/lib/labels";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
@@ -51,9 +53,13 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type Props = { params: Promise<{ slug: string }> };
 
+/**
+ * Uma leitura por requisição (UX-W5-T2): `getArticleBySlug` é memorizada com `cache()`, e a
+ * checagem de "removida" que o proxy já fez chega pelo cabeçalho dele (`proxyGoneHint`).
+ */
 async function load(slug: string) {
   if (!SLUG.test(slug) || slug.length > 200) return null;
-  return getArticleBySlug(slug, { cache: true });
+  return getArticleBySlug(slug, { cache: true, gone: proxyGoneHint(await headers()) });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
