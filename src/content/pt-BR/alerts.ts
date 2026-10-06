@@ -11,7 +11,7 @@ export const ALERTS_TEXT = {
     "Os avisos do navegador chegam enquanto houver uma página do CityNews aberta neste aparelho.",
   activeTitle: "Alertas ativos",
   activeEmpty: "Nenhum alerta ainda",
-  activeEmptyText: "Crie o primeiro abaixo: por exemplo, avisos do seu bairro.",
+  activeEmptyText: "Use Criar alerta para receber, por exemplo, os avisos do seu bairro.",
   remove: "Remover",
   removeLabel: (label: string) => `Remover alerta ${label}`,
   createTitle: "Criar alerta",

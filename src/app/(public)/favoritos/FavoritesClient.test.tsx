@@ -39,12 +39,17 @@ describe("FavoritesClient", () => {
     replace.mockClear();
   });
 
-  it("mostra o aviso do aparelho e o convite de conta com benefícios e Agora não", () => {
+  it("mostra o conteúdo antes do convite de conta (benefícios e Agora não)", () => {
     render(<FavoritesClient sourceNames={{}} />);
-    expect(screen.getByText("Salvos só neste aparelho")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Por que criar uma conta" })).toBeInTheDocument();
+    const invite = screen.getByRole("region", { name: "Por que criar uma conta" });
     expect(screen.getByRole("button", { name: "Agora não" })).toBeInTheDocument();
-    expect(screen.getByText("Nenhuma matéria salva")).toBeInTheDocument();
+    const empty = screen.getByText("Nenhuma matéria salva");
+    const tabs = screen.getByRole("tablist", { name: "Seus favoritos" });
+    // No celular a ordem do DOM é a ordem na tela: abas e salvos primeiro, convite depois.
+    expect(tabs.compareDocumentPosition(invite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(empty.compareDocumentPosition(invite) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // O aviso de aparelho mora no cabeçalho da página, não numa caixa repetida.
+    expect(screen.queryByText("Salvos só neste aparelho")).toBeNull();
   });
 
   it("coleção sem nome: erro com exemplo ligado ao campo, nada é criado", async () => {

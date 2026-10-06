@@ -15,6 +15,7 @@ import {
   type PushSupport,
 } from "@/lib/push/client";
 import { Button } from "../ui/Button";
+import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { Select } from "../ui/Select";
 import { Skeleton } from "../ui/Skeleton";
@@ -127,10 +128,15 @@ export function PushSettings({ support: forced }: PushSettingsProps) {
     </section>
   );
 
-  if (support === "unsupported")
-    return wrap(<p className="type-body text-meta">{T.settings.unsupportedBrowser}</p>);
-  if (support === "no_keys")
-    return wrap(<p className="type-body text-meta">{T.settings.unavailable}</p>);
+  // Sem suporte (ou sem chave), uma linha de nota no lugar de um bloco com título: não há nada
+  // para ligar aqui, e a caixa empurrava a lista e o formulário para baixo no celular.
+  if (support === "unsupported" || support === "no_keys")
+    return (
+      <p data-push-state="unsupported" className="flex items-start gap-2 type-meta text-meta">
+        <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+        {support === "unsupported" ? T.settings.unsupportedBrowser : T.settings.unavailable}
+      </p>
+    );
   if (support === "ios_needs_install")
     return wrap(
       <>
