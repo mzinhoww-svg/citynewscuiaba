@@ -1,5 +1,7 @@
 /** Newsletter (P19): listas, página, centro de preferências e e-mails de confirmação. */
 
+import { NEWSLETTER } from "./newsletter-form";
+
 export const NEWSLETTER_LISTS = [
   {
     id: "diaria",
@@ -30,7 +32,7 @@ export const NEWSLETTER_PAGE = {
   title: "Newsletters",
   intro:
     "Escolha o que quer receber. Não precisa de conta: só o e-mail. Você confirma pelo link que enviamos e sai quando quiser.",
-  listsLegend: "Quais newsletters?",
+  listsLegend: NEWSLETTER.listsLegend,
   sample: "Amostra da última edição",
   sampleEmpty: "A primeira edição sai em breve.",
   email: "E-mail",
@@ -100,25 +102,7 @@ export const NEWSLETTER_PREFS = {
   status: { active: "Recebendo", pending: "Aguardando confirmação", off: "Não recebe" },
 } as const;
 
-/**
- * Formulário curto de inscrição (home e rodapé). Mora aqui, e não em `portal.ts`, para o bundle
- * do navegador não levar os textos da home inteira (B-018).
- */
-export const NEWSLETTER = {
-  title: "Receba a newsletter",
-  intro: "O resumo do dia em Cuiabá, cedo, no seu e-mail. Só pedimos o endereço.",
-  label: "E-mail",
-  placeholder: "voce@exemplo.com",
-  submit: "Inscrever",
-  sending: "Enviando…",
-  invalid: "Confira o e-mail digitado. Exemplo: ana@exemplo.com",
-  rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
-  error: "Não conseguimos registrar agora. Tente de novo em alguns minutos.",
-  success:
-    "Inscrição recebida. Enviamos um link de confirmação para o seu e-mail; sem confirmação, nada é enviado. O envio das edições começa em breve.",
-  privacy: "Você pode sair da lista a qualquer momento.",
-  honeypotLabel: "Não preencha este campo",
-} as const;
+export { NEWSLETTER } from "./newsletter-form";
 
 /** E-mails para quem não tem conta (fila `reader_emails`, B-005). */
 export const NEWSLETTER_MAIL = {

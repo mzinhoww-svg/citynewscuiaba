@@ -84,6 +84,13 @@ jobs:
 
       - run: pnpm build
 
+      # zod fora dos chunks do navegador (item 85, A-154): o `pnpm test` acima roda antes do
+      # build e pula esta checagem; aqui ela roda com o build pronto e não pode pular.
+      - name: zod fora do cliente (chunks do build)
+        run: pnpm vitest run --project unit tests/ci/no-zod-in-client.test.ts
+        env:
+          REQUIRE_BUILD: "1"
+
       - if: always()
         run: supabase stop --no-backup
 

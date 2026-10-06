@@ -5,7 +5,7 @@
 // Só o schema e tipos: o barrel `@/lib/sources` puxa `url.ts` → `pipeline/net.ts` (node:dns), que
 // não pode entrar no bundle do navegador (este arquivo é lido por Client Components).
 import type { HealthLabel } from "@/lib/sources/health";
-import { FAST_FREQUENCIES } from "@/lib/sources/schema";
+import { FAST_FREQUENCIES } from "@/lib/sources/schema-constants";
 import type {
   ImagePolicy,
   Reliability,

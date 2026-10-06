@@ -78,7 +78,7 @@ describe("workflow do Lighthouse", () => {
 });
 
 describe("orçamentos do lighthouserc.json", () => {
-  it("script:size bloqueia; provisório de 180 KB em home e busca (meta ≤ 165 KB na W5-T5)", () => {
+  it("script:size bloqueia; medida da W5-T5 + 3 %: 178,2 kB em home e busca, 187,4 kB em matéria e Fontes", () => {
     const budgets = rc.ci.assert.assertMatrix.map((m) => {
       const a = m.assertions["resource-summary:script:size"] as [
         string,
@@ -91,10 +91,13 @@ describe("orçamentos do lighthouserc.json", () => {
       expect(b.level, b.url).toBe("error");
       expect(b.max, b.url).toBeLessThanOrEqual(190000);
     }
-    // Home e busca: 170 KB → 175 KB (A-146) → 180 KB (A-151, até a W5-T5 cortar o bundle).
+    // Home e busca: 170 → 175 (A-146) → 180 (A-151) → 178,2 kB (A-154: maior medida depois do
+    // corte da W5-T5, 173,0 kB na busca, + 3 %). Matéria e Fontes: 190 → 187,4 kB (181,9 + 3 %).
     const home = budgets.find((b) => b.url === "^http://localhost:3000/(\\?.*)?$");
     const busca = budgets.find((b) => b.url === "^http://localhost:3000/busca");
-    expect(home?.max).toBe(180000);
-    expect(busca?.max).toBe(180000);
+    const others = budgets.find((b) => b.url === "^http://localhost:3000/(materia|fontes)");
+    expect(home?.max).toBe(178200);
+    expect(busca?.max).toBe(178200);
+    expect(others?.max).toBe(187400);
   });
 });

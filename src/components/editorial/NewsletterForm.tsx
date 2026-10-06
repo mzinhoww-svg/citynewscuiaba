@@ -7,7 +7,7 @@ import {
   NEWSLETTER_IDLE,
   type NewsletterState,
 } from "@/lib/newsletter/form-state";
-import { NEWSLETTER, NEWSLETTER_PAGE } from "@/content/pt-BR/newsletter";
+import { NEWSLETTER } from "@/content/pt-BR/newsletter-form";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -50,7 +50,7 @@ export function NewsletterForm({ action, lists, className }: NewsletterFormProps
           className="flex flex-col gap-1"
         >
           <legend className="mb-1 type-body font-semibold text-strong">
-            {NEWSLETTER_PAGE.listsLegend}
+            {NEWSLETTER.listsLegend}
           </legend>
           <input type="hidden" name={LISTS_PICKED_FIELD} value="1" />
           {lists.map((l, i) => (

@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { PROMPTS_TEXT as T, PROMPT_STATUS_TEXT } from "@/content/pt-BR/ai-prompts";
-import type { PromptStatus } from "@/lib/ai/prompts";
-import { diffPrompt, rollbackTargets } from "@/lib/ai/prompts";
+import type { PromptStatus } from "@/lib/ai/prompts-constants";
+import { diffPrompt, rollbackTargets } from "@/lib/ai/prompts-constants";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";

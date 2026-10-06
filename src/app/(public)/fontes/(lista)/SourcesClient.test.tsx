@@ -1,139 +1,96 @@
-import { render, screen } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ToastProvider } from "@/components";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
-import { SOURCES_PAGE } from "@/content/pt-BR/sources";
-import type { AnonProfile } from "@/lib/anon/types";
-import { DEFAULT_REC_CONFIG } from "@/lib/ranking";
-import type { Result } from "@/lib/result";
-import type { SourceListEntry } from "@/lib/sources/screen";
+import { describe, expect, it, vi } from "vitest";
 
-/* UX-W5-T3 (item 88): a gravação no perfil local falha; Fontes avisa por toast e não finge. */
-
-const PROFILE: AnonProfile = {
-  anonId: null,
-  createdAt: "2026-10-01T12:00:00Z",
-  follows: [],
-  saved: [],
-  history: [],
-  searches: [],
-  interests: [],
-  hidden: [],
-  collections: [],
-  alerts: [],
-};
-const FAIL: Result<unknown, "storage"> = { ok: false, error: "storage" };
-const OK: Result<unknown, "storage"> = { ok: true, value: undefined };
-const act = vi.fn(async (): Promise<Result<unknown, "storage">> => FAIL);
-const send = vi.fn(async () => undefined);
-const current = { profile: PROFILE };
+vi.mock("next/navigation", () => ({ usePathname: () => "/fontes" }));
+vi.mock("@/lib/events/use-track", () => ({ useTrack: () => vi.fn() }));
 vi.mock("@/lib/anon/use-profile", () => ({
-  useAnonProfile: () => ({ profile: current.profile, degraded: false, ready: true, act }),
-}));
-vi.mock("@/lib/consent/client", () => ({
-  useConsent: () => [{ personalization: false, metrics: false, decided: true }, vi.fn()],
-}));
-vi.mock("@/lib/events/use-track", () => ({ useTrack: () => send }));
-const requestLoginInvite = vi.fn();
-vi.mock("@/lib/anon/invite", () => ({
-  requestLoginInvite: (...a: unknown[]) => requestLoginInvite(...a),
+  useAnonProfile: () => ({ profile: null, degraded: false, ready: true, act: vi.fn() }),
 }));
 
+import { SOURCES_PAGE as T } from "@/content/pt-BR/sources-list";
+import { DEFAULT_REC_CONFIG } from "@/lib/ranking";
+import type { SourceListEntry } from "@/lib/sources/screen";
 import { SourcesClient } from "./SourcesClient";
 
-const ENTRY: SourceListEntry = {
-  slug: "folha",
-  name: "Folha do Cerrado",
-  href: "/fontes/folha",
-  categories: ["cidade"],
-  locality: "cuiaba",
-  popularity: 1,
-  individual: 0,
-  recency: 0.5,
-  engagement: 0.5,
-  operational: 1,
-  diversity: 0.5,
-  trend: 0.5,
-  followed: false,
-  pinned: false,
-  excluded: false,
-  blocked: false,
-  isNewForUser: true,
-  localHighlight: false,
-  verified: false,
-  recentVisit: false,
-  similar: false,
-  reach: 18_000,
-  trendDirection: "stable",
-  itemsToday: 3,
-  lastUpdatedAt: "2026-10-01T11:00:00Z",
-};
+function entry(slug: string, popularity: number): SourceListEntry {
+  return {
+    slug,
+    name: slug.toUpperCase(),
+    href: `/fontes/${slug}`,
+    categories: ["cidade"],
+    locality: "cuiaba",
+    popularity,
+    individual: 0,
+    recency: 0.5,
+    engagement: 0.5,
+    operational: 1,
+    diversity: 0.5,
+    trend: 0.5,
+    followed: false,
+    pinned: false,
+    excluded: false,
+    blocked: false,
+    isNewForUser: true,
+    localHighlight: false,
+    verified: false,
+    recentVisit: false,
+    similar: false,
+    reach: 18_000,
+    trendDirection: "stable",
+    itemsToday: 3,
+    lastUpdatedAt: "2026-09-27T17:00:00Z",
+  };
+}
 
-function renderClient() {
+const entries = [entry("folha", 1), entry("agora", 0.6), entry("fora", 0.2)];
+
+/** Cards prontos do servidor (item 86): o cliente só escolhe quais mostrar e em que ordem. */
+const items = [
+  { id: "i1", sourceSlug: "agora", card: <p>card agora 1</p> },
+  { id: "i2", sourceSlug: "folha", card: <p>card folha 1</p> },
+  { id: "i3", sourceSlug: "sumida", card: <p>card de fonte fora do ranking</p> },
+];
+
+function renderClient(tab: "popular" | "trending" = "popular") {
   return render(
-    <ToastProvider>
-      <SourcesClient
-        entries={[ENTRY]}
-        items={[]}
-        config={DEFAULT_REC_CONFIG}
-        query={{ tab: "popular", period: "semana" }}
-        initialPersonalization={false}
-        now="2026-10-01T12:00:00Z"
-      />
-    </ToastProvider>,
+    <SourcesClient
+      entries={entries}
+      items={items}
+      config={DEFAULT_REC_CONFIG}
+      query={{ tab, period: "semana" }}
+      initialPersonalization={false}
+      now="2026-09-27T18:00:00Z"
+    />,
   );
 }
 
-const expectToast = async () => expect(await screen.findByText(ANON_TEXT.actFailed)).toBeVisible();
-
-describe("SourcesClient: falha ao gravar no perfil local", () => {
-  beforeEach(() => {
-    current.profile = PROFILE;
-    act.mockReset();
-    act.mockResolvedValue(FAIL);
-    send.mockClear();
-    requestLoginInvite.mockClear();
+describe("Fontes em destaque · cliente (item 86)", () => {
+  it("mostra os cards de itens vindos do servidor, na ordem do ranking", () => {
+    renderClient();
+    const section = screen.getByRole("region", { name: T.itemsTitle });
+    const cards = within(section)
+      .getAllByText(/^card /)
+      .map((n) => n.textContent);
+    expect(cards).toEqual(["card folha 1", "card agora 1"]);
+    expect(within(section).queryByText("card de fonte fora do ranking")).toBeNull();
   });
 
-  it("seguir: avisa e não registra o seguir nem chama o convite", async () => {
+  it("os itens só aparecem na aba Mais acessadas", async () => {
     renderClient();
-    await userEvent.click(screen.getAllByRole("button", { name: "Seguir Folha do Cerrado" })[0]!);
-    await expectToast();
-    expect(send).not.toHaveBeenCalledWith("source_followed", expect.anything(), expect.anything());
-    expect(requestLoginInvite).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("tab", { name: T.tabs.trending }));
+    expect(screen.queryByRole("region", { name: T.itemsTitle })).toBeNull();
+    expect(screen.queryByText("card folha 1")).toBeNull();
   });
 
-  it("ocultar: avisa e não anuncia que a fonte saiu das listas", async () => {
-    renderClient();
-    await userEvent.click(
-      screen.getAllByRole("button", { name: "Mais opções de Folha do Cerrado" })[0]!,
+  it("o cliente não carrega o card de agregado nem os textos da página de uma fonte", () => {
+    const src = readFileSync(
+      join(process.cwd(), "src/app/(public)/fontes/(lista)/SourcesClient.tsx"),
+      "utf8",
     );
-    await userEvent.click(screen.getByRole("menuitem", { name: "Não tenho interesse" }));
-    await expectToast();
-    expect(screen.queryByText(SOURCES_PAGE.hiddenDone("Folha do Cerrado"))).toBeNull();
-  });
-
-  it("desfazer o ocultar que falha avisa", async () => {
-    act.mockResolvedValueOnce(OK);
-    renderClient();
-    await userEvent.click(
-      screen.getAllByRole("button", { name: "Mais opções de Folha do Cerrado" })[0]!,
-    );
-    await userEvent.click(screen.getByRole("menuitem", { name: "Não tenho interesse" }));
-    await userEvent.click(await screen.findByRole("button", { name: SOURCES_PAGE.undo }));
-    await expectToast();
-  });
-
-  it("mostrar de novo uma fonte oculta avisa quando falha", async () => {
-    current.profile = {
-      ...PROFILE,
-      hidden: [{ sourceSlug: "folha", reason: "not_interested", at: "2026-10-01T10:00:00Z" }],
-    };
-    renderClient();
-    await userEvent.click(
-      screen.getByRole("button", { name: SOURCES_PAGE.showAgainLabel("Folha do Cerrado") }),
-    );
-    await expectToast();
+    expect(src).not.toMatch(/AggregatedCard/);
+    expect(src).not.toMatch(/@\/content\/pt-BR\/sources"/);
   });
 });

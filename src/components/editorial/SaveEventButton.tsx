@@ -1,7 +1,7 @@
 "use client";
 
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { Button } from "../ui/Button";
 import { useToast } from "../ui/Toast";

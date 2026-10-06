@@ -32,10 +32,12 @@ const FirstVisitInvite = lazy(() =>
 
 const onServer = () => false;
 
-/** Permissão de notificações já decidida (concedida ou negada): só então há o que sincronizar. */
-function notificationsAsked(): boolean {
-  return typeof Notification !== "undefined" && Notification.permission !== "default";
+/** Permissão de notificações do navegador (`"default"` também sem a API). */
+function notificationPermission(): NotificationPermission {
+  return typeof Notification === "undefined" ? "default" : Notification.permission;
 }
+
+const permissionOnServer = (): NotificationPermission => "default";
 
 function subscribeNotificationPermission(onChange: () => void): () => void {
   let status: PermissionStatus | null = null;
@@ -59,17 +61,24 @@ function subscribeNotificationPermission(onChange: () => void): () => void {
 }
 
 /**
- * Alertas de navegador e sincronização do push: sem permissão de notificações decidida não há
- * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. Em `/alertas` a
- * tela de avisos precisa do estado do push (ligado, desligado, perdido), então sincroniza sempre.
+ * Alertas de navegador e sincronização do push. Sem permissão de notificações decidida não há
+ * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. A sincronização
+ * vale com a permissão concedida ou negada (negada desfaz a inscrição guardada) e, em `/alertas`,
+ * sempre: a tela de avisos precisa do estado do push (ligado, desligado, perdido). O vigia de
+ * alertas só entrega com a permissão concedida, então só baixa nela (A-154).
  */
 export function NotificationWatchers() {
   const pathname = usePathname() ?? "/";
-  const asked = useSyncExternalStore(subscribeNotificationPermission, notificationsAsked, onServer);
-  if (!asked && !pathname.startsWith("/alertas")) return null;
+  const permission = useSyncExternalStore(
+    subscribeNotificationPermission,
+    notificationPermission,
+    permissionOnServer,
+  );
+  const sync = permission !== "default" || pathname.startsWith("/alertas");
+  if (!sync) return null;
   return (
     <Suspense fallback={null}>
-      <AlertWatcher />
+      {permission === "granted" && <AlertWatcher />}
       <PushSync />
     </Suspense>
   );

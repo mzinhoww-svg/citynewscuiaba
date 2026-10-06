@@ -51,7 +51,7 @@
               "warn",
               { "maxNumericValue": 200, "aggregationMethod": "median" }
             ],
-            "resource-summary:script:size": ["error", { "maxNumericValue": 180000 }]
+            "resource-summary:script:size": ["error", { "maxNumericValue": 178200 }]
           }
         },
         {
@@ -69,7 +69,7 @@
               "warn",
               { "maxNumericValue": 200, "aggregationMethod": "median" }
             ],
-            "resource-summary:script:size": ["error", { "maxNumericValue": 180000 }]
+            "resource-summary:script:size": ["error", { "maxNumericValue": 178200 }]
           }
         },
         {
@@ -87,7 +87,7 @@
               "warn",
               { "maxNumericValue": 200, "aggregationMethod": "median" }
             ],
-            "resource-summary:script:size": ["error", { "maxNumericValue": 190000 }]
+            "resource-summary:script:size": ["error", { "maxNumericValue": 187400 }]
           }
         }
       ]

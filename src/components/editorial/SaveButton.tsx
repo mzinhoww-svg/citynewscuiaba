@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SAVE_TEXT } from "@/content/pt-BR/favorites";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { getAnonStore } from "@/lib/anon/store";
 import { useAnonProfile } from "@/lib/anon/use-profile";

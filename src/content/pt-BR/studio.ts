@@ -347,6 +347,8 @@ export const EDITOR_TEXT = {
   history: "Versões",
   openHistory: "Comparar versões",
   bodyToolbar: "Formatação do texto",
+  /** Esqueleto do editor rico enquanto o código dele baixa (item 85). */
+  bodyLoading: "Carregando o editor",
   bold: "Negrito",
   italic: "Itálico",
   heading: "Intertítulo",

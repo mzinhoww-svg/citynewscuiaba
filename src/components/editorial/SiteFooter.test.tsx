@@ -5,7 +5,7 @@ import { SiteFooter } from "./SiteFooter";
 
 afterEach(() => {
   vi.resetModules();
-  vi.doUnmock("@/content/pt-BR/nav");
+  vi.doUnmock("@/content/pt-BR/nav-footer");
 });
 
 describe("isFilled", () => {
@@ -32,8 +32,8 @@ describe("SiteFooter", () => {
 
   it("mostra só as linhas preenchidas", async () => {
     vi.resetModules();
-    vi.doMock("@/content/pt-BR/nav", async (orig) => {
-      const mod = await orig<typeof import("@/content/pt-BR/nav")>();
+    vi.doMock("@/content/pt-BR/nav-footer", async (orig) => {
+      const mod = await orig<typeof import("@/content/pt-BR/nav-footer")>();
       return {
         ...mod,
         LEGAL: { ...mod.LEGAL, cnpj: "CNPJ: 12.345.678/0001-90" },

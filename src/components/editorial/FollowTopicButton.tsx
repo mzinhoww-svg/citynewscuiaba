@@ -1,7 +1,7 @@
 "use client";
 
 import { FOLLOW_TOPIC_TEXT } from "@/content/pt-BR/favorites";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { requestNotificationInvite } from "@/lib/push/invite";

@@ -17,7 +17,7 @@ import {
 } from "@/components";
 import { FAVORITES_TEXT as T } from "@/content/pt-BR/favorites";
 import { SECTIONS } from "@/content/pt-BR/nav";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import type { AnonProfile, AnonStore } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";

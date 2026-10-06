@@ -1,5 +1,5 @@
 import type { IconName } from "@/components";
-import { ASK_NAME } from "./ask";
+import { ASK_NAME } from "./ask-name";
 
 /** Explorar (P07) e coleção (P08). */
 export const EXPLORE = {

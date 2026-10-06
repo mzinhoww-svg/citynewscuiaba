@@ -15,7 +15,7 @@ import {
   useToast,
 } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { looksLikeEmail } from "@/lib/auth/email-shape";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
