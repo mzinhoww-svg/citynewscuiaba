@@ -121,6 +121,23 @@ describe("tripadvisor provider", () => {
     expect(http).not.toHaveBeenCalled();
   });
 
+  it("recusa da API relata status e mensagem para diagnóstico, sem a chave", async () => {
+    const onError = vi.fn();
+    const body = { Message: `User is not authorized; key=${FAKE_KEY}` };
+    const p = createTripadvisorProvider({
+      apiKey: FAKE_KEY,
+      http: async () => json(body, 403),
+      onError,
+    });
+    expect(await p.details("1")).toEqual({ ok: false, error: "unauthorized" });
+    expect(onError).toHaveBeenCalledTimes(1);
+    const detail = onError.mock.calls[0]?.[0] as { status: number; message: string };
+    expect(detail.status).toBe(403);
+    expect(detail.message).toContain("User is not authorized");
+    expect(detail.message).not.toContain(FAKE_KEY);
+    expect(detail.message.length).toBeLessThanOrEqual(300);
+  });
+
   it("erros viram códigos fixos e a chave nunca aparece no resultado", async () => {
     const statuses: [number, string][] = [
       [401, "unauthorized"],

@@ -52,6 +52,11 @@ export interface TripadvisorOptions {
    * TripAdvisor e conferida pelo `Referer`; sem ele a API responde 401/403 (chave "não autorizada").
    */
   referer?: string;
+  /**
+   * Recusa da API (401/403): status e mensagem devolvida, sem a chave, para diagnosticar o
+   * cadastro da chave no portal do TripAdvisor (domínio, cobrança, chave inativa).
+   */
+  onError?: (detail: { status: number; message: string }) => void;
   /** Chamado a cada requisição feita (contagem de cota e custo). */
   onCall?: () => void;
 }
@@ -151,7 +156,14 @@ export function createTripadvisorProvider(
       // Mensagem fixa: o erro do fetch pode trazer a URL e, com ela, a chave.
       return err("network");
     }
-    if (res.status === 401 || res.status === 403) return err("unauthorized");
+    if (res.status === 401 || res.status === 403) {
+      if (opts.onError) {
+        const text = await res.text().catch(() => "");
+        const message = text.split(key).join("[chave]").replace(/\s+/g, " ").trim().slice(0, 300);
+        opts.onError({ status: res.status, message });
+      }
+      return err("unauthorized");
+    }
     if (res.status === 429) return err("rate_limited");
     if (!res.ok) return err("http");
     try {
