@@ -1,37 +1,4 @@
--- SQL Editor do Supabase (projeto citynews-prod), uma vez, antes do merge do PR #47 (B-030, A-160, A-161).
--- Cola tudo e roda. Idempotente: pode rodar de novo sem efeito. Conferência no fim.
-
-drop table if exists public._cn_probe; -- sobra da diagnose do conector
-
--- ===== 0170_autonomous_governance.sql =====
--- 0170 · Governança autônoma: motor de política, aprovação pelo sistema e nada parado (A-160).
---
--- Complementa a A-128 (0149, uma pessoa pede, aprova e aplica). Decisão do dono (04/10/2026):
--- "AUTONOMY FIRST, HUMAN EXCEPTION SECOND". PEDIDO → MOTOR DE POLÍTICA → VALIDAÇÃO → APLICAÇÃO →
--- AUDITORIA, sem fila humana como padrão. Aditiva e idempotente; nenhuma migration anterior muda.
---
---  1. `approvals` registra o resultado da política: `decision_mode` (human | system), `outcome`
---     (auto_apply | auto_review | human_exception | rejected), versão e regra da política,
---     entradas, confiança, motivo, prazo (`expires_at`) e próxima ação (`next_action`). Todo pedido
---     pendente nasce com prazo; vencido, vira `expired` (estado terminal) pela varredura.
---  2. `governance_policies` (versionada) e `governance_decisions` (trilha somente-inserção de cada
---     decisão automática: actor = system, decisão, política, versão, regra, entradas, hash,
---     confiança, motivo, modelo, prompt, nível de fallback). `governance_log` deixa o Estúdio
---     registrar a decisão do motor de política (TS) em nome do sistema.
---  3. Push: a política de avisos (papel, limite por hora e por dia, matéria publicada) decide na
---     mesma chamada de `push_request`; passou, sai aprovado pelo sistema; não passou, recusado com
---     motivo. Nunca fica pendente esperando pessoa. `push_dispatch_due` aceita a aprovação pelo
---     sistema.
---  4. Pesos de recomendação: operador de IA também decide (`rec_weights_activate` já aceitava).
---  5. Fontes: termos em três estados (`terms_status`) e modo de uso derivado
---     (`source_usage_mode`: FULL, ATTRIBUTED, EXCERPT, BLOCKED). Só termos restritivos impedem a
---     ativação.
---  6. `governance_sweep()` a cada 15 min (pg_cron, quando existe): expira pedidos vencidos com
---     motivo e próxima ação e passa pela política os avisos que ainda estejam pendentes.
-
--- ---------------------------------------------------------------------------
--- 1. approvals: resultado da política e prazo
--- ---------------------------------------------------------------------------
+drop table if exists public._cn_probe;
 alter table public.approvals add column if not exists decision_mode text not null default 'human';
 alter table public.approvals add column if not exists outcome text;
 alter table public.approvals add column if not exists policy_version int;
@@ -41,7 +8,6 @@ alter table public.approvals add column if not exists confidence numeric(4,3);
 alter table public.approvals add column if not exists reason text;
 alter table public.approvals add column if not exists expires_at timestamptz;
 alter table public.approvals add column if not exists next_action text;
-
 alter table public.approvals drop constraint if exists approvals_decision_mode_check;
 alter table public.approvals add constraint approvals_decision_mode_check
   check (decision_mode in ('human', 'system'));
@@ -51,8 +17,6 @@ alter table public.approvals add constraint approvals_outcome_check
 alter table public.approvals drop constraint if exists approvals_status_check;
 alter table public.approvals add constraint approvals_status_check
   check (status in ('pending', 'approved', 'rejected', 'applied', 'expired'));
-
--- Pedido pendente sempre tem prazo (no-stuck): 72 h por padrão, 60 min para push urgente.
 create or replace function public.approvals_set_deadline()
 returns trigger
 language plpgsql
@@ -73,15 +37,9 @@ $$;
 drop trigger if exists approvals_deadline on public.approvals;
 create trigger approvals_deadline before insert on public.approvals
   for each row execute function public.approvals_set_deadline();
-
 update public.approvals
    set expires_at = coalesce(created_at, now()) + interval '72 hours'
  where status = 'pending' and expires_at is null;
-
-
--- ---------------------------------------------------------------------------
--- 2. Política versionada e trilha de decisões automáticas
--- ---------------------------------------------------------------------------
 create table if not exists public.governance_policies (
   version int primary key,
   body jsonb not null,
@@ -94,7 +52,6 @@ alter table public.governance_policies enable row level security;
 drop policy if exists governance_policies_read_staff on public.governance_policies;
 create policy governance_policies_read_staff on public.governance_policies for select to authenticated
   using (public.is_staff((select auth.uid())));
-
 insert into public.governance_policies (version, body, active)
 values (1, jsonb_build_object(
   'mode', 'autonomy_first',
@@ -112,7 +69,6 @@ values (1, jsonb_build_object(
   )
 ), true)
 on conflict (version) do nothing;
-
 create or replace function public.governance_policy()
 returns jsonb
 language sql
@@ -126,7 +82,6 @@ as $$
 $$;
 revoke execute on function public.governance_policy() from public, anon;
 grant execute on function public.governance_policy() to authenticated, service_role;
-
 create table if not exists public.governance_decisions (
   id bigserial primary key,
   at timestamptz not null default now(),
@@ -145,11 +100,9 @@ create table if not exists public.governance_decisions (
   model text,
   prompt text,
   fallback_level smallint,
-  -- Sem chave estrangeira: a trilha é somente-inserção e sobrevive ao pedido apagado.
   approval_id uuid,
   check (decision in ('auto_approved', 'auto_review', 'human_exception', 'rejected', 'expired', 'auto_rollback'))
 );
--- Bancos que já criaram a tabela com a chave estrangeira (pré-produção) ficam iguais.
 alter table public.governance_decisions drop constraint if exists governance_decisions_approval_id_fkey;
 create index if not exists governance_decisions_at_idx on public.governance_decisions (at desc);
 create index if not exists governance_decisions_subject_idx on public.governance_decisions (subject_ref, at desc);
@@ -157,12 +110,9 @@ alter table public.governance_decisions enable row level security;
 drop policy if exists governance_decisions_read_staff on public.governance_decisions;
 create policy governance_decisions_read_staff on public.governance_decisions for select to authenticated
   using (public.is_staff((select auth.uid())));
--- Somente inserção (como audit_log): decisão registrada não muda.
 drop trigger if exists governance_decisions_immutable on public.governance_decisions;
 create trigger governance_decisions_immutable before update or delete on public.governance_decisions
   for each row execute function public.forbid_update_delete();
-
--- Registra uma decisão automática na trilha própria e no audit_log (actor = system).
 create or replace function public.governance_record(
   p_kind text, p_subject text, p_decision text, p_rule text, p_reason text,
   p_inputs jsonb default '{}'::jsonb, p_confidence numeric default null,
@@ -198,9 +148,6 @@ end
 $$;
 revoke execute on function public.governance_record(text, text, text, text, text, jsonb, numeric, uuid, uuid, text, text, smallint) from public, anon, authenticated;
 grant execute on function public.governance_record(text, text, text, text, text, jsonb, numeric, uuid, uuid, text, text, smallint) to service_role;
-
-
--- O motor de política do Estúdio (src/lib/governance) registra a decisão em nome do sistema.
 create or replace function public.governance_log(
   p_kind text, p_subject text, p_decision text, p_rule text, p_reason text,
   p_inputs jsonb default '{}'::jsonb, p_confidence numeric default null, p_approval uuid default null
@@ -234,13 +181,6 @@ end
 $$;
 revoke execute on function public.governance_log(text, text, text, text, text, jsonb, numeric, uuid) from public, anon;
 grant execute on function public.governance_log(text, text, text, text, text, jsonb, numeric, uuid) to authenticated, service_role;
-
--- guard_approvals (0149) compara o pedido inteiro; as colunas da política só mudam pelo sistema
--- (funções security definer, onde `critical_actor()` é nulo), então a guarda não precisa mudar.
-
--- ---------------------------------------------------------------------------
--- 4. Pesos de recomendação: quem tem `rec.weights` decide (admin e operador de IA)
--- ---------------------------------------------------------------------------
 drop policy if exists approvals_decide on public.approvals;
 create policy approvals_decide on public.approvals for update to authenticated
   using (
@@ -252,13 +192,6 @@ create policy approvals_decide on public.approvals for update to authenticated
      or (kind = 'rec.weights' and public.has_role((select auth.uid()), 'operador_ia')))
     and approved_by = (select auth.uid())
   );
-
--- ---------------------------------------------------------------------------
--- 3. Push: política em vez de espera
--- ---------------------------------------------------------------------------
--- Política do aviso: limite de urgentes por hora e de destaques por dia; silêncio vale para o
--- destaque "agora" (vai para as 7h). Passou: aprovado pelo sistema e na fila. Não passou: recusado
--- com motivo (exceção real), nunca pendente esperando pessoa.
 create or replace function public.push_policy_dispatch(p_send uuid)
 returns text
 language plpgsql
@@ -301,7 +234,6 @@ begin
       v_reason := format('Limite de %s destaques por dia atingido', v_highlight_max);
     end if;
   end if;
-
   if v_rule is not null then
     update approvals set status = 'rejected', approved_by = s.requested_by, decided_at = now()
      where target_ref = 'push:' || s.id::text and status = 'pending';
@@ -313,7 +245,6 @@ begin
       s.approval_id, s.requested_by);
     return 'rejected';
   end if;
-
   v_at := s.scheduled_at;
   if s.kind = 'highlight' and v_at is null then
     v_hour := extract(hour from (now() at time zone 'America/Cuiaba'));
@@ -337,8 +268,6 @@ end
 $$;
 revoke execute on function public.push_policy_dispatch(uuid) from public, anon;
 grant execute on function public.push_policy_dispatch(uuid) to authenticated, service_role;
-
--- push_request (0047) + política na mesma chamada. Retorna o id do envio, como antes.
 create or replace function public.push_request(p jsonb)
 returns uuid
 language plpgsql
@@ -395,14 +324,12 @@ begin
     when v_article.publish_mode = 'auto' then 'PUBLICADO AUTOMATICAMENTE'
     when v_article.kind = 'normalized' then 'NORMALIZADO PELO CITYNEWS'
     else 'ORIGINAL CITYNEWS' end;
-
   insert into push_sends (kind, article_id, title, body, origin_label, url, tag, audience, status, requested_by,
                           justification, scheduled_at)
   values (v_kind, v_article.id, left(p->>'title', 60), left(p->>'body', 120), v_label,
           '/materia/' || v_article.slug, replace(v_article.id::text, '-', ''), v_audience, 'pending_approval', uid,
           nullif(trim(coalesce(p->>'justification', '')), ''), v_at)
   returning id into v_id;
-
   insert into approvals (kind, target_ref, requested_by, justification)
   values ('push.' || v_kind, 'push:' || v_id::text, uid,
           coalesce(nullif(trim(coalesce(p->>'justification', '')), ''), 'Destaque da redação: ' || left(p->>'title', 60)))
@@ -412,9 +339,6 @@ begin
   return v_id;
 end
 $$;
-
-
--- push_dispatch_due (0149) reconfere a aprovação no despacho; aceita a aprovação pelo sistema.
 create or replace function public.push_dispatch_due(p_now timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -437,8 +361,6 @@ begin
   if v_paused then
     return jsonb_build_object('paused', true, 'expired', v_expired, 'dispatched', 0, 'cancelled', 0, 'resumed', 0, 'due', 0);
   end if;
-
-  -- Retomados no meio do fan-out: lotes `queued` sem job voltam à fila.
   for s in select * from push_sends where status = 'queued' and batches_total > 0 loop
     update push_sends set status = 'dispatching' where id = s.id;
     for b in select batch_no from push_batches where send_id = s.id and status = 'queued' loop
@@ -447,21 +369,16 @@ begin
     end loop;
     v_resumed := v_resumed + 1;
   end loop;
-
-  -- `follow` retomado antes do fan-out: refaz o match.
   for s in select * from push_sends where status = 'queued' and batches_total = 0 and kind = 'follow' loop
     update push_sends set status = 'dispatching' where id = s.id;
     perform queue_enqueue('notify', 'push_match:push:' || s.id::text,
       jsonb_build_object('runId', 'push', 'step', 'push_match', 'itemRef', 'push:' || s.id::text, 'attempt', 1), 0);
     v_resumed := v_resumed + 1;
   end loop;
-
-  -- Aprovados "agora" e agendados vencidos: reconfere a aprovação registrada e despacha.
   for s in select * from push_sends
             where kind <> 'follow' and batches_total = 0
               and (status = 'queued' or (status = 'scheduled' and scheduled_at <= p_now))
             order by created_at loop
-    -- A matéria pode ter saído do ar ou virado patrocinada depois da aprovação (PWA-01, PWA-16).
     select ar.status, ar.sponsored into v_art from articles ar where ar.id = s.article_id;
     if not found or v_art.status not in ('published', 'updated') then
       update push_sends set status = 'cancelled', status_reason = 'Matéria despublicada' where id = s.id;
@@ -475,7 +392,6 @@ begin
     select * into a from approvals
      where target_ref = 'push:' || s.id::text and kind = 'push.' || s.kind
      order by created_at desc limit 1 for update;
-    -- Aprovação válida (A-160): pela política de avisos (sistema) ou por quem tem push.approve.
     if not found or a.status <> 'approved' or a.approved_by is null
        or a.requested_by is distinct from s.requested_by
        or not ((a.decision_mode = 'system' and a.outcome = 'auto_apply')
@@ -490,39 +406,26 @@ begin
       jsonb_build_object('runId', 'push', 'step', 'push_match', 'itemRef', 'push:' || s.id::text, 'attempt', 1), 0);
     v_dispatched := v_dispatched + 1;
   end loop;
-
-  -- Entregas adiadas ou reagendadas que chegaram à hora: um job por envio.
   for s in select distinct d.send_id as id from push_deliveries d
             where (d.not_before is not null and d.not_before <= p_now
                    and ((d.status = 'queued' and d.attempts > 0) or d.status = 'deferred'))
-               -- Reservada e nunca enviada (worker caiu depois do `reserve`): reenvia (PWA-08).
                or (d.status = 'queued' and d.attempts = 0 and d.created_at < p_now - interval '3 minutes') loop
     perform queue_enqueue('notify', 'push_due:due:' || s.id::text,
       jsonb_build_object('runId', 'push', 'step', 'push_due', 'itemRef', 'due:' || s.id::text, 'attempt', 1), 0);
     v_due := v_due + 1;
   end loop;
-
   return jsonb_build_object('paused', false, 'expired', v_expired, 'dispatched', v_dispatched,
                             'cancelled', v_cancelled, 'resumed', v_resumed, 'due', v_due);
 end
 $function$;
-
 revoke execute on function public.push_dispatch_due(timestamptz) from public, anon, authenticated;
 grant execute on function public.push_dispatch_due(timestamptz) to service_role;
-
--- ---------------------------------------------------------------------------
--- 5. Fontes: termos em três estados e modo de uso
--- ---------------------------------------------------------------------------
 alter table public.sources add column if not exists terms_status text not null default 'unknown';
 alter table public.sources drop constraint if exists sources_terms_status_check;
 alter table public.sources add constraint sources_terms_status_check
   check (terms_status in ('unknown', 'acknowledged', 'restricted'));
 update public.sources set terms_status = 'acknowledged'
  where terms_reviewed_at is not null and terms_status = 'unknown';
-
--- FULL: termos conhecidos, resumo e imagem liberados; ATTRIBUTED: termos conhecidos; EXCERPT:
--- termos desconhecidos (título, data, link e, quando a política deixa, resumo atribuído);
--- BLOCKED: termos restritivos ou fonte bloqueada.
 create or replace function public.source_usage_mode(p_terms text, p_status text, p_republish text, p_image text)
 returns text
 language sql
@@ -535,8 +438,6 @@ as $$
     else 'ATTRIBUTED'
   end
 $$;
-
--- Reconhecer os termos no painel marca `acknowledged`; restritivo é marcado pela aplicação.
 create or replace function public.sources_terms_status_sync()
 returns trigger
 language plpgsql
@@ -553,9 +454,6 @@ $$;
 drop trigger if exists sources_terms_status on public.sources;
 create trigger sources_terms_status before insert or update on public.sources
   for each row execute function public.sources_terms_status_sync();
-
-
--- Só termos restritivos impedem ativar (0148 já tirou a exigência de termos revisados).
 create or replace function public.guard_source_terms_restricted()
 returns trigger
 language plpgsql
@@ -571,10 +469,6 @@ $$;
 drop trigger if exists sources_terms_restricted on public.sources;
 create trigger sources_terms_restricted before update on public.sources
   for each row execute function public.guard_source_terms_restricted();
-
--- ---------------------------------------------------------------------------
--- 6. Nada parado: varredura de pedidos vencidos
--- ---------------------------------------------------------------------------
 create or replace function public.governance_sweep(p_now timestamptz default now())
 returns jsonb
 language plpgsql
@@ -602,7 +496,6 @@ begin
       'Prazo do pedido vencido; estado terminal', jsonb_build_object('approvalId', r.id), null, r.id, r.requested_by);
     n_expired := n_expired + 1;
   end loop;
-  -- Avisos ainda pendentes (pedido anterior a esta migration): passam pela política agora.
   for r in select id from public.push_sends where status = 'pending_approval' for update skip locked loop
     perform public.push_policy_dispatch(r.id);
     n_push := n_push + 1;
@@ -612,7 +505,6 @@ end
 $$;
 revoke execute on function public.governance_sweep(timestamptz) from public, anon, authenticated;
 grant execute on function public.governance_sweep(timestamptz) to service_role;
-
 do $$
 begin
   if exists (select from pg_extension where extname = 'pg_cron') then
@@ -620,8 +512,6 @@ begin
   end if;
 end
 $$;
-
--- Ações de auditoria novas (mesma união das migrations anteriores).
 do $$
 declare
   merged text[];
@@ -639,28 +529,6 @@ begin
   );
 end
 $$;
-
--- ===== 0171_autonomy_engine.sql =====
--- 0171 · Motor de autonomia do pipeline (A-161): nada parado, disjuntor que se recupera, itens
--- mortos com recomendação, incidente por causa comum e saúde da fila. Aditiva e idempotente.
---
---  1. `articles` ganha o estado do motor: próxima ação e quando (`next_action`, `next_attempt_at`),
---     reprocessos feitos, quarentena (data e motivo), nível de autonomia (A0 a A4) e motivo do
---     modo degradado. `autonomy_due_articles` entrega à varredura o que venceu.
---  2. Disjuntor: ao abrir, segura o ciclo como rascunho com `next_action = breaker_recovery` (não
---     manda mais para revisão humana); `publish_breaker_auto_recover` religa sozinho depois do
---     resfriamento quando as contagens caem abaixo de 80% dos limites, se a política permitir
---     (`auto_resume`). Falha de IA conta só a final (a que o modelo reserva recuperou não conta, nem
---     recusa de orçamento, IA desligada ou injeção). O admin continua com o reset manual.
---  3. Fila de itens mortos: classe do erro, recomendação, próxima tentativa e tentativas
---     automáticas em `pipeline_quarantine`.
---  4. `pipeline_incidents`: falhas com a mesma causa viram um incidente (não N pedidos).
---  5. `autonomy_queue_health()`: profundidade, idade do mais antigo, falhas, novas tentativas,
---     itens mortos, resolução automática e exceção humana.
-
--- ---------------------------------------------------------------------------
--- 1. Estado do motor na matéria
--- ---------------------------------------------------------------------------
 alter table public.articles add column if not exists next_action text;
 alter table public.articles add column if not exists next_attempt_at timestamptz;
 alter table public.articles add column if not exists reprocess_count int not null default 0;
@@ -676,8 +544,6 @@ alter table public.articles add constraint articles_next_action_check
   check (next_action is null or next_action in ('rewrite', 'reevaluate', 'await_auto_publish', 'breaker_recovery'));
 create index if not exists articles_next_attempt_idx on public.articles (next_attempt_at)
   where next_attempt_at is not null and quarantined_at is null;
-
--- Matérias do pipeline com a próxima ação vencida (rascunho, sem pessoa, fora da quarentena).
 create or replace function public.autonomy_due_articles(p_now timestamptz default now(), p_limit int default 50)
 returns table (id uuid, topic_id uuid, next_action text, ai_fallback boolean, reprocess_count int)
 language sql
@@ -696,8 +562,6 @@ as $$
 $$;
 revoke execute on function public.autonomy_due_articles(timestamptz, int) from public, anon, authenticated;
 grant execute on function public.autonomy_due_articles(timestamptz, int) to service_role;
-
--- Marca a matéria como tratada pela varredura (evita reenfileirar no mesmo minuto).
 create or replace function public.autonomy_claim_article(p_id uuid)
 returns void
 language sql
@@ -708,15 +572,9 @@ as $$
 $$;
 revoke execute on function public.autonomy_claim_article(uuid) from public, anon, authenticated;
 grant execute on function public.autonomy_claim_article(uuid) to service_role;
-
--- ---------------------------------------------------------------------------
--- 2. Disjuntor: segura sem fila humana e se recupera sozinho
--- ---------------------------------------------------------------------------
 alter table public.publish_breaker add column if not exists auto_resume boolean not null default true;
 alter table public.publish_breaker add column if not exists cooldown_minutes int not null default 30;
 alter table public.publish_breaker add column if not exists disabled_by_trip boolean not null default false;
-
--- Falha de IA final: falhas do provedor/tempo/formato menos as recuperadas pelo modelo reserva.
 create or replace function public.publish_counts(p_now timestamptz default now())
 returns jsonb
 language sql
@@ -754,8 +612,6 @@ as $$
 $$;
 revoke execute on function public.publish_counts(timestamptz) from public, anon, authenticated;
 grant execute on function public.publish_counts(timestamptz) to service_role;
-
--- Segura o ciclo em andamento como rascunho com próxima ação (sem revisão humana).
 create or replace function public.autonomy_hold_cycle(p_reason text, p_next_action text, p_minutes int default 30)
 returns int
 language plpgsql
@@ -811,9 +667,6 @@ end
 $$;
 revoke execute on function public.autonomy_hold_cycle(text, text, int) from public, anon, authenticated;
 grant execute on function public.autonomy_hold_cycle(text, text, int) to service_role;
-
--- 0073 + segura o ciclo como rascunho (`breaker_recovery`) em vez de revisão humana e lembra que
--- foi o disjuntor quem desligou `auto_publish` (só esse caso religa sozinho).
 create or replace function public.publish_breaker_trip(p_reason text, p_detail jsonb default '{}'::jsonb)
 returns boolean
 language plpgsql
@@ -848,9 +701,6 @@ end
 $$;
 revoke execute on function public.publish_breaker_trip(text, jsonb) from public, anon, authenticated;
 grant execute on function public.publish_breaker_trip(text, jsonb) to service_role;
-
--- TRIP → THROTTLE → DIAGNOSE → AUTO-RECOVER. Religa só o que o disjuntor desligou, depois do
--- resfriamento e com as contagens abaixo de 80% dos limites; devolve o diagnóstico.
 create or replace function public.publish_breaker_auto_recover(p_now timestamptz default now())
 returns jsonb
 language plpgsql
@@ -905,20 +755,12 @@ end
 $$;
 revoke execute on function public.publish_breaker_auto_recover(timestamptz) from public, anon, authenticated;
 grant execute on function public.publish_breaker_auto_recover(timestamptz) to service_role;
-
--- ---------------------------------------------------------------------------
--- 3. Fila de itens mortos com recomendação
--- ---------------------------------------------------------------------------
 alter table public.pipeline_quarantine add column if not exists reason_class text;
 alter table public.pipeline_quarantine add column if not exists recommendation text;
 alter table public.pipeline_quarantine add column if not exists next_retry_at timestamptz;
 alter table public.pipeline_quarantine add column if not exists auto_retries int not null default 0;
 create index if not exists pipeline_quarantine_retry_idx on public.pipeline_quarantine (next_retry_at)
   where resolved_at is null and next_retry_at is not null;
-
--- ---------------------------------------------------------------------------
--- 4. Incidente por causa comum
--- ---------------------------------------------------------------------------
 create table if not exists public.pipeline_incidents (
   id bigserial primary key,
   signature text not null,
@@ -938,10 +780,6 @@ alter table public.pipeline_incidents enable row level security;
 drop policy if exists pipeline_incidents_read_staff on public.pipeline_incidents;
 create policy pipeline_incidents_read_staff on public.pipeline_incidents for select to authenticated
   using (public.is_staff((select auth.uid())));
-
--- ---------------------------------------------------------------------------
--- 5. Saúde da fila
--- ---------------------------------------------------------------------------
 create or replace function public.autonomy_queue_health(p_now timestamptz default now())
 returns jsonb
 language sql
@@ -968,8 +806,6 @@ as $$
 $$;
 revoke execute on function public.autonomy_queue_health(timestamptz) from public, anon;
 grant execute on function public.autonomy_queue_health(timestamptz) to authenticated, service_role;
-
--- Ações de auditoria novas (mesma união das migrations anteriores).
 do $$
 declare
   merged text[];
@@ -983,9 +819,5 @@ begin
   );
 end
 $$;
-
--- ===== Registro no histórico de migrations =====
 insert into supabase_migrations.schema_migrations (version, name) values ('20261006000170', '0170_autonomous_governance'), ('20261006000171', '0171_autonomy_engine') on conflict do nothing;
-
--- ===== Conferência (deve voltar: gov=1, sweep=1, recover=1, health=1, probe=null) =====
 select (select count(*) from public.governance_policies where active) gov, (select count(*) from cron.job where jobname = 'governance-sweep') sweep, (select count(*) from pg_proc where proname = 'publish_breaker_auto_recover') recover, (select count(*) from pg_proc where proname = 'autonomy_queue_health') health, to_regclass('public._cn_probe') probe;
