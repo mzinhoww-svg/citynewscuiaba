@@ -167,9 +167,9 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 
 ## C. Estúdio (redação)
 
-Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada por papel; busca global (Ctrl K); **sino de notificações da equipe** no cabeçalho de todas as páginas (E15, BELL-T1); troca de plantão.
+Shell: `/estudio`, sidebar com Redação, Control Center (com Contingência em destaque e subgrupos Operação, IA, Fontes e regras) e Administração, filtrada por papel, com busca no menu, grupos recolhíveis e contagem de pendências; busca global (Ctrl K); **sino de notificações da equipe** no cabeçalho de todas as páginas (E15, BELL-T1); troca de plantão.
 
-### E01 · Newsroom · `/estudio` · Canvas (U01, E01)
+### E01 · Redação · `/estudio` · Canvas (U01, E01)
 - KPIs do dia, fila com abas (Tudo, Fila de exceção, Publicadas automaticamente nas últimas 24 h, Minha fila, Temas sensíveis), recomendação da IA vs responsável, faixa de aviso sobre itens automáticos.
 
 ### E02 · Fila de matérias · `/estudio/fila` · Canvas (U01)
@@ -224,7 +224,7 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 ### O06 · Filas e falhas · `/estudio/control/falhas` · Canvas (V05)
 ### O07 · Execuções (histórico de ciclos) · `/estudio/control/execucoes` · **Nova**
 - Lista de ciclos com duração por fase, itens por etapa, falhas, custo; detalhe do ciclo com gráfico de fases.
-### O08 · Logs · `/estudio/control/logs` · **Nova**
+### O08 · Registros · `/estudio/control/logs` · **Nova**
 - Explorador com filtros (ciclo, item, fonte, etapa, nível, agente), busca textual, exportação; IPs mascarados para não admin.
 ### O09 · Custos e limites · `/estudio/control/custos` · Canvas (V06)
 ### O10 · Agentes · `/estudio/control/agentes` · Canvas (I02, página Produto digital)
@@ -232,7 +232,7 @@ Shell: `/estudio`, sidebar com Redação, Control Center e Governança filtrada 
 ### O12 · Prompts e versões · `/estudio/control/prompts/[id]` · Canvas (I03)
 ### O13 · Bases de conhecimento · `/estudio/control/conhecimento` · Canvas (I04)
 ### O14 · Avaliações e regressão · `/estudio/control/avaliacoes` · Canvas (I05)
-### O15 · Playground de testes · `/estudio/control/testes` · **Nova**
+### O15 · Testar prompts · `/estudio/control/testes` · **Nova**
 - Escolher agente, versão do prompt e modelo; colar item de teste ou escolher caso da regressão; ver entrada sanitizada, saída estruturada, validação zod, custo, latência; salvar como caso de regressão.
 ### O16 · Governança da IA · `/estudio/control/governanca` · Canvas (I06)
 ### O17 · Recomendação de fontes · `/estudio/control/recomendacao` · Canvas (V07)

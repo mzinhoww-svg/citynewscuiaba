@@ -31,9 +31,9 @@ export interface StaffTableProps {
     roles: RoleGrant[];
     justification: string;
   }) => Promise<AdminReply>;
-  applyAdmin: (i: { userId: string }) => Promise<AdminReply>;
-  applyAdminRevoke: (i: { userId: string }) => Promise<AdminReply>;
 }
+
+type RolesChange = { roles: RoleGrant[]; justification: string };
 
 const U = T.users;
 const C = T.confirm;
@@ -42,20 +42,12 @@ const inviteRoles = roleOptions.filter((r) => r.value !== "admin");
 
 /**
  * Usuários (A02): tabela da equipe com papéis, situação ("Convite pendente" até o primeiro
- * acesso) e ações; convite por e-mail e edição de papéis em diálogos. Papel de administração
- * vira pedido `role.admin`, aprovado e aplicado na mesma ação (A-128); um pedido que ficou
- * aprovado sem aplicar mostra "Aplicar". Aplicar e revogar administração pedem confirmação com o
- * nome da pessoa e o efeito (item 24).
+ * acesso) e ações; convite por e-mail e edição de papéis em diálogos. Salvar papéis é uma ação só
+ * (item 61, A-150; A-128): o banco registra o pedido com quem pediu e aprovou, aplica e audita na
+ * mesma transação, então não sobra pedido "aprovado, falta aplicar". Conceder ou revogar
+ * administração pede confirmação com o nome da pessoa e o efeito (item 24) antes de salvar.
  */
-export function StaffTable({
-  staff,
-  sections,
-  currentUserId,
-  invite,
-  setRoles,
-  applyAdmin,
-  applyAdminRevoke,
-}: StaffTableProps) {
+export function StaffTable({ staff, sections, currentUserId, invite, setRoles }: StaffTableProps) {
   const router = useRouter();
   const [status, setStatus] = useState<AdminReply | null>(null);
   const [inviting, setInviting] = useState(false);
@@ -63,6 +55,7 @@ export function StaffTable({
   const [confirming, setConfirming] = useState<{
     kind: "grant" | "revoke";
     person: StaffMember;
+    change: RolesChange;
   } | null>(null);
   const [busy, start] = useTransition();
 
@@ -121,46 +114,12 @@ export function StaffTable({
                     )}
                   </span>
                 )}
-                {p.adminApproval && (
-                  <span className="block type-meta font-medium text-strong">
-                    {p.adminApproval.status === "pending"
-                      ? U.rolesDialog.adminPending
-                      : U.rolesDialog.adminApproved}
-                  </span>
-                )}
-                {p.adminRevokeApproval && (
-                  <span className="block type-meta font-medium text-strong">
-                    {p.adminRevokeApproval.status === "pending"
-                      ? U.rolesDialog.revokePending
-                      : U.rolesDialog.revokeApproved}
-                  </span>
-                )}
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-wrap gap-2">
                   {p.id !== currentUserId && (
                     <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                       {U.edit}
-                    </Button>
-                  )}
-                  {p.adminApproval?.status === "approved" && p.id !== currentUserId && (
-                    <Button
-                      size="sm"
-                      variant="outline-strong"
-                      disabled={busy}
-                      onClick={() => setConfirming({ kind: "grant", person: p })}
-                    >
-                      {U.rolesDialog.apply}
-                    </Button>
-                  )}
-                  {p.adminRevokeApproval?.status === "approved" && p.id !== currentUserId && (
-                    <Button
-                      size="sm"
-                      variant="outline-strong"
-                      disabled={busy}
-                      onClick={() => setConfirming({ kind: "revoke", person: p })}
-                    >
-                      {U.rolesDialog.revokeApply}
                     </Button>
                   )}
                 </div>
@@ -187,9 +146,8 @@ export function StaffTable({
               })}
           onClose={() => setConfirming(null)}
           onConfirm={() => {
-            const { kind, person } = confirming;
-            const apply = kind === "revoke" ? applyAdminRevoke : applyAdmin;
-            start(async () => done(await apply({ userId: person.id })));
+            const { person, change } = confirming;
+            start(async () => done(await setRoles({ userId: person.id, ...change })));
           }}
         />
       )}
@@ -207,7 +165,13 @@ export function StaffTable({
           sections={sections}
           busy={busy}
           onCancel={() => setEditing(null)}
-          onSubmit={(v) => start(async () => done(await setRoles({ userId: editing.id, ...v })))}
+          onSubmit={(v) => {
+            const hadAdmin = editing.roles.some((r) => r.role === "admin");
+            const wantsAdmin = v.roles.some((r) => r.role === "admin");
+            if (hadAdmin !== wantsAdmin)
+              setConfirming({ kind: wantsAdmin ? "grant" : "revoke", person: editing, change: v });
+            else start(async () => done(await setRoles({ userId: editing.id, ...v })));
+          }}
         />
       )}
     </div>
@@ -301,7 +265,7 @@ function RolesDialog({
   sections: { slug: string; name: string }[];
   busy: boolean;
   onCancel: () => void;
-  onSubmit: (v: { roles: RoleGrant[]; justification: string }) => void;
+  onSubmit: (v: RolesChange) => void;
 }) {
   const D = U.rolesDialog;
   const uid = useId().replace(/:/g, "");
@@ -311,9 +275,10 @@ function RolesDialog({
   );
   const [justification, setJustification] = useState("");
   const hadAdmin = person.roles.some((r) => r.role === "admin");
-  const wantsAdmin = roles.includes("admin") && !hadAdmin;
+  // Conceder ou revogar administração pede justificativa (fica no pedido registrado).
+  const adminChanges = roles.includes("admin") !== hadAdmin;
   const editor = roles.includes("editor");
-  const ready = (!editor || secs.length > 0) && (!wantsAdmin || justification.trim().length > 0);
+  const ready = (!editor || secs.length > 0) && (!adminChanges || justification.trim().length > 0);
   return (
     <Dialog open title={D.title(person.name)} onClose={onCancel}>
       <form
@@ -343,7 +308,7 @@ function RolesDialog({
             {D.editorNeedsSection}
           </p>
         )}
-        {wantsAdmin && (
+        {adminChanges && (
           <TextField
             id={`${uid}-just`}
             label={D.justification}

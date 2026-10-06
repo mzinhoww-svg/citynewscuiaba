@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { LogExplorer } from "@/components/estudio";
+import { LogExplorer, StudioScreen } from "@/components/estudio";
 import {
   AGENT_LABEL,
   CONTROL_TEXT as T,
@@ -19,7 +19,7 @@ import { searchLogs, sourceOptions } from "@/lib/db/queries/control";
 import { STEP_NAMES } from "@/lib/pipeline/types";
 import { loadOrNull } from "../../load-error";
 
-export const metadata: Metadata = { title: "Logs · Control Center · CityNews Cuiabá" };
+export const metadata: Metadata = { title: "Registros · Control Center · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
 
 const PAGE = 50;
@@ -42,12 +42,7 @@ export default async function LogsPage({
   });
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.logs.title}</h1>
-        <p className="type-body text-meta">{T.logs.intro}</p>
-      </header>
+    <StudioScreen section={T.sectionLabel} title={T.logs.title} intro={T.logs.intro}>
       {data === null ? (
         <EmptyState
           tone="error"
@@ -96,6 +91,6 @@ export default async function LogsPage({
           );
         })()
       )}
-    </section>
+    </StudioScreen>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { AgentTable } from "@/components/estudio";
+import { AgentTable, StudioScreen } from "@/components/estudio";
 import { AGENTS_TEXT as T } from "@/content/pt-BR/ai-prompts";
 import { GLOBAL_DAILY_BUDGET_BRL } from "@/lib/ai/registry";
 import { requireRole } from "@/lib/auth/require-role";
@@ -21,11 +21,12 @@ export default async function AgentsPage() {
   const data = await loadOrNull("ai agents", () => agentsOverview());
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
+    <StudioScreen
+      section={T.sectionLabel}
+      title={T.title}
+      intro={T.intro}
+      gap="lg"
+      actions={
         <div className="flex flex-wrap gap-3">
           <Button href="/estudio/control/testes" size="sm" variant="outline-strong" icon="play">
             {T.playground}
@@ -34,7 +35,8 @@ export default async function AgentsPage() {
             Modelos
           </Button>
         </div>
-      </header>
+      }
+    >
       {data === null ? (
         <EmptyState
           tone="error"
@@ -61,6 +63,6 @@ export default async function AgentsPage() {
           />
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

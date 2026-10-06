@@ -16,6 +16,7 @@ import {
   WIZARD_TEXT,
 } from "@/content/pt-BR/sources-admin-detail";
 import { effectiveFrequency, nextCollectionAt } from "@/lib/sources/frequency";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import type {
   ConsumptionStrategy,
   ImagePolicy,
@@ -161,6 +162,13 @@ export function SourceConfigForm({
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
+  // Item 47: sair com campos alterados pede confirmação.
+  useUnsavedGuard(
+    !readOnly &&
+      (JSON.stringify(values) !== JSON.stringify(baseline) ||
+        justification.trim() !== "" ||
+        reason.trim() !== ""),
+  );
 
   const loosened = looseningFields(rightsOf(baseline), rightsOf(values));
   const criticalAside = (field: string) =>

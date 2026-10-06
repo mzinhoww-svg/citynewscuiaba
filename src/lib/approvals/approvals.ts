@@ -26,6 +26,9 @@ export const CRITICAL_KINDS = [
   "source.critical",
   "push.highlight",
   "push.resume",
+  // Papel numa ação só (0158, A-150): nascem já aprovados e aplicados por quem tem users.manage.
+  "role.grant",
+  "role.revoke",
 ] as const;
 export type CriticalKind = (typeof CRITICAL_KINDS)[number];
 

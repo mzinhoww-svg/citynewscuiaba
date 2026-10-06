@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { EmptyState, Button, LoadMore, loadMoreAnchor } from "@/components";
-import { QueueFilters, QueueTable, QueueTabs } from "@/components/estudio";
+import { QueueFilters, QueueTable, QueueTabs, StudioScreen } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, CONFIDENCE_LABEL, QUEUE_TEXT as T } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -10,12 +10,13 @@ import {
   listQueueThrough,
   listReviewable,
   listSectionOptions,
-  QUEUE_ORIGINS,
   QUEUE_TABS,
-  type QueueFilter,
+  queueTabCounts,
   type QueueRow,
+  type QueueTab,
 } from "@/lib/db/queries/queue";
 import {
+  approveRecommendedAction,
   assignAction,
   forcedPublishStatusAction,
   forcePublishAction,
@@ -24,44 +25,33 @@ import {
   unpublishAutoAction,
   unpublishManyAction,
 } from "../actions";
-import { tabHref, toTableRow } from "./rows";
+import {
+  QUEUE_CONFIDENCES as CONFIDENCES,
+  QUEUE_STATUSES as STATUSES,
+  queueFilterFrom,
+  queueListHref,
+  tabHref,
+  toTableRow,
+} from "./rows";
 
 export const metadata: Metadata = { title: "Fila de matérias · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
 
 type Params = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
-const pick = <T extends string>(v: string, allowed: readonly T[]): T | undefined =>
-  (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
-
-const STATUSES = Object.keys(ARTICLE_STATUS_LABEL) as (keyof typeof ARTICLE_STATUS_LABEL)[];
-const CONFIDENCES = Object.keys(CONFIDENCE_LABEL) as (keyof typeof CONFIDENCE_LABEL)[];
 
 export default async function QueuePage({ searchParams }: { searchParams: Promise<Params> }) {
   const session = await requireRole("article.edit", undefined, { next: "/estudio/fila" });
   const sp = await searchParams;
-  const tab = pick(one(sp.aba), QUEUE_TABS) ?? "all";
-  const values = {
-    estado: one(sp.estado),
-    editoria: one(sp.editoria),
-    origem: one(sp.origem),
-    confianca: one(sp.confianca),
-    responsavel: one(sp.responsavel),
-    prazo: one(sp.prazo),
-  };
-  const filter: QueueFilter = {
-    tab,
-    status: pick(values.estado, STATUSES),
-    section: /^[a-z-]{2,40}$/.test(values.editoria) ? values.editoria : undefined,
-    origin: pick(values.origem, QUEUE_ORIGINS),
-    confidence: pick(values.confianca, CONFIDENCES),
-    assignee: values.responsavel || undefined,
-    due: values.prazo === "vencido" ? "overdue" : values.prazo === "hoje" ? "today" : undefined,
-  };
+  const { tab, values, filter } = queueFilterFrom(sp);
+  // Lista de origem dos links para o detalhe (`?de=`): "Voltar" e "próximo" mantêm aba e filtros.
+  const origin = queueListHref(tab, values);
 
   // "Carregar mais": o cursor marca o último item já mostrado; a página mostra tudo até ele e
   // a próxima página, com o foco no primeiro item novo (#mais-<n>).
   const cursor = /^[A-Za-z0-9_-]{1,512}$/.test(one(sp.cursor)) ? one(sp.cursor) : undefined;
+  // Contagem por aba (item 51), em paralelo com a fila; falha deixa as abas sem número.
+  const tabCountsP = queueTabCounts().catch((): Partial<Record<QueueTab, number>> => ({}));
   let rows: QueueRow[] | null = null;
   let firstNew = -1;
   let total = 0;
@@ -108,17 +98,22 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   }))
     if (v) forceFilter[k] = v;
 
+  const tabCounts = await tabCountsP;
   const now = new Date();
   const manageDesk = canAccess(session.roles, "article.publish");
   const canUnpublishAny = canAccess(session.roles, "article.unpublish_auto");
 
   return (
-    <section className="flex flex-col gap-6">
-      <h1 className="type-screen-title text-strong">{T.queueTitle}</h1>
+    <StudioScreen title={T.queueTitle}>
       <QueueTabs
         label={T.tabsLabel}
         current={tab}
-        items={QUEUE_TABS.map((k) => ({ key: k, label: T.tabs[k], href: tabHref(k) }))}
+        items={QUEUE_TABS.map((k) => ({
+          key: k,
+          label: T.tabs[k],
+          href: tabHref(k),
+          count: tabCounts[k],
+        }))}
       />
       <QueueFilters
         action="/estudio/fila"
@@ -166,7 +161,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
               </EmptyState>
             }
             rows={rows.map((r, i) => ({
-              ...toTableRow(r, session, now),
+              ...toTableRow(r, session, now, origin),
               anchorId: i === firstNew ? loadMoreAnchor(i) : undefined,
             }))}
             unpublish={canUnpublishAny ? unpublishAutoAction : undefined}
@@ -177,6 +172,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
                     assign: assignAction,
                     requestReview: requestReviewAction,
                     unpublishMany: canUnpublishAny ? unpublishManyAction : undefined,
+                    approveRecommended: approveRecommendedAction,
                     forcePublish: {
                       reviewTotal,
                       filter: forceFilter,
@@ -200,6 +196,6 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           )}
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

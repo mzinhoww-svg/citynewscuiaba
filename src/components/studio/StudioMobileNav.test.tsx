@@ -16,7 +16,7 @@ const NAV: StudioNavGroup[] = [
   {
     label: "Redação",
     items: [
-      { href: "/estudio", label: "Newsroom", icon: "layout-dashboard", exact: true },
+      { href: "/estudio", label: "Redação", icon: "layout-dashboard", exact: true },
       { href: "/estudio/fila", label: "Fila de matérias", icon: "newspaper" },
       { href: "/estudio/midia", label: "Mídia", icon: "camera" },
     ],
@@ -25,7 +25,7 @@ const NAV: StudioNavGroup[] = [
     label: "Control Center",
     items: [
       { href: "/estudio/control", label: "Visão geral", icon: "gauge", exact: true },
-      { href: "/estudio/control/logs", label: "Logs", icon: "scroll-text" },
+      { href: "/estudio/control/logs", label: "Registros", icon: "scroll-text" },
     ],
   },
 ];
@@ -52,7 +52,10 @@ describe("StudioMobileNav", () => {
     expect(within(dialog).getByText("ana@citynews.test")).toBeInTheDocument();
     expect(within(dialog).getByText("Editor-chefe · Revisor")).toBeInTheDocument();
     const nav = within(dialog).getByRole("navigation", { name: "Estúdio" });
-    expect(within(nav).getByRole("link", { name: "Logs" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "Registros" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(within(nav).getByRole("link", { name: "Visão geral" })).not.toHaveAttribute(
       "aria-current",
     );
@@ -89,6 +92,6 @@ describe("StudioMobileNav", () => {
 describe("StudioPageTitle", () => {
   it("mostra o nome da tela atual (o item mais específico)", () => {
     render(<StudioPageTitle nav={NAV} />);
-    expect(screen.getByText("Logs")).toBeInTheDocument();
+    expect(screen.getByText("Registros")).toBeInTheDocument();
   });
 });

@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { PUBLISH_TEXT as T } from "@/content/pt-BR/studio";
+import { toZonedIso } from "@/lib/format/date";
 import type { Label } from "@/lib/labels";
+import { planPublication } from "@/lib/studio/plan";
 import { cx } from "../cx";
 import { OriginLabel } from "../editorial/OriginLabel";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { DateField } from "../ui/DateField";
+import { FormStatus } from "../ui/FormStatus";
 import { Icon } from "../ui/Icon";
 import { IconButton } from "../ui/IconButton";
 import { RadioGroup } from "../ui/RadioGroup";
@@ -50,6 +53,12 @@ export interface PublishDialogProps {
 const ALL: PublishDestination[] = ["home", "section", "topic", "newsletter"];
 const JUSTIFICATION_MAX = 300;
 
+/** Recusas do servidor que dizem respeito ao horário: aparecem no próprio campo. */
+const DATE_ERRORS = new Set<string>([T.pastDate, T.tooFar, T.invalidDate]);
+
+/** "2026-10-04T14:05" no relógio de Cuiabá: o mínimo do campo `datetime-local`. */
+const cuiabaNowLocal = (now: Date) => toZonedIso(now.toISOString()).slice(0, 16);
+
 /**
  * Publicação e agendamento (E06): resumo do checklist, rótulos finais, agora ou agendar (fuso de
  * Cuiabá), destinos, push urgente (cria e aprova o pedido em A09, A-128) e aviso de
@@ -77,6 +86,8 @@ export function PublishDialog({
   const [push, setPush] = useState(false);
   const [justification, setJustification] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [atError, setAtError] = useState<string | null>(null);
+  const [minAt, setMinAt] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [status, setStatus] = useState<PublishReply | null>(null);
   const [pending, start] = useTransition();
@@ -97,11 +108,19 @@ export function PublishDialog({
     });
 
   const wantsPush = canRequestUrgent && push && mode === "now";
+  // Destinos que de fato valem (página do assunto só com assunto vinculado).
+  const chosen = ALL.filter((d) => dest.has(d) && (d !== "topic" || hasTopic));
+  const noDestination = chosen.length === 0;
 
   const confirm = () => {
-    if (mode === "schedule" && !at) {
-      setError(T.invalidDate);
-      return;
+    if (noDestination) return;
+    if (mode === "schedule") {
+      // Mesma regra do servidor (`planPublication`): só horário futuro, até 90 dias.
+      const plan = planPublication({ when: { at }, destinations: chosen }, new Date());
+      if (!at || !plan.ok) {
+        setAtError(at && !plan.ok ? plan.error : T.invalidDate);
+        return;
+      }
     }
     if (wantsPush && !justification.trim()) {
       setFieldError(T.pushJustificationRequired);
@@ -116,14 +135,15 @@ export function PublishDialog({
       const r = await publish({
         id: articleId,
         when: mode === "now" ? "now" : { at },
-        destinations: ALL.filter((d) => dest.has(d)),
+        destinations: chosen,
         ...(wantsPush ? { push: { justification: justification.trim() } } : {}),
       });
       if (r.ok) {
         setOpen(false);
         setStatus(r);
         router.refresh();
-      } else setError(r.message);
+      } else if (mode === "schedule" && DATE_ERRORS.has(r.message)) setAtError(r.message);
+      else setError(r.message);
     });
   };
 
@@ -136,6 +156,8 @@ export function PublishDialog({
         aria-describedby={blocker ? `${uid}-bloqueio` : undefined}
         onClick={() => {
           setError(null);
+          setAtError(null);
+          setMinAt(cuiabaNowLocal(new Date()));
           setOpen(true);
         }}
       >
@@ -175,6 +197,7 @@ export function PublishDialog({
       >
         <form
           method="dialog"
+          noValidate
           onSubmit={(e) => {
             e.preventDefault();
             confirm();
@@ -230,15 +253,22 @@ export function PublishDialog({
                 label={T.at}
                 hint={T.atHint}
                 value={at}
+                min={minAt || undefined}
+                required
+                error={atError}
                 onChange={(v) => {
                   setAt(v);
+                  setAtError(null);
                   setError(null);
                 }}
               />
             )}
           </div>
 
-          <fieldset className="flex flex-col gap-1">
+          <fieldset
+            className="flex flex-col gap-1"
+            aria-describedby={noDestination ? `${uid}-sem-destino` : undefined}
+          >
             <legend className="mb-1 type-eyebrow text-meta">{T.destinations}</legend>
             {ALL.map((d) => {
               const disabled = d === "topic" && !hasTopic;
@@ -315,6 +345,13 @@ export function PublishDialog({
             )}
           </fieldset>
 
+          {noDestination && (
+            <p id={`${uid}-sem-destino`} className="flex items-start gap-1.5 type-meta text-danger">
+              <Icon name="circle-alert" size={16} className="mt-0.5 shrink-0" />
+              {T.noDestination}
+            </p>
+          )}
+
           {headline && dest.has("home") && (
             <p className="flex items-start gap-2 rounded-md bg-atencao-soft p-3 type-meta text-strong">
               <Icon name="triangle-alert" size={16} className="mt-0.5 shrink-0 text-warn" />
@@ -329,15 +366,17 @@ export function PublishDialog({
             </p>
           )}
 
-          {error && (
-            <p role="alert" className="flex items-start gap-1.5 type-body text-danger">
-              <Icon name="circle-alert" size={20} className="mt-0.5 shrink-0" />
-              {error}
-            </p>
-          )}
+          <FormStatus id={`${uid}-erro`} tone="error" message={error ?? ""} />
 
           <div className="flex flex-col gap-3 sm:flex-row-reverse">
-            <Button type="submit" size="md" disabled={pending}>
+            <Button
+              type="submit"
+              size="md"
+              disabled={pending || noDestination}
+              aria-describedby={
+                noDestination ? `${uid}-sem-destino` : error ? `${uid}-erro` : undefined
+              }
+            >
               {mode === "now"
                 ? dirty
                   ? T.saveAndPublish

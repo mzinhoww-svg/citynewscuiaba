@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectHydrated } from "./helpers/hydration";
 import { createArticle, loginAs, removeArticles, service, STAFF, tag } from "./studio";
+import { clickDecision } from "./helpers/decision";
 
 /*
  * Revisão de item autônomo e editor (E03, E04 · P4-T3): sugestão de IA só com clique humano e
@@ -86,7 +87,8 @@ test("rejeitar item autônomo exige motivo e tira da fila", async ({ page }) => 
   created.push(id);
   await loginAs(page, "marina");
   await page.goto(`/estudio/fila/${id}`);
-  await page.getByRole("button", { name: "Rejeitar" }).click();
+  // No celular, Rejeitar fica no menu "Mais ações" da barra fixa (UX-W3-T1).
+  await clickDecision(page, "Rejeitar");
   await page.getByRole("button", { name: "Confirmar" }).click();
   await expect(page.getByText("Escreva o motivo")).toBeVisible();
   await page.getByLabel("Motivo").fill("Assunto já coberto por matéria original");

@@ -173,7 +173,7 @@ export const PROMPTS_TEXT = {
 
 export const PLAYGROUND_TEXT = {
   sectionLabel: "Control Center · IA",
-  title: "Playground de testes",
+  title: "Testar prompts",
   intro:
     "Rode um agente com uma entrada colada e veja o que o modelo recebeu e devolveu. Nada é publicado: só a chamada fica registrada em custos.",
   fake: "Provedor falso (teste): respostas determinísticas, sem rede e sem segredo.",

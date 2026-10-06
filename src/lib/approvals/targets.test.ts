@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { canAccess, type RoleGrant } from "@/lib/auth/permissions";
-import { APPROVER_ACTION, approvalHref, decidedElsewhere, parseApprovalTarget } from "./targets";
+import {
+  APPROVER_ACTION,
+  approvalHref,
+  decidedElsewhere,
+  parseApprovalTarget,
+  roleTarget,
+} from "./targets";
 
 const role = (r: RoleGrant["role"], sections: string[] = []): RoleGrant[] => [
   { role: r, sections },
@@ -27,5 +33,27 @@ describe("decidedElsewhere / approvalHref", () => {
     }
     expect(decidedElsewhere("source.critical")).toBe(true);
     expect(decidedElsewhere("rules.activate")).toBe(false);
+  });
+});
+
+describe("papel numa ação só (role.grant / role.revoke, A-150)", () => {
+  const id = "c1000000-0000-4000-8000-000000000009";
+  it("o alvo `user:<uuid>:<papel>` volta como papel da conta", () => {
+    expect(roleTarget(id, "editor")).toBe(`user:${id}:editor`);
+    expect(parseApprovalTarget(roleTarget(id, "editor"))).toEqual({
+      kind: "role",
+      userId: id,
+      role: "editor",
+    });
+  });
+
+  it("só quem tem users.manage decide; o link leva à tela de usuários", () => {
+    for (const k of ["role.grant", "role.revoke"] as const) {
+      expect(APPROVER_ACTION[k]).toBe("users.manage");
+      expect(decidedElsewhere(k)).toBe(false);
+      expect(approvalHref(k, parseApprovalTarget(roleTarget(id, "admin")))).toBe(
+        "/estudio/admin/usuarios",
+      );
+    }
   });
 });

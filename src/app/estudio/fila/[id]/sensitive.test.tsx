@@ -13,6 +13,7 @@ vi.mock("../../actions", () => ({
   reprocessAction: vi.fn(),
   requestChangesAction: vi.fn(),
 }));
+vi.mock("@/lib/db/queries/queue-next", () => ({ nextQueueItem: vi.fn().mockResolvedValue(null) }));
 const getStudioArticle = vi.fn<(id: string) => Promise<StudioArticle | null>>();
 vi.mock("@/lib/db/queries/studio-article", () => ({
   getStudioArticle: (id: string) => getStudioArticle(id),

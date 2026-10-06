@@ -26,6 +26,7 @@ const marta: StaffMember = {
   pendingInvite: false,
   lastSignInAt: null,
   adminApproval: null,
+  // Pedido antigo (fluxo de antes da 0158): não vira mais botão "Aplicar".
   adminRevokeApproval: { id: "ap1", status: "approved", requestedBy: "u1" },
 };
 
@@ -41,68 +42,108 @@ const joao: StaffMember = {
 const ok = { ok: true, message: "Feito." };
 
 function setup() {
-  const applyAdmin = vi.fn().mockResolvedValue(ok);
-  const applyAdminRevoke = vi.fn().mockResolvedValue(ok);
+  const setRoles = vi.fn().mockResolvedValue(ok);
   render(
     <StaffTable
       staff={[marta, joao]}
       sections={[]}
       currentUserId="u1"
       invite={vi.fn()}
-      setRoles={vi.fn()}
-      applyAdmin={applyAdmin}
-      applyAdminRevoke={applyAdminRevoke}
+      setRoles={setRoles}
     />,
   );
-  return { applyAdmin, applyAdminRevoke };
+  return { setRoles };
 }
 
-describe("StaffTable · confirmação de ações sensíveis (item 24)", () => {
-  it("Aplicar revogação abre diálogo com nome e efeito, sem chamar a action", async () => {
-    const { applyAdminRevoke } = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar revogação" }));
-    expect(applyAdminRevoke).not.toHaveBeenCalled();
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent("Marta Figueiredo");
-    expect(dialog).toHaveTextContent(/deixa de administrar/);
-    expect(
-      within(dialog).getByRole("button", { name: "Revogar acesso de Marta Figueiredo" }),
-    ).toBeVisible();
-  });
+async function openRoles(name: string) {
+  const row = screen.getByRole("row", { name: new RegExp(name) });
+  await userEvent.click(within(row).getByRole("button", { name: "Editar papéis" }));
+  return screen.getByRole("dialog", { name: `Papéis de ${name}` });
+}
 
-  it("confirmar chama a action uma vez, com a pessoa certa", async () => {
-    const { applyAdminRevoke } = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar revogação" }));
-    await userEvent.click(
-      screen.getByRole("button", { name: "Revogar acesso de Marta Figueiredo" }),
-    );
-    expect(applyAdminRevoke).toHaveBeenCalledTimes(1);
-    expect(applyAdminRevoke).toHaveBeenCalledWith({ userId: "u2" });
+describe("StaffTable · papel numa ação só (item 61, A-150)", () => {
+  it("conceder papel comum salva numa ação, sem confirmação extra", async () => {
+    const { setRoles } = setup();
+    const dialog = await openRoles("João Paulo Arruda");
+    await userEvent.click(within(dialog).getByLabelText("Analista"));
+    await userEvent.click(within(dialog).getByRole("button", { name: "Salvar papéis" }));
+    expect(setRoles).toHaveBeenCalledTimes(1);
+    expect(setRoles).toHaveBeenCalledWith({
+      userId: "u3",
+      roles: [
+        { role: "editor_chefe", sections: [] },
+        { role: "analista", sections: [] },
+      ],
+      justification: "",
+    });
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("Cancelar fecha sem chamar a action e devolve o foco ao botão", async () => {
-    const { applyAdminRevoke } = setup();
-    const trigger = screen.getByRole("button", { name: "Aplicar revogação" });
-    await userEvent.click(trigger);
+  it("conceder administração pede confirmação com nome e efeito e chama a action uma vez", async () => {
+    const { setRoles } = setup();
+    const dialog = await openRoles("João Paulo Arruda");
+    await userEvent.click(within(dialog).getByLabelText("Administração"));
+    await userEvent.type(within(dialog).getByLabelText(/Justificativa/), "Cobrir férias");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Salvar papéis" }));
+    expect(setRoles).not.toHaveBeenCalled();
+    const confirm = screen.getByRole("dialog", {
+      name: "Conceder administração a João Paulo Arruda?",
+    });
+    expect(confirm).toHaveTextContent(/passa a administrar/);
     await userEvent.click(
-      within(screen.getByRole("dialog")).getByRole("button", { name: "Cancelar" }),
+      within(confirm).getByRole("button", { name: "Conceder administração a João Paulo Arruda" }),
     );
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(applyAdminRevoke).not.toHaveBeenCalled();
-    expect(trigger).toHaveFocus();
+    expect(setRoles).toHaveBeenCalledTimes(1);
+    expect(setRoles).toHaveBeenCalledWith({
+      userId: "u3",
+      roles: [
+        { role: "admin", sections: [] },
+        { role: "editor_chefe", sections: [] },
+      ],
+      justification: "Cobrir férias",
+    });
   });
 
-  it("aplicar o papel de administração também pede confirmação com o nome", async () => {
-    const { applyAdmin } = setup();
-    await userEvent.click(screen.getByRole("button", { name: "Aplicar" }));
-    expect(applyAdmin).not.toHaveBeenCalled();
-    const dialog = screen.getByRole("dialog");
-    expect(dialog).toHaveTextContent("João Paulo Arruda");
+  it("revogar administração pede justificativa e confirmação destrutiva", async () => {
+    const { setRoles } = setup();
+    const dialog = await openRoles("Marta Figueiredo");
+    await userEvent.click(within(dialog).getByLabelText("Administração"));
+    const save = within(dialog).getByRole("button", { name: "Salvar papéis" });
+    expect(save).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText(/Justificativa/), "Saiu da equipe");
+    await userEvent.click(save);
+    const confirm = screen.getByRole("dialog", {
+      name: "Revogar o acesso de administração de Marta Figueiredo?",
+    });
     await userEvent.click(
-      within(dialog).getByRole("button", { name: "Conceder administração a João Paulo Arruda" }),
+      within(confirm).getByRole("button", { name: "Revogar acesso de Marta Figueiredo" }),
     );
-    expect(applyAdmin).toHaveBeenCalledTimes(1);
-    expect(applyAdmin).toHaveBeenCalledWith({ userId: "u3" });
+    expect(setRoles).toHaveBeenCalledTimes(1);
+    expect(setRoles).toHaveBeenCalledWith({
+      userId: "u2",
+      roles: [],
+      justification: "Saiu da equipe",
+    });
+  });
+
+  it("Cancelar a confirmação não chama a action e mantém a edição aberta", async () => {
+    const { setRoles } = setup();
+    const dialog = await openRoles("João Paulo Arruda");
+    await userEvent.click(within(dialog).getByLabelText("Administração"));
+    await userEvent.type(within(dialog).getByLabelText(/Justificativa/), "Cobrir férias");
+    await userEvent.click(within(dialog).getByRole("button", { name: "Salvar papéis" }));
+    const confirm = screen.getByRole("dialog", {
+      name: "Conceder administração a João Paulo Arruda?",
+    });
+    await userEvent.click(within(confirm).getByRole("button", { name: "Cancelar" }));
+    expect(setRoles).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: /Conceder administração/ })).toBeNull();
+    expect(screen.getByRole("dialog", { name: "Papéis de João Paulo Arruda" })).toBeVisible();
+    expect(within(dialog).getByLabelText("Administração")).toBeChecked();
+  });
+
+  it("pedido antigo aprovado não vira botão Aplicar: a concessão é uma ação só", () => {
+    setup();
+    expect(screen.queryByRole("button", { name: /^Aplicar/ })).toBeNull();
   });
 });

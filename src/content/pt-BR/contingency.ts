@@ -35,7 +35,7 @@ export const ACTION_LABEL: Record<ContingencyAction, string> = {
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 export const CONTINGENCY_TEXT = {
-  sectionLabel: "Governança",
+  sectionLabel: "Control Center",
   title: "Contingência",
   intro:
     "Botões de emergência. Cada um pede a confirmação digitando o nome da ação, vale na hora e fica na auditoria com o motivo. O runbook de cada um explica o que acontece e como voltar ao normal.",

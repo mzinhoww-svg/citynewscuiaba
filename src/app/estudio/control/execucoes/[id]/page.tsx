@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button, EmptyState, StatGrid, Table } from "@/components";
-import { PhaseChart, ReprocessForm } from "@/components/estudio";
+import { PhaseChart, ReprocessForm, StudioScreen } from "@/components/estudio";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import {
   CONTROL_TEXT as T,
   LEVEL_LABEL,
@@ -87,13 +88,19 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
   ];
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        {back}
-        <h1 className="type-screen-title text-strong">{R.title(formatDateTime(run.startedAt))}</h1>
-        {run.manual && <p className="type-meta text-meta">{R.fields.manual}</p>}
-      </header>
-
+    <StudioScreen
+      title={R.title(formatDateTime(run.startedAt))}
+      gap="lg"
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: "/estudio/control/execucoes", label: T.runs.title },
+        {
+          href: `/estudio/control/execucoes/${run.id}`,
+          label: R.title(formatDateTime(run.startedAt)),
+        },
+      ]}
+      intro={run.manual ? <p className="type-meta text-meta">{R.fields.manual}</p> : undefined}
+    >
       <section aria-labelledby="resumo" className="flex flex-col gap-3">
         <h2 id="resumo" className="type-section text-strong">
           {R.summaryTitle}
@@ -197,6 +204,6 @@ export default async function RunPage({ params }: { params: Promise<{ id: string
           />
         </section>
       )}
-    </section>
+    </StudioScreen>
   );
 }

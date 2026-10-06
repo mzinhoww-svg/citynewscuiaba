@@ -9,6 +9,7 @@ import {
   WeightSliders,
   WeightsHistory,
   WhyThisDrawer,
+  StudioScreen,
 } from "@/components/estudio";
 import {
   AUDIENCE_TEXT,
@@ -60,12 +61,7 @@ export default async function RecommendationPage() {
   });
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen section={T.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -88,7 +84,7 @@ export default async function RecommendationPage() {
           canApprove={canApprove}
         />
       )}
-    </section>
+    </StudioScreen>
   );
 }
 
