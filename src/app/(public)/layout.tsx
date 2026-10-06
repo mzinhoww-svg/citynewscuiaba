@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
+import { preconnect } from "react-dom";
 import { PublicShell, ToastProvider } from "@/components";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 
@@ -41,7 +42,20 @@ export const metadata: Metadata = {
  * Lê a escolha de privacidade no servidor para o banner não piscar para quem já respondeu.
  * O HTML já é por requisição (nonce da CSP, A-042); o cache continua nos dados.
  */
+/** Origem do Storage (fotos assinadas da manchete e redirecionamentos de `/api/media`, item 79). */
+function storageOrigin(): string | null {
+  try {
+    return process.env.NEXT_PUBLIC_SUPABASE_URL
+      ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function PublicLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const origin = storageOrigin();
+  if (origin) preconnect(origin);
   const consent = parseConsent((await cookies()).get(CONSENT_COOKIE)?.value);
   return (
     <ToastProvider>

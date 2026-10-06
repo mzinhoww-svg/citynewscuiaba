@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { analyzeImage } from "@/lib/media/analyze";
+import { makeVariants } from "@/lib/media/make-variants";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { takedownReproduction } from "@/lib/media/takedown";
 import type { FlagKey, MediaSourceItem } from "../ports";
@@ -60,6 +61,8 @@ function setup(opts: {
   failPut?: boolean;
   /** `false`: o limite por hora da fonte está esgotado. */
   rateLimit?: boolean;
+  /** Gera variantes por largura (item 79). */
+  variants?: boolean;
 }) {
   const repo = createMemoryMediaRepo(
     opts.rateLimit === undefined ? {} : { rateLimit: opts.rateLimit },
@@ -90,6 +93,7 @@ function setup(opts: {
     userAgent: "CityNewsBot/1.0",
     now: () => NOW,
     analyze: analyzeImage,
+    ...(opts.variants ? { variants: makeVariants } : {}),
   });
   return { repo, store, step, calls };
 }
@@ -134,6 +138,28 @@ describe("etapa de imagem (13 e 14)", () => {
         label: "REPRODUÇÃO · Folha do Cerrado · Ana Prado",
       }),
     });
+  });
+
+  it("variantes 480/960/1440 em WebP ao lado do original, sem novo ativo; remoção a pedido apaga todas", async () => {
+    const { repo, store, step } = setup({ variants: true });
+    await step(msg);
+    const assets = repo.assets();
+    expect(assets).toHaveLength(1);
+    const path = assets[0]!.storagePath;
+    const base = path.replace(/\.jpg$/, "");
+    for (const w of [480, 960, 1440])
+      expect(store.files.get(`${base}.w${w}.webp`)?.contentType).toBe("image/webp");
+    // O original continua byte a byte.
+    expect(store.files.get(path)?.bytes).toEqual(image("reproducao-1600x900.jpg"));
+
+    const r = await takedownReproduction(
+      { repo, store, revalidate: async () => {}, now: () => NOW },
+      { mediaId: assets[0]!.id },
+      "editor@citynews.example",
+      "pedido do veículo",
+    );
+    expect(r.ok).toBe(true);
+    expect(store.files.size).toBe(0);
   });
 
   it("flag image_reproduction_enabled desligada: nada é baixado; cai para o acervo", async () => {

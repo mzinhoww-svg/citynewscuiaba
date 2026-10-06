@@ -25,6 +25,7 @@ import {
   createUnderstandRepo,
 } from "@/lib/db/pipeline-store";
 import { analyzeImage } from "@/lib/media/analyze";
+import { makeVariants } from "@/lib/media/make-variants";
 import { createMemoryMediaStore, type MediaStore } from "@/lib/media/store";
 import type { CollectNowDeps } from "./collect-now";
 import type { DrainDeps } from "./drain";
@@ -96,6 +97,7 @@ export function productionHandlers(pushNow: () => Date = () => new Date()): Step
       userAgent: crawlerUserAgent(),
       now: () => new Date(),
       analyze: analyzeImage,
+      variants: makeVariants,
     }),
     ...createPublishHandlers({
       repo: createPublishRepo(db),

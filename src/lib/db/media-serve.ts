@@ -28,7 +28,7 @@ export function mediaServeDeps(): ServeMediaDeps {
     async asset(id) {
       const { data, error } = await pub
         .from("media_assets")
-        .select("id, kind, status, storage_path, content_type")
+        .select("id, kind, status, storage_path, content_type, width")
         .eq("id", id)
         .maybeSingle();
       if (error || !data) return null;
@@ -41,6 +41,7 @@ export function mediaServeDeps(): ServeMediaDeps {
         status,
         storagePath: data.storage_path,
         contentType: data.content_type,
+        width: data.width,
       };
     },
     reproductionEnabled: () => flags.isEnabled("image_reproduction_enabled"),

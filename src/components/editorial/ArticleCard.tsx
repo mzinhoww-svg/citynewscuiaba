@@ -113,6 +113,8 @@ function CardPhoto({
   return (
     <Photo
       src={image.src}
+      directSrc={variant === "lead" ? image.directSrc : undefined}
+      directSrcSet={variant === "lead" ? image.directSrcSet : undefined}
       alt={alt}
       ratio={variant === "lead" ? "16/9" : variant === "standard" ? "3/2" : 1}
       radius={thumb ? "md" : "0"}

@@ -11,6 +11,7 @@ import { chooseImage, mayGenerate } from "@/lib/media/choose";
 import { inlinePosition, pickCoverAndInline, scoreImage } from "@/lib/media/score";
 import { fetchImage, outsideSourceDomain, sourceDomain } from "@/lib/media/fetch-image";
 import { mediaPath, type MediaStore } from "@/lib/media/store";
+import { saveVariants, type MakeVariants } from "@/lib/media/variants";
 import type { Candidate, ImageAnalysis, ImagePolicy, MediaChoice } from "@/lib/media/types";
 import { err, ok, type Result } from "@/lib/result";
 import { checkRobots } from "../http";
@@ -41,6 +42,11 @@ export interface MediaStepDeps {
    * nunca chega a `ai_generated` e segue para o card tipográfico.
    */
   canGenerate?: boolean;
+  /**
+   * Gera as variantes por largura (480/960/1440, item 79) gravadas ao lado do original. Sem ela,
+   * ou se falhar, a rota de mídia serve o original.
+   */
+  variants?: MakeVariants;
 }
 
 /** Imagens de fonte avaliadas por matéria (capa e imagem do texto saem delas), no máximo. */
@@ -284,6 +290,8 @@ export function createMediaStep(deps: MediaStepDeps): StepHandler {
     const path = mediaPath(kind, analysis.sha256, analysis.format);
     const put = await deps.store.put(path, bytes, analysis.contentType);
     if (!put.ok) return err(stepError.transient(`Storage: ${put.error}`, { articleId, path }));
+    // Variantes são cópias reduzidas do mesmo ativo (mesmos direitos); falha não bloqueia a foto.
+    if (deps.variants) await saveVariants(deps.store, put.value.path, bytes, deps.variants);
     const s = p.item.source;
     const id = await deps.repo.insertAsset({
       kind,
