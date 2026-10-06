@@ -3,6 +3,8 @@
 **Última atualização:** 2026-10-04 — 0143 aplicada em partes (A e B) em produção; parte C e 0155 com o dono no SQL Editor (A-152, B-029); primeiros ciclos da pauta quente conferidos.
 **Atualizado por:** Claude Code
 
+> 2026-10-05 · Melhorias W3 (itens 45–61): revisão com barra fixa de decisão no celular, "Aprovar e ir para o próximo" mantendo aba e filtros, aprovação em lote só do que as regras recomendam (0159), editor com barra de salvar, rascunho automático e proteção ao sair, agendamento validado no campo, menu do Estúdio com busca no trilho, subgrupos e contagens, Redação/Testar prompts/Registros, falhas agrupadas e tabelas em cartões no celular, atalhos de teclado (`?`), `StudioScreen` com caminho, e papel de admin numa ação auditada (0158, A-150; produção segue B-009).
+> 2026-10-04 · Logotipos das fontes (A-153): 12 fontes em destaque com o logotipo do pacote do dono, no ar em produção como `manual` (`assets/source-logos`, `scripts/sources/build-source-logos.mjs`). A política temporária do envio já saiu de produção (B-030 resolvido).
 > 2026-10-04 · Melhorias W4 (itens 62–77): editorias recolhem ao rolar e voltam ao subir, anúncio fixo reserva espaço, "Agora" leva ao bloco da home, convite da primeira visita no fim da leitura, aba certa acesa na barra inferior, "Perguntar ao CityNews" no Explorar e no rodapé, estados de erro e vazio em Perfil, Favoritos ("Desfazer" com foco), Agora e Panorama, ações da matéria com 44 px, Pergunte depois dos 3 primeiros resultados no celular, trilho acessível e ticker rolável no desktop.
 
 > 2026-10-04 · Melhorias W2 (itens 25–44): kit completo em `src/components/ui` (Field, Select, TextArea, DateField, Checkbox, RadioGroup, Panel, StatGrid, StatusBadge, Table, Pagination, Button com carregamento e destrutivo, SubmitButton, ConfirmDialog, Toast, FormStatus, Popover, Menu, Drawer, TagLink, LinkTabs, origem segura), rótulo de campo em 16 px, escala de ícones, Estúdio e portal migrados, ESLint barra controles crus fora do kit (exceções comentadas) e DESIGN §7 com o inventário real. A-149.
@@ -11,7 +13,7 @@
 
 > 2026-10-04 · Telas públicas no celular (A-152): faixa preta do Safari sob o cabeçalho (máscara da fileira de editorias) removida; `[PREENCHER]` fora das telas públicas; Favoritos e Alertas com o conteúdo antes do convite; Guia vazio mostra as matérias recentes. Pendente do dono: texto de "Temas sensíveis" em /principios-editoriais contradiz as regras v3.
 
-> 2026-10-04 · UI-PERFIL (A-153): `/perfil` redesenhado como lista de ajustes; `/perfil/seguranca` (senha e sessões, "Sair dos outros aparelhos") e `/perfil/excluir`; letreiro fora de `/perfil`. Lint, typecheck, 3029 testes de unidade e build verdes; axe 0 violações em `/perfil` anônimo (390 px, claro e escuro, e 1280 px). E2E e integração de conta rodam no CI (sem Supabase local aqui).
+> 2026-10-04 · UI-PERFIL (A-154): `/perfil` redesenhado como lista de ajustes; `/perfil/seguranca` (senha e sessões, "Sair dos outros aparelhos") e `/perfil/excluir`; letreiro fora de `/perfil`. Lint, typecheck, 3029 testes de unidade e build verdes; axe 0 violações em `/perfil` anônimo (390 px, claro e escuro, e 1280 px). E2E e integração de conta rodam no CI (sem Supabase local aqui).
 
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 

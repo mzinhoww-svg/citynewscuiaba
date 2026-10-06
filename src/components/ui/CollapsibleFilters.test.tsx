@@ -28,6 +28,30 @@ function setup(props: Partial<Parameters<typeof CollapsibleFilters>[0]> = {}) {
   return { button, body };
 }
 
+describe("CollapsibleFilters · atalho / (UX-W3-T5, item 53)", () => {
+  it("com focusHotkey, / abre o painel recolhido e foca o primeiro campo", () => {
+    mockDesktop(false);
+    render(
+      <CollapsibleFilters focusHotkey>
+        <input type="hidden" name="aba" value="x" />
+        <select aria-label="Estado" name="estado" />
+      </CollapsibleFilters>,
+    );
+    const button = screen.getByRole("button", { name: /^Filtros/ });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    fireEvent.keyDown(document.body, { key: "/" });
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(document.activeElement).toBe(screen.getByRole("combobox", { name: "Estado" }));
+  });
+
+  it("sem focusHotkey, / não faz nada (portal)", () => {
+    mockDesktop(false);
+    const { button } = setup();
+    fireEvent.keyDown(document.body, { key: "/" });
+    expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
 describe("CollapsibleFilters", () => {
   it("no celular começa recolhido (CSS: escondido abaixo de lg, visível no desktop)", () => {
     mockDesktop(false);

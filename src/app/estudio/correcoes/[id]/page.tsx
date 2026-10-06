@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState, InlineAlert } from "@/components";
-import { CorrectionForm } from "@/components/estudio";
+import { CorrectionForm, StudioScreen } from "@/components/estudio";
 import { CORRECTIONS_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -42,18 +42,15 @@ export default async function CorrectionPage({ params }: { params: Promise<{ id:
   const isPublic = c.articleStatus === "published" || c.articleStatus === "updated";
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link
-          href="/estudio/correcoes"
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {T.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">
-          {T.kind[c.kind] ?? T.screenTitle} · {T.status[c.status] ?? c.status}
-        </p>
-        <h1 className="type-screen-title text-strong">{c.article.title}</h1>
+    <StudioScreen
+      as="article"
+      section={`${T.kind[c.kind] ?? T.screenTitle} · ${T.status[c.status] ?? c.status}`}
+      title={c.article.title}
+      breadcrumbs={[
+        { href: "/estudio/correcoes", label: T.title },
+        { href: `/estudio/correcoes/${c.id}`, label: c.article.title },
+      ]}
+      intro={
         <dl className="grid grid-cols-1 gap-x-6 gap-y-1 type-body sm:grid-cols-2">
           <div>
             <dt className="type-meta text-meta">{T.requestedBy}</dt>
@@ -66,7 +63,8 @@ export default async function CorrectionPage({ params }: { params: Promise<{ id:
             </dd>
           </div>
         </dl>
-      </header>
+      }
+    >
       {c.reportMessage && (
         <InlineAlert tone="info" role="none" title={T.report}>
           {c.reportMessage}
@@ -105,6 +103,6 @@ export default async function CorrectionPage({ params }: { params: Promise<{ id:
           {QUEUE_TEXT.forbidden}
         </InlineAlert>
       )}
-    </article>
+    </StudioScreen>
   );
 }

@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /* UX-W4-T4 (item 70): perfil com erro de leitura mostra o alerta com "Tentar de novo" e mantém
-   as sessões e o "Sair" (a sessão existe mesmo sem os dados da conta). Estrutura de A-153:
+   as sessões e o "Sair" (a sessão existe mesmo sem os dados da conta). Estrutura de A-154:
    sessões e senha em /perfil/seguranca; "Sair da conta" fica na página principal. */
 
 const readAccountProfile = vi.fn();

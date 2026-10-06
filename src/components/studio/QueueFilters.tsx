@@ -49,6 +49,7 @@ export function QueueFilters({ action, tab, values, options, className }: QueueF
       clearLabel={T.filterClear}
       className={cx("rounded-lg border border-line-subtle bg-card-white px-4 py-2", className)}
       bodyClassName="pb-2"
+      focusHotkey
     >
       <form
         method="get"

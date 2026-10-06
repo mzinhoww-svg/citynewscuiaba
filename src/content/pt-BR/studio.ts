@@ -14,7 +14,7 @@ export const STUDIO_TEXT = {
   signedInAs: "Conectado como",
   welcome: "Bem-vindo ao Estúdio",
   intro:
-    "Redação, Control Center e Governança ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
+    "Redação, Control Center e Administração ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
   loading: "Carregando",
   backToSite: "Ver o portal",
   errorTitle: "Não foi possível carregar esta tela do Estúdio",
@@ -29,6 +29,33 @@ export const STUDIO_TEXT = {
   menuTitle: "Menu do Estúdio",
   menuSearch: "Buscar no menu",
   menuEmpty: (q: string) => `Nenhuma tela com “${q}”.`,
+  /** Final do nome acessível de um item com contagem: "Exceções, 3 pendentes". */
+  navCount: (n: number, kind: "pending" | "overdue" = "pending") =>
+    kind === "overdue"
+      ? `, ${n} ${n === 1 ? "vencida" : "vencidas"}`
+      : `, ${n} ${n === 1 ? "pendente" : "pendentes"}`,
+  /** Final do nome acessível de uma aba com contagem: "Fila de exceção, 3 itens". */
+  tabCount: (n: number) => `, ${n} ${n === 1 ? "item" : "itens"}`,
+  breadcrumbs: "Caminho",
+  sections: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
+} as const;
+
+/** Grupos e subgrupos do menu do Estúdio (item 50). */
+export const STUDIO_NAV_TEXT = {
+  groups: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
+  subgroups: {
+    operation: "Operação",
+    ai: "IA",
+    sourcesRules: "Fontes e regras",
+  },
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -66,7 +93,7 @@ export const RECOMMENDED_LABEL: Record<string, string> = {
 export const CONFIDENCE_LABEL = { alta: "Alta", média: "Média", baixa: "Baixa" } as const;
 
 export const QUEUE_TEXT = {
-  newsroomTitle: "Newsroom",
+  newsroomTitle: "Redação",
   queueTitle: "Fila de matérias",
   kpiRegion: "Indicadores do dia",
   kpi: {
@@ -90,6 +117,7 @@ export const QUEUE_TEXT = {
       : `${n} matérias foram publicadas automaticamente nas últimas 24 h. Confira e despublique com motivo se algo estiver errado.`,
   autoBannerLink: "Ver publicadas automaticamente",
   seeAll: "Ver fila completa",
+  seeInQueue: "Ver na Fila",
   loadMore: "Carregar mais",
   caption: "Matérias da fila",
   scrollRegion: "Tabela da fila (role para os lados no celular)",
@@ -225,6 +253,11 @@ export const CHECKLIST_TEXT = {
   missing: "pendente",
 } as const;
 
+/** Saída com alterações não salvas (item 47, E-03). */
+export const UNSAVED_TEXT = {
+  leave: "Há alterações não salvas. Sair mesmo assim?",
+} as const;
+
 export const EDITOR_TEXT = {
   title: "Editor de matéria",
   conflict:
@@ -247,6 +280,12 @@ export const EDITOR_TEXT = {
   saved: (v: number) => `Rascunho salvo · versão ${v}`,
   save: "Salvar rascunho",
   saving: "Salvando…",
+  /** Barra de salvar (item 48, E-18). */
+  savedAt: (hour: string) => `Salvo às ${hour}`,
+  unsaved: "Alterações não salvas",
+  autosaved: (hour: string) => `Guardado neste aparelho às ${hour}`,
+  titleCounter: (n: number, max: number) => `${n}/${max}`,
+  titleTooLong: (max: number) => `Título longo: o ideal é até ${max} caracteres.`,
   fields: {
     title: "Título",
     dek: "Linha fina",
@@ -454,6 +493,7 @@ export const PUBLISH_TEXT = {
   published: "Matéria publicada",
   scheduled: (when: string) => `Matéria agendada para ${when}`,
   pastDate: "Escolha um horário futuro",
+  noDestination: "Escolha ao menos um destino.",
   invalidDate: "Data ou hora inválida",
   tooFar: "Agende para no máximo 90 dias",
   blocked: (why: string) => `Publicação indisponível: ${why}`,

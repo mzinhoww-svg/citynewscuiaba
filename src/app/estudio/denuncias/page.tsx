@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, CollapsibleFilters, EmptyState, Icon, InlineAlert, Select } from "@/components";
-import { ReportResponder } from "@/components/estudio";
+import { ReportResponder, StudioScreen } from "@/components/estudio";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -44,11 +44,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const correct = canAccess(session.roles, "correction.manage");
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.reportsTitle}</h1>
-        <p className="type-body text-meta">{T.reportsIntro}</p>
-      </header>
+    <StudioScreen title={T.reportsTitle} intro={T.reportsIntro}>
       {sp.encerrada === "1" && (
         <InlineAlert tone="success" role="status">
           {T.escalation.resolved}
@@ -199,6 +195,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           })}
         </ul>
       )}
-    </section>
+    </StudioScreen>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState, Icon, Panel, Table } from "@/components";
-import { ApprovalBanner, RuleMatrix, RuleProposalForm } from "@/components/estudio";
+import { ApprovalBanner, RuleMatrix, RuleProposalForm, StudioScreen } from "@/components/estudio";
 import { RULES_TEXT as T } from "@/content/pt-BR/rules-admin";
 import { requireRole } from "@/lib/auth/require-role";
 import { pendingApprovalsFor } from "@/lib/db/queries/approvals";
@@ -36,13 +36,7 @@ export default async function RulesPage() {
   });
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
-
+    <StudioScreen section={T.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -59,7 +53,7 @@ export default async function RulesPage() {
       ) : (
         <Body overview={data.value.overview} pending={data.value.pending} userId={session.userId} />
       )}
-    </section>
+    </StudioScreen>
   );
 }
 

@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useId, useState } from "react";
+import { useState } from "react";
 import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 import { Drawer } from "../ui/Drawer";
 import { Icon } from "../ui/Icon";
 import { currentNavHref } from "../ui/NavLink";
 import { filterStudioNav } from "./nav-filter";
-import { StudioNav } from "./StudioNav";
+import { StudioNav, StudioNavSearch } from "./StudioNav";
 import type { StudioNavGroup, StudioUser } from "./StudioShell";
 
 export interface StudioMobileNavProps {
@@ -29,7 +29,6 @@ export function StudioMobileNav({ nav, user, className }: StudioMobileNavProps) 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [seenPath, setSeenPath] = useState(pathname);
-  const searchId = useId();
 
   // Mudou de rota (inclusive pelo voltar do navegador): a gaveta não fica aberta por cima.
   if (pathname !== seenPath) {
@@ -83,29 +82,13 @@ export function StudioMobileNav({ nav, user, className }: StudioMobileNavProps) 
           </Link>
         }
       >
-        <div className="px-4 py-3">
-          <label htmlFor={searchId} className="sr-only">
-            {STUDIO_TEXT.menuSearch}
-          </label>
-          <div className="border-control control-field flex h-input items-center gap-3 rounded-lg bg-input px-4">
-            <Icon name="search" className="text-placeholder" />
-            <input
-              id={searchId}
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={STUDIO_TEXT.menuSearch}
-              autoComplete="off"
-              enterKeyHint="search"
-              className="min-w-0 flex-1 bg-transparent type-body text-strong placeholder:text-placeholder [&::-webkit-search-cancel-button]:appearance-none"
-            />
-          </div>
-        </div>
+        <StudioNavSearch value={query} onChange={setQuery} className="px-4 py-3" />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           {shown.length > 0 ? (
             <StudioNav
               nav={shown}
               allNav={nav}
+              forceOpen={query.trim() !== ""}
               backLink={false}
               onNavigate={close}
               className="pt-0"

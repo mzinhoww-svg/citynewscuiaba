@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, Icon, Table } from "@/components";
+import { StudioScreen } from "@/components/estudio";
 import { AI_TEXT, agentName } from "@/content/pt-BR/ai-control";
 import { formatBrl } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
@@ -33,23 +34,27 @@ export default async function GovernancePage() {
   const data = await loadOrNull("ai governance", () => governanceOverview());
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{AI_TEXT.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-        <nav aria-label={T.title} className="flex flex-wrap gap-4">
-          <Link href="/estudio/control/custos" className="type-body text-link underline">
-            {T.links.costs}
-          </Link>
-          <Link href="/estudio/control/avaliacoes" className="type-body text-link underline">
-            {T.links.evals}
-          </Link>
-          <Link href="/estudio/control/conhecimento" className="type-body text-link underline">
-            {T.links.knowledge}
-          </Link>
-        </nav>
-      </header>
+    <StudioScreen
+      section={AI_TEXT.sectionLabel}
+      title={T.title}
+      gap="lg"
+      intro={
+        <>
+          <p className="max-w-read type-body text-meta">{T.intro}</p>
+          <nav aria-label={T.title} className="flex flex-wrap gap-4">
+            <Link href="/estudio/control/custos" className="type-body text-link underline">
+              {T.links.costs}
+            </Link>
+            <Link href="/estudio/control/avaliacoes" className="type-body text-link underline">
+              {T.links.evals}
+            </Link>
+            <Link href="/estudio/control/conhecimento" className="type-body text-link underline">
+              {T.links.knowledge}
+            </Link>
+          </nav>
+        </>
+      }
+    >
       {data === null ? (
         <EmptyState
           tone="error"
@@ -187,6 +192,6 @@ export default async function GovernancePage() {
           );
         })()
       )}
-    </section>
+    </StudioScreen>
   );
 }

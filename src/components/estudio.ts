@@ -324,3 +324,5 @@ export {
   type ReviewerModeCardProps,
   type ReviewerModeValue,
 } from "./studio/ReviewerModeCard";
+export { StudioScreen, type StudioBreadcrumb, type StudioScreenProps } from "./studio/StudioScreen";
+export { HotkeysHelp } from "./studio/HotkeysHelp";

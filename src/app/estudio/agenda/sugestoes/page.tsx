@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState, InlineAlert } from "@/components";
-import { SubmissionReview } from "@/components/estudio";
+import { SubmissionReview, StudioScreen } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
@@ -33,11 +33,7 @@ export default async function SubmissionsPage({ searchParams }: { searchParams: 
   const done = sp.feito === "aprovada" ? T.approved : sp.feito === "rejeitada" ? T.rejected : null;
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.submissionsTitle}</h1>
-        <p className="type-body text-meta">{T.submissionsIntro}</p>
-      </header>
+    <StudioScreen title={T.submissionsTitle} intro={T.submissionsIntro}>
       {done && (
         <InlineAlert tone="success" role="status">
           {done}
@@ -114,6 +110,6 @@ export default async function SubmissionsPage({ searchParams }: { searchParams: 
           ))}
         </ul>
       )}
-    </section>
+    </StudioScreen>
   );
 }

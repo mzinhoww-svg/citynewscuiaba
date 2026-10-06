@@ -1,31 +1,20 @@
 import type { Metadata } from "next";
-import { Button, EmptyState, InlineAlert, SectionHeader } from "@/components";
-import {
-  KpiStrip,
-  PushHomeCard,
-  QueueTable,
-  QueueTabs,
-  StaffUrgentOptIn,
-} from "@/components/estudio";
+import { Button, EmptyState, InlineAlert, SectionHeader, StatGrid } from "@/components";
+import { PushHomeCard, QueueTable, StaffUrgentOptIn, StudioScreen } from "@/components/estudio";
 import { QUEUE_TEXT as T, STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";
-import {
-  listQueue,
-  newsroomKpis,
-  QUEUE_TABS,
-  type NewsroomKpis,
-  type QueueRow,
-} from "@/lib/db/queries/queue";
+import { listQueue, newsroomKpis, type NewsroomKpis, type QueueRow } from "@/lib/db/queries/queue";
 import { pushCardData, staffAlertsOn } from "@/lib/db/queries/studio-notifications";
 import { hasAnyPushAction } from "@/lib/push/permissions";
 import { formatDateTime } from "@/lib/format/date";
 import { unpublishAutoAction } from "./actions";
 import { pushHrefFor } from "./nav";
+import { newsroomStats, QueueShortcuts } from "./newsroom";
 import { setStaffAlertsAction } from "./notificacoes/actions";
 import { tabHref, toTableRow } from "./fila/rows";
 
-export const metadata: Metadata = { title: "Newsroom · Estúdio · CityNews Cuiabá" };
+export const metadata: Metadata = { title: "Redação · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
 
 const PREVIEW = 8;
@@ -66,8 +55,7 @@ export default async function StudioHomePage() {
 
   const now = new Date();
   return (
-    <section className="flex flex-col gap-6">
-      <h1 className="type-screen-title text-strong">{T.newsroomTitle}</h1>
+    <StudioScreen title={T.newsroomTitle}>
       {pushAccess && (
         <PushHomeCard
           data={pushCard}
@@ -90,32 +78,9 @@ export default async function StudioHomePage() {
         </EmptyState>
       ) : (
         <>
-          <KpiStrip
-            label={T.kpiRegion}
-            items={[
-              { label: T.kpi.publishedToday, value: kpis.publishedToday, icon: "newspaper" },
-              {
-                label: T.kpi.auto24h,
-                value: kpis.auto24h,
-                icon: "refresh-cw",
-                href: desk ? tabHref("auto24h") : undefined,
-              },
-              {
-                label: T.kpi.exceptions,
-                value: kpis.exceptions,
-                icon: "layers",
-                href: desk ? tabHref("exceptions") : undefined,
-              },
-              {
-                label: T.kpi.overdue,
-                value: kpis.overdue,
-                icon: "clock",
-                attention: kpis.overdue > 0,
-                href: desk ? "/estudio/fila?prazo=vencido" : undefined,
-              },
-              { label: T.kpi.scheduled, value: kpis.scheduled, icon: "calendar" },
-            ]}
-          />
+          <section aria-label={T.kpiRegion}>
+            <StatGrid columns={5} items={newsroomStats(kpis, desk)} />
+          </section>
           {kpis.auto24h > 0 && (
             <InlineAlert
               tone="info"
@@ -133,11 +98,7 @@ export default async function StudioHomePage() {
           )}
           {desk ? (
             <>
-              <QueueTabs
-                label={T.tabsLabel}
-                current="exceptions"
-                items={QUEUE_TABS.map((k) => ({ key: k, label: T.tabs[k], href: tabHref(k) }))}
-              />
+              <QueueShortcuts />
               <SectionHeader title={T.tabs.exceptions} as="h2" />
               <QueueTable
                 rows={rows.map((r) => toTableRow(r, session, now))}
@@ -163,6 +124,6 @@ export default async function StudioHomePage() {
           )}
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

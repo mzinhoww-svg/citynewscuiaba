@@ -57,7 +57,7 @@ test("playground: operador roda o agente de classificação com o provedor falso
   page,
 }) => {
   await loginAs(page, "diego", "/estudio/control/testes");
-  await expect(page.getByRole("heading", { level: 1, name: "Playground de testes" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Testar prompts" })).toBeVisible();
   await expect(page.getByText(/Provedor falso/)).toBeVisible();
   await page.getByLabel("Agente").selectOption("classify");
   await page
