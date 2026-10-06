@@ -28,18 +28,27 @@ vi.mock("@/lib/offline/sw", () => ({
   clearOffline: vi.fn(async () => true),
   cacheSaved: vi.fn(async () => undefined),
 }));
-vi.mock("@/lib/events/use-track", () => ({ useTrack: () => vi.fn(async () => undefined) }));
+const send = vi.fn(async () => undefined);
+vi.mock("@/lib/events/use-track", () => ({ useTrack: () => send }));
 vi.mock("@/lib/anon/invite", () => ({ requestLoginInvite: vi.fn() }));
 vi.mock("@/lib/push/invite", () => ({ requestNotificationInvite: vi.fn() }));
 vi.mock("./NotificationInviteSlot", () => ({ NotificationInviteSlot: () => null }));
 
+import { requestLoginInvite } from "@/lib/anon/invite";
+import { requestNotificationInvite } from "@/lib/push/invite";
 import { ToastProvider } from "../ui/Toast";
 import { FollowTopicButton } from "./FollowTopicButton";
 import { RecommendationControls } from "./RecommendationControls";
 import { SaveButton } from "./SaveButton";
 import { SaveEventButton } from "./SaveEventButton";
+import { SourceFollow } from "./SourceFollow";
 
-beforeEach(() => act.mockClear());
+beforeEach(() => {
+  act.mockClear();
+  send.mockClear();
+  vi.mocked(requestLoginInvite).mockClear();
+  vi.mocked(requestNotificationInvite).mockClear();
+});
 
 async function expectToast() {
   expect(await screen.findByText(ANON_TEXT.actFailed)).toBeVisible();
@@ -92,5 +101,18 @@ describe("erros do perfil local aparecem por toast", () => {
     expect(screen.queryByText(RECS_PAGE_TEXT.removed)).not.toBeInTheDocument();
     expect(screen.queryByText(RECS_PAGE_TEXT.cleared)).not.toBeInTheDocument();
     expect(screen.queryByText(RECS_PAGE_TEXT.resetDone)).not.toBeInTheDocument();
+  });
+
+  it("SourceFollow: não registra o seguir nem abre convites quando falha", async () => {
+    render(
+      <ToastProvider>
+        <SourceFollow slug="folha" name="Folha do Cerrado" />
+      </ToastProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Seguir Folha do Cerrado" }));
+    await expectToast();
+    expect(send).not.toHaveBeenCalledWith("source_followed", expect.anything(), expect.anything());
+    expect(requestNotificationInvite).not.toHaveBeenCalled();
+    expect(requestLoginInvite).not.toHaveBeenCalled();
   });
 });

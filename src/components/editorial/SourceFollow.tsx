@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { useTrack } from "@/lib/events/use-track";
 import { requestNotificationInvite } from "@/lib/push/invite";
+import { useToast } from "../ui/Toast";
 import { NotificationInviteSlot } from "./NotificationInviteSlot";
 import { FollowButton } from "./SourceCard";
 
@@ -21,6 +23,7 @@ export interface SourceFollowProps {
 export function SourceFollow({ slug, name }: SourceFollowProps) {
   const { profile, ready, act } = useAnonProfile();
   const send = useTrack();
+  const toast = useToast();
   const followed = profile?.follows.some((f) => f.kind === "source" && f.id === slug) ?? false;
 
   useEffect(() => {
@@ -36,7 +39,9 @@ export function SourceFollow({ slug, name }: SourceFollowProps) {
           onFollow={(s, next) =>
             void act((store) =>
               next ? store.follow("source", s) : store.unfollow("source", s),
-            ).then(() => {
+            ).then((r) => {
+              // Falha ao gravar (item 88): avisa e não registra nem convida como se tivesse seguido.
+              if (!r.ok) return toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
               if (next) {
                 void send(
                   "source_followed",
