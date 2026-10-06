@@ -155,6 +155,17 @@
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in-right: cn-drawer-in-right var(--dur-slow) var(--ease-out); /* [UX-W2-T8] */
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
+  --animate-nav-progress: cn-nav-progress 8s var(--ease-out) forwards; /* [UX-W5-T6] */
+}
+
+/* Navegação pendente (NavProgress): avança rápido e desacelera sem chegar ao fim. */
+@keyframes cn-nav-progress {
+  from {
+    transform: scaleX(0.08);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
 }
 
 @keyframes cn-live-pulse {

@@ -70,6 +70,8 @@ export const NAV_TEXT = {
   footerNav: "Institucional",
   homeLink: "CityNews Cuiabá, página inicial",
   live: "Agora",
+  /** Barra de navegação pendente no topo do cabeçalho (item 87). */
+  navigating: "Carregando a página",
 } as const;
 
 /** Dados institucionais pendentes (B-001). Troque `[PREENCHER]` quando o dono informar. */
