@@ -5,7 +5,10 @@
         "http://localhost:3000/",
         "http://localhost:3000/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro",
         "http://localhost:3000/fontes",
-        "http://localhost:3000/busca?q=viaduto"
+        "http://localhost:3000/busca?q=viaduto",
+        "http://localhost:3000/agenda",
+        "http://localhost:3000/cidade",
+        "http://localhost:3000/guia-cuiaba"
       ],
       "numberOfRuns": 3,
       "settings": {
@@ -15,6 +18,24 @@
     },
     "assert": {
       "assertMatrix": [
+        {
+          "matchingUrlPattern": "^http://localhost:3000/(agenda|cidade|guia-cuiaba)",
+          "assertions": {
+            "largest-contentful-paint": [
+              "warn",
+              { "maxNumericValue": 2500, "aggregationMethod": "median" }
+            ],
+            "cumulative-layout-shift": [
+              "error",
+              { "maxNumericValue": 0.1, "aggregationMethod": "median" }
+            ],
+            "total-blocking-time": [
+              "warn",
+              { "maxNumericValue": 200, "aggregationMethod": "median" }
+            ],
+            "resource-summary:script:size": ["error", { "maxNumericValue": 190000 }]
+          }
+        },
         {
           "matchingUrlPattern": "^http://localhost:3000/(\\?.*)?$",
           "assertions": {

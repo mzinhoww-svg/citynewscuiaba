@@ -10,6 +10,7 @@ import {
 } from "../e2e/helpers/featured";
 import { loginAs } from "../e2e/studio";
 import { expectNoSeriousViolations, settle, smallTargets } from "./axe";
+import { mutatesGlobalState } from "../e2e/projects";
 
 /*
  * FD-T4 · Acessibilidade da tela de destaques (WCAG 2.2 AA, 0 violações serious/critical) nos
@@ -46,7 +47,7 @@ for (const scheme of ["light", "dark"] as const) {
     });
 
     test(`@a11y destaques: diálogo de remover (${scheme})`, async ({ page }, info) => {
-      test.skip(info.project.name !== "desktop", "cria pino: só no projeto desktop");
+      test.skip(!mutatesGlobalState(info), "cria pino: só no projeto serial do desktop");
       const fx = newFixtures();
       const release = await acquireFeaturedLock();
       try {

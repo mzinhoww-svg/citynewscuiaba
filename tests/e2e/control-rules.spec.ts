@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service, STAFF } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T2 · Regras de autonomia (O05, Review Focus 1 e 5): Diego (operador de IA, sem o papel de
  * aprovar) simula com os últimos 7 dias e propõe; o pedido fica na caixa e Marina aprova. A-128:
  * Marina (editora-chefe) propõe e aplica numa ação só, e o histórico registra quem fez. Só no
- * projeto desktop (muda a versão ativa, compartilhada entre projetos) e devolve a v1 do seed.
+ * projeto serial-flags (muda a versão ativa, compartilhada entre projetos) e devolve a v1 do seed.
  */
 
 async function restoreSeedRules(start: number) {
@@ -33,7 +34,7 @@ test("regras: leitura da versão ativa e da matriz", async ({ page }) => {
 test("operador propõe e o pedido aguarda; editora-chefe aprova na caixa", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda a versão ativa: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda a versão ativa: só no projeto serial do desktop");
   test.setTimeout(90_000);
   const db = service();
   const { data: top } = await db
@@ -106,7 +107,7 @@ test("operador propõe e o pedido aguarda; editora-chefe aprova na caixa", async
 test("A-128: editora-chefe propõe e aplica numa ação só; o histórico registra quem fez", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda a versão ativa: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda a versão ativa: só no projeto serial do desktop");
   test.setTimeout(90_000);
   const db = service();
   const { data: top } = await db

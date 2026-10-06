@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { loginAs, service, STAFF } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T7 · Recomendação (O17/O18, Review Focus 2): pesos que somam 0,99 travam o "Propor" com a
@@ -70,7 +71,7 @@ test("Por que esta recomendação: anonId vira pseudônimo e individual pesa 0 s
 test("operador propõe e o pedido aguarda; admin ativa; A-128: admin propõe e ativa direto; teste A/B", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda os pesos ativos: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda os pesos ativos: só no projeto serial do desktop");
   test.setTimeout(120_000);
   await restoreWeights();
   try {

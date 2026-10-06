@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { service } from "../studio";
 
 /*
@@ -188,11 +188,13 @@ export async function reloadUntil(
   predicate: () => Promise<boolean>,
   timeoutMs = 90_000,
 ): Promise<void> {
-  const started = Date.now();
-  for (;;) {
-    await page.goto(url);
-    if (await predicate()) return;
-    if (Date.now() - started > timeoutMs) throw new Error(`a página ${url} não refletiu a mudança`);
-    await page.waitForTimeout(4_000);
-  }
+  await expect
+    .poll(
+      async () => {
+        await page.goto(url);
+        return predicate();
+      },
+      { message: `a página ${url} não refletiu a mudança`, timeout: timeoutMs, intervals: [4_000] },
+    )
+    .toBe(true);
 }

@@ -7,7 +7,7 @@ import { createArticle, removeArticles, service, tag } from "./studio";
 /*
  * A09 · Novo envio e Configurações (spec 2026-09-28 §10.2, §10.5; PW-T12). Pessoas do seed:
  * Marina (editora-chefe), Otávio (editor de cidade, serviços, clima e agenda), Helena (admin),
- * Thiago (analista). Os projetos desktop e mobile rodam em paralelo: cada teste cria a própria
+ * Thiago (analista). Roda nos projetos serial-flags* (um de cada vez): cada teste cria a própria
  * matéria e o que muda de configuração é restaurado no fim.
  */
 const URL = "/estudio/admin/notificacoes";

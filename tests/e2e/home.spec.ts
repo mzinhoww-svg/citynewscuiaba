@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { scrolledWithin } from "./helpers/wait";
 import { forwardedFor } from "./own-ip";
 
 const blocking = (impact: string | null | undefined) =>
@@ -66,8 +67,8 @@ test("trilhos da home rolam por teclado, sem rolagem automática", async ({ page
   await expect(rail).toHaveAttribute("tabindex", "0");
   await rail.focus();
   const before = await rail.evaluate((el) => el.scrollLeft);
-  await page.waitForTimeout(1500);
-  expect(await rail.evaluate((el) => el.scrollLeft)).toBe(before);
+  // Sem rolagem automática: observado na própria faixa (evento e posição) por 1,5 s.
+  expect(await scrolledWithin(rail, 1_500)).toBe(false);
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
   await page.keyboard.press("Home");
