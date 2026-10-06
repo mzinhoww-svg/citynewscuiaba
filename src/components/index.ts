@@ -175,7 +175,7 @@ export {
   DocBreadcrumb,
   DocPage,
   DocRelated,
-  PendingText,
+  filledSections,
   type DocPageProps,
 } from "./editorial/DocPage";
 export {

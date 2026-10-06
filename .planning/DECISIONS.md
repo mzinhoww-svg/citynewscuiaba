@@ -321,3 +321,17 @@ O alerta da revisão dizia "Tema sensível: nunca publica sozinho", o que contra
 ## A-151 · Orçamento de JS provisório da W4 (04/10/2026)
 
 **Status:** vigente, provisório. A W4 trouxe interações que pedem JavaScript no cliente (fileira de editorias que recolhe, ticker que rola pela roda do mouse e por botões, aba certa acesa pela rota, convite no fim da leitura). O Lighthouse do PR #61 mediu 178,1 kB na home, 178,0 kB na busca, 187,2 kB na matéria e 188,6 kB em Fontes, acima dos limites da A-146 (175 e 185 kB). O orçamento sobe para 180 kB (home e busca) e 190 kB (matéria e Fontes) até a W5-T5, que corta o bundle (itens 85 e 86) com a meta de 165 kB em home e busca; ao entregar o corte, a W5-T5 reduz estes limites. O LCP continua como alerta (L-026).
+
+## A-152 · Telas públicas no celular: faixa preta, dado pendente e ordem de leitura (04/10/2026)
+
+**Status:** vigente. Pedido do dono (capturas do iPhone de Favoritos, Guia, Serviços, Newsletters, Anuncie, Princípios e Alertas).
+
+- **Faixa preta sob o cabeçalho:** era a fileira de editorias. `mask-image` num contêiner com rolagem é pintado como bloco preto no Safari do iPhone. `scroll-fade` deixa de usar máscara: véus da cor da página em `::before`/`::after` do `<nav>`, com `data-fade` no `<nav>` (teste impede a volta da máscara na lista).
+- **Primeiro item colado na borda:** listas roláveis com `snap-x` e `px-gutter` ganham `scroll-px-gutter` (editorias e "Nesta página").
+- **`[PREENCHER]` em tela pública:** substitui a parte de A-014 que mostrava o marcador. Linha pendente não aparece (`isFilled`, como já fazia o rodapé); seção que fica vazia some com o atalho do índice (`filledSections`); a nota "aguardam dados oficiais" sai. O dado continua pendente em B-001.
+- **Ordem de leitura no celular:** Favoritos mostra abas e salvos antes do convite de conta; a caixa "Salvos só neste aparelho" vira nota do cabeçalho. Alertas: lista, avisos do navegador, formulário de criar e convite, nessa ordem (os avisos antes do formulário: ao ativá-los a página rola até eles, e o formulário abaixo não fica sob o cabeçalho fixo, o que reprovava o axe em target-size); botões de opção de 24 px; sem suporte a push, uma linha de nota no lugar do bloco com título.
+- **Guia sem listas:** em vez de uma caixa "em breve", a página traz as 6 matérias mais recentes do Guia.
+- **Newsletters:** sem fio duplo entre o hero e a primeira newsletter.
+- **Fontes em destaque:** abaixo de `sm`, `SourceCard` vira linha com divisória (avatar 40, sem moldura, sem "Ver matérias", que repete o link do nome), como manda DESIGN.md §6; o card volta a partir de `sm`. A personalização perde a caixa e fica entre fios.
+- Fora deste pacote, já no plano `2026-10-04-melhorias-ux-ui-tecnica`: foto quebrada (item 78), ticker sem movimento (13) e "Agora" pulsando só na home (69).
+- **Para o dono:** `/principios-editoriais` diz que crimes, violência, saúde e eleições "nunca são publicados sem revisão humana", o que não vale mais com as regras v3 (CLAUDE.md §5 regra 8). O texto não foi alterado: é compromisso público e a redação é do dono.

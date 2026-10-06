@@ -43,22 +43,26 @@ describe("Rail", () => {
     expect(list).not.toHaveAttribute("tabindex");
   });
 
-  it("esmaece a borda que ainda tem itens, só no celular (data-fade + max-lg:scroll-fade)", () => {
+  it("esmaece a borda que ainda tem itens, só no celular (data-fade + max-lg:scroll-fade no invólucro)", () => {
     const list = setup();
-    expect(list.className).toMatch(/(^|\s)max-lg:scroll-fade(\s|$)/);
-    expect(list).toHaveAttribute("data-fade", "none");
+    const wrap = list.parentElement as HTMLElement;
+    // Máscara num contêiner rolável vira bloco preto no Safari do iPhone (A-152).
+    expect(list.className).not.toMatch(/scroll-fade/);
+    expect(list).not.toHaveAttribute("data-fade");
+    expect(wrap.className).toMatch(/(^|\s)max-lg:scroll-fade(\s|$)/);
+    expect(wrap).toHaveAttribute("data-fade", "none");
     overflow(list, 300, 900);
-    expect(list).toHaveAttribute("data-fade", "end");
+    expect(wrap).toHaveAttribute("data-fade", "end");
     act(() => {
       list.scrollLeft = 300;
       list.dispatchEvent(new Event("scroll"));
     });
-    expect(list).toHaveAttribute("data-fade", "both");
+    expect(wrap).toHaveAttribute("data-fade", "both");
     act(() => {
       list.scrollLeft = 600;
       list.dispatchEvent(new Event("scroll"));
     });
-    expect(list).toHaveAttribute("data-fade", "start");
+    expect(wrap).toHaveAttribute("data-fade", "start");
   });
 
   it("largura do item vem de itemWidth (sm menor que md)", () => {

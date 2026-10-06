@@ -27,12 +27,16 @@ describe("LinkTabs", () => {
     expect(screen.getByRole("link", { name: "Urgentes" })).toBeTruthy();
   });
 
-  it("lista rola na horizontal com a máscara de borda", () => {
+  it("lista rola na horizontal; o esmaecimento de borda fica no <nav>, nunca na lista", () => {
     render(<LinkTabs label="Abas da fila" items={items} />);
     const list = screen.getByRole("list");
+    const nav = screen.getByRole("navigation", { name: "Abas da fila" });
     expect(list.className).toContain("overflow-x-auto");
-    expect(list.className).toContain("scroll-fade");
-    expect(list.getAttribute("data-fade")).toBe("none");
+    // Máscara num contêiner rolável vira bloco preto no Safari do iPhone (A-152).
+    expect(list.className).not.toContain("scroll-fade");
+    expect(list).not.toHaveAttribute("data-fade");
+    expect(nav.className).toContain("scroll-fade");
+    expect(nav.getAttribute("data-fade")).toBe("none");
     for (const link of screen.getAllByRole("link")) expect(link.className).toContain("min-h-tap");
   });
 });

@@ -205,7 +205,7 @@ export function SourcesClient({
 
       <section
         aria-label={T.personalization}
-        className="flex flex-col gap-3 border border-line-section bg-card-white p-4 sm:flex-row sm:items-center sm:justify-between"
+        className="flex items-center justify-between gap-4 border-y border-line-subtle py-3"
       >
         <div className="flex flex-col gap-1">
           <p className="type-body font-semibold text-strong">{T.personalization}</p>
@@ -500,7 +500,8 @@ function TabBody({
     );
 
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    // Celular: lista com divisórias (o card vira linha); a partir de sm, grade de cards.
+    <ul className="grid grid-cols-1 border-t border-line-subtle sm:grid-cols-2 sm:gap-4 sm:border-t-0 lg:grid-cols-3">
       {cards.map((c, i) => (
         <li
           key={c.slug}

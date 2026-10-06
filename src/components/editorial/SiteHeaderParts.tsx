@@ -116,7 +116,7 @@ const current = (active: string | undefined, id: string) =>
 
 /**
  * Fileira de editorias: rolável no celular, com `data-fade` indicando qual borda ainda tem
- * conteúdo (a máscara CSS vem de `scroll-fade`), e a editoria ativa centralizada ao carregar
+ * conteúdo (o véu CSS vem de `scroll-fade`, no `<nav>`), e a editoria ativa centralizada ao carregar
  * (e ao trocar de rota), sem animação sob `prefers-reduced-motion`.
  */
 export function SectionsNav({
@@ -170,16 +170,16 @@ export function SectionsNav({
       <nav
         aria-label={label}
         data-hidden={hidden ? "true" : "false"}
+        data-fade={fade}
         className={cx(
-          "pointer-events-auto border-b border-line-subtle bg-page",
+          "scroll-fade pointer-events-auto border-b border-line-subtle bg-page",
           "motion-safe:transition-transform motion-safe:duration-(--dur-base) motion-safe:ease-(--ease-standard)",
           "data-[hidden=true]:-translate-y-full data-[hidden=true]:focus-within:translate-y-0",
         )}
       >
         <ul
           ref={listRef}
-          data-fade={fade}
-          className="mx-auto flex max-w-page snap-x gap-1 overflow-x-auto px-gutter scrollbar-none scroll-fade lg:justify-center"
+          className="mx-auto flex max-w-page snap-x scroll-px-gutter gap-1 overflow-x-auto px-gutter scrollbar-none lg:justify-center"
         >
           {sections.map((it) => (
             <li key={it.id} className="snap-start">
