@@ -16,8 +16,10 @@ create index if not exists venues_google_idx on public.venues ((place_ids ->> 'g
   where place_ids ? 'google';
 
 -- Expurgo dos dados do Google sem atualização desde `p_before`: nota, contagem e link saem quando a
--- nota é do Google; telefone, site, horário e faixa de preço só quando o Google era a única fonte
--- (sem como saber de onde veio cada campo quando há outras). O Place ID fica. Devolve quantos mudaram.
+-- nota é do Google; telefone, site, horário e faixa de preço só quando o Google era a única fonte,
+-- contando como dele o site do lugar lido a partir do link que o próprio Google trouxe (o passo do
+-- site só preenche campo vazio). Nesse caso `site` também sai, e a próxima leitura do site o refaz.
+-- O Place ID fica. Devolve quantos mudaram.
 create or replace function public.guide_expire_google(p_before timestamptz)
 returns int language plpgsql security definer set search_path = public as $fn$
 declare n int;
@@ -26,12 +28,15 @@ begin
     rating = case when v.rating_source = 'google' then null else v.rating end,
     rating_count = case when v.rating_source = 'google' then null else v.rating_count end,
     rating_source = case when v.rating_source = 'google' then null else v.rating_source end,
-    phone = case when v.data_sources = array['google']::text[] then null else v.phone end,
-    website = case when v.data_sources = array['google']::text[] then null else v.website end,
-    hours = case when v.data_sources = array['google']::text[] then null else v.hours end,
-    price_level = case when v.data_sources = array['google']::text[] then null else v.price_level end,
+    phone = case when array_remove(v.data_sources, 'site') = array['google']::text[] then null else v.phone end,
+    website = case when array_remove(v.data_sources, 'site') = array['google']::text[] then null else v.website end,
+    hours = case when array_remove(v.data_sources, 'site') = array['google']::text[] then null else v.hours end,
+    price_level = case when array_remove(v.data_sources, 'site') = array['google']::text[] then null else v.price_level end,
     google_maps_url = null,
-    data_sources = array_remove(v.data_sources, 'google'),
+    data_sources = case
+      when array_remove(v.data_sources, 'site') = array['google']::text[] then '{}'::text[]
+      else array_remove(v.data_sources, 'google')
+    end,
     updated_at = now()
   where 'google' = any (v.data_sources)
     and (v.google_fetched_at is null or v.google_fetched_at < p_before);

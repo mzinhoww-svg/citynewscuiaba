@@ -160,16 +160,18 @@ export function createGoogleProvider(
       // Mensagem fixa: o erro do fetch pode trazer cabeçalhos e, com eles, a chave.
       return err("network");
     }
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401 || res.status === 403 || res.status === 400) {
+      const text = await res.text().catch(() => "");
+      // A Places API (New) responde chave inválida com 400 API_KEY_INVALID, não 401/403.
+      const refused = res.status !== 400 || text.includes("API_KEY_INVALID");
+      if (!refused) return err("invalid");
       if (opts.onError) {
-        const text = await res.text().catch(() => "");
         const message = text.split(key).join("[chave]").replace(/\s+/g, " ").trim().slice(0, 300);
         opts.onError({ status: res.status, message });
       }
       return err("unauthorized");
     }
     if (res.status === 429) return err("rate_limited");
-    if (res.status === 400) return err("invalid");
     if (!res.ok) return err("http");
     try {
       return ok(await res.json());

@@ -145,11 +145,10 @@ export async function runVenueSync(
     }
     return true;
   };
+  /** Todo erro vai para o relatório; chave ausente, recusada ou cota estourada desligam o Google. */
   const googleFailed = (e: ProviderError) => {
-    if (e === "no_key" || e === "unauthorized" || e === "rate_limited") {
-      googleOff = true;
-      report.providers.google = e === "no_key" ? "no_key" : `error:${e}`;
-    }
+    report.providers.google = e === "no_key" ? "no_key" : `error:${e}`;
+    if (e === "no_key" || e === "unauthorized" || e === "rate_limited") googleOff = true;
   };
 
   /** Reserva uma chamada da cota; sem espaço, o TripAdvisor para até a próxima janela. */

@@ -172,6 +172,31 @@ describe("google provider", () => {
     expect(JSON.stringify(r)).not.toContain(FAKE_KEY);
   });
 
+  it("chave inválida (400 API_KEY_INVALID) vira unauthorized e vai para onError", async () => {
+    const onError = vi.fn();
+    const p = createGoogleProvider({
+      apiKey: FAKE_KEY,
+      http: async () =>
+        json(
+          {
+            error: {
+              code: 400,
+              message: "API key not valid. Please pass a valid API key.",
+              status: "INVALID_ARGUMENT",
+              details: [{ reason: "API_KEY_INVALID" }],
+            },
+          },
+          400,
+        ),
+      onError,
+    });
+    expect(await p.search({ category: "padaria", area: "Cuiabá" })).toEqual({
+      ok: false,
+      error: "unauthorized",
+    });
+    expect((onError.mock.calls[0]?.[0] as { status: number }).status).toBe(400);
+  });
+
   it("details busca pelo id com a mesma máscara e rejeita id inválido sem chamar", async () => {
     const http = vi.fn<HttpFetch>(async () => json(PLACE));
     const p = createGoogleProvider({ apiKey: FAKE_KEY, http });

@@ -387,6 +387,13 @@ describe("runVenueSync", () => {
     expect(rows.length).toBe(2);
   });
 
+  it("outro erro do Google aparece no relatório mesmo sem desligar o provedor", async () => {
+    const { store } = memoryStore();
+    const g = fakeGoogle({ search: async () => err("http" as const) });
+    const r = await runVenueSync(deps({ store, google: g.google, tripadvisor: null }), PLAN);
+    expect(r.providers.google).toBe("error:http");
+  });
+
   it("busca de novo quem passou de 25 dias e expira o que passou de 30", async () => {
     const old: StoredVenue = {
       ...G_REC,

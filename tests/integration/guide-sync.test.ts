@@ -184,7 +184,7 @@ describe("venue_sync com banco", () => {
   it("expireGoogle apaga nota e link vencidos, e o contato só quando o Google é a única fonte", async () => {
     const old = new Date("2026-08-01T12:00:00Z");
     const recent = new Date("2026-09-25T12:00:00Z");
-    const base = (n: string, sources: ("google" | "osm")[], lat: number) =>
+    const base = (n: string, sources: ("google" | "osm" | "site")[], lat: number) =>
       venueRecord({
         name: `Museu Teste ${mark} E${n}`,
         category: CATEGORY,
@@ -201,8 +201,10 @@ describe("venue_sync com banco", () => {
     await store.save({ inserts: [base("A", ["google"], -16.1)], updates: [] }, old);
     await store.save({ inserts: [base("B", ["google", "osm"], -16.2)], updates: [] }, old);
     await store.save({ inserts: [base("C", ["google"], -16.3)], updates: [] }, recent);
+    // Google + site lido a partir do link do Google: o contato veio do Google e também expira.
+    await store.save({ inserts: [base("D", ["google", "site"], -16.4)], updates: [] }, old);
     const n = await store.expireGoogle(new Date("2026-09-06T12:00:00Z"));
-    expect(n).toBe(2);
+    expect(n).toBe(3);
     const { data } = await db
       .from("venues")
       .select("name, rating, rating_source, phone, google_maps_url, data_sources")
@@ -223,6 +225,7 @@ describe("venue_sync com banco", () => {
       data_sources: ["osm"],
     });
     expect(c).toMatchObject({ rating: 4.2, rating_source: "google", data_sources: ["google"] });
+    expect(data![3]).toMatchObject({ phone: null, google_maps_url: null, data_sources: [] });
     const stale = await store.staleGoogle(new Date("2026-09-30T00:00:00Z"), 100);
     expect(stale.some((v) => v.name === `Museu Teste ${mark} EC`)).toBe(true);
   });

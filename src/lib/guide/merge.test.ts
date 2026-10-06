@@ -32,6 +32,19 @@ describe("isSameVenue", () => {
     expect(isSameVenue(rec(), rec({ lat: -15.65, lng: -56.05 }))).toBe(false);
   });
 
+  it("nome do Google com o bairro a mais e a menos de 100 m é o mesmo lugar", () => {
+    const g = rec({ name: "Pão Dourado - Goiabeiras", lat: -15.6014, lng: -56.0979 });
+    const o = rec({ name: "Pão Dourado", lat: -15.6017, lng: -56.0979 });
+    expect(isSameVenue(g, o)).toBe(true);
+    expect(isSameVenue(o, g)).toBe(true);
+    const far = rec({ name: "Pão Dourado", lat: -15.6024, lng: -56.0979 });
+    expect(isSameVenue(g, far)).toBe(false);
+    const oneWord = rec({ name: "Dourado", lat: -15.6017, lng: -56.0979 });
+    expect(
+      isSameVenue(rec({ name: "Dourado Lanches Rápidos", lat: -15.6014, lng: -56.0979 }), oneWord),
+    ).toBe(false);
+  });
+
   it("nomes diferentes no mesmo ponto não se misturam", () => {
     expect(isSameVenue(rec(), rec({ name: "Padaria Estrela do Sul" }))).toBe(false);
   });
