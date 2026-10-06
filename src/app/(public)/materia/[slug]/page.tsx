@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense } from "react";
 
 import { headers } from "next/headers";
 import { notFound, redirect, RedirectType } from "next/navigation";
@@ -328,11 +328,21 @@ function Article({ a }: { a: ArticleView }) {
                 />
               }
             />
-            {ads && <AdSlot code="RAIL-A" sectionSlug={a.section.slug} />}
+            {ads && (
+              <Suspense fallback={null}>
+                <AdSlot code="RAIL-A" sectionSlug={a.section.slug} />
+              </Suspense>
+            )}
           </aside>
         </div>
 
-        {ads && <AdSlot code="ART-2" sectionSlug={a.section.slug} className="mt-12" />}
+        {/* Blocos secundários (item 87): o texto não espera os campos de banner fora dele; o
+            ART-1, no meio do texto, fica fora do Suspense para não empurrar a leitura. */}
+        {ads && (
+          <Suspense fallback={null}>
+            <AdSlot code="ART-2" sectionSlug={a.section.slug} className="mt-12" />
+          </Suspense>
+        )}
 
         {a.related.length > 0 && (
           <section
@@ -351,7 +361,11 @@ function Article({ a }: { a: ArticleView }) {
             </ul>
           </section>
         )}
-        {ads && <AdSlot code="STICKY" sectionSlug={a.section.slug} />}
+        {ads && (
+          <Suspense fallback={null}>
+            <AdSlot code="STICKY" sectionSlug={a.section.slug} />
+          </Suspense>
+        )}
       </div>
     </>
   );

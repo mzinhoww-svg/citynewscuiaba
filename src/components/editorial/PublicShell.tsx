@@ -7,6 +7,7 @@ import { ConsentBanner } from "./ConsentBanner";
 import { LoginInviteGate, NotificationWatchers } from "./DeferredShell";
 import { InstallInviteSlot } from "./InstallInviteSlot";
 import { listTickerItems } from "@/lib/db/queries/ticker";
+import { NavProgress } from "./NavProgress";
 import { NewsTicker } from "./NewsTicker";
 import { OfflineNotice } from "./OfflineNotice";
 import { SwRegistrar } from "./SwRegistrar";
@@ -37,6 +38,8 @@ export async function PublicShell({ children, consent }: PublicShellProps) {
           {NAV_TEXT.skipToContent}
         </a>
         <ConsentBanner />
+        {/* Linha fina no topo do cabeçalho enquanto a próxima página carrega (item 87). */}
+        <NavProgress />
         <SiteHeader />
         <NewsTicker items={tickerItems} />
         <OfflineNotice />
