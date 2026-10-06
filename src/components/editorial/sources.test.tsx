@@ -50,6 +50,28 @@ describe("SourceCard", () => {
     expect(within(card).queryByText("Ocultar")).not.toBeInTheDocument();
   });
 
+  it("no celular é linha com divisória, não card; card só a partir de sm (DESIGN.md §6)", () => {
+    const { container } = render(
+      <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,
+    );
+    const card = screen.getByRole("article", { name: "Folha do Cerrado" });
+    const cls = card.className.split(/\s+/);
+    // Moldura de card (borda, raio, fundo, respiro interno) só a partir de sm.
+    for (const c of ["border", "rounded-lg", "bg-card-white", "p-4"]) {
+      expect(cls).not.toContain(c);
+      expect(cls).toContain(`sm:${c}`);
+    }
+    expect(cls).toContain("border-b");
+    // Avatar 40 no celular e 56 a partir de sm.
+    const avatar = container.querySelector("[class*='bg-avatar-']");
+    expect(avatar?.className).toMatch(/(^|\s)size-10(\s|$)/);
+    expect(avatar?.className).toMatch(/sm:size-14/);
+    // "Ver matérias" repete o link do nome: some no celular.
+    expect(
+      within(card).getByRole("link", { name: "Ver matérias de Folha do Cerrado" }).className,
+    ).toMatch(/max-sm:hidden/);
+  });
+
   it("estatísticas e selos ficam dentro de <details> 'Detalhes', fechado por padrão", () => {
     const { container } = render(
       <SourceCard source={fixtureSource} onFollow={vi.fn()} onHide={vi.fn()} now={now} />,

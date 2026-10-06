@@ -206,7 +206,17 @@ test("card enxuto: justificativa, Seguir e Ver matérias; números em Detalhes; 
   const card = panel(page).locator("[data-slug]").first();
   const name = (await card.getByRole("heading").textContent())?.trim() ?? "";
   await expect(card.getByRole("button", { name: `Seguir ${name}` })).toBeVisible();
-  await expect(card.getByRole("link", { name: `Ver matérias de ${name}` })).toBeVisible();
+  // O nome leva à página da fonte. "Ver matérias" repete esse link e só aparece a partir de
+  // 640 px; no celular o card vira linha com divisória (A-152, DESIGN.md §6).
+  const href = await card.getByRole("heading").getByRole("link").getAttribute("href");
+  const seeItems = card.getByRole("link", { name: `Ver matérias de ${name}` });
+  if ((page.viewportSize()?.width ?? 0) >= 640) {
+    await expect(seeItems).toBeVisible();
+    await expect(seeItems).toHaveAttribute("href", href ?? "");
+  } else {
+    await expect(seeItems).toBeHidden();
+    expect(href).toMatch(/^\/fontes\//);
+  }
   await expect(card.getByText(/^Por que aparece aqui:/)).toHaveCount(1);
   // Números escondidos até abrir "Detalhes".
   const stats = card.getByRole("definition").first();

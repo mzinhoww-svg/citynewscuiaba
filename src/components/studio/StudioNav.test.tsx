@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { StudioNav } from "./StudioNav";
+import { StudioNav, StudioNavSearch } from "./StudioNav";
 import type { StudioNavGroup } from "./StudioShell";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/estudio/control/falhas" }));
@@ -139,5 +139,31 @@ describe("StudioNav", () => {
     render(<StudioNav nav={NAV} />);
     expect(screen.getByRole("link", { name: "Registros" })).toBeInTheDocument();
     spy.mockRestore();
+  });
+});
+
+describe("StudioNavSearch · Esc", () => {
+  it("com texto, limpa a busca e não deixa o Esc seguir (a gaveta continua aberta)", () => {
+    const onChange = vi.fn();
+    const outer = vi.fn();
+    render(
+      <div onKeyDown={outer}>
+        <StudioNavSearch value="regis" onChange={onChange} />
+      </div>,
+    );
+    const ev = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    screen.getByRole("searchbox").dispatchEvent(ev);
+    expect(onChange).toHaveBeenCalledWith("");
+    expect(ev.defaultPrevented).toBe(true);
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it("vazio, o Esc segue para fechar a gaveta", () => {
+    const onChange = vi.fn();
+    render(<StudioNavSearch value="" onChange={onChange} />);
+    const ev = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    screen.getByRole("searchbox").dispatchEvent(ev);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(false);
   });
 });

@@ -110,6 +110,15 @@ export function StudioNavSearch({
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          // Esc com texto limpa a busca e não fecha a gaveta; vazio, deixa o Esc fechar.
+          // O Chromium já limpa sozinho, o WebKit fecharia o diálogo: o comportamento fica igual.
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && value !== "") {
+              e.preventDefault();
+              e.stopPropagation();
+              onChange("");
+            }
+          }}
           placeholder={STUDIO_TEXT.menuSearch}
           autoComplete="off"
           enterKeyHint="search"

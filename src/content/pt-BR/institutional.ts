@@ -1,6 +1,7 @@
 /**
  * Páginas institucionais (P24). Dados jurídicos e de contato ficam como `[PREENCHER]` até o
- * dono informar (B-001, A-014). Nada aqui promete prazo ou serviço que o produto não entrega.
+ * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-152). Nada aqui
+ * promete prazo ou serviço que o produto não entrega.
  */
 export const PENDING = "[PREENCHER]";
 
@@ -77,8 +78,6 @@ const meta = (title: string) => `${title} · CityNews Cuiabá`;
 
 export const DOC_TEXT = {
   updated: "Versão de 27/09/2026",
-  pendingNote:
-    "Os campos marcados como [PREENCHER] aguardam dados oficiais da empresa e serão atualizados antes do lançamento.",
   related: "Veja também",
   breadcrumb: "Você está em",
   onThisPage: "Nesta página",

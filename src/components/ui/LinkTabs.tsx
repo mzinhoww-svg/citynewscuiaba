@@ -36,8 +36,9 @@ type Fade = "none" | "start" | "end" | "both";
  * />
  * ```
  * - `nav` com `aria-current="page"` na aba atual; ativa = Tinta com texto branco e peso maior.
- * - Rolagem horizontal no celular; `data-fade` + `scroll-fade` apagam a borda que ainda tem
- *   abas, e a aba atual entra na área visível ao carregar.
+ * - Rolagem horizontal no celular; `data-fade` + `scroll-fade` no `<nav>` (nunca na lista rolável:
+ *   máscara ali vira bloco preto no Safari do iPhone, A-152) apagam a borda que ainda tem abas, e
+ *   a aba atual entra na área visível ao carregar.
  * - Alvo de toque de 44 px.
  */
 export function LinkTabs({ label, items, className }: LinkTabsProps) {
@@ -75,12 +76,8 @@ export function LinkTabs({ label, items, className }: LinkTabsProps) {
   }, [currentHref]);
 
   return (
-    <nav aria-label={label} className={className}>
-      <ul
-        ref={listRef}
-        data-fade={fade}
-        className="relative flex snap-x gap-2 overflow-x-auto pb-1 scrollbar-none scroll-fade"
-      >
+    <nav aria-label={label} data-fade={fade} className={cx("scroll-fade", className)}>
+      <ul ref={listRef} className="relative flex snap-x gap-2 overflow-x-auto pb-1 scrollbar-none">
         {items.map((it) => (
           <li key={it.href} className="shrink-0 snap-start">
             <Link

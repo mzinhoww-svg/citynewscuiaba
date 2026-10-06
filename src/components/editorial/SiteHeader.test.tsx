@@ -93,9 +93,10 @@ describe("SiteHeader", () => {
     });
   });
 
-  it("indica borda rolável em data-fade", () => {
+  it("indica borda rolável em data-fade no <nav>, nunca com máscara na lista rolável", () => {
     render(<SiteHeader active="cidade" />);
-    const scroller = screen.getByRole("navigation", { name: "Editorias" }).querySelector("ul");
+    const nav = screen.getByRole("navigation", { name: "Editorias" });
+    const scroller = nav.querySelector("ul");
     expect(scroller).not.toBeNull();
     const el = scroller as HTMLUListElement;
     Object.defineProperty(el, "clientWidth", { value: 300, configurable: true });
@@ -104,17 +105,21 @@ describe("SiteHeader", () => {
       el.scrollLeft = 0;
       el.dispatchEvent(new Event("scroll"));
     });
-    expect(el).toHaveAttribute("data-fade", "end");
+    expect(nav).toHaveAttribute("data-fade", "end");
     act(() => {
       el.scrollLeft = 300;
       el.dispatchEvent(new Event("scroll"));
     });
-    expect(el).toHaveAttribute("data-fade", "both");
+    expect(nav).toHaveAttribute("data-fade", "both");
     act(() => {
       el.scrollLeft = 600;
       el.dispatchEvent(new Event("scroll"));
     });
-    expect(el).toHaveAttribute("data-fade", "start");
+    expect(nav).toHaveAttribute("data-fade", "start");
+    // Safari do iPhone pinta de preto um contêiner rolável com `mask-image` (faixa preta).
+    expect(el).not.toHaveAttribute("data-fade");
+    expect(el.className).not.toContain("scroll-fade");
+    expect(nav.className).toContain("scroll-fade");
   });
 
   it("liga data-scrolled ao rolar a página e desliga ao voltar ao topo", () => {

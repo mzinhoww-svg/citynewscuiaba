@@ -68,6 +68,7 @@ export function buildProviders(opts: { onTaCall?: () => void } = {}): GuideProvi
           apiKey: key,
           http,
           referer: siteUrl(),
+          onError: (d) => console.warn(`tripadvisor recusou (${d.status}): ${d.message}`),
           ...(opts.onTaCall ? { onCall: opts.onTaCall } : {}),
         })
       : null,

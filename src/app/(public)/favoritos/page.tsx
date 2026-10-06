@@ -29,7 +29,7 @@ export default async function FavoritesRoute({ searchParams }: { searchParams: S
   const names = signals.ok ? Object.fromEntries(signals.value.map((s) => [s.slug, s.name])) : {};
   return (
     <div className={`${PAGE_CONTAINER} flex flex-col gap-6 py-8 lg:py-10`}>
-      <PageHeader title={T.title} intro={<p>{T.intro}</p>} />
+      <PageHeader title={T.title} intro={<p>{T.intro}</p>} meta={<p>{T.deviceOnlyText}</p>} />
       <FavoritesClient sourceNames={names} initialTab={Array.isArray(aba) ? aba[0] : aba} />
     </div>
   );
