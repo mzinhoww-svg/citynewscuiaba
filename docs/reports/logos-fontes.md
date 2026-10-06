@@ -90,3 +90,16 @@ Fontes sem logo possível (a confirmar no ensaio de produção) para o dono envi
 
 - Unidade: `logo-discover` (apple-touch-icon vence, SVG ignorado, URL relativa resolvida, og:image só quadrada, manifest, JSON-LD, limite de 5, perfis oficiais), `logo-image` (JPEG e ICO convertidos, não quadrado recusado, pequeno recusado, redução até 200 KB), `logo-fetch` (rede falsa: SSRF, 2 MB, SVG, robots, reservas), `logo-sync` (prazos, limite, `manual` nunca sobrescrito, idempotência, orçamento de tempo), rota (401, limite, intervalo mínimo, skip), componentes (logo + `alt`, `object-contain`, monograma quando falta ou falha, `SourceCard` e carrossel), `SourceLogoForm` (botões).
 - Integração (banco local): `tests/integration/source-logos.test.ts` (gatilho `manual`, RPC `source_logo_auto_set`, permissões, checagens).
+
+## Logotipos enviados pelo dono (A-153, 04/10/2026)
+
+12 fontes em destaque receberam o logotipo do pacote do dono, como `manual`: Agência Brasil, Canal Rural, Circuito Mato Grosso, FolhaMax, Gazeta Digital, HiperNotícias, Leia Agora, O Documento, Olhar Direto, Prefeitura de Várzea Grande, RDNews e Só Notícias.
+
+| Peça | Onde |
+|---|---|
+| Originais e origem de cada arquivo | `assets/source-logos/originais/` (`ORIGEM.txt`) |
+| PNG prontos (512 px) e caminho no bucket | `assets/source-logos/<slug>.png`, `manifest.json` |
+| Geração | `node scripts/sources/build-source-logos.mjs` |
+| Teste (`validateLogo` e hash do caminho) | `scripts/sources/build-source-logos.test.ts` |
+
+Para trocar um deles: substituir o original, rodar o script e enviar o PNG pelo Painel de Fontes (ou pelo mesmo caminho do `manifest.json`). Uso de marca de terceiros: só identifica a fonte; a remoção a pedido do veículo é o botão "Remover logotipo" do Painel.
