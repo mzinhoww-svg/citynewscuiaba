@@ -1,7 +1,8 @@
 /** Perguntar ao CityNews (rota /pergunte, docs/screens.md P13; spec §5.5). */
 
-/** Nome único do Pergunte em toda tela pública (UX-W4-T3, item 66): título, busca, Explorar e rodapé. */
-export const ASK_NAME = "Perguntar ao CityNews";
+import { ASK_NAME } from "./ask-name";
+
+export { ASK_NAME } from "./ask-name";
 
 const LIMIT_NO_TIME = "O limite libera em até uma hora. A busca tradicional continua sem limite.";
 

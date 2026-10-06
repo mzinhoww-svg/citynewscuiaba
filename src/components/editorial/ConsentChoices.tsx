@@ -1,6 +1,6 @@
 "use client";
 
-import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { CONSENT_TEXT } from "@/content/pt-BR/privacy-consent";
 import type { ConsentChoice } from "@/lib/consent";
 import { cx } from "../cx";
 import { Toggle } from "../ui/Toggle";

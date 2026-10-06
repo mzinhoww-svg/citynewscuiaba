@@ -65,7 +65,8 @@ async function loadLib() {
     format: "esm",
     outfile,
     packages: "external",
-    alias: { "@": join(root, "src") },
+    // `server-only` (schemas com zod, item 85) lança fora do bundler do Next: aqui vale o vazio.
+    alias: { "@": join(root, "src"), "server-only": join(root, "node_modules/server-only/empty.js") },
     logLevel: "error",
   });
   const lib = await import(pathToFileURL(outfile).href);

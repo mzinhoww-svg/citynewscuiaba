@@ -4,7 +4,7 @@
  * (`fastWindowStart`), com a grade do próprio F (10/15/20) contada em cima delas.
  */
 import { FAST_WINDOW_MINUTES, fastWindowStart, windowStart } from "@/lib/pipeline/window";
-import { FAST_FREQUENCIES } from "./schema";
+import { FAST_FREQUENCIES } from "./schema-constants";
 
 const NORMAL_WINDOW_MINUTES = 30;
 const FAST_TICK_MS = FAST_WINDOW_MINUTES * 60_000;

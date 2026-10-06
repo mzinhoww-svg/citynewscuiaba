@@ -13,7 +13,7 @@ import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
 import type { SaveReply } from "./ArticleEditor";
-import { RichEditor } from "./editor/Editor";
+import { RichEditor } from "./editor/LazyRichEditor";
 
 export interface CorrectionFormProps {
   /** Correção (nota + aviso a quem salvou) ou Atualização (fato novo + nota). */

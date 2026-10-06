@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
-vi.mock("./Editor", () => ({
+vi.mock("./LazyRichEditor", () => ({
   RichEditor: ({ label }: { label: string }) => <div role="textbox" aria-label={label} />,
 }));
 

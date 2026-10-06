@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { FOOTER_NAV, LEGAL, NAV_TEXT } from "@/content/pt-BR/nav";
+import { NAV_TEXT } from "@/content/pt-BR/nav";
+import { FOOTER_NAV, LEGAL } from "@/content/pt-BR/nav-footer";
 import { isFilled } from "@/content/pt-BR/institutional";
 import { cx } from "../cx";
 import { Logo } from "./Logo";

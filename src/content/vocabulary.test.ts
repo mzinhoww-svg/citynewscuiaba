@@ -9,6 +9,7 @@ import * as favorites from "./pt-BR/favorites";
 import * as institutional from "./pt-BR/institutional";
 import * as labels from "./pt-BR/labels";
 import * as nav from "./pt-BR/nav";
+import * as navFooter from "./pt-BR/nav-footer";
 import * as newsletter from "./pt-BR/newsletter";
 import * as offline from "./pt-BR/offline";
 import * as portalAgenda from "./pt-BR/portal-agenda";
@@ -91,6 +92,7 @@ const MODULES: Record<string, Record<string, unknown>> = {
   institutional,
   labels,
   nav,
+  navFooter,
   newsletter,
   offline,
   portalAgenda,
@@ -120,7 +122,7 @@ for (const [name, mod] of Object.entries(MODULES)) {
 }
 
 it("as páginas /como-usamos-ia e /metodologia não têm link público (R34)", () => {
-  const links = [...nav.FOOTER_NAV, ...institutional.RELATED_LINKS];
+  const links = [...navFooter.FOOTER_NAV, ...institutional.RELATED_LINKS];
   expect(links.filter((l) => /como-usamos-ia|metodologia/.test(l.href))).toEqual([]);
 });
 

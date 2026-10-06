@@ -1,7 +1,7 @@
 "use client";
 
 import { PROFILE_TEXT } from "@/content/pt-BR/account";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { formatLongDate } from "@/lib/format/date";
 import { Button } from "../ui/Button";

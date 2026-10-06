@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
-  AggregatedCard,
   Button,
   Chip,
   CollapsibleFilters,
@@ -15,13 +14,12 @@ import {
   Toggle,
 } from "@/components";
 import { SOURCE_TEXT } from "@/content/pt-BR/recommendations";
-import { SOURCES_PAGE as T } from "@/content/pt-BR/sources";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { SOURCES_PAGE as T } from "@/content/pt-BR/sources-list";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import type { DismissReason } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { useConsent } from "@/lib/consent/client";
-import type { AggregatedView } from "@/lib/db/queries/types";
 import { useTrack } from "@/lib/events/use-track";
 import { LOCAL_LOCALITIES } from "@/lib/ranking/explain";
 import type { RankList, RecConfig } from "@/lib/ranking/types";
@@ -43,9 +41,17 @@ import {
   type SourcesQuery,
 } from "@/lib/sources/screen";
 
+/** Item agregado já renderizado no servidor (item 86): o cliente só escolhe quais mostrar. */
+export interface SourcesItemCard {
+  id: string;
+  sourceSlug: string;
+  card: ReactNode;
+}
+
 export interface SourcesClientProps {
   entries: SourceListEntry[];
-  items: AggregatedView[];
+  /** Últimas das fontes: cards prontos do servidor, na ordem de publicação. */
+  items: SourcesItemCard[];
   config: RecConfig;
   query: SourcesQuery;
   /** Personalização lida do cookie no servidor (primeira renderização igual à do servidor). */
@@ -63,7 +69,8 @@ type Notice = { text: string; undo: () => void };
 
 /**
  * Parte interativa de Fontes em destaque: abas (`?aba=`), switch de personalização, seguir e
- * ocultar com motivo e desfazer. Tudo local ao navegador (perfil anônimo), sem login.
+ * ocultar com motivo e desfazer. Tudo local ao navegador (perfil anônimo), sem login. Os cards
+ * dos itens agregados vêm prontos do servidor (item 86): aqui só a escolha e a ordem.
  * `data-ready` marca que o perfil local já foi aplicado (testes e2e esperam por ele).
  */
 export function SourcesClient({
@@ -341,12 +348,7 @@ export function SourcesClient({
                   <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {popularItems.map((item) => (
                       <li key={item.id} className="flex min-w-0" data-item-source={item.sourceSlug}>
-                        <AggregatedCard
-                          item={item}
-                          surface="white"
-                          now={now}
-                          className="min-w-0 flex-1"
-                        />
+                        {item.card}
                       </li>
                     ))}
                   </ul>
