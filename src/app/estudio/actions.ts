@@ -310,10 +310,14 @@ async function requestUrgentPush(articleId: string, justification: string) {
     justification,
   });
   if (!r.ok) return r;
-  // Urgente só é pedido por admin ou editor-chefe, que têm `push.approve`: aprova na hora. Se a
-  // aprovação falhar, o pedido fica na fila de notificações.
-  const approved = await store.approve(r.value.id);
-  return { ok: true as const, value: { id: r.value.id, approved: approved.ok } };
+  // A política de avisos (0170, A-160) decide no próprio pedido: na fila ou recusado com motivo.
+  const { data: sent } = await db
+    .from("push_sends")
+    .select("status")
+    .eq("id", r.value.id)
+    .maybeSingle();
+  const approved = sent?.status === "queued" || sent?.status === "scheduled";
+  return { ok: true as const, value: { id: r.value.id, approved } };
 }
 
 function conflictOr(r: StudioResult<unknown>): SaveReply {

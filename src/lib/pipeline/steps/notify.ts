@@ -42,15 +42,15 @@ export const NOTIFY_KINDS: Record<string, KindSpec> = {
   },
   ai_unavailable: {
     severity: "warn",
-    channels: ["control_center", "oncall_email"],
+    channels: ["control_center"],
     grouped: true,
-    title: () => "IA indisponível na redação: rascunhos sem IA em revisão",
+    title: () => "IA indisponível na redação: nova redação automática agendada",
   },
   rules_unavailable: {
     severity: "critical",
     channels: ["control_center", "oncall_email"],
     grouped: true,
-    title: () => "Regras de autonomia indisponíveis: tudo vai para revisão",
+    title: () => "Regras de autonomia indisponíveis: reavaliação automática agendada",
   },
   auto_published: {
     severity: "info",
@@ -68,7 +68,14 @@ export const NOTIFY_KINDS: Record<string, KindSpec> = {
     severity: "critical",
     channels: ["control_center", "oncall_email"],
     grouped: true,
-    title: () => "Disjuntor aberto: publicação automática pausada",
+    title: () => "Disjuntor aberto: publicação automática pausada até a recuperação automática",
+  },
+  quarantine: {
+    severity: "warn",
+    channels: ["control_center"],
+    grouped: true,
+    title: () =>
+      "Matérias isoladas em quarentena pelo motor de autonomia (fora do ar, com recomendação)",
   },
   new_sources: {
     severity: "info",

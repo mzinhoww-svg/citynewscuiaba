@@ -29,6 +29,7 @@ import { audit } from "@/lib/audit";
 import { canAccess } from "@/lib/auth/permissions";
 import { agentsOverview, promptVersions } from "@/lib/db/queries/ai-prompts";
 import { StudioFailure, studioAction, type ActionContext } from "./action";
+import { evaluateGovernance } from "@/lib/governance";
 import { requestAndApproveCommand } from "./approvals";
 
 /*
@@ -116,7 +117,13 @@ export const requestPromptPublishCommand = studioAction(
     if (!v) throw new StudioFailure("not_found");
     if (v.status !== "draft" && v.status !== "pending")
       throw new StudioFailure("conflict", PROMPTS_TEXT.conflict);
-    if (v.status === "draft") {
+    // Checagens automáticas (A-160): prompt inseguro é recusado e continua rascunho; seguro segue.
+    const policy = evaluateGovernance({
+      kind: "prompt.publish",
+      actorRoles: ctx.session?.roles.map((r) => r.role) ?? [],
+      body: v.body,
+    });
+    if (v.status === "draft" && policy.outcome !== "rejected") {
       const { error } = await ctx.db
         .from("ai_prompts")
         .update({ status: "pending" })
@@ -129,6 +136,7 @@ export const requestPromptPublishCommand = studioAction(
       targetRef: promptTarget(i.agentId, i.version),
       justification: i.justification,
       details: { agentId: i.agentId, version: i.version },
+      policy,
     });
     if (!r.ok) throw new StudioFailure(r.error, r.message ?? PROMPTS_TEXT.genericError);
     ctx.detail({ version: i.version, approvalId: r.value.id });

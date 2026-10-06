@@ -88,7 +88,7 @@ describe("resumo próprio do agregado (agente aggregate_summary, dentro do class
     const { repo, handlers, fake } = setup();
     repo.add({ id: "i3", sourceSlug: "mt-agora", title: "Linha expressa", excerpt: EXCERPT });
     const three = { summary: "Primeira frase curta aqui. Segunda frase curta. Terceira frase." };
-    fake.script([{ output: classifyOk }, { output: three }, { output: three }]);
+    fake.script([{ output: classifyOk }, { output: three }, { output: three }, { output: three }]);
     expect((await handlers.classify!(msg("i3"))).ok).toBe(true);
     expect(repo.item("i3")!.summary).toBeNull();
   });

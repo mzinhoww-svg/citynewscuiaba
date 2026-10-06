@@ -1,7 +1,9 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-04 — 0143 aplicada em partes (A e B) em produção; parte C e 0155 com o dono no SQL Editor (A-152, B-029); primeiros ciclos da pauta quente conferidos.
+**Última atualização:** 2026-10-04 — governança autônoma e motor de autonomia (A-160, A-161), branch `claude/citynews-autonomous-governance-4vkloh`.
 **Atualizado por:** Claude Code
+
+> 2026-10-04 · **Governança autônoma (A-160, 0170) e motor de autonomia (A-161, 0171):** pedido → política → validação → aplicação → auditoria; aprovação pelo sistema registrada em `governance_decisions`; pendência humana sempre com prazo (expira na varredura de 15 min). Motor `decideAutonomy` (PUBLISH, PUBLISH_DEGRADED, REPROCESS, QUARANTINE, HUMAN_EXCEPTION), falha de IA reagenda redação em vez de ir à fila humana, disjuntor se religa sozinho depois de 30 min, itens mortos com classe e nova tentativa, incidentes por assinatura. Spec `docs/superpowers/specs/2026-10-04-governanca-autonoma-design.md`, runbook `docs/runbooks/operacao-autonoma.md`. **Produção:** 0170 e 0171 pendentes (B-030: o conector do Supabase exige confirmação humana para `drop`/`revoke`; o dono aplica pelo SQL Editor) e deploy da Vercel bloqueado pela cota (B-031).
 
 > 2026-10-04 · Melhorias W4 (itens 62–77): editorias recolhem ao rolar e voltam ao subir, anúncio fixo reserva espaço, "Agora" leva ao bloco da home, convite da primeira visita no fim da leitura, aba certa acesa na barra inferior, "Perguntar ao CityNews" no Explorar e no rodapé, estados de erro e vazio em Perfil, Favoritos ("Desfazer" com foco), Agora e Panorama, ações da matéria com 44 px, Pergunte depois dos 3 primeiros resultados no celular, trilho acessível e ticker rolável no desktop.
 
@@ -34,11 +36,12 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 ## Próximas ações
 
-1. **Merge do PR #44** (autorizado) assim que o CI ficar verde; o deploy da Vercel sai do merge.
-2. **Regras v4:** no painel de governança, conferir a simulação de 7 dias e aprovar o pedido `rules:4` (uma pessoa, A-128). Rollback: `rules_rollback()`.
-3. **Medir** por 2 semanas: `editorial_risk_daily` e `verify_lineage_daily`.
-4. **Produção:** dono roda `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0143 parte C e 0155, B-029); conferir qual chave do OpenRouter vence em 28/10.
-5. **Roadmap:** EV-03 conferência de afirmações, EV-04 alertas fora do banco, fechar `publish_mode`/`agent_id`/`confidence` ao `anon`.
+1. **Produção (B-030, B-031):** dono aplica `drop table if exists public._cn_probe;`, `0170_autonomous_governance.sql` e `0171_autonomy_engine.sql` no SQL Editor; depois merge do PR #47 e deploy quando a cota da Vercel liberar.
+2. **Merge do PR #44** (autorizado) assim que o CI ficar verde; o deploy da Vercel sai do merge.
+3. **Regras v4:** no painel de governança, conferir a simulação de 7 dias e aprovar o pedido `rules:4` (uma pessoa, A-128). Rollback: `rules_rollback()`.
+4. **Medir** por 2 semanas: `editorial_risk_daily` e `verify_lineage_daily`.
+5. **Produção:** dono roda `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0143 parte C e 0155, B-029); conferir qual chave do OpenRouter vence em 28/10.
+6. **Roadmap:** EV-03 conferência de afirmações, EV-04 alertas fora do banco, fechar `publish_mode`/`agent_id`/`confidence` ao `anon`.
 
 ## Degradados abertos
 

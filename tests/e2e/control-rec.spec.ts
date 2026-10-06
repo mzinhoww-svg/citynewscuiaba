@@ -67,34 +67,28 @@ test("Por que esta recomendação: anonId vira pseudônimo e individual pesa 0 s
   await expect(table.getByText("Individual: peso 0,00 × sinal 0,00").first()).toBeVisible();
 });
 
-test("operador propõe e o pedido aguarda; admin ativa; A-128: admin propõe e ativa direto; teste A/B", async ({
+test("operador propõe e a política ativa (A-160); admin propõe e ativa direto; teste A/B", async ({
   page,
 }, info) => {
   test.skip(info.project.name !== "desktop", "muda os pesos ativos: só no projeto desktop");
   test.setTimeout(120_000);
   await restoreWeights();
   try {
+    // Operador de IA: validar → simular → ativar → auditar, sem fila (motor de política).
     await loginAs(page, "diego", "/estudio/control/recomendacao");
     await page.getByRole("spinbutton", { name: "Peso de Diversidade" }).fill("0.1");
     await page.getByRole("spinbutton", { name: "Peso de Popularidade" }).fill("0.3");
     await page.getByLabel("Justificativa da proposta").fill(`${MARK}: mais diversidade`);
     await page.getByRole("button", { name: "Propor pesos" }).click();
-    await expect(page.getByRole("status")).toContainText(/Versão rec-v\d+ proposta/);
-    await expect(page.getByText(/pedidos? aguardam? aprovação/)).toBeVisible();
-    const history = page.getByRole("table", { name: /Versões de pesos/ });
-    const row = history.getByRole("row").filter({ hasText: "Aguardando aprovação" });
-    await expect(row).toContainText("Aguarda quem tem o papel de aprovar pesos.");
-    await expect(row.getByRole("button", { name: /Aprovar e ativar/ })).toHaveCount(0);
-
-    // Admin aprova e ativa numa ação.
-    await page.context().clearCookies();
-    await loginAs(page, "helena", "/estudio/control/recomendacao");
-    await history.getByRole("button", { name: /Aprovar e ativar rec-v\d+/ }).click();
-    await expect(page.getByRole("status")).toContainText(/rec-v\d+ em uso\./);
+    await expect(
+      page.getByRole("status").filter({ hasText: /Fica registrado no histórico/ }),
+    ).toContainText(/rec-v\d+ em uso\./);
     await expect(page.getByText(/^Pesos ativos: rec-v[2-9]\d*/)).toBeVisible();
     const active = await service().from("rec_weights").select("version").eq("active", true);
     expect(active.data?.[0]?.version).not.toBe("rec-v1");
 
+    await page.context().clearCookies();
+    await loginAs(page, "helena", "/estudio/control/recomendacao");
     // A-128: a admin propõe e ativa numa ação só; a linha guarda quem propôs e quem aprovou.
     await page.getByRole("spinbutton", { name: "Peso de Diversidade" }).fill("0.05");
     await page.getByRole("spinbutton", { name: "Peso de Popularidade" }).fill("0.35");
@@ -145,8 +139,9 @@ test("operador propõe e o pedido aguarda; admin ativa; A-128: admin propõe e a
       .limit(6);
     expect(audit.data).toEqual(
       expect.arrayContaining([
+        // Cada proposta é validada e ativada pelo sistema na mesma ação (A-160).
         { actor: STAFF.diego.id, action: "rec.weights" },
-        { actor: STAFF.helena.id, action: "rec.weights.activate" },
+        { actor: STAFF.helena.id, action: "rec.weights" },
         { actor: STAFF.helena.id, action: "rec.experiment.create" },
         { actor: STAFF.helena.id, action: "rec.experiment.end" },
       ]),

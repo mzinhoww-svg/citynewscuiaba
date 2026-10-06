@@ -57,3 +57,38 @@ export const REVIEW_TEXT = {
   heldPrefix: (why: string) => `Revisor automático manteve na fila: ${why}`,
   archivedPrefix: (why: string) => `Arquivada pelo revisor automático: ${why}`,
 } as const;
+
+/**
+ * Justificativas do motor de autonomia (`src/lib/rules/engine.ts`). Vão para `decisions` e
+ * `review_reason`, só no Estúdio e no Control Center.
+ */
+export const AUTONOMY_TEXT = {
+  reprocess: (why: string, attempt: number, total: number, minutes: number) =>
+    `${why} Reprocesso automático ${attempt} de ${total} em ${minutes} min.`,
+  exhaustedDegraded: (why: string) =>
+    `${why} Reprocessos esgotados; risco baixo e texto aceitável: publica em modo degradado.`,
+  exhaustedQuarantine: (why: string) =>
+    `${why} Reprocessos esgotados e risco alto: isolada em quarentena, fora do ar.`,
+  exhaustedHuman: (why: string) =>
+    `${why} Reprocessos esgotados sem resolver: exceção para uma pessoa decidir.`,
+  duplicate: () => "Duplicata de matéria existente: isolada em quarentena (recomendação: mesclar).",
+  stale: (hours: number) =>
+    `Notícia com mais de ${hours} h: não publica, isolada em quarentena (recomendação: arquivar).`,
+  conflictHuman: () =>
+    "Fontes divergem em fato central, com confiança baixa ou tema sensível: exceção humana.",
+  conflictAttributed: (why: string) =>
+    `Fontes divergem, mas a confiança é alta e há fonte primária confiável: publica com atribuição. ${why}`,
+  awaitAutoPublish: () =>
+    "Publicação automática desligada pelo dono (auto_publish ou modo leitura): fica em rascunho e volta sozinha quando religar.",
+  ownerHold: (why: string) => `${why} Fica em rascunho até as regras mudarem.`,
+  ownerReview: (why: string) => `${why} Configuração explícita do dono: exceção humana.`,
+  legacyGate: (why: string) => `${why} Regras antigas mantêm o portão: exceção humana.`,
+  degraded: (why: string) =>
+    `Rascunho degradado (${why}) com qualidade aceitável e risco baixo: publica em modo degradado.`,
+  degradedWeak: (why: string) =>
+    `Rascunho degradado (${why}) com qualidade baixa ou risco alto: refaz depois.`,
+  breakerHold: (why: string) =>
+    `Disjuntor de publicação aberto (${why}): fica em rascunho e volta sozinha quando o disjuntor se recuperar.`,
+  staleRetry: () =>
+    "Decisão de publicação desatualizada: a matéria mudou depois da regra; as regras decidem de novo.",
+} as const;

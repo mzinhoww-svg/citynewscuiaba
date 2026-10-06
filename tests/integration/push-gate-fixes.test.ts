@@ -202,7 +202,7 @@ describe("PWA-04 · matéria updated conta como no ar", () => {
     const art = await article("updated");
     const id = await rpc(marina(), "push_request", { p: req("highlight", art) });
     created.sends.push(id);
-    expect((await send(id)).status).toBe("pending_approval");
+    expect((await send(id)).status).toBe("queued");
   });
 });
 
@@ -211,7 +211,7 @@ describe("PWA-16 · patrocínio reconferido no despacho", () => {
     const art = await article("published");
     const id = await rpc(marina(), "push_request", { p: req("urgent", art) });
     created.sends.push(id);
-    await rpc(helena(), "push_approve", { p_send: id });
+    expect((await send(id)).status).toBe("queued");
     await setArticle(art, { sponsored: true });
     const r = await service.rpc("push_dispatch_due", { p_now: new Date().toISOString() });
     expect(r.error).toBeNull();
@@ -230,10 +230,11 @@ describe("PWA-16 · patrocínio reconferido no despacho", () => {
 });
 
 describe("PWA-09 · quem pediu não forja o aprovador", () => {
-  it("update de approved_by na própria linha pendente é recusado", async () => {
+  it("update de approved_by na própria linha é recusado", async () => {
     const art = await article("published");
     const id = await rpc(marina(), "push_request", { p: req("highlight", art) });
     created.sends.push(id);
+    const before = (await send(id)).approved_by;
     const { data: h } = await service
       .from("user_roles")
       .select("user_id")
@@ -246,7 +247,7 @@ describe("PWA-09 · quem pediu não forja o aprovador", () => {
       .eq("id", id)
       .select("id");
     expect(r.error?.message ?? "").toMatch(/só muda pelo serviço/);
-    expect((await send(id)).approved_by).toBeNull();
+    expect((await send(id)).approved_by).toBe(before);
   });
 });
 
@@ -277,7 +278,6 @@ describe("PWA-03 · retomar não reativa o que não devia", () => {
       p: req("highlight", art, { when: { type: "at", at: at.toISOString() } }),
     });
     created.sends.push(scheduled);
-    await rpc(helena(), "push_approve", { p_send: scheduled });
     expect((await send(scheduled)).status).toBe("scheduled");
 
     const old = await serviceSend(art, "urgent", "dispatching", {
@@ -293,7 +293,7 @@ describe("PWA-03 · retomar não reativa o que não devia", () => {
     await rpc(helena(), "push_settings_pause", { p_reason: "teste PWA-03" });
     expect((await send(scheduled)).status).toBe("paused");
     const a = await rpc(helena(), "push_resume_request", { p_reason: "teste PWA-03" });
-    await rpc(marina(), "push_resume_approve", { p_approval: a });
+    await rpc(helena(), "push_resume_approve", { p_approval: a });
 
     expect((await send(scheduled)).status).toBe("scheduled");
     expect(await send(old)).toMatchObject({ status: "expired" });

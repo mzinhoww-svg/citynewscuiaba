@@ -90,6 +90,7 @@ export const PUSH_ADMIN_TEXT = {
   done: {
     requested: "Pedido criado. Aguardando aprovação de quem pode aprovar avisos.",
     sentNow: "Aplicado. O aviso entrou na fila de envio e fica registrado no histórico.",
+    policyRejected: (reason: string) => `Recusado pela política de avisos: ${reason}`,
     scheduledNow: "Aplicado. O aviso sai no horário agendado e fica registrado no histórico.",
     requestedPaused: "Pedido criado. Envios pausados: o pedido fica na fila até a retomada.",
     approved: "Pedido aprovado",

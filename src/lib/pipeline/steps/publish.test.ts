@@ -128,13 +128,13 @@ describe("write (etapas 11 e 12)", () => {
     expect(store.calls.at(-1)).toMatchObject({ fallback_used: true, ok: true });
   });
 
-  it("Review Focus 4: principal e fallback fora → revisão humana com motivo, nada se perde", async () => {
+  it("Review Focus 4: principal e fallback fora → rascunho sem IA, sem fila humana (A-161), nada se perde", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([{ error: "timeout" }, { error: "provider" }]);
     const next = await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", LAST)));
     const a = repo.articleOfTopic("t-farm")!;
-    expect(a.status).toBe("in_review");
+    expect(a.status).toBe("draft");
     expect(a.input.aiFallback).toBe(true);
     expect(a.reviewReason).toMatch(/IA indisponível/);
     expect(a.input.aiSummary).toBeNull();
@@ -147,7 +147,8 @@ describe("write (etapas 11 e 12)", () => {
     for (const error of ["timeout", "provider", "schema"] as const) {
       const { repo, handlers, fake } = setup();
       repo.addTopic(farmacias());
-      fake.script([{ error }, { error }]);
+      // Principal, reserva e, no erro de formato, o prompt alternativo (degrau 3).
+      fake.script([{ error }, { error }, { error }]);
       const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1));
       expect(r.ok).toBe(false);
       if (!r.ok) expect(r.error).toMatchObject({ kind: "transient", retryable: true });
@@ -156,7 +157,7 @@ describe("write (etapas 11 e 12)", () => {
     }
   });
 
-  it("prazo do drain esgotado: não tenta de novo (o drain não contaria a tentativa), vai para a revisão", async () => {
+  it("prazo do drain esgotado: não tenta de novo (o drain não contaria a tentativa), fica rascunho para o motor", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([{ error: "timeout" }, { error: "timeout" }]);
@@ -164,14 +165,14 @@ describe("write (etapas 11 e 12)", () => {
     ac.abort();
     const r = await handlers.summarize!(msg("summarize", "topic:t-farm", 1), { signal: ac.signal });
     expect(r.ok).toBe(true);
-    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "draft" });
     expect(repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
   });
 
   it("2ª tentativa ainda tenta de novo; a 3ª cai no rascunho sem IA", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
-    fake.script(Array.from({ length: 4 }, () => ({ error: "schema" as const })));
+    fake.script(Array.from({ length: 6 }, () => ({ error: "schema" as const })));
     const second = await handlers.summarize!(msg("summarize", "topic:t-farm", WRITE_AI_RETRIES));
     expect(second.ok).toBe(false);
     expect(repo.articleOfTopic("t-farm")).toBeUndefined();
@@ -203,12 +204,12 @@ describe("write (etapas 11 e 12)", () => {
       s.repo.addTopic(farmacias());
       const handlers = createPublishHandlers({ ...s.deps, callAgent: async () => err(error) });
       await unwrap(handlers.summarize!(msg("summarize", "topic:t-farm", 1)));
-      expect(s.repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+      expect(s.repo.articleOfTopic("t-farm")).toMatchObject({ status: "draft" });
       expect(s.repo.articleOfTopic("t-farm")!.input.aiFallback).toBe(true);
     }
   });
 
-  it("texto sem citação válida também vai para revisão", async () => {
+  it("texto sem citação válida também vira rascunho sem IA (sem fila humana)", async () => {
     const { repo, handlers, fake } = setup();
     repo.addTopic(farmacias());
     fake.script([
@@ -222,7 +223,7 @@ describe("write (etapas 11 e 12)", () => {
       },
     ]);
     await handlers.summarize!(msg("summarize", "topic:t-farm", LAST));
-    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "in_review" });
+    expect(repo.articleOfTopic("t-farm")).toMatchObject({ status: "draft" });
     expect(repo.articleOfTopic("t-farm")!.reviewReason).toMatch(/sem citações válidas/);
   });
 
@@ -349,10 +350,16 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
       const s = setup({ rules, flags: { auto_publish: true } });
       const id = await drafted(s);
       await s.handlers.rules!(msg("rules", `article:${id}`));
-      expect(s.repo.article(id)!.status).toBe("in_review");
+      // Falha fechada sem fila humana (A-161): rascunho com reavaliação agendada.
+      expect(s.repo.article(id)!.status).toBe("draft");
+      expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "reevaluate" });
       expect(s.repo.decisions().at(-1)).toMatchObject({
         rulesVersion: null,
-        output: expect.objectContaining({ rule: "rules_unavailable", route: "review" }),
+        output: expect.objectContaining({
+          rule: "rules_unavailable",
+          route: "hold",
+          autonomy: expect.objectContaining({ decision: "REPROCESS" }),
+        }),
       });
     }
   });
@@ -413,9 +420,10 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     await unwrap(s.handlers.publish!(msg("publish", `article:${id}`)));
     expect(order).toEqual(["decision:publish", "status:published"]);
 
-    const b = setup({ flags: { auto_publish: false } });
+    // Publicação desligada: as regras gravam a decisão e só depois deixam o rascunho com a
+    // próxima ação (A-161).
+    const b = setup({ rules: async () => ok(OPEN), flags: { auto_publish: false } });
     const idB = await drafted(b);
-    await b.handlers.rules!(msg("rules", `article:${idB}`));
     const orderB: string[] = [];
     const setB = b.repo.setStatus.bind(b.repo);
     const recB = b.repo.recordDecision.bind(b.repo);
@@ -427,8 +435,8 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
       orderB.push(`decision:${d.step}`);
       return recB(d);
     };
-    await unwrap(b.handlers.publish!(msg("publish", `article:${idB}`)));
-    expect(orderB).toEqual(["decision:publish", "status:in_review"]);
+    await unwrap(b.handlers.rules!(msg("rules", `article:${idB}`)));
+    expect(orderB).toEqual(["status:draft", "decision:rules", "status:draft"]);
   });
 
   it("depois de publicar aplica a pauta quente (HOT-T3); falha dela não desfaz a publicação", async () => {
@@ -465,12 +473,13 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     expect(calls).toBe(0);
   });
 
-  it("flag auto_publish desligada ou modo leitura: revisão", async () => {
+  it("flag auto_publish desligada ou modo leitura: rascunho esperando o religamento, sem fila humana", async () => {
     for (const flags of [{ auto_publish: false }, { auto_publish: true, read_only: true }]) {
       const s = setup({ rules: async () => ok(OPEN), flags });
       const id = await drafted(s);
       await s.handlers.rules!(msg("rules", `article:${id}`));
-      expect(s.repo.article(id)!.status).toBe("in_review");
+      expect(s.repo.article(id)!.status).toBe("draft");
+      expect(s.repo.article(id)!.autonomy).toMatchObject({ nextAction: "await_auto_publish" });
       expect(s.repo.decisions().at(-1)!.output).toMatchObject({
         rule: "auto_publish_off",
         recommended: "publish",
@@ -518,9 +527,10 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     await s2.handlers.rules!(msg("rules", `article:${id2}`));
     s2.repo.addTopic(farmacias({ confidenceScore: 0.6 }));
     await s2.repo.saveDraft({ ...s2.repo.article(id2)!.input });
-    await s2.handlers.publish!(msg("publish", `article:${id2}`));
-    expect(s2.repo.article(id2)!.status).toBe("in_review");
-    expect(s2.repo.decisions().at(-1)!.rationale).toMatch(/desatualizada/);
+    // Decisão desatualizada volta às regras (A-161), nunca publica e não vai para a fila humana.
+    const back = await unwrap(s2.handlers.publish!(msg("publish", `article:${id2}`)));
+    expect(back).toEqual([msg("rules", `article:${id2}`)]);
+    expect(s2.repo.article(id2)).toMatchObject({ status: "draft", publishMode: null });
   });
 
   it("rascunho sem IA nunca publica, mesmo com regras abertas", async () => {
@@ -529,7 +539,12 @@ describe("regras, rota e publicação (etapas 15 a 18)", () => {
     const id = await drafted(s, farmacias(), LAST);
     const next = await unwrap(s.handlers.rules!(msg("rules", `article:${id}`)));
     expect(next).toEqual([msg("notify", `article:${id}#ai_unavailable`)]);
-    expect(s.repo.decisions().at(-1)!.output).toMatchObject({ rule: "ai_unavailable" });
+    expect(s.repo.decisions().at(-1)!.output).toMatchObject({
+      rule: "ai_unavailable",
+      route: "hold",
+      autonomy: expect.objectContaining({ decision: "REPROCESS", nextAction: "rewrite" }),
+    });
+    expect(s.repo.article(id)).toMatchObject({ status: "draft", publishMode: null });
   });
 
   it("índice sem embedding (IA fora) indexa o texto mesmo assim", async () => {
@@ -651,10 +666,10 @@ describe("cadeia no worker (Review Focus 4)", () => {
     expect(retried).toBe(WRITE_AI_RETRIES);
     expect(await queue.pending("pipeline")).toBe(0);
     const a = s.repo.articleOfTopic("t-farm")!;
-    expect(a.status).toBe("in_review");
+    expect(a.status).toBe("draft");
+    expect(a.autonomy).toMatchObject({ nextAction: "rewrite", reprocessCount: 1 });
     expect(s.repo.notifications()).toEqual([
       expect.objectContaining({ kind: "ai_unavailable", channel: "control_center" }),
-      expect.objectContaining({ kind: "ai_unavailable", channel: "oncall_email" }),
     ]);
   });
 });

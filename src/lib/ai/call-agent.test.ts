@@ -54,6 +54,33 @@ describe("callAgent", () => {
     expect(store.calls[1]).toMatchObject({ model_id: "C", ok: true, prompt_version: 1 });
   });
 
+  it("degrau 3 (A-161): formato errado em todos os modelos tenta o prompt alternativo estrito", async () => {
+    const { fake, callAgent, store } = setup({ models: { primary: "A", fallback: "C" } });
+    fake.script([
+      { model: "A", output: { wrong: true } },
+      { model: "C", output: { wrong: true } },
+      { model: "A", output: validClassify },
+    ]);
+    const r = await callAgent("classify", input, ClassifySchema);
+    expect(r.ok).toBe(true);
+    expect(store.calls.map((c) => [c.model_id, c.ok, c.error])).toEqual([
+      ["A", false, "schema"],
+      ["C", false, "schema"],
+      ["A", true, null],
+    ]);
+  });
+
+  it("timeout ou provedor fora não usam o prompt alternativo (o formato não é o problema)", async () => {
+    const { fake, callAgent, store } = setup({ models: { primary: "A", fallback: "C" } });
+    fake.script([
+      { model: "A", error: "timeout" },
+      { model: "C", error: "provider" },
+    ]);
+    const r = await callAgent("classify", input, ClassifySchema);
+    expect(r).toEqual({ ok: false, error: "provider" });
+    expect(store.calls).toHaveLength(2);
+  });
+
   it("orçamento estourado retorna budget_exceeded sem chamar provedor", async () => {
     const { fake, callAgent, setSpentToday, lastCall } = setup();
     await setSpentToday("write", 300);

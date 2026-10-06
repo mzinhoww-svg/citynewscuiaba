@@ -16,6 +16,7 @@ import { scoreBreakdown, type ScoreBreakdown } from "@/lib/ranking/metrics";
 import { REC_V1, WEIGHT_KEYS } from "@/lib/ranking/score";
 import type { Weights } from "@/lib/ranking/types";
 import { StudioFailure, studioAction, type ActionContext } from "./action";
+import { evaluateGovernance } from "@/lib/governance";
 import { requestAndApproveCommand } from "./approvals";
 
 /*
@@ -96,12 +97,22 @@ async function requestAndActivate(
   version: string,
   justification: string,
   details: Record<string, unknown>,
+  weights: { next: Weights; current: Weights | null },
 ): Promise<{ approvalId: string; status: "applied" | "pending" }> {
+  // Validar → simular → ativar → auditar (A-160): mudança brusca ou soma errada é recusada e os
+  // pesos em vigor continuam; segura, o sistema ativa na hora.
+  const policy = evaluateGovernance({
+    kind: "rec.weights",
+    actorRoles: ctx.session?.roles.map((r) => r.role) ?? [],
+    current: weights.current,
+    next: weights.next,
+  });
   const approval = await requestAndApproveCommand({
     kind: "rec.weights",
     targetRef: recTarget(version),
     justification,
     details,
+    policy,
   });
   if (!approval.ok) throw new StudioFailure(approval.error, approval.message);
   const approvalId = approval.value.id;
@@ -127,10 +138,13 @@ export const proposeWeightsCommand = studioAction(
     });
     ctx.setObjectRef(recTarget(version));
     ctx.detail({ version, weights: i.weights, justification: i.justification });
-    const { approvalId, status } = await requestAndActivate(ctx, version, i.justification, {
+    const { approvalId, status } = await requestAndActivate(
+      ctx,
       version,
-      weights: i.weights,
-    });
+      i.justification,
+      { version, weights: i.weights },
+      { next: i.weights, current: active?.weights ?? null },
+    );
     ctx.detail({ approvalId, status });
     return { version, approvalId, status };
   },
@@ -357,12 +371,13 @@ export const promoteExperimentCommand = studioAction(
       from: variant.weightsVersion,
       previousActive: active?.version ?? null,
     });
-    const { approvalId, status } = await requestAndActivate(ctx, version, i.justification, {
+    const { approvalId, status } = await requestAndActivate(
+      ctx,
       version,
-      experimentId: i.id,
-      variant: i.variant,
-      from: variant.weightsVersion,
-    });
+      i.justification,
+      { version, experimentId: i.id, variant: i.variant, from: variant.weightsVersion },
+      { next: source.weights, current: active?.weights ?? null },
+    );
     ctx.detail({ approvalId, status });
     return { version, approvalId, status };
   },

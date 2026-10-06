@@ -10,7 +10,6 @@ import { AUDIT_ACTIONS } from "@/lib/audit/actions";
 import { getRecConfigFor } from "@/lib/db/queries/sources";
 import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";
 import { REC_V1 } from "@/lib/ranking/score";
-import { decideApprovalCommand } from "@/lib/studio/approvals";
 import {
   activateWeightsCommand,
   createCampaignCommand,
@@ -72,7 +71,7 @@ describe("pesos de recomendação (banco real)", () => {
   let version = "";
   let approvalId = "";
 
-  it("operador propõe rec-v2 com pedido pendente; sem o papel de aprovar não ativa nem direto no banco", async () => {
+  it("operador propõe rec-v2: validar → simular → ativar → auditar, sem fila (A-160)", async () => {
     const r = await asUser("diego", () =>
       proposeWeightsCommand({ weights: W2, justification: "Mais diversidade nas Recomendadas" }),
     );
@@ -81,49 +80,55 @@ describe("pesos de recomendação (banco real)", () => {
     version = r.value.version;
     approvalId = r.value.approvalId ?? "";
     approvals.push(approvalId);
-    expect(r.value.status).toBe("pending");
+    expect(r.value.status).toBe("applied");
     expect(version).toMatch(/^rec-v\d+$/);
     expect(await weightsRow(version)).toMatchObject({
-      active: false,
-      approved_by: null,
+      active: true,
+      approved_by: SEED_USERS.diego.id,
       proposed_by: SEED_USERS.diego.id,
     });
-
-    const self = await asUser("diego", () => activateWeightsCommand({ approvalId }));
-    expect(self).toMatchObject({ ok: false, error: "forbidden" });
-    const direct = await service.rpc("rec_weights_activate", { p_approval: approvalId });
-    expect(direct.error?.code).toBe("42501");
-    expect((await weightsRow(version))?.active).toBe(false);
+    const ap = await service
+      .from("approvals")
+      .select("status, decision_mode, outcome, rule_id")
+      .eq("id", approvalId)
+      .single();
+    expect(ap.data).toMatchObject({
+      status: "applied",
+      decision_mode: "system",
+      outcome: "auto_apply",
+      rule_id: "rec.valid",
+    });
+    const dec = await service
+      .from("governance_decisions")
+      .select("decision, actor, policy_version")
+      .eq("approval_id", approvalId)
+      .single();
+    expect(dec.data).toMatchObject({
+      decision: "auto_approved",
+      actor: "system",
+      policy_version: 1,
+    });
     // Editora-chefe não tem `rec.weights` (só admin e operador_ia).
     const marina = await asUser("marina", () => activateWeightsCommand({ approvalId }));
     expect(marina).toMatchObject({ ok: false, error: "forbidden" });
   });
 
-  it("admin aprova na caixa (só registra) e ativa: rec-v2 única ativa, pedido aplicado", async () => {
-    const dec = await asUser("helena", () =>
-      decideApprovalCommand({ id: approvalId, decision: "approve" }),
+  it("mudança brusca é recusada sem fila; admin volta ao padrão na mesma ação", async () => {
+    const abrupt = {
+      popularity: 0.9,
+      individual: 0.02,
+      recency: 0.02,
+      engagement: 0.02,
+      operational: 0.02,
+      diversity: 0.02,
+    };
+    const no = await asUser("helena", () =>
+      proposeWeightsCommand({ weights: abrupt, justification: "teste de mudança brusca" }),
     );
-    expect(dec).toMatchObject({ ok: true, value: { applied: false } });
-    const act = await asUser("helena", () => activateWeightsCommand({ approvalId }));
-    expect(act).toMatchObject({ ok: true, value: { version, previous: "rec-v1" } });
-    const active = await service.from("rec_weights").select("version").eq("active", true);
-    expect(active.data).toEqual([{ version }]);
-    expect((await weightsRow(version))?.approved_by).toBe(SEED_USERS.helena.id);
-    const ap = await service.from("approvals").select("status").eq("id", approvalId).single();
-    expect(ap.data?.status).toBe("applied");
-    const audit = await service
-      .from("audit_log")
-      .select("actor, action")
-      .eq("details->>approvalId", approvalId)
-      .order("id");
-    expect(audit.data).toEqual(
-      expect.arrayContaining([
-        { actor: SEED_USERS.diego.id, action: "approval.requested" },
-        { actor: SEED_USERS.helena.id, action: "approval.approved" },
-        { actor: SEED_USERS.helena.id, action: "approval.applied" },
-        { actor: SEED_USERS.helena.id, action: "rec.weights.activate" },
-      ]),
-    );
+    expect(no).toMatchObject({ ok: false, error: "invalid" });
+    expect(no.ok ? "" : no.message).toMatch(/Recusado pela política/);
+    const stillActive = await service.from("rec_weights").select("version").eq("active", true);
+    expect(stillActive.data).toEqual([{ version }]);
     // A-128: admin que propõe aprova e ativa na mesma ação; o pedido e a auditoria registram
     // quem propôs e quem aprovou (a mesma pessoa).
     const back = await asUser("helena", () =>
@@ -195,7 +200,7 @@ describe("pesos de recomendação (banco real)", () => {
     if (ok.ok) campaigns.push(ok.value.id);
   });
 
-  it("teste A/B: só versões aprovadas; variante estável por anonId; encerrar e promover abre pedido", async () => {
+  it("teste A/B: só versões aprovadas; variante estável por anonId; encerrar e promover ativa pela política", async () => {
     const approved = await service
       .from("rec_weights")
       .select("version")
@@ -259,7 +264,7 @@ describe("pesos de recomendação (banco real)", () => {
       .select("status, kind")
       .eq("id", promoted.value.approvalId ?? "")
       .single();
-    expect(pending.data).toEqual({ status: "pending", kind: "rec.weights" });
+    expect(pending.data).toEqual({ status: "applied", kind: "rec.weights" });
     const ended = await asUser("diego", () => endExperimentCommand({ id: r.value.id }));
     expect(ended).toMatchObject({ ok: false, error: "not_found" });
   });

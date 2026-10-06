@@ -9,6 +9,8 @@ import {
 import { APPLIED_HERE, APPROVER_ACTION } from "@/lib/approvals/targets";
 import { audit } from "@/lib/audit";
 import { canAccess } from "@/lib/auth/permissions";
+import type { GovernanceDecision } from "@/lib/governance";
+import { logGovernance } from "@/lib/governance/log";
 import { type StudioResult } from "./action";
 import { studioContext } from "./context";
 import { isReadOnly, READ_ONLY_MESSAGE } from "./read-only";
@@ -33,6 +35,12 @@ export interface RequestApprovalInput {
   /** Objeto na auditoria (padrão: o alvo). */
   objectRef?: string;
   details?: Record<string, unknown>;
+  /**
+   * Decisão do motor de política (A-160, `evaluateGovernance`). `rejected` recusa sem criar
+   * pedido; `human_exception`/`auto_review` só pedem (com prazo); `auto_apply` pede, aprova e
+   * aplica. Sempre registrada em `governance_decisions`.
+   */
+  policy?: GovernanceDecision;
 }
 
 /** Registra o pedido em nome da pessoa da sessão; não duplica pedido pendente igual. */
@@ -163,6 +171,8 @@ export interface RequestAndApproveOutcome {
    * tipo; o pedido fica na caixa de aprovações para quem pode.
    */
   status: "pending" | "approved" | "applied";
+  /** Motivo da política (para a mensagem da tela), quando houve decisão do motor. */
+  reason?: string;
 }
 
 /**
@@ -173,12 +183,20 @@ export interface RequestAndApproveOutcome {
 export async function requestAndApproveCommand(
   i: RequestApprovalInput,
 ): Promise<StudioResult<RequestAndApproveOutcome>> {
+  const policy = i.policy;
+  if (policy?.outcome === "rejected") {
+    const ctx = await studioContext();
+    await logGovernance(ctx.db, i.kind, i.targetRef, policy);
+    return fail("invalid", T.policyRejected(policy.reason));
+  }
   const req = await requestApprovalCommand(i);
   if (!req.ok) return req;
   const ctx = await studioContext();
   const action = APPROVER_ACTION[i.kind];
-  if (!ctx.session || !action || !canAccess(ctx.session.roles, action))
-    return { ok: true, value: { id: req.value.id, status: "pending" } };
+  const exception = policy && policy.outcome !== "auto_apply";
+  if (policy) await logGovernance(ctx.db, i.kind, i.targetRef, policy, req.value.id);
+  if (exception || !ctx.session || !action || !canAccess(ctx.session.roles, action))
+    return { ok: true, value: { id: req.value.id, status: "pending", reason: policy?.reason } };
   const decided = await decideApprovalCommand({ id: req.value.id, decision: "approve" });
   if (!decided.ok) {
     // A RLS do banco pode recusar a decisão a um papel que a matriz deixa propor e aprovar (ex.:

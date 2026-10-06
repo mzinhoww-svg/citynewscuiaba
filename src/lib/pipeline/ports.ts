@@ -767,6 +767,22 @@ export interface StatusPatch {
   publishedAt?: string;
   rulesVersion?: number | null;
   reviewReason?: string | null;
+  /** Motor de autonomia (A-161): próxima ação e quando; `null` limpa. */
+  nextAction?: "rewrite" | "reevaluate" | "await_auto_publish" | "breaker_recovery" | null;
+  nextAttemptAt?: string | null;
+  reprocessCount?: number;
+  /** Quarentena (estado terminal fora do ar) e o motivo com a recomendação. */
+  quarantinedAt?: string | null;
+  quarantineReason?: string | null;
+  autonomyLevel?: "A0" | "A1" | "A2" | "A3" | "A4" | null;
+  degradedReason?: string | null;
+}
+
+/** Estado do motor de autonomia de uma matéria (A-161). */
+export interface AutonomyState {
+  reprocessCount: number;
+  /** Publicação mais antiga entre os itens do assunto (idade da notícia). */
+  oldestItemAt: string | null;
 }
 
 export type NotificationChannel = "control_center" | "oncall_email";
@@ -788,6 +804,8 @@ export interface PublishRepo {
   saveDraft(d: DraftInput): Promise<{ articleId: string; version: number }>;
   decisionContext(articleId: string): Promise<DecisionContext | null>;
   setStatus(articleId: string, patch: StatusPatch): Promise<void>;
+  /** Reprocessos feitos e idade da notícia, para o motor de autonomia (A-161). */
+  autonomyState(articleId: string): Promise<AutonomyState | null>;
   /** Matéria como o checklist e o portão de completude a enxergam (AUT-T4). */
   checkInput(articleId: string): Promise<ArticleCheck | null>;
   /** Grava o que o checklist automático consertou (SEO, taxonomia, texto alternativo da capa). */
