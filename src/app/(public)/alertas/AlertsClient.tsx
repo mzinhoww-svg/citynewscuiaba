@@ -92,7 +92,11 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
           setFeedback({ tone: "warn", text: p === "unsupported" ? T.unsupported : T.denied });
           return;
         }
-        await act((s) => s.addAlert(base));
+        const saved = await act((s) => s.addAlert(base));
+        if (!saved.ok) {
+          setFeedback({ tone: "error", text: T.error });
+          return;
+        }
         void showNotification(T.testTitle, { body: T.testBody, href: "/alertas", tag: "cn-teste" });
         setFeedback({ tone: "success", text: T.created });
         requestNotificationInvite("alert");
@@ -109,7 +113,13 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
         } | null;
         if (body?.status === "pending" && body.email) {
           const confirmed = body.email;
-          await act((s) => s.addAlert({ ...base, status: "pending_email", email: confirmed }));
+          const saved = await act((s) =>
+            s.addAlert({ ...base, status: "pending_email", email: confirmed }),
+          );
+          if (!saved.ok) {
+            setFeedback({ tone: "error", text: T.error });
+            return;
+          }
           setFeedback({ tone: "success", text: T.createdEmail });
           setEmail("");
           requestLoginInvite("alert");

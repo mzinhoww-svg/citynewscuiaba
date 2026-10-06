@@ -10,7 +10,10 @@ vi.mock("@/lib/anon/use-profile", async () => {
       return {
         profile: { saved },
         ready: true,
-        act: async () => setSaved([{ ref: "article:a1" }]),
+        act: async () => {
+          setSaved([{ ref: "article:a1" }]);
+          return { ok: true, value: undefined };
+        },
       };
     },
   };

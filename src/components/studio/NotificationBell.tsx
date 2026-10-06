@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BELL_TEXT, SEVERITY_BADGE, SEVERITY_TEXT } from "@/content/pt-BR/studio-notifications";
 import { formatDateTime, formatWhen } from "@/lib/format/date";
+import { CLIENT_FETCH_TIMEOUT_MS, fetchJson } from "@/lib/http/fetch-json";
+import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
 import {
   applyRead,
   badgeText,
@@ -77,15 +79,11 @@ export function NotificationBell({
 
   const refresh = useCallback(async () => {
     const mine = ++seq.current;
-    try {
-      const res = await fetch(endpoint, {
-        cache: "no-store",
-        headers: { accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      const data: unknown = await res.json();
-      if (!isSnapshot(data)) throw new Error("formato");
-      if (mine !== seq.current) return;
+    // Com prazo (item 83): um servidor lento não deixa o sino em "Carregando" para sempre.
+    const r = await fetchJson(endpoint, { guard: isSnapshot });
+    if (mine !== seq.current) return;
+    if (r.ok) {
+      const data = r.value;
       setSnap({ items: data.items, unread: data.unread });
       setNow(new Date());
       setStatus("ready");
@@ -96,12 +94,11 @@ export function NotificationBell({
         for (const n of data.items) known.current.add(n.id);
         if (fresh > 0) setAnnounce(BELL_TEXT.announceNew(fresh));
       }
-    } catch {
-      if (mine !== seq.current) return;
-      // Já havia lista: mantém a última e avisa; senão, estado de erro com "Tentar de novo".
-      setStale(true);
-      setStatus((s) => (s === "ready" ? "ready" : "error"));
+      return;
     }
+    // Já havia lista: mantém a última e avisa; senão, estado de erro com "Tentar de novo".
+    setStale(true);
+    setStatus((s) => (s === "ready" ? "ready" : "error"));
   }, [endpoint]);
 
   useEffect(() => {
@@ -142,7 +139,7 @@ export function NotificationBell({
       const next = applyRead(snap.items, "all" in payload ? "all" : new Set(payload.ids), at);
       setSnap({ items: next, unread: countUnread(next) });
       try {
-        const res = await fetch(`${endpoint}/ler`, {
+        const res = await fetchWithTimeout(CLIENT_FETCH_TIMEOUT_MS)(`${endpoint}/ler`, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify(payload),
