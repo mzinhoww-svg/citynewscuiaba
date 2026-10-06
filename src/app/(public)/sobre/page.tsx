@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
-import { Benefits, Cta, DocBreadcrumb, DocRelated, Faq, Hero, PendingText } from "@/components";
-import { ABOUT as DOC, ABOUT_PAGE as P, DOC_TEXT } from "@/content/pt-BR/institutional";
+import { Benefits, Cta, DocBreadcrumb, DocRelated, Faq, Hero } from "@/components";
+import { ABOUT as DOC, ABOUT_PAGE as P, DOC_TEXT, isFilled } from "@/content/pt-BR/institutional";
 import { MARKETING } from "@/content/pt-BR/site";
 
 /**
@@ -35,13 +35,10 @@ export default function Page() {
           {P.whoTitle}
         </h2>
         <ul className="flex flex-col gap-2 type-body text-body">
-          {P.who.map((it) => (
-            <li key={it}>
-              <PendingText value={it} />
-            </li>
+          {P.who.filter(isFilled).map((it) => (
+            <li key={it}>{it}</li>
           ))}
         </ul>
-        <p className="type-meta text-meta">{DOC_TEXT.pendingNote}</p>
       </section>
       <Faq id="sobre-faq" title={MARKETING.faqTitle} items={P.faq} />
       <p className="type-meta text-meta">{DOC_TEXT.updated}</p>

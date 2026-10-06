@@ -59,12 +59,6 @@ export function FavoritesClient({ sourceNames, initialTab }: FavoritesClientProp
       data-ready={ready ? "true" : undefined}
       className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-x-6"
     >
-      <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:col-start-9 lg:row-start-1">
-        <InlineAlert tone="info" title={T.deviceOnly} role="none">
-          <p>{T.deviceOnlyText}</p>
-        </InlineAlert>
-        <AccountInvite next="/favoritos" />
-      </aside>
       <div className="flex min-w-0 flex-col gap-6 lg:col-span-8 lg:row-start-1">
         {degraded && (
           <InlineAlert tone="warn" title={ANON_TEXT.degraded}>
@@ -124,6 +118,11 @@ export function FavoritesClient({ sourceNames, initialTab }: FavoritesClientProp
           ),
         )}
       </div>
+      {/* Depois do conteúdo no celular (o que a pessoa veio ver vem primeiro); coluna lateral no
+          desktop. O aviso de "só neste aparelho" fica no cabeçalho da página. */}
+      <aside className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:col-start-9 lg:row-start-1">
+        <AccountInvite next="/favoritos" />
+      </aside>
     </div>
   );
 }

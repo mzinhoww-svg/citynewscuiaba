@@ -9,7 +9,6 @@ import { formatReach, type TrendDirection } from "@/lib/ranking/signals";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
-import { Panel } from "../ui/Panel";
 import { DismissMenu } from "./DismissMenu";
 import { RecommendationReason } from "./RecommendationReason";
 import { SourceAvatar } from "./SourceAvatar";
@@ -124,19 +123,28 @@ export function FollowButton({
  * <SourceCard source={data} onFollow={toggleFollow} onHide={hide} />
  * ```
  * - O card não é um link inteiro: o nome e "Ver matérias" levam à página da fonte.
+ * - No celular (abaixo de sm) é linha com divisória, não card: avatar 40, sem moldura e sem
+ *   "Ver matérias" (o nome já leva à página). A moldura de card volta a partir de sm.
  * - Nunca mostra contagem exata de leitores, "melhor", "top" ou estrelas.
  */
 export function SourceCard({ source, onFollow, onHide, now, className }: SourceCardProps) {
   const titleId = useId();
   const updated = source.updatedAt ? formatWhen(source.updatedAt, now) : "";
   return (
-    <Panel as="article" aria-labelledby={titleId} className={cx("flex flex-col gap-3", className)}>
+    <article
+      aria-labelledby={titleId}
+      className={cx(
+        "flex flex-col gap-3 border-b border-line-subtle py-4",
+        "sm:rounded-lg sm:border sm:bg-card-white sm:p-4",
+        className,
+      )}
+    >
       <div className="flex items-start gap-3">
         <SourceAvatar
           name={source.name}
           code={source.code}
           image={source.logo}
-          size={56}
+          size="card"
           decorative
         />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -168,13 +176,16 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           size="sm"
           href={source.href}
           aria-label={SOURCE_TEXT.seeItemsLabel(source.name)}
+          className="max-sm:hidden"
         >
           {SOURCE_TEXT.seeItems}
         </Button>
       </div>
 
-      <details className="group border-t border-line-subtle">
-        <summary className="flex min-h-tap cursor-pointer list-none items-center justify-between gap-2 type-meta font-semibold text-strong [&::-webkit-details-marker]:hidden">
+      {/* No celular, sem fio próprio (a linha já tem a divisória de baixo) e com a seta junto do
+          texto; no card, fio de separação e seta no canto. */}
+      <details className="group -mt-1 sm:mt-0 sm:border-t sm:border-line-subtle">
+        <summary className="flex min-h-tap cursor-pointer list-none items-center gap-2 type-meta font-semibold text-strong sm:justify-between [&::-webkit-details-marker]:hidden">
           {SOURCE_TEXT.details}
           <Icon
             name="chevron-down"
@@ -227,6 +238,6 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           </dl>
         </div>
       </details>
-    </Panel>
+    </article>
   );
 }
