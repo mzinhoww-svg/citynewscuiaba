@@ -2,7 +2,7 @@
  * Regras puras dos prompts versionados (P5-T5, telas O12 e O15), sem zod: alvo de aprovação,
  * transições de estado, versão seguinte, diff por palavra e orçamentos. As telas do Estúdio
  * importam daqui; o playground (com os schemas zod dos agentes) fica em `./prompts`, só servidor
- * (item 85, A-154).
+ * (item 85, A-156).
  */
 import { diffText, type DiffOp } from "@/lib/studio/diff";
 import { AGENT_IDS, type AgentId } from "./types";

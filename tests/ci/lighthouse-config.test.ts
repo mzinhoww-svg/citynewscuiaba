@@ -91,7 +91,7 @@ describe("orçamentos do lighthouserc.json", () => {
       expect(b.level, b.url).toBe("error");
       expect(b.max, b.url).toBeLessThanOrEqual(190000);
     }
-    // Home e busca: 170 → 175 (A-146) → 180 (A-151) → 178,2 kB (A-154: maior medida depois do
+    // Home e busca: 170 → 175 (A-146) → 180 (A-151) → 178,2 kB (A-156: maior medida depois do
     // corte da W5-T5, 173,0 kB na busca, + 3 %). Matéria e Fontes: 190 → 187,4 kB (181,9 + 3 %).
     const home = budgets.find((b) => b.url === "^http://localhost:3000/(\\?.*)?$");
     const busca = budgets.find((b) => b.url === "^http://localhost:3000/busca");

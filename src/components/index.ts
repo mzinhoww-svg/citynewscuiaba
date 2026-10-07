@@ -154,12 +154,25 @@ export { OfflineNotice, type OfflineNoticeProps } from "./editorial/OfflineNotic
 export { PushSettings, type PushSettingsProps } from "./editorial/PushSettings";
 export { PushSync } from "./editorial/PushSync";
 export { SwRegistrar } from "./editorial/SwRegistrar";
-export { LocalProfileCard, type LocalProfileCardProps } from "./editorial/LocalProfileCard";
 export {
-  DeleteAccount,
-  ExportAccountButton,
+  BrowserDataDetails,
+  BrowserExportRow,
+  BrowserLossNote,
+  EditProfile,
+  ProfileActivityRows,
+  type EditProfileProps,
+} from "./editorial/ProfileSections";
+export {
+  ProfileGroup,
+  ProfileIdentity,
+  type ProfileGroupProps,
+  type ProfileIdentityProps,
+} from "./editorial/ProfileParts";
+export {
+  DeleteAccountForm,
+  ExportAccountRow,
   ProfileDetailsForm,
-  type DeleteAccountProps,
+  type DeleteAccountFormProps,
   type ProfileDetailsFormProps,
 } from "./editorial/AccountForms";
 export {

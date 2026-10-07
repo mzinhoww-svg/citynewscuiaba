@@ -15,7 +15,7 @@ const SHOWN_AFTER_MS = 1000;
  * C07 · A faixa de instalação em si (spec 2026-09-28 §7.2): fixa no rodapé (acima da barra
  * inferior no mobile), com "Instalar" e "Agora não". Um convite por vez (`useInviteSlot`). No
  * iPhone abre os passos (C08). Recebe o modelo de `useInstallInvite`; a moldura só baixa este
- * pedaço quando o gatilho acende (item 85, A-154).
+ * pedaço quando o gatilho acende (item 85, A-156).
  */
 export function InstallInviteBar({
   state,

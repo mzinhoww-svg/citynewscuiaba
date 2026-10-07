@@ -65,7 +65,7 @@ function subscribeNotificationPermission(onChange: () => void): () => void {
  * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. A sincronização
  * vale com a permissão concedida ou negada (negada desfaz a inscrição guardada) e, em `/alertas`,
  * sempre: a tela de avisos precisa do estado do push (ligado, desligado, perdido). O vigia de
- * alertas só entrega com a permissão concedida, então só baixa nela (A-154).
+ * alertas só entrega com a permissão concedida, então só baixa nela (A-156).
  */
 export function NotificationWatchers() {
   const pathname = usePathname() ?? "/";

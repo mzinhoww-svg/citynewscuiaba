@@ -12,7 +12,7 @@ import type { CallAgent } from "./call-agent";
 import { AGENT_SCHEMAS } from "./schemas";
 import type { AgentId, AiError } from "./types";
 
-// Regras puras em módulo próprio, sem zod (as telas cliente importam de lá; item 85, A-154).
+// Regras puras em módulo próprio, sem zod (as telas cliente importam de lá; item 85, A-156).
 export * from "./prompts-constants";
 
 // ---------------------------------------------------------------------------

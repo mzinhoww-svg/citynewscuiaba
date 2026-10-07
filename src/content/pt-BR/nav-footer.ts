@@ -1,6 +1,6 @@
 /**
  * Rodapé do portal (servidor). Fora de `nav.ts` porque a barra inferior e o perfil anônimo
- * importam `nav.ts` no navegador e não precisam destes textos (item 85, A-154).
+ * importam `nav.ts` no navegador e não precisam destes textos (item 85, A-156).
  */
 
 import { ASK_NAME } from "./ask-name";

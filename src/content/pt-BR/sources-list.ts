@@ -1,7 +1,7 @@
 /**
  * Fontes em destaque (P14): textos da lista e nomes das categorias. Módulo próprio: a parte
  * cliente da lista não leva ao navegador os textos da página de uma fonte nem do Panorama
- * (item 86, A-154).
+ * (item 86, A-156).
  */
 
 import type { RankList } from "@/lib/ranking/types";

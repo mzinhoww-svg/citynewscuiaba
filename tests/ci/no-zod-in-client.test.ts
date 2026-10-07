@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /*
- * zod fora do JavaScript do navegador (item 85 da spec de melhorias, UX-W5-T5; A-154).
+ * zod fora do JavaScript do navegador (item 85 da spec de melhorias, UX-W5-T5; A-156).
  *
  * Duas guardas:
  * 1. Estática (sempre roda): a partir de todo arquivo "use client", inclusive os do Estúdio,

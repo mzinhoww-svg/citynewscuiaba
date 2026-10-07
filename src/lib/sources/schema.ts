@@ -1,7 +1,7 @@
 /**
  * Validação zod do domínio de fontes (spec §7.2, D-F14/D-F15). `frequencySchema` espelha o
  * `check` de `sources.frequency_minutes` em `supabase/migrations/0011_source_admin.sql`.
- * Só servidor: zod fora do JavaScript do navegador (item 85, A-154).
+ * Só servidor: zod fora do JavaScript do navegador (item 85, A-156).
  */
 import "server-only";
 import { z } from "zod";

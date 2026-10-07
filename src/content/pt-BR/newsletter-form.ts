@@ -1,7 +1,7 @@
 /**
  * Formulário curto de inscrição (home e rodapé). Módulo próprio, e não `portal.ts` nem
  * `newsletter.ts`, para o bundle do navegador não levar os textos da home nem os da página de
- * newsletters (B-018; item 85, A-154).
+ * newsletters (B-018; item 85, A-156).
  */
 export const NEWSLETTER = {
   title: "Receba a newsletter",

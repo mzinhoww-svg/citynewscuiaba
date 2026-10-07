@@ -1,6 +1,6 @@
 /**
  * Constantes puras do domínio de fontes, sem zod: podem ir ao navegador (telas do Estúdio). Os
- * schemas de validação ficam em `./schema` (só servidor; item 85, A-154).
+ * schemas de validação ficam em `./schema` (só servidor; item 85, A-156).
  */
 
 /** Grade da via rápida (D-F15, D-F28): abaixo de 30 min, uma destas três. */

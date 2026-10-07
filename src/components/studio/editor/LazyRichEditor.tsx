@@ -31,7 +31,7 @@ export function RichEditorSkeleton({
 }
 
 /**
- * Editor rico do Estúdio sob demanda (item 85, A-154): `next/dynamic` sem SSR. O `useEditor`
+ * Editor rico do Estúdio sob demanda (item 85, A-156): `next/dynamic` sem SSR. O `useEditor`
  * já não renderizava no servidor (`immediatelyRender: false`); agora o código do Tiptap também
  * sai do JavaScript inicial das telas do Estúdio que mostram o editor.
  */

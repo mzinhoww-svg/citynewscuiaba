@@ -20,7 +20,7 @@ const InstallInviteBar = lazy(() =>
  * Faixa de instalação (C07) em duas partes: a contagem (visitas, leituras, `appinstalled`,
  * primeira abertura do app) roda só quando faz sentido (fora do app instalado, com
  * armazenamento e fora das rotas bloqueadas); a faixa em si só baixa quando o gatilho acende
- * (2ª visita ou 3 leituras, com como instalar). Mantém o JS das páginas leve (item 85, A-154).
+ * (2ª visita ou 3 leituras, com como instalar). Mantém o JS das páginas leve (item 85, A-156).
  */
 const never = () => () => {};
 const onServer = () => false;

@@ -47,7 +47,7 @@ export interface InstallInviteModel {
 /**
  * Contagem e decisão da faixa de instalação (C07), sem a faixa: visita, leituras qualificadas,
  * `appinstalled` e a primeira abertura do app. Fica no carregamento da moldura; a faixa em si
- * (`InstallInviteBar`) só baixa quando o gatilho acende (item 85, A-154).
+ * (`InstallInviteBar`) só baixa quando o gatilho acende (item 85, A-156).
  */
 export function useInstallInvite(): InstallInviteModel {
   const pathname = usePathname() ?? "/";

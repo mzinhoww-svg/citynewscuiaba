@@ -2,7 +2,7 @@
  * Módulos da home (A06): ordem e ativação dos blocos abaixo da primeira dobra (manchete e
  * "Agora" são fixos, 100% CityNews). Domínio puro: a tela reordena por teclado (Alt + setas)
  * e o portal renderiza na ordem publicada (`home_layouts`, 0038). Sem zod: o editor do Estúdio
- * roda no navegador (item 85, A-154).
+ * roda no navegador (item 85, A-156).
  */
 
 export const HOME_MODULE_IDS = [

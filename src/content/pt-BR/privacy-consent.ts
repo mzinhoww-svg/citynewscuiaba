@@ -1,7 +1,7 @@
 /**
  * Textos do consentimento (spec §5.2, docs/screens.md P22). Módulo próprio: o aviso de
  * privacidade está em toda página e não deve levar ao navegador os outros textos de privacidade
- * (item 85, A-154).
+ * (item 85, A-156).
  */
 export const CONSENT_TEXT = {
   region: "Sua privacidade",

@@ -1,6 +1,6 @@
 /*
  * Nomes das etapas do ciclo, sem zod: o Control Center (navegador) importa daqui; os schemas
- * das mensagens ficam em `./types` (item 85, A-154).
+ * das mensagens ficam em `./types` (item 85, A-156).
  */
 
 /** As 20 etapas do ciclo de 30 minutos, na ordem da spec §6.2. */
