@@ -132,7 +132,9 @@ test("lista: Como escolhemos, Dados, Atualizada em, lugares em ordem e vocabulá
   );
   const criteria = page.getByRole("region", { name: "Como escolhemos" });
   await expect(criteria).toContainText(CRITERIA);
-  await expect(criteria).toContainText("Dados: TripAdvisor, OpenStreetMap e sites dos lugares.");
+  await expect(criteria).toContainText(
+    "Dados: Google, TripAdvisor, OpenStreetMap e sites dos lugares.",
+  );
   await expect(criteria.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
   await expect(page.getByText("Introdução do editor para a lista.")).toBeVisible();
 
