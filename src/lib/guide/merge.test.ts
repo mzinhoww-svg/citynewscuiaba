@@ -32,6 +32,19 @@ describe("isSameVenue", () => {
     expect(isSameVenue(rec(), rec({ lat: -15.65, lng: -56.05 }))).toBe(false);
   });
 
+  it("nome do Google com o bairro a mais e a menos de 100 m é o mesmo lugar", () => {
+    const g = rec({ name: "Pão Dourado - Goiabeiras", lat: -15.6014, lng: -56.0979 });
+    const o = rec({ name: "Pão Dourado", lat: -15.6017, lng: -56.0979 });
+    expect(isSameVenue(g, o)).toBe(true);
+    expect(isSameVenue(o, g)).toBe(true);
+    const far = rec({ name: "Pão Dourado", lat: -15.6024, lng: -56.0979 });
+    expect(isSameVenue(g, far)).toBe(false);
+    const oneWord = rec({ name: "Dourado", lat: -15.6017, lng: -56.0979 });
+    expect(
+      isSameVenue(rec({ name: "Dourado Lanches Rápidos", lat: -15.6014, lng: -56.0979 }), oneWord),
+    ).toBe(false);
+  });
+
   it("nomes diferentes no mesmo ponto não se misturam", () => {
     expect(isSameVenue(rec(), rec({ name: "Padaria Estrela do Sul" }))).toBe(false);
   });
@@ -87,6 +100,42 @@ describe("mergeRecord", () => {
     expect(m.tripadvisorRank).toBe(7);
     expect(m.placeIds).toEqual({ tripadvisor: "55" });
     expect(m.sources.sort()).toEqual(["osm", "tripadvisor"]);
+  });
+
+  it("nota do Google fica quando a TripAdvisor chega depois, e o ranking entra", () => {
+    const base = rec({
+      rating: 4.6,
+      ratingCount: 900,
+      ratingSource: "google",
+      placeIds: { google: "ChIJ-1" },
+      sources: ["google"],
+    });
+    const incoming = rec({
+      rating: 4.2,
+      ratingCount: 50,
+      ratingSource: "tripadvisor",
+      tripadvisorRank: 7,
+      placeIds: { tripadvisor: "55" },
+      sources: ["tripadvisor"],
+    });
+    const m = mergeRecord(base, incoming);
+    expect(m.rating).toBe(4.6);
+    expect(m.ratingCount).toBe(900);
+    expect(m.ratingSource).toBe("google");
+    expect(m.tripadvisorRank).toBe(7);
+    expect([...m.sources].sort()).toEqual(["google", "tripadvisor"]);
+  });
+
+  it("nota nova da mesma fonte substitui a anterior", () => {
+    const base = rec({ rating: 4.6, ratingCount: 900, ratingSource: "google" });
+    const m = mergeRecord(base, rec({ rating: 4.7, ratingCount: 950, ratingSource: "google" }));
+    expect(m.rating).toBe(4.7);
+    expect(m.ratingCount).toBe(950);
+  });
+
+  it("link do Google Maps vem do dado novo", () => {
+    const m = mergeRecord(rec(), rec({ googleMapsUrl: "https://maps.google.com/?cid=1" }));
+    expect(m.googleMapsUrl).toBe("https://maps.google.com/?cid=1");
   });
 
   it("dado novo sem nota não apaga a nota que já existe", () => {

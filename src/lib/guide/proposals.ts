@@ -114,7 +114,8 @@ export function proposeFromTemplate(
 
 /** O que um lugar precisa para contar como verificado: um provedor o reconhece e está ativo. */
 export const isVerified = (v: Venue): boolean =>
-  v.status === "active" && !!(v.placeIds.osm || v.placeIds.tripadvisor || v.placeIds.wikidata);
+  v.status === "active" &&
+  !!(v.placeIds.google || v.placeIds.osm || v.placeIds.tripadvisor || v.placeIds.wikidata);
 
 /** Rascunho para `canAutoPublish` a partir de uma proposta e dos lugares dela. */
 export function draftOf(

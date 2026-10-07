@@ -42,10 +42,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /** Atribuição exigida pelos termos dos dados (TripAdvisor e OpenStreetMap), em texto simples. */
-function Attribution({ tripadvisor, osm }: { tripadvisor: boolean; osm: boolean }) {
-  if (!tripadvisor && !osm) return null;
+function Attribution({
+  google,
+  tripadvisor,
+  osm,
+}: {
+  google: boolean;
+  tripadvisor: boolean;
+  osm: boolean;
+}) {
+  if (!google && !tripadvisor && !osm) return null;
   return (
     <p className="type-meta text-meta">
+      {google && <>{GUIDE.list.attribution.google} </>}
       {tripadvisor && <>{GUIDE.list.attribution.tripadvisor} </>}
       {osm && (
         <>
@@ -183,6 +192,9 @@ export default async function GuideListPage({ params }: Props) {
       </section>
 
       <Attribution
+        google={list.items.some(
+          (i) => i.venue.ratingSource === "google" && i.venue.rating !== null,
+        )}
         tripadvisor={list.items.some(
           (i) => i.venue.ratingSource === "tripadvisor" && i.venue.rating !== null,
         )}

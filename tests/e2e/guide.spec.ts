@@ -40,11 +40,17 @@ test.beforeAll(async () => {
         price_level: 2,
         rating: 4.9 - n / 10,
         rating_count: 100 * n,
-        rating_source: "tripadvisor",
-        tripadvisor_rank: n,
-        tripadvisor_url: `https://www.tripadvisor.com.br/fixture-${run}-${n}`,
-        place_ids: { osm: `node/e2e${run}${n}` },
-        data_sources: ["osm", "tripadvisor", "site"],
+        // O 5º lugar vem do Google (A-210): nota com a fonte e link do Google Maps.
+        rating_source: n === 5 ? "google" : "tripadvisor",
+        tripadvisor_rank: n === 5 ? null : n,
+        tripadvisor_url: n === 5 ? null : `https://www.tripadvisor.com.br/fixture-${run}-${n}`,
+        google_maps_url: n === 5 ? `https://maps.google.com/?cid=${n}` : null,
+        google_fetched_at: n === 5 ? new Date().toISOString() : null,
+        place_ids:
+          n === 5
+            ? { google: `ChIJ-e2e-${run}`, osm: `node/e2e${run}${n}` }
+            : { osm: `node/e2e${run}${n}` },
+        data_sources: n === 5 ? ["google", "osm"] : ["osm", "tripadvisor", "site"],
         data_updated_at: new Date().toISOString(),
       })
       .select("id")
@@ -126,7 +132,9 @@ test("lista: Como escolhemos, Dados, Atualizada em, lugares em ordem e vocabulá
   );
   const criteria = page.getByRole("region", { name: "Como escolhemos" });
   await expect(criteria).toContainText(CRITERIA);
-  await expect(criteria).toContainText("Dados: TripAdvisor, OpenStreetMap e sites dos lugares.");
+  await expect(criteria).toContainText(
+    "Dados: Google, TripAdvisor, OpenStreetMap e sites dos lugares.",
+  );
   await expect(criteria.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
   await expect(page.getByText("Introdução do editor para a lista.")).toBeVisible();
 
@@ -208,6 +216,18 @@ test("lugar: endereço, telefone, horário, site, nota com fonte, listas e JSON-
   expect(biz.openingHours).toEqual(["Mo-Su 00:00-24:00"]);
   expect(biz.aggregateRating).toBeUndefined();
   expect(await page.locator("main").innerText()).not.toMatch(FORBIDDEN);
+});
+
+test("lugar do Google: nota com a fonte, link do Google Maps e Dados com Google", async ({
+  page,
+}) => {
+  await page.goto(`/guia-cuiaba/lugar/hotel-publico-${run}-5`);
+  await expect(page.getByText("4,4 no Google (500 avaliações)")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ver no Google Maps" })).toHaveAttribute(
+    "href",
+    "https://maps.google.com/?cid=5",
+  );
+  await expect(page.getByText(/Dados: Google e OpenStreetMap\./)).toBeVisible();
 });
 
 test("lista suspensa, rascunho e slug inexistente respondem 404; /guia-cuiaba/lugar não é lista", async ({

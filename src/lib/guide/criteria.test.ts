@@ -15,14 +15,15 @@ const t: GuideTemplate = {
 };
 
 describe("listCriteriaText", () => {
-  it("explica os sinais, os pesos e a regra de duas fontes, em texto simples", () => {
+  it("explica os sinais e os pesos em texto simples, sem exigir duas fontes", () => {
     const s = listCriteriaText(t, DEFAULT_WEIGHTS);
     expect(s).toContain("padarias");
     expect(s).toContain("Cuiabá");
     expect(s).toMatch(/nota/i);
     expect(s).toMatch(/TripAdvisor/);
     expect(s).toMatch(/matérias do CityNews/);
-    expect(s).toMatch(/duas fontes/);
+    expect(s).not.toMatch(/duas fontes/);
+    expect(s).toMatch(/fontes públicas/);
     expect(s).toMatch(/patrocínio nunca altera a ordem/i);
     expect(s).toMatch(/\d+%/);
   });

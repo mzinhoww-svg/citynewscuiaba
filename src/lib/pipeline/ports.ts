@@ -134,7 +134,14 @@ export interface RunStore {
 /** Subconjunto de `fetch` usado pelo coletor (injetável: testes nunca acessam a rede). */
 export type HttpFetch = (
   url: string,
-  init: { headers: Record<string, string>; signal?: AbortSignal; redirect?: RequestRedirect },
+  init: {
+    headers: Record<string, string>;
+    signal?: AbortSignal;
+    redirect?: RequestRedirect;
+    /** Padrão GET; POST só para APIs que exigem corpo (Places API do Google). */
+    method?: "GET" | "POST";
+    body?: string;
+  },
 ) => Promise<Response>;
 
 export type SourceKind = "rss" | "sitemap" | "api" | "page" | "newsletter" | "social" | "events";

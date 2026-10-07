@@ -117,6 +117,7 @@ export function toVenue(
     ratingSource: rating !== null ? "tripadvisor" : null,
     tripadvisorRank: rank !== null && rank >= 1 ? Math.floor(rank) : null,
     tripadvisorUrl: trip && /^https:\/\//i.test(trip) ? trip : null,
+    googleMapsUrl: null,
     placeIds: { tripadvisor: id },
     sources: ["tripadvisor"],
   };

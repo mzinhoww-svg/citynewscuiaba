@@ -28,7 +28,8 @@ export const ratingText = (n: number) =>
  */
 export function VenueCard({ item, as: Heading = "h3", className }: VenueCardProps) {
   const v = item.venue;
-  const rated = v.rating !== null && v.ratingSource === "tripadvisor";
+  const source =
+    v.ratingSource === "google" || v.ratingSource === "tripadvisor" ? v.ratingSource : null;
   const meta = [v.neighborhood, v.priceLevel ? GUIDE.venue.price(v.priceLevel) : null].filter(
     Boolean,
   );
@@ -55,9 +56,9 @@ export function VenueCard({ item, as: Heading = "h3", className }: VenueCardProp
           </Link>
         </Heading>
         {meta.length > 0 && <p className="type-meta text-meta">{meta.join(" · ")}</p>}
-        {rated && v.rating !== null && (
+        {source && v.rating !== null && (
           <p className="type-body text-body">
-            {GUIDE.list.rating(ratingText(v.rating), v.ratingCount)}
+            {GUIDE.list.rating(ratingText(v.rating), v.ratingCount, source)}
           </p>
         )}
         {v.tripadvisorRank !== null && (

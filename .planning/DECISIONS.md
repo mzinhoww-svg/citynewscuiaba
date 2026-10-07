@@ -389,3 +389,15 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 **Orçamento.** `lighthouserc.json`: 178.200 bytes em home e busca (173,0 + 3 %) e 187.400 bytes em matéria e Fontes (181,9 + 3 %), conferidos em `tests/ci/lighthouse-config.test.ts`.
 
 **Meta de 165 kB não alcançada (home 171,1 kB, busca 173,0 kB).** O framework (React, runtime do Next e roteador) soma cerca de 137 kB transferidos em toda página e não depende do código do CityNews. Sobram cerca de 34 kB de código próprio, com `next/link`: moldura (cabeçalho, ticker, barra inferior, indicador de navegação, aviso de privacidade), perfil anônimo e consentimento (o provedor limpa o id e o histórico locais em toda visita sem Personalização, então o armazenamento local precisa carregar), publicidade e newsletter da home. Os próximos cortes pedem mudança de comportamento ou de ferramenta (adiar a limpeza do perfil, trocar o Turbopack pelo webpack, que descarta exportações não usadas) e ficam para decisão própria.
+
+## A-210 · Google Places entra como fonte do Guia (06/10/2026)
+
+**Status:** vigente. Decisão do dono. A chave do TripAdvisor é recusada pela própria TripAdvisor (403, "explicit deny"; diagnóstico do #63) e o OpenStreetMap sozinho é fraco em Cuiabá. O Google Places (API oficial, `GOOGLE_PLACES_API_KEY` na Vercel) passa a ser a fonte principal do Guia, como a spec original previa (G2). Substitui a R33 ("sem chaves de API") só nesse ponto. Uma nota por lugar, com precedência Google > TripAdvisor > manual; o ranking do TripAdvisor continua quando houver. Dados do Google valem 30 dias (termos de uso): busca de novo aos 25 dias e expurga aos 30. Spec: `docs/superpowers/specs/2026-10-06-guia-google-places-design.md`.
+
+## A-211 · Uma fonte de dados por lugar basta no Guia (06/10/2026)
+
+**Status:** vigente. Decisão do dono ("as listas são informativas, não precisa dessa regra rigorosa"). Altera a G4: `MIN_SOURCES_PER_VENUE` passa de 2 para 1, para entrar na lista e para publicar sozinha. Os outros critérios da publicação automática ficam (mínimo de lugares conferidos, critério escrito, sem patrocínio e sinal de qualidade em pelo menos o mínimo de lugares). O texto público do critério deixa de citar "duas fontes".
+
+**Produção (07/10/2026, B-009):** a 0180 foi aplicada no `citynews-prod` antes do merge do #65 (aditiva; o código no ar não depende dela) e conferida: o `check` aceita `google`, `google_maps_url` e `google_fetched_at` existem, `anon` não executa `guide_expire_google`, e os 96 lugares existentes não mudaram.
+
+**Produção (07/10/2026, B-009), segunda parte:** a 0161 (lotes da W5, PR #66) não estava em produção, e o código da main já chama `guide_venue_slugs` e `guide_venues_save`: a coleta do Guia falharia ao gravar. A 0161 foi aplicada (só funções `security invoker`, sem execução para `anon`) e, em seguida, o trecho da 0180 que redefine `guide_venues_save` para gravar `google_maps_url` e `google_fetched_at`. Conferido no catálogo.

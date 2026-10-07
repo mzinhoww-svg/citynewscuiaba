@@ -16,6 +16,7 @@ const NOW = new Date("2026-10-03T12:00:00Z");
 function memoryStore(initial: StoredVenue[] = []) {
   const rows = [...initial];
   const saves: { inserts: number; updates: { id: string; ratingChecked: boolean }[] }[] = [];
+  const expired: Date[] = [];
   const store: VenueSyncStore = {
     async loadCategory(category) {
       return rows.filter((r) => r.category === category);
@@ -27,6 +28,17 @@ function memoryStore(initial: StoredVenue[] = []) {
             r.placeIds.tripadvisor && (!r.ratingUpdatedAt || new Date(r.ratingUpdatedAt) < before),
         )
         .slice(0, limit);
+    },
+    async staleGoogle(before, limit) {
+      return rows
+        .filter(
+          (r) => r.placeIds.google && (!r.googleFetchedAt || new Date(r.googleFetchedAt) < before),
+        )
+        .slice(0, limit);
+    },
+    async expireGoogle(before) {
+      expired.push(before);
+      return 0;
     },
     async save(changes, at) {
       saves.push({
@@ -41,6 +53,7 @@ function memoryStore(initial: StoredVenue[] = []) {
           status: "active",
           dataUpdatedAt: at.toISOString(),
           ratingUpdatedAt: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
+          googleFetchedAt: rec.sources.includes("google") ? at.toISOString() : null,
         });
       }
       for (const u of changes.updates) {
@@ -50,12 +63,13 @@ function memoryStore(initial: StoredVenue[] = []) {
           ...u.record,
           dataUpdatedAt: at.toISOString(),
           ratingUpdatedAt: u.ratingChecked ? at.toISOString() : rows[i]!.ratingUpdatedAt,
+          googleFetchedAt: u.googleChecked ? at.toISOString() : rows[i]!.googleFetchedAt,
         };
       }
       return { inserted: changes.inserts.length, updated: changes.updates.length };
     },
   };
-  return { store, rows, saves };
+  return { store, rows, saves, expired };
 }
 
 const OSM_REC = venueRecord({
@@ -86,6 +100,36 @@ const TA_DETAILS = venueRecord({
   placeIds: { tripadvisor: "9001" },
   sources: ["tripadvisor"],
 });
+
+const G_REC = venueRecord({
+  name: "Padaria Pão Dourado",
+  lat: -15.6017,
+  lng: -56.0979,
+  rating: 4.7,
+  ratingCount: 1200,
+  ratingSource: "google",
+  googleMapsUrl: "https://maps.google.com/?cid=1",
+  placeIds: { google: "ChIJ-teste-1" },
+  sources: ["google"],
+});
+
+/** Google falso que conta as chamadas como o provedor real (uma por requisição). */
+function fakeGoogle(over: Partial<VenueProvider> = {}) {
+  let made = 0;
+  const google: VenueProvider = {
+    source: "google",
+    search: async () => {
+      made += 1;
+      return ok([G_REC]);
+    },
+    details: async () => {
+      made += 1;
+      return ok({ ...G_REC, rating: 4.8, ratingCount: 1300 });
+    },
+    ...over,
+  };
+  return { google, made: () => made };
+}
 
 function provider(
   over: Partial<VenueProvider> & { source: VenueProvider["source"] },
@@ -124,6 +168,9 @@ function deps(over: Partial<VenueSyncDeps> & { store: VenueSyncStore }): VenueSy
     now: () => NOW,
     taCallsLeft: async () => 100,
     taCallsMade: () => made,
+    google: null,
+    googleCallsLeft: async () => 100,
+    googleCallsMade: () => 0,
     ...over,
   };
 }
@@ -134,7 +181,12 @@ describe("runVenueSync", () => {
   it("junta OSM, TripAdvisor e site oficial num só lugar com as três fontes", async () => {
     const { store, rows } = memoryStore();
     const report = await runVenueSync(deps({ store }), PLAN);
-    expect(report.providers).toEqual({ osm: "ok", tripadvisor: "ok", site: "ok" });
+    expect(report.providers).toEqual({
+      google: "no_key",
+      osm: "ok",
+      tripadvisor: "ok",
+      site: "ok",
+    });
     expect(rows).toHaveLength(2);
     const pao = rows.find((r) => r.placeIds.osm === "node/1")!;
     expect(pao.placeIds.tripadvisor).toBe("9001");
@@ -260,6 +312,7 @@ describe("runVenueSync", () => {
       status: "active",
       dataUpdatedAt: "2026-08-01T00:00:00Z",
       ratingUpdatedAt: "2026-08-01T00:00:00Z",
+      googleFetchedAt: null,
       rating: 4.0,
       ratingCount: 50,
       ratingSource: "tripadvisor",
@@ -287,5 +340,94 @@ describe("runVenueSync", () => {
     expect(rows.find((r) => r.id === "v1")!.ratingUpdatedAt).toBe(NOW.toISOString());
     expect(rows.find((r) => r.id === "v2")!.rating).toBe(4.0);
     expect(saves.at(-1)!.updates).toEqual([{ id: "v1", ratingChecked: true }]);
+  });
+
+  it("Google e OpenStreetMap do mesmo lugar viram um só, com as duas fontes e a nota do Google", async () => {
+    const { store, rows } = memoryStore();
+    const g = fakeGoogle();
+    const osmPao = venueRecord({ name: "Pão Dourado", placeIds: { osm: "node/1" } });
+    const r = await runVenueSync(
+      deps({
+        store,
+        tripadvisor: null,
+        osm: provider({ source: "osm", search: async () => ok([osmPao]) }),
+        site: async () => err("http" as const),
+        google: g.google,
+        googleCallsMade: g.made,
+      }),
+      PLAN,
+    );
+    expect(r.providers.google).toBe("ok");
+    expect(r.categories[0]).toMatchObject({ google: 1, osm: 1, inserted: 1 });
+    expect(rows).toHaveLength(1);
+    expect([...rows[0]!.sources].sort()).toEqual(["google", "osm"]);
+    expect(rows[0]!.rating).toBe(4.7);
+    expect(rows[0]!.ratingSource).toBe("google");
+    expect(r.googleCalls).toBe(1);
+  });
+
+  it("cota do Google respeitada: sem cota não chama, marca budget e o OSM continua", async () => {
+    const { store, rows } = memoryStore();
+    const g = fakeGoogle();
+    const search = vi.spyOn(g.google, "search");
+    const r = await runVenueSync(
+      deps({ store, google: g.google, googleCallsMade: g.made, googleCallsLeft: async () => 0 }),
+      PLAN,
+    );
+    expect(search).not.toHaveBeenCalled();
+    expect(r.providers.google).toBe("budget");
+    expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it("Google recusado não para a coleta", async () => {
+    const { store, rows } = memoryStore();
+    const g = fakeGoogle({ search: async () => err("unauthorized" as const) });
+    const r = await runVenueSync(deps({ store, google: g.google, tripadvisor: null }), PLAN);
+    expect(r.providers.google).toBe("error:unauthorized");
+    expect(rows.length).toBe(2);
+  });
+
+  it("outro erro do Google aparece no relatório mesmo sem desligar o provedor", async () => {
+    const { store } = memoryStore();
+    const g = fakeGoogle({ search: async () => err("http" as const) });
+    const r = await runVenueSync(deps({ store, google: g.google, tripadvisor: null }), PLAN);
+    expect(r.providers.google).toBe("error:http");
+  });
+
+  it("busca de novo quem passou de 25 dias e expira o que passou de 30", async () => {
+    const old: StoredVenue = {
+      ...G_REC,
+      id: "g1",
+      slug: "pao",
+      status: "active",
+      dataUpdatedAt: "2026-09-01T00:00:00Z",
+      ratingUpdatedAt: null,
+      googleFetchedAt: "2026-09-05T00:00:00Z",
+    };
+    const { store, rows, saves, expired } = memoryStore([old]);
+    const g = fakeGoogle();
+    const r = await runVenueSync(
+      deps({
+        store,
+        tripadvisor: null,
+        osm: provider({ source: "osm" }),
+        google: g.google,
+        googleCallsMade: g.made,
+      }),
+      { categories: [], area: "Cuiabá" },
+    );
+    expect(r.refreshed).toBe(1);
+    expect(rows[0]!.rating).toBe(4.8);
+    expect(rows[0]!.googleFetchedAt).toBe(NOW.toISOString());
+    expect(saves.at(-1)!.updates).toEqual([{ id: "g1", ratingChecked: false }]);
+    expect(expired).toEqual([new Date(NOW.getTime() - 30 * 86_400_000)]);
+  });
+
+  it("sem Google (null) marca no_key e ainda expira dados vencidos", async () => {
+    const { store, expired } = memoryStore();
+    const r = await runVenueSync(deps({ store }), PLAN);
+    expect(r.providers.google).toBe("no_key");
+    expect(r.googleCalls).toBe(0);
+    expect(expired).toHaveLength(1);
   });
 });

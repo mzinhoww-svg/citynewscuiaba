@@ -26,6 +26,7 @@ const venue = (over: Partial<GuideVenueView> = {}): GuideVenueView => ({
   ratingSource: "tripadvisor",
   tripadvisorRank: 7,
   tripadvisorUrl: null,
+  googleMapsUrl: null,
   lat: null,
   lng: null,
   sources: ["osm", "tripadvisor"],
@@ -57,6 +58,22 @@ describe("VenueCard", () => {
     expect(screen.getByText("4,6 no TripAdvisor (312 avaliações)")).toBeInTheDocument();
     expect(screen.getByText("7º no ranking do TripAdvisor em Cuiabá")).toBeInTheDocument();
     expect(screen.getByText("Melhor pão francês.")).toBeInTheDocument();
+  });
+
+  it("nota do Google aparece com a fonte, e o ranking do TripAdvisor ao lado quando houver", () => {
+    render(
+      <VenueCard
+        item={item({
+          rating: 4.6,
+          ratingCount: 1234,
+          ratingSource: "google",
+          tripadvisorRank: 7,
+          sources: ["google", "osm"],
+        })}
+      />,
+    );
+    expect(screen.getByText("4,6 no Google (1.234 avaliações)")).toBeInTheDocument();
+    expect(screen.getByText("7º no ranking do TripAdvisor em Cuiabá")).toBeInTheDocument();
   });
 
   it("sem foto aprovada mostra o cartão tipográfico, nunca imagem", () => {
@@ -178,5 +195,17 @@ describe("vocabulário público do Guia", () => {
       "Dados: TripAdvisor, OpenStreetMap, sites dos lugares e informações da redação",
     );
     expect(dataLine([])).toBe("");
+    expect(dataLine(["osm", "google", "site"])).toBe(
+      "Dados: Google, OpenStreetMap e sites dos lugares",
+    );
+  });
+
+  it("textos do Google: nota com a fonte, link do Maps e atribuição", () => {
+    expect(GUIDE.list.rating("4,6", 1234, "google")).toBe("4,6 no Google (1.234 avaliações)");
+    expect(GUIDE.list.rating("4,6", 312, "tripadvisor")).toBe(
+      "4,6 no TripAdvisor (312 avaliações)",
+    );
+    expect(GUIDE.venue.googleMaps).toBe("Ver no Google Maps");
+    expect(GUIDE.list.attribution.google).toBe("Avaliações: Google.");
   });
 });

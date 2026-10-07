@@ -54,8 +54,8 @@ describe("proposeFromTemplate", () => {
     const good = pool().slice(0, 5);
     const bad = [
       venue({
-        name: "Padaria Uma Fonte",
-        sources: ["osm"],
+        name: "Padaria Sem Fonte",
+        sources: [],
         rating: 5,
         ratingCount: 9000,
         tripadvisorRank: 1,
@@ -120,6 +120,18 @@ describe("proposeFromTemplate", () => {
     const vs = pool();
     const p = proposeFromTemplate(TPL, vs);
     expect(autoPublishCheck(TPL, p, vs)).toEqual({ ok: true, missing: [] });
+  });
+
+  it("lugar só com Google é elegível e conferido (A-211)", () => {
+    const v = venue({
+      sources: ["google"],
+      placeIds: { google: "ChIJ-teste-1" },
+      rating: 4.5,
+      ratingCount: 300,
+      ratingSource: "google",
+    });
+    expect(eligibleFor(TPL, v)).toBe(true);
+    expect(isVerified(v)).toBe(true);
   });
 
   it("lugar sem provedor que o reconheça não conta como verificado", () => {

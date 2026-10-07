@@ -2,7 +2,7 @@ import type { ListOrigin } from "./types";
 
 /**
  * Publicação automática de lista (spec G4): só lista de modelo, com o mínimo de lugares
- * verificados, critério escrito, ao menos 2 fontes de dados por lugar e sinal de qualidade
+ * verificados, critério escrito, ao menos 1 fonte de dados por lugar (A-211) e sinal de qualidade
  * (nota, ranking ou menção) em pelo menos o mínimo de lugares. A foto não entra: lugar sem foto
  * aprovada usa o cartão tipográfico. Patrocinada, por link ou manual sempre passa por pessoa.
  */
@@ -29,7 +29,8 @@ export type MissingForAutoPublish =
 
 export const MIN_CRITERIA_CHARS = 40;
 export const DEFAULT_MIN_VENUES = 5;
-export const MIN_SOURCES_PER_VENUE = 2;
+/** A-211: as listas são informativas; uma fonte de dados por lugar basta. */
+export const MIN_SOURCES_PER_VENUE = 1;
 
 export function canAutoPublish(
   list: ListDraft,

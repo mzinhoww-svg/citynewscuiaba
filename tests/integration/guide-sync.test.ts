@@ -81,6 +81,9 @@ function depsFor(ta: boolean) {
     now: () => now,
     taCallsLeft: async () => 50,
     taCallsMade: () => made,
+    google: null,
+    googleCallsLeft: async () => 0,
+    googleCallsMade: () => 0,
   };
 }
 
@@ -139,5 +142,99 @@ describe("venue_sync com banco", () => {
     expect((await store.lastRunStartedAt("venue_sync"))?.getTime()).toBeGreaterThan(
       now.getTime() - 1000,
     );
+  });
+
+  it("aceita google em data_sources e guarda o link do Maps e a data da coleta", async () => {
+    const at = new Date("2026-10-06T12:00:00Z");
+    await store.save(
+      {
+        inserts: [
+          venueRecord({
+            name: `Museu Teste ${mark} G`,
+            category: CATEGORY,
+            lat: -15.9,
+            lng: -56.3,
+            rating: 4.7,
+            ratingCount: 321,
+            ratingSource: "google",
+            googleMapsUrl: "https://maps.google.com/?cid=123",
+            placeIds: { google: `ChIJ-${mark}` },
+            sources: ["google"],
+          }),
+        ],
+        updates: [],
+      },
+      at,
+    );
+    const { data } = await db
+      .from("venues")
+      .select("*")
+      .eq("name", `Museu Teste ${mark} G`)
+      .single();
+    expect(data!.data_sources).toEqual(["google"]);
+    expect(data!.google_maps_url).toBe("https://maps.google.com/?cid=123");
+    expect(new Date(data!.google_fetched_at!).toISOString()).toBe(at.toISOString());
+    const loaded = await store.loadCategory(CATEGORY);
+    const g = loaded.find((v) => v.name === `Museu Teste ${mark} G`)!;
+    expect(g.placeIds.google).toBe(`ChIJ-${mark}`);
+    expect(g.googleMapsUrl).toBe("https://maps.google.com/?cid=123");
+    expect(g.googleFetchedAt).not.toBeNull();
+  });
+
+  it("expireGoogle apaga nota e link vencidos, e o contato só quando o Google é a única fonte", async () => {
+    const old = new Date("2026-08-01T12:00:00Z");
+    const recent = new Date("2026-09-25T12:00:00Z");
+    const base = (n: string, sources: ("google" | "osm" | "site")[], lat: number) =>
+      venueRecord({
+        name: `Museu Teste ${mark} E${n}`,
+        category: CATEGORY,
+        lat,
+        lng: -56.4,
+        phone: "+55 65 3000-1111",
+        rating: 4.2,
+        ratingCount: 40,
+        ratingSource: "google",
+        googleMapsUrl: "https://maps.google.com/?cid=9",
+        placeIds: { google: `ChIJ-${mark}-${n}` },
+        sources,
+      });
+    await store.save({ inserts: [base("A", ["google"], -16.1)], updates: [] }, old);
+    await store.save({ inserts: [base("B", ["google", "osm"], -16.2)], updates: [] }, old);
+    await store.save({ inserts: [base("C", ["google"], -16.3)], updates: [] }, recent);
+    // Google + site lido a partir do link do Google: o contato veio do Google e também expira.
+    await store.save({ inserts: [base("D", ["google", "site"], -16.4)], updates: [] }, old);
+    const n = await store.expireGoogle(new Date("2026-09-06T12:00:00Z"));
+    expect(n).toBe(3);
+    const { data } = await db
+      .from("venues")
+      .select("name, rating, rating_source, phone, google_maps_url, data_sources")
+      .like("name", `Museu Teste ${mark} E%`)
+      .order("name");
+    const [a, b, c] = data!;
+    expect(a).toMatchObject({
+      rating: null,
+      rating_source: null,
+      phone: null,
+      google_maps_url: null,
+      data_sources: [],
+    });
+    expect(b).toMatchObject({
+      rating: null,
+      phone: "+55 65 3000-1111",
+      google_maps_url: null,
+      data_sources: ["osm"],
+    });
+    expect(c).toMatchObject({ rating: 4.2, rating_source: "google", data_sources: ["google"] });
+    expect(data![3]).toMatchObject({ phone: null, google_maps_url: null, data_sources: [] });
+    const stale = await store.staleGoogle(new Date("2026-09-30T00:00:00Z"), 100);
+    expect(stale.some((v) => v.name === `Museu Teste ${mark} EC`)).toBe(true);
+  });
+
+  it("conta a cota diária do Google a partir dos relatórios do dia", async () => {
+    const now = new Date();
+    const before = await store.googleCallsToday(now);
+    const id = await store.startRun("venue_sync", "manual", now);
+    await store.finishRun(id, { googleCalls: 5, marker: mark });
+    expect(await store.googleCallsToday(now)).toBe(before + 5);
   });
 });
