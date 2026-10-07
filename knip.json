@@ -6,5 +6,6 @@
     "scripts/**/*.{ts,mts,mjs,js}",
     "tests/**/*.{ts,tsx}"
   ],
-  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mts,mjs,js}", "tests/**/*.{ts,tsx}"]
+  "project": ["src/**/*.{ts,tsx}", "scripts/**/*.{ts,mts,mjs,js}", "tests/**/*.{ts,tsx}"],
+  "ignore": ["src/lib/*/index.ts"]
 }
