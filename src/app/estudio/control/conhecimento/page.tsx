@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState, Table } from "@/components";
+import { StudioScreen } from "@/components/estudio";
 import { AI_TEXT, formatInt, formatPct } from "@/content/pt-BR/ai-control";
 import { requireRole } from "@/lib/auth/require-role";
 import { canAccess } from "@/lib/auth";
@@ -24,12 +25,7 @@ export default async function KnowledgePage() {
   const share = (n: number, total: number) => (total > 0 ? formatPct(n / total) : AI_TEXT.none);
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{AI_TEXT.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen section={AI_TEXT.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {data === null ? (
         <EmptyState
           tone="error"
@@ -104,6 +100,6 @@ export default async function KnowledgePage() {
           )}
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }

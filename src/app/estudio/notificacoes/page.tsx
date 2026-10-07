@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, cx, EmptyState } from "@/components";
-import { StaffUrgentOptIn } from "@/components/estudio";
+import { StaffUrgentOptIn, StudioScreen } from "@/components/estudio";
 import {
   KIND_TEXT,
   NOTIFICATIONS_PAGE_TEXT as T,
@@ -49,12 +49,7 @@ export default async function NotificationsPage({
   const base: Search = { tipo: kind, situacao: onlyUnread ? "nao-lidas" : undefined };
 
   return (
-    <section className="flex flex-col gap-6">
-      <div>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="mt-1 max-w-read type-body text-meta">{T.intro}</p>
-      </div>
-
+    <StudioScreen title={T.title} intro={T.intro}>
       <nav aria-label={T.filterStatus} className="flex flex-wrap items-center gap-2">
         <span className="type-meta text-meta">{T.filterStatus}</span>
         {[
@@ -180,6 +175,6 @@ export default async function NotificationsPage({
       )}
 
       <StaffUrgentOptIn initialOn={urgentOn} action={setStaffAlertsAction} />
-    </section>
+    </StudioScreen>
   );
 }

@@ -1,0 +1,17 @@
+Logos dos portais listados em CityNews Cuiabá (fontes em destaque).
+Arquivos baixados dos sites oficiais ou, quando o site bloqueou o acesso, da foto pública do perfil no X.
+
+Uso: marcas de terceiros. Para republicação comercial, confirme autorização de cada veículo.
+
+- folhamax.png — https://www.folhamax.com/images/logo.png
+- rdnews.png — CDN oficial RDNews
+- olhardireto.png — https://www.olhardireto.com.br/logo-olhardireto.png
+- hipernoticias.png — CDN oficial HiperNotícias
+- agencia-brasil.svg — logo colorida oficial Agência Brasil (EBC)
+- gazeta-digital.png — https://www.gazetadigital.com.br/images/logo.png
+- leiagora.jpg — foto de perfil pública @leiagorabr (site protegido por anti-bot)
+- o-documento.png — logo do site odocumento.com.br
+- so-noticias.png — https://www.sonoticias.com.br/wp-content/uploads/2026/06/logo-sonoticias@2x-1.png
+- canal-rural.png — foto de perfil pública Canal Rural (site protegido por anti-bot)
+- prefeitura-varzea-grande.png — https://www.varzeagrande.mt.gov.br/public/images/logo.png
+- circuito-mato-grosso.png — https://circuitomt.com.br/wp-content/uploads/2023/10/CMT.png

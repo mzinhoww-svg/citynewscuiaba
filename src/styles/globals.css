@@ -577,25 +577,43 @@
 }
 
 /*
- * Borda rolável (UI-T2): a lista indica em `data-fade` (start, end, both) de que lado ainda há
- * itens; a máscara apaga só esse lado. Função de legibilidade, não decoração.
+ * Borda rolável (UI-T2): o contêiner indica em `data-fade` (start, end, both) de que lado ainda
+ * há itens; um véu da cor da página apaga só esse lado. Função de legibilidade, não decoração.
+ * Vai no pai da lista rolável, nunca nela: `mask-image` num contêiner com rolagem vira um bloco
+ * preto no Safari do iPhone (a fileira de editorias sumia sob uma faixa preta).
  */
 @utility scroll-fade {
   --scroll-fade-w: var(--sp-24);
-  &[data-fade="end"] {
-    mask-image: linear-gradient(to right, black calc(100% - var(--scroll-fade-w)), transparent);
+  position: relative;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: var(--scroll-fade-w);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-standard);
   }
-  &[data-fade="start"] {
-    mask-image: linear-gradient(to left, black calc(100% - var(--scroll-fade-w)), transparent);
+  &::before {
+    inset-inline-start: 0;
+    background: linear-gradient(to right, var(--bg-page), transparent);
   }
-  &[data-fade="both"] {
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      black var(--scroll-fade-w),
-      black calc(100% - var(--scroll-fade-w)),
-      transparent
-    );
+  &::after {
+    inset-inline-end: 0;
+    background: linear-gradient(to left, var(--bg-page), transparent);
+  }
+  &[data-fade="start"]::before,
+  &[data-fade="both"]::before,
+  &[data-fade="end"]::after,
+  &[data-fade="both"]::after {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      transition: none;
+    }
   }
 }
 

@@ -2,7 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /* UX-W4-T4 (item 70): perfil com erro de leitura mostra o alerta com "Tentar de novo" e mantém
-   as sessões e o "Sair" (a sessão existe mesmo sem os dados da conta). */
+   as sessões e o "Sair" (a sessão existe mesmo sem os dados da conta). Estrutura de A-154:
+   sessões e senha em /perfil/seguranca; "Sair da conta" fica na página principal. */
 
 const readAccountProfile = vi.fn();
 vi.mock("@/lib/auth/reader", () => ({
@@ -21,14 +22,14 @@ vi.mock("./actions", () => ({
   signOutAction: vi.fn(),
   updateProfileAction: vi.fn(),
 }));
-vi.mock("../redefinir-senha/actions", () => ({ newPasswordAction: vi.fn() }));
 vi.mock("@/components", async (orig) => ({
   ...(await orig<typeof import("@/components")>()),
-  LocalProfileCard: () => null,
-  ProfileDetailsForm: () => <p>formulario-da-conta</p>,
-  NewPasswordForm: () => <p>formulario-da-senha</p>,
-  ExportAccountButton: () => null,
-  DeleteAccount: () => null,
+  EditProfile: () => <p>formulario-da-conta</p>,
+  ProfileActivityRows: () => null,
+  BrowserDataDetails: () => null,
+  BrowserExportRow: () => null,
+  BrowserLossNote: () => null,
+  ExportAccountRow: () => null,
 }));
 
 import ProfilePage from "./page";
@@ -47,13 +48,15 @@ describe("/perfil · erro de leitura (UX-W4-T4, item 70)", () => {
       "href",
       "/perfil",
     );
-    const sessions = screen.getByRole("region", { name: "Sessões" });
-    expect(within(sessions).getByRole("button", { name: "Sair" })).toBeInTheDocument();
-    expect(
-      within(sessions).getByRole("button", { name: "Sair de todos os dispositivos" }),
-    ).toBeInTheDocument();
+    const security = screen.getByRole("navigation", { name: "Segurança" });
+    expect(within(security).getByRole("link", { name: /Sessões/ })).toHaveAttribute(
+      "href",
+      "/perfil/seguranca#sessoes",
+    );
+    expect(screen.getByRole("button", { name: "Sair da conta" })).toBeInTheDocument();
     // Sem os dados, o que depende deles não aparece.
     expect(screen.queryByText("formulario-da-conta")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Excluir conta" })).toBeNull();
   });
 
   it("leitura ok: sem alerta de erro", async () => {
@@ -66,6 +69,10 @@ describe("/perfil · erro de leitura (UX-W4-T4, item 70)", () => {
     render(await ProfilePage({ searchParams: Promise.resolve({}) }));
     expect(screen.queryByRole("alert")).toBeNull();
     expect(screen.getByText("formulario-da-conta")).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Sessões" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Segurança" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Excluir conta" })).toHaveAttribute(
+      "href",
+      "/perfil/excluir",
+    );
   });
 });

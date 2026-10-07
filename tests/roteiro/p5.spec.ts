@@ -39,7 +39,10 @@ test("O01/O02 · visão geral e tempo real", async ({ page }) => {
 
 test("O06 · falhas", async ({ page }) => {
   await loginAs(page, "diego", "/estudio/control/falhas");
-  await expect(page.getByText(`tempo esgotado ${fx.mark}`)).toBeVisible();
+  // Cartões (< md), tabela (≥ md) e o resumo por grupo repetem o texto: vale o visível.
+  await expect(
+    page.getByText(`tempo esgotado ${fx.mark}`).filter({ visible: true }).first(),
+  ).toBeVisible();
   await shot(page, "o06-falhas");
 });
 

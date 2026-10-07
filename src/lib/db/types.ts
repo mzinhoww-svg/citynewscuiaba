@@ -5560,6 +5560,10 @@ export type Database = {
         Returns: string;
       };
       require_source_manage: { Args: Record<PropertyKey, never>; Returns: undefined };
+      role_set: {
+        Args: { p_justification?: string; p_roles: Json; p_user: string };
+        Returns: Json;
+      };
       rules_loosens: {
         Args: { cur: Json; cur_fr: boolean; tgt: Json; tgt_fr: boolean };
         Returns: boolean;

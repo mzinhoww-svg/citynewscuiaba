@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState, InlineAlert, Table } from "@/components";
-import { CostChart } from "@/components/estudio";
+import { CostChart, StudioScreen } from "@/components/estudio";
 import { AI_TEXT, agentName, formatInt, formatPct } from "@/content/pt-BR/ai-control";
 import { formatBrl } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
@@ -23,12 +23,7 @@ export default async function CostsPage() {
   const data = can.costs ? await loadOrNull("ai costs", () => costOverview()) : null;
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{AI_TEXT.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-      </header>
+    <StudioScreen section={AI_TEXT.sectionLabel} title={T.title} intro={T.intro} gap="lg">
       {!can.costs ? (
         <InlineAlert tone="info" role="none">
           {T.noAccess}
@@ -229,6 +224,6 @@ export default async function CostsPage() {
           );
         })()
       )}
-    </section>
+    </StudioScreen>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Button, EmptyState } from "@/components";
-import { JobTable } from "@/components/estudio";
+import { JobTable, StudioScreen } from "@/components/estudio";
 import { CONTROL_TEXT as T } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
 import { controlAbilities } from "@/lib/control";
@@ -18,12 +18,7 @@ export default async function FailuresPage() {
   const can = controlAbilities(session.roles);
   const data = await loadOrNull("control failures", () => listFailures({ maskIp: !can.admin }));
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.failures.title}</h1>
-        <p className="type-body text-meta">{T.failures.intro}</p>
-      </header>
+    <StudioScreen section={T.sectionLabel} title={T.failures.title} intro={T.failures.intro}>
       {data === null ? (
         <EmptyState
           tone="error"
@@ -55,6 +50,6 @@ export default async function FailuresPage() {
             : {})}
         />
       )}
-    </section>
+    </StudioScreen>
   );
 }

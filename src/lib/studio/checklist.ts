@@ -43,6 +43,9 @@ export interface Checklist {
   blocker?: string;
 }
 
+/** Limites de edição da matéria (item 48): o título passa disso e o editor avisa. */
+export const ARTICLE_LIMITS = { title: 110 } as const;
+
 export const SEO_TITLE_MAX = 70;
 export const SEO_DESCRIPTION_MAX = 160;
 

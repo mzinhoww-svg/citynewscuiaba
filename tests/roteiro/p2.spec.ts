@@ -97,9 +97,9 @@ test("4 · migrar, perfil com conta e excluir", async ({ page }) => {
   await shot(page, "migrar-sucesso");
 
   await page.goto("/perfil");
-  await expect(page.getByRole("heading", { name: "Sua conta" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Editar perfil" })).toBeVisible();
   await shot(page, "perfil-conta", true);
-  await page.getByRole("button", { name: "Excluir conta" }).click();
+  await page.getByRole("link", { name: "Excluir conta" }).click();
   await page.getByLabel("Digite EXCLUIR para confirmar").fill("EXCLUIR");
   await shot(page, "perfil-excluir");
 });

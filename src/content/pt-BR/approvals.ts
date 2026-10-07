@@ -2,6 +2,7 @@
 import type { CriticalKind } from "@/lib/approvals/approvals";
 import type { ApprovalTarget } from "@/lib/approvals/targets";
 import { AGENT_NAME } from "./ai-control";
+import { ROLE_LABEL } from "./studio";
 import { CRITICAL_FIELD_TEXT, criticalValueText } from "./sources-admin";
 
 export { APPROVAL_ERROR_TEXT } from "./sources-admin";
@@ -17,6 +18,8 @@ export const KIND_TEXT: Record<CriticalKind, string> = {
   "push.highlight": "Push de destaque",
   "push.resume": "Retomar envios de push",
   "source.critical": "Mudança crítica de fonte",
+  "role.grant": "Conceder papel",
+  "role.revoke": "Revogar papel",
 };
 
 export const FLAG_TEXT: Record<string, string> = {
@@ -45,6 +48,8 @@ export function targetText(target: ApprovalTarget): string {
       return `pesos de recomendação ${target.version}`;
     case "user":
       return `papel de administração para a conta ${target.userId.slice(0, 8)}`;
+    case "role":
+      return `papel ${ROLE_LABEL[target.role]} para a conta ${target.userId.slice(0, 8)}`;
     case "other":
       return target.ref;
   }

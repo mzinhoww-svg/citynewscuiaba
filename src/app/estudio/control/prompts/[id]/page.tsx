@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, EmptyState } from "@/components";
-import { PromptVersions, type PromptVersionItem } from "@/components/estudio";
+import { PromptVersions, StudioScreen, type PromptVersionItem } from "@/components/estudio";
 import { agentName } from "@/content/pt-BR/ai-control";
-import { PROMPTS_TEXT as T } from "@/content/pt-BR/ai-prompts";
+import { AGENTS_TEXT, PROMPTS_TEXT as T } from "@/content/pt-BR/ai-prompts";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { isAgentId, promptTarget } from "@/lib/ai/prompts";
 import { AGENT_IDS } from "@/lib/ai/types";
 import { requireRole } from "@/lib/auth/require-role";
@@ -84,15 +85,18 @@ export default async function PromptsPage({ params }: { params: Promise<{ id: st
   const approved = data?.value.filter((v) => v.approval?.status === "approved") ?? [];
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title(agentName(id))}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
+    <StudioScreen
+      section={T.sectionLabel}
+      title={T.title(agentName(id))}
+      intro={T.intro}
+      gap="lg"
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: "/estudio/control/agentes", label: AGENTS_TEXT.title },
+        { href: `/estudio/control/prompts/${id}`, label: T.title(agentName(id)) },
+      ]}
+      actions={
         <div className="flex flex-wrap gap-3">
-          <Button href="/estudio/control/agentes" size="sm" variant="outline" icon="arrow-left">
-            {T.agentsLink}
-          </Button>
           <Button href="/estudio/control/testes" size="sm" variant="outline-strong" icon="play">
             {T.playgroundLink}
           </Button>
@@ -107,8 +111,8 @@ export default async function PromptsPage({ params }: { params: Promise<{ id: st
             </Button>
           )}
         </div>
-      </header>
-
+      }
+    >
       {data === null ? (
         <EmptyState
           tone="error"
@@ -164,6 +168,6 @@ export default async function PromptsPage({ params }: { params: Promise<{ id: st
           />
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }
