@@ -356,3 +356,5 @@ Pedido do dono: a tela `/perfil` estava confusa (crítica impeccable + ui-ux-pro
 ## A-211 · Uma fonte de dados por lugar basta no Guia (06/10/2026)
 
 **Status:** vigente. Decisão do dono ("as listas são informativas, não precisa dessa regra rigorosa"). Altera a G4: `MIN_SOURCES_PER_VENUE` passa de 2 para 1, para entrar na lista e para publicar sozinha. Os outros critérios da publicação automática ficam (mínimo de lugares conferidos, critério escrito, sem patrocínio e sinal de qualidade em pelo menos o mínimo de lugares). O texto público do critério deixa de citar "duas fontes".
+
+**Produção (07/10/2026, B-009):** a 0180 foi aplicada no `citynews-prod` antes do merge do #65 (aditiva; o código no ar não depende dela) e conferida: o `check` aceita `google`, `google_maps_url` e `google_fetched_at` existem, `anon` não executa `guide_expire_google`, e os 96 lugares existentes não mudaram.
