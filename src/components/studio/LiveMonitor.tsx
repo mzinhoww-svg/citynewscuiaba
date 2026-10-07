@@ -9,7 +9,7 @@ import {
   stepLabel,
 } from "@/content/pt-BR/control";
 import type { PhaseSpan, RunState } from "@/lib/control";
-import { formatDateTime } from "@/lib/format/date";
+import { formatDateTime, TIME_ZONE } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon, type IconName } from "../ui/Icon";
@@ -65,7 +65,7 @@ function isLiveData(v: unknown): v is LiveData {
 
 const clock = (iso: string) =>
   new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Cuiaba",
+    timeZone: TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

@@ -1,5 +1,6 @@
 import { isQualifiedRead, isWeakSignal, promotesWeakSignal } from "@/lib/events/weak";
 import type { SourceSignals } from "./types";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /**
  * Sinais normalizados por fonte (spec §7.1; tracking-plan §3–4), a partir de dados brutos do
@@ -127,7 +128,7 @@ export function formatReach(n: number): string {
 }
 
 const cuiabaDay = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",

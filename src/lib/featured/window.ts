@@ -1,16 +1,17 @@
+import { TIME_ZONE } from "@/lib/format/date";
+
 /*
  * Janelas do destaque automático (R28 do dono, que substitui as 3 h fixas da spec de destaques):
  * o automático dura 1 h; uma matéria muito relevante segura a posição por 3 h. As duas janelas
  * começam nas horas cheias (1 h) e nos múltiplos de 3 h a partir das 00h do fuso America/Cuiaba
  * (UTC-4, sem horário de verão).
  */
-export const FEATURED_TZ = "America/Cuiaba";
 export type WindowHours = 1 | 3;
 
 const HOUR_MS = 3_600_000;
 
 const clock = new Intl.DateTimeFormat("en-US", {
-  timeZone: FEATURED_TZ,
+  timeZone: TIME_ZONE,
   hourCycle: "h23",
   hour: "2-digit",
   minute: "2-digit",

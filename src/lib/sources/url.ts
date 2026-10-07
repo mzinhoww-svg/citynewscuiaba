@@ -4,6 +4,7 @@
  */
 import { isForbiddenHost } from "@/lib/pipeline/net";
 import { err, ok, type Result } from "@/lib/result";
+import { fold } from "@/lib/text/fold";
 
 export type UrlProblem =
   "invalid" | "scheme" | "credentials" | "port" | "too_long" | "forbidden_host";
@@ -52,10 +53,7 @@ export function hostKey(u: URL): string {
 
 /** Slug a partir do nome da fonte: mesma régua de `pipeline/slug.ts`, fallback `"fonte"`. */
 export function slugFromName(name: string): string {
-  const s = name
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
+  const s = fold(name)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return s.slice(0, 60).replace(/-+$/g, "") || "fonte";

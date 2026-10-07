@@ -79,6 +79,10 @@ jobs:
       - name: Detector de design
         run: pnpm design:detect
 
+      # Código morto (item 90): só aviso no log, nunca reprova; configuração em knip.json.
+      - name: Código morto (knip, aviso)
+        run: pnpm dlx knip --no-exit-code
+
       - name: SW gerado confere
         run: pnpm sw:build && git diff --exit-code public/sw.js public/offline.js public/offline.css
 

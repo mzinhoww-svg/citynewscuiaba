@@ -6,6 +6,7 @@ import type { Weights } from "@/lib/guide/score";
 import type { GuideItem, ListOrigin, Venue } from "@/lib/guide/types";
 import { slugify } from "@/lib/pipeline/slug";
 import { venueFromRow } from "./guide-store";
+import { fold as foldText } from "@/lib/text/fold";
 
 type ListRow = Database["public"]["Tables"]["guide_lists"]["Row"];
 type TemplateDbRow = Database["public"]["Tables"]["guide_templates"]["Row"];
@@ -15,12 +16,7 @@ const REPROPOSE_AFTER_DAYS = 90;
 export const REFRESH_DAYS = 90;
 const DAY = 86_400_000;
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
+const fold = (s: string) => foldText(s).trim();
 
 function parseWeights(w: Json | null): Weights | null {
   if (!w || typeof w !== "object" || Array.isArray(w)) return null;
