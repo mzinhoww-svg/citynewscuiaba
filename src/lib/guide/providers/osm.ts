@@ -120,6 +120,7 @@ export function toVenue(
     tripadvisorRank: null,
     tripadvisorUrl: null,
     googleMapsUrl: null,
+    googleType: null,
     placeIds: { osm: `${el.type}/${el.id}` },
     sources: ["osm"],
   };

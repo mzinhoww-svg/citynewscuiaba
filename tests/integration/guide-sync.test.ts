@@ -158,6 +158,7 @@ describe("venue_sync com banco", () => {
             ratingCount: 321,
             ratingSource: "google",
             googleMapsUrl: "https://maps.google.com/?cid=123",
+            googleType: "museum",
             placeIds: { google: `ChIJ-${mark}` },
             sources: ["google"],
           }),
@@ -173,11 +174,13 @@ describe("venue_sync com banco", () => {
       .single();
     expect(data!.data_sources).toEqual(["google"]);
     expect(data!.google_maps_url).toBe("https://maps.google.com/?cid=123");
+    expect(data!.google_primary_type).toBe("museum");
     expect(new Date(data!.google_fetched_at!).toISOString()).toBe(at.toISOString());
     const loaded = await store.loadCategory(CATEGORY);
     const g = loaded.find((v) => v.name === `Museu Teste ${mark} G`)!;
     expect(g.placeIds.google).toBe(`ChIJ-${mark}`);
     expect(g.googleMapsUrl).toBe("https://maps.google.com/?cid=123");
+    expect(g.googleType).toBe("museum");
     expect(g.googleFetchedAt).not.toBeNull();
   });
 
@@ -195,6 +198,7 @@ describe("venue_sync com banco", () => {
         ratingCount: 40,
         ratingSource: "google",
         googleMapsUrl: "https://maps.google.com/?cid=9",
+        googleType: "museum",
         placeIds: { google: `ChIJ-${mark}-${n}` },
         sources,
       });
@@ -207,7 +211,9 @@ describe("venue_sync com banco", () => {
     expect(n).toBe(3);
     const { data } = await db
       .from("venues")
-      .select("name, rating, rating_source, phone, google_maps_url, data_sources")
+      .select(
+        "name, rating, rating_source, phone, google_maps_url, google_primary_type, data_sources",
+      )
       .like("name", `Museu Teste ${mark} E%`)
       .order("name");
     const [a, b, c] = data!;
@@ -216,6 +222,7 @@ describe("venue_sync com banco", () => {
       rating_source: null,
       phone: null,
       google_maps_url: null,
+      google_primary_type: null,
       data_sources: [],
     });
     expect(b).toMatchObject({
@@ -224,7 +231,12 @@ describe("venue_sync com banco", () => {
       google_maps_url: null,
       data_sources: ["osm"],
     });
-    expect(c).toMatchObject({ rating: 4.2, rating_source: "google", data_sources: ["google"] });
+    expect(c).toMatchObject({
+      rating: 4.2,
+      rating_source: "google",
+      google_primary_type: "museum",
+      data_sources: ["google"],
+    });
     expect(data![3]).toMatchObject({ phone: null, google_maps_url: null, data_sources: [] });
     const stale = await store.staleGoogle(new Date("2026-09-30T00:00:00Z"), 100);
     expect(stale.some((v) => v.name === `Museu Teste ${mark} EC`)).toBe(true);

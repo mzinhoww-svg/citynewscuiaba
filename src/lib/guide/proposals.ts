@@ -1,5 +1,5 @@
 import { canAutoPublish, MIN_SOURCES_PER_VENUE, type ListDraft } from "./auto-publish";
-import { categoryBySlug } from "./categories";
+import { categoryBySlug, googleTypeMatches } from "./categories";
 import { listCriteriaText } from "./criteria";
 import { rankList, type ScoredVenue } from "./rank";
 import { DEFAULT_WEIGHTS, scoreVenue, type VenueSignals, type Weights } from "./score";
@@ -84,7 +84,18 @@ export function eligibleFor(t: GuideTemplate, v: Venue): boolean {
   if (v.status !== "active" || v.category !== t.category) return false;
   if (t.subcategory && v.subcategory !== t.subcategory) return false;
   if (t.neighborhood && fold(v.neighborhood ?? "") !== fold(t.neighborhood)) return false;
+  if (onlyGoogle(v) && !googleTypeMatches(t.category, t.subcategory, v.googleType)) return false;
   return new Set(v.sources).size >= MIN_SOURCES_PER_VENUE;
+}
+
+/**
+ * Lugar cuja categoria só o Google sustenta (o site lido vem do link do próprio Google). A busca
+ * por texto traz lugares que só mencionam o termo (hotel em "padaria"), então o tipo principal do
+ * Google precisa caber na lista; sem tipo gravado, fica de fora até a próxima coleta (A-210).
+ */
+function onlyGoogle(v: Venue): boolean {
+  const others = v.sources.filter((s) => s !== "site");
+  return others.length > 0 && others.every((s) => s === "google");
 }
 
 export function proposeFromTemplate(
