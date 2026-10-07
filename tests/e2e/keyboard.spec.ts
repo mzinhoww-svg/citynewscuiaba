@@ -322,7 +322,8 @@ test("360×640 com consentimento pendente e aviso offline: fixos empilhados, lin
   await page.goto("/");
   const consent = page.getByRole("region", { name: /privacidade/i });
   const nav = page.getByRole("navigation", { name: "Principal" });
-  const offline = page.getByRole("status").filter({ hasText: /Salva às/ });
+  // A cópia é de 1 h atrás: entre 0h e 1h de Cuiabá ela é do dia anterior ("Salva em 06/10 às").
+  const offline = page.getByRole("status").filter({ hasText: /Salva (às|em )/ });
   const header = page.getByRole("banner");
   for (const el of [consent, nav, offline, header]) await expect(el).toBeVisible();
 
