@@ -32,6 +32,14 @@ const PLACE_FIELDS = [
 const SEARCH_MASK = [...PLACE_FIELDS.map((f) => `places.${f}`), "nextPageToken"].join(",");
 const DETAILS_MASK = PLACE_FIELDS.join(",");
 
+/**
+ * Chave do ambiente: `GOOGLE_PLACES_API_KEY` ou, na falta dela, `GOOGLE_PLACES_KEY` (nome com que a
+ * chave foi cadastrada na Vercel). Vazia conta como ausente.
+ */
+export function googlePlacesKey(env: Record<string, string | undefined>): string | undefined {
+  return env.GOOGLE_PLACES_API_KEY?.trim() || env.GOOGLE_PLACES_KEY?.trim() || undefined;
+}
+
 export interface GooglePlace {
   id?: string;
   displayName?: { text?: string };
