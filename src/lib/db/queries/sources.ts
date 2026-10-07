@@ -15,6 +15,7 @@ import { fetchAggregated } from "./aggregated";
 import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";
 import { many, one, readPublic, readService } from "./run";
 import type { AggregatedView, QueryError, SourceEntry } from "./types";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /** Fontes que o leitor pode ver e seguir: coletando ou degradadas (pausada e bloqueada, não). */
 const VISIBLE_STATUSES = ["active", "degraded"] as const;
@@ -44,7 +45,7 @@ export interface SourceSignalsQuery {
 }
 
 const cuiabaDay = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",

@@ -1,3 +1,4 @@
+import { TIME_ZONE } from "@/lib/format/date";
 import { expect, test, type Page } from "@playwright/test";
 import { forwardedFor } from "./own-ip";
 import { service, tag } from "./studio";
@@ -33,7 +34,7 @@ test.afterAll(async () => {
 /** Daqui a 5 dias, 19h (campo datetime-local, relógio de Cuiabá). */
 function startsAt(): string {
   const d = new Date(Date.now() + 5 * 86_400_000);
-  const day = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Cuiaba" }).format(d);
+  const day = new Intl.DateTimeFormat("sv-SE", { timeZone: TIME_ZONE }).format(d);
   return `${day}T19:00`;
 }
 

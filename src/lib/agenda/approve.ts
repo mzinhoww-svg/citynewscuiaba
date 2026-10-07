@@ -1,13 +1,8 @@
 import type { NormalizedEvent, Verdict, RejectReason } from "./types";
+import { fold } from "@/lib/text/fold";
 
 const HORIZON_DAYS = 365;
 const MIN_LEAD_MS = 30 * 60_000;
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /** Palavrões em português (base curta e conservadora); casa palavra inteira, sem acento. */
 const PROFANITY =

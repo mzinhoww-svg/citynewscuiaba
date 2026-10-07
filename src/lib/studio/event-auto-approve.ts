@@ -1,5 +1,6 @@
 import { hasProfanity } from "@/lib/agenda/approve";
 import type { EventSubmission } from "@/lib/agenda/submission";
+import { fold as foldText } from "@/lib/text/fold";
 
 /*
  * Agenda de leitor com aprovação automática (AUT-T7, A14): a sugestão entra sozinha no ar quando a
@@ -21,13 +22,7 @@ export interface AutoApproveContext {
   now?: Date;
 }
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+const fold = (s: string) => foldText(s).replace(/\s+/g, " ").trim();
 
 /** Qualquer coisa com cara de link: endereço, `www.`, domínio comum ou encurtador. */
 const LINK_LIKE =

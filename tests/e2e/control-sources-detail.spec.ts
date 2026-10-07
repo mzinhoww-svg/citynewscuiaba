@@ -1,3 +1,4 @@
+import { TIME_ZONE } from "@/lib/format/date";
 import { mkdir } from "node:fs/promises";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -211,7 +212,7 @@ test("mudança de política de quem não aprova vira pedido e Marina aprova", as
   // Diego (operador de IA) não aprova.
   await expect(page.getByRole("button", { name: "Revisar" })).toHaveCount(0);
 
-  const ctx = await browser.newContext({ baseURL, locale: "pt-BR", timezoneId: "America/Cuiaba" });
+  const ctx = await browser.newContext({ baseURL, locale: "pt-BR", timezoneId: TIME_ZONE });
   const marina = await ctx.newPage();
   await loginAs(ctx, "marina", baseURL);
   await marina.goto(`${BASE}/${SEED.agro}`);
@@ -232,7 +233,7 @@ test("mudança de política de quem não aprova vira pedido e Marina aprova", as
 test("conflito de versão mostra Recarregar", async ({ page, browser, baseURL }) => {
   await enter(page, "helena", baseURL);
   await page.goto(`${BASE}/${SEED.brasilHoje}/configuracao`);
-  const ctx = await browser.newContext({ baseURL, locale: "pt-BR", timezoneId: "America/Cuiaba" });
+  const ctx = await browser.newContext({ baseURL, locale: "pt-BR", timezoneId: TIME_ZONE });
   const other = await ctx.newPage();
   await loginAs(ctx, "diego", baseURL);
   await other.goto(`${BASE}/${SEED.brasilHoje}/configuracao`);

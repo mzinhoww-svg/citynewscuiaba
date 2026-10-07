@@ -12,6 +12,7 @@ import type { TopicBundle, TopicItem } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import type { UnderstandStepDeps } from "./classify";
 import { aiStepError, inputHash } from "./understanding";
+import { fold } from "@/lib/text/fold";
 
 export type { TopicBundle, TopicItem } from "../ports";
 
@@ -58,10 +59,7 @@ const SCALE: Record<string, number> = {
  * "2,1%" = 2,1. Base da confirmação de conflito numérico.
  */
 export function extractNumbers(text: string): number[] {
-  const t = text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+  const t = fold(text);
   const re =
     /(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d+))?(?:\s*(mil|milhoes|milhao|mi|bilhoes|bilhao|bi)\b)?/g;
   const out: number[] = [];

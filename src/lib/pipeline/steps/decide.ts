@@ -22,6 +22,7 @@ import type { DecisionContext } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import { inputHash } from "./understanding";
 import type { PublishStepDeps } from "./write";
+import { fold as foldText } from "@/lib/text/fold";
 
 const ARTICLE_REF = /^article:(\S+)$/;
 /** Etiquetas que marcam notícia urgente (breaking). Só vira revisão se as regras mantêm o portão. */
@@ -29,11 +30,8 @@ const BREAKING_TAGS = new Set(["urgente", "breaking", "breaking-news", "ultima-h
 export const articleIdFrom = (ref: string): string | null => ARTICLE_REF.exec(ref)?.[1] ?? null;
 
 const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+  foldText(s)
     .trim()
-    .toLowerCase()
     .replace(/[\s_]+/g, "-");
 
 export function isBreaking(ctx: Pick<DecisionContext, "urgent" | "tags">): boolean {

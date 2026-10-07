@@ -22,16 +22,8 @@ export type { ForcedPublishDeps } from "./forced-publish";
 export type { UnderstandingDeps } from "./dedupe";
 export type { UnderstandStepDeps } from "./classify";
 export type { MediaStepDeps } from "./media";
-export { imageLabel, REPRODUCTION_LICENSE } from "./media";
 export type { PublishStepDeps } from "./write";
-export { toDoc } from "./write";
-export { routeArticle, candidateOf, isBreaking, notifyKindFor } from "./decide";
-export { articleTags } from "./publish";
-export { NOTIFY_DEDUPE_SEC, NOTIFY_KINDS } from "./notify";
-export { confirmConflict, createVerifyTopic, extractNumbers, type VerifyResult } from "./verify";
-export { isDuplicate } from "./dedupe";
-export { assignTopic } from "./cluster";
-export { detectFormat, extractFromFeed, extractFromJsonFeed, extractFromPage } from "./extract";
+export { extractFromFeed, extractFromJsonFeed } from "./extract";
 
 /** Fase de Coleta (etapas 2 a 5). */
 export function createIngestHandlers(deps: IngestDeps): StepHandlers {

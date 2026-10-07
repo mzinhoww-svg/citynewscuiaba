@@ -3,6 +3,7 @@
  * bairros que são palavras comuns ("Popular", "Lixeira", "Manga", "Planalto") ficam de fora para
  * não gerar falso positivo; o agente `locate` cobre o resto e é validado contra esta lista.
  */
+import { fold } from "@/lib/text/fold";
 
 export type Municipality = "cuiaba" | "varzea-grande";
 export type Locality = Municipality | "mt" | "nacional";
@@ -144,10 +145,7 @@ const MUNICIPALITY_NAMES: [Locality, string[]][] = [
 
 /** Forma de comparação: sem acento, minúscula, só letras, números e espaços simples. */
 export function normalizePlace(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
+  return fold(s)
     .replace(/º/g, "o")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();

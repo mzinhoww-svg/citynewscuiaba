@@ -1,5 +1,6 @@
 import type { LocalAlert } from "@/lib/anon/types";
 import { ALERTS_TEXT } from "@/content/pt-BR/alerts";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /**
  * Alertas de navegador sem conta (P18), puro: o que notificar agora a partir das novidades do
@@ -43,11 +44,11 @@ const DAY_MS = 86_400_000;
 const MAX_SEEN = 500;
 
 const hourFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   hour: "2-digit",
   hourCycle: "h23",
 });
-const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Cuiaba" });
+const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE });
 
 export function isQuietHour(now: Date): boolean {
   const h = Number(hourFmt.format(now));

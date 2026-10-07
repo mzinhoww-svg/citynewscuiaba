@@ -1,9 +1,10 @@
+import { TIME_ZONE } from "@/lib/format/date";
+
 /**
  * Datas de feed para ISO UTC. Data sem fuso é hora de Cuiabá (`America/Cuiaba`, Review Focus 1),
  * calculada pelo banco de fusos do Intl (acerta o horário de verão que Cuiabá teve até 2019).
  * Entende RFC 822 (inglês e português), ISO 8601 e dd/mm/aaaa. Inválida ou impossível → null.
  */
-export const LOCAL_TIME_ZONE = "America/Cuiaba";
 
 const MONTHS: Record<string, number> = {
   jan: 1,
@@ -58,7 +59,7 @@ interface Parts {
 }
 
 const partsFormatter = new Intl.DateTimeFormat("en-US", {
-  timeZone: LOCAL_TIME_ZONE,
+  timeZone: TIME_ZONE,
   hourCycle: "h23",
   year: "numeric",
   month: "numeric",

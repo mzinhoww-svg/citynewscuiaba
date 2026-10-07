@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { TIME_ZONE } from "@/lib/format/date";
 import { randomInt, randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readFixture } from "../fixtures/read";
@@ -129,8 +130,7 @@ describe("coleta com banco real (fixtures, sem rede)", () => {
 
 describe("fetch respeita o painel no banco real (FS-T5)", () => {
   const FEED = "https://folhadocerrado.example/feed";
-  const today = () =>
-    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Cuiaba" }).format(new Date());
+  const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
 
   async function healthOf(db: ReturnType<typeof createServiceClient>, sourceId: string) {
     const { data } = await db
