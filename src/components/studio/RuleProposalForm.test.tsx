@@ -155,7 +155,8 @@ describe("RuleProposalForm · estados vazio e de erro", () => {
       "Uma versão nova foi proposta agora. Recarregue e tente de novo.",
     );
     expect(refresh).not.toHaveBeenCalled();
-    // O resultado da simulação continua: dá para tentar de novo.
-    expect(proposeButton()).toBeEnabled();
+    // O resultado da simulação continua: dá para tentar de novo. O alerta aparece antes de a
+    // transição terminar, então o botão volta um pouco depois.
+    await waitFor(() => expect(proposeButton()).toBeEnabled());
   });
 });
