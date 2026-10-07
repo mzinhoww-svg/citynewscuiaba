@@ -47,6 +47,7 @@ export function venueFromRow(r: VenueRow): StoredVenue {
     tripadvisorRank: r.tripadvisor_rank,
     tripadvisorUrl: r.tripadvisor_url,
     googleMapsUrl: r.google_maps_url,
+    googleType: r.google_primary_type,
     placeIds,
     sources: r.data_sources.filter(isSource),
   };
@@ -72,6 +73,7 @@ function rowFields(rec: VenueRecord) {
     tripadvisor_rank: rec.tripadvisorRank,
     tripadvisor_url: rec.tripadvisorUrl,
     google_maps_url: rec.googleMapsUrl,
+    google_primary_type: rec.googleType,
     place_ids: rec.placeIds as Json,
     data_sources: rec.sources,
   };

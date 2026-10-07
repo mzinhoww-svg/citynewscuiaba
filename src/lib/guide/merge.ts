@@ -172,6 +172,7 @@ export function mergeRecord(base: VenueRecord, incoming: VenueRecord): VenueReco
     tripadvisorRank: incoming.tripadvisorRank ?? base.tripadvisorRank,
     tripadvisorUrl: pick(incoming.tripadvisorUrl, base.tripadvisorUrl),
     googleMapsUrl: pick(incoming.googleMapsUrl, base.googleMapsUrl),
+    googleType: pick(incoming.googleType, base.googleType),
     placeIds: { ...incoming.placeIds, ...base.placeIds },
     sources: unionSources(base.sources, incoming.sources),
   };

@@ -126,12 +126,27 @@ describe("proposeFromTemplate", () => {
     const v = venue({
       sources: ["google"],
       placeIds: { google: "ChIJ-teste-1" },
+      googleType: "bakery",
       rating: 4.5,
       ratingCount: 300,
       ratingSource: "google",
     });
     expect(eligibleFor(TPL, v)).toBe(true);
     expect(isVerified(v)).toBe(true);
+  });
+
+  it("lugar só com Google de outro tipo ou sem tipo não entra (hotel em padarias)", () => {
+    const base = { placeIds: { google: "ChIJ-teste-2" }, rating: 4.7, ratingCount: 4000 };
+    expect(eligibleFor(TPL, venue({ ...base, sources: ["google"], googleType: "hotel" }))).toBe(
+      false,
+    );
+    expect(
+      eligibleFor(TPL, venue({ ...base, sources: ["google", "site"], googleType: null })),
+    ).toBe(false);
+    // Confirmado pelo OpenStreetMap como padaria, o tipo do Google não decide.
+    expect(eligibleFor(TPL, venue({ ...base, sources: ["osm", "google"], googleType: null }))).toBe(
+      true,
+    );
   });
 
   it("lugar sem provedor que o reconheça não conta como verificado", () => {

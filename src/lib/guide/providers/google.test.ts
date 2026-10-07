@@ -26,6 +26,7 @@ const PLACE = {
   priceLevel: "PRICE_LEVEL_MODERATE",
   googleMapsUri: "https://maps.google.com/?cid=123",
   addressComponents: cuiaba,
+  primaryType: "bakery",
 };
 
 const VG = {
@@ -62,6 +63,9 @@ describe("google provider", () => {
     expect(mask).not.toMatch(/reviews|photos/);
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body.textQuery).toBe("padaria em Cuiabá");
+    expect(body.includedType).toBe("bakery");
+    expect(body.strictTypeFiltering).toBe(true);
+    expect(mask).toContain("places.primaryType");
     expect(JSON.stringify(body.locationBias)).toContain("25000");
   });
 
@@ -85,9 +89,21 @@ describe("google provider", () => {
       website: "https://paodourado.example",
       hours: "segunda: 06:00–20:00; terça: 06:00–20:00",
       googleMapsUrl: "https://maps.google.com/?cid=123",
+      googleType: "bakery",
       placeIds: { google: "ChIJ-teste-pao-dourado" },
       sources: ["google"],
     });
+  });
+
+  it("descarta lugar de outro tipo (hotel na busca de padaria) e lugar sem tipo", async () => {
+    const hotel = { ...PLACE, id: "ChIJ-teste-hotel", primaryType: "hotel" };
+    const semTipo = { ...PLACE, id: "ChIJ-teste-sem-tipo", primaryType: undefined };
+    const p = createGoogleProvider({
+      apiKey: FAKE_KEY,
+      http: async () => json({ places: [PLACE, hotel, semTipo] }),
+    });
+    const r = await p.search({ category: "padaria", area: "Cuiabá" });
+    expect(r.ok && r.value.map((v) => v.placeIds.google)).toEqual(["ChIJ-teste-pao-dourado"]);
   });
 
   it("campos ausentes viram null", () => {
@@ -97,6 +113,7 @@ describe("google provider", () => {
         displayName: { text: "Bar Mínimo" },
         addressComponents: cuiaba,
         priceLevel: "PRICE_LEVEL_UNSPECIFIED",
+        primaryType: "bar",
       },
       "bar",
       null,
@@ -204,6 +221,8 @@ describe("google provider", () => {
     expect(http).not.toHaveBeenCalled();
     const r = await p.details("ChIJ-teste-pao-dourado");
     expect(r.ok && r.value?.rating).toBe(4.6);
+    // A atualização pelo id não filtra por categoria: só traz o tipo de volta.
+    expect(r.ok && r.value?.googleType).toBe("bakery");
     const [url, init] = http.mock.calls[0]!;
     expect(String(url)).toBe("https://places.googleapis.com/v1/places/ChIJ-teste-pao-dourado");
     expect(new Headers(init?.headers).get("X-Goog-FieldMask")).toContain("rating");

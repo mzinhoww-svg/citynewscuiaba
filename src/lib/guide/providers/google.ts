@@ -1,6 +1,11 @@
 import type { HttpFetch } from "@/lib/pipeline/ports";
 import { err, ok, type Result } from "@/lib/result";
-import { categoryBySlug, cuisineBySlug } from "../categories";
+import {
+  categoryBySlug,
+  cuisineBySlug,
+  googleIncludedType,
+  googleTypeMatches,
+} from "../categories";
 import type { VenueRecord } from "../types";
 import type { ProviderError, VenueProvider, VenueQuery } from "./types";
 
@@ -28,6 +33,7 @@ const PLACE_FIELDS = [
   "priceLevel",
   "googleMapsUri",
   "addressComponents",
+  "primaryType",
 ];
 const SEARCH_MASK = [...PLACE_FIELDS.map((f) => `places.${f}`), "nextPageToken"].join(",");
 const DETAILS_MASK = PLACE_FIELDS.join(",");
@@ -53,6 +59,7 @@ export interface GooglePlace {
   priceLevel?: string;
   googleMapsUri?: string;
   addressComponents?: { longText?: string; types?: string[] }[];
+  primaryType?: string;
 }
 
 export interface GoogleOptions {
@@ -94,15 +101,21 @@ function component(p: GooglePlace, types: string[]): string | null {
   return c?.longText?.trim() || null;
 }
 
-/** Lugar do Google no formato do Guia; `null` quando não é de Cuiabá ou falta id ou nome. */
+/**
+ * Lugar do Google no formato do Guia; `null` quando não é de Cuiabá, falta id ou nome, ou (na
+ * busca) o tipo principal não cabe na categoria, como hotel na busca de padaria.
+ */
 export function toGoogleVenue(
   p: GooglePlace,
   category: string,
   subcategory: string | null,
+  opts: { checkType?: boolean } = {},
 ): VenueRecord | null {
   const id = p.id?.trim();
   const name = p.displayName?.text?.trim();
   if (!id || !name) return null;
+  const type = p.primaryType?.trim() || null;
+  if ((opts.checkType ?? true) && !googleTypeMatches(category, subcategory, type)) return null;
   const city = component(p, ["locality", "administrative_area_level_2"]);
   if (!city || fold(city) !== "cuiaba") return null;
   const rating = typeof p.rating === "number" && p.rating >= 0 && p.rating <= 5 ? p.rating : null;
@@ -134,6 +147,7 @@ export function toGoogleVenue(
     tripadvisorRank: null,
     tripadvisorUrl: null,
     googleMapsUrl: maps && /^https:\/\//i.test(maps) ? maps : null,
+    googleType: type,
     placeIds: { google: id },
     sources: ["google"],
   };
@@ -198,6 +212,7 @@ export function createGoogleProvider(
       const textQuery = q.name?.trim()
         ? `${q.name.trim()} em Cuiabá`
         : googleSearchText(category, subcategory);
+      const includedType = googleIncludedType(category, subcategory);
       const out: VenueRecord[] = [];
       let pageToken: string | undefined;
       for (let page = 0; page < MAX_PAGES; page += 1) {
@@ -208,6 +223,7 @@ export function createGoogleProvider(
           regionCode: "BR",
           pageSize: 20,
           locationBias: { circle: { center: CENTER, radius: RADIUS_M } },
+          ...(includedType ? { includedType, strictTypeFiltering: true } : {}),
           ...(pageToken ? { pageToken } : {}),
         });
         if (!r.ok) return page === 0 ? r : ok(out);
@@ -226,7 +242,7 @@ export function createGoogleProvider(
       if (!/^[A-Za-z0-9_-]{10,300}$/.test(id)) return err("invalid");
       const r = await call(`/places/${id}`, DETAILS_MASK);
       if (!r.ok) return r;
-      return ok(toGoogleVenue(r.value as GooglePlace, "restaurante", null));
+      return ok(toGoogleVenue(r.value as GooglePlace, "restaurante", null, { checkType: false }));
     },
   };
 }

@@ -47,6 +47,8 @@ export interface VenueRecord {
   tripadvisorUrl: string | null;
   /** Link do lugar no Google Maps (atribuição exigida pelos termos; vale 30 dias). */
   googleMapsUrl: string | null;
+  /** `primaryType` do lugar no Google (`bakery`, `hotel`); confere a categoria (A-210). */
+  googleType: string | null;
   placeIds: PlaceIds;
   /** Fontes que trouxeram dados para este registro. */
   sources: DataSource[];
