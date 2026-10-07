@@ -1,8 +1,9 @@
 import { RULE_RATIONALE as T } from "@/content/pt-BR/rules";
 import type { RuleSet } from "./types";
+import { fold } from "@/lib/text/fold";
 
 export type { CategoryRule, Mode, RuleSet } from "./types";
-export { classifyRisk, type Risk, type RiskLevel, type RiskReason } from "./risk";
+export { classifyRisk, type Risk } from "./risk";
 
 export interface Candidate {
   category: string;
@@ -33,12 +34,7 @@ export interface Decision {
   rationale: string;
 }
 
-const normalize = (s: string): string =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .trim()
-    .toLowerCase();
+const normalize = (s: string): string => fold(s).trim();
 
 /** Palavras de um tema: sem acento, minúsculas; hífen, underscore e espaço viram separador. */
 const words = (s: string): string[] =>

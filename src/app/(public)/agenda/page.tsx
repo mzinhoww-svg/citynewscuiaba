@@ -11,6 +11,7 @@ import {
   EventCard,
   FilterBar,
   LoadMore,
+  LoadingRegion,
   loadMoreAnchor,
   RecurringDates,
   Skeleton,
@@ -382,7 +383,6 @@ async function Results({ f, cursor }: { f: AgendaFilters; cursor?: string }) {
     const key = localDateKey(e.startsAt);
     groups.set(key, [...(groups.get(key) ?? []), e]);
   }
-  const mini = await miniCalendar(f, now);
   return (
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)]">
       <div className="flex min-w-0 flex-col gap-8">
@@ -428,20 +428,22 @@ async function Results({ f, cursor }: { f: AgendaFilters; cursor?: string }) {
           <RecurringDates items={recurring} headingLevel={2} id="agenda-recorrentes" />
         )}
       </div>
-      {mini && (
-        <aside
-          aria-label={AGENDA.miniCalendar}
-          className="hidden lg:sticky lg:top-sticky-public lg:block lg:self-start"
-        >
-          {mini}
-        </aside>
-      )}
+      {/* Bloco secundário: a lista não espera o mini-calendário (item 87). */}
+      <Suspense
+        fallback={
+          <div className="hidden lg:block lg:self-start">
+            <Skeleton shape="block" round="lg" className="aspect-square w-full" />
+          </div>
+        }
+      >
+        <MiniCalendar f={f} now={now} />
+      </Suspense>
     </div>
   );
 }
 
 /** Mini-calendário lateral da lista (desktop): contagem por dia do mês com os mesmos filtros. */
-async function miniCalendar(f: AgendaFilters, now: Date) {
+async function MiniCalendar({ f, now }: { f: AgendaFilters; now: Date }) {
   const month = f.day ? f.day.slice(0, 7) : calendarMonth(f, now);
   const range = agendaRange({ ...f, view: "cal", month, day: undefined }, now);
   const r = await listEventsInRange(eventFilters(f, range));
@@ -455,32 +457,36 @@ async function miniCalendar(f: AgendaFilters, now: Date) {
   const prev = m === 1 ? `${(y ?? 0) - 1}-12` : `${y}-${String((m ?? 1) - 1).padStart(2, "0")}`;
   const next = m === 12 ? `${(y ?? 0) + 1}-01` : `${y}-${String((m ?? 1) + 1).padStart(2, "0")}`;
   return (
-    <AgendaCalendar
-      compact
-      month={month}
-      title={formatMonthYear(month)}
-      today={localDateKey(now)}
-      prevHref={agendaHref(f, { view: "cal", month: prev, day: undefined })}
-      nextHref={agendaHref(f, { view: "cal", month: next, day: undefined })}
-      days={[...counts.entries()].map(([key, count]) => ({
-        key,
-        count,
-        label: formatLongDate(dayStart(key).toISOString()),
-        href: agendaHref(f, { view: "list", day: key, month: undefined }),
-      }))}
-    />
+    <aside
+      aria-label={AGENDA.miniCalendar}
+      className="hidden lg:sticky lg:top-sticky-public lg:block lg:self-start"
+    >
+      <AgendaCalendar
+        compact
+        month={month}
+        title={formatMonthYear(month)}
+        today={localDateKey(now)}
+        prevHref={agendaHref(f, { view: "cal", month: prev, day: undefined })}
+        nextHref={agendaHref(f, { view: "cal", month: next, day: undefined })}
+        days={[...counts.entries()].map(([key, count]) => ({
+          key,
+          count,
+          label: formatLongDate(dayStart(key).toISOString()),
+          href: agendaHref(f, { view: "list", day: key, month: undefined }),
+        }))}
+      />
+    </aside>
   );
 }
 
 function Loading() {
   return (
-    <div aria-busy="true" className="flex flex-col gap-4">
-      <p className="sr-only">{AGENDA.loading}</p>
+    <LoadingRegion label={AGENDA.loading} className="flex flex-col gap-4">
       <Skeleton shape="block" className="h-7 w-48" />
       {[0, 1, 2].map((i) => (
         <Skeleton key={i} media lines={4} className="border-t border-line-subtle py-4" />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 

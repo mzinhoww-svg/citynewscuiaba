@@ -6,6 +6,7 @@ import { removeHiddenElements } from "@/lib/security/hidden";
 import { sanitizeExternalText, wrapAsData } from "@/lib/security/sanitize";
 import { CATEGORIES, CUISINES } from "./categories";
 import { normalizedName } from "./merge";
+import { fold as foldText } from "@/lib/text/fold";
 
 /**
  * Proposta por link (GUIA-T4, spec G7). O editor cola o link de uma lista de outro veículo; daqui
@@ -63,12 +64,7 @@ const GENERIC_HEADINGS = new Set([
   "autor",
 ]);
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
+const fold = (s: string) => foldText(s).trim();
 
 /** "1. Padaria X – a melhor da cidade" → "Padaria X". */
 export function cleanName(raw: string): string | null {

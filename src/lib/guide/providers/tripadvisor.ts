@@ -3,6 +3,7 @@ import { err, ok, type Result } from "@/lib/result";
 import { categoryBySlug, cuisineBySlug } from "../categories";
 import type { VenueRecord } from "../types";
 import { guideUserAgent, type ProviderError, type VenueProvider, type VenueQuery } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /**
  * TripAdvisor Content API (R38). A chave vem só do ambiente (`TRIPADVISOR_API_KEY`) e entra aqui
@@ -60,12 +61,6 @@ export interface TripadvisorOptions {
   /** Chamado a cada requisição feita (contagem de cota e custo). */
   onCall?: () => void;
 }
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 const num = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(",", ".")) : NaN;

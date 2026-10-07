@@ -5,7 +5,7 @@
  */
 
 import { canAccess, type RoleGrant } from "@/lib/auth/permissions";
-import { STEP_NAMES } from "@/lib/pipeline/types";
+import { STEP_NAMES } from "@/lib/pipeline/step-names";
 
 // ---------------------------------------------------------------------------
 // Fases do ciclo (spec §6.2: 20 etapas em 6 fases)

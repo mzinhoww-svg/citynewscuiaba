@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import type { Result } from "@/lib/result";
@@ -209,7 +210,9 @@ export async function listEventsInRange(
 }
 
 /** Evento pelo slug; `null` quando não existe ou não foi confirmado. */
-export async function getEvent(slug: string): Promise<Result<EventView | null, QueryError>> {
+export const getEvent = cache(readEvent);
+
+async function readEvent(slug: string): Promise<Result<EventView | null, QueryError>> {
   return readPublic(async (db) => {
     const row = await db
       .from("event_listings")

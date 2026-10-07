@@ -2,7 +2,7 @@
  * Opções e regras compartilhadas pelos formulários do painel de fontes (assistente e aba
  * Configuração). Puro: sem estado, sem banco.
  */
-import { FAST_FREQUENCIES } from "@/lib/sources/schema";
+import { FAST_FREQUENCIES } from "@/lib/sources/schema-constants";
 import type { ImagePolicy, Reliability, RepublishPolicy, SourceConfig } from "@/lib/sources/types";
 import { criticalChanges } from "@/lib/sources/critical";
 import {

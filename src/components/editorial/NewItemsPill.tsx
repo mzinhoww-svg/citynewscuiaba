@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { fetchJson } from "@/lib/http/fetch-json";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 
@@ -39,16 +40,13 @@ export function NewItemsPill({
     let alive = true;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(endpoint, { cache: "no-store" });
-        if (!res.ok) return;
-        const body: unknown = await res.json();
-        const n =
-          typeof body === "object" && body !== null && "count" in body ? Number(body.count) : 0;
-        if (alive && Number.isFinite(n)) setCount(n);
-      } catch {
-        // Sem rede: tenta de novo no próximo intervalo.
-      }
+      // Com prazo (item 83): rede lenta ou erro não acumulam consultas; tenta no próximo intervalo.
+      const r = await fetchJson(endpoint);
+      if (!r.ok) return;
+      const body = r.value;
+      const n =
+        typeof body === "object" && body !== null && "count" in body ? Number(body.count) : 0;
+      if (alive && Number.isFinite(n)) setCount(n);
     };
     const timer = window.setInterval(check, intervalMs);
     if (box.current) box.current.dataset.polling = "on";

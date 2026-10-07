@@ -10,6 +10,7 @@ import {
   reloadUntil,
 } from "./helpers/featured";
 import { cronSecret } from "./helpers/pipeline";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * HOT-T3 · Pauta quente vira destaque (spec 2026-10-03-destaques-e-profundidade R8, R10, R11):
@@ -17,7 +18,7 @@ import { cronSecret } from "./helpers/pipeline";
  *    manchete da home com a chamada em texto "Em alta em Cuiabá", estável em dois reloads;
  *  - sem sinal (o pino de 3 h venceu), a manchete volta ao automático, sem a chamada.
  * Dados fictícios preparados com o service role; a pauta quente roda pela rota `frontpage` (com o
- * CRON_SECRET), que aplica os pinos no fim. Só no projeto desktop, com o cadeado dos destaques.
+ * CRON_SECRET), que aplica os pinos no fim. Só no projeto serial-flags, com o cadeado dos destaques.
  */
 
 const h1Text = async (page: Page) =>
@@ -47,7 +48,7 @@ test.describe("pauta quente na home", () => {
   };
 
   test.beforeAll(async ({}, info) => {
-    if (info.project.name !== "desktop") return;
+    if (!mutatesGlobalState(info)) return;
     // O `beforeAll` tem tempo próprio (30 s), fora do `test.setTimeout` do grupo; a espera pelo
     // cadeado dos destaques chega a 240 s quando outro grupo (pauta quente, admin) o segura.
     test.setTimeout(300_000);
@@ -84,7 +85,10 @@ test.describe("pauta quente na home", () => {
   });
 
   test.beforeEach(({}, info) => {
-    test.skip(info.project.name !== "desktop", "mexe nas posições globais: só no projeto desktop");
+    test.skip(
+      !mutatesGlobalState(info),
+      "mexe nas posições globais: só no projeto serial do desktop",
+    );
   });
 
   test("antes do sinal, a manchete é a automática e não há chamada de pauta quente", async ({

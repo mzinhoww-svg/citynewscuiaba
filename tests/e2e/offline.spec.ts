@@ -34,6 +34,23 @@ export async function swReady(page: Page) {
     .toBe(true);
 }
 
+/** `load` e um ocioso do navegador (o mesmo gatilho do registro do SW, src/lib/offline/sw.ts). */
+async function afterLoadIdle(page: Page) {
+  await page.waitForLoadState("load");
+  await page.waitForLoadState("networkidle");
+  await page.evaluate(
+    () =>
+      new Promise<void>((done) => {
+        const w = window as Window & {
+          requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void;
+        };
+        if (typeof w.requestIdleCallback === "function")
+          w.requestIdleCallback(done, { timeout: 2000 });
+        else done();
+      }),
+  );
+}
+
 async function cachedIn(page: Page, cache: string, path: string) {
   return page.evaluate(async ([c, p]) => Boolean(await (await caches.open(c!)).match(p!)), [
     cache,
@@ -122,12 +139,14 @@ test("página de /perfil e resposta de leitor logado não entram no cache", asyn
   });
   await page.goto("/");
   await page.goto("/cidade");
-  await page.waitForTimeout(1500);
-  expect(await cachedIn(page, "cn-paginas-v1", "/")).toBe(false);
+  // A causa: sem a marca `x-cn-offline` o SW não guarda a resposta. Confere a marca primeiro e,
+  // com a navegação seguinte já servida (o SW tratou a da home antes), o cache.
   const marker = await page.request.get("/", {
     headers: { cookie: await page.evaluate(() => document.cookie) },
   });
   expect(marker.headers()["x-cn-offline"]).toBeUndefined();
+  await page.waitForLoadState("networkidle");
+  expect(await cachedIn(page, "cn-paginas-v1", "/")).toBe(false);
 });
 
 test("Limpar leitura offline apaga cn-lidas e cn-paginas e mantém cn-salvos", async ({ page }) => {
@@ -159,7 +178,8 @@ test("SW não é registrado no Estúdio e nenhuma resposta de /estudio entra em 
   await loginAs(context, "helena");
   await page.goto("/estudio");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  await page.waitForTimeout(3000);
+  // O registro, nas páginas públicas, sai depois do `load` e em ocioso: espera a mesma janela.
+  await afterLoadIdle(page);
   expect(
     await page.evaluate(async () => (await navigator.serviceWorker.getRegistrations()).length),
   ).toBe(0);
@@ -167,7 +187,7 @@ test("SW não é registrado no Estúdio e nenhuma resposta de /estudio entra em 
   await page.goto("/");
   await swReady(page);
   await page.goto("/estudio/fila");
-  await page.waitForTimeout(1500);
+  await afterLoadIdle(page);
   const cached = await page.evaluate(async () => {
     for (const name of await caches.keys())
       for (const req of await (await caches.open(name)).keys())

@@ -10,17 +10,7 @@ import { sourceProfileSchema } from "./source-profile";
 import { VerifySchema } from "./verify";
 import { WriteSchema } from "./write";
 
-export {
-  AggregateSummarySchema,
-  AnswerDraftSchema,
-  ClassifySchema,
-  ImageSchema,
-  LocateSchema,
-  ReviewSchema,
-  sourceProfileSchema,
-  VerifySchema,
-  WriteSchema,
-};
+export { ClassifySchema };
 
 /** Schema de saída de cada agente. */
 export const AGENT_SCHEMAS = {

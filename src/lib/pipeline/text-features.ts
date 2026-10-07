@@ -1,12 +1,11 @@
+import { fold } from "@/lib/text/fold";
+
 /**
  * Tokens para impressões digitais de texto (simhash, embedding do provedor falso): sem acento,
  * minúsculos, só letras e números. "Ônibus do CPA!" e "onibus do cpa" geram os mesmos tokens.
  */
 export function textTokens(text: string): string[] {
-  return text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
+  return fold(text)
     .split(/[^\p{L}\p{N}]+/u)
     .filter((t) => t.length > 0);
 }

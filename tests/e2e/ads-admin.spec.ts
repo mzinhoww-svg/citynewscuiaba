@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { expectNoSeriousViolations } from "../a11y/axe";
 import { loginAs, service, tag } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * ADS-T4 · Publicidade no Estúdio: abas Campos, Banners, Relatório e Patrocinados; pausar uma
@@ -13,7 +14,7 @@ const BASE = "/estudio/admin/publicidade";
 test("A07 · campos, banners, pausa, imagem fora do formato e relatório com CSV", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda veiculação: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda veiculação: só no projeto serial do desktop");
   const mark = tag();
   const db = service();
   const adv = await db

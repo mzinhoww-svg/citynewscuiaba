@@ -5,16 +5,20 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
-vi.mock("@/lib/events/use-track", () => ({ useTrack: () => vi.fn() }));
+const track = vi.fn();
+vi.mock("@/lib/events/use-track", () => ({ useTrack: () => track }));
 vi.mock("@/lib/consent/client", () => ({
   useConsent: () => [{ decided: true, measurement: false, personalization: false }],
 }));
 vi.mock("@/lib/anon/use-profile", () => ({
-  useAnonProfile: () => ({ profile: { follows: [] }, act: vi.fn() }),
+  useAnonProfile: () => ({ profile: { follows: [] }, act: anonAct }),
 }));
+const anonAct = vi.fn(async () => ({ ok: false, error: "storage" }));
 
 import { claimInviteSlot, resetInviteSlotsForTests } from "@/lib/app/slot";
 import { firstVisitDecided } from "@/lib/anon/invite-storage";
+import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ToastProvider } from "../ui/Toast";
 import { FirstVisitInvite } from "./FirstVisitInvite";
 
 const TITLE = "Personalize suas fontes e receba uma experiência mais relevante.";
@@ -91,6 +95,35 @@ describe("FirstVisitInvite (item 63)", () => {
     await userEvent.click(screen.getByRole("button", { name: "Concluir" }));
     expect(panel()).toBeNull();
     expect(firstVisitDecided()).toBe(true);
+  });
+
+  it("seguir que falha ao gravar avisa por toast e não registra o seguir (item 88)", async () => {
+    track.mockClear();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          sources: [{ slug: "folha-do-cerrado", name: "Folha do Cerrado", group: "local" }],
+        }),
+      }),
+    );
+    render(
+      <ToastProvider>
+        <FirstVisitInvite placement="article-end" />
+      </ToastProvider>,
+    );
+    await screen.findByRole("complementary", { name: TITLE });
+    await userEvent.click(screen.getByRole("button", { name: "Escolher fontes agora" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Seguir Folha do Cerrado" }));
+    expect(await screen.findByText(ANON_TEXT.actFailed)).toBeVisible();
+    expect(anonAct).toHaveBeenCalledTimes(1);
+    expect(track).not.toHaveBeenCalledWith("source_followed", expect.anything(), expect.anything());
+    // O seletor continua aberto e a fonte segue sem marcar.
+    expect(screen.getByRole("button", { name: "Seguir Folha do Cerrado" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("um convite por vez: com o banner de consentimento na vaga, não aparece", async () => {

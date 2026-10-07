@@ -1,3 +1,5 @@
+import { TIME_ZONE } from "@/lib/format/date";
+
 /**
  * Sinal fraco e leitura qualificada (spec §7.2, tracking-plan §3).
  *
@@ -41,7 +43,7 @@ export function isIsolatedInteraction(interactionsAt: string[], now: Date): bool
 }
 
 const cuiabaDay = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",

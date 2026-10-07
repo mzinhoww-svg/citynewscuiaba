@@ -2,6 +2,7 @@ import "server-only";
 import { createServerClient as createSsrServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import { fetchWithTimeout } from "@/lib/http/fetch-with-timeout";
 import type { DbClient } from "./browser";
 import { publicSupabaseEnv, serviceSupabaseEnv } from "./env";
 import type { Database } from "./types";
@@ -19,6 +20,7 @@ export async function createServerClient(): Promise<DbClient> {
   const { url, anonKey } = publicSupabaseEnv();
   const cookieStore = await cookies();
   return createSsrServerClient<Database>(url, anonKey, {
+    global: { fetch: fetchWithTimeout(DB_FETCH_TIMEOUT_MS) },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (toSet) => {
@@ -32,8 +34,18 @@ export async function createServerClient(): Promise<DbClient> {
   });
 }
 
-/** Tempo máximo de uma requisição ao Supabase na leitura pública (build e ISR não travam). */
-const PUBLIC_FETCH_TIMEOUT_MS = 8000;
+/**
+ * Tempo máximo de uma requisição ao Supabase nos clientes de leitor e público (item 82): build,
+ * ISR e páginas não travam com o banco lento; a falha vira o estado de erro da tela.
+ */
+export const DB_FETCH_TIMEOUT_MS = 8000;
+
+/**
+ * Prazo do service role (cron, pipeline e rotas de servidor). É por requisição, não por lote:
+ * os lotes longos (ingestão, venues com `maxDuration` 300) fazem muitas chamadas curtas. 20 s
+ * cobre as RPCs mais pesadas e o upload de imagem ao Storage com folga.
+ */
+export const SERVICE_FETCH_TIMEOUT_MS = 20_000;
 
 /**
  * Cliente anônimo sem sessão para as páginas públicas com ISR (P1). Não lê cookies, então não
@@ -45,12 +57,12 @@ export function createPublicClient(cache?: PublicCache): DbClient {
   return createClient<Database>(url, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: {
-      fetch: (input, init) =>
+      fetch: fetchWithTimeout(DB_FETCH_TIMEOUT_MS, (input, init) =>
         fetch(input, {
           ...init,
-          signal: init?.signal ?? AbortSignal.timeout(PUBLIC_FETCH_TIMEOUT_MS),
           ...(cache ? { next: { tags: cache.tags, revalidate: cache.revalidate } } : {}),
         }),
+      ),
     },
   });
 }
@@ -69,5 +81,6 @@ export function createServiceClient(): DbClient {
   const { url, serviceRoleKey } = serviceSupabaseEnv();
   return createClient<Database>(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: fetchWithTimeout(SERVICE_FETCH_TIMEOUT_MS) },
   });
 }

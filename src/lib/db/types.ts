@@ -5284,6 +5284,12 @@ export type Database = {
       forced_publish_batch: { Args: { p_batch: number; p_job: string }; Returns: Json };
       gen_random_uuid: { Args: Record<PropertyKey, never>; Returns: string };
       gen_salt: { Args: { "": string }; Returns: string };
+      guide_venue_mentions: {
+        Args: { p_ids: string[]; p_phrases: string[] };
+        Returns: { mentions: number; venue_id: string }[];
+      };
+      guide_venue_slugs: { Args: { p_bases: string[] }; Returns: string[] };
+      guide_venues_save: { Args: { p_inserts: Json; p_updates: Json }; Returns: Json };
       hamming64: { Args: { a: number; b: number }; Returns: number };
       has_any_role: {
         Args: { roles: Database["public"]["Enums"]["app_role"][]; uid: string };
@@ -5402,6 +5408,7 @@ export type Database = {
       };
       push_approve: { Args: { p_send: string }; Returns: string };
       push_audience_estimate: { Args: { p_audience: Json; p_kind: string }; Returns: number };
+      push_audience_estimates: { Args: { p_items: Json }; Returns: number[] };
       push_audit: {
         Args: { p_action: string; p_details?: Json; p_object: string };
         Returns: undefined;

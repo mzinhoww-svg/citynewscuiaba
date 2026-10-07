@@ -4,6 +4,7 @@ import { listCriteriaText } from "./criteria";
 import { rankList, type ScoredVenue } from "./rank";
 import { DEFAULT_WEIGHTS, scoreVenue, type VenueSignals, type Weights } from "./score";
 import type { DataSource, GuideItem, GuideTemplate, ListProposal, Venue } from "./types";
+import { fold as foldText } from "@/lib/text/fold";
 
 /**
  * Motor de propostas (GUIA-T4): monta a lista de um modelo do catálogo ou de lugares conferidos
@@ -11,12 +12,7 @@ import type { DataSource, GuideItem, GuideTemplate, ListProposal, Venue } from "
  * só de `scoreVenue`; nada do portal de origem de um link entra na proposta além dos nomes.
  */
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
+const fold = (s: string) => foldText(s).trim();
 
 export const CITY = "Cuiabá";
 

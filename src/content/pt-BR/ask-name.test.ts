@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ASK, ASK_NAME } from "./ask";
 import { EXPLORE } from "./explore";
-import { FOOTER_NAV } from "./nav";
+import { FOOTER_NAV } from "./nav-footer";
 import { SEARCH } from "./search";
 
 /** UX-W4-T3 · item 66 (P-08): um nome só para o Pergunte, com entrada no Explorar e no rodapé. */

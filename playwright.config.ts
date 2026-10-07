@@ -1,6 +1,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 import webpush from "web-push";
+import {
+  SERIAL_MOBILE_PROJECT,
+  SERIAL_PROJECT,
+  SERIAL_SPECS,
+  SERIAL_WEBKIT_PROJECT,
+} from "./tests/e2e/projects";
 
 const isCI = Boolean(process.env.CI);
 // Chromium: deixa `context.route`/`setOffline` alcançarem o `fetch` do service worker (leitura
@@ -52,6 +58,21 @@ const FIXTURE_SPECS = [
  * só o spec de fixtures sem as suítes dos outros projetos: `--no-deps`).
  */
 const BROWSER_PROJECTS = ["desktop", "mobile", ...(isCI ? ["mobile-webkit"] : [])];
+/**
+ * Specs que mudam estado global (flags, regras, destaques, configurações; tests/e2e/projects.ts)
+ * ficam fora dos projetos paralelos e rodam em `serial-flags*`: um worker, sem paralelismo, depois
+ * dos paralelos (localmente; no CI cada um tem job e banco próprios, com `--no-deps`).
+ */
+const PARALLEL_IGNORE = [...FIXTURE_SPECS, ...SERIAL_SPECS];
+const DESKTOP = { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } };
+const MOBILE = {
+  ...devices["Desktop Chrome"],
+  viewport: { width: 390, height: 844 },
+  isMobile: true,
+  hasTouch: true,
+};
+const WEBKIT = { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } };
+const serial = { testMatch: SERIAL_SPECS, fullyParallel: false, workers: 1 };
 
 export default defineConfig({
   testDir: "tests",
@@ -68,21 +89,8 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    {
-      name: "desktop",
-      testIgnore: FIXTURE_SPECS,
-      use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } },
-    },
-    {
-      name: "mobile",
-      testIgnore: FIXTURE_SPECS,
-      use: {
-        ...devices["Desktop Chrome"],
-        viewport: { width: 390, height: 844 },
-        isMobile: true,
-        hasTouch: true,
-      },
-    },
+    { name: "desktop", testIgnore: PARALLEL_IGNORE, use: DESKTOP },
+    { name: "mobile", testIgnore: PARALLEL_IGNORE, use: MOBILE },
     {
       // Contra o servidor de fixtures (porta +1); os testes mudam o viewport quando precisam.
       name: "fixtures",
@@ -94,12 +102,17 @@ export default defineConfig({
         baseURL: `http://localhost:${fixturesPort}`,
       },
     },
+    ...(isCI ? [{ name: "mobile-webkit", testIgnore: PARALLEL_IGNORE, use: WEBKIT }] : []),
+    // Estado global em série: só o desktop muda dado; os outros conferem leitura, tela e axe.
+    { name: SERIAL_PROJECT, ...serial, dependencies: BROWSER_PROJECTS, use: DESKTOP },
+    { name: SERIAL_MOBILE_PROJECT, ...serial, dependencies: [SERIAL_PROJECT], use: MOBILE },
     ...(isCI
       ? [
           {
-            name: "mobile-webkit",
-            testIgnore: FIXTURE_SPECS,
-            use: { ...devices["iPhone 13"], viewport: { width: 390, height: 844 } },
+            name: SERIAL_WEBKIT_PROJECT,
+            ...serial,
+            dependencies: [SERIAL_MOBILE_PROJECT],
+            use: WEBKIT,
           },
         ]
       : []),

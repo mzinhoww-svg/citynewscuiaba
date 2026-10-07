@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { nextFrames } from "./helpers/wait";
 
 /*
  * Convite de instalação C07/C08 e página /app (spec 2026-09-28 §7.2, §7.3, §7.9; critérios 7,
@@ -15,6 +16,7 @@ const fakeBeforeInstallPrompt = `(() => {
     ev.prompt = () => Promise.resolve();
     ev.userChoice = Promise.resolve({ outcome: window.__cnInstallChoice || "dismissed" });
     window.dispatchEvent(ev);
+    window.__cnBipFired = (window.__cnBipFired || 0) + 1;
   };
   window.addEventListener("load", () => { setTimeout(fire, 800); setTimeout(fire, 2500); });
 })();`;
@@ -49,6 +51,20 @@ async function seedState(page: Page, patch: Partial<AppState>) {
   }, base);
 }
 
+/**
+ * Espera os dois `beforeinstallprompt` sintéticos terem disparado (a faixa decide na hora) e a
+ * página assentar: só então "a faixa não apareceu" é uma resposta, não pressa.
+ */
+async function afterInstallPrompts(page: Page) {
+  await page.waitForFunction(
+    () => (window as unknown as { __cnBipFired?: number }).__cnBipFired === 2,
+    undefined,
+    { timeout: 10_000 },
+  );
+  await page.waitForLoadState("networkidle");
+  await nextFrames(page);
+}
+
 async function readState(page: Page): Promise<AppState> {
   return page.evaluate(() => JSON.parse(localStorage.getItem("cn_app") ?? "{}"));
 }
@@ -71,7 +87,7 @@ test("faixa na 2ª visita com beforeinstallprompt sintético; Agora não some 14
   await page.addInitScript(fakeBeforeInstallPrompt);
   // 1ª visita: nada.
   await page.goto("/");
-  await page.waitForTimeout(3000);
+  await afterInstallPrompts(page);
   await expect(page.getByRole("region", { name: REGION })).toHaveCount(0);
   expect((await readState(page)).visits).toBe(1);
   // 2ª visita (aba nova, outro dia).
@@ -92,7 +108,7 @@ test("faixa na 2ª visita com beforeinstallprompt sintético; Agora não some 14
   expect(Date.parse(after.install.silencedUntil!)).toBeGreaterThan(Date.now() + 13 * 86_400_000);
   // 13 dias depois: ainda silenciado.
   await page.goto("/cidade");
-  await page.waitForTimeout(2500);
+  await afterInstallPrompts(page);
   await expect(page.getByRole("region", { name: REGION })).toHaveCount(0);
   // 15 dias depois: volta.
   await patchState(
@@ -122,7 +138,7 @@ test("faixa na 2ª visita com beforeinstallprompt sintético; Agora não some 14
     "s.install.silencedUntil = new Date(Date.now() - 86400000).toISOString();",
   );
   await page.goto("/");
-  await page.waitForTimeout(3000);
+  await afterInstallPrompts(page);
   await expect(page.getByRole("region", { name: REGION })).toHaveCount(0);
   await expect(
     page.getByRole("contentinfo").getByRole("link", { name: "Baixar o app" }),
@@ -134,7 +150,7 @@ test("oculta com display-mode standalone emulado", async ({ page }) => {
   await page.addInitScript(standaloneMedia);
   await seedState(page, { visits: 5 });
   await page.goto("/");
-  await page.waitForTimeout(3000);
+  await afterInstallPrompts(page);
   await expect(page.getByRole("region", { name: REGION })).toHaveCount(0);
 });
 
@@ -144,7 +160,7 @@ test("nunca junto do banner de consentimento", async ({ page, context }) => {
   await seedState(page, { visits: 5 });
   await page.goto("/");
   await expect(page.getByRole("region", { name: "Sua privacidade" })).toBeVisible();
-  await page.waitForTimeout(3000);
+  await afterInstallPrompts(page);
   await expect(page.getByRole("region", { name: REGION })).toHaveCount(0);
   // Depois da escolha, em outra navegação, a faixa pode aparecer.
   await page.getByRole("button", { name: "Só o necessário" }).click();
@@ -220,6 +236,8 @@ test("?origem=app em standalone registra app_installed e limpa a URL", async ({
   expect((await readState(page)).install.installed).toBe(true);
   // Segunda abertura não registra de novo.
   await page.goto("/?origem=app");
-  await page.waitForTimeout(2000);
+  // O parâmetro sai da URL antes da decisão de registrar: depois disso, a página assenta.
+  await expect.poll(() => new URL(page.url()).search, { timeout: 10_000 }).toBe("");
+  await page.waitForLoadState("networkidle");
   expect(events.filter((e) => e.includes('"app_installed"'))).toHaveLength(1);
 });

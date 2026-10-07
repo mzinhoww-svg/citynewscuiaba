@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { SECTIONS } from "@/content/pt-BR/nav";
 import type { DbClient } from "@/lib/db/client";
 import { groupRefs, parseContentRef } from "@/lib/collections/refs";
@@ -137,7 +138,9 @@ async function loadEntries(db: DbClient, refs: string[]): Promise<CollectionEntr
 }
 
 /** Coleção editorial (P08) com capa, curador e itens na ordem. Inexistente = null (404). */
-export async function getCollectionBySlug(
+export const getCollectionBySlug = cache(readCollectionBySlug);
+
+async function readCollectionBySlug(
   slug: string,
 ): Promise<Result<CollectionDetail | null, QueryError>> {
   return readPublic(

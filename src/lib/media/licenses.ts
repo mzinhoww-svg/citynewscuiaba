@@ -1,5 +1,6 @@
 import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { err, ok, type Result } from "@/lib/result";
+import { fold as foldText } from "@/lib/text/fold";
 
 export interface LicensedAsset {
   id: string;
@@ -67,12 +68,7 @@ const FORBIDDEN_TAGS = [
   "homicidio",
   "assassinato",
 ];
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .replace(/\s+/g, "-");
+const fold = (s: string) => foldText(s).replace(/\s+/g, "-");
 
 /**
  * Pode gerar ilustração para esta matéria? Nunca em Segurança, tema sensível ou etiqueta de

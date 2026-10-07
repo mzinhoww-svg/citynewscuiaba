@@ -214,6 +214,22 @@ async function namesOf(db: DbClient, ids: (string | null)[]): Promise<Map<string
   return new Map(rows.map((r) => [r.id, r.display_name]));
 }
 
+/**
+ * Alcance estimado dos pedidos que ainda vão sair, numa chamada só (antes, uma por pedido).
+ * Sem permissão ou com falha, o alcance fica vazio (null), como antes.
+ */
+async function audienceEstimates(db: DbClient, rows: SendRow[]): Promise<(number | null)[]> {
+  const items = rows.map((r) =>
+    r.status === "pending_approval" || r.status === "scheduled" || r.status === "queued"
+      ? { kind: r.kind, audience: r.audience }
+      : null,
+  );
+  if (items.every((i) => i === null)) return rows.map(() => null);
+  const { data, error } = await db.rpc("push_audience_estimates", { p_items: items });
+  if (error || !Array.isArray(data)) return rows.map(() => null);
+  return rows.map((_, i) => (typeof data[i] === "number" ? data[i] : null));
+}
+
 async function articlesOf(db: DbClient, ids: string[]): Promise<Map<string, ArticleRef>> {
   const uuids = [...new Set(ids)];
   if (uuids.length === 0) return new Map();
@@ -335,17 +351,7 @@ export async function queueRows(filter: QueueFilter = {}): Promise<Result<QueueR
       ),
       sectionNames(db),
     ]);
-    const estimates = await Promise.all(
-      rows.map(async (r) => {
-        if (r.status !== "pending_approval" && r.status !== "scheduled" && r.status !== "queued")
-          return null;
-        const { data } = await db.rpc("push_audience_estimate", {
-          p_kind: r.kind,
-          p_audience: r.audience,
-        });
-        return typeof data === "number" ? data : null;
-      }),
-    );
+    const estimates = await audienceEstimates(db, rows);
     return rows.map((r, i) => {
       const kind = asKind(r.kind);
       const audience = parseAudience(r.audience);

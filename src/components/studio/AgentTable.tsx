@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { AGENTS_TEXT as T, formatBrl } from "@/content/pt-BR/ai-prompts";
 import { agentName } from "@/content/pt-BR/ai-control";
-import { budgetsValid } from "@/lib/ai/prompts";
+import { budgetsValid } from "@/lib/ai/prompts-constants";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";

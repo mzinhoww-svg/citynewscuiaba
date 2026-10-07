@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { DbClient } from "@/lib/db/client";
 import {
   computeSignals,
@@ -14,6 +15,7 @@ import { fetchAggregated } from "./aggregated";
 import { assignVariant, experimentVersion } from "@/lib/ranking/experiments";
 import { many, one, readPublic, readService } from "./run";
 import type { AggregatedView, QueryError, SourceEntry } from "./types";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /** Fontes que o leitor pode ver e seguir: coletando ou degradadas (pausada e bloqueada, não). */
 const VISIBLE_STATUSES = ["active", "degraded"] as const;
@@ -43,7 +45,7 @@ export interface SourceSignalsQuery {
 }
 
 const cuiabaDay = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -285,9 +287,9 @@ function defaultFrequency(value: unknown): number {
     : FALLBACK_DEFAULT_FREQUENCY;
 }
 
-export async function getSourceDetail(
-  slug: string,
-): Promise<Result<SourceDetail | null, QueryError>> {
+export const getSourceDetail = cache(readSourceDetail);
+
+async function readSourceDetail(slug: string): Promise<Result<SourceDetail | null, QueryError>> {
   return readService(async (db) => {
     const [all, meta, health, defaults] = await Promise.all([
       fetchEntries(db, { window: "7d" }),

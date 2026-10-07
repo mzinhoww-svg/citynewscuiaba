@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SAVE_TEXT } from "@/content/pt-BR/favorites";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { getAnonStore } from "@/lib/anon/store";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { useTrack } from "@/lib/events/use-track";
 import { cacheSaved } from "@/lib/offline/sw";
 import { Button } from "../ui/Button";
+import { useToast } from "../ui/Toast";
 
 export interface SaveButtonProps {
   /** `article:<id>`. */
@@ -49,6 +51,7 @@ export function SaveButton({
 }: SaveButtonProps) {
   const { profile, ready, act } = useAnonProfile();
   const send = useTrack();
+  const toast = useToast();
   const [justSaved, setJustSaved] = useState(false);
   const saved = profile?.saved.some((s) => s.ref === contentRef) ?? false;
   const savedRef = useRef(saved);
@@ -78,18 +81,26 @@ export function SaveButton({
     };
   }, [act, contentRef, targetId]);
 
+  const failed = () => toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
   const toggle = () => {
     if (saved) {
       setJustSaved(false);
-      void act((s) => s.unsave(contentRef));
+      void act((s) => s.unsave(contentRef)).then((r) => {
+        if (!r.ok) failed();
+      });
       return;
     }
-    void act((s) => s.save(contentRef, 0, { title, href, section })).then(async () => {
+    void act((s) => s.save(contentRef, 0, { title, href, section })).then(async (r) => {
+      if (!r.ok) return failed();
       setJustSaved(true);
       void send("article_saved", { surface: "materia" }, { contentId: contentRef });
       requestLoginInvite("save");
-      const p = await getAnonStore().get();
-      void cacheSaved(p.saved.flatMap((s) => (s.href ? [s.href] : [])));
+      try {
+        const p = await getAnonStore().get();
+        void cacheSaved(p.saved.flatMap((s) => (s.href ? [s.href] : [])));
+      } catch {
+        // Cópia offline é bônus: o salvo já está no perfil.
+      }
     });
   };
 

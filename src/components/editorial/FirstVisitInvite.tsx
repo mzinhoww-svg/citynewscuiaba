@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { FIRST_VISIT_TEXT as T } from "@/content/pt-BR/account";
+import { ANON_TEXT } from "@/content/pt-BR/privacy";
 import {
   QUALIFIED_READ_EVENT,
   decideFirstVisit,
@@ -18,6 +19,7 @@ import { hasAuthCookie } from "@/lib/auth/cookie";
 import { useConsent } from "@/lib/consent/client";
 import { useTrack } from "@/lib/events/use-track";
 import { Button } from "../ui/Button";
+import { useToast } from "../ui/Toast";
 import { FollowButton } from "./SourceCard";
 
 type Pick = { slug: string; name: string; group: OnboardingGroup };
@@ -38,6 +40,7 @@ export function FirstVisitInvite({ placement }: { placement: FirstVisitPlacement
   const [consent] = useConsent();
   const { profile, act } = useAnonProfile();
   const send = useTrack();
+  const toast = useToast();
   const router = useRouter();
   const [reads, setReads] = useState(0);
   const [closed, setClosed] = useState(true);
@@ -139,8 +142,11 @@ export function FirstVisitInvite({ placement }: { placement: FirstVisitPlacement
                             next
                               ? store.follow("source", slug, s.name)
                               : store.unfollow("source", slug),
-                          ).then(() =>
-                            next
+                          ).then((r) => {
+                            // Falha ao gravar (item 88): avisa e não registra como seguida.
+                            if (!r.ok)
+                              return toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+                            void (next
                               ? send(
                                   "source_followed",
                                   { surface: "fontes", fromRecommendation: true },
@@ -150,8 +156,8 @@ export function FirstVisitInvite({ placement }: { placement: FirstVisitPlacement
                                   "source_unfollowed",
                                   { surface: "fontes" },
                                   { sourceId: slug },
-                                ),
-                          )
+                                ));
+                          })
                         }
                       />
                     </li>

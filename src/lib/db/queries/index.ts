@@ -1,30 +1,18 @@
 /** Leituras públicas do portal (P1). Todas devolvem `Result<_, QueryError>` e nunca lançam. */
 export {
-  ARTICLE_REVALIDATE,
-  articleHref,
-  articleTag,
   findPublicArticleId,
   getArticleBySlug,
   getArticleHistory,
   getArticleUpdatedAt,
-  parseBody,
 } from "./articles";
-export { listAggregated, type AggregatedFilters } from "./aggregated";
+export { listAggregated } from "./aggregated";
 export { listAlertItems } from "./alerts";
-export { getEvent, listEvents, eventHref, type EventFilters } from "./events";
-export { getHomeData, HOME_SECTION_BLOCKS } from "./home";
-export { getFeatured, type FeaturedResult } from "./featured";
+export { getEvent, listEvents } from "./events";
+export { getHomeData } from "./home";
 export { getCollectionBySlug, getExploreData } from "./explore";
 export { listCorrections } from "./corrections";
 export { listArticleEntries, listNewsEntries, listPageEntries, listTopicEntries } from "./seo";
-export {
-  countSectionSince,
-  getSectionRef,
-  listSection,
-  SECTION_PAGE_SIZE,
-  type SectionFilters,
-  type SectionPage,
-} from "./sections";
+export { countSectionSince, getSectionRef, listSection, type SectionPage } from "./sections";
 export {
   getRecConfig,
   getSource,
@@ -32,15 +20,6 @@ export {
   type SourceDetail,
   getSourceSignals,
   listSourceItems,
-  SOURCE_LOCALITIES,
-  type SourceLocality,
-  type SourceSignalsQuery,
 } from "./sources";
-export {
-  getTopicBySlug,
-  getTopicTitle,
-  listTopics,
-  topicHref,
-  type TopicListFilters,
-} from "./topics";
+export { getTopicBySlug, getTopicTitle, listTopics } from "./topics";
 export type * from "./types";

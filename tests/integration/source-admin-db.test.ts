@@ -3,6 +3,7 @@
 // registrada (A-128: pode ser de quem pediu), via rápida, versão
 // otimista, auditoria e runs `cron`/`manual`/`fast` (spec docs/superpowers/specs/2026-09-27-painel-de-fontes.md).
 // Pilha local sem Docker (A-017): usuários e fontes do seed, sem rede.
+import { TIME_ZONE } from "@/lib/format/date";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -681,7 +682,7 @@ describe("peek_rate_limit e record_source_fetch (só service_role)", () => {
 
   it("record_source_fetch soma o dia de forma idempotente", async () => {
     const id = (await sourceBySlug("mt-agora")).id;
-    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Cuiaba" }).format(new Date());
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
     await rpc("record_source_fetch", {
       p_source: id,
       p_outcome: "ok",

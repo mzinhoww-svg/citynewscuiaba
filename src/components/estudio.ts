@@ -59,7 +59,9 @@ export {
   type OriginField,
   type SaveReply,
 } from "./studio/ArticleEditor";
-export { RichEditor, type RichEditorProps } from "./studio/editor/Editor";
+// Editor rico sob demanda (item 85): o Tiptap baixa só quando o editor monta.
+export { RichEditor, RichEditorSkeleton } from "./studio/editor/LazyRichEditor";
+export type { RichEditorProps } from "./studio/editor/Editor";
 export { EditorWithPublish, type EditorWithPublishProps } from "./studio/editor/EditorWithPublish";
 export {
   VersionCompare,
