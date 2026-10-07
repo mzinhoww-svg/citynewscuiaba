@@ -1,6 +1,7 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-07 — plano de melhorias de UX, UI e técnica concluído (W1 a W5, itens 1–93). Relatório: `docs/reports/melhorias-ux-ui-tecnica.md`.
+**Última atualização:** 2026-10-07 — Guia com Google Places no ar (#65, #67; 0161 e 0180 em produção), esperando a ativação da API pelo dono (B-031).
+**Atualização anterior:** 2026-10-07 — plano de melhorias de UX, UI e técnica concluído (W1 a W5, itens 1–93). Relatório: `docs/reports/melhorias-ux-ui-tecnica.md`.
 **Atualizado por:** Claude Code
 
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
@@ -60,6 +61,8 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 - **Imagem gerada por IA:** sem gerador configurado (A-037, A-038).
 
 ## Decisão do dono necessária
+
+- **Guia (B-031):** ativar a Places API (New) no projeto 252656977141 do Google Cloud. O código do Google Places (#65, #67) e as migrations 0161 e 0180 já estão em produção; falta só a API responder.
 
 - **Vercel:** o plano gratuito tem limite de 100 deploys por dia, e as ondas o atingiram. Subir de plano é gasto.
 - **`/principios-editoriais`:** o texto de "Temas sensíveis" contradiz as regras v3 (A-152).
