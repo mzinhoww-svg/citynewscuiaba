@@ -316,6 +316,11 @@ describe("descoberta e listas", () => {
     expect(screen.getByRole("button", { name: /Idioma/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Privacidade/ })).toBeInTheDocument();
   });
+  it("ListRow mostra a descrição embaixo do rótulo, dentro do mesmo link", () => {
+    render(<ListRow label="Favoritos" description="2 matérias salvas" href="/favoritos" />);
+    const link = screen.getByRole("link", { name: /Favoritos/ });
+    expect(within(link).getByText("2 matérias salvas")).toBeInTheDocument();
+  });
   it("ArticleActionBar tem as 5 ações de R8, sem curtidas nem comentários", async () => {
     const onUseful = vi.fn();
     render(<ArticleActionBar saved useful={false} onUseful={onUseful} />);

@@ -1049,5 +1049,14 @@
     },
     "decision": "A-133",
     "pr": "mzinhoww-svg/citynewscuiaba#43"
+  },
+  "perfil": {
+    "decision": "A-154",
+    "tasks": {
+      "UI-PERFIL": {
+        "status": "done"
+      }
+    },
+    "note": "Perfil como lista de ajustes; /perfil/seguranca e /perfil/excluir; e2e de conta no CI"
   }
 }

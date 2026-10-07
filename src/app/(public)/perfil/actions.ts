@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { NEIGHBORHOODS } from "@/content/pt-BR/neighborhoods";
 import type { DeleteState, ExportResult, ProfileState } from "@/lib/auth/form-state";
@@ -25,15 +26,20 @@ export async function updateProfileAction(
     .from("profiles")
     .update({ display_name: name, neighborhood: hood || null })
     .eq("id", reader.user.id);
-  return error ? { status: "unavailable" } : { status: "saved" };
+  if (error) return { status: "unavailable" };
+  revalidatePath("/perfil");
+  return { status: "saved" };
 }
 
-/** Sair deste navegador ou de todos os dispositivos (revoga todas as sessões da conta). */
+/**
+ * Sair deste navegador, ou encerrar as outras sessões da conta mantendo esta (para quem entrou
+ * num aparelho que não é seu).
+ */
 export async function signOutAction(form: FormData): Promise<void> {
   const reader = await getReader();
-  if (reader)
-    await reader.db.auth.signOut({ scope: form.get("scope") === "global" ? "global" : "local" });
-  redirect("/perfil?saiu=1");
+  const others = form.get("scope") === "others";
+  if (reader) await reader.db.auth.signOut({ scope: others ? "others" : "local" });
+  redirect(others ? "/perfil/seguranca?sessoes=encerradas" : "/perfil?saiu=1");
 }
 
 /** Exportar dados (LGPD): o que a conta guarda, em JSON, só para o próprio leitor. */

@@ -13,6 +13,8 @@
 
 > 2026-10-04 · Telas públicas no celular (A-152): faixa preta do Safari sob o cabeçalho (máscara da fileira de editorias) removida; `[PREENCHER]` fora das telas públicas; Favoritos e Alertas com o conteúdo antes do convite; Guia vazio mostra as matérias recentes. Pendente do dono: texto de "Temas sensíveis" em /principios-editoriais contradiz as regras v3.
 
+> 2026-10-04 · UI-PERFIL (A-154): `/perfil` redesenhado como lista de ajustes; `/perfil/seguranca` (senha e sessões, "Sair dos outros aparelhos") e `/perfil/excluir`; letreiro fora de `/perfil`. Lint, typecheck, 3029 testes de unidade e build verdes; axe 0 violações em `/perfil` anônimo (390 px, claro e escuro, e 1280 px). E2E e integração de conta rodam no CI (sem Supabase local aqui).
+
 > 2026-10-04 · Filtros recolhíveis (A-140): `CollapsibleFilters` em todos os filtros do portal e do Estúdio; recolhido no celular, aberto no desktop, contagem de ativos e "Limpar" no cabeçalho.
 
 > 2026-10-04 · Sino do Estúdio: cada notificação mostra quando chegou ("há 12 min", "há 3 h"; depois de 24 h, data e hora), com a data completa no `title`. 2808 testes unitários e build verdes.
