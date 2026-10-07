@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components";
-import { SOURCES_PAGE } from "@/content/pt-BR/sources";
+import { SOURCES_PAGE } from "@/content/pt-BR/sources-list";
 
 /** Esqueleto de Fontes em destaque enquanto os sinais chegam (estado loading). */
 export default function Loading() {

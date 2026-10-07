@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { DOC_TEXT, isFilled, RELATED_LINKS, type DocSection } from "@/content/pt-BR/institutional";
 import { TagLink } from "../ui/TagLink";
 import { PAGE_CONTAINER, PageHeader } from "./PageHeader";
+import { fold } from "@/lib/text/fold";
 
 export interface DocPageProps {
   title: string;
@@ -38,10 +39,7 @@ export function filledSections(sections: readonly DocSection[]): DocSection[] {
 
 /** Âncora estável da seção: sem acento, minúscula, com hífens. */
 function anchor(title: string): string {
-  const slug = title
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
+  const slug = fold(title)
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `secao-${slug || "texto"}`;

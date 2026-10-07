@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { CONSENT_TEXT } from "@/content/pt-BR/privacy-consent";
 import { LOAD_FAILED } from "@/content/pt-BR/system-min";
 import { useInviteSlot } from "@/lib/app/slot";
 import { useConsent, useConsentKnown } from "@/lib/consent/client";

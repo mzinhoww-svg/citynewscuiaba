@@ -1,4 +1,5 @@
 import { test, type Page } from "@playwright/test";
+import { nextFrames } from "../e2e/helpers/wait";
 import { loginAs, type Staff } from "../e2e/studio";
 
 /*
@@ -15,7 +16,7 @@ const MATERIA = "prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 async function shot(page: Page, group: string, name: string, fullPage = false) {
   const w = page.viewportSize()?.width ?? 0;
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(600);
+  await nextFrames(page, 2);
   await page.screenshot({
     path: `docs/vitrine/${group}-${name}-${w}.png`,
     fullPage,
@@ -58,8 +59,14 @@ test("portal · pergunte (com fontes)", async ({ page }) => {
   const box = page.getByRole("textbox").first();
   if (await box.isVisible().catch(() => false)) {
     await box.fill("O que muda no transporte coletivo do CPA?");
+    // A resposta chega por /api/ask: espera ela terminar (sem resposta, a captura sai como está).
+    const answered = page
+      .waitForResponse((r) => r.url().includes("/api/ask"), { timeout: 30_000 })
+      .then((r) => r.finished())
+      .catch(() => null);
     await box.press("Enter").catch(() => {});
-    await page.waitForTimeout(4000);
+    await answered;
+    await page.waitForLoadState("networkidle").catch(() => {});
   }
   await shot(page, "portal", "13-pergunte");
 });

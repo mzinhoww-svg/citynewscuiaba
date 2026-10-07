@@ -1,4 +1,5 @@
 import type { ImageIssue, MediaChoiceKind } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /** Lado maior mínimo. A spec §6.5 pedia 1200; o dono relaxou para 600 em 03/10/2026. */
 export const MIN_LONG_SIDE_PX = 600;
@@ -31,12 +32,6 @@ export function checkImage(
   if (img.sensational) issues.push("sensational");
   return { ok: issues.length === 0, issues };
 }
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /**
  * Pista de marca d'água pela URL (bancos de imagem e arquivos de prévia). Não há detector por

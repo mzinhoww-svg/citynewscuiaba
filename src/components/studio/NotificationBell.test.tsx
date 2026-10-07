@@ -196,6 +196,28 @@ describe("NotificationBell", () => {
     expect(await screen.findByText("Título a")).toBeVisible();
   });
 
+  it("servidor que não responde vira erro no prazo, sem ficar carregando para sempre", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_r, reject) =>
+            init?.signal?.addEventListener("abort", () => reject(init.signal?.reason)),
+          ),
+      ),
+    );
+    render(<NotificationBell pollMs={600_000} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_100);
+    });
+    await act(async () => screen.getByRole("button", { name: /Notificações/ }).click());
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Não foi possível carregar as notificações",
+    );
+    vi.useRealTimers();
+  });
+
   it("falha ao marcar volta ao estado anterior", async () => {
     vi.stubGlobal(
       "fetch",

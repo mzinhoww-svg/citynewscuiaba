@@ -1,4 +1,4 @@
-import { ASK_NAME } from "./ask";
+import { ASK_NAME } from "./ask-name";
 import type { SearchOrigin, SearchPeriod, SearchType } from "@/lib/search/query";
 
 /** Busca tradicional (docs/screens.md P12). */

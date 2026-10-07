@@ -11,7 +11,14 @@ import {
   type Slot,
   type SlotKey,
 } from "@/lib/featured";
-import { ARTICLE_COLUMNS, PUBLIC_STATUSES, fetchRecentArticles, summarize } from "./articles";
+import {
+  ARTICLE_COLUMNS,
+  ARTICLE_COLUMNS_HYDRATED,
+  PUBLIC_STATUSES,
+  fetchRecentArticles,
+  summarize,
+  type SummarizableRow,
+} from "./articles";
 import { many } from "./run";
 import type { ArticleSummary } from "./types";
 
@@ -264,4 +271,108 @@ export async function getFeatured(
   } catch (e) {
     return { ...EMPTY_FEATURED, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+/**
+ * Várias posições lidas de uma vez (UX-W5-T2): uma leitura de `featured_slots` e uma de
+ * `featured_items` (com a matéria fixada embutida), em paralelo. Quem chama resume as matérias
+ * fixadas fora da lista que já tem (`pinnedRows`) junto com a própria lista e resolve cada posição
+ * em memória com `resolve`, encadeando as exclusões (a manchete sai dos destaques). Não lança:
+ * com a leitura falhando, `resolve` devolve vazio com o erro e a página cai no comportamento
+ * anterior.
+ */
+export interface FeaturedSet {
+  /** Matérias públicas fixadas em alguma das posições, com as ligações embutidas. */
+  pinnedRows: SummarizableRow[];
+  /** Quem ocupa `key`, dada a lista da página e os resumos de `pinnedRows`. */
+  resolve: (
+    key: SlotKey,
+    input: {
+      pool: readonly ArticleSummary[];
+      pinned?: readonly ArticleSummary[];
+      now: Date;
+      exclude?: readonly string[];
+    },
+  ) => FeaturedResult;
+  error?: string;
+}
+
+const PIN_COLUMNS =
+  "id, kind, slot_key, section_slug, article_id, position, starts_at, ends_at, ended_at, dismissed_at";
+
+const isPublic = (status: string) => (PUBLIC_STATUSES as readonly string[]).includes(status);
+
+export async function getFeaturedMany(
+  db: DbClient,
+  keys: readonly SlotKey[],
+  opts: { section?: string } = {},
+): Promise<FeaturedSet> {
+  try {
+    let pinQuery = db
+      .from("featured_items")
+      .select(`${PIN_COLUMNS}, articles(${ARTICLE_COLUMNS_HYDRATED})`)
+      .in("slot_key", [...keys])
+      .is("ended_at", null);
+    pinQuery = opts.section
+      ? pinQuery.eq("section_slug", opts.section)
+      : pinQuery.is("section_slug", null);
+    const [slotRows, pinRows] = await Promise.all([
+      db
+        .from("featured_slots")
+        .select("key, page, label, capacity")
+        .in("key", [...keys])
+        .then(many),
+      pinQuery.then(many),
+    ]);
+    const slots = new Map<string, Slot>(
+      slotRows.map((r) => [
+        r.key,
+        { key: r.key, page: r.page as FeaturedPage, label: r.label, capacity: r.capacity },
+      ]),
+    );
+    const pinnedRows = new Map<string, SummarizableRow>();
+    for (const r of pinRows) {
+      if (r.articles && isPublic(r.articles.status)) pinnedRows.set(r.article_id, r.articles);
+    }
+    return {
+      pinnedRows: [...pinnedRows.values()],
+      resolve: (key, input) => {
+        const slot = slots.get(key) ?? DEFAULT_SLOTS.find((s) => s.key === key);
+        if (!slot) return EMPTY_FEATURED;
+        const rows = pinRows.filter((r) => r.slot_key === key);
+        // Manual como hoje; pauta quente (HOT-T3) só não dispensada. Vigência na parte pura.
+        const pins = rows.filter((r) => r.kind !== "hot").map(toPin);
+        const hot = rows.filter((r) => r.kind === "hot" && !r.dismissed_at).map(toPin);
+        // Matéria fixada fora da lista da página entra só no conjunto da posição dela.
+        const inPool = new Set(input.pool.map((a) => a.id));
+        const ofSlot = new Set(rows.map((r) => r.article_id));
+        const extra = (input.pinned ?? []).filter((a) => ofSlot.has(a.id) && !inPool.has(a.id));
+        return resolveFeatured({
+          slot,
+          section: opts.section,
+          pins,
+          hot,
+          pool: [...input.pool, ...extra],
+          now: input.now,
+          exclude: input.exclude,
+        });
+      },
+    };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e);
+    return { pinnedRows: [], resolve: () => ({ ...EMPTY_FEATURED, error }), error };
+  }
+}
+
+/** Pedido de imagem das matérias sem capa que ganharam a posição (R39). Melhor esforço. */
+export async function requestFeaturedImages(
+  db: DbClient,
+  results: readonly FeaturedResult[],
+): Promise<void> {
+  const ids = [...new Set(results.flatMap((r) => r.needsImage.slice(0, IMAGE_REQUESTS)))];
+  if (!ids.length) return;
+  await db.rpc("featured_request_images", { p_ids: ids }).then(
+    () => undefined,
+    () => undefined,
+  );
 }

@@ -1,4 +1,5 @@
 /** Datas em português nos títulos e resumos de feeds ("17 de outubro às 19h30", "17/10 20h"). */
+import { fold } from "@/lib/text/fold";
 
 const MONTHS: Record<string, number> = {
   janeiro: 1,
@@ -26,12 +27,6 @@ const MONTHS: Record<string, number> = {
   nov: 11,
   dez: 12,
 };
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 const pad = (n: number) => String(n).padStart(2, "0");
 

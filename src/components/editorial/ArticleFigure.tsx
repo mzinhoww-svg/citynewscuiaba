@@ -36,6 +36,8 @@ export function ArticleFigure({
     <figure className={cx("flex flex-col", className)}>
       <Photo
         src={image.src}
+        directSrc={priority ? image.directSrc : undefined}
+        directSrcSet={priority ? image.directSrcSet : undefined}
         alt={alt}
         ratio="16/9"
         radius="0"

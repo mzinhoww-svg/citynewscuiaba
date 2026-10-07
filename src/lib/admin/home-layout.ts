@@ -1,9 +1,9 @@
 /**
  * Módulos da home (A06): ordem e ativação dos blocos abaixo da primeira dobra (manchete e
  * "Agora" são fixos, 100% CityNews). Domínio puro: a tela reordena por teclado (Alt + setas)
- * e o portal renderiza na ordem publicada (`home_layouts`, 0038).
+ * e o portal renderiza na ordem publicada (`home_layouts`, 0038). Sem zod: o editor do Estúdio
+ * roda no navegador (item 85, A-156).
  */
-import { z } from "zod";
 
 export const HOME_MODULE_IDS = [
   "topics",
@@ -23,7 +23,14 @@ export interface HomeModule {
   enabled: boolean;
 }
 
-const ModuleSchema = z.object({ id: z.enum(HOME_MODULE_IDS), enabled: z.boolean() });
+/** Item válido do JSON guardado: `id` conhecido e `enabled` booleano (outros campos saem). */
+function readModule(item: unknown): HomeModule | null {
+  if (typeof item !== "object" || item === null) return null;
+  const { id, enabled } = item as { id?: unknown; enabled?: unknown };
+  if (typeof id !== "string" || !(HOME_MODULE_IDS as readonly string[]).includes(id)) return null;
+  if (typeof enabled !== "boolean") return null;
+  return { id: id as HomeModuleId, enabled };
+}
 
 export const defaultHomeLayout = (): HomeModule[] =>
   HOME_MODULE_IDS.map((id) => ({ id, enabled: true }));
@@ -37,10 +44,10 @@ export function parseHomeLayout(value: unknown): HomeModule[] {
   const out: HomeModule[] = [];
   if (Array.isArray(value)) {
     for (const item of value) {
-      const p = ModuleSchema.safeParse(item);
-      if (!p.success || seen.has(p.data.id)) continue;
-      seen.add(p.data.id);
-      out.push(p.data);
+      const m = readModule(item);
+      if (!m || seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push(m);
     }
   }
   for (const id of HOME_MODULE_IDS) if (!seen.has(id)) out.push({ id, enabled: false });

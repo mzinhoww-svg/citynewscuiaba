@@ -12,9 +12,10 @@ import {
   Select,
   Skeleton,
   TextField,
+  useToast,
 } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import { looksLikeEmail } from "@/lib/auth/email-shape";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
@@ -51,6 +52,7 @@ async function askPermission(): Promise<"granted" | "denied" | "unsupported"> {
 export function AlertsClient({ targets, topicsError = false }: AlertsClientProps) {
   const id = useId();
   const { profile, degraded, ready, act } = useAnonProfile();
+  const toast = useToast();
   const [kind, setKind] = useState<AlertKind>("bairro");
   const [target, setTarget] = useState("");
   const [frequency, setFrequency] = useState<AlertFrequency>("immediate");
@@ -92,7 +94,11 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
           setFeedback({ tone: "warn", text: p === "unsupported" ? T.unsupported : T.denied });
           return;
         }
-        await act((s) => s.addAlert(base));
+        const saved = await act((s) => s.addAlert(base));
+        if (!saved.ok) {
+          setFeedback({ tone: "error", text: T.error });
+          return;
+        }
         void showNotification(T.testTitle, { body: T.testBody, href: "/alertas", tag: "cn-teste" });
         setFeedback({ tone: "success", text: T.created });
         requestNotificationInvite("alert");
@@ -109,7 +115,13 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
         } | null;
         if (body?.status === "pending" && body.email) {
           const confirmed = body.email;
-          await act((s) => s.addAlert({ ...base, status: "pending_email", email: confirmed }));
+          const saved = await act((s) =>
+            s.addAlert({ ...base, status: "pending_email", email: confirmed }),
+          );
+          if (!saved.ok) {
+            setFeedback({ tone: "error", text: T.error });
+            return;
+          }
           setFeedback({ tone: "success", text: T.createdEmail });
           setEmail("");
           requestLoginInvite("alert");
@@ -125,7 +137,11 @@ export function AlertsClient({ targets, topicsError = false }: AlertsClientProps
     }
   };
 
-  const remove = (a: LocalAlert) => void act((s) => s.removeAlert(a.id));
+  // Remover que falha ao gravar (item 88): o alerta continua na lista e o toast avisa.
+  const remove = (a: LocalAlert) =>
+    void act((s) => s.removeAlert(a.id)).then((r) => {
+      if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    });
 
   return (
     // Ordem de leitura no celular: o que já existe e os avisos do navegador, o formulário de criar

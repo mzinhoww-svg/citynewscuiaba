@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { scrolledWithin } from "./helpers/wait";
 import { createArticle, removeArticles, tag } from "./studio";
 
 const blocking = (impact: string | null | undefined) =>
@@ -102,9 +103,8 @@ test("desktop: roda do mouse e botões anterior/próximo rolam a faixa", async (
   expect(await page.evaluate(() => window.scrollY)).toBe(pageY);
 
   // Sem movimento automático: parada, a faixa não anda sozinha.
-  const left = await scroller.evaluate((el) => el.scrollLeft);
-  await page.waitForTimeout(1500);
-  expect(await scroller.evaluate((el) => el.scrollLeft)).toBe(left);
+  // Observada na própria faixa (evento e posição) por 1,5 s.
+  expect(await scrolledWithin(scroller, 1_500)).toBe(false);
 });
 
 test("celular: sem botões de rolagem (desliza com o dedo)", async ({ page, isMobile }) => {

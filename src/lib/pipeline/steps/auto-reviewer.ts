@@ -9,6 +9,7 @@ import { classifyRisk, type Risk } from "@/lib/rules/risk";
 import { autoChecklist, endsCleanly, isComplete, type ShortReason } from "./auto-checklist";
 import { candidateOf } from "./decide";
 import { inputHash } from "./understanding";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /*
  * Revisor automático (AUT-T6, A11 e A12; R32). Matéria em revisão que passou do prazo (`due_at`:
@@ -32,7 +33,7 @@ export const NIGHT_END_HOUR = 6;
 /** Hora cheia (0 a 23) em Cuiabá. */
 export function cuiabaHour(now: Date): number {
   const h = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "America/Cuiaba",
+    timeZone: TIME_ZONE,
     hour: "2-digit",
     hourCycle: "h23",
   }).format(now);

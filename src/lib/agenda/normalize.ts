@@ -5,15 +5,10 @@ import { dayStart, formatHour, formatLongDate, localDateKey } from "@/lib/format
 import { slugify } from "@/lib/pipeline/slug";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import type { AgendaSource, NormalizedEvent, RawEvent, RejectReason } from "./types";
+import { fold } from "@/lib/text/fold";
 
 export type NormalizeResult =
   { ok: true; event: NormalizedEvent } | { ok: false; reasons: RejectReason[] };
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 const LOWER_WORDS = new Set([
   "de",

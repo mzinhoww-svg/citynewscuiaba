@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { hasMailbox, lastLinkFor } from "./mailbox";
 import { loginAs, service, STAFF, tag } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T8 · Administração (A01–A06): convidar pessoa mostra "Convite pendente" e manda o link;
  * conceder admin é uma ação só, confirmada pelo nome: o pedido `role.grant` nasce aprovado e
  * aplicado pela própria admin (A-128, A-150, `role_set` 0158); mesclar tags duplicadas preserva
  * vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
- * Mutações só no projeto desktop e cada teste restaura o que criou.
+ * Mutações só no projeto serial do desktop e cada teste restaura o que criou.
  */
 
 test("A01/A03 · painel e matriz de permissões", async ({ page }) => {
@@ -30,7 +31,7 @@ test("editora-chefe não entra em Usuários, mas entra em Taxonomia", async ({ p
 });
 
 test("A02 · convidar pessoa envia link e aparece como convite pendente", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "cria conta: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "cria conta: só no projeto serial do desktop");
   const mark = tag();
   const email = `convite-e2e-${mark}@exemplo.com`;
   const db = service();
@@ -61,7 +62,7 @@ test("A02 · convidar pessoa envia link e aparece como convite pendente", async 
 test("A03 · admin concede admin numa ação só; o pedido role.grant fica no histórico (A-150)", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda papéis do seed: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda papéis do seed: só no projeto serial do desktop");
   const db = service();
   try {
     await loginAs(page, "helena", "/estudio/admin/usuarios");
@@ -111,7 +112,7 @@ test("A03 · admin concede admin numa ação só; o pedido role.grant fica no hi
 });
 
 test("A05 · mesclar tags duplicadas preserva vínculos", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "muda tags de matérias: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda tags de matérias: só no projeto serial do desktop");
   const db = service();
   const mark = tag();
   const ids = [randomUUID(), randomUUID()];
@@ -154,7 +155,7 @@ test("A05 · mesclar tags duplicadas preserva vínculos", async ({ page }, info)
 test("A06 · reordenar módulos da home por teclado (Alt + setas) e publicar", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "publica a home: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "publica a home: só no projeto serial do desktop");
   const db = service();
   try {
     await loginAs(page, "marina", "/estudio/admin/home");

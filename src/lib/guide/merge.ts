@@ -1,4 +1,5 @@
 import type { DataSource, PlaceIds, VenueRecord } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /**
  * Mescla de lugares vindos de provedores diferentes: o mesmo lugar chega do OpenStreetMap, do
@@ -30,12 +31,6 @@ const STOP = new Set([
   "ltda",
   "me",
 ]);
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /** Palavras que identificam o lugar (sem acento, sem artigos nem o tipo do negócio). */
 export function nameTokens(name: string): string[] {

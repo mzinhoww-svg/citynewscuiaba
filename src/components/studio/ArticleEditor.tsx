@@ -36,7 +36,7 @@ import { Icon } from "../ui/Icon";
 import { InlineAlert } from "../ui/InlineAlert";
 import { Select, type SelectOption } from "../ui/Select";
 import { TextField } from "../ui/TextField";
-import { RichEditor } from "./editor/Editor";
+import { RichEditor } from "./editor/LazyRichEditor";
 
 export type OriginField = "title" | "dek" | "seoTitle" | "seoDescription";
 

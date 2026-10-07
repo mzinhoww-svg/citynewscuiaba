@@ -15,7 +15,7 @@ const textDoc = (text: string): Doc => ({
   type: "doc",
   content: [{ type: "paragraph", content: [{ type: "text", text }] } as never],
 });
-vi.mock("./editor/Editor", () => ({
+vi.mock("./editor/LazyRichEditor", () => ({
   RichEditor: ({
     label,
     value,

@@ -5,7 +5,7 @@
 // Só o schema e tipos: o barrel `@/lib/sources` puxa `url.ts` → `pipeline/net.ts` (node:dns), que
 // não pode entrar no bundle do navegador (este arquivo é lido por Client Components).
 import type { HealthLabel } from "@/lib/sources/health";
-import { FAST_FREQUENCIES } from "@/lib/sources/schema";
+import { FAST_FREQUENCIES } from "@/lib/sources/schema-constants";
 import type {
   ImagePolicy,
   Reliability,
@@ -13,6 +13,7 @@ import type {
   SourceStatus,
   StatusReason,
 } from "@/lib/sources/types";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /** Status exibido: os quatro do banco, mais "pausada automaticamente" e "arquivada". */
 export type DisplayStatus = SourceStatus | "auto_paused" | "archived";
@@ -95,7 +96,7 @@ export function criticalValueText(field: string, value: string): string {
 }
 
 const clockFormatter = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   hour: "2-digit",
   minute: "2-digit",
   hourCycle: "h23",
@@ -312,7 +313,7 @@ export const ANALYZE_TEXT = {
 } as const;
 
 const fullDateTimeFormatter = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   day: "2-digit",
   month: "2-digit",
   hour: "2-digit",

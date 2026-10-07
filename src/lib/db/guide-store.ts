@@ -156,45 +156,48 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
     },
 
     async save({ inserts, updates }, at) {
-      let inserted = 0;
+      // No máximo 2 chamadas, qualquer que seja o tamanho do lote: os slugs já usados e um
+      // comando que insere e atualiza (antes, uma consulta por base de slug e uma por atualização).
+      if (inserts.length === 0 && updates.length === 0) return { inserted: 0, updated: 0 };
+      const taken = new Set<string>();
       if (inserts.length > 0) {
         const bases = [...new Set(inserts.map(venueSlugBase))];
-        const taken = new Set<string>();
-        for (const base of bases) {
-          const { data, error } = await db.from("venues").select("slug").like("slug", `${base}%`);
-          if (error) throw new Error(`venues slugs: ${error.message}`);
-          for (const r of data ?? []) taken.add(r.slug);
-        }
-        const rows: VenueInsert[] = inserts.map((rec) => {
-          const base = venueSlugBase(rec);
-          let slug = base;
-          for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
-          taken.add(slug);
-          return {
-            ...rowFields(rec),
-            slug,
-            data_updated_at: at.toISOString(),
-            rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
-            google_fetched_at: rec.sources.includes("google") ? at.toISOString() : null,
-          };
-        });
-        const { error } = await db.from("venues").insert(rows);
-        if (error) throw new Error(`venues insert: ${error.message}`);
-        inserted = rows.length;
+        const { data, error } = await db.rpc("guide_venue_slugs", { p_bases: bases });
+        if (error) throw new Error(`venues slugs: ${error.message}`);
+        for (const slug of data ?? []) taken.add(slug);
       }
-      for (const u of updates) {
-        const { error } = await db
-          .from("venues")
-          .update({
+      const rows: VenueInsert[] = inserts.map((rec) => {
+        const base = venueSlugBase(rec);
+        let slug = base;
+        for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
+        taken.add(slug);
+        return {
+          ...rowFields(rec),
+          slug,
+          data_updated_at: at.toISOString(),
+          rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
+          google_fetched_at: rec.sources.includes("google") ? at.toISOString() : null,
+        };
+      });
+      // A mesma linha atualizada duas vezes no lote fica com a última versão, como no laço antigo.
+      const patches = new Map(
+        updates.map((u) => [
+          u.id,
+          {
+            id: u.id,
             ...rowFields(u.record),
             data_updated_at: at.toISOString(),
             ...(u.ratingChecked ? { rating_updated_at: at.toISOString() } : {}),
             ...(u.googleChecked ? { google_fetched_at: at.toISOString() } : {}),
-          })
-          .eq("id", u.id);
-        if (error) throw new Error(`venues update: ${error.message}`);
-      }
-      return { inserted, updated: updates.length };
+          },
+        ]),
+      );
+      const { error } = await db.rpc("guide_venues_save", {
+        p_inserts: rows as unknown as Json,
+        p_updates: [...patches.values()] as unknown as Json,
+      });
+      if (error) throw new Error(`venues save: ${error.message}`);
+      return { inserted: rows.length, updated: updates.length };
     },
 
     async startRun(kind, trigger, at) {

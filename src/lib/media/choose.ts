@@ -1,6 +1,7 @@
 import { err, ok, type Result } from "@/lib/result";
 import { checkImage } from "./checks";
 import type { Candidate, ImagePolicy, MediaChoice, MediaCredit } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /** Adequação semântica mínima para licenciada e acervo. */
 export const MIN_FIT = 0.7;
@@ -26,12 +27,6 @@ export interface ChooseInput {
   sensitive?: boolean;
   tags?: string[];
 }
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /** Categorias sem imagem gerada (regra 9: crime, tragédia, saúde individual). */
 const NO_GENERATED_CATEGORIES = new Set(["seguranca", "saude"]);

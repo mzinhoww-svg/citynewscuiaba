@@ -4,7 +4,7 @@ import { vi } from "vitest";
 import type { EventView } from "@/lib/db/queries/types";
 import { EventCard } from "../index";
 
-const act = vi.fn(async (fn: (s: unknown) => unknown) => fn(store));
+const act = vi.fn(async (fn: (s: unknown) => unknown) => ({ ok: true, value: await fn(store) }));
 const store = { save: vi.fn(), unsave: vi.fn() };
 let saved: { ref: string }[] = [];
 
