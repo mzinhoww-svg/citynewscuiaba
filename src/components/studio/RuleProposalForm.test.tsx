@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
@@ -68,7 +68,8 @@ describe("RuleProposalForm · simular e propor", () => {
     expect(result).toHaveTextContent("2 de 10 itens mudariam de destino.");
     expect(within(result).getByText("2 de publicar para revisão")).toBeInTheDocument();
     expect(within(result).getByText("servicos.minSources: 2 → 3")).toBeInTheDocument();
-    expect(proposeButton()).toBeEnabled();
+    // O resultado aparece antes de a simulação sair do estado ocupado.
+    await waitFor(() => expect(proposeButton()).toBeEnabled());
 
     await user.type(screen.getByLabelText(/^Justificativa/), "  Mais uma fonte em serviços  ");
     await user.click(proposeButton());
@@ -76,7 +77,7 @@ describe("RuleProposalForm · simular e propor", () => {
     expect(propose.mock.calls[0]![0].justification).toBe("Mais uma fonte em serviços");
     expect(propose.mock.calls[0]![0].rules.sensitiveTopics).toEqual(DEFAULT_RULES.sensitiveTopics);
     expect(await screen.findByRole("status")).toHaveTextContent("Versão v2 aplicada.");
-    expect(refresh).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     // Depois de propor, uma nova proposta pede nova simulação.
     expect(proposeButton()).toBeDisabled();
   });

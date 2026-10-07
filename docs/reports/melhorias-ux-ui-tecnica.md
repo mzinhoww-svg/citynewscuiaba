@@ -100,15 +100,19 @@
 
 ## Lighthouse: JS por rota (`resource-summary:script:size`)
 
-| Rota | Antes da W1 (A-146) | Depois da W4 (CI, PR #61) | Depois da W5 (medição local, A-156) | Orçamento vigente |
+| Rota | Antes da W1 (A-146) | Depois da W4 (CI, PR #61) | Depois da W5 (CI, PR #66) | Orçamento vigente |
 |---|---|---|---|---|
-| Home | 170 a 172 kB | 178,1 kB | 171,1 kB | 178,2 kB |
-| Busca | 170 a 172 kB | 178,0 kB | 173,0 kB | 178,2 kB |
-| Matéria | — | 187,2 kB | 181,9 kB | 187,4 kB |
-| Fontes | — | 188,6 kB | 179,6 kB | 187,4 kB |
-| Agenda, Cidade, Guia | não medidas | não medidas | primeira medição no CI deste PR | 190 kB (provisório) |
+| Home | 170 a 172 kB | 178,1 kB | 172,2 kB | 178,2 kB |
+| Busca | 170 a 172 kB | 178,0 kB | 174,1 kB | 178,2 kB |
+| Matéria | — | 187,2 kB | 182,3 kB | 187,4 kB |
+| Fontes | — | 188,6 kB | 180,0 kB | 187,4 kB |
+| Agenda | não medida | não medida | 173,9 kB | 179,1 kB |
+| Cidade | não medida | não medida | 173,6 kB | 179,1 kB |
+| Guia Cuiabá | não medida | não medida | 166,6 kB | 179,1 kB |
 
-**Orçamento:** foi de 170 kB para 175/185 (A-146), depois 180/190 (A-151), e agora 178,2/187,4 (A-156).
+**Orçamento:** foi de 170 kB para 175/185 (A-146), depois 180/190 (A-151), e agora 178,2/187,4 (A-156). Agenda, Cidade e Guia ficam em 179,1 kB, a maior medida das três mais 3% (A-156).
+
+**Medição local × CI:** a medição local da A-156 (home 171,1, busca 173,0, matéria 181,9, Fontes 179,6 kB) ficou a 1 kB ou menos do CI. Os orçamentos continuam válidos.
 
 **Estúdio:** o JS de entrada das telas caiu entre 59% e 68%:
 
@@ -126,4 +130,3 @@
 
 - **Produção (B-009):** as migrations 0158 (`role_set`), 0159 (aprovação em lote auditada) e 0161 (RPCs em lote) e o backfill de variantes (`scripts/media/backfill-variants.mjs --apply --confirm-host=<host>`) ainda não foram aplicados em produção. Ao executar, registrar data e host na A-150/A-155.
 - **Vercel:** o plano gratuito tem limite de 100 deploys por dia, e ele foi atingido durante as ondas, o que bloqueou os previews e um deploy de produção. Não é falha de código. Subir de plano é gasto e decisão do dono.
-- **Rotas novas no Lighthouse:** o orçamento fica em 190 kB até a primeira medida do CI. Depois, baixa para a medida mais 3%.

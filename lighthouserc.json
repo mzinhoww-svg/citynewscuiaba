@@ -33,7 +33,7 @@
               "warn",
               { "maxNumericValue": 200, "aggregationMethod": "median" }
             ],
-            "resource-summary:script:size": ["error", { "maxNumericValue": 190000 }]
+            "resource-summary:script:size": ["error", { "maxNumericValue": 179100 }]
           }
         },
         {

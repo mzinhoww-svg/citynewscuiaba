@@ -99,5 +99,11 @@ describe("orçamentos do lighthouserc.json", () => {
     expect(home?.max).toBe(178200);
     expect(busca?.max).toBe(178200);
     expect(others?.max).toBe(187400);
+    // Agenda, Cidade e Guia (W5-T8): 190 kB até a primeira medida do CI (PR #66: agenda 173,9,
+    // cidade 173,6, guia 166,6 kB); a maior + 3 % = 179,1 kB.
+    const novas = budgets.find(
+      (b) => b.url === "^http://localhost:3000/(agenda|cidade|guia-cuiaba)",
+    );
+    expect(novas?.max).toBe(179100);
   });
 });

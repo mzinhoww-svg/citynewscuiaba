@@ -368,6 +368,16 @@ Pedido do dono: a tela `/perfil` estava confusa (crítica impeccable + ui-ux-pro
 
 No Estúdio, o JS de entrada das telas (soma dos chunks de entrada no manifesto, sem o framework): editor de matéria 199,5 → 74,6 kB, correção 183,3 → 59,0 kB, fonte (aba de configuração) 163,9 → 69,6 kB, nova fonte 168,8 → 73,4 kB, módulos da home 153,9 → 60,3 kB. O Tiptap (122,9 kB gz) só baixa quando o editor monta; nenhum chunk de `.next/static` tem zod.
 
+**Orçamento.** O `lighthouserc.json` usa a maior medida do grupo mais 3%:
+
+- Home e busca: 178,2 kB.
+- Matéria e Fontes: 187,4 kB.
+- Agenda, Cidade e Guia (W5-T8): 179,1 kB. É a maior medida das três, agenda com 173,9 kB, mais 3%.
+
+A primeira medida dessas rotas no CI (PR #66) foi agenda 173,9, cidade 173,6 e guia 166,6 kB. No mesmo CI: home 172,2, busca 174,1, matéria 182,3 e Fontes 180,0 kB, perto da medição local acima.
+
+A meta de 165 kB não foi atingida: o resto é o framework mais as interações da W4.
+
 **O que mudou.**
 - zod só no servidor: `src/lib/ai/prompts.ts`, `src/lib/sources/schema.ts` e `src/lib/sources/activation.ts` com `import "server-only"`; as telas usam `prompts-constants.ts`, `schema-constants.ts` e `activation-constants.ts`. `src/lib/control` lê os nomes das etapas de `pipeline/step-names.ts` (sem os schemas de `pipeline/types.ts`), e `admin/home-layout.ts` valida o JSON sem zod (mesmo resultado). `tests/ci/no-zod-in-client.test.ts` segue os imports de todo arquivo `"use client"` (portal e Estúdio, passando pelos índices de componentes) e, com o build pronto, procura o zod nos chunks; o job `verify` do CI repete o teste depois do `pnpm build` com `REQUIRE_BUILD=1`. `scripts/ops/activate-sources.mjs` troca `server-only` pelo módulo vazio no esbuild.
 - Editor rico sob demanda: `src/components/studio/editor/LazyRichEditor.tsx` (`next/dynamic`, `ssr: false`, esqueleto com rótulo, barra e caixa do mesmo tamanho). Vale para o editor de matéria e para a correção publicada (os dois usavam o `RichEditor`), em vez de só a página `materias/[id]` do plano.

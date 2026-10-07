@@ -21,7 +21,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
     - `/fontes` renderizado no servidor;
     - indicador de navegação, `fold`/`TIME_ZONE` e knip;
     - e2e sem esperas fixas e com as flags em série.
-- **Lighthouse:** orçamento de JS de 178,2 kB (home e busca) e 187,4 kB (matéria e Fontes), pela A-156. A meta de 165 kB não foi atingida. As rotas novas (agenda, cidade e guia) ficam em 190 kB até a primeira medida do CI.
+- **Lighthouse:** orçamento de JS de 178,2 kB (home e busca) e 187,4 kB (matéria e Fontes), pela A-156. A meta de 165 kB não foi atingida. As rotas novas (agenda, cidade e guia) ficam em 179,1 kB, a medida do CI mais 3%.
 - Antes, na mesma semana:
   - logotipos das fontes (A-153);
   - perfil redesenhado (A-154);
@@ -48,7 +48,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 2. **Dono:** rodar `supabase/bootstrap/2026-10-04-sql-editor-dono.sql` (0143 parte C e 0155, B-029) e conferir qual chave do OpenRouter vence em 28/10.
 3. **Regras v4:** conferir a simulação de 7 dias e aprovar `rules:4` no painel de governança (A-128). O rollback é `rules_rollback()`.
 4. **Medir por 2 semanas:** `editorial_risk_daily` e `verify_lineage_daily`.
-5. **Lighthouse:** reduzir o orçamento das rotas novas para a primeira medida do CI mais 3%. Investigar o corte rumo a 165 kB e o LCP da home (L-026).
+5. **Lighthouse:** investigar o corte rumo a 165 kB e o LCP da home (L-026).
 6. **Roadmap:**
    - EV-03, conferência de afirmações;
    - EV-04, alertas fora do banco;
