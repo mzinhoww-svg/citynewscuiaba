@@ -4,7 +4,7 @@ import type { HttpFetch } from "@/lib/pipeline/ports";
 import { fixtureHttp, fixturesEnabled, realHttp } from "@/lib/sources/http-deps";
 import { createOsmProvider, OVERPASS_URL } from "./osm";
 import { siteUrl } from "@/lib/seo/jsonld";
-import { createGoogleProvider } from "./google";
+import { createGoogleProvider, googlePlacesKey } from "./google";
 import { createTripadvisorProvider } from "./tripadvisor";
 import type { VenueProvider } from "./types";
 
@@ -49,7 +49,7 @@ export function guideHttp(): HttpFetch {
 }
 
 export interface GuideProviders {
-  /** `null` sem `GOOGLE_PLACES_API_KEY` ou no modo de fixtures. */
+  /** `null` sem chave do Google (`googlePlacesKey`) ou no modo de fixtures. */
   google: (VenueProvider & { readonly enabled: boolean }) | null;
   osm: VenueProvider;
   /** `null` sem chave no ambiente (modo de pesquisa web). */
@@ -62,9 +62,9 @@ export function buildProviders(
   const fixtures = fixturesEnabled();
   const http = guideHttp();
   const key = fixtures ? undefined : process.env.TRIPADVISOR_API_KEY;
-  const googleKey = fixtures ? undefined : process.env.GOOGLE_PLACES_API_KEY;
+  const googleKey = fixtures ? undefined : googlePlacesKey(process.env);
   return {
-    google: googleKey?.trim()
+    google: googleKey
       ? createGoogleProvider({
           apiKey: googleKey,
           http,

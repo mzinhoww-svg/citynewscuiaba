@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { HttpFetch } from "@/lib/pipeline/ports";
-import { createGoogleProvider, googleSearchText, toGoogleVenue } from "./google";
+import { createGoogleProvider, googlePlacesKey, googleSearchText, toGoogleVenue } from "./google";
 
 /** Valor fictício só para os testes; a chave real existe apenas no ambiente do servidor. */
 const FAKE_KEY = "TESTE-chave-ficticia";
@@ -212,5 +212,12 @@ describe("google provider", () => {
   it("monta o termo de busca por categoria e cozinha", () => {
     expect(googleSearchText("padaria", null)).toBe("padaria em Cuiabá");
     expect(googleSearchText("restaurante", "japonesa")).toBe("restaurante japonês sushi em Cuiabá");
+  });
+
+  it("lê a chave de GOOGLE_PLACES_API_KEY ou, na falta dela, de GOOGLE_PLACES_KEY", () => {
+    expect(googlePlacesKey({ GOOGLE_PLACES_API_KEY: "a", GOOGLE_PLACES_KEY: "b" })).toBe("a");
+    expect(googlePlacesKey({ GOOGLE_PLACES_KEY: " b " })).toBe("b");
+    expect(googlePlacesKey({ GOOGLE_PLACES_API_KEY: "  ", GOOGLE_PLACES_KEY: "b" })).toBe("b");
+    expect(googlePlacesKey({})).toBeUndefined();
   });
 });
