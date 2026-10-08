@@ -407,3 +407,11 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 ## A-212 · Fotos do Google nos lugares do Guia (07/10/2026)
 
 **Status:** vigente, implementação em andamento. Decisão do dono ("Fotos do Google"), em resposta às listas sem foto. Substitui a G3/R1 só neste ponto: o Guia mostra a foto principal de cada lugar pela Places API (New), com o crédito do autor exigido pelos termos. O arquivo não é guardado: uma rota do CityNews busca a mídia pelo nome da foto, com a chave só no servidor. A referência da foto é dado do Google e vale 30 dias, como o resto. A cota é a mesma do teto diário.
+
+## A-213 · Popularidade pesa na ordem do Guia (08/10/2026)
+
+**Status:** vigente. Decisão do dono ("Pesar popularidade"), em resposta à padaria mais conhecida da cidade em quinto e a lugares com poucas avaliações no topo. Só entra numa lista o lugar com nota e pelo menos 300 avaliações (`MIN_RATING_COUNT`, `auto-publish.ts`). Na nota, o peso do prior bayesiano sobe para 300 avaliações e 30 % do componente vem do número de avaliações (escala log, teto em 10.000). O critério público passa a dizer "nota dos clientes e número de avaliações" e cita o mínimo de 300.
+
+**Operação:** a migration 0182 cria `guide_suspend_lists` (suspende listas publicadas e enfileira a revalidação das páginas) e `guide_refresh_now` (volta uma lista suspensa a publicada com a atualização vencida, para o `refresh` regenerá-la com as regras atuais). Só `service_role` executa. São o contorno do conector que segura `update` em produção (B-029).
+
+**Produção (08/10/2026, B-009):** `guide_suspend_lists` foi criada no `citynews-prod` e executada para `cafeterias-cuiaba`, `padarias-cuiaba` e `restaurantes-arabes-cuiaba`, a pedido do dono ("Suspensão por aqui"); páginas revalidadas e conferidas fora do ar.

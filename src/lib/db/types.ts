@@ -5298,6 +5298,8 @@ export type Database = {
         Returns: { mentions: number; venue_id: string }[];
       };
       guide_venue_slugs: { Args: { p_bases: string[] }; Returns: string[] };
+      guide_refresh_now: { Args: { p_slugs: string[] }; Returns: string[] };
+      guide_suspend_lists: { Args: { p_reason: string; p_slugs: string[] }; Returns: string[] };
       guide_venues_save: { Args: { p_inserts: Json; p_updates: Json }; Returns: Json };
       hamming64: { Args: { a: number; b: number }; Returns: number };
       has_any_role: {

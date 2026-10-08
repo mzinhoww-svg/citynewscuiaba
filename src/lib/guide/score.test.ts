@@ -28,6 +28,16 @@ describe("scoreVenue", () => {
     expect(many.score).toBeGreaterThan(few.score);
   });
 
+  it("popularidade pesa: casa conhecida passa à frente de nota alta com poucas avaliações (A-213)", () => {
+    const s = (rating: number, ratingCount: number) =>
+      scoreVenue(base({ rating, ratingCount }), DEFAULT_WEIGHTS).score;
+    // 4,4 com 3.567 avaliações à frente de 4,9 com 129; 4,7 com 1.282 também.
+    expect(s(4.4, 3567)).toBeGreaterThan(s(4.9, 129));
+    expect(s(4.7, 1282)).toBeGreaterThan(s(4.9, 129));
+    // Popularidade não atropela a nota: 3,9 com 5.000 fica atrás de 4,7 com 1.282.
+    expect(s(4.7, 1282)).toBeGreaterThan(s(3.9, 5000));
+  });
+
   it("a mesma nota com mais avaliações nunca pontua menos", () => {
     const a = scoreVenue(base({ rating: 4.4, ratingCount: 10 }), DEFAULT_WEIGHTS).score;
     const b = scoreVenue(base({ rating: 4.4, ratingCount: 100 }), DEFAULT_WEIGHTS).score;

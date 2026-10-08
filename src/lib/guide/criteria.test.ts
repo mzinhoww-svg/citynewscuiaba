@@ -24,6 +24,7 @@ describe("listCriteriaText", () => {
     expect(s).toMatch(/matérias do CityNews/);
     expect(s).not.toMatch(/duas fontes/);
     expect(s).toMatch(/fontes públicas/);
+    expect(s).toContain("Só entram lugares com pelo menos 300 avaliações.");
     expect(s).toMatch(/patrocínio nunca altera a ordem/i);
     expect(s).toMatch(/\d+%/);
   });

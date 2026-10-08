@@ -1,3 +1,4 @@
+import { MIN_RATING_COUNT } from "./auto-publish";
 import { normalizeWeights, type Weights } from "./score";
 import type { GuideTemplate } from "./types";
 
@@ -11,7 +12,7 @@ type Signal = keyof Weights;
 const ORDER: Signal[] = ["rating", "rank", "mentions", "completeness"];
 
 const PHRASE: Record<Signal, string> = {
-  rating: "nota dos clientes, ponderada pelo número de avaliações",
+  rating: "nota dos clientes e número de avaliações",
   rank: "posição no ranking do TripAdvisor",
   mentions: "menções em matérias do CityNews",
   completeness: "completude das informações do lugar",
@@ -52,6 +53,7 @@ export function listCriteriaText(
   const where = t.neighborhood ? `Cuiabá, no bairro ${t.neighborhood}` : "Cuiabá";
   return (
     `Reunimos ${what} de ${where} com dados públicos e ordenamos por ${used.length === 1 ? "um sinal" : `${used.length} sinais`}: ${list}. ` +
+    `Só entram lugares com pelo menos ${MIN_RATING_COUNT} avaliações. ` +
     `Os dados vêm de fontes públicas, citadas na lista. Patrocínio nunca altera a ordem da lista.`
   );
 }
