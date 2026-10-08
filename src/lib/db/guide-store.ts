@@ -3,7 +3,8 @@ import { dayStartCuiaba } from "@/lib/ai/registry";
 import type { DbClient } from "@/lib/db/client";
 import type { Database, Json } from "@/lib/db/types";
 import { targetKey, type SyncTarget } from "@/lib/guide/plan";
-import type { DataSource, PlaceIds, VenueRecord } from "@/lib/guide/types";
+import { GOOGLE_PHOTO_NAME } from "@/lib/guide/providers/google";
+import type { DataSource, GooglePhotoRef, PlaceIds, VenueRecord } from "@/lib/guide/types";
 import { DATA_SOURCES } from "@/lib/guide/types";
 import { slugify } from "@/lib/pipeline/slug";
 import type { StoredVenue, VenueSyncReport, VenueSyncStore } from "@/lib/pipeline/steps/venue-sync";
@@ -12,6 +13,13 @@ type VenueRow = Database["public"]["Tables"]["venues"]["Row"];
 type VenueInsert = Database["public"]["Tables"]["venues"]["Insert"];
 
 const isSource = (s: string): s is DataSource => (DATA_SOURCES as readonly string[]).includes(s);
+
+/** Foto do Google gravada (A-212); referência fora do formato vira `null`. */
+function googlePhotoFromRow(r: VenueRow): GooglePhotoRef | null {
+  const name = r.google_photo_name;
+  if (!name || !GOOGLE_PHOTO_NAME.test(name)) return null;
+  return { name, author: r.google_photo_author, authorUri: r.google_photo_author_uri };
+}
 
 export function venueFromRow(r: VenueRow): StoredVenue {
   const ids = (r.place_ids ?? {}) as Record<string, unknown>;
@@ -48,12 +56,13 @@ export function venueFromRow(r: VenueRow): StoredVenue {
     tripadvisorUrl: r.tripadvisor_url,
     googleMapsUrl: r.google_maps_url,
     googleType: r.google_primary_type,
+    googlePhoto: googlePhotoFromRow(r),
     placeIds,
     sources: r.data_sources.filter(isSource),
   };
 }
 
-function rowFields(rec: VenueRecord) {
+export function venueRowFields(rec: VenueRecord) {
   return {
     name: rec.name,
     category: rec.category,
@@ -74,9 +83,38 @@ function rowFields(rec: VenueRecord) {
     tripadvisor_url: rec.tripadvisorUrl,
     google_maps_url: rec.googleMapsUrl,
     google_primary_type: rec.googleType,
+    google_photo_name: rec.googlePhoto?.name ?? null,
+    google_photo_author: rec.googlePhoto?.author ?? null,
+    google_photo_author_uri: rec.googlePhoto?.authorUri ?? null,
     place_ids: rec.placeIds as Json,
     data_sources: rec.sources,
   };
+}
+
+/**
+ * Lugares de listas publicadas que ainda não têm a foto do Google (A-212): ativos, com Place ID e
+ * sem `google_photo_name`, sem repetir, os buscados no Google há mais tempo (ou nunca) primeiro,
+ * até `limit`. Lugar que o Google devolveu sem foto vai para o fim da fila ao ser renovado.
+ */
+export function pickPhotoBackfill(
+  lists: readonly { guide_list_items: readonly { venues: VenueRow | null }[] | null }[],
+  limit: number,
+): StoredVenue[] {
+  if (limit <= 0) return [];
+  const out: StoredVenue[] = [];
+  const seen = new Set<string>();
+  for (const l of lists) {
+    for (const i of l.guide_list_items ?? []) {
+      const v = i.venues;
+      if (!v || seen.has(v.id)) continue;
+      seen.add(v.id);
+      if (v.status !== "active" || v.google_photo_name) continue;
+      const stored = venueFromRow(v);
+      if (stored.placeIds.google) out.push(stored);
+    }
+  }
+  const at = (v: StoredVenue) => (v.googleFetchedAt ? Date.parse(v.googleFetchedAt) : 0);
+  return out.sort((a, b) => at(a) - at(b)).slice(0, limit);
 }
 
 /** Slug do lugar: nome e bairro (ou "cuiaba"), único com sufixo numérico. */
@@ -111,6 +149,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
   googleCallsToday(now: Date): Promise<number>;
   lastSyncedTargets(): Promise<Map<string, string>>;
   templateTargets(): Promise<SyncTarget[]>;
+  missingGooglePhotos(limit: number): Promise<StoredVenue[]>;
 } {
   return {
     async loadCategory(category) {
@@ -174,7 +213,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
         for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
         taken.add(slug);
         return {
-          ...rowFields(rec),
+          ...venueRowFields(rec),
           slug,
           data_updated_at: at.toISOString(),
           rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
@@ -187,7 +226,7 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
           u.id,
           {
             id: u.id,
-            ...rowFields(u.record),
+            ...venueRowFields(u.record),
             data_updated_at: at.toISOString(),
             ...(u.ratingChecked ? { rating_updated_at: at.toISOString() } : {}),
             ...(u.googleChecked ? { google_fetched_at: at.toISOString() } : {}),
@@ -260,6 +299,22 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
         }
       }
       return out;
+    },
+
+    /** Lugares de listas publicadas sem a foto do Google (A-212), para buscar pelo Place ID. */
+    async missingGooglePhotos(limit) {
+      if (limit <= 0) return [];
+      const { data, error } = await db
+        .from("guide_lists")
+        .select("guide_list_items(position, venues(*))")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(`venues missing photos: ${error.message}`);
+      const lists = (data ?? []).map((l) => ({
+        guide_list_items: [...(l.guide_list_items ?? [])].sort((a, b) => a.position - b.position),
+      }));
+      return pickPhotoBackfill(lists, limit);
     },
 
     async templateTargets() {

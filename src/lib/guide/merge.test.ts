@@ -138,6 +138,16 @@ describe("mergeRecord", () => {
     expect(m.googleMapsUrl).toBe("https://maps.google.com/?cid=1");
   });
 
+  it("foto do Google vem do dado novo; fonte sem foto não apaga a que existe (A-212)", () => {
+    const old = { name: "places/ChIJ-teste-1/photos/antiga", author: "A", authorUri: null };
+    const fresh = { name: "places/ChIJ-teste-1/photos/nova", author: "B", authorUri: null };
+    expect(mergeRecord(rec({ googlePhoto: old }), rec({ googlePhoto: fresh })).googlePhoto).toEqual(
+      fresh,
+    );
+    expect(mergeRecord(rec({ googlePhoto: old }), rec()).googlePhoto).toEqual(old);
+    expect(mergeRecord(rec(), rec({ googlePhoto: fresh })).googlePhoto).toEqual(fresh);
+  });
+
   it("dado novo sem nota não apaga a nota que já existe", () => {
     const base = rec({ rating: 4.5, ratingCount: 100, ratingSource: "tripadvisor" });
     const m = mergeRecord(base, rec());

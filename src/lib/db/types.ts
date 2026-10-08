@@ -4235,6 +4235,9 @@ export type Database = {
           data_updated_at: string | null;
           google_fetched_at: string | null;
           google_maps_url: string | null;
+          google_photo_author: string | null;
+          google_photo_author_uri: string | null;
+          google_photo_name: string | null;
           google_primary_type: string | null;
           hours: string | null;
           id: string;
@@ -4268,6 +4271,9 @@ export type Database = {
           data_updated_at?: string | null;
           google_fetched_at?: string | null;
           google_maps_url?: string | null;
+          google_photo_author?: string | null;
+          google_photo_author_uri?: string | null;
+          google_photo_name?: string | null;
           google_primary_type?: string | null;
           hours?: string | null;
           id?: string;
@@ -4301,6 +4307,9 @@ export type Database = {
           data_updated_at?: string | null;
           google_fetched_at?: string | null;
           google_maps_url?: string | null;
+          google_photo_author?: string | null;
+          google_photo_author_uri?: string | null;
+          google_photo_name?: string | null;
           google_primary_type?: string | null;
           hours?: string | null;
           id?: string;

@@ -15,8 +15,9 @@ export interface VenueCoverProps {
 }
 
 /**
- * Foto oficial do lugar com o crédito "Foto: reprodução web · nome" e o link da fonte, ou, sem foto
- * aprovada, o cartão tipográfico (nunca imagem de terceiro nem espaço vazio). A foto de hero leva
+ * Foto oficial do lugar com o crédito "Foto: reprodução web · nome" e o link da fonte; sem ela, a
+ * foto principal do Google com "Foto: autor · Google" e o link do autor (A-212); sem nenhuma, o
+ * cartão tipográfico (nunca imagem de terceiro nem espaço vazio). A foto de hero leva
  * a legenda abaixo; na miniatura o crédito vai no texto alternativo.
  */
 export function VenueCover({

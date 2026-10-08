@@ -64,6 +64,10 @@ export const GUIDE = {
     sponsoredNote: "O patrocínio não altera a ordem da lista.",
     attribution: {
       google: "Avaliações: Google.",
+      /** Lista com nota e foto do Google (A-212). */
+      googleWithPhotos: "Avaliações e fotos: Google.",
+      /** Lista só com foto do Google, sem nota de lá. */
+      googlePhotos: "Fotos: Google.",
       tripadvisor: "Avaliações e ranking: TripAdvisor.",
       osm: "Mapa e endereços: © colaboradores do OpenStreetMap.",
     },
@@ -97,6 +101,9 @@ export const GUIDE = {
     photos: "Fotos",
     photoCredit: (name: string) => `Foto: reprodução web · ${name}`,
     photoSource: "Fonte",
+    /** Crédito da foto do Google (termos: nome do autor; A-212). */
+    googlePhotoCredit: (author: string | null) =>
+      author ? `Foto: ${author} · Google` : "Foto: Google",
     noPhoto: "Sem foto oficial por enquanto.",
     updated: (date: string) => `Dados atualizados em ${date}`,
     notFoundTitle: "Este lugar não está disponível",

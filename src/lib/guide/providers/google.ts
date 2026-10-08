@@ -6,14 +6,16 @@ import {
   googleIncludedType,
   googleTypeMatches,
 } from "../categories";
-import type { VenueRecord } from "../types";
+import type { GooglePhotoRef, VenueRecord } from "../types";
 import type { ProviderError, VenueProvider, VenueQuery } from "./types";
 
 /**
  * Google Places API (New), A-210. A chave vem só do ambiente (`GOOGLE_PLACES_API_KEY`) e vai no
  * cabeçalho `X-Goog-Api-Key`: nunca na URL, em erro ou em log. Pedimos só os campos do Guia (a
- * máscara define o custo); avaliações e fotos nunca são lidas (G3, R1). Os termos do Google
- * permitem guardar o dado por 30 dias; só o Place ID fica sem prazo (ver `guide_expire_google`).
+ * máscara define o custo); texto de avaliação nunca é lido (G3, R1). Da foto principal (A-212)
+ * guardamos só a referência (`places/{id}/photos/{ref}`) e o crédito do autor; o arquivo nunca é
+ * guardado, a rota `/api/guia/foto/[slug]` busca e repassa. Os termos do Google permitem guardar o
+ * dado por 30 dias; só o Place ID fica sem prazo (ver `guide_expire_google`).
  */
 
 export const GOOGLE_PLACES_URL = "https://places.googleapis.com/v1";
@@ -34,6 +36,7 @@ const PLACE_FIELDS = [
   "googleMapsUri",
   "addressComponents",
   "primaryType",
+  "photos",
 ];
 const SEARCH_MASK = [...PLACE_FIELDS.map((f) => `places.${f}`), "nextPageToken"].join(",");
 const DETAILS_MASK = PLACE_FIELDS.join(",");
@@ -60,6 +63,27 @@ export interface GooglePlace {
   googleMapsUri?: string;
   addressComponents?: { longText?: string; types?: string[] }[];
   primaryType?: string;
+  photos?: {
+    name?: string;
+    authorAttributions?: { displayName?: string; uri?: string }[];
+  }[];
+}
+
+/** Nome de foto da Places API (New): `places/{placeId}/photos/{ref}`, sem barra, ponto ou query. */
+export const GOOGLE_PHOTO_NAME = /^places\/[A-Za-z0-9_-]{10,300}\/photos\/[A-Za-z0-9_-]{1,2000}$/;
+
+/** Primeira foto do lugar com o autor (exigido pelos termos); nome fora do formato vira `null`. */
+export function googlePhotoOf(p: GooglePlace): GooglePhotoRef | null {
+  const first = p.photos?.[0];
+  const name = first?.name?.trim();
+  if (!name || !GOOGLE_PHOTO_NAME.test(name)) return null;
+  const a = first?.authorAttributions?.[0];
+  const uri = a?.uri?.trim();
+  return {
+    name,
+    author: a?.displayName?.trim() || null,
+    authorUri: uri && /^https:\/\/[^\s]+$/i.test(uri) ? uri : null,
+  };
 }
 
 export interface GoogleOptions {
@@ -148,6 +172,7 @@ export function toGoogleVenue(
     tripadvisorUrl: null,
     googleMapsUrl: maps && /^https:\/\//i.test(maps) ? maps : null,
     googleType: type,
+    googlePhoto: googlePhotoOf(p),
     placeIds: { google: id },
     sources: ["google"],
   };

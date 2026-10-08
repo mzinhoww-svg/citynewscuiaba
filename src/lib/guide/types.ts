@@ -19,6 +19,14 @@ export interface PlaceIds {
   wikidata?: string;
 }
 
+/** Referência da foto do Google (`places/{id}/photos/{ref}`) e o autor exigido pelos termos. */
+export interface GooglePhotoRef {
+  name: string;
+  author: string | null;
+  /** Perfil do autor no Google Maps (só https). */
+  authorUri: string | null;
+}
+
 /**
  * Lugar como os provedores o devolvem e como o banco o guarda (sem id). Nunca carrega texto de
  * avaliação: só nota, contagem e posição (spec R1).
@@ -49,6 +57,11 @@ export interface VenueRecord {
   googleMapsUrl: string | null;
   /** `primaryType` do lugar no Google (`bakery`, `hotel`); confere a categoria (A-210). */
   googleType: string | null;
+  /**
+   * Foto principal do lugar no Google (A-212): só a referência e o crédito do autor; o arquivo
+   * nunca é guardado (a rota `/api/guia/foto/[slug]` busca e repassa). Vale 30 dias, como o resto.
+   */
+  googlePhoto: GooglePhotoRef | null;
   placeIds: PlaceIds;
   /** Fontes que trouxeram dados para este registro. */
   sources: DataSource[];
