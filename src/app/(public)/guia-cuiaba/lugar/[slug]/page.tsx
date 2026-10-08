@@ -45,7 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       v.neighborhood ? `no bairro ${v.neighborhood}` : "",
     ),
     path: v.href,
-    ...(v.photos[0] ? { images: [v.photos[0].src] } : {}),
+    // A foto do Google (A-212) só aparece na página, com o crédito; nunca em metadados.
+    ...(v.photos[0] && !v.photos[0].fromGoogle ? { images: [v.photos[0].src] } : {}),
   });
 }
 
@@ -106,7 +107,7 @@ export default async function GuideVenuePage({ params }: Props) {
           hours: v.hours,
           lat: v.lat,
           lng: v.lng,
-          images: v.photos.map((p) => p.src),
+          images: v.photos.filter((p) => !p.fromGoogle).map((p) => p.src),
         })}
       />
       <header className="flex flex-col gap-3 border-b border-line-strong pb-5">

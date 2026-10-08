@@ -1,11 +1,15 @@
+import { createProductionAi } from "@/lib/ai/server";
 import { createServiceClient } from "@/lib/db/client";
+import { createGuideArticleStore } from "@/lib/db/guide-article-store";
 import { guideSystemAudit } from "@/lib/db/guide-audit";
 import { createLifecycleStore } from "@/lib/db/guide-lifecycle-store";
 import { createGuideListStore } from "@/lib/db/guide-list-store";
 import { createGuideStore } from "@/lib/db/guide-store";
 import { proposeNextTemplate } from "@/lib/guide/engine";
+import { writeListArticle } from "@/lib/guide/article";
 import { autoPublishList, refreshDue } from "@/lib/guide/lifecycle";
 import { guideTags } from "@/lib/guide/tags";
+import { needsArticle, writeDueArticles } from "@/lib/guide/write-step";
 import { revalidateTags } from "@/lib/pipeline/revalidate";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
 
@@ -17,6 +21,8 @@ export const maxDuration = 60;
 const MIN_PROPOSE_INTERVAL_MS = 20 * 3_600_000;
 /** Listas atualizadas por chamada do cron diário. */
 const REFRESH_PER_RUN = 5;
+/** Textos escritos por chamada (cada um é uma chamada de modelo de até 45 s). */
+const WRITE_PER_RUN = 1;
 
 /**
  * Cron do Guia, `POST` com `Authorization: Bearer ${CRON_SECRET}`.
@@ -24,6 +30,8 @@ const REFRESH_PER_RUN = 5;
  *   todas as regras e o interruptor `guide_auto_publish` está ligado, publica sozinha (GUIA-T7).
  * - `?mode=refresh` (GUIA-T7): reordena as listas com mais de 90 dias e atualiza "Atualizada em";
  *   a que deixa de cumprir as regras vai para suspensa até uma pessoa decidir.
+ * - `?mode=write` (A-214): escreve o texto de abertura e os comentários das listas publicadas sem
+ *   texto ou com lugares novos; o texto do modelo é conferido e, reprovado, vira o texto montado.
  * `?dry=1` só relata; `?force=1` ignora o intervalo mínimo.
  */
 export async function POST(req: Request): Promise<Response> {
@@ -33,7 +41,7 @@ export async function POST(req: Request): Promise<Response> {
   const mode = url.searchParams.get("mode") ?? "propose";
   const dry = url.searchParams.get("dry") === "1";
   const force = url.searchParams.get("force") === "1";
-  if (mode !== "propose" && mode !== "refresh")
+  if (mode !== "propose" && mode !== "refresh" && mode !== "write")
     return Response.json({ status: "error", reason: "modo desconhecido" }, { status: 400 });
 
   const db = createServiceClient();
@@ -41,6 +49,24 @@ export async function POST(req: Request): Promise<Response> {
   const lists = createGuideListStore(db);
   const lifecycle = createLifecycleStore(db);
   const now = new Date();
+
+  if (mode === "write") {
+    const store = createGuideArticleStore(db);
+    if (dry) {
+      const due = (await store.published()).filter(needsArticle);
+      return Response.json({ status: "dry", due: due.map((l) => l.slug) });
+    }
+    const ai = createProductionAi();
+    const out = await writeDueArticles(
+      {
+        ...store,
+        write: (input) => writeListArticle({ callAgent: ai.callAgent, signal: req.signal }, input),
+        revalidate: revalidateTags,
+      },
+      WRITE_PER_RUN,
+    );
+    return Response.json({ status: "done", written: out });
+  }
 
   if (mode === "refresh") {
     if (dry) {

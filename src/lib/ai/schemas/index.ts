@@ -3,6 +3,7 @@ import type { AgentId } from "../types";
 import { AggregateSummarySchema } from "./aggregate-summary";
 import { AnswerDraftSchema } from "./answer";
 import { ClassifySchema } from "./classify";
+import { GuideWriterSchema } from "./guide-writer";
 import { ImageSchema } from "./image";
 import { LocateSchema } from "./locate";
 import { ReviewSchema } from "./review";
@@ -23,4 +24,5 @@ export const AGENT_SCHEMAS = {
   aggregate_summary: AggregateSummarySchema,
   source_profiler: sourceProfileSchema,
   reviewer: ReviewSchema,
+  guide_writer: GuideWriterSchema,
 } satisfies Record<AgentId, z.ZodType>;

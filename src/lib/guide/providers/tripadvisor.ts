@@ -119,6 +119,7 @@ export function toVenue(
     tripadvisorUrl: trip && /^https:\/\//i.test(trip) ? trip : null,
     googleMapsUrl: null,
     googleType: null,
+    googlePhoto: null,
     placeIds: { tripadvisor: id },
     sources: ["tripadvisor"],
   };

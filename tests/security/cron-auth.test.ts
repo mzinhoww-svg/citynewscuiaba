@@ -149,6 +149,8 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/events",
     "/api/fontes/onboarding",
     "/api/guia/informar",
+    // Foto do Google do lugar (A-212): só GET, lugar público, limite diário global, 404 em falha.
+    "/api/guia/foto/[slug]",
     "/api/ics/[slug]",
     "/api/materia/[slug]/atualizacao",
     "/api/media/[id]",

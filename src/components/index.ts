@@ -307,7 +307,6 @@ export { SuggestionChip, type SuggestionChipProps } from "./ai/SuggestionChip";
 // Administração (P5-T8)
 
 /* guia: listas e lugares de Cuiabá */
-export { CriteriaNote, type CriteriaNoteProps } from "./editorial/guide/CriteriaNote";
 export { ListCard, type ListCardProps } from "./editorial/guide/ListCard";
 export { ReportVenueForm } from "./editorial/guide/ReportVenueForm";
 export {
