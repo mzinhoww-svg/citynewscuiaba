@@ -36,10 +36,9 @@ export const GUIDE = {
   index: {
     metaTitle: "Guia Cuiabá: listas de lugares",
     metaDescription:
-      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com o critério de cada lista à vista.",
+      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com fotos, notas e o que cada lugar tem de bom.",
     title: "Guia Cuiabá",
-    intro:
-      "Listas de lugares de Cuiabá, com o critério de cada uma à vista: de onde vêm os dados e como a ordem foi montada.",
+    intro: "Os lugares mais bem avaliados de Cuiabá, lista por lista.",
     listsTitle: "Listas do Guia",
     sponsoredTitle: "Listas patrocinadas",
     sponsoredNote: "O patrocínio nunca altera a ordem das listas.",
@@ -57,7 +56,6 @@ export const GUIDE = {
     cardCta: "Ver lista",
   },
   list: {
-    criteriaTitle: "Como escolhemos",
     placesTitle: "Os lugares",
     updated: (date: string) => `Atualizada em ${date}`,
     sponsoredBy: (name: string) => `Patrocinado · ${name}`,

@@ -49,6 +49,8 @@ export const GUIDE_AUDIT_ACTIONS = [
   "guide.template.save",
   "guide.report.decide",
   "guide.sync",
+  // Texto de abertura escrito pelo Guia (A-214, migration 0183).
+  "guide.article",
 ] as const;
 
 export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];

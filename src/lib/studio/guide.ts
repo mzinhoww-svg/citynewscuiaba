@@ -284,7 +284,8 @@ export const proposeTemplateNowCommand = listAction(
 const AdjustInput = z.object({
   id: z.uuid(),
   title: z.string().trim().min(8, T.errors.title).max(160, T.errors.title),
-  intro: z.string().trim().max(500).nullable().optional(),
+  // O texto de abertura escrito pelo Guia tem até 4.000 caracteres (A-214).
+  intro: z.string().trim().max(4000).nullable().optional(),
   criteria: z.string().trim().max(1200),
   items: z
     .array(z.object({ venueId: z.uuid(), note: z.string().trim().max(400).nullable().optional() }))
@@ -322,12 +323,19 @@ export const adjustListCommand = listAction(
       .update({
         title: i.title,
         intro: i.intro?.trim() || null,
+        // Quem ajusta passa a ser o dono do texto: o Guia não o reescreve mais (A-214).
+        intro_auto: false,
         criteria: i.criteria.trim(),
         take: Math.min(Math.max(items.length, 3), 20),
       })
       .eq("id", i.id);
     if (up.error) throw new Error(`ajustar lista: ${up.error.message}`);
     await lists.replaceItems(i.id, items);
+    const own = await ctx.db
+      .from("guide_list_items")
+      .update({ note_auto: false })
+      .eq("list_id", i.id);
+    if (own.error) throw new Error(`ajustar lista: ${own.error.message}`);
     ctx.setObjectRef(`guide_list:${i.id}`);
     ctx.detail({ items: items.length, status: list.status });
     const t = await listTags(ctx, i.id);

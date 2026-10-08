@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { dataLine, GUIDE } from "@/content/pt-BR/guide";
 import type { GuideListItemView, GuideListSummary, GuideVenueView } from "@/lib/db/queries/guide";
-import { CriteriaNote } from "./CriteriaNote";
 import { ListCard } from "./ListCard";
 import { VenueCard } from "./VenueCard";
 import { VenueCover } from "./VenueCover";
@@ -120,37 +119,6 @@ describe("VenueCover", () => {
       "href",
       "https://paodourado.example/",
     );
-  });
-});
-
-describe("CriteriaNote", () => {
-  it("mostra Como escolhemos, a linha Dados em texto simples e Atualizada em", () => {
-    render(
-      <CriteriaNote
-        criteria="Reunimos padarias de Cuiabá com dados públicos."
-        dataSources={["osm", "tripadvisor", "site"]}
-        refreshedAt="2026-10-01T12:00:00Z"
-      />,
-    );
-    expect(screen.getByRole("heading", { name: "Como escolhemos" })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Dados: TripAdvisor, OpenStreetMap e sites dos lugares\./),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Atualizada em 01/10/2026")).toBeInTheDocument();
-  });
-
-  it("patrocínio aparece em texto e diz que não altera a ordem", () => {
-    render(
-      <CriteriaNote
-        criteria="Critério."
-        dataSources={["osm"]}
-        refreshedAt="2026-10-01T12:00:00Z"
-        sponsorName="CityNews"
-      />,
-    );
-    expect(
-      screen.getByText(/Patrocinado · CityNews\. O patrocínio não altera a ordem da lista\./),
-    ).toBeInTheDocument();
   });
 });
 

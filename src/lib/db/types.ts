@@ -4473,6 +4473,8 @@ export type Database = {
           criteria: string;
           id: string;
           intro: string | null;
+          intro_auto: boolean;
+          article_signature: string | null;
           neighborhood: string | null;
           next_refresh_at: string | null;
           origin: string;
@@ -4500,6 +4502,8 @@ export type Database = {
           criteria?: string;
           id?: string;
           intro?: string | null;
+          intro_auto?: boolean;
+          article_signature?: string | null;
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
@@ -4527,6 +4531,8 @@ export type Database = {
           criteria?: string;
           id?: string;
           intro?: string | null;
+          intro_auto?: boolean;
+          article_signature?: string | null;
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
@@ -4560,6 +4566,7 @@ export type Database = {
       guide_list_items: {
         Row: {
           editor_note: string | null;
+          note_auto: boolean;
           list_id: string;
           position: number;
           score: number | null;
@@ -4568,6 +4575,7 @@ export type Database = {
         };
         Insert: {
           editor_note?: string | null;
+          note_auto?: boolean;
           list_id: string;
           position: number;
           score?: number | null;
@@ -4576,6 +4584,7 @@ export type Database = {
         };
         Update: {
           editor_note?: string | null;
+          note_auto?: boolean;
           list_id?: string;
           position?: number;
           score?: number | null;
