@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EventView } from "@/lib/db/queries/types";
-import { originNote } from "./origin-note";
+import { organizerConfirmedDate, originNote } from "./origin-note";
 
 type Case = Pick<EventView, "origin" | "sourceName" | "confirmedByName" | "confirmed">;
 const e = (c: Case): EventView => ({ ...c }) as EventView;
@@ -62,5 +62,44 @@ describe("originNote", () => {
         e({ origin: "official", sourceName: null, confirmedByName: null, confirmed: true }),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("organizerConfirmedDate", () => {
+  type C = Pick<EventView, "origin" | "sourceName" | "confirmedAt">;
+  const ev = (c: C): EventView => ({ ...c }) as EventView;
+
+  it("evento coletado de fonte: a nota de origem substitui a frase da organização", () => {
+    expect(
+      organizerConfirmedDate(
+        ev({
+          origin: "organizer",
+          sourceName: "Agenda Cuiabana",
+          confirmedAt: "2026-10-08T12:00:00Z",
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("redação nunca afirma confirmação da organização", () => {
+    expect(
+      organizerConfirmedDate(
+        ev({ origin: "newsroom", sourceName: null, confirmedAt: "2026-10-08T12:00:00Z" }),
+      ),
+    ).toBeNull();
+  });
+
+  it("evento antigo sem fonte e confirmado mantém a frase", () => {
+    expect(
+      organizerConfirmedDate(
+        ev({ origin: "official", sourceName: null, confirmedAt: "2026-10-08T12:00:00Z" }),
+      ),
+    ).toBe("2026-10-08T12:00:00Z");
+  });
+
+  it("sem data de confirmação: nada", () => {
+    expect(
+      organizerConfirmedDate(ev({ origin: "organizer", sourceName: null, confirmedAt: null })),
+    ).toBeNull();
   });
 });

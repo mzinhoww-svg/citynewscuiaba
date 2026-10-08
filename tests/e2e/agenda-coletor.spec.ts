@@ -137,8 +137,12 @@ test.describe("origem e confirmação do evento", () => {
     const note = page.getByTestId("event-origin");
     await expect(note).toContainText(`Com informações de ${names.discovery}`);
     await expect(note).toContainText(`Confirmado por ${names.house}`);
+    await expect(note).not.toContainText("confirmadas pela organização");
     await page.goto(`/agenda/${slugs.unconfirmed}`);
     await expect(page.getByTestId("event-origin")).toContainText("Confirme na fonte");
+    await expect(page.getByTestId("event-origin")).not.toContainText(
+      "confirmadas pela organização",
+    );
     await page.goto(`/agenda/${slugs.own}`);
     const own = page.getByTestId("event-origin");
     await expect(own).toContainText(`Com informações de ${names.house}`);
@@ -147,6 +151,9 @@ test.describe("origem e confirmação do evento", () => {
     await page.goto(`/agenda/${slugs.newsroom}`);
     await expect(page.getByTestId("event-origin")).toContainText("Origem da informação: CityNews.");
     await expect(page.getByTestId("event-origin")).not.toContainText("Com informações de");
+    await expect(page.getByTestId("event-origin")).not.toContainText(
+      "confirmadas pela organização",
+    );
     const { violations } = await new AxeBuilder({ page }).analyze();
     expect(violations.filter((v) => blocking(v.impact))).toEqual([]);
   });

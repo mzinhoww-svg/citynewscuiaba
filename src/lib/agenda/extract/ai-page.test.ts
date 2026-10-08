@@ -168,11 +168,78 @@ describe("extractEventPage", () => {
     expect(n.ok).toBe(true);
   });
 
-  it("preço gratuito vira 0 e preço ilegível fica não informado", async () => {
-    const free = await run([
-      { output: { ...good, preco: field("Entrada franca", "Ingresso: R$ 40,00") } },
+  it("título que não está no próprio trecho derruba o evento", async () => {
+    const { r } = await run([
+      { output: { ...good, titulo: field("Show Inventado", "Forró da Praça") } },
     ]);
+    expect(r).toEqual({ ok: false, error: "trecho_ausente" });
+  });
+
+  it("título com caixa e acento diferentes do trecho é aceito", async () => {
+    const { r } = await run([
+      { output: { ...good, titulo: field("forro da praca", "Forró da Praça") } },
+    ]);
+    expect(r.ok).toBe(true);
+  });
+
+  it("local e cidade que não estão no próprio trecho são descartados", async () => {
+    const { r } = await run([
+      {
+        output: {
+          ...good,
+          local: field("Arena Pantanal", "Teatro Cerrado"),
+          cidade: field("Várzea Grande", "Cuiabá"),
+        },
+      },
+    ]);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.raw.venue).toBeNull();
+    expect(r.value.raw.city).toBeNull();
+    expect(r.value.evidence.local).toBeUndefined();
+    expect(r.value.evidence.cidade).toBeUndefined();
+  });
+
+  it("preço vem do trecho, não do valor que o modelo devolve", async () => {
+    const html = `<h1>Forró da Praça</h1><p>Sábado, 10 de outubro de 2026 · 19h</p>
+<p>Entrada franca</p><p>Ingressos R$ 80</p>`;
+    const free = await run(
+      [
+        {
+          output: {
+            ...good,
+            local: null,
+            cidade: null,
+            organizador: null,
+            preco: field("R$ 50", "Entrada franca"),
+          },
+        },
+      ],
+      html,
+    );
     expect(free.r.ok && free.r.value.raw.priceCents).toBe(0);
+    const paid = await run(
+      [
+        {
+          output: {
+            ...good,
+            local: null,
+            cidade: null,
+            organizador: null,
+            preco: field("R$ 50", "Ingressos R$ 80"),
+          },
+        },
+      ],
+      html,
+    );
+    expect(paid.r.ok && paid.r.value.raw.priceCents).toBe(8000);
+  });
+
+  it('valor "Gratuito" com trecho pago vale o trecho; trecho ilegível fica não informado', async () => {
+    const free = await run([
+      { output: { ...good, preco: field("Gratuito", "Ingresso: R$ 40,00") } },
+    ]);
+    expect(free.r.ok && free.r.value.raw.priceCents).toBe(4000);
     const unknown = await run([
       { output: { ...good, preco: field("Consulte", "Produção: Grupo Cerrado") } },
     ]);

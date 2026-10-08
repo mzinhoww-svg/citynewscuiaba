@@ -1,6 +1,9 @@
 // @vitest-environment node
 // AGM-T1: colunas de evento em `sources`, `event_listings` com retirada/origem newsroom, cache de
 // extração só da service role e seed das fontes de eventos.
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { createPublicClient, createServiceClient } from "@/lib/db/client";
 import { createIngestRepo } from "@/lib/db/pipeline-store";
@@ -139,6 +142,59 @@ describe("seed das fontes de eventos", () => {
       expect(["legal", "other"]).toContain(s.status_reason);
       expect(s.last_error).toBeTruthy();
     }
+  });
+
+  it("as 3 do Sympla têm nome público 'Sympla'", async () => {
+    const { data } = await anon
+      .from("public_event_sources")
+      .select("name, id")
+      .in(
+        "id",
+        (
+          await db
+            .from("sources")
+            .select("id")
+            .in("slug", ["sympla-cuiaba-1", "sympla-cuiaba-2", "sympla-varzea-grande"])
+        ).data!.map((r) => r.id),
+      );
+    expect((data ?? []).map((r) => r.name)).toEqual(["Sympla", "Sympla", "Sympla"]);
+  });
+
+  it("public_event_sources mantém o nome de fonte bloqueada (origem sempre visível)", async () => {
+    const src = await db.from("sources").select("id, name").eq("slug", "cuiaba-tem").single();
+    const { data } = await anon.from("public_event_sources").select("name").eq("id", src.data!.id);
+    expect(data).toEqual([{ name: src.data!.name }]);
+  });
+
+  it("backfill do 0196 liga source_ref das linhas coletadas pelo slug da fonte", () => {
+    const DB_URL =
+      process.env.SUPABASE_DB_URL ?? "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
+    const psql = (sql: string): string =>
+      execFileSync("psql", [DB_URL, "-At", "-v", "ON_ERROR_STOP=1", "-c", sql], {
+        encoding: "utf8",
+        env: { ...process.env, PGOPTIONS: "-c client_min_messages=warning" },
+      }).trim();
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/0196_agenda_sources_seed.sql"),
+      "utf8",
+    );
+    const backfill = /-- backfill:start\n([\s\S]*?)-- backfill:end/.exec(migration)?.[1];
+    expect(backfill).toBeTruthy();
+    slugs.push("agm-bf-sympla", "agm-bf-outra", "agm-bf-ja-ligada");
+    const cine = psql("select id from sources where slug = 'cine-teatro-cuiaba'");
+    psql(`insert into event_listings (slug, title, starts_at, venue, category, origin, confirmed_at, source_id, source_ref) values
+      ('agm-bf-sympla', 'Evento agm-bf-sympla', '2027-03-10T22:00:00Z', 'Teatro Fictício', 'Música', 'organizer', now(), 'sympla-cuiaba-2', null),
+      ('agm-bf-outra', 'Evento agm-bf-outra', '2027-03-10T22:00:00Z', 'Teatro Fictício', 'Música', 'organizer', now(), 'fonte-que-nao-existe', null),
+      ('agm-bf-ja-ligada', 'Evento agm-bf-ja-ligada', '2027-03-10T22:00:00Z', 'Teatro Fictício', 'Música', 'organizer', now(), 'sympla-cuiaba-2', '${cine}')`);
+    psql(backfill!);
+    const rows = psql(
+      "select e.slug || '=' || coalesce(s.slug, '') from event_listings e left join sources s on s.id = e.source_ref where e.slug like 'agm-bf-%' order by e.slug",
+    ).split("\n");
+    expect(rows).toEqual([
+      "agm-bf-ja-ligada=cine-teatro-cuiaba",
+      "agm-bf-outra=",
+      "agm-bf-sympla=sympla-cuiaba-2",
+    ]);
   });
 
   it("public_sources não expõe fonte de eventos", async () => {

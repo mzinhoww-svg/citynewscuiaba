@@ -129,7 +129,7 @@ export async function extractListingLinks(
 /** Preço em centavos a partir do texto do campo; `undefined` quando não dá para ler. */
 function priceCentsOf(text: string): number | undefined {
   const t = fold(text);
-  if (/\b(gratuit[oa]|gratis|entrada franca|sem custo)\b/.test(t)) return 0;
+  if (/\b(gratuit[oa]|gratis|entrada franca|sem custo|free)\b/.test(t)) return 0;
   const m = /r\$\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?/.exec(t);
   if (!m) return undefined;
   const reais = Number((m[1] ?? "0").replace(/\./g, ""));
@@ -198,6 +198,8 @@ export async function extractEventPage(
 
   if (!e.evento) return err("extracao_invalida");
   if (!verifyEvidence(page, e.titulo.trecho)) return err("trecho_ausente");
+  // O título precisa estar no próprio trecho (o trecho sustenta o valor, não só existe).
+  if (!verifyEvidence(e.titulo.trecho, e.titulo.value)) return err("trecho_ausente");
   if (!verifyEvidence(page, e.data.trecho)) return err("trecho_ausente");
 
   if (e.data.ano_evidencia === "ausente") return err("sem_ano");
@@ -227,9 +229,16 @@ export async function extractEventPage(
       ? f
       : null;
   })();
-  const local = keep(e.local);
-  const cidade = keep(e.cidade);
-  const preco = keep(e.preco);
+  // Local e cidade: o valor precisa estar contido no próprio trecho.
+  const inTrecho = (f: Field | null): Field | null =>
+    f && verifyEvidence(f.trecho, f.value) ? f : null;
+  const local = inTrecho(keep(e.local));
+  const cidade = inTrecho(keep(e.cidade));
+  // Preço: lido do trecho, nunca do valor; trecho sem preço legível descarta o campo.
+  const preco = (() => {
+    const f = keep(e.preco);
+    return f && priceCentsOf(f.trecho) !== undefined ? f : null;
+  })();
   const organizador = keep(e.organizador);
 
   const evidence: EvidenceRecord = {
@@ -254,7 +263,7 @@ export async function extractEventPage(
     url: input.url,
   };
   if (preco) {
-    const cents = priceCentsOf(preco.value);
+    const cents = priceCentsOf(preco.trecho);
     if (cents !== undefined) raw.priceCents = cents;
   }
   return ok({ raw, evidence });

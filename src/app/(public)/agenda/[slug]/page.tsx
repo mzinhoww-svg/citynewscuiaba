@@ -24,7 +24,7 @@ import {
   formatLongDate,
   localDateKey,
 } from "@/lib/format/date";
-import { originNote } from "@/lib/agenda/origin-note";
+import { organizerConfirmedDate, originNote } from "@/lib/agenda/origin-note";
 import { googleCalendarUrl } from "@/lib/ics";
 import { breadcrumbJsonLd, eventJsonLd, ldScript, siteUrl } from "@/lib/seo/jsonld";
 
@@ -80,6 +80,7 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
   };
   const category = AGENDA.categories[e.category] ?? e.category;
   const note = originNote(e);
+  const organizerConfirmed = organizerConfirmedDate(e);
   return (
     <>
       <script
@@ -175,7 +176,7 @@ function Event({ e, related }: { e: EventView; related: EventView[] }) {
               <span data-testid="event-origin">
                 {AGENDA.originLabel}: {AGENDA.origins[e.origin]}.{" "}
                 {note.length > 0 && `${note.join(". ")}. `}
-                {e.confirmedAt && AGENDA.confirmed(formatDayMonth(e.confirmedAt))}
+                {organizerConfirmed && AGENDA.confirmed(formatDayMonth(organizerConfirmed))}
               </span>
             </p>
           </article>

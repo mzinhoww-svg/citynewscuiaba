@@ -88,3 +88,18 @@ insert into sources (
   'blocked', 'other', 'HTTP 404 desde 2026-07-30; suspensa, reavaliar em auditoria.', false, 'ai_page', 'organizer',
   array['HTTP 404 desde 2026-07-30.'], '{}', false)
 on conflict (slug) do nothing;
+
+-- Nome público das 3 do Sympla: o portal diz "Com informações de Sympla" (não a página de busca).
+update sources set display_name = 'Sympla'
+  where slug in ('sympla-cuiaba-1', 'sympla-cuiaba-2', 'sympla-varzea-grande');
+
+-- Linhas já coletadas guardam a fonte só no texto `source_id` (slug): liga `source_ref` à fonte
+-- de eventos de mesmo slug, sem mexer em linha que já tem referência.
+-- backfill:start
+update event_listings e
+  set source_ref = s.id
+  from sources s
+  where s.kind = 'events'
+    and s.slug = e.source_id
+    and e.source_ref is null;
+-- backfill:end
