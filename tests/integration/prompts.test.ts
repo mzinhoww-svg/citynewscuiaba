@@ -79,12 +79,13 @@ describe("prompts versionados (banco real)", () => {
     }
   });
 
-  it("orçamentos do seed: write R$ 9, source_profiler R$ 1, reviewer R$ 1, total R$ 30; o banco recusa passar do teto", async () => {
+  it("orçamentos do seed: write R$ 8, source_profiler R$ 1, reviewer R$ 1, event_extractor R$ 1, total R$ 30; o banco recusa passar do teto", async () => {
     const { data } = await service.from("ai_agents").select("id, daily_budget_brl");
     const by = new Map((data ?? []).map((a) => [a.id, Number(a.daily_budget_brl)]));
-    expect(by.get("write")).toBe(9);
+    expect(by.get("write")).toBe(8);
     expect(by.get("source_profiler")).toBe(1);
     expect(by.get("reviewer")).toBe(1);
+    expect(by.get("event_extractor")).toBe(1);
     expect([...by.values()].reduce((s, x) => s + x, 0)).toBe(30);
     const over = await service.from("ai_agents").update({ daily_budget_brl: 3 }).eq("id", AGENT);
     expect(over.error?.code).toBe("23514");

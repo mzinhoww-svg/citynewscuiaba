@@ -238,6 +238,7 @@ describe("Executar agora (banco)", () => {
     const { count } = await service
       .from("sources")
       .select("id", { count: "exact", head: true })
+      .neq("kind", "events")
       .in("status", ["active", "degraded"]);
     expect(r.value.enqueued).toBe(count);
     expect(r.value.enqueued).toBeGreaterThan(0);

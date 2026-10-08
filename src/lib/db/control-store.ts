@@ -270,6 +270,7 @@ export function createRunNowRepo(db: DbClient): RunNowRepo {
       const { data, error } = await db
         .from("sources")
         .select("id, slug")
+        .neq("kind", "events")
         .in("status", ["active", "degraded"])
         .order("priority", { ascending: true })
         .order("slug", { ascending: true });

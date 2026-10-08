@@ -259,25 +259,63 @@ export type Database = {
       };
       agenda_collect_runs: {
         Row: {
+          ai_pages: number;
           finished_at: string | null;
           id: string;
           report: Json | null;
+          source_id: string | null;
           started_at: string;
+          stats: NonNullable<Json>;
           trigger: string;
         };
         Insert: {
+          ai_pages?: number;
           finished_at?: string | null;
           id?: string;
           report?: Json | null;
+          source_id?: string | null;
           started_at?: string;
+          stats?: NonNullable<Json>;
           trigger?: string;
         };
         Update: {
+          ai_pages?: number;
           finished_at?: string | null;
           id?: string;
           report?: Json | null;
+          source_id?: string | null;
           started_at?: string;
+          stats?: NonNullable<Json>;
           trigger?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "agenda_collect_runs_source_id_fkey";
+            columns: ["source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      agenda_extract_cache: {
+        Row: {
+          content_hash: string;
+          created_at: string;
+          result: NonNullable<Json>;
+          url: string;
+        };
+        Insert: {
+          content_hash: string;
+          created_at?: string;
+          result: NonNullable<Json>;
+          url: string;
+        };
+        Update: {
+          content_hash?: string;
+          created_at?: string;
+          result?: NonNullable<Json>;
+          url?: string;
         };
         Relationships: [];
       };
@@ -1402,22 +1440,28 @@ export type Database = {
           category: string;
           collected_at: string | null;
           confirmed_at: string | null;
+          confirmed_by_source_id: string | null;
           dedupe_key: string | null;
           description: string | null;
           ends_at: string | null;
+          evidence: NonNullable<Json>;
           id: string;
           is_free: boolean | null;
+          locked_fields: string[];
           neighborhood: string | null;
           origin: string;
           price_cents: number | null;
           price_unknown: boolean;
           slug: string;
           source_id: string | null;
+          source_ref: string | null;
           source_url: string | null;
           starts_at: string;
           title: string;
           tsv: unknown;
+          updated_at: string;
           venue: string;
+          withdrawn_at: string | null;
         };
         Insert: {
           accessibility?: string | null;
@@ -1425,22 +1469,28 @@ export type Database = {
           category: string;
           collected_at?: string | null;
           confirmed_at?: string | null;
+          confirmed_by_source_id?: string | null;
           dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
+          evidence?: NonNullable<Json>;
           id?: string;
           is_free?: never;
+          locked_fields?: string[];
           neighborhood?: string | null;
           origin: string;
           price_cents?: number | null;
           price_unknown?: boolean;
           slug: string;
           source_id?: string | null;
+          source_ref?: string | null;
           source_url?: string | null;
           starts_at: string;
           title: string;
           tsv?: unknown;
+          updated_at?: string;
           venue: string;
+          withdrawn_at?: string | null;
         };
         Update: {
           accessibility?: string | null;
@@ -1448,24 +1498,45 @@ export type Database = {
           category?: string;
           collected_at?: string | null;
           confirmed_at?: string | null;
+          confirmed_by_source_id?: string | null;
           dedupe_key?: string | null;
           description?: string | null;
           ends_at?: string | null;
+          evidence?: NonNullable<Json>;
           id?: string;
           is_free?: never;
+          locked_fields?: string[];
           neighborhood?: string | null;
           origin?: string;
           price_cents?: number | null;
           price_unknown?: boolean;
           slug?: string;
           source_id?: string | null;
+          source_ref?: string | null;
           source_url?: string | null;
           starts_at?: string;
           title?: string;
           tsv?: unknown;
+          updated_at?: string;
           venue?: string;
+          withdrawn_at?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "event_listings_confirmed_by_source_id_fkey";
+            columns: ["confirmed_by_source_id"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_listings_source_ref_fkey";
+            columns: ["source_ref"];
+            isOneToOne: false;
+            referencedRelation: "sources";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       event_submissions: {
         Row: {
@@ -3731,13 +3802,20 @@ export type Database = {
           archived_by: string | null;
           base_url: string;
           categories: string[];
+          collector_notes: string[];
+          confirms: boolean;
           consecutive_failures: number;
           consumption: NonNullable<Json>;
           created_at: string;
           created_by: string | null;
+          default_category: string | null;
+          default_neighborhood: string | null;
+          default_venue: string | null;
           display_name: string | null;
           editorial_score: number;
           etag: string | null;
+          event_origin: string | null;
+          extract_kind: string | null;
           feed_url: string | null;
           frequency_minutes: number | null;
           id: string;
@@ -3749,9 +3827,10 @@ export type Database = {
           last_fetched_at: string | null;
           last_modified: string | null;
           layer: number | null;
+          list_urls: string[];
           locality: string;
-          logo_path: string | null;
           logo_origin_url: string | null;
+          logo_path: string | null;
           logo_source: string | null;
           may_be_sole_source: boolean;
           name: string;
@@ -3761,9 +3840,9 @@ export type Database = {
           rec_excluded: boolean;
           rec_local_highlight: boolean;
           rec_pinned: boolean;
-          trusted: boolean;
           reliability: Database["public"]["Enums"]["source_reliability"];
           republish_policy: Database["public"]["Enums"]["republish_policy"];
+          require_city: boolean;
           slug: string;
           status: Database["public"]["Enums"]["source_status"];
           status_changed_at: string | null;
@@ -3773,6 +3852,7 @@ export type Database = {
           terms_reviewed_at: string | null;
           terms_reviewed_by: string | null;
           terms_url: string | null;
+          trusted: boolean;
           updated_at: string;
           version: number;
         };
@@ -3784,13 +3864,20 @@ export type Database = {
           archived_by?: string | null;
           base_url: string;
           categories?: string[];
+          collector_notes?: string[];
+          confirms?: boolean;
           consecutive_failures?: number;
           consumption?: NonNullable<Json>;
           created_at?: string;
           created_by?: string | null;
+          default_category?: string | null;
+          default_neighborhood?: string | null;
+          default_venue?: string | null;
           display_name?: string | null;
           editorial_score?: number;
           etag?: string | null;
+          event_origin?: string | null;
+          extract_kind?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number | null;
           id?: string;
@@ -3802,9 +3889,10 @@ export type Database = {
           last_fetched_at?: string | null;
           last_modified?: string | null;
           layer?: number | null;
+          list_urls?: string[];
           locality: string;
-          logo_path?: string | null;
           logo_origin_url?: string | null;
+          logo_path?: string | null;
           logo_source?: string | null;
           may_be_sole_source?: boolean;
           name: string;
@@ -3814,9 +3902,9 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
-          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
+          require_city?: boolean;
           slug: string;
           status?: Database["public"]["Enums"]["source_status"];
           status_changed_at?: string | null;
@@ -3826,6 +3914,7 @@ export type Database = {
           terms_reviewed_at?: string | null;
           terms_reviewed_by?: string | null;
           terms_url?: string | null;
+          trusted?: boolean;
           updated_at?: string;
           version?: number;
         };
@@ -3837,13 +3926,20 @@ export type Database = {
           archived_by?: string | null;
           base_url?: string;
           categories?: string[];
+          collector_notes?: string[];
+          confirms?: boolean;
           consecutive_failures?: number;
           consumption?: NonNullable<Json>;
           created_at?: string;
           created_by?: string | null;
+          default_category?: string | null;
+          default_neighborhood?: string | null;
+          default_venue?: string | null;
           display_name?: string | null;
           editorial_score?: number;
           etag?: string | null;
+          event_origin?: string | null;
+          extract_kind?: string | null;
           feed_url?: string | null;
           frequency_minutes?: number | null;
           id?: string;
@@ -3855,9 +3951,10 @@ export type Database = {
           last_fetched_at?: string | null;
           last_modified?: string | null;
           layer?: number | null;
+          list_urls?: string[];
           locality?: string;
-          logo_path?: string | null;
           logo_origin_url?: string | null;
+          logo_path?: string | null;
           logo_source?: string | null;
           may_be_sole_source?: boolean;
           name?: string;
@@ -3867,9 +3964,9 @@ export type Database = {
           rec_excluded?: boolean;
           rec_local_highlight?: boolean;
           rec_pinned?: boolean;
-          trusted?: boolean;
           reliability?: Database["public"]["Enums"]["source_reliability"];
           republish_policy?: Database["public"]["Enums"]["republish_policy"];
+          require_city?: boolean;
           slug?: string;
           status?: Database["public"]["Enums"]["source_status"];
           status_changed_at?: string | null;
@@ -3879,6 +3976,7 @@ export type Database = {
           terms_reviewed_at?: string | null;
           terms_reviewed_by?: string | null;
           terms_url?: string | null;
+          trusted?: boolean;
           updated_at?: string;
           version?: number;
         };

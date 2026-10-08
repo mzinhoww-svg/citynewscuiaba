@@ -171,6 +171,7 @@ export function createRunStore(db: DbClient): RunStore {
         .select(
           "id, slug, status, priority, editorial_score, frequency_minutes, terms_min_interval_minutes, rate_limit_per_hour, consumption, last_fetched_at",
         )
+        .neq("kind", "events")
         .in("status", ["active", "degraded"])
         .is("archived_at", null)
         .order("priority", { ascending: true })
@@ -333,6 +334,7 @@ export function createFrontpageRepo(db: DbClient): FrontpageRepo {
       const { data, error } = await db
         .from("sources")
         .select(SOURCE_COLUMNS)
+        .neq("kind", "events")
         .eq("status", "active")
         .eq("consumption->>frontpage", "true");
       check("frontpageSources", error);

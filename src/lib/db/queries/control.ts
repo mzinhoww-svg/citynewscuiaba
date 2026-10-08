@@ -551,7 +551,11 @@ export async function sourceOptions(): Promise<
   { id: string; slug: string; name: string; status: string }[]
 > {
   const { db } = await studioContext();
-  const { data, error } = await db.from("sources").select("id, slug, name, status").order("name");
+  const { data, error } = await db
+    .from("sources")
+    .select("id, slug, name, status")
+    .neq("kind", "events")
+    .order("name");
   check("sources", error);
   return data ?? [];
 }

@@ -9,7 +9,16 @@ import type { EventView, QueryError } from "./types";
 
 type EventRow = Omit<
   Database["public"]["Tables"]["event_listings"]["Row"],
-  "tsv" | "source_id" | "dedupe_key" | "collected_at"
+  | "tsv"
+  | "source_id"
+  | "dedupe_key"
+  | "collected_at"
+  | "source_ref"
+  | "confirmed_by_source_id"
+  | "evidence"
+  | "locked_fields"
+  | "withdrawn_at"
+  | "updated_at"
 >;
 
 export const EVENT_COLUMNS =
