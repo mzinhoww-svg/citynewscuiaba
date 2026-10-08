@@ -2,7 +2,6 @@ import { localDateKey } from "@/lib/format/date";
 import { fold } from "@/lib/text/fold";
 import { titleSimilarity } from "./dedupe";
 import type { EvidenceConflict } from "./extract/evidence";
-import { dedupeKeyOf } from "./normalize";
 import type { NormalizedEvent } from "./types";
 
 /** Limite de similaridade de título para confirmar (mais rígido que o do dedupe, 0,6). */
@@ -26,7 +25,7 @@ function conflictOf(e: NormalizedEvent, c: NormalizedEvent): EvidenceConflict | 
       descoberta: e.startsAt,
       venue: c.venue,
     };
-  if (venueKey(e.venue) !== venueKey(c.venue))
+  if (venueKey(c.venue) && venueKey(e.venue) !== venueKey(c.venue))
     return { campo: "local", descoberta: e.venue, venue: c.venue };
   return null;
 }
@@ -35,6 +34,7 @@ function conflictOf(e: NormalizedEvent, c: NormalizedEvent): EvidenceConflict | 
  * Confirmação cruzada: evento de descoberta (`confirms = false`) que uma fonte que confirma
  * (`confirmed`) também lista passa a apontar para ela (`confirmedBySourceId`) e adota data,
  * horário e local dela; a divergência fica em `evidence.conflito`. Sem par, volta igual.
+ * A `dedupeKey` do evento nunca muda: ela é a identidade da linha (uma linha por evento real).
  */
 export function confirmEvents(
   events: readonly NormalizedEvent[],
@@ -42,7 +42,16 @@ export function confirmEvents(
 ): NormalizedEvent[] {
   return events.map((e) => {
     if (e.confirms) return e;
-    const pair = confirmed.find((c) => c.confirms && matches(e, c));
+    let pair: NormalizedEvent | undefined;
+    let best = -1;
+    for (const c of confirmed) {
+      if (!c.confirms || !matches(e, c)) continue;
+      const sim = e.dedupeKey === c.dedupeKey ? 1 : titleSimilarity(e.dedupeKey, c.dedupeKey);
+      if (sim > best) {
+        best = sim;
+        pair = c;
+      }
+    }
     if (!pair) return e;
     const conflito = conflictOf(e, pair);
     const startsAt = pair.startsAt;
@@ -52,7 +61,6 @@ export function confirmEvents(
       startsAt,
       endsAt: e.startsAt === pair.startsAt ? e.endsAt : pair.endsAt,
       venue,
-      dedupeKey: dedupeKeyOf(e.title, startsAt, venue),
       confirmedBySourceId: pair.sourceRef,
       evidence: conflito ? { ...e.evidence, conflito } : e.evidence,
     };

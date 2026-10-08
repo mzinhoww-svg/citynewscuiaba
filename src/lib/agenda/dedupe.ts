@@ -24,14 +24,15 @@ function similar(a: NormalizedEvent, b: NormalizedEvent): boolean {
 /**
  * Remove repetidos (mesmo título, dia e local, ou títulos muito parecidos no mesmo dia e local).
  * Fica o primeiro da lista; a ordem das fontes decide (oficial antes de organizador). Entre dois
- * parecidos, o de fonte que confirma (`confirms`) toma o lugar do que não confirma.
+ * parecidos, o de fonte que confirma (`confirms`) toma o lugar do que não confirma, exceto um
+ * registro já guardado (`sourceId === ""`, manual ou de leitor), que sempre vence.
  */
 export function dedupeEvents(list: readonly NormalizedEvent[]): NormalizedEvent[] {
   const kept: NormalizedEvent[] = [];
   for (const e of list) {
     const i = kept.findIndex((k) => similar(k, e));
     if (i < 0) kept.push(e);
-    else if (e.confirms && !kept[i]?.confirms) kept[i] = e;
+    else if (e.confirms && !kept[i]?.confirms && kept[i]?.sourceId !== "") kept[i] = e;
   }
   return kept;
 }

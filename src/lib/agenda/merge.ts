@@ -37,7 +37,8 @@ export type StoredEvent = {
 
 /**
  * Evento a gravar numa coleta repetida: `null` se a redação o retirou (não regrava); campos em
- * `lockedFields` mantêm o valor guardado, o resto vem da coleta.
+ * `lockedFields` mantêm o valor guardado, o resto vem da coleta. `dedupeKey` é a identidade da
+ * linha: vem sempre da coleta, mesmo com título, data ou local travados.
  */
 export function mergeForSave(
   incoming: NormalizedEvent,

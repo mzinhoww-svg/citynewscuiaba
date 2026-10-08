@@ -57,6 +57,7 @@ export interface NormalizedEvent {
   sourceId: string;
   origin: "official" | "organizer";
   description: string;
+  /** Identidade da linha (uma por evento real): nunca muda por confirmação nem por edição. */
   dedupeKey: string;
   /** Local reconhecido (casa na lista de bairros/locais ou veio com endereço). */
   venueKnown: boolean;

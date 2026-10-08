@@ -81,6 +81,51 @@ describe("confirmEvents", () => {
     expect(out?.evidence.conflito?.campo).toBe("local");
   });
 
+  it("mantém a dedupeKey própria ao adotar dados do par", () => {
+    const noVenue = ev({ title: SYMPLA.title, startsAt: CINE.startsAt, venue: "" });
+    const [out] = confirmEvents([noVenue], [CINE]);
+    expect(out?.dedupeKey).toBe(noVenue.dedupeKey);
+    expect(out?.dedupeKey).not.toBe(CINE.dedupeKey);
+  });
+
+  it("par sem local não gera conflito de local", () => {
+    const bare = ev({
+      title: CINE.title,
+      startsAt: SYMPLA.startsAt,
+      venue: "",
+      confirms: true,
+      sourceRef: "u",
+    });
+    const [out] = confirmEvents([SYMPLA], [bare]);
+    expect(out?.confirmedBySourceId).toBe("u");
+    expect(out?.venue).toBe(SYMPLA.venue);
+    expect(out?.evidence.conflito).toBeUndefined();
+  });
+
+  it("vários pares: escolhe o de maior similaridade; empate, o primeiro", () => {
+    const loose = ev({
+      title: "Show Fulano Especial",
+      startsAt: CINE.startsAt,
+      confirms: true,
+      sourceRef: "loose",
+    });
+    const exact = ev({
+      title: "Show do Fulano",
+      startsAt: CINE.startsAt,
+      confirms: true,
+      sourceRef: "exact",
+    });
+    const twin = ev({
+      title: "Fulano Show",
+      startsAt: CINE.startsAt,
+      confirms: true,
+      sourceRef: "twin",
+    });
+    expect(confirmEvents([SYMPLA], [loose, exact])[0]?.confirmedBySourceId).toBe("exact");
+    expect(confirmEvents([SYMPLA], [exact, twin])[0]?.confirmedBySourceId).toBe("exact");
+    expect(confirmEvents([SYMPLA], [twin, exact])[0]?.confirmedBySourceId).toBe("twin");
+  });
+
   it("título pouco parecido não confirma", () => {
     const other = ev({ title: "Festival de Jazz", startsAt: SYMPLA.startsAt, confirms: true });
     expect(confirmEvents([SYMPLA], [other])[0]?.confirmedBySourceId).toBeNull();
@@ -98,5 +143,11 @@ describe("dedupeEvents prefere o confirmante", () => {
     const b = ev({ title: "Fulano Show", startsAt: CINE.startsAt, confirms: true });
     expect(dedupeEvents([a, b])).toEqual([b]);
     expect(dedupeEvents([b, a])).toEqual([b]);
+  });
+
+  it("registro guardado (sourceId vazio) nunca é substituído", () => {
+    const stored = ev({ title: "Show do Fulano", startsAt: CINE.startsAt, sourceId: "" });
+    const b = ev({ title: "Fulano Show", startsAt: CINE.startsAt, confirms: true });
+    expect(dedupeEvents([stored, b])).toEqual([stored]);
   });
 });
