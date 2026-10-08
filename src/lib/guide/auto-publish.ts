@@ -32,6 +32,9 @@ export const DEFAULT_MIN_VENUES = 5;
 /** A-211: as listas são informativas; uma fonte de dados por lugar basta. */
 export const MIN_SOURCES_PER_VENUE = 1;
 
+/** Avaliações mínimas para entrar numa lista: nota de poucas pessoas não sustenta ranking (A-213). */
+export const MIN_RATING_COUNT = 300;
+
 export function canAutoPublish(
   list: ListDraft,
   minVenues = DEFAULT_MIN_VENUES,

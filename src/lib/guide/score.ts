@@ -59,9 +59,15 @@ export interface Score {
   breakdown: Record<keyof Weights, number>;
 }
 
-/** Média a priori e peso (em avaliações) do ajuste bayesiano da nota. */
+/**
+ * Média a priori e peso (em avaliações) do ajuste bayesiano da nota. O peso alto puxa para 4,0 a
+ * nota de quem tem poucas avaliações (A-213: casa conhecida à frente de nota alta com poucas).
+ */
 const PRIOR_MEAN = 4;
-const PRIOR_WEIGHT = 50;
+const PRIOR_WEIGHT = 300;
+/** Parte da nota que vem do volume de avaliações (log, cheio em 10 mil), A-213. */
+const POPULARITY_SHARE = 0.3;
+const POPULARITY_CAP = 10_000;
 /** Ranking: 1 vale 1 e a nota decai em log até 0 na posição 500. */
 const RANK_HORIZON = 500;
 /** Menções: 8 ou mais já dão o máximo. */
@@ -99,7 +105,9 @@ function ratingComponent(rating: number | null, count: number | null): number {
   if (rating === null || !Number.isFinite(rating) || rating < 0 || rating > 5) return 0;
   if (count === null || !Number.isFinite(count) || count <= 0) return 0;
   const bayes = (count * rating + PRIOR_WEIGHT * PRIOR_MEAN) / (count + PRIOR_WEIGHT);
-  return clamp01((bayes - 1) / 4);
+  const quality = clamp01((bayes - 1) / 4);
+  const popularity = clamp01(Math.log10(1 + count) / Math.log10(POPULARITY_CAP));
+  return (1 - POPULARITY_SHARE) * quality + POPULARITY_SHARE * popularity;
 }
 
 function rankComponent(rank: number | null): number {

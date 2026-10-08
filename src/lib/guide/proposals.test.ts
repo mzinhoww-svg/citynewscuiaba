@@ -5,6 +5,7 @@ import {
   draftOf,
   eligibleFor,
   isVerified,
+  MIN_RATING_COUNT,
   proposeFromLink,
   proposeFromTemplate,
 } from "./proposals";
@@ -133,6 +134,13 @@ describe("proposeFromTemplate", () => {
     });
     expect(eligibleFor(TPL, v)).toBe(true);
     expect(isVerified(v)).toBe(true);
+  });
+
+  it("só entra lugar com pelo menos 300 avaliações (A-213)", () => {
+    expect(MIN_RATING_COUNT).toBe(300);
+    expect(eligibleFor(TPL, venue({ ratingCount: 129 }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ rating: null, ratingCount: null }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ ratingCount: 300 }))).toBe(true);
   });
 
   it("lugar só com Google de outro tipo ou sem tipo não entra (hotel em padarias)", () => {

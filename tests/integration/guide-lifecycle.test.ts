@@ -269,6 +269,37 @@ describe("atualização de 90 dias", () => {
       .update({ status: "published", suspended_reason: null, suspended_at: null })
       .eq("id", id);
   });
+
+  it("admin suspende pela função e reprocessa: a lista volta só depois de recalculada pela atualização", async () => {
+    const id = publishedId;
+    const { data: slugRow } = await db.from("guide_lists").select("slug").eq("id", id).single();
+    const slug = slugRow!.slug;
+    const sus = await db.rpc("guide_suspend_lists", { p_slugs: [slug], p_reason: "teste" });
+    expect(sus.error).toBeNull();
+    expect(sus.data).toEqual([slug]);
+    const s1 = await db.from("guide_lists").select("status").eq("id", id).single();
+    expect(s1.data?.status).toBe("suspended");
+    // Fila de revalidação recebe o índice e a lista.
+    const rv = await db
+      .from("studio_revalidations")
+      .select("tags")
+      .order("id", { ascending: false })
+      .limit(1);
+    expect(rv.data?.[0]?.tags).toEqual(expect.arrayContaining(["guide", `guide:list:${slug}`]));
+
+    const re = await db.rpc("guide_refresh_now", { p_slugs: [slug] });
+    expect(re.data).toEqual([slug]);
+    const out = await refreshDue(
+      { ...life.refreshDeps(() => NOW), due: life.due, revalidate: async () => {} },
+      50,
+    );
+    expect(out.find((o) => o.slug === slug)?.outcome.status).toBe("refreshed");
+    // Anônimo não chama nenhuma das duas.
+    const a1 = await anon().rpc("guide_suspend_lists", { p_slugs: [slug], p_reason: "x" });
+    const a2 = await anon().rpc("guide_refresh_now", { p_slugs: [slug] });
+    expect(a1.error).not.toBeNull();
+    expect(a2.error).not.toBeNull();
+  });
 });
 
 describe("reclamação de um lugar (Review Focus 4)", () => {

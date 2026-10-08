@@ -1,4 +1,11 @@
-import { canAutoPublish, MIN_SOURCES_PER_VENUE, type ListDraft } from "./auto-publish";
+import {
+  canAutoPublish,
+  MIN_RATING_COUNT,
+  MIN_SOURCES_PER_VENUE,
+  type ListDraft,
+} from "./auto-publish";
+
+export { MIN_RATING_COUNT };
 import { categoryBySlug, googleTypeMatches } from "./categories";
 import { listCriteriaText } from "./criteria";
 import { rankList, type ScoredVenue } from "./rank";
@@ -84,6 +91,7 @@ export function eligibleFor(t: GuideTemplate, v: Venue): boolean {
   if (v.status !== "active" || v.category !== t.category) return false;
   if (t.subcategory && v.subcategory !== t.subcategory) return false;
   if (t.neighborhood && fold(v.neighborhood ?? "") !== fold(t.neighborhood)) return false;
+  if (v.rating === null || (v.ratingCount ?? 0) < MIN_RATING_COUNT) return false;
   if (onlyGoogle(v) && !googleTypeMatches(t.category, t.subcategory, v.googleType)) return false;
   return new Set(v.sources).size >= MIN_SOURCES_PER_VENUE;
 }

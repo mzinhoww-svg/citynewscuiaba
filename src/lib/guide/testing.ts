@@ -42,7 +42,7 @@ export function venue(over: Partial<Venue> = {}): Venue {
       hours: "Mo-Sa 06:00-20:00",
       website: `https://padaria${seq}.example`,
       rating: 4.5,
-      ratingCount: 200,
+      ratingCount: 500,
       ratingSource: "tripadvisor",
       placeIds: { osm: `node/${seq}`, tripadvisor: String(1000 + seq) },
       sources: ["osm", "tripadvisor"],
