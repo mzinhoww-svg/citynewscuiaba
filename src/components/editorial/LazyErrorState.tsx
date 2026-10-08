@@ -36,9 +36,10 @@ const RELOAD_KEY = "cn_error_reload";
 /** Avisa o servidor o que quebrou no navegador (só log; falha de rede é ignorada). */
 function reportClientError(error: Error | undefined, digest: string | undefined) {
   try {
+    // Corta aqui também: a pilha de um erro minificado pode passar de dezenas de KB.
     const body = JSON.stringify({
-      message: error?.message,
-      stack: error?.stack,
+      message: error?.message?.slice(0, 300),
+      stack: error?.stack?.slice(0, 1500),
       path: location.pathname,
       digest,
     });

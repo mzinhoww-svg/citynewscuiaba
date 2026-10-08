@@ -33,10 +33,27 @@ describe("handleClientError", () => {
     log.mockRestore();
   });
 
-  it("400 para corpo inválido e 413 para corpo grande", async () => {
+  it("400 para corpo inválido e 413 para corpo grande, com rastro no log", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     expect((await handleClientError(post("x"))).status).toBe(400);
     const big = JSON.stringify({ message: "a".repeat(MAX_CLIENT_ERROR_BYTES) });
     expect((await handleClientError(post(big))).status).toBe(413);
+    expect(warn).toHaveBeenCalledWith("client-error: recusado 413", expect.any(Object));
+    expect(warn).toHaveBeenCalledWith("client-error: recusado 400", expect.any(Object));
+    warn.mockRestore();
+  });
+
+  it("aceita pilha longa (dezenas de KB menos que o limite) e corta no log", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const res = await handleClientError(
+      post(JSON.stringify({ message: "boom", stack: "s".repeat(20_000) }), {
+        "x-forwarded-for": "198.51.100.7",
+      }),
+    );
+    expect(res.status).toBe(204);
+    const logged = log.mock.calls[0]?.[1] as { stack: string };
+    expect(logged.stack).toHaveLength(1500);
+    log.mockRestore();
   });
 
   it("429 depois do limite por IP", async () => {
