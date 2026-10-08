@@ -118,7 +118,8 @@ export function proposeFromTemplate(
   const ids = ranked.map((r) => r.venueId);
   return {
     origin: "template",
-    title: t.title,
+    // "Os 10 melhores" com 9 lugares vira "Os 9 melhores".
+    title: t.title.replace(` ${t.take} melhores `, ` ${ranked.length} melhores `),
     slug: t.slug,
     category: t.category,
     subcategory: t.subcategory,
