@@ -58,6 +58,10 @@ export const cachedListingSchema = z.object({ links: z.array(z.string()).max(30)
 
 type Step<T> = { ok: true; value: T } | { ok: false; detail: string };
 
+/** Execução real grava o cache; o ensaio só com `cacheWritesInDryRun` (prévia do painel). */
+const writesCache = (ctx: RunCtx): boolean =>
+  !ctx.deps.dryRun || ctx.deps.cacheWritesInDryRun === true;
+
 /** Antes de cada chamada ao modelo: corte, prazo duro e teto. */
 function aiGate(ctx: RunCtx): string | null {
   if (pastCut(ctx)) return "prazo da execução";
@@ -85,7 +89,7 @@ async function listingLinks(
     notes: source.notes,
   });
   if (!res.ok) return { ok: false, detail: `modelo: ${res.error}` };
-  if (!ctx.deps.dryRun) await ctx.deps.cache.put(listUrl, hash, { links: res.value });
+  if (writesCache(ctx)) await ctx.deps.cache.put(listUrl, hash, { links: res.value });
   return { ok: true, value: res.value };
 }
 
@@ -113,7 +117,7 @@ async function eventPage(
     return { ok: true, value: { ok: false, error: "extracao_invalida" } };
   else if (res.error === "injection") page = { ok: false, error: "texto_suspeito" };
   else return { ok: false, detail: `modelo: ${res.error}` };
-  if (!ctx.deps.dryRun) await ctx.deps.cache.put(url, hash, page);
+  if (writesCache(ctx)) await ctx.deps.cache.put(url, hash, page);
   return { ok: true, value: page };
 }
 

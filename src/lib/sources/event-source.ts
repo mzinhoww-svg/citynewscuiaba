@@ -1,7 +1,8 @@
 /**
  * Fonte de eventos no Painel de Fontes (AGM-T6, spec §5.1): configuração da coleta da Agenda
  * (`sources.kind = 'events'`), leitura do formulário de cadastro/edição e patch do que mudou.
- * Puro: sem banco e sem rede.
+ * Sem banco e sem rede, mas só para o servidor: valida URL com `url.ts`, que leva `pipeline/net`
+ * (Node). Telas no cliente importam as constantes de `event-source-constants.ts`.
  */
 import { err, ok, type Result } from "@/lib/result";
 import type { SourceKind as ExtractKind } from "@/lib/agenda/types";

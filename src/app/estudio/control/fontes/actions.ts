@@ -785,7 +785,7 @@ async function activationCheck(
   ctx: Ctx,
   row: Row,
 ): Promise<{ problem: string } | { version: number }> {
-  if (row.kind === "events") return eventActivationCheck(row);
+  if (row.kind === "events") return eventActivationCheck(ctx, row);
   const result = await runTest(ctx, row);
   if (!result.ok) return { problem: result.message };
   return { version: await recordCrawlDelay(ctx, row, result.crawlDelaySec) };
@@ -793,10 +793,16 @@ async function activationCheck(
 
 /**
  * Ativar/retomar fonte de eventos (AGM-T6, spec §5.1): roda a prévia (robots.txt, leitura da
- * fonte e checagens de cada evento) e só libera com ao menos 1 evento aprovado. Termos seguem a
- * régua das notícias (A-127: a caixa só registra quando foram revisados).
+ * fonte e checagens de cada evento; páginas já lidas pelo teste vêm do cache) e só libera com ao
+ * menos 1 evento aprovado. Termos seguem a régua das notícias (A-127: a caixa só registra quando
+ * foram revisados).
  */
-async function eventActivationCheck(row: Row): Promise<{ problem: string } | { version: number }> {
+async function eventActivationCheck(
+  ctx: Ctx,
+  row: Row,
+): Promise<{ problem: string } | { version: number }> {
+  // A prévia chama o modelo (até 6 vezes): mesma cota do "Testar conexão", além da de escrita.
+  if (!(await allow(ctx, LIMITS.test))) return { problem: T.test.rateLimited };
   const preview = await previewEventSource(row.id);
   if (!preview.ok) return { problem: EV.previewFailed };
   const problem = previewActivationProblem(preview.value);

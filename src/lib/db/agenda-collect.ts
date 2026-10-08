@@ -34,6 +34,8 @@ export interface AgendaDepsOptions {
   aiBudget: CollectDeps["aiBudget"];
   onlySourceId?: string;
   maxEventPages?: number;
+  /** Ensaio que grava o cache de extração (só a prévia do painel). */
+  cacheWritesInDryRun?: boolean;
 }
 
 /**
@@ -54,9 +56,10 @@ export function agendaCollectDeps(
     save: (events, at) => store.save(events, at),
     dryRun: o.dryRun,
     callAgent: createProductionAi().callAgent,
-    cache: o.dryRun
-      ? { get: store.cacheGet, put: async () => {} }
-      : { get: store.cacheGet, put: store.cachePut },
+    cache:
+      o.dryRun && !o.cacheWritesInDryRun
+        ? { get: store.cacheGet, put: async () => {} }
+        : { get: store.cacheGet, put: store.cachePut },
     aiBudget: o.aiBudget,
     monotonic: () => performance.now(),
     startedAt: o.startedAt,
@@ -65,6 +68,7 @@ export function agendaCollectDeps(
     sourceState: (uuid, outcome, detail) => store.sourceState(uuid, outcome, detail),
     ...(o.onlySourceId ? { onlySourceId: o.onlySourceId } : {}),
     ...(o.maxEventPages !== undefined ? { maxEventPages: o.maxEventPages } : {}),
+    ...(o.cacheWritesInDryRun ? { cacheWritesInDryRun: true } : {}),
   };
 }
 
@@ -94,7 +98,8 @@ async function eventSource(
 /**
  * Prévia do teste de conexão de uma fonte de eventos (mesmo pausada): ensaio restrito à fonte,
  * até 6 chamadas ao modelo (1 listagem + 5 páginas) e até 5 eventos com os trechos de evidência.
- * Não grava eventos, cache, execução nem estado da fonte, e por isso não conta no teto do dia.
+ * Não grava eventos, execução nem estado da fonte (não conta no teto do dia); grava só o cache de
+ * extração, para a ativação logo depois reaproveitar as mesmas páginas sem chamar o modelo.
  * Quem chama (Server Action do painel) já conferiu `source.manage`.
  */
 export async function previewEventSource(
@@ -117,6 +122,7 @@ export async function previewEventSource(
         aiBudget: { perRun: PREVIEW_AI_CALLS, remainingToday: PREVIEW_AI_CALLS },
         onlySourceId: found.source.uuid,
         maxEventPages: PREVIEW_MAX_EVENTS,
+        cacheWritesInDryRun: true,
       }),
     );
     return ok(previewFromReport(report, found.source));

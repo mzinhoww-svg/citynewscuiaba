@@ -17,6 +17,8 @@ const ID = "f6000000-0000-4000-8000-000000000001";
 const SLUG = "agm-t6-teatro";
 
 async function clean() {
+  // Cota por hora do coletor (`agenda:<slug>`, 60/h): rodadas seguidas da suíte não esgotam.
+  await db.from("rate_limits").delete().eq("bucket", "agenda").eq("key_hash", SLUG);
   await db.from("event_listings").delete().eq("source_id", SLUG);
   await db.from("agenda_collect_runs").delete().eq("source_id", ID);
   await db.from("agenda_extract_cache").delete().like("url", "%teatro-cerrado.example%");
@@ -50,7 +52,7 @@ afterAll(async () => {
 });
 
 describe("previewEventSource", () => {
-  it("fonte pausada: até 5 eventos com evidência e as recusas, sem gravar nada", async () => {
+  it("fonte pausada: até 5 eventos com evidência e as recusas, sem gravar execução nem evento", async () => {
     const before = await store.aiPagesToday(new Date());
     const r = await previewEventSource(ID);
     expect(r.ok).toBe(true);
@@ -70,14 +72,31 @@ describe("previewEventSource", () => {
     expect(runs.data).toEqual([]);
     const events = await db.from("event_listings").select("id").eq("source_id", SLUG);
     expect(events.data).toEqual([]);
+    // Só o cache de extração é gravado (listagem + 3 páginas), para a ativação reaproveitar.
     const cache = await db
       .from("agenda_extract_cache")
       .select("url")
       .like("url", "%teatro-cerrado.example%");
-    expect(cache.data).toEqual([]);
+    expect((cache.data ?? []).map((c) => c.url).sort()).toEqual([
+      "https://teatro-cerrado.example/",
+      "https://teatro-cerrado.example/evento/festival-cerrado-eletronico",
+      "https://teatro-cerrado.example/evento/forro-da-praca",
+      "https://teatro-cerrado.example/evento/sarau-de-verao",
+    ]);
+    expect(r.value.aiPages).toBe(4);
     expect(await store.aiPagesToday(new Date())).toBe(before);
     const src = await db.from("sources").select("status, last_fetched_at").eq("id", ID).single();
     expect(src.data).toMatchObject({ status: "paused", last_fetched_at: null });
+  });
+
+  it("a 2ª prévia das mesmas páginas não chama o modelo (cache)", async () => {
+    const r = await previewEventSource(ID);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.aiPages).toBe(0);
+    expect(r.value.events).toHaveLength(2);
+    const runs = await db.from("agenda_collect_runs").select("id").eq("source_id", ID);
+    expect(runs.data).toEqual([]);
   });
 
   it("id desconhecido: erro", async () => {
@@ -99,7 +118,8 @@ describe("collectEventSource", () => {
       .select("source_id, trigger, ai_pages, stats")
       .eq("source_id", ID);
     expect(runs.data).toHaveLength(1);
-    expect(runs.data![0]).toMatchObject({ trigger: "manual", ai_pages: 4 });
+    // As páginas já estão no cache da prévia: a coleta real não chama o modelo de novo.
+    expect(runs.data![0]).toMatchObject({ trigger: "manual", ai_pages: 0 });
     expect((await store.lastRunStartedAt())?.toISOString()).toBe(lastBefore?.toISOString());
     const events = await db
       .from("event_listings")

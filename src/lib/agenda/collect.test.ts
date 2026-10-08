@@ -203,6 +203,32 @@ describe("collectAgenda (fixtures fictícias)", () => {
     expect(fake.calls.length).toBe(2);
   });
 
+  it("prévia com cacheWritesInDryRun grava o cache (só ele) e a 2ª prévia não chama o modelo", async () => {
+    const { d, saved, cache, states, fake } = deps({
+      dryRun: true,
+      cacheWritesInDryRun: true,
+      sources: [{ ...TEATRO, enabled: false }],
+      onlySourceId: TEATRO.uuid,
+    });
+    const first = await collectAgenda(d);
+    expect(first.preview).toHaveLength(2);
+    // Listagem + 3 páginas no cache; nenhum evento, estado de fonte nem gravação.
+    expect(cache.size).toBe(4);
+    expect(saved).toHaveLength(0);
+    expect(states).toHaveLength(0);
+    const calls = fake.calls.length;
+    const second = await collectAgenda(d);
+    expect(fake.calls.length).toBe(calls);
+    expect(second.sources[0]).toMatchObject({ aiPages: 0, approved: 2 });
+    expect(second.preview).toHaveLength(2);
+  });
+
+  it("ensaio sem a flag continua sem gravar cache", async () => {
+    const { d, cache } = deps({ dryRun: true, sources: [TEATRO], onlySourceId: TEATRO.id });
+    await collectAgenda(d);
+    expect(cache.size).toBe(0);
+  });
+
   it("maxEventPages nunca passa do teto que sobrou depois da listagem", async () => {
     const { d } = deps({
       dryRun: true,

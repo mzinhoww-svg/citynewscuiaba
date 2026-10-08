@@ -64,6 +64,12 @@ export interface CollectDeps {
   save: (events: NormalizedEvent[], at: Date) => Promise<number>;
   /** Não grava eventos, cache, execução nem estado da fonte; só relata (ensaio). */
   dryRun?: boolean;
+  /**
+   * Só a prévia do painel (AGM-T6): no ensaio, grava o cache de extração (por URL e hash do
+   * texto, nunca evento, execução nem estado da fonte), para o teste seguido da ativação não
+   * pagar o modelo duas vezes pelas mesmas páginas. O ensaio da rota (`?dry=1`) não usa.
+   */
+  cacheWritesInDryRun?: boolean;
   callAgent: CallAgent;
   cache: ExtractCache;
   /** Chamadas ao modelo (listagens e páginas) que ainda cabem nesta execução e hoje. */

@@ -36,6 +36,12 @@ async function cleanup() {
   // Eventos do mesmo site gravados por outra suíte (fontes de fixture) mudariam "novos".
   await db.from("event_listings").delete().like("source_url", "https://teatro-cerrado.example/%");
   await db.from("agenda_extract_cache").delete().like("url", "https://teatro-cerrado.example/%");
+  // Cota por hora do coletor desta fonte (`agenda:<slug>`): execuções seguidas não esgotam.
+  await db
+    .from("rate_limits")
+    .delete()
+    .eq("bucket", "agenda")
+    .like("key_hash", "teatro-cerrado-do-painel%");
 }
 
 test.afterAll(cleanup);

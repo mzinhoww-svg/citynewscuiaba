@@ -624,8 +624,26 @@ export function eventsLiveBySource(rows: readonly LiveEventRow[], now: Date): Ma
   return out;
 }
 
-async function liveEvents(c: Clients, now: Date): Promise<Map<string, number>> {
-  const rows = many(
+/**
+ * "Eventos no ar" da lista: com "Tipo: Notícias" nem consulta; erro na leitura não derruba a lista
+ * (mapa vazio, a coluna mostra "Nenhum", e o erro vai para o log do servidor).
+ */
+export async function eventsLiveFor(
+  type: SourceFilters["type"],
+  load: () => Promise<readonly LiveEventRow[]>,
+  now: Date,
+): Promise<Map<string, number>> {
+  if (type === "news") return new Map();
+  try {
+    return eventsLiveBySource(await load(), now);
+  } catch (e) {
+    console.error("painel de fontes: leitura dos eventos no ar falhou", e);
+    return new Map();
+  }
+}
+
+async function liveEvents(c: Clients, now: Date): Promise<LiveEventRow[]> {
+  return many(
     await c
       .svc()
       .from("event_listings")
@@ -636,7 +654,6 @@ async function liveEvents(c: Clients, now: Date): Promise<Map<string, number>> {
       .gte("starts_at", now.toISOString())
       .limit(5000),
   );
-  return eventsLiveBySource(rows, now);
 }
 
 async function liveEventsOf(c: Clients, sourceId: string, now: Date): Promise<number> {
@@ -683,7 +700,7 @@ export async function listSources(
       settingsOf(c.db),
       pendingRows(c.db),
       healthMap(c, now, 30),
-      liveEvents(c, now),
+      eventsLiveFor(f.type, () => liveEvents(c, now), now),
     ]);
     const pendingBySource = new Map<string, number>();
     for (const p of pending)

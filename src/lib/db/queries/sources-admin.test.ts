@@ -1,6 +1,8 @@
+import { vi } from "vitest";
 import {
   displayStatusOf,
   eventsLiveBySource,
+  eventsLiveFor,
   fastLaneFullSkips,
   filterAndSort,
   healthOf,
@@ -279,6 +281,41 @@ describe("eventsLiveBySource", () => {
       NOW,
     );
     expect(Object.fromEntries(m)).toEqual({ a: 2, b: 1 });
+  });
+});
+
+describe("eventsLiveFor", () => {
+  const NOW = new Date("2026-10-08T12:00:00Z");
+  const row = {
+    source_ref: "a",
+    starts_at: "2026-10-09T00:00:00Z",
+    confirmed_at: "x",
+    withdrawn_at: null,
+  };
+
+  it("Tipo: Notícias não consulta os eventos", async () => {
+    const load = vi.fn(async () => [row]);
+    expect((await eventsLiveFor("news", load, NOW)).size).toBe(0);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it("conta os eventos com Eventos ou sem filtro", async () => {
+    expect(Object.fromEntries(await eventsLiveFor(null, async () => [row], NOW))).toEqual({ a: 1 });
+    expect((await eventsLiveFor("events", async () => [row], NOW)).get("a")).toBe(1);
+  });
+
+  it("erro na consulta não derruba a lista: mapa vazio e registro no log", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    const m = await eventsLiveFor(
+      "events",
+      async () => {
+        throw new Error("event_listings fora do ar");
+      },
+      NOW,
+    );
+    expect(m.size).toBe(0);
+    expect(log).toHaveBeenCalled();
+    log.mockRestore();
   });
 });
 
