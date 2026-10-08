@@ -7,7 +7,7 @@ import { startOfDay } from "@/lib/format/date";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, fetchRecentArticles, summarize } from "./articles";
-import { EVENT_COLUMNS, toEventView } from "./events";
+import { EVENT_COLUMNS, eventSourceNames, toEventView } from "./events";
 import { getFeatured } from "./featured";
 import { fetchCollections, pickMostRead } from "./home";
 import { many, one, readPublic } from "./run";
@@ -124,7 +124,9 @@ async function loadEntries(db: DbClient, refs: string[]): Promise<CollectionEntr
   const byKey = new Map<string, CollectionEntry>();
   for (const item of articles) byKey.set(`article:${item.id}`, { kind: "article", item });
   for (const item of topics) byKey.set(`topic:${item.id}`, { kind: "topic", item });
-  for (const r of eventRows) byKey.set(`event:${r.id}`, { kind: "event", item: toEventView(r) });
+  const eventSources = await eventSourceNames(db, eventRows);
+  for (const r of eventRows)
+    byKey.set(`event:${r.id}`, { kind: "event", item: toEventView(r, eventSources) });
   for (const r of aggRows) {
     const item: AggregatedView | null = toAggregatedView(r);
     if (item) byKey.set(`aggregated:${item.id}`, { kind: "aggregated", item });

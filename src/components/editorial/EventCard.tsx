@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import type { EventView } from "@/lib/db/queries/types";
+import { originNote } from "@/lib/agenda/origin-note";
 import { formatHour, localDateKey } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
@@ -50,6 +51,7 @@ export function eventWhenWhere(e: EventView): string {
  */
 export function EventCard({ event: e, className }: EventCardProps) {
   const category = AGENDA.categories[e.category] ?? e.category;
+  const note = originNote(e);
   return (
     <article
       className={cx(
@@ -72,6 +74,11 @@ export function EventCard({ event: e, className }: EventCardProps) {
           </Link>
         </h3>
         <p className="type-meta text-meta">{eventWhenWhere(e)}</p>
+        {note.length > 0 && (
+          <p className="type-meta text-meta" data-testid="event-origin">
+            {note.join(" · ")}
+          </p>
+        )}
         <p className="type-meta text-meta">
           <span className={cx("font-semibold", e.isFree ? "text-service" : "text-strong")}>
             {e.priceUnknown

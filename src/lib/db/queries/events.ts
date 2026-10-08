@@ -13,8 +13,6 @@ type EventRow = Omit<
   | "source_id"
   | "dedupe_key"
   | "collected_at"
-  | "source_ref"
-  | "confirmed_by_source_id"
   | "evidence"
   | "locked_fields"
   | "withdrawn_at"
@@ -22,7 +20,7 @@ type EventRow = Omit<
 >;
 
 export const EVENT_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id";
 
 export interface EventFilters {
   /** ISO; padrão = agora (só eventos que ainda não terminaram). */
@@ -33,7 +31,7 @@ export interface EventFilters {
   freeOnly?: boolean;
   /** Só classificação livre (para crianças). */
   kidsOnly?: boolean;
-  origin?: "official" | "organizer" | "reader";
+  origin?: "official" | "organizer" | "reader" | "newsroom";
   excludeId?: string;
   limit?: number;
 }
@@ -42,7 +40,15 @@ export function eventHref(slug: string): string {
   return `/agenda/${slug}`;
 }
 
-export function toEventView(r: EventRow): EventView {
+/** Fonte pública de evento (nome e se confirma), por id. */
+export type EventSourceNames = ReadonlyMap<string, { name: string; confirms: boolean }>;
+
+const EVENT_ORIGINS = ["official", "organizer", "reader", "newsroom"] as const;
+
+export function toEventView(r: EventRow, sources: EventSourceNames = new Map()): EventView {
+  const origin = EVENT_ORIGINS.find((o) => o === r.origin) ?? "organizer";
+  const source = r.source_ref ? sources.get(r.source_ref) : undefined;
+  const confirmedBy = r.confirmed_by_source_id ? sources.get(r.confirmed_by_source_id) : undefined;
   return {
     id: r.id,
     slug: r.slug,
@@ -57,12 +63,45 @@ export function toEventView(r: EventRow): EventView {
     ageRating: r.age_rating,
     category: r.category,
     accessibility: r.accessibility,
-    origin: r.origin === "official" || r.origin === "reader" ? r.origin : "organizer",
+    origin,
+    sourceName: source?.name ?? null,
+    confirmedByName: confirmedBy?.name ?? null,
+    confirmed:
+      origin === "official" ||
+      origin === "newsroom" ||
+      source?.confirms === true ||
+      r.confirmed_by_source_id !== null,
     description: r.description,
     confirmedAt: r.confirmed_at,
     sourceUrl: r.source_url,
     priceUnknown: r.price_unknown,
   };
+}
+
+/** Nomes públicos das fontes citadas pelas linhas (`public_event_sources`; `sources` é da equipe). */
+export async function eventSourceNames(db: DbClient, rows: EventRow[]): Promise<EventSourceNames> {
+  const ids = [
+    ...new Set(
+      rows.flatMap((r) => [r.source_ref, r.confirmed_by_source_id]).filter((x): x is string => !!x),
+    ),
+  ];
+  if (ids.length === 0) return new Map();
+  const found = await db
+    .from("public_event_sources")
+    .select("id, name, confirms")
+    .in("id", ids)
+    .then(many);
+  return new Map(
+    found.flatMap((s) =>
+      s.id && s.name ? [[s.id, { name: s.name, confirms: s.confirms === true }] as const] : [],
+    ),
+  );
+}
+
+/** Linhas da agenda prontas para a tela, com a origem e a confirmação resolvidas. */
+export async function toEventViews(db: DbClient, rows: EventRow[]): Promise<EventView[]> {
+  const names = await eventSourceNames(db, rows);
+  return rows.map((r) => toEventView(r, names));
 }
 
 /** Ordem estável da agenda: início, id (desempate). */
@@ -116,7 +155,7 @@ export async function fetchEvents(
   now: Date = new Date(),
 ): Promise<EventView[]> {
   const limit = Math.max(1, Math.min(f.limit ?? 50, EVENTS_CAP));
-  return (await eventsQuery(db, f, now, { limit }).then(many)).map(toEventView);
+  return toEventViews(db, await eventsQuery(db, f, now, { limit }).then(many));
 }
 
 export interface EventPageOptions {
@@ -154,7 +193,7 @@ export async function fetchEventPage(
   const kept = more ? raw.slice(0, size) : raw;
   const last = kept.at(-1);
   return {
-    rows: kept.map(toEventView),
+    rows: await toEventViews(db, kept),
     total: (all ? all.count : page.count) ?? kept.length,
     nextCursor: more && last ? cursorOf(EVENT_KEYS, last) : null,
   };
@@ -171,9 +210,10 @@ export async function fetchEventsThrough(
   const values = decodeCursor(cursor, EVENT_KEYS);
   if (!values) return [];
   const limit = Math.max(1, Math.min(max, AGENDA_THROUGH_MAX));
-  return (
-    await eventsQuery(db, f, now, { limit, where: throughKey(EVENT_KEYS, values) }).then(many)
-  ).map(toEventView);
+  return toEventViews(
+    db,
+    await eventsQuery(db, f, now, { limit, where: throughKey(EVENT_KEYS, values) }).then(many),
+  );
 }
 
 /** Agenda: eventos confirmados (a RLS esconde os não confirmados), em ordem de início. */
@@ -229,6 +269,6 @@ async function readEvent(slug: string): Promise<Result<EventView | null, QueryEr
       .eq("slug", slug)
       .maybeSingle()
       .then(one);
-    return row ? toEventView(row) : null;
+    return row ? (await toEventViews(db, [row]))[0]! : null;
   });
 }

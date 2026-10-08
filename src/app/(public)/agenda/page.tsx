@@ -40,6 +40,7 @@ import {
   type AgendaWhen,
 } from "@/lib/filters/agenda";
 import { firstParam, type SearchParamsInput } from "@/lib/filters/section";
+import { sortConfirmedFirst } from "@/lib/agenda/merge";
 import { dayStart, formatLongDate, formatMonthYear, localDateKey } from "@/lib/format/date";
 
 /** Agenda (P09): filtros e visão na URL, renderizada por requisição. */
@@ -379,7 +380,8 @@ async function Results({ f, cursor }: { f: AgendaFilters; cursor?: string }) {
   }
 
   const groups = new Map<string, EventView[]>();
-  for (const e of events) {
+  // Dentro de cada dia, os confirmados vêm primeiro (a ordem da consulta segue por horário).
+  for (const e of sortConfirmedFirst(events)) {
     const key = localDateKey(e.startsAt);
     groups.set(key, [...(groups.get(key) ?? []), e]);
   }

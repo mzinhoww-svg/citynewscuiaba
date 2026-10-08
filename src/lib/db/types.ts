@@ -5034,6 +5034,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      public_event_sources: {
+        Row: {
+          confirms: boolean | null;
+          id: string | null;
+          name: string | null;
+        };
+        Insert: {
+          confirms?: boolean | null;
+          id?: string | null;
+          name?: never;
+        };
+        Update: {
+          confirms?: boolean | null;
+          id?: string | null;
+          name?: never;
+        };
+        Relationships: [];
+      };
       public_sources: {
         Row: {
           base_url: string | null;

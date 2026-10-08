@@ -4,7 +4,7 @@ import { firstParam, type SearchParamsInput } from "./section";
 
 /** Filtros da agenda (P09) na URL. Valor desconhecido é descartado. */
 export type AgendaWhen = "today" | "tomorrow" | "weekend" | "7d" | "30d";
-export type AgendaOrigin = "official" | "organizer" | "reader";
+export type AgendaOrigin = "official" | "organizer" | "reader" | "newsroom";
 
 export interface AgendaFilters {
   view: "list" | "cal";
@@ -43,6 +43,7 @@ const ORIGIN_PARAM: Record<AgendaOrigin, string> = {
   official: "oficial",
   organizer: "organizacao",
   reader: "leitor",
+  newsroom: "citynews",
 };
 export const AGENDA_PARAM_VALUES = { when: WHEN_PARAM, origin: ORIGIN_PARAM } as const;
 

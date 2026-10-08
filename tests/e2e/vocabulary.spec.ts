@@ -43,6 +43,7 @@ const ROUTES = [
   "/fontes",
   "/panorama",
   "/agenda",
+  "/agenda/noite-de-rasqueado-no-sesc-arsenal",
   "/explorar",
   "/assuntos",
   "/assuntos?situacao=em-apuracao",
