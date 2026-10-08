@@ -1,13 +1,13 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-08 · Agenda multifonte (A-217, AGM-T1 a T9); antes, auditoria das decisões do dono (A-215), Guia com fotos e texto (A-212, A-214), R42.
+**Última atualização:** 2026-10-08 · Agenda multifonte (A-218, AGM-T1 a T9); antes, auditoria das decisões do dono (A-215), Guia com fotos e texto (A-212, A-214), R42.
 **Atualizado por:** Claude Code
 
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Última entrega
 
-- **Agenda multifonte (A-217):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Falta em produção: aplicar 0195 a 0199 e ativar as fontes uma a uma.
+- **Agenda multifonte (A-218):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Falta em produção: aplicar 0195 a 0199 e ativar as fontes uma a uma.
 - **Guia Cuiabá:**
   - ordem por popularidade, com mínimo de 300 avaliações (A-213, PRs #70 e #71);
   - fotos do Google com crédito do autor (A-212);

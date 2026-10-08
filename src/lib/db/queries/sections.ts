@@ -1,8 +1,10 @@
 import "server-only";
+import { withNativeSponsored, type FeedItem } from "@/lib/ads/native";
 import type { DbClient } from "@/lib/db/client";
 import type { SectionFilters, SectionPeriod } from "@/lib/filters/section";
 import { startOfDay } from "@/lib/format/date";
 import type { Result } from "@/lib/result";
+import { fetchNativeSponsored } from "./ads";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, summarize } from "./articles";
 import { getFeatured } from "./featured";
 import { many, readPublic } from "./run";
@@ -42,6 +44,12 @@ export interface SectionPage {
   /** Matérias publicadas hoje (fuso de Cuiabá) na editoria. */
   todayCount: number;
   mostRead: ArticleSummary[];
+  /**
+   * O que a lista mostra, na ordem: o destaque (se houver), as matérias e, com o interruptor
+   * `sponsored_native_enabled` ligado, o card patrocinado nativo nas posições que as regras
+   * fixas permitem (B-022). Desligado, é exatamente `[featured, ...articles]`.
+   */
+  feed: FeedItem<ArticleSummary>[];
 }
 
 type Filters = Partial<SectionFilters>;
@@ -146,7 +154,9 @@ export async function listSection(
     if (filters.order === "relevance") q = q.order("confidence_score", { ascending: false });
     q = q.order("published_at", { ascending: false }).range(0, until - 1);
 
-    const [res, latest, today, mostRead] = await Promise.all([
+    // Patrocínio nativo na editoria (ou subeditoria) da lista; falha fechada.
+    const adSection = scope.activeSub?.slug ?? scope.section.slug;
+    const [res, latest, today, mostRead, native] = await Promise.all([
       q,
       db
         .from("articles")
@@ -163,6 +173,7 @@ export async function listSection(
         .in("section_slug", scope.allSlugs)
         .gte("published_at", startOfDay(now).toISOString()),
       mostReadIn(db, scope.allSlugs),
+      fetchNativeSponsored(db, adSection),
     ]);
     if (res.error) throw new Error(res.error.message);
     if (today.error) throw new Error(today.error.message);
@@ -182,6 +193,15 @@ export async function listSection(
     const featured = lead?.items[0] ?? null;
     const featuredHot = featured !== null && (lead?.hot ?? []).includes(featured.id);
     const listed = await summarize(db, res.data);
+    const articles = listed.filter((a) => a.id !== featured?.id);
+    const feed = withNativeSponsored(featured ? [featured, ...articles] : articles, {
+      enabled: native.enabled,
+      campaign: native.campaign,
+      sectionSlug: adSection,
+      now,
+      maxPerPage: native.maxPerPage,
+      categoryOf: native.categoryOf,
+    });
     return {
       section: {
         slug: scope.section.slug,
@@ -192,7 +212,7 @@ export async function listSection(
       activeSub: scope.activeSub,
       featured,
       featuredHot,
-      articles: listed.filter((a) => a.id !== featured?.id),
+      articles,
       total,
       page: current,
       pageSize: SECTION_PAGE_SIZE,
@@ -200,6 +220,7 @@ export async function listSection(
       latestAt: latest[0]?.published_at ?? null,
       todayCount: today.count ?? 0,
       mostRead,
+      feed,
     };
   });
 }

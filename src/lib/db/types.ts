@@ -3990,6 +3990,7 @@ export type Database = {
           advertiser: string;
           advertiser_id: string | null;
           allowed_sections: string[];
+          clicks: number;
           created_by: string | null;
           creative: NonNullable<Json>;
           deliveries: number;
@@ -3998,11 +3999,13 @@ export type Database = {
           starts_on: string;
           status: string;
           updated_at: string;
+          views: number;
         };
         Insert: {
           advertiser: string;
           advertiser_id?: string | null;
           allowed_sections: string[];
+          clicks?: number;
           created_by?: string | null;
           creative: NonNullable<Json>;
           deliveries?: number;
@@ -4011,11 +4014,13 @@ export type Database = {
           starts_on: string;
           status?: string;
           updated_at?: string;
+          views?: number;
         };
         Update: {
           advertiser?: string;
           advertiser_id?: string | null;
           allowed_sections?: string[];
+          clicks?: number;
           created_by?: string | null;
           creative?: NonNullable<Json>;
           deliveries?: number;
@@ -4024,6 +4029,7 @@ export type Database = {
           starts_on?: string;
           status?: string;
           updated_at?: string;
+          views?: number;
         };
         Relationships: [
           {
@@ -5133,6 +5139,18 @@ export type Database = {
           republish_policy?: Database["public"]["Enums"]["republish_policy"] | null;
           slug?: string | null;
           status?: Database["public"]["Enums"]["source_status"] | null;
+        };
+        Relationships: [];
+      };
+      public_sponsored_campaigns: {
+        Row: {
+          advertiser: string | null;
+          allowed_sections: string[] | null;
+          creative: Json | null;
+          ends_on: string | null;
+          id: string | null;
+          max_per_page: number | null;
+          starts_on: string | null;
         };
         Relationships: [];
       };

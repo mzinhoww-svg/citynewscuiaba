@@ -24,13 +24,23 @@ export async function trackAdEvent(
 }
 
 export async function adHref(placement: string): Promise<string | null> {
-  const { data, error } = await createPublicClient()
+  const db = createPublicClient();
+  const { data, error } = await db
     .from("public_ad_placements")
     .select("creative")
     .eq("id", placement)
     .maybeSingle();
   if (error) throw new Error(`ad href: ${error.message}`);
-  const c = data?.creative;
+  // Card patrocinado nativo (B-022): o id é o da campanha (view `public_sponsored_campaigns`).
+  const native = data
+    ? null
+    : await db
+        .from("public_sponsored_campaigns")
+        .select("creative")
+        .eq("id", placement)
+        .maybeSingle();
+  if (native?.error) throw new Error(`ad href: ${native.error.message}`);
+  const c = data?.creative ?? native?.data?.creative;
   if (!c || typeof c !== "object" || Array.isArray(c)) return null;
   const href = (c as Record<string, unknown>).href;
   return typeof href === "string" ? href : null;
