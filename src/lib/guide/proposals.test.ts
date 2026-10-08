@@ -51,6 +51,13 @@ describe("proposeFromTemplate", () => {
     expect(p.dataSources.sort()).toEqual(["osm", "tripadvisor"]);
   });
 
+  it("o número do título acompanha quantos lugares entraram", () => {
+    const tpl = { ...TPL, title: "As 10 melhores padarias de Cuiabá", take: 10 };
+    const p = proposeFromTemplate(tpl, pool());
+    expect(p.items).toHaveLength(8);
+    expect(p.title).toBe("As 8 melhores padarias de Cuiabá");
+  });
+
   it("lugar com uma fonte só, suspenso, inativo ou de outra categoria nunca entra", () => {
     const good = pool().slice(0, 5);
     const bad = [
