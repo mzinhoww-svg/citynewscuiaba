@@ -33,6 +33,21 @@ const ErrorState = lazy(() =>
 
 const RELOAD_KEY = "cn_error_reload";
 
+/** Avisa o servidor o que quebrou no navegador (só log; falha de rede é ignorada). */
+function reportClientError(error: Error | undefined, digest: string | undefined) {
+  try {
+    const body = JSON.stringify({
+      message: error?.message,
+      stack: error?.stack,
+      path: location.pathname,
+      digest,
+    });
+    navigator.sendBeacon?.("/api/client-error", new Blob([body], { type: "application/json" }));
+  } catch {
+    // o aviso é opcional
+  }
+}
+
 /**
  * Erro sem `digest` nasceu no navegador, tipicamente aba ou cópia em cache de antes de um deploy
  * pedindo arquivos que já mudaram. Recarrega uma vez por aba antes de mostrar o erro.
@@ -51,7 +66,14 @@ function useReloadOnceOnClientError(digest: string | undefined) {
 }
 
 /** Mesmo contrato do `ErrorState`; use nos `error.tsx` das rotas públicas. */
-export function LazyErrorState(props: ErrorStateProps) {
+export function LazyErrorState({
+  error,
+  ...props
+}: ErrorStateProps & { error?: Error & { digest?: string } }) {
+  const digest = props.digest;
+  useEffect(() => {
+    reportClientError(error, digest);
+  }, [error, digest]);
   useReloadOnceOnClientError(props.digest);
   return (
     <Suspense fallback={null}>

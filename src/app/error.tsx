@@ -10,5 +10,5 @@ export default function Error({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return <LazyErrorState digest={error.digest} reset={reset} />;
+  return <LazyErrorState error={error} digest={error.digest} reset={reset} />;
 }
