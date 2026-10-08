@@ -227,6 +227,10 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
       description,
       dedupeKey: dedupeKeyOf(title.text, startsAt, venue),
       venueKnown,
+      sourceRef: source.uuid ?? null,
+      confirms: source.confirms ?? false,
+      confirmedBySourceId: null,
+      evidence: {},
     },
   };
 }

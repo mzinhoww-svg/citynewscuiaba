@@ -1,3 +1,5 @@
+import type { EvidenceRecord } from "./extract/evidence";
+
 /** Evento como a página ou o feed da fonte o descreve, ainda sem checagem. */
 export interface RawEvent {
   title: string;
@@ -34,6 +36,10 @@ export interface AgendaSource {
   /** Categoria usada quando o texto do evento não permite inferir. */
   defaultCategory?: string;
   enabled: boolean;
+  /** UUID da fonte em `sources` (opcional até o coletor ler as fontes do banco). */
+  uuid?: string;
+  /** Fonte que confirma (casa, organizador): um evento de descoberta é confirmado por ela. */
+  confirms?: boolean;
   /** Anotação de termos de uso e robots verificados na inclusão. */
   note?: string;
 }
@@ -54,6 +60,13 @@ export interface NormalizedEvent {
   dedupeKey: string;
   /** Local reconhecido (casa na lista de bairros/locais ou veio com endereço). */
   venueKnown: boolean;
+  /** UUID da fonte de origem (`sources.id`); `null` quando desconhecido. */
+  sourceRef: string | null;
+  /** O evento vem de uma fonte que confirma (casa, organizador). */
+  confirms: boolean;
+  /** UUID da fonte que confirmou este evento (fonte de descoberta confirmada por outra). */
+  confirmedBySourceId: string | null;
+  evidence: EvidenceRecord;
 }
 
 export type RejectReason =

@@ -10,7 +10,7 @@ import { err, ok, type Result } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { fold } from "@/lib/text/fold";
 import type { RawEvent, RejectReason } from "../types";
-import { verifyEvidence, type EvidenceRecord } from "./evidence";
+import { verifyEvidence, type EvidenceFields, type EvidenceRecord } from "./evidence";
 
 /** Mesmo limite que `callAgent` aplica a cada bloco: o texto verificado é o que o modelo recebe. */
 const PAGE_CHARS = MAX_DATA_CHARS;
@@ -236,7 +236,7 @@ export async function extractEventPage(
     titulo: { trecho: e.titulo.trecho, ano: e.titulo.ano_evidencia },
     data: { trecho: e.data.trecho, ano: e.data.ano_evidencia },
   };
-  const optional: [Exclude<keyof EvidenceRecord, "titulo" | "data">, Field | null][] = [
+  const optional: [Exclude<keyof EvidenceFields, "titulo" | "data">, Field | null][] = [
     ["horario", horario],
     ["local", local],
     ["cidade", cidade],

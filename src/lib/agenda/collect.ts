@@ -177,6 +177,10 @@ export async function collectAgenda(deps: CollectDeps): Promise<CollectReport> {
     origin: "organizer",
     description: "",
     venueKnown: true,
+    sourceRef: null,
+    confirms: false,
+    confirmedBySourceId: null,
+    evidence: {},
   }));
   const merged = dedupeEvents([...existing, ...all]);
   const fresh = merged.filter((e) => e.sourceId !== "");
