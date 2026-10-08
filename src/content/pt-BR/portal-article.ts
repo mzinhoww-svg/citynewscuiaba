@@ -28,6 +28,7 @@ export const REPORT = {
     "Você atingiu o limite de 5 envios por hora a partir desta conexão. Tente de novo mais tarde.",
   error: "Não conseguimos registrar agora. Tente de novo em alguns minutos.",
   success: "Recebemos seu aviso. Resposta da redação em até 24 h.",
+  notFound: "Não encontramos este conteúdo no ar. Atualize a página e tente de novo.",
   honeypotLabel: "Não preencha este campo",
   close: "Fechar",
 } as const;

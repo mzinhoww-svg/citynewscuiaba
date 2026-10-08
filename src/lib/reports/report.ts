@@ -24,6 +24,8 @@ type SaveError = { kind: "unconfigured" | "unavailable" };
 export interface ReportDeps {
   allow: () => Promise<Result<boolean, SaveError>>;
   save: (r: NewReport) => Promise<Result<void, SaveError>>;
+  /** O conteúdo existe e é público (C3-03): denúncia de id inventado não entra na fila. */
+  exists: (contentRef: string) => Promise<Result<boolean, SaveError>>;
 }
 
 /** Limite dos formulários públicos: 5 por hora por IP com hash (architecture §7). */
@@ -57,6 +59,10 @@ export async function reportProblem(form: FormData, deps: ReportDeps): Promise<R
   const allowed = await deps.allow();
   if (!allowed.ok) return { status: "error", message: REPORT.error };
   if (!allowed.value) return { status: "rate_limited", message: REPORT.rateLimited };
+
+  const found = await deps.exists(ref.data);
+  if (!found.ok) return { status: "error", message: REPORT.error };
+  if (!found.value) return { status: "invalid", message: REPORT.notFound };
 
   const saved = await deps.save({ contentRef: ref.data, kind: k.data, message, contactEmail });
   if (!saved.ok) return { status: "error", message: REPORT.error };
