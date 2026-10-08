@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/ingest/agenda", () => {
   it("recusa sem o segredo do cron", async () => {
-    vi.stubEnv("CRON_SECRET", "segredo-de-teste");
+    vi.stubEnv("CRON_SECRET", "segredo-de-teste-da-rota-agenda-32+");
     const res = await POST(new Request("http://x/api/ingest/agenda", { method: "POST" }));
     expect(res.status).toBe(401);
     const bad = await POST(
@@ -78,13 +78,13 @@ const call = (q = "?force=1") =>
   POST(
     new Request(`http://x/api/ingest/agenda${q}`, {
       method: "POST",
-      headers: { authorization: "Bearer segredo-de-teste" },
+      headers: { authorization: "Bearer segredo-de-teste-da-rota-agenda-32+" },
     }),
   );
 
 describe("POST /api/ingest/agenda · fontes e orçamento", () => {
   beforeEach(() => {
-    vi.stubEnv("CRON_SECRET", "segredo-de-teste");
+    vi.stubEnv("CRON_SECRET", "segredo-de-teste-da-rota-agenda-32+");
     h.loadEventSources.mockReset().mockImplementation(async () => {
       h.loadStartedAt = performance.now();
       return [DB_SOURCE];

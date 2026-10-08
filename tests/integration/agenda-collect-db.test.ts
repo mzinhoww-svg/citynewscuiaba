@@ -120,7 +120,7 @@ describe("rota da coleta com fixtures", () => {
         created_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
       },
     ]);
-    vi.stubEnv("CRON_SECRET", "segredo-agm-t5");
+    vi.stubEnv("CRON_SECRET", "segredo-agm-t5-coleta-da-agenda-32+");
     vi.stubEnv("CRAWLER_FIXTURES", "1");
     // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
     vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
@@ -129,7 +129,7 @@ describe("rota da coleta com fixtures", () => {
     const res = await POST(
       new Request("http://x/api/ingest/agenda?force=1", {
         method: "POST",
-        headers: { authorization: "Bearer segredo-agm-t5" },
+        headers: { authorization: "Bearer segredo-agm-t5-coleta-da-agenda-32+" },
       }),
     );
     const body = (await res.json()) as { status: string; startedAt: string; aiPages: number };
@@ -197,7 +197,7 @@ describe("rota da coleta com fixtures", () => {
     const runsBefore = await db
       .from("agenda_collect_runs")
       .select("id", { count: "exact", head: true });
-    vi.stubEnv("CRON_SECRET", "segredo-agm-t5");
+    vi.stubEnv("CRON_SECRET", "segredo-agm-t5-coleta-da-agenda-32+");
     vi.stubEnv("CRAWLER_FIXTURES", "1");
     // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
     vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
@@ -205,7 +205,7 @@ describe("rota da coleta com fixtures", () => {
     const res = await POST(
       new Request("http://x/api/ingest/agenda?dry=1", {
         method: "POST",
-        headers: { authorization: "Bearer segredo-agm-t5" },
+        headers: { authorization: "Bearer segredo-agm-t5-coleta-da-agenda-32+" },
       }),
     );
     const body = (await res.json()) as { preview: { sourceId: string; evidence: unknown }[] };

@@ -4,6 +4,7 @@ export {
   getArticleBySlug,
   getArticleHistory,
   getArticleUpdatedAt,
+  publicContentExists,
 } from "./articles";
 export { listAggregated } from "./aggregated";
 export { listAlertItems } from "./alerts";

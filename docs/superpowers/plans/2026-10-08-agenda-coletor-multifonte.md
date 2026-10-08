@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Branch `claude/agenda-multifonte`; migrations começam em `0195`; decisão nova `A-218` em `.planning/DECISIONS.md`.
+- Branch `claude/agenda-multifonte`; migrations começam em `0195`; decisão nova `A-220` em `.planning/DECISIONS.md`.
 - `pnpm verify` verde antes de todo commit de fim de tarefa; commit com `[AGM-T#]` no assunto (Conventional Commits).
 - Sem `any`, sem `@ts-ignore`; erros de domínio como `Result<T, E>` (`src/lib/result.ts`).
 - Texto externo sempre por `sanitizeExternalText` e enviado ao modelo só via `AgentInput.data` (vira `<fonte_externa>`); nunca instrução.

@@ -1,6 +1,6 @@
 # Relatório · Agenda multifonte (AGM-T1 a AGM-T9)
 
-Spec: `docs/superpowers/specs/2026-10-08-agenda-coletor-multifonte-design.md`. Plano: `docs/superpowers/plans/2026-10-08-agenda-coletor-multifonte.md`. Decisão: A-218.
+Spec: `docs/superpowers/specs/2026-10-08-agenda-coletor-multifonte-design.md`. Plano: `docs/superpowers/plans/2026-10-08-agenda-coletor-multifonte.md`. Decisão: A-220.
 
 Execução por subagentes, com revisão de especificação e qualidade a cada tarefa (AGM-T1 a T7) e rodadas de correção; a AGM-T8 entra na revisão final do branch.
 

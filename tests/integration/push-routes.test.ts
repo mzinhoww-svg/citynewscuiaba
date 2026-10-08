@@ -192,6 +192,7 @@ describe("/api/push/receipt", () => {
         status: "sent",
         requested_by: "c1000000-0000-4000-8000-000000000002",
         started_at: new Date().toISOString(),
+        sent_measurable_n: 1,
       })
       .select("id")
       .single();

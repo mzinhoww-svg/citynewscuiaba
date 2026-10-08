@@ -309,8 +309,9 @@ describe("AUT-T4 · comandos do Estúdio para o disjuntor", () => {
       await asUser("helena", () => resetBreakerCommand({ reason: "incidente resolvido" })),
     ).toMatchObject({ ok: true });
     await asUser("helena", () =>
-      setBreakerLimitsCommand({ hourly: 300, daily: 3000, reason: "volta ao padrão" }),
+      setBreakerLimitsCommand({ hourly: 300, reason: "volta ao padrão" }),
     );
-    expect((await counts()).limits).toMatchObject({ hourly: 300, daily: 3000 });
+    // A-126: o padrão é 300 por hora (migration 0186).
+    expect((await counts()).limits.hourly).toBe(300);
   });
 });

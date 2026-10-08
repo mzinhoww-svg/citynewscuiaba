@@ -63,7 +63,6 @@ export function ProfileDetailsForm({
       className="flex flex-col gap-5"
       data-ready={ready ? "true" : undefined}
     >
-      <input type="hidden" name="current_neighborhood" value={neighborhood ?? ""} />
       <TextField
         id={`${id}-nome`}
         name="name"

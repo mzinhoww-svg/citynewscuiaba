@@ -32,7 +32,8 @@ import {
   approveRecommended,
   type ApproveRecommendedOutcome,
 } from "@/lib/studio/approve-recommended";
-import { withSharedStudioContext } from "@/lib/studio/context";
+import { studioContext, withSharedStudioContext } from "@/lib/studio/context";
+import { canRequestUrgent } from "@/lib/push/permissions";
 import { createServerClient } from "@/lib/db/client";
 import { createPushAdminStore } from "@/lib/db/push-admin-store";
 import { formatDateTime } from "@/lib/format/date";
@@ -293,6 +294,11 @@ export async function publishAction(
       return { ok: false, message: PUBLISH_TEXT.pushJustificationRequired };
     if (rest.when !== "now")
       return { ok: false, message: PUSH_ADMIN_TEXT.errors.schedule.urgent_now_only };
+    // A tela só oferece o urgente com `canRequestUrgent`; a ação confere de novo (C2-03), antes
+    // de publicar. O banco também barra (`guard_push_sends`).
+    const session = (await studioContext()).session;
+    if (!session || !canRequestUrgent(session.roles))
+      return { ok: false, message: PUSH_ADMIN_TEXT.errors.forbidden };
   }
   const r = await publishArticle({ ...rest, baseVersion });
   if (r.ok && r.value.status === "scheduled" && r.value.scheduledFor)

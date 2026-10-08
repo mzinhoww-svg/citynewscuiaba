@@ -267,6 +267,7 @@ describe("release-backlog contra o banco local", () => {
     expect(checked.data?.seo_title).toBeTruthy();
     expect(checked.data?.tags?.length).toBeGreaterThan(0);
 
+    // Volta ao padrão do dono (A-126, migration 0186).
     await admin.rpc("publish_breaker_set_limits", { p: { hourly: 300, daily: 3000 }, p_ctx: {} });
   });
 

@@ -6,7 +6,7 @@ afterEach(() => vi.unstubAllEnvs());
 
 describe("POST /api/ingest/guide", () => {
   it("recusa sem o segredo do cron", async () => {
-    vi.stubEnv("CRON_SECRET", "segredo-de-teste");
+    vi.stubEnv("CRON_SECRET", "segredo-de-teste-da-rota-guide-32+");
     const res = await POST(
       new Request("http://x/api/ingest/guide?mode=propose", { method: "POST" }),
     );
@@ -32,11 +32,11 @@ describe("POST /api/ingest/guide", () => {
   });
 
   it("modo desconhecido é recusado (com segredo certo)", async () => {
-    vi.stubEnv("CRON_SECRET", "segredo-de-teste");
+    vi.stubEnv("CRON_SECRET", "segredo-de-teste-da-rota-guide-32+");
     const res = await POST(
       new Request("http://x/api/ingest/guide?mode=apagar", {
         method: "POST",
-        headers: { authorization: "Bearer segredo-de-teste" },
+        headers: { authorization: "Bearer segredo-de-teste-da-rota-guide-32+" },
       }),
     );
     expect(res.status).toBe(400);

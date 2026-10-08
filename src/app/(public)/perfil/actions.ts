@@ -18,10 +18,19 @@ export async function updateProfileAction(
     .trim()
     .replace(/\s+/g, " ");
   const hood = String(form.get("neighborhood") ?? "").trim();
-  const current = String(form.get("current_neighborhood") ?? "").trim();
   if (!name || name.length > 80) return { status: "invalid" };
-  const allowed = hood === "" || hood === current || NEIGHBORHOODS.some((n) => n.name === hood);
-  if (!allowed) return { status: "invalid" };
+  // Bairro da lista, nenhum, ou o que já está gravado (bairro antigo fora da lista atual). O
+  // gravado vem do banco, nunca de campo do formulário (C2-01).
+  const listed = hood === "" || NEIGHBORHOODS.some((n) => n.name === hood);
+  if (!listed) {
+    const { data, error } = await reader.db
+      .from("profiles")
+      .select("neighborhood")
+      .eq("id", reader.user.id)
+      .maybeSingle();
+    if (error) return { status: "unavailable" };
+    if (!data?.neighborhood || data.neighborhood !== hood) return { status: "invalid" };
+  }
   const { error } = await reader.db
     .from("profiles")
     .update({ display_name: name, neighborhood: hood || null })
