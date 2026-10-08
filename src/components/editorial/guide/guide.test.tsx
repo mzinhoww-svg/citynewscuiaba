@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { dataLine, GUIDE } from "@/content/pt-BR/guide";
 import type { GuideListItemView, GuideListSummary, GuideVenueView } from "@/lib/db/queries/guide";
-import { CriteriaNote } from "./CriteriaNote";
 import { ListCard } from "./ListCard";
 import { VenueCard } from "./VenueCard";
 import { VenueCover } from "./VenueCover";
@@ -121,36 +120,30 @@ describe("VenueCover", () => {
       "https://paodourado.example/",
     );
   });
-});
 
-describe("CriteriaNote", () => {
-  it("mostra Como escolhemos, a linha Dados em texto simples e Atualizada em", () => {
+  it("foto do Google (A-212) vem da rota própria, com o autor no crédito e o link do autor", () => {
     render(
-      <CriteriaNote
-        criteria="Reunimos padarias de Cuiabá com dados públicos."
-        dataSources={["osm", "tripadvisor", "site"]}
-        refreshedAt="2026-10-01T12:00:00Z"
+      <VenueCover
+        name="Padaria Pão Dourado"
+        categoryLabel="Padaria"
+        photo={{
+          src: "/api/guia/foto/padaria-pao-dourado-goiabeiras",
+          credit: GUIDE.venue.googlePhotoCredit("Maria Fictícia"),
+          originUrl: "https://maps.google.com/maps/contrib/123",
+          fromGoogle: true,
+        }}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Como escolhemos" })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Dados: TripAdvisor, OpenStreetMap e sites dos lugares\./),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Atualizada em 01/10/2026")).toBeInTheDocument();
-  });
-
-  it("patrocínio aparece em texto e diz que não altera a ordem", () => {
-    render(
-      <CriteriaNote
-        criteria="Critério."
-        dataSources={["osm"]}
-        refreshedAt="2026-10-01T12:00:00Z"
-        sponsorName="CityNews"
-      />,
+    const fig = screen.getByTestId("venue-photo");
+    expect(within(fig).getByRole("img", { name: "Foto de Padaria Pão Dourado" })).toHaveAttribute(
+      "src",
+      "/api/guia/foto/padaria-pao-dourado-goiabeiras",
     );
-    expect(
-      screen.getByText(/Patrocinado · CityNews\. O patrocínio não altera a ordem da lista\./),
-    ).toBeInTheDocument();
+    expect(fig).toHaveTextContent("Foto: Maria Fictícia · Google");
+    expect(within(fig).getByRole("link", { name: "Fonte" })).toHaveAttribute(
+      "href",
+      "https://maps.google.com/maps/contrib/123",
+    );
   });
 });
 
@@ -207,5 +200,8 @@ describe("vocabulário público do Guia", () => {
     );
     expect(GUIDE.venue.googleMaps).toBe("Ver no Google Maps");
     expect(GUIDE.list.attribution.google).toBe("Avaliações: Google.");
+    expect(GUIDE.list.attribution.googleWithPhotos).toBe("Avaliações e fotos: Google.");
+    expect(GUIDE.venue.googlePhotoCredit(null)).toBe("Foto: Google");
+    expect(GUIDE.venue.googlePhotoCredit("Ana")).not.toMatch(FORBIDDEN);
   });
 });

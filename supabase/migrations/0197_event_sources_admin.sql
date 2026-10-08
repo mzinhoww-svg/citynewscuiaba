@@ -1,5 +1,5 @@
 -- AGM-T6 (spec 2026-10-08-agenda-coletor-multifonte-design.md §5.1): o Painel de Fontes cadastra e
--- edita fontes de eventos. `source_admin_create` passa a gravar as colunas de evento de 0182
+-- edita fontes de eventos. `source_admin_create` passa a gravar as colunas de evento de 0195
 -- (`kind = 'events'` exige `extract_kind` e `event_origin`, constraint
 -- `sources_events_need_extract_check`), e `source_admin_update` aceita essas colunas no patch.
 -- Uma fonte não troca de tipo (notícias × eventos) depois de criada.

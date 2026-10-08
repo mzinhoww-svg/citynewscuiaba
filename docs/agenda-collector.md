@@ -98,7 +98,7 @@ APP_URL=... CRON_SECRET=... node --no-warnings scripts/ops/collect-agenda.ts --f
 
 ## Fontes
 
-Ficam em `sources` com `kind = 'events'` (seed em `supabase/migrations/0183_agenda_sources_seed.sql`)
+Ficam em `sources` com `kind = 'events'` (seed em `supabase/migrations/0196_agenda_sources_seed.sql`)
 e se gerenciam pelo Painel de Fontes: `extract_kind` (`jsonld`, `ical`, `rss`, `sympla`, `tribe`,
 `ai_page`), `event_origin` (`official` para órgãos públicos), `confirms` (casa ou organizador que
 confirma os próprios eventos), `collector_notes`, `list_urls`, `require_city` e local, bairro e

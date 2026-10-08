@@ -14,7 +14,6 @@ const base = {
   title: "Obra na avenida do CPA termina em novembro",
   section: { slug: "cidade", name: "Cidade" },
   status: "published",
-  publishMode: "human",
   publishedAt: "2026-09-27T17:48:00Z",
   updatedAt: "2026-09-27T17:48:00Z",
   labels: { shown: [], hidden: [] },

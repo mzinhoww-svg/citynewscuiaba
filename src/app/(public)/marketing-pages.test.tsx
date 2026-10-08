@@ -60,7 +60,13 @@ describe("/anuncie", () => {
       "mailto:contato@citynews.com.br",
     );
     expect(within(contact).getByText("E-mail: contato@citynews.com.br")).toBeVisible();
-    expect(contact.textContent).not.toMatch(/PREENCHER|Telefone|aguardam dados oficiais/);
+    // R42: telefone e WhatsApp oficiais do dono.
+    expect(within(contact).getByText("Telefone e WhatsApp: (65) 99622-7110")).toBeVisible();
+    expect(within(contact).getByRole("link", { name: "Chamar no WhatsApp" })).toHaveAttribute(
+      "href",
+      "https://wa.me/5565996227110",
+    );
+    expect(contact.textContent).not.toMatch(/PREENCHER|aguardam dados oficiais/);
     // Sem dado inventado: nenhum número de audiência, cliente ou depoimento.
     expect(container.textContent).not.toMatch(/leitores por mês|visitantes|depoimento|clientes/i);
   });

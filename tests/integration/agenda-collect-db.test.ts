@@ -98,7 +98,7 @@ describe("loadEventSources", () => {
       notes: TEATRO.notes,
       listUrls: [],
     });
-    // Seed (0183): as 3 da Sympla entram ativas.
+    // Seed (0196): as 3 da Sympla entram ativas.
     expect(all.filter((s) => s.kind === "sympla" && s.enabled).length).toBeGreaterThanOrEqual(1);
     expect(all.some((s) => s.id === "folha-do-cerrado")).toBe(false);
   });

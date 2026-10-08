@@ -53,7 +53,6 @@ describe("MadeHow", () => {
   const article = {
     kind: "normalized" as const,
     sourceCount: 3,
-    publishMode: "auto" as const,
     image: { kind: "reproduction" as const, credit: "folhadocerrado.example" },
     sponsored: true,
   };
@@ -73,7 +72,7 @@ describe("MadeHow", () => {
   });
 
   it("reportagem própria: nome do revisor nunca aparece; histórico continua, metodologia só se pedida", () => {
-    const article = { kind: "original" as const, publishMode: "human", reviewer: "Marina Couto" };
+    const article = { kind: "original" as const, reviewer: "Marina Couto" };
     const { rerender } = render(<MadeHow article={article} versionsHref="/materia/x/historico" />);
     expect(document.body.textContent).not.toMatch(/Marina Couto|agente|regras de revisão/i);
     expect(screen.getByText(/apurada e escrita pela redação/)).toBeInTheDocument();

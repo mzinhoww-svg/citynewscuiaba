@@ -29,7 +29,6 @@ const baseArticle: ArticleSummary = {
   dek: "Fumaça de queimadas e umidade baixa mantêm o ar em nível ruim.",
   section: { slug: "clima", name: "Clima" },
   status: "published",
-  publishMode: "human",
   publishedAt: "2026-09-27T17:48:00Z",
   updatedAt: "2026-09-27T17:48:00Z",
   labels: {
@@ -40,7 +39,7 @@ const baseArticle: ArticleSummary = {
     ],
     hidden: [],
   },
-  confidence: { level: "alta", score: 0.9 },
+  confidence: { score: 0.9 },
   sourceCount: 2,
   readMinutes: 2,
   aiSummary: ["Qualidade do ar está ruim pelo terceiro dia.", "Alerta segue até o fim da semana."],
@@ -48,6 +47,7 @@ const baseArticle: ArticleSummary = {
   reviewer: "Marina Couto",
   topicId: null,
   urgent: false,
+  urgentStrip: false,
   sponsored: false,
 };
 
@@ -174,7 +174,6 @@ describe("ArticleCard", () => {
     const article: ArticleSummary = {
       ...baseArticle,
       kind: "original",
-      publishMode: "auto",
       sponsored: true,
       labels: { shown: sixLabels.slice(0, 4), hidden: sixLabels.slice(4) },
     };

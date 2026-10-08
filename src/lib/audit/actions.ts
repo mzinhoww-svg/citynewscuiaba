@@ -49,11 +49,13 @@ export const GUIDE_AUDIT_ACTIONS = [
   "guide.template.save",
   "guide.report.decide",
   "guide.sync",
+  // Texto de abertura escrito pelo Guia (A-214, migration 0183).
+  "guide.article",
 ] as const;
 
 export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];
 
-/** Eventos da Agenda no Estúdio (AGM-T7, migration 0185): cadastro, edição, retirada e devolução. */
+/** Eventos da Agenda no Estúdio (AGM-T7, migration 0198): cadastro, edição, retirada e devolução. */
 export const AGENDA_AUDIT_ACTIONS = [
   "event.create",
   "event.update",

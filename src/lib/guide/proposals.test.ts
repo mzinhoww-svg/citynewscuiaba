@@ -5,6 +5,7 @@ import {
   draftOf,
   eligibleFor,
   isVerified,
+  MIN_RATING_COUNT,
   proposeFromLink,
   proposeFromTemplate,
 } from "./proposals";
@@ -48,6 +49,13 @@ describe("proposeFromTemplate", () => {
     expect(p.title).toBe(TPL.title);
     expect(p.slug).toBe("padarias-cuiaba");
     expect(p.dataSources.sort()).toEqual(["osm", "tripadvisor"]);
+  });
+
+  it("o número do título acompanha quantos lugares entraram", () => {
+    const tpl = { ...TPL, title: "As 10 melhores padarias de Cuiabá", take: 10 };
+    const p = proposeFromTemplate(tpl, pool());
+    expect(p.items).toHaveLength(8);
+    expect(p.title).toBe("As 8 melhores padarias de Cuiabá");
   });
 
   it("lugar com uma fonte só, suspenso, inativo ou de outra categoria nunca entra", () => {
@@ -133,6 +141,13 @@ describe("proposeFromTemplate", () => {
     });
     expect(eligibleFor(TPL, v)).toBe(true);
     expect(isVerified(v)).toBe(true);
+  });
+
+  it("só entra lugar com pelo menos 300 avaliações (A-213)", () => {
+    expect(MIN_RATING_COUNT).toBe(300);
+    expect(eligibleFor(TPL, venue({ ratingCount: 129 }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ rating: null, ratingCount: null }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ ratingCount: 300 }))).toBe(true);
   });
 
   it("lugar só com Google de outro tipo ou sem tipo não entra (hotel em padarias)", () => {

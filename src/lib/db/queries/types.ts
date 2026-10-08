@@ -50,11 +50,11 @@ export interface ArticleSummary {
   dek: string;
   section: SectionRef;
   status: "published" | "updated";
-  publishMode: "human" | "auto" | null;
   publishedAt: string;
   updatedAt: string;
   labels: LabelSet;
-  confidence: { level: ConfidenceLevel; score: number };
+  /** Só a nota numérica (ordena destaques); o nível e o modo de publicação não saem do anon (D-06). */
+  confidence: { score: number };
   sourceCount: number;
   readMinutes: number;
   aiSummary: string[] | null;
@@ -66,6 +66,8 @@ export interface ArticleSummary {
   inlineImage?: ArticleInlineImage;
   topicId: string | null;
   urgent: boolean;
+  /** Pode ocupar a faixa Urgente da home (A2/A15), derivado no banco (`urgent_strip`, 0187). */
+  urgentStrip: boolean;
   sponsored: boolean;
   /** Escopo regional (A15); ausente em dado antigo. */
   newsScope?: "cuiaba" | "mt" | "national";
@@ -105,7 +107,6 @@ export interface ArticleView extends ArticleSummary {
   /** Versões publicadas (histórico público). */
   versions: number;
   notes: ArticleNote[];
-  agentId: string | null;
   /** Assinatura de pessoa da redação (false = Redação CityNews / agente). */
   authorIsPerson: boolean;
   topic: TopicRef | null;

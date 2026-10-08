@@ -288,6 +288,8 @@ Colisões de número: as decisões da auditoria 360 nasceram como A-127 a A-130 
 
 **Status:** vigente. Decisão do dono (D-06). Selos públicos de IA já eram proibidos por teste; mantidos. Migration 0153 tira do papel `anon` as colunas internas de `articles` que nenhum código público lê. Pendente: `publish_mode`, `agent_id` e `confidence` ainda legíveis pelo `anon` porque o portal as seleciona com a chave anônima (refatorar consultas públicas). Obrigação legal de rotular IA em notícia: levantamento (não é parecer jurídico) não achou exigência no Brasil hoje para jornalismo; a regra do TSE sobre conteúdo sintético vale para propaganda eleitoral, o PL 2338/2023 está em tramitação e o AI Act europeu (art. 50) só alcança quem opera na UE. Confirmar com o jurídico junto com B-002 e revisitar se a lei mudar. Commit `10eb1e9`.
 
+**Atualização (08/10/2026): D-06 fechado para o `anon`.** Migration 0187 (`0187_hide_ai_metadata_anon.sql`) tira `publish_mode`, `agent_id` e `confidence` do grant de colunas do `anon` (mesma técnica da 0153: revoke da tabela + grant da lista). O portal deixou de selecioná-las (`ARTICLE_COLUMNS`); a única dependência pública, a faixa Urgente da home (A2/A15: humana sempre, automática só local/regional ou comoção nacional), passou para a coluna gerada `articles.urgent_strip`, que expõe só a elegibilidade para a faixa, não o modo. `confidence_score` segue público (ordena destaques). `authenticated` e `service_role` sem mudança. Efeito colateral: os rótulos internos `human_reviewed`/`auto_published` não aparecem mais nos dados das leituras públicas (a tela pública já não os mostrava). Teste: `tests/integration/d06-internal-columns.test.ts`. Não aplicada em produção nesta entrega.
+
 
 ## A-139 · Produção: 0151, 0152, 0153 e proposta das regras v4 aplicadas (04/10/2026)
 
@@ -407,3 +409,89 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 ## A-212 · Fotos do Google nos lugares do Guia (07/10/2026)
 
 **Status:** vigente, implementação em andamento. Decisão do dono ("Fotos do Google"), em resposta às listas sem foto. Substitui a G3/R1 só neste ponto: o Guia mostra a foto principal de cada lugar pela Places API (New), com o crédito do autor exigido pelos termos. O arquivo não é guardado: uma rota do CityNews busca a mídia pelo nome da foto, com a chave só no servidor. A referência da foto é dado do Google e vale 30 dias, como o resto. A cota é a mesma do teto diário.
+
+**Implementação (08/10/2026):** `photos` entra na máscara de campos (a máscara já pedia campos do nível Enterprise, sem mudança de faixa). `venues.google_photo_name`, `google_photo_author` e `google_photo_author_uri` (migration 0184, com checagem do formato `places/{id}/photos/{ref}` e de https no link do autor) são gravados por `guide_venues_save` junto com os dados do Google e apagados por `guide_expire_google`. Depois da coleta, com a cota que sobrou, até 10 lugares de listas publicadas sem foto são buscados pelo Place ID (`runGooglePhotoBackfill`, contado em `googleCalls`). A rota `/api/guia/foto/[slug]` lê a referência com o cliente público (a RLS já restringe a lugar ativo de lista publicada), conta o limite diário `GUIDE_GOOGLE_PHOTO_DAILY` (padrão 200, por instância) e pede ao Google com `skipHttpRedirect=true`: a chave vai só à Places API, e a imagem é baixada do endereço devolvido (só https em `*.googleusercontent.com`) sem a chave. Só imagem raster (jpeg, png, webp, gif, avif; SVG recusado) de até 5 MB, com cache de CDN de 12 h e `noindex`; qualquer falha é 404 `no-store`. A foto do site oficial continua em primeiro; a do Google entra só sem ela, com "Foto: autor · Google" e link para o autor, fica fora de metadados e JSON-LD, e o rodapé da lista passa a dizer "Avaliações e fotos: Google." (ou "Fotos: Google.").
+
+## A-213 · Popularidade pesa na ordem do Guia (08/10/2026)
+
+**Status:** vigente. Decisão do dono ("Pesar popularidade"), em resposta à padaria mais conhecida da cidade em quinto e a lugares com poucas avaliações no topo. Só entra numa lista o lugar com nota e pelo menos 300 avaliações (`MIN_RATING_COUNT`, `auto-publish.ts`). Na nota, o peso do prior bayesiano sobe para 300 avaliações e 30 % do componente vem do número de avaliações (escala log, teto em 10.000). O critério público passa a dizer "nota dos clientes e número de avaliações" e cita o mínimo de 300.
+
+**Operação:** a migration 0182 cria `guide_suspend_lists` (suspende listas publicadas e enfileira a revalidação das páginas) e `guide_refresh_now` (volta uma lista suspensa a publicada com a atualização vencida, para o `refresh` regenerá-la com as regras atuais). Só `service_role` executa. São o contorno do conector que segura `update` em produção (B-029).
+
+**Produção (08/10/2026, B-009):** `guide_suspend_lists` foi criada no `citynews-prod` e executada para `cafeterias-cuiaba`, `padarias-cuiaba` e `restaurantes-arabes-cuiaba`, a pedido do dono ("Suspensão por aqui"); páginas revalidadas e conferidas fora do ar.
+
+**Produção (08/10/2026, B-009), A-213:** com o #70 no ar, a 0182 foi aplicada e `guide_refresh_now` regenerou `padarias-cuiaba` (Bakehouse 44, Padaria América, Sorella, Viena, Marechal) e `cafeterias-cuiaba` (Bom Momento, Tia Fran, O Chapeleiro, Magrello, São Benedito), todos com o tipo do Google conferido e 300+ avaliações. A proposta automática publicou `restaurantes-cuiaba` com 9 lugares; o título do modelo dizia "10", corrigido no banco e no código (o número do título acompanha os lugares que entraram). `restaurantes-arabes-cuiaba` continua suspensa até a coleta com o filtro de tipo.
+
+## A-214 · Listas do Guia com texto de abertura, comentários e fotos, sem o quadro de critério (08/10/2026)
+
+**Status:** vigente. Decisão do dono ("Retire esse disclaimer de todas as listas já geradas e futuras, use fotos reais dos lugares, e faça comentário ou artigo sobre cada lugar"). Substitui, só nas telas públicas, a exigência de mostrar "Como escolhemos" (spec do Guia R2 e GUIA-T6): o critério continua gravado e exigido para publicar (regra executável), mas não aparece mais na lista. A data "Atualizada em" e o aviso de patrocínio ("Patrocinado · nome. O patrocínio não altera a ordem da lista.") continuam.
+
+**Texto:** o agente `guide_writer` (migration 0183, R$ 0,50/dia cedidos pelo `write`) escreve um texto corrido que cita cada lugar e um comentário curto por lugar, só com os dados do Guia (posição, nome, bairro, nota, número de avaliações, fonte da nota, faixa de preço). O pedido do dono era um texto "orgânico"; a §5.3 continua valendo: o texto nunca afirma visita, prova ou apuração presencial, nunca fala em primeira pessoa e nunca rotula IA. `checkArticle` confere antes de gravar (todos os lugares citados, nenhum número fora dos dados, nenhuma frase proibida); reprovado ou com falha do modelo, tenta de novo pedindo a correção e depois usa o texto montado com os mesmos dados (modo degradado, nunca fila humana). Roda em `/api/ingest/guide?mode=write` a cada 2 horas, uma lista por chamada; reescreve quando os lugares mudam (`article_signature`). Texto ou comentário ajustado pelo editor no Estúdio passa a ser dele e não é reescrito (`intro_auto`, `note_auto`). Auditoria `guide.article`; chamadas em `ai_calls`.
+
+**Fotos:** A-212, foto principal do Google com o crédito do autor, servida por rota própria.
+
+## A-215 · Auditoria das decisões do dono e acertos em produção (08/10/2026)
+
+**Status:** vigente. O dono perguntou o que mais tinha decidido e não foi entregue. A auditoria comparou cada decisão com o código da `main` e com o banco de produção. Feito no mesmo dia:
+
+- **Produção (B-009):** aplicadas 0155 (limpeza dos sinais da pauta quente), 0159 (`article.bulk_approve` na auditoria), 0183/0184 (texto e fotos do Guia), 0185 (rodadas do texto) e 0186 (disjuntor 300/3.000 como padrão da tabela). A 0158 (`role_set`, A-150) e a 0160 travam no conector (contêm `delete`/`drop`) e foram para o SQL do dono em `supabase/bootstrap/2026-10-08-sql-editor-dono.sql`, junto com a 0143 parte C. Sem a 0158, "Salvar papéis" no Estúdio falha em produção.
+- **Regras v4:** estão **ativas** em produção desde 05/10 (versão 4, `active = true`); STATE e A-139 diziam "proposta". Registro corrigido aqui e no CLAUDE.md §5.8.
+- **B-026:** a trava `approved_by <> requested_by` não existe mais em produção (0149); a nota de transição do CLAUDE.md foi corrigida.
+- **R42:** telefone e WhatsApp oficiais (65) 99622-7110 em Contato, Anuncie, Sugerir evento, rodapé e JSON-LD (PR #74).
+- **A-214:** a rota do cron tem 60 s; a escrita passou a ser uma tentativa por rodada, com o texto montado na 3ª rodada reprovada.
+
+**Ainda pendente do agente:** D-06 (fechar `publish_mode`, `agent_id` e `confidence` ao `anon`), reprocessar as fotos antigas em variantes (A-155), texto proposto para `/principios-editoriais` (A-152), patrocínio nativo no portal (B-022), segunda rodada da auditoria de segurança (18 achados adiados, entre eles injeção em ICS e CSV), fechar ou atualizar o PR #68 (B-031 desatualizado).
+
+**A-152, "Temas sensíveis" (08/10/2026):** o texto público dizia que crime, saúde e eleições "nunca são publicados sem revisão humana", o que as regras v3/v4 (decisão do dono) não fazem. A §5.3 proíbe afirmar revisão que não aconteceu, então o texto foi corrigido sem esperar: esses temas "seguem regras mais rígidas", com a fonte sempre citada, e vão para a revisão da redação quando há divergência central, conteúdo duvidoso ou fonte única não confiável. Também saiu "a revisão humana está ligada para todas as editorias" de `/como-usamos-ia` e da `/metodologia` (ambas ocultas, R34). O dono pode ajustar a redação; o fato descrito é o das regras ativas.
+
+**A-155, imagens antigas (08/10/2026):** o script `backfill-variants.mjs` pede a chave de serviço de produção, que só existe no ambiente da Vercel (o agente não lê chaves). A rota `/api/jobs/media-variants` (CRON_SECRET, até 40 imagens por chamada, `nextOffset` na resposta) faz o mesmo trabalho dentro da produção; o agente a chama em lotes depois do deploy. Variante é cópia reduzida do mesmo ativo (§5.11).
+
+## A-216 · Analytics e audiência: contador sem cookie, tela Audiência e GA4 via GTM (08/10/2026)
+
+**Status:** vigente. Decisão do dono (itens 1 a 6 aprovados em 08/10/2026). Emenda a ADR-008 e a D16 da spec mestre. Spec `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`, plano ANL-T1 a T10.
+
+**O que entra:**
+- contador agregado sem cookie nem identificador, por legítimo interesse;
+- os eventos `article_opened`, `article_shared` e `search_submitted`;
+- tela Audiência (`metrics.view`);
+- busca agregada com filtro de dado pessoal;
+- Search Console importado;
+- Speed Insights e Sentry;
+- partições mensais de `events`.
+
+**GA4 via GTM:**
+- flag `ga4_enabled`, desligada por padrão;
+- por decisão do dono, carrega **antes da escolha no banner**, com os quatro sinais do Consent Mode v2 concedidos, inclusive os de anúncio (revisto quando houver AdSense);
+- "Só o necessário" nega os quatro sinais e apaga `_ga*`;
+- consentimento sobe para `v2`.
+
+**Alternativas descartadas:**
+- só medição própria, sem GA4;
+- GA4 só depois do consentimento;
+- GA4 por Measurement Protocol.
+
+**Reversível:** desligar `ga4_enabled` ou remover `NEXT_PUBLIC_GTM_ID`.
+
+
+## A-217 · Agenda multifonte: fontes do Radar no coletor, extração com evidência e eventos no Estúdio (08/10/2026)
+
+**Status:** vigente. Decisões do dono no brainstorming de 08/10/2026 (D1 a D4 da spec `docs/superpowers/specs/2026-10-08-agenda-coletor-multifonte-design.md`, subprojeto A). Plano AGM-T1 a AGM-T9.
+
+**Decisões do dono:**
+- D1: ordem A (coletor + Estúdio) → B (agenda mais rica) → C (newsletter e Instagram).
+- D2: extração híbrida. Extrator estruturado quando a fonte oferece (JSON-LD, iCal, RSS, Sympla, API Tribe); senão o agente `event_extractor` lê a página e devolve cada campo com o trecho literal, que o código confere.
+- D3: evento só de fonte de descoberta, sem confirmação, publica sozinho com "Com informações de {fonte}" e "Confirme na fonte".
+- D4: fontes de eventos no Painel de Fontes (`sources.kind = 'events'`).
+
+**Decisões de implementação:**
+- Migrations 0195 a 0199 (renumeradas no merge com a main): colunas de evento em `sources` e `event_listings`, `agenda_extract_cache`, seed das fontes do Radar em `pending_activation` (Sympla segue ativa; Prefeitura de Cuiabá, Mapas MT e Cuiabá Tem bloqueadas), RPCs do painel com `kind` imutável entre notícia e evento, auditoria `event.*` e a visão `public_event_sources`.
+- O pipeline de notícias ignora `kind = 'events'` em toda leitura de fontes (`activeSources`, Panorama, recomendação, lookup por id/slug).
+- Um evento real é uma linha só; a `dedupe_key` é a identidade e não muda com a confirmação. Vale o venue em conflito. `confirmed_by_source_id` só quando outra fonte que confirma achou o mesmo evento.
+- Data só com ano no corpo ou na URL; o trecho tem de sustentar dia, mês e hora do valor; o texto conferido é o mesmo enviado ao modelo; avisos da fonte e URL vão ao modelo só como dado.
+- Teto de IA: 40 páginas por execução e 160 por dia (`app_settings`), contando a listagem. Cache por URL e hash do texto. Corte de 45 s na coleta (rota com 60 s); fonte não alcançada fica `adiada`/`ia_adiada`, sem gravar pela metade.
+- Orçamento: `event_extractor` R$ 1/dia, cedido pelo `write` (agora R$ 7,50); teto global R$ 30 mantido.
+- Painel: prévia de até 5 eventos com evidência (no máximo 6 chamadas, grava só o cache); ativar exige robots, termos e prévia com pelo menos 1 evento aprovado e usa o limite de teste (30/h). "Coletar agora" roda a coleta real só daquela fonte, sem linha de resumo.
+- Estúdio: `/estudio/agenda` lista, cria (`origin = 'newsroom'`), edita e retira eventos; campo editado vai para `locked_fields` e a coleta não sobrescreve; retirado não volta pela coleta.
+- Público: confirmados primeiro em cada dia; origem "CityNews" no filtro para eventos da redação.
+
+**Reversível:** desativar as fontes de eventos no painel; o código antigo do Sympla é o caso de 3 fontes ativas sem `ai_page`.

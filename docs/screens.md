@@ -199,8 +199,11 @@ Shell: `/estudio`, sidebar com Redação, Control Center (com Contingência em d
 ### E12 · Geração de imagem · drawer `GenerateImage` · **Nova**
 - Prompt sugerido a partir da matéria, restrições fixas visíveis (não fotorrealista, sem pessoas reais), 3 opções, rótulo automático IMAGEM GERADA POR IA, salvar no acervo com proveniência.
 
-### E13 · Sugestões de evento · `/estudio/agenda/sugestoes` · **Nova**
+### E13 · Sugestões de evento · `/estudio/agenda/sugestoes` · **Nova** (aba Sugestões de `/estudio/agenda`, A-217)
 - Fila das sugestões de P11 com aprovar, editar, rejeitar (motivo enviado ao remetente).
+
+### E13b · Eventos da Agenda · `/estudio/agenda`, `/estudio/agenda/novo`, `/estudio/agenda/[id]` · **Nova** (A-217)
+- Lista com busca e filtros (período, fonte, origem, situação: no ar, retirado, encerrado, sem confirmação); cadastrar (origem CityNews, publica na hora), editar (campo editado fica travado para a coleta), retirar do ar e devolver, tudo auditado. Papel da seção `agenda`. Estados: carregando, vazio por filtro, erro com nova tentativa, sucesso.
 
 ### E14 · Denúncias de leitores · `/estudio/denuncias` · **Nova** (resumo em W01)
 - Fila por tipo (informação errada, link quebrado, imagem, direito de resposta), prazo 24 h, vínculo com a matéria, resposta ao leitor.

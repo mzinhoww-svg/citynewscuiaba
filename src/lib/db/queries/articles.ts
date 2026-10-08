@@ -37,12 +37,10 @@ type ArticleRow = Pick<
   | "ai_summary"
   | "ai_summary_reviewed_by"
   | "status"
-  | "publish_mode"
-  | "confidence"
   | "confidence_score"
   | "author_id"
-  | "agent_id"
   | "urgent"
+  | "urgent_strip"
   | "sponsored"
   | "published_at"
   | "updated_at"
@@ -53,8 +51,13 @@ type ArticleRow = Pick<
   | "review_banner"
 >;
 
+/**
+ * Colunas que o portal lê com a chave anônima. `publish_mode`, `agent_id` e `confidence` ficam
+ * fora (D-06, migration 0187): o `anon` não as lê. A faixa Urgente usa a derivada `urgent_strip`.
+ * Coluna nova aqui precisa estar no grant do `anon` (última migration que o redefine: 0187).
+ */
 export const ARTICLE_COLUMNS =
-  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion, review_banner";
+  "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, confidence_score, author_id, urgent, urgent_strip, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion, review_banner";
 
 const MEDIA_COLUMNS =
   "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_id, source_name, license, credit, status)";
@@ -327,7 +330,6 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
   const reviewer = row.ai_summary_reviewed_by ? h.names.get(row.ai_summary_reviewed_by) : undefined;
   const image = h.images.get(row.id);
   const kind = row.kind === "normalized" ? "normalized" : "original";
-  const publishMode = row.publish_mode ?? null;
   return {
     id: row.id,
     slug: row.slug,
@@ -340,14 +342,14 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
       name: row.section_slug,
     },
     status: row.status === "updated" ? "updated" : "published",
-    publishMode,
     publishedAt: row.published_at ?? row.updated_at,
     updatedAt: row.updated_at,
     labels: labelsFor({
       kind,
       sourceCount,
       hasAiSummary: !!row.ai_summary?.length,
-      publishMode,
+      // O modo de publicação não sai da chave anônima (D-06); os rótulos públicos não o usam.
+      publishMode: null,
       reviewerName: reviewer,
       image: image
         ? {
@@ -358,7 +360,7 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
         : undefined,
       sponsored: row.sponsored,
     }),
-    confidence: { level: row.confidence, score: Number(row.confidence_score) },
+    confidence: { score: Number(row.confidence_score) },
     sourceCount,
     readMinutes: readMinutes(blocks, row.dek),
     aiSummary: row.ai_summary?.length ? row.ai_summary : null,
@@ -368,6 +370,7 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
     inlineImage: h.inlineImages.get(row.id),
     topicId: row.topic_id,
     urgent: row.urgent,
+    urgentStrip: row.urgent_strip,
     sponsored: row.sponsored,
     newsScope: asScope(row.news_scope) ?? undefined,
     nationalCommotion: row.national_commotion,
@@ -584,7 +587,6 @@ async function readArticleBySlug(
       sources,
       versions: versionRows.length,
       notes: toNotes(versionRows),
-      agentId: row.agent_id,
       authorIsPerson: summary.byline !== BYLINE.newsroom,
       topic: topic ? { slug: topic.slug, title: topic.title, state: topic.state } : null,
       related,

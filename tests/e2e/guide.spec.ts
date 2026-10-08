@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { service, tag } from "./studio";
 
 /*
- * GUIA-T6 · Páginas públicas do Guia: índice, lista ("Como escolhemos", "Dados: ...", "Atualizada
- * em"), página do lugar, JSON-LD ItemList e LocalBusiness, vocabulário sem IA/revisão, lista
+ * GUIA-T6 · Páginas públicas do Guia: índice, lista (texto de abertura e "Atualizada em", sem o
+ * quadro "Como escolhemos" desde a A-214), página do lugar ("Dados: ..."), JSON-LD ItemList e LocalBusiness, vocabulário sem IA/revisão, lista
  * suspensa ou rascunho fora do ar. Dados próprios fictícios por execução (apagados no fim). As
  * páginas usam cache por tag: o spec abre cada página só depois de criar os dados.
  */
@@ -123,20 +123,20 @@ test("índice do Guia: título, link das matérias e listas, sem rótulo de IA",
   expect(await page.locator("main").innerText()).not.toMatch(FORBIDDEN);
 });
 
-test("lista: Como escolhemos, Dados, Atualizada em, lugares em ordem e vocabulário limpo", async ({
+test("lista: texto de abertura, Atualizada em, lugares em ordem e vocabulário limpo, sem quadro de critério", async ({
   page,
 }) => {
   await page.goto(`/guia-cuiaba/${slugs.list}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     `Os 5 melhores hotéis ${slugs.list}`,
   );
-  const criteria = page.getByRole("region", { name: "Como escolhemos" });
-  await expect(criteria).toContainText(CRITERIA);
-  await expect(criteria).toContainText(
-    "Dados: Google, TripAdvisor, OpenStreetMap e sites dos lugares.",
+  // A-214: o quadro "Como escolhemos" saiu do público; o critério segue gravado.
+  await expect(page.getByRole("region", { name: "Como escolhemos" })).toHaveCount(0);
+  await expect(page.getByText(CRITERIA)).toHaveCount(0);
+  await expect(page.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
+  await expect(page.getByTestId("guide-article")).toContainText(
+    "Introdução do editor para a lista.",
   );
-  await expect(criteria.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
-  await expect(page.getByText("Introdução do editor para a lista.")).toBeVisible();
 
   const cards = page.getByRole("article").filter({ hasText: "º lugar" });
   await expect(cards).toHaveCount(5);

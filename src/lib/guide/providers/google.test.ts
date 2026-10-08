@@ -60,7 +60,9 @@ describe("google provider", () => {
     const mask = headers.get("X-Goog-FieldMask") ?? "";
     expect(mask).toContain("places.rating");
     expect(mask).toContain("nextPageToken");
-    expect(mask).not.toMatch(/reviews|photos/);
+    expect(mask).not.toMatch(/reviews/);
+    // Foto principal (A-212): só a referência e o autor; o arquivo nunca é guardado.
+    expect(mask).toContain("places.photos");
     const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
     expect(body.textQuery).toBe("padaria em Cuiabá");
     expect(body.includedType).toBe("bakery");
@@ -106,6 +108,59 @@ describe("google provider", () => {
     expect(r.ok && r.value.map((v) => v.placeIds.google)).toEqual(["ChIJ-teste-pao-dourado"]);
   });
 
+  describe("foto principal (A-212)", () => {
+    const NAME = "places/ChIJ-teste-pao-dourado/photos/AUc7tXX-teste_ref123";
+    const author = {
+      displayName: "Maria Fictícia",
+      uri: "https://maps.google.com/maps/contrib/123",
+      photoUri: "https://lh3.example/foto",
+    };
+    const venue = (photos: unknown) =>
+      toGoogleVenue({ ...PLACE, photos } as Parameters<typeof toGoogleVenue>[0], "padaria", null);
+
+    it("lê o nome da primeira foto e o autor", () => {
+      const v = venue([
+        { name: NAME, authorAttributions: [author] },
+        { name: `${NAME}-2`, authorAttributions: [] },
+      ]);
+      expect(v?.googlePhoto).toEqual({
+        name: NAME,
+        author: "Maria Fictícia",
+        authorUri: "https://maps.google.com/maps/contrib/123",
+      });
+    });
+
+    it("sem fotos, foto null", () => {
+      expect(venue(undefined)?.googlePhoto).toBeNull();
+      expect(venue([])?.googlePhoto).toBeNull();
+    });
+
+    it("nome fora do formato places/{id}/photos/{ref} é descartado", () => {
+      for (const name of [
+        "places/x/photos/../../segredo",
+        "https://evil.example/places/a/photos/b",
+        "places/ChIJ-a/photos/",
+        "places/ChIJ-a/photos/b/media",
+        "places/ChIJ-a/photos/b?key=x",
+        "",
+      ]) {
+        expect(venue([{ name, authorAttributions: [author] }])?.googlePhoto, name).toBeNull();
+      }
+    });
+
+    it("autor sem nome ou com link http fica sem esses campos", () => {
+      expect(
+        venue([{ name: NAME, authorAttributions: [{ displayName: " ", uri: "http://x.example" }] }])
+          ?.googlePhoto,
+      ).toEqual({ name: NAME, author: null, authorUri: null });
+      expect(venue([{ name: NAME }])?.googlePhoto).toEqual({
+        name: NAME,
+        author: null,
+        authorUri: null,
+      });
+    });
+  });
+
   it("campos ausentes viram null", () => {
     const v = toGoogleVenue(
       {
@@ -126,6 +181,7 @@ describe("google provider", () => {
       priceLevel: null,
       hours: null,
       googleMapsUrl: null,
+      googlePhoto: null,
       lat: null,
     });
   });

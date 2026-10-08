@@ -213,7 +213,8 @@ describe("AUT-T4 · disjuntor e matéria curta", () => {
       publishedLastHour: 0,
       publishedToday: 0,
       trippedAt: null,
-      limits: { hourly: 60, daily: 800 },
+      // A-126: limites do dono (migration 0186).
+      limits: { hourly: 300, daily: 3000 },
     });
 
     const a = await scenario({ sourceTrusted: true });
@@ -287,8 +288,8 @@ describe("AUT-T4 · disjuntor e matéria curta", () => {
     ).not.toBeNull();
     const bad = await admin.rpc("publish_breaker_set_limits", { p: { hourly: 0 } });
     expect(bad.error).not.toBeNull();
-    await admin.rpc("publish_breaker_set_limits", { p: { hourly: 60, daily: 800 } });
-    expect((await counts()).limits).toMatchObject({ hourly: 60, daily: 800 });
+    await admin.rpc("publish_breaker_set_limits", { p: { hourly: 300, daily: 3000 } });
+    expect((await counts()).limits).toMatchObject({ hourly: 300, daily: 3000 });
   });
 });
 
@@ -308,8 +309,8 @@ describe("AUT-T4 · comandos do Estúdio para o disjuntor", () => {
       await asUser("helena", () => resetBreakerCommand({ reason: "incidente resolvido" })),
     ).toMatchObject({ ok: true });
     await asUser("helena", () =>
-      setBreakerLimitsCommand({ hourly: 60, reason: "volta ao padrão" }),
+      setBreakerLimitsCommand({ hourly: 300, daily: 3000, reason: "volta ao padrão" }),
     );
-    expect((await counts()).limits.hourly).toBe(60);
+    expect((await counts()).limits).toMatchObject({ hourly: 300, daily: 3000 });
   });
 });

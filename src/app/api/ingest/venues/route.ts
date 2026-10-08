@@ -6,6 +6,7 @@ import { allTargets, pickTargets } from "@/lib/guide/plan";
 import { buildProviders } from "@/lib/guide/providers/factory";
 import { fetchSiteFacts } from "@/lib/guide/providers/site";
 import { productionMediaStore } from "@/lib/pipeline/deps";
+import { runGooglePhotoBackfill } from "@/lib/pipeline/steps/venue-google-photos";
 import { runVenuePhotos } from "@/lib/pipeline/steps/venue-photos";
 import { runVenueSync } from "@/lib/pipeline/steps/venue-sync";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
@@ -101,6 +102,17 @@ export async function POST(req: Request): Promise<Response> {
     },
     { categories: targets, area: "Cuiabá", maxTaDetailsPerCategory: 15 },
   );
+  // Foto do Google dos lugares já em listas publicadas (A-212), com a cota que sobrou; as
+  // consultas entram em `googleCalls` do relatório (a cota diária soma esse campo).
+  const googlePhotos = await runGooglePhotoBackfill(
+    {
+      google: providers.google,
+      store,
+      callsLeft: () => googleLeft - googleMade,
+      now: () => now,
+    },
+    { limit: 10 },
+  );
   // Fotos oficiais dos lugares (política reproduction); sem foto, cartão tipográfico.
   const venueMedia = createVenueMediaRepo(db);
   const flags = createFlags(db);
@@ -116,7 +128,7 @@ export async function POST(req: Request): Promise<Response> {
     },
     { limit: 10 },
   );
-  const full = { ...report, photos };
+  const full = { ...report, googleCalls: googleMade, googlePhotos, photos };
   await store.finishRun(runId, full);
   return Response.json({ status: "done", ...full });
 }

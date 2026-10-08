@@ -1,7 +1,7 @@
 // @vitest-environment node
 // AGM-T7: eventos da Agenda no Estúdio contra o banco local — RLS da editoria `agenda`, origem
 // `newsroom`, travas por edição, retirada que some do público (anon) e auditoria aceita pelo
-// banco (`studio_audit_actions`, migration 0185).
+// banco (`studio_audit_actions`, migration 0198).
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
 import type { EventInput } from "@/lib/agenda/event-form";

@@ -22,6 +22,13 @@ export function SiteFooter({ className }: SiteFooterProps) {
         <div className="flex flex-col gap-3">
           <Logo tone="negative" size="md" className="-ml-3 self-start" />
           <p className="type-body text-branco/85">{LEGAL.tagline}</p>
+          <a
+            href={LEGAL.whatsapp.href}
+            rel="noopener noreferrer"
+            className="flex min-h-tap items-center self-start text-14 font-medium text-branco underline underline-offset-4"
+          >
+            {LEGAL.whatsapp.label}
+          </a>
         </div>
         <nav aria-label={NAV_TEXT.footerNav}>
           <ul className="grid grid-cols-2 gap-x-6 sm:grid-cols-3 lg:grid-cols-5">

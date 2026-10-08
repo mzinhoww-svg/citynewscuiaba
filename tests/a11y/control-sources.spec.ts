@@ -21,7 +21,7 @@ const ROUTES = [
   `${BASE}/${FOLHA_ID}/historico`,
   `${BASE}/${FOLHA_ID}/itens`,
   `${BASE}/00000000-0000-4000-8000-000000000000`,
-  // Fontes de eventos (AGM-T6): filtro, cadastro e as abas de uma fonte do seed (0183).
+  // Fontes de eventos (AGM-T6): filtro, cadastro e as abas de uma fonte do seed (0196).
   `${BASE}?tipo=eventos`,
   `${BASE}/nova?tipo=eventos`,
   `${BASE}/{eventos}`,

@@ -30,6 +30,14 @@ describe("SiteFooter", () => {
     expect(footer).toHaveTextContent("© 2026 CityNews Cuiabá");
   });
 
+  it("mostra o WhatsApp oficial com link (R42)", () => {
+    render(<SiteFooter />);
+    expect(screen.getByRole("link", { name: "WhatsApp (65) 99622-7110" })).toHaveAttribute(
+      "href",
+      "https://wa.me/5565996227110",
+    );
+  });
+
   it("mostra só as linhas preenchidas", async () => {
     vi.resetModules();
     vi.doMock("@/content/pt-BR/nav-footer", async (orig) => {

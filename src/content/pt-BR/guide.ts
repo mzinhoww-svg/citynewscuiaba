@@ -36,10 +36,9 @@ export const GUIDE = {
   index: {
     metaTitle: "Guia Cuiabá: listas de lugares",
     metaDescription:
-      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com o critério de cada lista à vista.",
+      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com fotos, notas e o que cada lugar tem de bom.",
     title: "Guia Cuiabá",
-    intro:
-      "Listas de lugares de Cuiabá, com o critério de cada uma à vista: de onde vêm os dados e como a ordem foi montada.",
+    intro: "Os lugares mais bem avaliados de Cuiabá, lista por lista.",
     listsTitle: "Listas do Guia",
     sponsoredTitle: "Listas patrocinadas",
     sponsoredNote: "O patrocínio nunca altera a ordem das listas.",
@@ -57,13 +56,16 @@ export const GUIDE = {
     cardCta: "Ver lista",
   },
   list: {
-    criteriaTitle: "Como escolhemos",
     placesTitle: "Os lugares",
     updated: (date: string) => `Atualizada em ${date}`,
     sponsoredBy: (name: string) => `Patrocinado · ${name}`,
     sponsoredNote: "O patrocínio não altera a ordem da lista.",
     attribution: {
       google: "Avaliações: Google.",
+      /** Lista com nota e foto do Google (A-212). */
+      googleWithPhotos: "Avaliações e fotos: Google.",
+      /** Lista só com foto do Google, sem nota de lá. */
+      googlePhotos: "Fotos: Google.",
       tripadvisor: "Avaliações e ranking: TripAdvisor.",
       osm: "Mapa e endereços: © colaboradores do OpenStreetMap.",
     },
@@ -97,6 +99,9 @@ export const GUIDE = {
     photos: "Fotos",
     photoCredit: (name: string) => `Foto: reprodução web · ${name}`,
     photoSource: "Fonte",
+    /** Crédito da foto do Google (termos: nome do autor; A-212). */
+    googlePhotoCredit: (author: string | null) =>
+      author ? `Foto: ${author} · Google` : "Foto: Google",
     noPhoto: "Sem foto oficial por enquanto.",
     updated: (date: string) => `Dados atualizados em ${date}`,
     notFoundTitle: "Este lugar não está disponível",

@@ -1,6 +1,6 @@
 // @vitest-environment node
-// Migration 0184 (AGM-T6): o Painel de Fontes cria e edita fontes de eventos pelas RPCs
-// `source_admin_create`/`source_admin_update`, com as colunas de evento de 0182. Pilha local, sem rede.
+// Migration 0197 (AGM-T6): o Painel de Fontes cria e edita fontes de eventos pelas RPCs
+// `source_admin_create`/`source_admin_update`, com as colunas de evento de 0195. Pilha local, sem rede.
 import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { afterAll, describe, expect, it } from "vitest";
@@ -63,7 +63,7 @@ afterAll(async () => {
   if (created.length) await asService.from("sources").delete().in("id", created);
 });
 
-describe("source_admin_create com fonte de eventos (0184)", () => {
+describe("source_admin_create com fonte de eventos (0197)", () => {
   it("grava as colunas de evento e nasce pausada aguardando ativação", async () => {
     const id = await createEvents();
     const { data } = await asService.from("sources").select("*").eq("id", id).single();
@@ -87,7 +87,7 @@ describe("source_admin_create com fonte de eventos (0184)", () => {
   });
 });
 
-describe("source_admin_update com colunas de evento (0184)", () => {
+describe("source_admin_update com colunas de evento (0197)", () => {
   it("aceita as colunas de evento e sobe a versão", async () => {
     const id = await createEvents();
     const v = (await rpc("source_admin_update", {

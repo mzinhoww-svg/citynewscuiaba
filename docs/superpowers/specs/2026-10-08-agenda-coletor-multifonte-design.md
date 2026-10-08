@@ -97,7 +97,7 @@ Fora: Sesc MT site institucional (TLS incompleto, agenda velha; o painel cobre) 
 
 ## 6. Dados
 
-Migrations a partir de 0182.
+Migrations a partir de 0195 (renumeradas no merge com a main, que usou 0182 a 0187).
 
 - `sources`: colunas da §3.1 e seed da §3.2.
 - `event_listings`: `source_ref uuid references sources(id)`, `confirmed_by_source_id uuid references sources(id)`, `evidence jsonb not null default '{}'`, `locked_fields text[] not null default '{}'`, `withdrawn_at timestamptz`, `updated_at timestamptz not null default now()`; `origin` passa a aceitar `newsroom`. O `source_id` textual atual continua (compatibilidade) e é preenchido com o slug da fonte.

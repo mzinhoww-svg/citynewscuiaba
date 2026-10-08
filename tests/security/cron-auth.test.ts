@@ -64,6 +64,11 @@ const CRON_ROUTES: {
     method: "POST",
     load: () => import("@/app/api/jobs/revalidate/route"),
   },
+  {
+    path: "/api/jobs/media-variants",
+    method: "POST",
+    load: () => import("@/app/api/jobs/media-variants/route"),
+  },
 ];
 
 beforeEach(() => vi.stubEnv("CRON_SECRET", SECRET));
@@ -143,10 +148,14 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/alertas",
     "/api/alertas/novidades",
     "/api/ask",
+    // Erro do navegador na tela "Algo deu errado": só log, 4 KB no máximo, 10 por IP a cada 10 min.
+    "/api/client-error",
     "/api/editoria/[slug]/novas",
     "/api/events",
     "/api/fontes/onboarding",
     "/api/guia/informar",
+    // Foto do Google do lugar (A-212): só GET, lugar público, limite diário global, 404 em falha.
+    "/api/guia/foto/[slug]",
     "/api/ics/[slug]",
     "/api/materia/[slug]/atualizacao",
     "/api/media/[id]",

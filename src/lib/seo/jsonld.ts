@@ -1,4 +1,5 @@
 import { SITE } from "@/content/pt-BR/site";
+import { PHONE } from "@/content/pt-BR/contact";
 import { toZonedIso } from "@/lib/format/date";
 
 /**
@@ -130,6 +131,14 @@ export function organizationJsonLd(base: string = siteUrl()): Ld {
     correctionsPolicy: `${base}/correcoes`,
     ethicsPolicy: `${base}/principios-editoriais`,
     actionableFeedbackPolicy: `${base}/direito-de-resposta`,
+    // R42: telefone e WhatsApp oficiais.
+    contactPoint: {
+      "@type": "ContactPoint",
+      telephone: PHONE.schema,
+      contactType: "customer support",
+      areaServed: "BR",
+      availableLanguage: "pt-BR",
+    },
   };
 }
 

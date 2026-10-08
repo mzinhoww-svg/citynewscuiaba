@@ -856,6 +856,7 @@ export type Database = {
           tsv: unknown;
           updated_at: string;
           urgent: boolean;
+          urgent_strip: boolean;
           studio_snapshot: Json | null;
         };
         Insert: {
@@ -899,6 +900,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           urgent?: boolean;
+          urgent_strip?: never;
         };
         Update: {
           agent_id?: string | null;
@@ -941,6 +943,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           urgent?: boolean;
+          urgent_strip?: never;
         };
         Relationships: [
           {
@@ -4333,6 +4336,9 @@ export type Database = {
           data_updated_at: string | null;
           google_fetched_at: string | null;
           google_maps_url: string | null;
+          google_photo_author: string | null;
+          google_photo_author_uri: string | null;
+          google_photo_name: string | null;
           google_primary_type: string | null;
           hours: string | null;
           id: string;
@@ -4366,6 +4372,9 @@ export type Database = {
           data_updated_at?: string | null;
           google_fetched_at?: string | null;
           google_maps_url?: string | null;
+          google_photo_author?: string | null;
+          google_photo_author_uri?: string | null;
+          google_photo_name?: string | null;
           google_primary_type?: string | null;
           hours?: string | null;
           id?: string;
@@ -4399,6 +4408,9 @@ export type Database = {
           data_updated_at?: string | null;
           google_fetched_at?: string | null;
           google_maps_url?: string | null;
+          google_photo_author?: string | null;
+          google_photo_author_uri?: string | null;
+          google_photo_name?: string | null;
           google_primary_type?: string | null;
           hours?: string | null;
           id?: string;
@@ -4571,6 +4583,10 @@ export type Database = {
           criteria: string;
           id: string;
           intro: string | null;
+          intro_auto: boolean;
+          article_signature: string | null;
+          article_attempts: number;
+          article_problems: string[];
           neighborhood: string | null;
           next_refresh_at: string | null;
           origin: string;
@@ -4598,6 +4614,10 @@ export type Database = {
           criteria?: string;
           id?: string;
           intro?: string | null;
+          intro_auto?: boolean;
+          article_signature?: string | null;
+          article_attempts?: number;
+          article_problems?: string[];
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
@@ -4625,6 +4645,10 @@ export type Database = {
           criteria?: string;
           id?: string;
           intro?: string | null;
+          intro_auto?: boolean;
+          article_signature?: string | null;
+          article_attempts?: number;
+          article_problems?: string[];
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
@@ -4658,6 +4682,7 @@ export type Database = {
       guide_list_items: {
         Row: {
           editor_note: string | null;
+          note_auto: boolean;
           list_id: string;
           position: number;
           score: number | null;
@@ -4666,6 +4691,7 @@ export type Database = {
         };
         Insert: {
           editor_note?: string | null;
+          note_auto?: boolean;
           list_id: string;
           position: number;
           score?: number | null;
@@ -4674,6 +4700,7 @@ export type Database = {
         };
         Update: {
           editor_note?: string | null;
+          note_auto?: boolean;
           list_id?: string;
           position?: number;
           score?: number | null;
@@ -5414,6 +5441,8 @@ export type Database = {
         Returns: { mentions: number; venue_id: string }[];
       };
       guide_venue_slugs: { Args: { p_bases: string[] }; Returns: string[] };
+      guide_refresh_now: { Args: { p_slugs: string[] }; Returns: string[] };
+      guide_suspend_lists: { Args: { p_reason: string; p_slugs: string[] }; Returns: string[] };
       guide_venues_save: { Args: { p_inserts: Json; p_updates: Json }; Returns: Json };
       hamming64: { Args: { a: number; b: number }; Returns: number };
       has_any_role: {

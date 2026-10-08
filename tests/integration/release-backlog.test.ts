@@ -267,7 +267,7 @@ describe("release-backlog contra o banco local", () => {
     expect(checked.data?.seo_title).toBeTruthy();
     expect(checked.data?.tags?.length).toBeGreaterThan(0);
 
-    await admin.rpc("publish_breaker_set_limits", { p: { hourly: 60, daily: 800 }, p_ctx: {} });
+    await admin.rpc("publish_breaker_set_limits", { p: { hourly: 300, daily: 3000 }, p_ctx: {} });
   });
 
   it("disjuntor aberto: o script recusa liberar", async () => {

@@ -173,7 +173,7 @@ describe("planBulk (§7.6)", () => {
 });
 
 describe("toDbPatch · colunas de evento (AGM-T6)", () => {
-  it("converte as chaves de evento para as colunas de 0182", () => {
+  it("converte as chaves de evento para as colunas de 0195", () => {
     expect(
       toDbPatch({
         confirms: true,

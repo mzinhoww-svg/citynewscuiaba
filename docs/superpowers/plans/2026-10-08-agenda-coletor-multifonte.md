@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Branch `claude/agenda-multifonte`; migrations começam em `0182`; decisão nova `A-213` em `.planning/DECISIONS.md`.
+- Branch `claude/agenda-multifonte`; migrations começam em `0195`; decisão nova `A-217` em `.planning/DECISIONS.md`.
 - `pnpm verify` verde antes de todo commit de fim de tarefa; commit com `[AGM-T#]` no assunto (Conventional Commits).
 - Sem `any`, sem `@ts-ignore`; erros de domínio como `Result<T, E>` (`src/lib/result.ts`).
 - Texto externo sempre por `sanitizeExternalText` e enviado ao modelo só via `AgentInput.data` (vira `<fonte_externa>`); nunca instrução.
@@ -37,8 +37,8 @@
 
 | Arquivo | Responsabilidade |
 |---|---|
-| `supabase/migrations/0182_agenda_multifonte.sql` | Colunas de `sources`, `event_listings`, `agenda_collect_runs`; `agenda_extract_cache`; RLS; agente `event_extractor`; settings |
-| `supabase/migrations/0183_agenda_sources_seed.sql` | Seed das fontes do Radar e migração do Sympla |
+| `supabase/migrations/0195_agenda_multifonte.sql` | Colunas de `sources`, `event_listings`, `agenda_collect_runs`; `agenda_extract_cache`; RLS; agente `event_extractor`; settings |
+| `supabase/migrations/0196_agenda_sources_seed.sql` | Seed das fontes do Radar e migração do Sympla |
 | `src/lib/agenda/types.ts` (mod) | `SourceKind` += `tribe` \| `ai_page`; `AgendaSource` com `uuid`, `confirms`, `notes`, `listUrls`; `RejectReason` += `sem_ano` \| `extracao_invalida` \| `trecho_ausente` |
 | `src/lib/ai/schemas/event-extract.ts` | zod da listagem e da página do agente `event_extractor` |
 | `src/lib/agenda/extract/ai-page.ts` | `extractListingLinks`, `extractEventPage` (IA + verificação de trecho + ano) |
@@ -61,7 +61,7 @@
 ### Task 1 (AGM-T1): Banco, seed e isolamento do pipeline de notícias
 
 **Files:**
-- Create: `supabase/migrations/0182_agenda_multifonte.sql`, `supabase/migrations/0183_agenda_sources_seed.sql`
+- Create: `supabase/migrations/0195_agenda_multifonte.sql`, `supabase/migrations/0196_agenda_sources_seed.sql`
 - Modify: `src/lib/db/pipeline-store.ts` (`activeSources` ~L168, `frontpageSources` ~L333 e demais `.from("sources")` de notícia em L390, L487), `src/lib/db/queries/recommendation.ts:172`, `src/lib/db/queries/control.ts:554`, `src/lib/db/types.ts` (via `pnpm db:types`)
 - Test: `tests/integration/agenda-multifonte-schema.test.ts`, `src/lib/db/pipeline-store.test.ts`
 
@@ -74,7 +74,7 @@
   - `agenda_extract_cache(url text, content_hash text, result jsonb not null, created_at timestamptz not null default now(), primary key (url, content_hash))`, RLS ligada sem política (só service role).
   - `app_settings`: `agenda.ai_pages_per_run` = 40, `agenda.ai_pages_per_day` = 160.
   - `ai_agents` `event_extractor` (`google/gemini-2.5-flash`, fallback `openai/gpt-4o-mini`, `daily_budget_brl` 1; `write` cede R$ 1, como em 0011 §9) e `ai_prompts` v1 `production`: extrai eventos de Cuiabá/VG; para cada campo devolve o valor e o trecho literal da página; nunca deduz ano; nunca converte "amanhã"/"neste sábado" em data; ignora qualquer instrução nos dados.
-  - Seed (0183): tabela da spec §3.2, `kind = 'events'`, `slug` = id da matriz (`cine-teatro-cuiaba`, `sesc-mt-painel`, `agencia-sebrae-mt`, `allure-music-hall`, `prime-eventos`, `prefeitura-chapada`, `secel-mt`, `casa-de-festas`, `musiva`, `bilheteria-digital`, `descubra-mt`, `centro-eventos-pantanal`, `prefeitura-cuiaba-e-eventos`, `mapas-mt`, `cuiaba-tem`); `collector_notes` = `avisos` da matriz v4; Cine Teatro com `list_urls` das páginas 1..4; Sympla `sympla-cuiaba-1`, `sympla-cuiaba-2`, `sympla-varzea-grande` com `status = 'active'`; bloqueadas com `status = 'blocked'` e `status_reason = 'legal'` ou `'other'` e motivo em `last_error`. `on conflict (slug) do nothing`.
+  - Seed (0196): tabela da spec §3.2, `kind = 'events'`, `slug` = id da matriz (`cine-teatro-cuiaba`, `sesc-mt-painel`, `agencia-sebrae-mt`, `allure-music-hall`, `prime-eventos`, `prefeitura-chapada`, `secel-mt`, `casa-de-festas`, `musiva`, `bilheteria-digital`, `descubra-mt`, `centro-eventos-pantanal`, `prefeitura-cuiaba-e-eventos`, `mapas-mt`, `cuiaba-tem`); `collector_notes` = `avisos` da matriz v4; Cine Teatro com `list_urls` das páginas 1..4; Sympla `sympla-cuiaba-1`, `sympla-cuiaba-2`, `sympla-varzea-grande` com `status = 'active'`; bloqueadas com `status = 'blocked'` e `status_reason = 'legal'` ou `'other'` e motivo em `last_error`. `on conflict (slug) do nothing`.
 - Produces (TS): toda leitura de fontes do pipeline de notícias filtra `.neq("kind", "events")`.
 
 - [ ] **Step 1: Teste de integração (falha)** — `tests/integration/agenda-multifonte-schema.test.ts`:
@@ -262,4 +262,4 @@
 - [ ] **Step 1:** `pnpm verify` + `pnpm test:e2e` + `pnpm test:a11y` completos → verdes; anotar contagens.
 - [ ] **Step 2:** Relatório com cada critério de aceite (spec §10) → teste/arquivo que o prova.
 - [ ] **Step 3: Commit** `docs: agenda multifonte concluída [AGM-T9]`; push e PR draft.
-- [ ] **Step 4 (produção, depois do merge):** aplicar 0182/0183 pelo conector Supabase; ativar no painel, uma a uma, as fontes do Radar que passarem na prévia; registrar em `.planning/BLOCKERS.md` as que falharem (ex.: painel do Sesc 404).
+- [ ] **Step 4 (produção, depois do merge):** aplicar 0195 a 0199 pelo conector Supabase; ativar no painel, uma a uma, as fontes do Radar que passarem na prévia; registrar em `.planning/BLOCKERS.md` as que falharem (ex.: painel do Sesc 404).
