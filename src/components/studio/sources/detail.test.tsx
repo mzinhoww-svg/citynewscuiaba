@@ -198,6 +198,23 @@ describe("SourceAuditTable", () => {
     expect(csv).toContain("Marina Arruda");
   });
 
+  it("C5-02: CSV neutraliza fórmula em nome e motivo", () => {
+    const evil: HistoryRow[] = [
+      {
+        ...rows[0]!,
+        actor: { id: "u3", name: '=HYPERLINK("https://mal","x")' },
+        reason: "+1+1",
+      },
+      { ...rows[1]!, actor: { id: "u4", name: "@SUM(A1)" }, reason: "-2" },
+    ];
+    const lines = historyCsv(evil).split("\n").slice(1);
+    for (const line of lines)
+      for (const cell of line.split(";")) expect(cell).not.toMatch(/^"[=+\-@\t\r]/);
+    expect(lines[0]).toContain(`"'=HYPERLINK(""https://mal"",""x"")"`);
+    expect(lines[0]).toContain(`"'+1+1"`);
+    expect(lines[1]).toContain(`"'@SUM(A1)"`);
+  });
+
   it("filtro por tipo é um formulário GET com só `tipo`; trocar o tipo não navega", async () => {
     const href = window.location.href;
     render(

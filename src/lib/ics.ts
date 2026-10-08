@@ -39,12 +39,18 @@ function utc(d: Date): string {
     .replace(/\.\d{3}/, "");
 }
 
+/**
+ * TEXT do RFC 5545 §3.3.11. Toda quebra (CRLF, LF ou CR sozinho) vira `\\n` e os demais
+ * caracteres de controle somem: texto de sugestão pública não injeta propriedade nem evento (C5-01).
+ */
 function escape(text: string): string {
   return text
     .replace(/\\/g, "\\\\")
-    .replace(/;/g, "\;")
+    .replace(/;/g, "\\;")
     .replace(/,/g, "\\,")
-    .replace(/\r?\n/g, "\\n");
+    .replace(/\r\n|\r|\n/g, "\\n")
+
+    .replace(/[\u0000-\u001f\u007f]/g, "");
 }
 
 /** Dobra linhas em 75 octetos (RFC 5545 §3.1) sem partir caracteres. */

@@ -78,7 +78,8 @@ export function changeLines(row: HistoryRow): string[] {
   return [];
 }
 
-const csvCell = (s: string) => `"${s.replace(/"/g, '""')}"`;
+/** Célula entre aspas; texto que começa como fórmula ganha `'` e a planilha não o executa (C5-02). */
+const csvCell = (s: string) => `"${(/^[=+\-@\t\r]/.test(s) ? `'${s}` : s).replace(/"/g, '""')}"`;
 
 /** CSV (`;`, UTF-8) das linhas exibidas: o IP já vem mascarado do servidor para quem não é admin. */
 export function historyCsv(rows: readonly HistoryRow[]): string {
