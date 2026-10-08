@@ -17,7 +17,7 @@ O dono quer, nesta ordem de prioridade: (1) mais eventos e mais confiáveis, (2)
 ## 2. Decisões do dono
 
 - **D1** Ordem A → B → C.
-- **D2** Extração **híbrida**: extrator estruturado quando a fonte oferece (JSON-LD, iCal, RSS, Sympla, API Tribe, painel do Sesc); senão a IA lê a página e devolve campos com trecho de evidência.
+- **D2** Extração **híbrida**: extrator estruturado quando a fonte oferece (JSON-LD, iCal, RSS, Sympla, API Tribe); senão a IA lê a página e devolve campos com trecho de evidência.
 - **D3** Evento achado só em fonte de descoberta e **não confirmado** em venue/organizador **publica sozinho**, com a origem visível ("Com informações de {fonte}" e "Confirme na fonte"). Confirmado em fonte que confirma ganha "Confirmado por {fonte}" e prioridade na ordenação.
 - **D4** Fontes de eventos vivem no **Painel de Fontes** existente (`/estudio/control/fontes`), não em código nem em painel separado.
 
@@ -30,7 +30,7 @@ Reaproveita a tabela `sources`. O enum `source_kind` já tem o valor `events`: f
 | Coluna | Tipo | Uso |
 |---|---|---|
 | `confirms` | `boolean not null default false` | A fonte confirma data, hora e local (venue, organizador, órgão público) |
-| `extract_kind` | `text` check em `jsonld`, `ical`, `rss`, `sympla`, `tribe`, `sesc_painel`, `ai_page` | Como o coletor lê a listagem |
+| `extract_kind` | `text` check em `jsonld`, `ical`, `rss`, `sympla`, `tribe`, `ai_page` | Como o coletor lê a listagem |
 | `event_origin` | `text` check em `official`, `organizer` | Vai para `event_listings.origin` |
 | `collector_notes` | `text[] not null default '{}'` | Avisos do Radar (ex.: "cards não trazem ano") — dado para a IA e para quem opera; nunca instrução |
 | `list_urls` | `text[] not null default '{}'` | URLs de listagem além de `base_url` (paginação do Cine Teatro) |
@@ -46,7 +46,7 @@ Fontes reais do Radar entram com `status = 'paused'`, `status_reason = 'pending_
 | Fonte | `confirms` | `extract_kind` | `event_origin` | Status inicial |
 |---|---|---|---|---|
 | Cine Teatro Cuiabá (programação + páginas 1..4) | sim | `ai_page` (ou `jsonld` se a ativação achar) | organizer | pending_activation |
-| Sesc MT · painel de programação | sim | `sesc_painel` | organizer | pending_activation |
+| Sesc MT · painel de programação | sim | `ai_page` (o painel respondeu 404 em 08/10; URL reconferida na ativação) | organizer | pending_activation |
 | Agência Sebrae MT | sim | `ai_page` / `rss` | official | pending_activation |
 | Allure Music Hall | sim | `ai_page` | organizer | pending_activation |
 | Prime Eventos | sim | `ai_page` | organizer | pending_activation |
@@ -129,7 +129,7 @@ Só o necessário para a origem (regra 3 do `CLAUDE.md`), sem "IA" em lugar nenh
 
 TDD; `AI_PROVIDER=fake`; só fixtures fictícias (`*.example`, Folha do Cerrado, MT Agora etc.), nunca veículo real.
 
-- **Unitários**: extratores `tribe`, `sesc_painel`, `ai_page` (listagem e página individual com IA falsa); verificação do trecho na página; `sem_ano`; expressões relativas; confirmação cruzada exata e aproximada; conflito (vale o venue); `locked_fields`; `withdrawn_at`; teto e cache de IA; ordenação confirmados primeiro.
+- **Unitários**: extratores `tribe` e `ai_page` (listagem e página individual com IA falsa); verificação do trecho na página; `sem_ano`; expressões relativas; confirmação cruzada exata e aproximada; conflito (vale o venue); `locked_fields`; `withdrawn_at`; teto e cache de IA; ordenação confirmados primeiro.
 - **Integração**: coletor lendo fontes do banco; RLS com `withdrawn_at`; `origin = 'newsroom'`.
 - **E2E** (projeto `fixtures`): cadastrar fonte de eventos fictícia → prévia → ativar → coletar → evento no ar com "Confirmado por"; editar evento no Estúdio → nova coleta não sobrescreve; retirar do ar → some da agenda.
 - **Axe** nas telas novas do Estúdio (360/768/1280) e na página do evento.
