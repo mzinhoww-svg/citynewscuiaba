@@ -28,6 +28,16 @@ export async function nextFrames(page: Page, n = 1): Promise<void> {
 }
 
 /**
+ * Espera o conteúdo da página sair do esqueleto. Com `loading.tsx` o HTML chega em streaming: o
+ * `load` do `page.goto` pode disparar com o esqueleto (`LoadingRegion`, `aria-busy`) ainda no
+ * `<main>`, e o React só troca pelo conteúdo um instante depois. Quem conta elementos com
+ * `.count()` (que não espera) logo depois do `goto` leria a página vazia.
+ */
+export async function contentReady(page: Page): Promise<void> {
+  await page.waitForFunction(() => !document.querySelector('main [aria-busy="true"]'));
+}
+
+/**
  * Observa o elemento durante `ms` (evento `scroll` e posição) e devolve `true` assim que ele
  * rola; `false` se ficou parado a janela inteira. Serve para provar "sem rolagem automática".
  */

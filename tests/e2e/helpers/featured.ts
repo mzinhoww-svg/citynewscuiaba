@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 import sharp from "sharp";
 import { service } from "../studio";
+import { contentReady } from "./wait";
 
 /*
  * Apoio dos e2e dos destaques (FD-T2 e FD-T4). As posições são globais (uma manchete só), então os
@@ -205,6 +206,8 @@ export async function cleanFixtures(fx: FeaturedFixtures): Promise<void> {
 /**
  * A home lê com cache de dados de 60 s (tag `home`); uma mudança feita direto no banco só aparece
  * depois. Recarrega até `predicate` passar (a ação do admin invalida a tag e aparece de imediato).
+ * Cada leitura espera o esqueleto do streaming sair (`contentReady`): sem isso, um predicado que
+ * só conta elementos (`.count()`) vê o `<main>` ainda em "Carregando notícias" e falha sempre.
  */
 export async function reloadUntil(
   page: Page,
@@ -216,6 +219,7 @@ export async function reloadUntil(
     .poll(
       async () => {
         await page.goto(url);
+        await contentReady(page);
         return predicate();
       },
       { message: `a página ${url} não refletiu a mudança`, timeout: timeoutMs, intervals: [4_000] },
