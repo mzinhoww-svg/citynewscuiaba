@@ -885,5 +885,178 @@
       "p1Integration": 14
     },
     "pendingOwner": "B-023"
+  },
+  "uiPublica": {
+    "spec": "docs/superpowers/specs/2026-10-02-ui-publica-design.md",
+    "plan": "docs/superpowers/plans/2026-10-02-ui-publica.md",
+    "retomada": "docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md",
+    "report": "docs/reports/ui-publica.md",
+    "tasks": {
+      "UI-T0": {
+        "status": "done",
+        "commit": "e58f596"
+      },
+      "UI-T1": {
+        "status": "done",
+        "commit": "f58fc36"
+      },
+      "UI-T2": {
+        "status": "done",
+        "commit": "c4f875f"
+      },
+      "UI-T3": {
+        "status": "done",
+        "commit": "dc8ff27"
+      },
+      "UI-T4": {
+        "status": "done",
+        "commit": "ab3d8a2"
+      },
+      "UI-T5": {
+        "status": "done",
+        "commit": "44eef2b"
+      },
+      "UI-T6": {
+        "status": "done",
+        "commit": "55813eb"
+      },
+      "UI-T7": {
+        "status": "done",
+        "commit": "ddd741a"
+      },
+      "UI-T8": {
+        "status": "done",
+        "commit": "d9536a7"
+      },
+      "UI-T9": {
+        "status": "done",
+        "commit": "5aff587"
+      },
+      "UI-T16": {
+        "status": "done",
+        "commit": "85edf5b"
+      },
+      "UI-T10": {
+        "status": "done",
+        "commit": "c0fce06"
+      },
+      "UI-T11": {
+        "status": "done",
+        "commit": "e4c2298"
+      },
+      "UI-T12": {
+        "status": "done",
+        "commit": "95d9c07",
+        "note": "e2e auth.spec.ts roda no CI"
+      },
+      "UI-T13": {
+        "status": "done",
+        "commit": "b489499",
+        "note": "follow-up curto ('e no CPA?') sem contexto na rota; rótulo do campo só para leitor de tela"
+      },
+      "UI-T14": {
+        "status": "done",
+        "commit": "526bed8",
+        "fix": "Alertas sem zod no cliente (B-018)"
+      },
+      "UI-T15": {
+        "status": "done",
+        "report": "docs/reports/ui-publica.md",
+        "pending": [
+          "capturas antes e depois (critério 12)",
+          "LCP da home (critério 9, L-026)",
+          "leitor de tela humano"
+        ]
+      }
+    },
+    "pr": "mzinhoww-svg/citynewscuiaba#43"
+  },
+  "destaques": {
+    "spec": "docs/superpowers/specs/2026-10-03-destaques-e-profundidade-design.md",
+    "plan": "docs/superpowers/plans/2026-10-03-destaques-e-profundidade.md",
+    "retomada": "docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md",
+    "tasks": {
+      "BTN-T1": {
+        "status": "done",
+        "commit": "5493474"
+      },
+      "ART-T1": {
+        "status": "done",
+        "commit": "06dc753"
+      },
+      "FD-T1": {
+        "status": "done",
+        "commit": "c5119e0"
+      },
+      "FD-T2": {
+        "status": "done",
+        "commit": "c5d737d"
+      },
+      "FD-T3": {
+        "status": "done",
+        "commit": "f5090d4"
+      },
+      "FD-T4": {
+        "status": "done",
+        "commit": "7b1102c"
+      },
+      "LAB-T1": {
+        "status": "done",
+        "commit": "5adfd50"
+      },
+      "CONF-T1": {
+        "status": "done",
+        "commit": "2323742"
+      },
+      "TXT-T1": {
+        "status": "superseded",
+        "by": "A-114 (source_text, 0074)"
+      },
+      "TXT-T2": {
+        "status": "superseded",
+        "by": "R41 / AUT-T4 (30 linhas, reescrita, short_reason)"
+      },
+      "TXT-T3": {
+        "status": "superseded",
+        "by": "A-126 (reescrita no ar, 0147)"
+      },
+      "CONF-T2": {
+        "status": "pending"
+      },
+      "CONF-T3": {
+        "status": "pending"
+      },
+      "HOT-T1": {
+        "status": "done",
+        "commit": "c3bfeb5",
+        "migrations": "0154_hot_signals (aplicar após merge), 0155_front_signals_purge (dono)"
+      },
+      "HOT-T2": {
+        "status": "done",
+        "commit": "341548b",
+        "note": "rota direta como review-tick, sem STEP_NAMES"
+      },
+      "HOT-T3": {
+        "status": "done",
+        "commit": "01b00c7",
+        "migration": "0156_hot_pins (aplicar após merge, depois da 0154)"
+      },
+      "GATE": {
+        "status": "done",
+        "report": "docs/reports/destaques-e-profundidade.md",
+        "production": "A-142: 0154 e 0156 aplicadas; frontpage em 8 portais; 0155 com o dono"
+      }
+    },
+    "decision": "A-133",
+    "pr": "mzinhoww-svg/citynewscuiaba#43"
+  },
+  "perfil": {
+    "decision": "A-154",
+    "tasks": {
+      "UI-PERFIL": {
+        "status": "done"
+      }
+    },
+    "note": "Perfil como lista de ajustes; /perfil/seguranca e /perfil/excluir; e2e de conta no CI"
   }
 }

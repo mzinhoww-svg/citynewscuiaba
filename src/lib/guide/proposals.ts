@@ -1,9 +1,10 @@
 import { canAutoPublish, MIN_SOURCES_PER_VENUE, type ListDraft } from "./auto-publish";
-import { categoryBySlug } from "./categories";
+import { categoryBySlug, googleTypeMatches } from "./categories";
 import { listCriteriaText } from "./criteria";
 import { rankList, type ScoredVenue } from "./rank";
 import { DEFAULT_WEIGHTS, scoreVenue, type VenueSignals, type Weights } from "./score";
 import type { DataSource, GuideItem, GuideTemplate, ListProposal, Venue } from "./types";
+import { fold as foldText } from "@/lib/text/fold";
 
 /**
  * Motor de propostas (GUIA-T4): monta a lista de um modelo do catálogo ou de lugares conferidos
@@ -11,12 +12,7 @@ import type { DataSource, GuideItem, GuideTemplate, ListProposal, Venue } from "
  * só de `scoreVenue`; nada do portal de origem de um link entra na proposta além dos nomes.
  */
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
+const fold = (s: string) => foldText(s).trim();
 
 export const CITY = "Cuiabá";
 
@@ -88,7 +84,18 @@ export function eligibleFor(t: GuideTemplate, v: Venue): boolean {
   if (v.status !== "active" || v.category !== t.category) return false;
   if (t.subcategory && v.subcategory !== t.subcategory) return false;
   if (t.neighborhood && fold(v.neighborhood ?? "") !== fold(t.neighborhood)) return false;
+  if (onlyGoogle(v) && !googleTypeMatches(t.category, t.subcategory, v.googleType)) return false;
   return new Set(v.sources).size >= MIN_SOURCES_PER_VENUE;
+}
+
+/**
+ * Lugar cuja categoria só o Google sustenta (o site lido vem do link do próprio Google). A busca
+ * por texto traz lugares que só mencionam o termo (hotel em "padaria"), então o tipo principal do
+ * Google precisa caber na lista; sem tipo gravado, fica de fora até a próxima coleta (A-210).
+ */
+function onlyGoogle(v: Venue): boolean {
+  const others = v.sources.filter((s) => s !== "site");
+  return others.length > 0 && others.every((s) => s === "google");
 }
 
 export function proposeFromTemplate(
@@ -118,7 +125,8 @@ export function proposeFromTemplate(
 
 /** O que um lugar precisa para contar como verificado: um provedor o reconhece e está ativo. */
 export const isVerified = (v: Venue): boolean =>
-  v.status === "active" && !!(v.placeIds.osm || v.placeIds.tripadvisor || v.placeIds.wikidata);
+  v.status === "active" &&
+  !!(v.placeIds.google || v.placeIds.osm || v.placeIds.tripadvisor || v.placeIds.wikidata);
 
 /** Rascunho para `canAutoPublish` a partir de uma proposta e dos lugares dela. */
 export function draftOf(

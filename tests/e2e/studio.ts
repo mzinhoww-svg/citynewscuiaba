@@ -26,7 +26,7 @@ export const STAFF = {
 } as const;
 export type Staff = keyof typeof STAFF;
 
-/** Entra no Estúdio como um usuário de seed e espera o Newsroom. */
+/** Entra no Estúdio como um usuário de seed e espera a Redação. */
 export async function loginAs(page: Page, who: Staff, next = "/estudio") {
   await page.setExtraHTTPHeaders(forwardedFor());
   await page.goto(`/entrar?next=${encodeURIComponent(next)}`);
@@ -36,7 +36,7 @@ export async function loginAs(page: Page, who: Staff, next = "/estudio") {
   await page.getByLabel("E-mail", { exact: true }).fill(STAFF[who].email);
   await page.getByLabel("Senha", { exact: true }).fill(SEED_PASSWORD);
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
-  // O primeiro login depois da subida do servidor (auth + Newsroom) passa de 5 s em máquina lenta.
+  // O primeiro login depois da subida do servidor (auth + Redação) passa de 5 s em máquina lenta.
   await expect(page).toHaveURL(new RegExp(`${next.replace(/[?]/g, "\\?")}$`), { timeout: 20_000 });
 }
 

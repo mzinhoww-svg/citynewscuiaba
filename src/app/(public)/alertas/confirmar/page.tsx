@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Button, EmptyState } from "@/components";
+import { Button, EmptyState, PAGE_CONTAINER } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
 import { verifyNewsletterToken } from "@/lib/newsletter/token";
 import { confirmAlertAction } from "./actions";
@@ -42,33 +42,35 @@ export default async function ConfirmAlertRoute({ searchParams }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-read px-gutter py-10">
-      {result ? (
-        <EmptyState
-          as="h1"
-          tone={result.tone}
-          icon={result.tone === "empty" ? "check" : undefined}
-          title={result.title}
-          actions={back}
-        >
-          <p>{result.text}</p>
-        </EmptyState>
-      ) : (
-        <form action={confirmAlertAction}>
-          <input type="hidden" name="token" value={token} />
+    <div className={`${PAGE_CONTAINER} py-8 lg:py-10`}>
+      <div className="mx-auto w-full max-w-read">
+        {result ? (
           <EmptyState
             as="h1"
-            title={T.confirmAskTitle}
-            actions={
-              <Button type="submit" size="md">
-                {T.confirmButton}
-              </Button>
-            }
+            tone={result.tone}
+            icon={result.tone === "empty" ? "check" : undefined}
+            title={result.title}
+            actions={back}
           >
-            <p>{T.confirmAskText(email)}</p>
+            <p>{result.text}</p>
           </EmptyState>
-        </form>
-      )}
+        ) : (
+          <form action={confirmAlertAction}>
+            <input type="hidden" name="token" value={token} />
+            <EmptyState
+              as="h1"
+              title={T.confirmAskTitle}
+              actions={
+                <Button type="submit" size="md">
+                  {T.confirmButton}
+                </Button>
+              }
+            >
+              <p>{T.confirmAskText(email)}</p>
+            </EmptyState>
+          </form>
+        )}
+      </div>
     </div>
   );
 }

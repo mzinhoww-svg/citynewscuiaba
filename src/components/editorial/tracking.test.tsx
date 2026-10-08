@@ -56,14 +56,14 @@ it("Só o necessário: nenhuma chamada", async () => {
   expect(beacon).not.toHaveBeenCalled();
 });
 
-it("Aceitar recomendações envia personalization_enabled com anonId", async () => {
+it("Aceitar métricas e recomendações envia personalization_enabled com anonId", async () => {
   render(
     <ConsentProvider initial={parseConsent(undefined)}>
       <main id="conteudo" />
       <ConsentBanner />
     </ConsentProvider>,
   );
-  await userEvent.click(screen.getByRole("button", { name: "Aceitar recomendações" }));
+  await userEvent.click(screen.getByRole("button", { name: "Aceitar métricas e recomendações" }));
   await waitFor(() => expect(sent().map((e) => e.name)).toContain("privacy_settings_updated"));
   const enabled = sent().find((e) => e.name === "personalization_enabled")!;
   expect(enabled.anonId).toMatch(/^[0-9a-f-]{36}$/);

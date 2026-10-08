@@ -22,6 +22,11 @@ export interface ArticleCardProps {
   as?: "h1" | "h2" | "h3";
   /** Referência de "agora" para datas relativas (testes). */
   now?: Date;
+  /**
+   * Chamada em texto sobre o título ("Em alta em Cuiabá", pauta quente). Não é plaqueta nem
+   * rótulo de origem: a origem continua como sempre.
+   */
+  kicker?: string;
   className?: string;
 }
 
@@ -108,6 +113,8 @@ function CardPhoto({
   return (
     <Photo
       src={image.src}
+      directSrc={variant === "lead" ? image.directSrc : undefined}
+      directSrcSet={variant === "lead" ? image.directSrcSet : undefined}
       alt={alt}
       ratio={variant === "lead" ? "16/9" : variant === "standard" ? "3/2" : 1}
       radius={thumb ? "md" : "0"}
@@ -158,6 +165,7 @@ export function ArticleCard({
   variant = "standard",
   as: Heading = "h3",
   now,
+  kicker,
   className,
 }: ArticleCardProps) {
   const summaryId = useId();
@@ -174,6 +182,11 @@ export function ArticleCard({
   const text = (
     <div className={cx("flex min-w-0 flex-1 flex-col", lead ? "gap-3" : "gap-2")}>
       {!headerCover && <CategoryTag>{article.section.name}</CategoryTag>}
+      {kicker && (
+        <p data-testid="card-kicker" className="type-meta font-semibold text-strong">
+          {kicker}
+        </p>
+      )}
       <Heading className={cx(HEADLINE[variant], "text-strong", !lead && "line-clamp-3")}>
         <Link href={article.href} className="card-link no-underline">
           {article.title}

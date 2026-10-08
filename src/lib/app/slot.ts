@@ -4,7 +4,7 @@
  * Um convite por vez (spec 2026-09-28 §7.1): consentimento (P22) > login (C01) > notificações
  * (C09) > instalação (C07). Quem está na frente adia os demais para a próxima navegação.
  */
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 export type InviteKind = "consent" | "login" | "notif" | "install";
 const PRIORITY: Record<InviteKind, number> = { consent: 0, login: 1, notif: 2, install: 3 };
@@ -26,7 +26,11 @@ export function currentInvite(): InviteKind | null {
 /** `true` quando `kind` ocupa a vaga (tomando-a de quem tem prioridade menor). */
 export function claimInviteSlot(kind: InviteKind, path = "", by: symbol | null = null): boolean {
   if (holder === kind && (owner === null || by === null || owner === by)) {
-    owner = by ?? owner;
+    const next = by ?? owner;
+    if (next !== owner) {
+      owner = next;
+      notify();
+    }
     return true;
   }
   if (holder === null || PRIORITY[kind] < PRIORITY[holder]) {
@@ -68,6 +72,7 @@ const subscribe = (cb: () => void) => {
 };
 const snapshot = () => holder;
 const serverSnapshot = () => null;
+const ownerSnapshot = () => owner;
 
 /**
  * Reserva a vaga enquanto `wanted`; devolve `true` quando este convite pode aparecer. Perde a
@@ -75,10 +80,10 @@ const serverSnapshot = () => null;
  */
 export function useInviteSlot(kind: InviteKind, wanted: boolean, path = ""): boolean {
   const current = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
-  const me = useRef<symbol | null>(null);
-  me.current ??= Symbol(kind);
+  const holderId = useSyncExternalStore(subscribe, ownerSnapshot, serverSnapshot);
+  const [me] = useState(() => Symbol(kind));
   useEffect(() => {
-    const by = me.current!;
+    const by = me;
     if (!wanted) {
       releaseInviteSlot(kind, by);
       return;
@@ -86,8 +91,10 @@ export function useInviteSlot(kind: InviteKind, wanted: boolean, path = ""): boo
     if (isDeferred(kind, path)) return;
     claimInviteSlot(kind, path, by);
     return () => releaseInviteSlot(kind, by);
-  }, [kind, wanted, path]);
-  return wanted && current === kind;
+  }, [kind, wanted, path, me]);
+  // Mesmo tipo em outra instância (banner de consentimento e convite da primeira visita): só
+  // quem segura a vaga aparece.
+  return wanted && current === kind && (holderId === null || holderId === me);
 }
 
 /** Convite que ocupa a vaga agora (ou `null`): o rodapé de publicidade some enquanto houver um. */

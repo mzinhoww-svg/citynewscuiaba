@@ -1,4 +1,5 @@
 import type { DataSource, PlaceIds, VenueRecord } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /**
  * Mescla de lugares vindos de provedores diferentes: o mesmo lugar chega do OpenStreetMap, do
@@ -30,12 +31,6 @@ const STOP = new Set([
   "ltda",
   "me",
 ]);
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 /** Palavras que identificam o lugar (sem acento, sem artigos nem o tipo do negócio). */
 export function nameTokens(name: string): string[] {
@@ -90,6 +85,13 @@ function host(url: string | null): string | null {
 /** Raio em que dois pontos com nome parecido são o mesmo lugar. */
 export const SAME_PLACE_METERS = 250;
 const MIN_NAME_SIMILARITY = 0.75;
+/** Raio para nomes em que um contém o outro ("Pão Dourado" e "Pão Dourado - Goiabeiras"). */
+const CONTAINED_NAME_METERS = 100;
+
+function nameContained(a: string[], b: string[]): boolean {
+  const [small, big] = a.length <= b.length ? [new Set(a), new Set(b)] : [new Set(b), new Set(a)];
+  return small.size >= 2 && [...small].every((t) => big.has(t));
+}
 
 type Matchable = Pick<VenueRecord, "name" | "lat" | "lng" | "placeIds" | "website" | "address">;
 
@@ -99,7 +101,20 @@ export function isSameVenue(a: Matchable, b: Matchable): boolean {
     const x = a.placeIds[k];
     if (x && x === b.placeIds[k]) return true;
   }
-  if (jaccard(nameTokens(a.name), nameTokens(b.name)) < MIN_NAME_SIMILARITY) return false;
+  const ta = nameTokens(a.name);
+  const tb = nameTokens(b.name);
+  // Um nome contido no outro (o Google costuma acrescentar o bairro) vale como o mesmo lugar só
+  // muito perto (100 m) e com pelo menos duas palavras em comum.
+  if (
+    nameContained(ta, tb) &&
+    a.lat !== null &&
+    a.lng !== null &&
+    b.lat !== null &&
+    b.lng !== null &&
+    distanceMeters({ lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }) <= CONTAINED_NAME_METERS
+  )
+    return true;
+  if (jaccard(ta, tb) < MIN_NAME_SIMILARITY) return false;
   if (a.lat !== null && a.lng !== null && b.lat !== null && b.lng !== null) {
     return (
       distanceMeters({ lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }) <= SAME_PLACE_METERS
@@ -123,13 +138,21 @@ export function isSameVenue(a: Matchable, b: Matchable): boolean {
 
 const unionSources = (a: DataSource[], b: DataSource[]): DataSource[] => [...new Set([...a, ...b])];
 
+/** Precedência da nota (A-210): Google > TripAdvisor > manual; uma nota por lugar. */
+function ratingRank(source: VenueRecord["ratingSource"]): number {
+  return source === "google" ? 3 : source === "tripadvisor" ? 2 : source === "manual" ? 1 : 0;
+}
+
 /**
  * Junta `incoming` em `base`: o que já existe ganha, o que falta é preenchido, e a nota, a
  * contagem e o ranking vêm do dado novo (são os que envelhecem).
  */
 export function mergeRecord(base: VenueRecord, incoming: VenueRecord): VenueRecord {
   const pick = <T>(a: T | null, b: T | null): T | null => (a !== null && a !== undefined ? a : b);
-  const fresh = incoming.rating !== null && incoming.ratingCount !== null;
+  const fresh =
+    incoming.rating !== null &&
+    incoming.ratingCount !== null &&
+    (base.rating === null || ratingRank(incoming.ratingSource) >= ratingRank(base.ratingSource));
   return {
     name: base.name,
     category: base.category,
@@ -148,6 +171,8 @@ export function mergeRecord(base: VenueRecord, incoming: VenueRecord): VenueReco
     ratingSource: fresh ? incoming.ratingSource : base.ratingSource,
     tripadvisorRank: incoming.tripadvisorRank ?? base.tripadvisorRank,
     tripadvisorUrl: pick(incoming.tripadvisorUrl, base.tripadvisorUrl),
+    googleMapsUrl: pick(incoming.googleMapsUrl, base.googleMapsUrl),
+    googleType: pick(incoming.googleType, base.googleType),
     placeIds: { ...incoming.placeIds, ...base.placeIds },
     sources: unionSources(base.sources, incoming.sources),
   };

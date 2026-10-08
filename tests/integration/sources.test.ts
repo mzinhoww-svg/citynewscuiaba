@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { TIME_ZONE } from "@/lib/format/date";
 import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
 import { createServiceClient } from "@/lib/db/client";
@@ -124,7 +125,7 @@ describe("sinais de fonte (P2-T5)", () => {
   });
 
   it("refresh_source_stats_daily consolida eventos do dia e é idempotente", async () => {
-    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Cuiaba" }).format(new Date());
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE }).format(new Date());
     const first = await db.rpc("refresh_source_stats_daily", { p_day: day });
     expect(first.error).toBeNull();
     const again = await db.rpc("refresh_source_stats_daily", { p_day: day });

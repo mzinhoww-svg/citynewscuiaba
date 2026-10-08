@@ -1,12 +1,19 @@
-/** Pergunte ao CityNews (Perguntar ao CityNews, docs/screens.md P13; spec §5.5). */
+/** Perguntar ao CityNews (rota /pergunte, docs/screens.md P13; spec §5.5). */
+
+import { ASK_NAME } from "./ask-name";
+
+export { ASK_NAME } from "./ask-name";
+
+const LIMIT_NO_TIME = "O limite libera em até uma hora. A busca tradicional continua sem limite.";
+
 export const ASK = {
-  title: "Pergunte ao CityNews",
+  title: ASK_NAME,
   metaDescription:
     "Faça uma pergunta sobre Cuiabá e receba uma resposta curta com as fontes de cada frase.",
   documentTitle: (q: string) =>
-    q ? `Pergunte: ${q} · CityNews Cuiabá` : "Pergunte ao CityNews · CityNews Cuiabá",
+    q ? `Perguntar: ${q} · CityNews Cuiabá` : `${ASK_NAME} · CityNews Cuiabá`,
   intro:
-    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem pelo menos duas fontes independentes, o CityNews não responde. Não precisa de conta.",
+    "Respostas curtas, só com fontes: cada frase mostra de onde veio. Sem fonte sobre o assunto, o CityNews diz que não encontrou e mostra onde procurar. Não precisa de conta.",
   label: "Sua pergunta",
   placeholder: "Ex.: O que muda no plano de ônibus do CPA?",
   submit: "Perguntar",
@@ -22,15 +29,18 @@ export const ASK = {
   processingTitle: "Preparando a resposta",
   processingSteps: [
     "Procurando fontes no CityNews e em outros veículos",
-    "Conferindo se há ao menos 2 fontes independentes",
+    "Conferindo o que as fontes sustentam",
     "Escrevendo a resposta com a fonte de cada frase",
   ],
   aiGenerated: "Resposta do CityNews",
   asOf: (hour: string) => `Consultado às ${hour}`,
-  factsTitle: "O que as fontes confirmam",
+  singleSource: (name: string) =>
+    `Baseada em uma única fonte (${name}), ainda sem confirmação de outro veículo.`,
+  staleSince: (day: string) => `Informação de ${day}: pode ter mudado desde então.`,
+  factsTitle: "O que se sabe",
   inferencesTitle: "Inferência",
   inferencesHint: "Conclusão a partir das fontes, não confirmada por elas.",
-  gapsTitle: "O que ainda não se sabe",
+  gapsTitle: "Ainda não se sabe",
   conflictsTitle: "Onde as fontes divergem",
   disclaimer: "Pode conter erros. Confira nas fontes.",
   sourcesTitle: "Fontes consultadas",
@@ -46,11 +56,11 @@ export const ASK = {
   report: "Reportar erro",
   refineTitle: "Continue por aqui",
   traditional: "Ver na busca tradicional",
-  insufficientTitle: "Não encontramos fontes suficientes para responder",
+  insufficientTitle: "Não encontramos fontes para responder",
   insufficientText: (n: number) =>
     n === 0
-      ? "O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes, e não achamos nenhuma sobre isso."
-      : `O Perguntar ao CityNews só responde com pelo menos 2 fontes independentes. Encontramos ${n === 1 ? "1 fonte" : `${n} fontes`}, de um só veículo ou sem relação suficiente com a pergunta.`,
+      ? `O ${ASK_NAME} só responde com fontes, e não achamos nenhuma sobre isso.`
+      : `O ${ASK_NAME} só responde com fontes. Encontramos ${n === 1 ? "1 fonte relacionada" : `${n} fontes relacionadas`}, mas nenhuma responde à pergunta.`,
   suggestion: {
     traditional_search: "Ver na busca tradicional",
     widen_period: "Buscar em qualquer data",
@@ -67,7 +77,9 @@ export const ASK = {
     timeout: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     provider: "Tente de novo em instantes. Enquanto isso, a busca tradicional mostra o que há.",
     rate_limited: (hour: string) =>
-      `O limite libera às ${hour}. A busca tradicional continua sem limite.`,
+      hour ? `O limite libera às ${hour}. A busca tradicional continua sem limite.` : LIMIT_NO_TIME,
+    /** Sem `retryAt` (horário desconhecido): nunca "libera às ." (UX-W1-T10). */
+    limitNoTime: LIMIT_NO_TIME,
     unavailable: "Pode ser uma instabilidade passageira. A busca tradicional continua funcionando.",
     off: "A redação pausou o assistente. A busca tradicional continua funcionando.",
   },
@@ -75,4 +87,36 @@ export const ASK = {
   fallbackTitle: "Resultados da busca tradicional",
   fallbackAll: "Ver todos os resultados",
   fallbackEmpty: "A busca tradicional também não encontrou nada com essas palavras.",
+  /** Formato de conversa (UI-T13, spec 2026-10-02-ui-publica-design §4.8). */
+  chat: {
+    welcomeTitle: "Respostas só com fontes",
+    welcomeText:
+      "Pergunte sobre Cuiabá. O CityNews responde com o que as fontes publicaram e mostra de onde veio cada frase.",
+    startersLabel: "Perguntas para começar",
+    you: "Você",
+    youAsked: "Você perguntou:",
+    citynews: "CityNews",
+    label: "Sua pergunta",
+    placeholder: "Pergunte sobre Cuiabá…",
+    send: "Enviar pergunta",
+    counter: (n: number, max: number) => `${n} de ${max}`,
+    steps: { sources: "Buscando fontes", comparing: "Comparando", writing: "Escrevendo" },
+    ready: "Resposta pronta.",
+    readyRefused: "O CityNews não encontrou fontes suficientes.",
+    readyProblem: "Não foi possível responder agora.",
+    traditional: "Buscar do jeito tradicional",
+    networkTitle: "A conexão caiu antes da resposta",
+    networkText: "Confira a internet e tente de novo. A busca tradicional também está à mão.",
+    sourcesCount: (n: number) => (n === 1 ? "1 fonte" : `${n} fontes`),
+    foundCount: (n: number) => (n === 1 ? "1 fonte encontrada" : `${n} fontes encontradas`),
+    panelTitle: "Fontes da resposta",
+    panelEmpty: "As fontes da resposta aparecem aqui, numeradas como no texto.",
+    historyTitle: "Conversas neste aparelho",
+    historyHint: "Ficam só neste aparelho, porque você aceitou a personalização.",
+    historyEmpty: "Nenhuma conversa salva ainda.",
+    newConversation: "Nova conversa",
+    conversationLabel: "Conversa com o CityNews",
+  },
+  /** Modo simples (sem JavaScript): formulário GET `?q=&modo=simples` respondido no servidor. */
+  simpleMode: "simples",
 } as const;

@@ -53,12 +53,16 @@ export { FieldDiff, type FieldDiffItem, type FieldDiffProps } from "./studio/Fie
 export { DecisionPanel, type DecisionPanelProps } from "./studio/DecisionPanel";
 export {
   ArticleEditor,
+  type ArticleEditorHandle,
   type ArticleEditorProps,
   type EditorDraft,
   type OriginField,
   type SaveReply,
 } from "./studio/ArticleEditor";
-export { RichEditor, type RichEditorProps } from "./studio/editor/Editor";
+// Editor rico sob demanda (item 85): o Tiptap baixa só quando o editor monta.
+export { RichEditor, RichEditorSkeleton } from "./studio/editor/LazyRichEditor";
+export type { RichEditorProps } from "./studio/editor/Editor";
+export { EditorWithPublish, type EditorWithPublishProps } from "./studio/editor/EditorWithPublish";
 export {
   VersionCompare,
   type VersionCompareField,
@@ -233,14 +237,7 @@ export {
   type PushTabsNavProps,
 } from "./studio/push/PushTabsNav";
 export { FunnelChart, type FunnelChartProps } from "./studio/push/FunnelChart";
-export {
-  ActionMessage,
-  CheckboxField,
-  FieldShell,
-  NativeSelect,
-  SelectField,
-  TextInput,
-} from "./studio/sources/fields";
+export { ActionMessage, CheckboxField, FieldShell, TextInput } from "./studio/sources/fields";
 export {
   AgentTable,
   type AgentEditInput,
@@ -329,3 +326,5 @@ export {
   type ReviewerModeCardProps,
   type ReviewerModeValue,
 } from "./studio/ReviewerModeCard";
+export { StudioScreen, type StudioBreadcrumb, type StudioScreenProps } from "./studio/StudioScreen";
+export { HotkeysHelp } from "./studio/HotkeysHelp";

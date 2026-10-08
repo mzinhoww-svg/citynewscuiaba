@@ -3,6 +3,7 @@ import { err, ok, type Result } from "@/lib/result";
 import { categoryBySlug, cuisineBySlug } from "../categories";
 import type { VenueRecord } from "../types";
 import { guideUserAgent, type ProviderError, type VenueProvider, type VenueQuery } from "./types";
+import { fold } from "@/lib/text/fold";
 
 /**
  * TripAdvisor Content API (R38). A chave vem só do ambiente (`TRIPADVISOR_API_KEY`) e entra aqui
@@ -47,15 +48,19 @@ export interface TripadvisorOptions {
   http: HttpFetch;
   baseUrl?: string;
   userAgent?: string;
+  /**
+   * URL do site (APP_URL). A chave da Content API é restrita a domínios cadastrados no portal do
+   * TripAdvisor e conferida pelo `Referer`; sem ele a API responde 401/403 (chave "não autorizada").
+   */
+  referer?: string;
+  /**
+   * Recusa da API (401/403): status e mensagem devolvida, sem a chave, para diagnosticar o
+   * cadastro da chave no portal do TripAdvisor (domínio, cobrança, chave inativa).
+   */
+  onError?: (detail: { status: number; message: string }) => void;
   /** Chamado a cada requisição feita (contagem de cota e custo). */
   onCall?: () => void;
 }
-
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
 
 const num = (v: unknown): number | null => {
   const n = typeof v === "number" ? v : typeof v === "string" ? Number(v.replace(",", ".")) : NaN;
@@ -112,6 +117,8 @@ export function toVenue(
     ratingSource: rating !== null ? "tripadvisor" : null,
     tripadvisorRank: rank !== null && rank >= 1 ? Math.floor(rank) : null,
     tripadvisorUrl: trip && /^https:\/\//i.test(trip) ? trip : null,
+    googleMapsUrl: null,
+    googleType: null,
     placeIds: { tripadvisor: id },
     sources: ["tripadvisor"],
   };
@@ -123,6 +130,7 @@ export function createTripadvisorProvider(
   const key = opts.apiKey?.trim();
   const base = opts.baseUrl ?? TRIPADVISOR_URL;
   const userAgent = opts.userAgent ?? guideUserAgent();
+  const referer = opts.referer ? `${opts.referer.replace(/\/+$/, "")}/` : null;
 
   async function get(
     path: string,
@@ -134,14 +142,25 @@ export function createTripadvisorProvider(
     let res: Response;
     try {
       res = await opts.http(`${base}${path}?${qs.toString()}`, {
-        headers: { "User-Agent": userAgent, Accept: "application/json" },
+        headers: {
+          "User-Agent": userAgent,
+          Accept: "application/json",
+          ...(referer ? { Referer: referer } : {}),
+        },
         signal: AbortSignal.timeout(15_000),
       });
     } catch {
       // Mensagem fixa: o erro do fetch pode trazer a URL e, com ela, a chave.
       return err("network");
     }
-    if (res.status === 401 || res.status === 403) return err("unauthorized");
+    if (res.status === 401 || res.status === 403) {
+      if (opts.onError) {
+        const text = await res.text().catch(() => "");
+        const message = text.split(key).join("[chave]").replace(/\s+/g, " ").trim().slice(0, 300);
+        opts.onError({ status: res.status, message });
+      }
+      return err("unauthorized");
+    }
     if (res.status === 429) return err("rate_limited");
     if (!res.ok) return err("http");
     try {

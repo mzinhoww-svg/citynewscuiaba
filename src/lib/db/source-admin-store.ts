@@ -175,8 +175,8 @@ export function mapDbError(e: DbError): StoreError {
   if (/antes de colocá-la na via rápida|nascer na via rápida/.test(m)) return "fast_lane_inactive";
   if (/sem permissão/.test(m)) return "forbidden";
   if (
-    /exige aprovação de outra pessoa|direitos restritos/.test(m) ||
-    /duas pessoas/i.test(e.hint ?? "")
+    /exige aprovação|direitos restritos/.test(m) ||
+    /duas pessoas|Mudança crítica/i.test(e.hint ?? "")
   )
     return "needs_approval";
   if (e.code === "P0002" || /não encontrada/.test(m)) return "not_found";

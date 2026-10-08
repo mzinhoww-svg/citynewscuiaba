@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { creditName, type CreditSource } from "@/lib/media/credit";
 import { mediaHref } from "@/lib/media/serve";
 import type { DbClient } from "@/lib/db/client";
@@ -54,6 +55,41 @@ type ArticleRow = Pick<
 
 export const ARTICLE_COLUMNS =
   "id, slug, kind, topic_id, section_slug, title, dek, body, ai_summary, ai_summary_reviewed_by, status, publish_mode, confidence, confidence_score, author_id, agent_id, urgent, sponsored, published_at, updated_at, seo_title, seo_description, news_scope, national_commotion, review_banner";
+
+const MEDIA_COLUMNS =
+  "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_id, source_name, license, credit, status)";
+
+/**
+ * Colunas da matéria com as ligações de fonte e de mídia embutidas (UX-W5-T2): `summarize` não
+ * precisa ler `article_sources` e `article_media` depois, e a hidratação cabe numa rodada só.
+ */
+export const ARTICLE_COLUMNS_HYDRATED =
+  `${ARTICLE_COLUMNS}, article_sources(item_id), article_media(${MEDIA_COLUMNS})` as const;
+
+type MediaRow = {
+  article_id: string;
+  alt: string | null;
+  role: string;
+  position: number | null;
+  media_assets: {
+    id: string;
+    kind: Database["public"]["Enums"]["media_kind"];
+    storage_path: string;
+    origin_url: string | null;
+    page_url: string | null;
+    source_id: string | null;
+    source_name: string | null;
+    license: string;
+    credit: string | null;
+    status: string;
+  } | null;
+};
+
+/** Linha de `articles`, com ou sem as ligações embutidas (`ARTICLE_COLUMNS_HYDRATED`). */
+export type SummarizableRow = ArticleRow & {
+  article_sources?: { item_id: string }[] | null;
+  article_media?: MediaRow[] | null;
+};
 
 /** Destinos escolhidos na publicação (E06): a home e a editoria só listam o que foi para elas. */
 export type PublicDestination = "home" | "section";
@@ -128,38 +164,93 @@ interface Hydration {
   inlineImages: Map<string, ArticleInlineImage>;
 }
 
-async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydration> {
-  const ids = rows.map((r) => r.id);
+async function fetchCreditSources(db: DbClient): Promise<CreditSource[]> {
+  return db
+    .from("public_sources")
+    .select("id, name, base_url")
+    .then(many)
+    .then((rows) =>
+      rows.flatMap((s) =>
+        s.id && s.name && s.base_url ? [{ id: s.id, name: s.name, baseUrl: s.base_url }] : [],
+      ),
+    )
+    .then(
+      (v) => v,
+      () => [],
+    );
+}
+
+async function fetchItemSources(
+  db: DbClient,
+  itemIds: readonly string[],
+): Promise<{ id: string | null; source_slug: string | null }[]> {
+  return itemIds.length
+    ? db
+        .from("public_aggregated")
+        .select("id, source_slug")
+        .in("id", [...itemIds])
+        .then(many)
+    : [];
+}
+
+const hasReproduction = (media: readonly MediaRow[]) =>
+  media.some((m) => m.media_assets?.kind === "reproduction");
+
+/**
+ * Seções, assinaturas, fontes e imagens das matérias. Com as ligações embutidas nas linhas
+ * (`ARTICLE_COLUMNS_HYDRATED`) tudo sai numa rodada de leituras paralelas; linha sem elas lê
+ * `article_sources`/`article_media` antes (uma rodada a mais).
+ */
+async function loadHydration(db: DbClient, rows: SummarizableRow[]): Promise<Hydration> {
   const people = [
     ...new Set(
       rows.flatMap((r) => [r.author_id, r.ai_summary_reviewed_by]).filter((v): v is string => !!v),
     ),
   ];
+  const linkIds = rows.filter((r) => !Array.isArray(r.article_sources)).map((r) => r.id);
+  const mediaIds = rows.filter((r) => !Array.isArray(r.article_media)).map((r) => r.id);
+  const embeddedLinks = rows.flatMap((r) =>
+    (r.article_sources ?? []).map((l) => ({ article_id: r.id, item_id: l.item_id })),
+  );
+  const embeddedMedia = rows.flatMap((r) =>
+    (r.article_media ?? []).map((m) => ({ ...m, article_id: r.id })),
+  );
+  const embeddedItems = [...new Set(embeddedLinks.map((l) => l.item_id))];
 
-  const [sectionRows, links, bylines, media] = await Promise.all([
-    db.from("sections").select("slug, name").then(many),
-    ids.length
-      ? db.from("article_sources").select("article_id, item_id").in("article_id", ids).then(many)
-      : Promise.resolve([]),
-    people.length
-      ? db.from("public_bylines").select("id, display_name").in("id", people).then(many)
-      : Promise.resolve([]),
-    ids.length
-      ? db
-          .from("article_media")
-          .select(
-            "article_id, alt, role, position, media_assets(id, kind, storage_path, origin_url, page_url, source_id, source_name, license, credit, status)",
-          )
-          .in("article_id", ids)
-          .then(many)
-      : Promise.resolve([]),
+  const [sectionRows, bylines, fetchedLinks, fetchedMedia, firstItems, firstCredits] =
+    await Promise.all([
+      db.from("sections").select("slug, name").then(many),
+      people.length
+        ? db.from("public_bylines").select("id, display_name").in("id", people).then(many)
+        : Promise.resolve([]),
+      linkIds.length
+        ? db
+            .from("article_sources")
+            .select("article_id, item_id")
+            .in("article_id", linkIds)
+            .then(many)
+        : Promise.resolve([]),
+      mediaIds.length
+        ? db.from("article_media").select(MEDIA_COLUMNS).in("article_id", mediaIds).then(many)
+        : Promise.resolve([]),
+      fetchItemSources(db, embeddedItems),
+      // Crédito da foto de terceiros: nome do veículo (pequena tabela pública, só com reprodução).
+      hasReproduction(embeddedMedia) ? fetchCreditSources(db) : Promise.resolve(null),
+    ]);
+
+  const links = [...embeddedLinks, ...fetchedLinks];
+  const media: MediaRow[] = [...embeddedMedia, ...fetchedMedia];
+  const seenItems = new Set(embeddedItems);
+  const missingItems = [...new Set(fetchedLinks.map((l) => l.item_id))].filter(
+    (id) => !seenItems.has(id),
+  );
+  const [moreItems, creditSources] = await Promise.all([
+    fetchItemSources(db, missingItems),
+    firstCredits ?? (hasReproduction(media) ? fetchCreditSources(db) : Promise.resolve([])),
   ]);
-
-  const itemIds = [...new Set(links.map((l) => l.item_id))];
-  const items = itemIds.length
-    ? await db.from("public_aggregated").select("id, source_slug").in("id", itemIds).then(many)
-    : [];
-  const itemSource = new Map(items.map((i) => [i.id ?? "", i.source_slug ?? ""]));
+  const itemSource = new Map(
+    [...firstItems, ...moreItems].map((i) => [i.id ?? "", i.source_slug ?? ""]),
+  );
 
   const sourceSlugs = new Map<string, Set<string>>();
   for (const l of links) {
@@ -169,24 +260,6 @@ async function loadHydration(db: DbClient, rows: ArticleRow[]): Promise<Hydratio
     set.add(slug);
     sourceSlugs.set(l.article_id, set);
   }
-
-  // Crédito da foto de terceiros: nome do veículo (pequena tabela pública, só quando há reprodução).
-  const reproductions = media.some((m) => m.media_assets?.kind === "reproduction");
-  const creditSources: CreditSource[] = reproductions
-    ? await db
-        .from("public_sources")
-        .select("id, name, base_url")
-        .then(many)
-        .then((rows) =>
-          rows.flatMap((s) =>
-            s.id && s.name && s.base_url ? [{ id: s.id, name: s.name, baseUrl: s.base_url }] : [],
-          ),
-        )
-        .then(
-          (v) => v,
-          () => [],
-        )
-    : [];
 
   const images = new Map<string, ArticleImage>();
   const inlineImages = new Map<string, ArticleInlineImage>();
@@ -303,7 +376,7 @@ function toSummary(row: ArticleRow, h: Hydration): ArticleSummary {
 }
 
 /** Converte linhas de `articles` em cards com rótulos, fontes, assinatura e imagem aprovada. */
-export async function summarize(db: DbClient, rows: ArticleRow[]): Promise<ArticleSummary[]> {
+export async function summarize(db: DbClient, rows: SummarizableRow[]): Promise<ArticleSummary[]> {
   if (rows.length === 0) return [];
   const h = await loadHydration(db, rows);
   return rows.map((r) => toSummary(r, h));
@@ -314,10 +387,10 @@ export async function fetchRecentArticles(
   db: DbClient,
   limit: number,
   destination?: PublicDestination,
-): Promise<ArticleRow[]> {
+): Promise<SummarizableRow[]> {
   let q = db
     .from("articles")
-    .select(ARTICLE_COLUMNS)
+    .select(ARTICLE_COLUMNS_HYDRATED)
     .in("status", [...PUBLIC_STATUSES]);
   if (destination) q = q.contains("publish_destinations", [destination]);
   return q.order("published_at", { ascending: false }).limit(limit).then(many);
@@ -352,7 +425,7 @@ async function fetchRelated(db: DbClient, row: ArticleRow): Promise<ArticleSumma
     row.topic_id
       ? db
           .from("articles")
-          .select(ARTICLE_COLUMNS)
+          .select(ARTICLE_COLUMNS_HYDRATED)
           .eq("topic_id", row.topic_id)
           .neq("id", row.id)
           .in("status", [...PUBLIC_STATUSES])
@@ -362,7 +435,7 @@ async function fetchRelated(db: DbClient, row: ArticleRow): Promise<ArticleSumma
       : Promise.resolve([]),
     db
       .from("articles")
-      .select(ARTICLE_COLUMNS)
+      .select(ARTICLE_COLUMNS_HYDRATED)
       .eq("section_slug", row.section_slug)
       .neq("id", row.id)
       .in("status", [...PUBLIC_STATUSES])
@@ -388,15 +461,44 @@ async function idForSlug(db: DbClient, slug: string): Promise<string | null> {
   return row?.id ?? null;
 }
 
+/** Resultado da checagem de "removida" já feita pelo proxy na mesma requisição (`proxyGoneHint`). */
+export interface ArticleGoneHint {
+  reason: string | null;
+}
+
 /**
  * Matéria pública pelo slug. Arquivada ou despublicada devolve `{ gone, reason }` (410);
  * inexistente devolve `null` (404). Com `cache`, as leituras entram no cache de dados do Next
- * com a tag `article:<id>` e revalidação de 300 s.
+ * com a tag `article:<id>` e revalidação de 300 s. Com `gone` (a checagem do proxy), a matéria
+ * fora do ar não repete `public_article_gone`; o motivo só é usado quando a linha pública não
+ * existe. Memorizada por requisição (React `cache()`, UX-W5-T2): `generateMetadata` e a página
+ * leem uma vez só.
  */
-export async function getArticleBySlug(
+export function getArticleBySlug(
   slug: string,
-  opts: { cache?: boolean } = {},
+  opts: { cache?: boolean; gone?: ArticleGoneHint | null } = {},
 ): Promise<Result<ArticleLookup, QueryError>> {
+  // Argumentos primitivos: o `cache()` do React compara objetos por identidade.
+  const hint = opts.gone ? (opts.gone.reason === null ? "live" : "gone") : "none";
+  return loadArticleBySlug(slug, !!opts.cache, hint, opts.gone?.reason ?? null);
+}
+
+const loadArticleBySlug = cache(
+  (
+    slug: string,
+    useCache: boolean,
+    hint: "none" | "live" | "gone",
+    hintReason: string | null,
+  ): Promise<Result<ArticleLookup, QueryError>> =>
+    readArticleBySlug(slug, useCache, hint === "none" ? null : { reason: hintReason }),
+);
+
+async function readArticleBySlug(
+  slug: string,
+  useCache: boolean,
+  hint: ArticleGoneHint | null,
+): Promise<Result<ArticleLookup, QueryError>> {
+  const opts = { cache: useCache };
   const slugCache = opts.cache
     ? { tags: [`article-slug:${slug}`], revalidate: ARTICLE_REVALIDATE }
     : undefined;
@@ -407,7 +509,7 @@ export async function getArticleBySlug(
     const row = id
       ? await db
           .from("articles")
-          .select(ARTICLE_COLUMNS)
+          .select(ARTICLE_COLUMNS_HYDRATED)
           .eq("id", id)
           .in("status", [...PUBLIC_STATUSES])
           .maybeSingle()
@@ -415,7 +517,9 @@ export async function getArticleBySlug(
       : null;
 
     if (!row) {
-      const reason = await db.rpc("public_article_gone", { p_slug: slug }).then(one);
+      const reason = hint
+        ? hint.reason
+        : await db.rpc("public_article_gone", { p_slug: slug }).then(one);
       return reason ? { gone: true as const, reason } : null;
     }
 

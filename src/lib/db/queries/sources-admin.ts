@@ -25,6 +25,8 @@ import {
 import type { DisplayStatus } from "@/content/pt-BR/sources-admin";
 import { many } from "./run";
 import type { QueryError } from "./types";
+import { fold } from "@/lib/text/fold";
+import { TIME_ZONE } from "@/lib/format/date";
 
 /**
  * Leituras do painel de fontes (O03/O04, spec §8). Só para `source.manage`: cada leitura confere
@@ -233,7 +235,7 @@ export interface SourceRun {
 // ---------------------------------------------------------------------------
 
 const cuiabaDay = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Cuiaba",
+  timeZone: TIME_ZONE,
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
@@ -406,15 +408,7 @@ export function filterAndSort(
   rows: SourceListRow[],
   f: SourceFilters,
 ): { rows: SourceListRow[]; total: number } {
-  const q = f.q
-    ?.normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
-  const fold = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase();
+  const q = f.q && fold(f.q);
   const filtered = rows.filter((r) => {
     if (f.status ? r.displayStatus !== f.status : r.archived) return false;
     if (q && !fold(r.name).includes(q) && !fold(r.domain).includes(q)) return false;

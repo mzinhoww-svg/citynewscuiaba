@@ -13,9 +13,9 @@ export interface ApprovalBannerProps {
 }
 
 /**
- * Faixa "aguardando segunda aprovação" das telas que propõem mudança crítica (regras,
+ * Faixa "pedido aguarda aprovação" das telas que propõem mudança crítica (regras,
  * contingência). Server Component: só texto, ícone e link; a decisão fica na caixa de
- * aprovações. Quem pediu lê que a aprovação precisa ser de outra pessoa.
+ * aprovações. A-128: quem pediu e tem o papel decide o próprio pedido lá mesmo.
  */
 export function ApprovalBanner({
   approvals,
@@ -44,7 +44,7 @@ export function ApprovalBanner({
           </li>
         ))}
       </ul>
-      {own && <p className="type-meta text-strong">{T.waitOther}.</p>}
+      {own && <p className="type-meta text-strong">{T.ownPending}.</p>}
       <Link href={href} className="type-body font-medium text-link underline">
         {T.banner.open}
       </Link>

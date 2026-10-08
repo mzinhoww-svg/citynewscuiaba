@@ -106,7 +106,7 @@ export const PROMPTS_TEXT = {
   sectionLabel: "Control Center · IA",
   title: (agent: string) => `Prompts de ${agent}`,
   intro:
-    "Toda versão fica registrada. Publicar em produção exige duas pessoas: quem escreve pede, e admin ou editor-chefe aprova. Rollback volta para uma versão que já esteve em produção.",
+    "Toda versão fica registrada. Admin ou editor-chefe publica em produção numa ação só; o pedido e a aprovação ficam no histórico com quem fez cada passo. Rollback volta para uma versão que já esteve em produção.",
   agentsLink: "Todos os agentes",
   unknownAgent: "Agente não encontrado",
   unknownAgentBody: "Escolha um agente na lista para ver as versões do prompt.",
@@ -124,7 +124,7 @@ export const PROMPTS_TEXT = {
     actions: "Ações",
   },
   system: "sistema (migration)",
-  someone: "outra pessoa",
+  someone: "alguém da equipe",
   view: (v: number) => `Ver v${v}`,
   compare: (v: number) => `Comparar v${v} com a produção`,
   compareTitle: (from: number, to: number) => `Diferença entre v${from} e v${to}`,
@@ -133,19 +133,21 @@ export const PROMPTS_TEXT = {
   bodyLabel: "Texto do prompt",
   noChanges: "Sem diferença de texto.",
   requestPublish: (v: number) => `Pedir publicação da v${v}`,
-  requested: "Pedido de publicação aberto. A aprovação precisa ser de outra pessoa.",
+  publishDirect: (v: number) => `Publicar a v${v}`,
+  requested: "Pedido de publicação registrado. Seu papel não publica: fica na caixa de aprovações.",
+  requestedPublished: (v: number) => `v${v} em produção. Fica registrado no histórico.`,
   requestJustification: "Justificativa para publicar",
   justificationRequired: "Explique por que esta versão deve ir para produção.",
   approveAndPublish: (v: number) => `Aprovar e publicar v${v}`,
   publish: (v: number) => `Publicar v${v}`,
   published: (v: number) => `v${v} em produção.`,
-  publishForbidden: "Só quem aprovou (outra pessoa) publica.",
+  publishForbidden: "Só quem aprovou publica.",
   rollback: (v: number) => `Voltar para a v${v}`,
   rolledBack: (to: number, v: number) => `Rollback feito: v${v} em produção com o texto da v${to}.`,
   rollbackConfirm: (v: number) =>
     `Voltar para a v${v} cria uma versão nova com o mesmo texto e marca a atual como revertida. Continuar?`,
-  waitOther: "Seu pedido: a aprovação precisa ser de outra pessoa.",
-  pendingBanner: (v: number) => `v${v} aguarda aprovação de outra pessoa.`,
+  waitApprover: "Aguarda admin ou editor-chefe.",
+  pendingBanner: (v: number) => `v${v} aguarda aprovação de admin ou editor-chefe.`,
   approvedBanner: (v: number) => `v${v} aprovada: publique para entrar em produção.`,
   newTitle: "Nova versão",
   newIntro:
@@ -171,7 +173,7 @@ export const PROMPTS_TEXT = {
 
 export const PLAYGROUND_TEXT = {
   sectionLabel: "Control Center · IA",
-  title: "Playground de testes",
+  title: "Testar prompts",
   intro:
     "Rode um agente com uma entrada colada e veja o que o modelo recebeu e devolveu. Nada é publicado: só a chamada fica registrada em custos.",
   fake: "Provedor falso (teste): respostas determinísticas, sem rede e sem segredo.",

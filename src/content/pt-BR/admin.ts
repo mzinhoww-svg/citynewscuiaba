@@ -13,6 +13,25 @@ export const ADMIN_TEXT = {
   save: "Salvar",
   cancel: "Cancelar",
   none: "—",
+  /** Confirmação das ações sensíveis (item 24): nome de quem ou do quê, e o efeito. */
+  confirm: {
+    revokeTitle: (name: string) => `Revogar o acesso de administração de ${name}?`,
+    revokeEffect: (name: string) =>
+      `${name} deixa de administrar o Estúdio agora: perde usuários, papéis, interruptores e configurações. Os outros papéis continuam. Fica registrado na auditoria.`,
+    revokeConfirm: (name: string) => `Revogar acesso de ${name}`,
+    grantTitle: (name: string) => `Conceder administração a ${name}?`,
+    grantEffect: (name: string) =>
+      `${name} passa a administrar o Estúdio agora: usuários, papéis, interruptores e configurações. Fica registrado na auditoria.`,
+    grantConfirm: (name: string) => `Conceder administração a ${name}`,
+    rotateTitle: (key: string) => `Marcar ${key} como rotacionada?`,
+    rotateEffect:
+      "Registra hoje como a última rotação e reinicia o prazo da próxima. Faça isso só depois de trocar o valor na Vercel e no Supabase. Fica registrado na auditoria.",
+    rotateConfirm: (key: string) => `Marcar ${key} como rotacionada`,
+    policyTitle: "Aplicar as políticas de segurança?",
+    policyEffect: (hours: number, days: number) =>
+      `Vale para toda a equipe: a sessão dura no máximo ${hours} h e os eventos individuais perdem o que identifica o leitor depois de ${days} dias. Fica registrado na auditoria.`,
+    policyConfirm: "Aplicar políticas",
+  },
   dashboard: {
     title: "Administração",
     intro:
@@ -30,7 +49,7 @@ export const ADMIN_TEXT = {
   users: {
     title: "Usuários",
     intro:
-      "Quem tem acesso ao Estúdio, com papel e editorias. Convite chega por e-mail; papel de administração só entra com aprovação de outra pessoa.",
+      "Quem tem acesso ao Estúdio, com papel e editorias. Convite chega por e-mail; conceder ou revogar papel é uma ação só, registrada no histórico de aprovações e na auditoria com o nome de quem fez.",
     invite: "Convidar pessoa",
     table: "Pessoas da equipe",
     col: { name: "Nome", email: "E-mail", roles: "Papéis", status: "Situação", actions: "Ações" },
@@ -53,24 +72,14 @@ export const ADMIN_TEXT = {
     },
     rolesDialog: {
       title: (name: string) => `Papéis de ${name}`,
-      hint: "Marque os papéis. Editor precisa de pelo menos uma editoria. Administração abre um pedido de aprovação para outra pessoa.",
+      hint: "Marque os papéis. Editor precisa de pelo menos uma editoria. Conceder ou revogar administração pede justificativa. Cada mudança fica registrada no histórico de aprovações.",
       submit: "Salvar papéis",
       saved: "Papéis atualizados.",
-      adminRequested:
-        "Pedido de papel de administração aberto: outra pessoa da administração precisa aprovar na caixa de aprovações.",
-      adminPending: "Pedido de administração aguardando aprovação",
-      adminApproved: "Aprovado: aplicar papel de administração",
-      apply: "Aplicar",
-      applied: "Papel de administração aplicado.",
-      revokeRequested:
-        "Retirar a administração também precisa de outra pessoa da administração: pedido aberto na caixa de aprovações. Depois de aprovado, use “Aplicar revogação”.",
-      revokePending: "Revogação de administração aguardando aprovação",
-      revokeApproved: "Revogação aprovada: aplicar",
-      revokeApply: "Aplicar revogação",
-      revokeApplied: "Papel de administração revogado.",
+      adminAppliedNow: "Papel de administração aplicado. Fica registrado no histórico.",
+      revokeAppliedNow: "Papel de administração revogado. Fica registrado no histórico.",
       self: "Ninguém altera os próprios papéis.",
       editorNeedsSection: "Editor precisa de pelo menos uma editoria.",
-      justification: "Justificativa (para o pedido de administração)",
+      justification: "Justificativa (mudança na administração)",
       justificationRequired: "Explique o motivo da mudança no papel de administração.",
     },
   },
@@ -84,19 +93,18 @@ export const ADMIN_TEXT = {
       all: "Sim",
       section: "Por editoria",
       own: "Próprias",
-      first: "1ª assinatura",
-      second: "2ª assinatura",
+      first: "Propõe",
+      second: "Aprova e aplica",
       no: "Não",
     },
     people: "Pessoas por papel",
     nobody: "Ninguém",
-    criticalTitle: "Mudanças que exigem duas pessoas",
+    criticalTitle: "Mudanças críticas (pedido e aprovação registrados no histórico)",
     critical: [
       "Ativar regras de autonomia e desligar a revisão obrigatória",
       "Publicar prompt em produção",
       "Pesos de recomendação",
       "Papel de administração",
-      "Religar a publicação automática (proteção)",
       "Push urgente",
     ],
   },

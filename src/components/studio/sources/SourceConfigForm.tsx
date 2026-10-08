@@ -16,6 +16,7 @@ import {
   WIZARD_TEXT,
 } from "@/content/pt-BR/sources-admin-detail";
 import { effectiveFrequency, nextCollectionAt } from "@/lib/sources/frequency";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import type {
   ConsumptionStrategy,
   ImagePolicy,
@@ -26,13 +27,16 @@ import type {
 } from "@/lib/sources/types";
 import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
+import { DateField } from "../../ui/DateField";
+import { FieldShell } from "../../ui/Field";
+import { Panel } from "../../ui/Panel";
+import { Select, SelectControl } from "../../ui/Select";
 import { isConflict, type ActionFn, type ActionState } from "@/lib/sources/action-state";
 import {
   ActionMessage,
   CheckboxField,
   CriticalBadge,
   JustificationField,
-  SelectField,
   TextInput,
 } from "./fields";
 import {
@@ -131,8 +135,8 @@ const FAST_LANE_LIMIT = 30;
 
 /**
  * Aba Configuração da fonte (spec §7.2): Identificação, Classificação, Direitos, Coleta e
- * Importância. Campos críticos têm a regra à vista ("Afrouxar exige segunda aprovação") e, quando
- * a edição afrouxa, o selo "Exige segunda aprovação" e o campo de justificativa; restringir aplica
+ * Importância. Campos críticos têm a regra à vista ("Afrouxar é mudança crítica") e, quando
+ * a edição afrouxa, o selo "Mudança crítica" e o campo de justificativa; restringir aplica
  * na hora (D-F3). O campo Frequência separa "Via rápida" e "Ciclo normal", desabilita a via rápida
  * com o motivo em texto e mostra a frequência efetiva e a próxima coleta prevista (§7.8).
  * Conflito de versão mostra "Recarregar"; fonte arquivada abre em modo leitura.
@@ -158,6 +162,13 @@ export function SourceConfigForm({
 
   const set = <K extends keyof Values>(key: K, value: Values[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
+  // Item 47: sair com campos alterados pede confirmação.
+  useUnsavedGuard(
+    !readOnly &&
+      (JSON.stringify(values) !== JSON.stringify(baseline) ||
+        justification.trim() !== "" ||
+        reason.trim() !== ""),
+  );
 
   const loosened = looseningFields(rightsOf(baseline), rightsOf(values));
   const criticalAside = (field: string) =>
@@ -256,14 +267,16 @@ export function SourceConfigForm({
       return;
     }
     setErrors({});
-    const data = (r.data ?? {}) as { version?: number };
+    const data = (r.data ?? {}) as { version?: number; pending?: number };
     if (typeof data.version === "number") setVersion(data.version);
-    // Campos que afrouxam só mudam depois da segunda aprovação: voltam ao valor gravado.
+    // A-128: quem pode aprovar aplica a mudança crítica na hora (nada pendente). Se ficou pedido
+    // aguardando aprovação, os campos que afrouxam voltam ao valor gravado.
     const saved: Values = { ...values };
-    for (const f of loosened) {
-      const k = f as keyof RightsFields;
-      (saved as unknown as Record<string, unknown>)[k] = baseline[k];
-    }
+    if ((data.pending ?? 0) > 0)
+      for (const f of loosened) {
+        const k = f as keyof RightsFields;
+        (saved as unknown as Record<string, unknown>)[k] = baseline[k];
+      }
     setBaseline(saved);
     setValues(saved);
     setJustification("");
@@ -301,13 +314,13 @@ export function SourceConfigForm({
             disabled
           />
           <div className="flex flex-col gap-2">
-            <p className="type-label text-16 text-strong">{FIELD_TEXT.owner}</p>
+            <p className="type-label text-strong">{FIELD_TEXT.owner}</p>
             <p className="type-body text-meta">{source.ownerName ?? FIELD_TEXT.ownerNone}</p>
           </div>
         </Section>
 
         <Section title={WIZARD_TEXT.review.classification}>
-          <SelectField
+          <Select
             id={id("layer")}
             label={FIELD_TEXT.layer}
             name="layer"
@@ -323,7 +336,7 @@ export function SourceConfigForm({
             hint={FIELD_TEXT.categoriesHint(sections.map((s) => s.slug).join(", "))}
             error={errors.categories}
           />
-          <SelectField
+          <Select
             id={id("locality")}
             label={FIELD_TEXT.locality}
             name="locality"
@@ -331,11 +344,11 @@ export function SourceConfigForm({
             onChange={(v) => set("locality", v)}
             options={LOCALITY_OPTIONS}
           />
-          <SelectField
+          <Select
             id={id("reliability")}
             label={FIELD_TEXT.reliability}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("reliability")}
+            labelAside={criticalAside("reliability")}
             name="reliability"
             value={values.reliability}
             onChange={(v) => set("reliability", v as Reliability)}
@@ -344,21 +357,21 @@ export function SourceConfigForm({
         </Section>
 
         <Section title={WIZARD_TEXT.review.rights}>
-          <SelectField
+          <Select
             id={id("imagePolicy")}
             label={FIELD_TEXT.imagePolicy}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("imagePolicy")}
+            labelAside={criticalAside("imagePolicy")}
             name="imagePolicy"
             value={values.imagePolicy}
             onChange={(v) => set("imagePolicy", v as ImagePolicy)}
             options={IMAGE_POLICY_OPTIONS}
           />
-          <SelectField
+          <Select
             id={id("republish")}
             label={FIELD_TEXT.republishPolicy}
             hint={FIELD_TEXT.criticalStatic}
-            aside={criticalAside("republishPolicy")}
+            labelAside={criticalAside("republishPolicy")}
             name="republishPolicy"
             value={values.republishPolicy}
             onChange={(v) => set("republishPolicy", v as RepublishPolicy)}
@@ -379,10 +392,10 @@ export function SourceConfigForm({
             onChange={(v) => set("trusted", v)}
             hint={FIELD_TEXT.trustedHint}
           />
-          <TextInput
+          <DateField
             id={id("agreementUntil")}
+            name="agreementUntil"
             label={FIELD_TEXT.agreementUntil}
-            type="date"
             value={values.agreementUntil}
             onChange={(v) => set("agreementUntil", v)}
           />
@@ -416,7 +429,7 @@ export function SourceConfigForm({
         )}
 
         <Section title={WIZARD_TEXT.review.collection}>
-          <SelectField
+          <Select
             id={id("strategy")}
             label={FIELD_TEXT.strategy}
             name="strategy"
@@ -442,18 +455,23 @@ export function SourceConfigForm({
               error={errors.pageSelectors}
             />
           )}
-          <SelectField
+          <FieldShell
             id={id("frequency")}
             label={FREQUENCY_FIELD_TEXT.label}
             hint={FREQUENCY_FIELD_TEXT.help}
             error={errors.frequencyMinutes}
             className="md:col-span-2"
-            name="frequencyMinutes"
-            value={values.frequency}
-            onChange={(v) => set("frequency", v)}
-            options={freq.options}
-            groups={freq.groups}
           >
+            <SelectControl
+              id={id("frequency")}
+              name="frequencyMinutes"
+              value={values.frequency}
+              onChange={(v) => set("frequency", v)}
+              options={freq.options}
+              groups={freq.groups}
+              hint={FREQUENCY_FIELD_TEXT.help}
+              error={errors.frequencyMinutes}
+            />
             <div
               aria-live="polite"
               className="flex flex-col gap-1 rounded-md bg-section px-3 py-2 type-meta text-strong"
@@ -466,7 +484,7 @@ export function SourceConfigForm({
               </p>
               <p className="text-meta">{FREQUENCY_FIELD_TEXT.lane(fastLane.used, fastLane.max)}</p>
             </div>
-          </SelectField>
+          </FieldShell>
           <TextInput
             id={id("rate")}
             label={FIELD_TEXT.rateLimit}
@@ -489,7 +507,7 @@ export function SourceConfigForm({
 
         <Section title={WIZARD_TEXT.review.importance}>
           <fieldset className="flex min-w-0 flex-col gap-2 border-0 p-0">
-            <legend className="mb-2 type-label text-16 text-strong">{FIELD_TEXT.score}</legend>
+            <legend className="mb-2 type-label text-strong">{FIELD_TEXT.score}</legend>
             <div className="flex flex-wrap gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <label
@@ -515,7 +533,7 @@ export function SourceConfigForm({
             </div>
             <p className="type-meta text-meta">{FIELD_TEXT.scoreHint}</p>
           </fieldset>
-          <SelectField
+          <Select
             id={id("priority")}
             label={FIELD_TEXT.priority}
             name="priority"
@@ -554,9 +572,9 @@ export function SourceConfigForm({
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex min-w-0 flex-col gap-4 rounded-lg border border-line-section bg-card-white p-4 sm:p-5">
+    <Panel className="flex min-w-0 flex-col gap-4 sm:p-5">
       <h2 className="type-section text-strong">{title}</h2>
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
-    </section>
+    </Panel>
   );
 }

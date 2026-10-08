@@ -105,14 +105,18 @@ describe("PushQueueTable (spec §10.3)", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("quem pediu vê o aviso e não aprova; cancelar só para quem pediu ou push.settings; erro fica no diálogo", async () => {
-    decide.mockResolvedValue({ ok: false, message: "A aprovação precisa ser de outra pessoa." });
-    render(
+  it("sem push.approve só cancela o próprio pedido; com push.approve revisa o próprio (A-128); erro fica no diálogo", async () => {
+    decide.mockResolvedValue({
+      ok: false,
+      message: "Sua conta não tem permissão para aprovar este aviso.",
+    });
+    const rows = [
+      row(),
+      row({ id: "s3", title: "Outro", requestedBy: { id: "helena", name: "Helena Costa" } }),
+    ];
+    const { unmount } = render(
       <PushQueueTable
-        rows={[
-          row(),
-          row({ id: "s3", title: "Outro", requestedBy: { id: "helena", name: "Helena Costa" } }),
-        ]}
+        rows={rows}
         currentUserId="marina"
         canApprove={false}
         canSettings={false}
@@ -124,10 +128,30 @@ describe("PushQueueTable (spec §10.3)", () => {
     expect(screen.getByRole("button", { name: "Cancelar Chuva forte" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Cancelar Outro" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Aprovar Outro" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Aprovar Chuva forte" })).toBeNull();
+    unmount();
+
+    render(
+      <PushQueueTable
+        rows={rows}
+        currentUserId="marina"
+        canApprove
+        canSettings={false}
+        decide={decide}
+        cancel={cancel}
+        pollMs={0}
+      />,
+    );
     await userEvent.click(screen.getByRole("button", { name: "Aprovar Chuva forte" }));
     const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("A aprovação precisa ser de outra pessoa.")).toBeVisible();
-    expect(within(dialog).getByRole("button", { name: "Aprovar" })).toBeDisabled();
+    expect(within(dialog).queryByText(/outra pessoa/)).toBeNull();
+    const approve = within(dialog).getByRole("button", { name: "Aprovar" });
+    expect(approve).toBeEnabled();
+    await userEvent.click(approve);
+    await waitFor(() => expect(decide).toHaveBeenCalledTimes(1));
+    expect(
+      await within(dialog).findByText("Sua conta não tem permissão para aprovar este aviso."),
+    ).toBeVisible();
   });
 
   it("vazio explica; contagem anunciada só quando muda", async () => {

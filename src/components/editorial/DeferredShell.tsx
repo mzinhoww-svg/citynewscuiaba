@@ -13,6 +13,7 @@ import {
 import { safeDefault } from "@/lib/lazy";
 import { INVITE_EVENT } from "@/lib/anon/invite";
 import { QUALIFIED_READ_EVENT, qualifiedReadsThisSession } from "@/lib/anon/invite-storage";
+import type { FirstVisitPlacement } from "./FirstVisitInvite";
 
 /*
  * Partes da moldura que só valem depois de um gatilho (B-018, orçamento de 170 kB de JS na
@@ -31,10 +32,12 @@ const FirstVisitInvite = lazy(() =>
 
 const onServer = () => false;
 
-/** Permissão de notificações já decidida (concedida ou negada): só então há o que sincronizar. */
-function notificationsAsked(): boolean {
-  return typeof Notification !== "undefined" && Notification.permission !== "default";
+/** Permissão de notificações do navegador (`"default"` também sem a API). */
+function notificationPermission(): NotificationPermission {
+  return typeof Notification === "undefined" ? "default" : Notification.permission;
 }
+
+const permissionOnServer = (): NotificationPermission => "default";
 
 function subscribeNotificationPermission(onChange: () => void): () => void {
   let status: PermissionStatus | null = null;
@@ -58,17 +61,24 @@ function subscribeNotificationPermission(onChange: () => void): () => void {
 }
 
 /**
- * Alertas de navegador e sincronização do push: sem permissão de notificações decidida não há
- * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. Em `/alertas` a
- * tela de avisos precisa do estado do push (ligado, desligado, perdido), então sincroniza sempre.
+ * Alertas de navegador e sincronização do push. Sem permissão de notificações decidida não há
+ * alerta a entregar nem inscrição a sincronizar, então o código nem é baixado. A sincronização
+ * vale com a permissão concedida ou negada (negada desfaz a inscrição guardada) e, em `/alertas`,
+ * sempre: a tela de avisos precisa do estado do push (ligado, desligado, perdido). O vigia de
+ * alertas só entrega com a permissão concedida, então só baixa nela (A-156).
  */
 export function NotificationWatchers() {
   const pathname = usePathname() ?? "/";
-  const asked = useSyncExternalStore(subscribeNotificationPermission, notificationsAsked, onServer);
-  if (!asked && !pathname.startsWith("/alertas")) return null;
+  const permission = useSyncExternalStore(
+    subscribeNotificationPermission,
+    notificationPermission,
+    permissionOnServer,
+  );
+  const sync = permission !== "default" || pathname.startsWith("/alertas");
+  if (!sync) return null;
   return (
     <Suspense fallback={null}>
-      <AlertWatcher />
+      {permission === "granted" && <AlertWatcher />}
       <PushSync />
     </Suspense>
   );
@@ -81,12 +91,15 @@ function subscribeReads(onChange: () => void): () => void {
 
 const hasReads = () => qualifiedReadsThisSession() > 0;
 
-/** Painel da primeira visita: só depois da primeira leitura qualificada da sessão. */
-export function FirstVisitGate() {
+/**
+ * Convite da primeira visita (item 63): montado no fim da matéria e na home, não na moldura.
+ * O código só baixa depois da primeira leitura qualificada da sessão.
+ */
+export function FirstVisitGate({ placement }: { placement: FirstVisitPlacement }) {
   const started = useSyncExternalStore(subscribeReads, hasReads, onServer);
   return started ? (
     <Suspense fallback={null}>
-      <FirstVisitInvite />
+      <FirstVisitInvite placement={placement} />
     </Suspense>
   ) : null;
 }

@@ -6,13 +6,13 @@ import type { DbClient } from "./client";
 
 /**
  * Escrita de A09 (spec 2026-09-28 §10, §11.5): tudo pelas RPCs `security invoker` de 0041 com a
- * sessão da pessoa, então RLS, `guard_push_sends` e `guard_push_approvals` valem (quem pede não
- * aprova, texto imutável, cancelar só quem pediu ou `push.settings`). Erros do banco viram
+ * sessão da pessoa, então RLS, `guard_push_sends` e `guard_push_approvals` valem (aprovar exige
+ * `push.approve`, que pode ser de quem pediu (A-128); texto imutável; cancelar só quem pediu ou
+ * `push.settings`). Erros do banco viram
  * códigos estáveis; a tela traduz em `notifications-admin.ts`.
  */
 
 export type PushAdminError =
-  | "self_approval"
   | "forbidden"
   | "not_pending"
   | "invalid"
@@ -62,8 +62,10 @@ export function mapPushDbError(e: DbError): PushAdminError {
     )
   )
     return "not_pending";
-  if (/quem pede não decide|outra pessoa|quem tem permissão de aprovar/.test(m))
-    return "self_approval";
+  if (
+    /quem tem permissão de aprovar|exige a aprovação registrada|exige aprovação registrada/.test(m)
+  )
+    return "forbidden";
   if (/Só matéria publicada|atrocinada|Matéria despublicada/.test(m)) return "article_invalid";
   if (e.code === "P0002" || /não encontrado/.test(m)) return "not_pending";
   if (e.code === "42501" || /sem permissão|só por admin|própria editoria/.test(m))

@@ -31,9 +31,13 @@ export const SOURCE_TEXT = {
   followLabel: (name: string) => `Seguir ${name}`,
   seeItems: "Ver matérias",
   seeItemsLabel: (name: string) => `Ver matérias de ${name}`,
-  hide: "Ocultar",
-  hideLabel: (name: string) => `Ocultar ${name}`,
   hideMenuLabel: (name: string) => `Por que ocultar ${name}?`,
+  /** Botão ⋯ que abre o menu de ocultar (UI-T10). */
+  moreLabel: (name: string) => `Mais opções de ${name}`,
+  /** Legenda visível no topo do menu ⋯. */
+  hideMenuTitle: "Ocultar esta fonte",
+  /** Resumo do `<details>` com números e selos do card (UI-T10). */
+  details: "Detalhes",
   reasonPrefix: "Por que aparece aqui: ",
   statsLabel: (name: string) => `Números de ${name}`,
   reach: "Alcance aproximado em 30 dias",

@@ -22,9 +22,17 @@ const TARGETS_PER_RUN = 2;
 /** Teto diário de chamadas ao TripAdvisor (cota e custo); `GUIDE_TA_DAILY_CALLS` ajusta. */
 const DEFAULT_TA_DAILY_CALLS = 150;
 
+/** Teto diário de consultas ao Google Places (faixa gratuita); `GUIDE_GOOGLE_DAILY_CALLS` ajusta. */
+const DEFAULT_GOOGLE_DAILY_CALLS = 30;
+
+function envLimit(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const n = Number(raw);
+  return raw !== undefined && raw.trim() !== "" && Number.isInteger(n) && n >= 0 ? n : fallback;
+}
+
 function dailyLimit(): number {
-  const n = Number(process.env.GUIDE_TA_DAILY_CALLS);
-  return Number.isInteger(n) && n >= 0 ? n : DEFAULT_TA_DAILY_CALLS;
+  return envLimit("GUIDE_TA_DAILY_CALLS", DEFAULT_TA_DAILY_CALLS);
 }
 
 /**
@@ -67,11 +75,22 @@ export async function POST(req: Request): Promise<Response> {
 
   const runId = await store.startRun("venue_sync", force ? "manual" : "cron", now);
   let taMade = 0;
-  const providers = buildProviders({ onTaCall: () => (taMade += 1) });
+  let googleMade = 0;
+  const googleLeft =
+    envLimit("GUIDE_GOOGLE_DAILY_CALLS", DEFAULT_GOOGLE_DAILY_CALLS) -
+    (await store.googleCallsToday(now));
+  const providers = buildProviders({
+    onTaCall: () => (taMade += 1),
+    onGoogleCall: () => (googleMade += 1),
+    googleCallsLeft: () => googleLeft - googleMade,
+  });
   const crawl = crawlDeps({ repo: createIngestRepo(db) });
   const used = await store.taCallsToday(now);
   const report = await runVenueSync(
     {
+      google: providers.google,
+      googleCallsLeft: async () => Math.max(0, googleLeft),
+      googleCallsMade: () => googleMade,
       osm: providers.osm,
       tripadvisor: providers.tripadvisor,
       site: (website) => fetchSiteFacts(crawl, website),

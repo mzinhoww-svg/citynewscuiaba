@@ -57,6 +57,18 @@ describe("tripadvisor provider", () => {
     expect(blank.enabled).toBe(false);
   });
 
+  it("envia o Referer do site: a chave da Content API é restrita ao domínio cadastrado", async () => {
+    const http = vi.fn<HttpFetch>(async () => json(SEARCH));
+    const p = createTripadvisorProvider({
+      apiKey: FAKE_KEY,
+      http,
+      referer: "https://citynews.example",
+    });
+    await p.search({ category: "padaria", area: "Cuiabá" });
+    const init = http.mock.calls[0]?.[1];
+    expect(new Headers(init?.headers).get("Referer")).toBe("https://citynews.example/");
+  });
+
   it("busca por categoria perto de Cuiabá e descarta lugares de outras cidades", async () => {
     const http = vi.fn<HttpFetch>(async () => json(SEARCH));
     const p = createTripadvisorProvider({ apiKey: FAKE_KEY, http });
@@ -107,6 +119,23 @@ describe("tripadvisor provider", () => {
     const p = createTripadvisorProvider({ apiKey: FAKE_KEY, http });
     expect(await p.details("../../admin")).toEqual({ ok: false, error: "invalid" });
     expect(http).not.toHaveBeenCalled();
+  });
+
+  it("recusa da API relata status e mensagem para diagnóstico, sem a chave", async () => {
+    const onError = vi.fn();
+    const body = { Message: `User is not authorized; key=${FAKE_KEY}` };
+    const p = createTripadvisorProvider({
+      apiKey: FAKE_KEY,
+      http: async () => json(body, 403),
+      onError,
+    });
+    expect(await p.details("1")).toEqual({ ok: false, error: "unauthorized" });
+    expect(onError).toHaveBeenCalledTimes(1);
+    const detail = onError.mock.calls[0]?.[0] as { status: number; message: string };
+    expect(detail.status).toBe(403);
+    expect(detail.message).toContain("User is not authorized");
+    expect(detail.message).not.toContain(FAKE_KEY);
+    expect(detail.message.length).toBeLessThanOrEqual(300);
   });
 
   it("erros viram códigos fixos e a chave nunca aparece no resultado", async () => {

@@ -1,6 +1,7 @@
 /**
  * Páginas institucionais (P24). Dados jurídicos e de contato ficam como `[PREENCHER]` até o
- * dono informar (B-001, A-014). Nada aqui promete prazo ou serviço que o produto não entrega.
+ * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-152). Nada aqui
+ * promete prazo ou serviço que o produto não entrega.
  */
 export const PENDING = "[PREENCHER]";
 
@@ -77,12 +78,30 @@ const meta = (title: string) => `${title} · CityNews Cuiabá`;
 
 export const DOC_TEXT = {
   updated: "Versão de 27/09/2026",
-  pendingNote:
-    "Os campos marcados como [PREENCHER] aguardam dados oficiais da empresa e serão atualizados antes do lançamento.",
   related: "Veja também",
   breadcrumb: "Você está em",
+  onThisPage: "Nesta página",
   home: "Início",
 } as const;
+
+const ABOUT_OFFER = [
+  "Matérias da redação do CityNews, marcadas como ORIGINAL CITYNEWS.",
+  "Textos próprios feitos a partir de fontes públicas e de outros veículos, identificados como “Feito a partir de” e o número de fontes, todas citadas.",
+  "Links para matérias de outros veículos, marcados como AGREGADO. Nesses casos mostramos só o título, a data e, quando o veículo permite, um resumo curto escrito por nós. A leitura continua no site original.",
+  "Agenda da cidade, serviços e assuntos acompanhados ao longo do tempo.",
+] as const;
+
+const ABOUT_HOW = [
+  "Reunimos informações de fontes cadastradas e de apuração própria. A redação acompanha o que vai ao ar e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
+  "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
+] as const;
+
+const ABOUT_WHO = [
+  `Razão social: ${PENDING}`,
+  `CNPJ: ${PENDING}`,
+  `Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`,
+  `Responsável editorial: ${PENDING}`,
+] as const;
 
 export const ABOUT: InstitutionalDoc = {
   path: "/sobre",
@@ -95,31 +114,59 @@ export const ABOUT: InstitutionalDoc = {
   sections: [
     {
       title: "O que você encontra aqui",
-      items: [
-        "Matérias da redação do CityNews, marcadas como ORIGINAL CITYNEWS.",
-        "Textos próprios feitos a partir de fontes públicas e de outros veículos, identificados como “Feito a partir de” e o número de fontes, todas citadas.",
-        "Links para matérias de outros veículos, marcados como AGREGADO. Nesses casos mostramos só o título, a data e, quando o veículo permite, um resumo curto escrito por nós. A leitura continua no site original.",
-        "Agenda da cidade, serviços e assuntos acompanhados ao longo do tempo.",
-      ],
+      items: [ABOUT_OFFER[0], ABOUT_OFFER[1], ABOUT_OFFER[2], ABOUT_OFFER[3]],
     },
     {
       title: "Como trabalhamos",
-      paragraphs: [
-        "Reunimos informações de fontes cadastradas e de apuração própria. A redação acompanha o que vai ao ar e pode corrigir ou retirar qualquer publicação. Veja os detalhes em Como funciona o CityNews.",
-        "Você não precisa de conta para ler, pesquisar, usar a agenda ou seguir fontes.",
-      ],
+      paragraphs: [ABOUT_HOW[0], ABOUT_HOW[1]],
     },
     {
       title: "Quem somos",
-      items: [
-        `Razão social: ${PENDING}`,
-        `CNPJ: ${PENDING}`,
-        `Endereço: Avenida São Sebastião, 1984, Cuiabá, Mato Grosso`,
-        `Responsável editorial: ${PENDING}`,
-      ],
+      items: ABOUT_WHO,
     },
   ],
 };
+
+/**
+ * Página Sobre em blocos de marketing (UI-T11). Mesmo conteúdo de `ABOUT`; as respostas do FAQ
+ * repetem o que o produto já faz (sem conta, origem visível, correção e direito de resposta).
+ */
+export const ABOUT_PAGE = {
+  offerTitle: "O que você encontra aqui",
+  offer: [
+    { icon: "newspaper", title: "Reportagem própria", text: ABOUT_OFFER[0] },
+    { icon: "layers", title: "Feito a partir de fontes", text: ABOUT_OFFER[1] },
+    { icon: "external-link", title: "Links para outros veículos", text: ABOUT_OFFER[2] },
+    { icon: "calendar", title: "Agenda e serviços", text: ABOUT_OFFER[3] },
+  ],
+  howTitle: "Como trabalhamos",
+  how: ABOUT_HOW,
+  howCta: "Ler os princípios editoriais",
+  howHref: "/principios-editoriais",
+  whoTitle: "Quem somos",
+  who: ABOUT_WHO,
+  faq: [
+    {
+      question: "Preciso de conta para ler?",
+      answer: ABOUT_HOW[1],
+    },
+    {
+      question: "Como sei de onde veio cada notícia?",
+      answer:
+        "Toda matéria mostra a origem: ORIGINAL CITYNEWS para reportagem própria, “Feito a partir de” e o número de fontes para textos feitos a partir de outras fontes, e AGREGADO para links de outros veículos.",
+    },
+    {
+      question: "Encontrei um erro. O que faço?",
+      answer:
+        "Use o botão Informar problema na própria matéria. A redação responde em até 24 h. Correções ficam registradas na página Correções.",
+    },
+    {
+      question: "Fui citado em uma matéria e quero me manifestar.",
+      answer:
+        "Peça direito de resposta na página Direito de resposta. Não precisa de conta; a redação responde por e-mail.",
+    },
+  ],
+} as const;
 
 export const PRINCIPLES: InstitutionalDoc = {
   path: "/principios-editoriais",
@@ -191,7 +238,7 @@ export const AI_USE: InstitutionalDoc = {
       title: "O que a IA não faz",
       items: [
         "Não publica sozinha temas sensíveis nem notícias urgentes.",
-        "Não responde sem pelo menos duas fontes relevantes: quando não há, ela diz que não sabe.",
+        "Não responde sem fonte: com uma só, diz de quem é a informação; sem nenhuma, diz que não sabe.",
         "Não segue instruções escondidas em textos de terceiros: tudo o que é coletado é tratado como dado.",
         "Não cria imagem realista de pessoa real nem ilustra crime, tragédia ou saúde de alguém.",
       ],
@@ -282,6 +329,17 @@ export const TERMS: InstitutionalDoc = {
   ],
 };
 
+const COMMERCIAL_EMAIL = "contato@citynews.com.br";
+
+const ADVERTISE_RULES = [
+  "Todo conteúdo pago leva o rótulo PATROCINADO, visível e em texto.",
+  "No máximo 1 item patrocinado a cada 6 itens em listas e recomendações.",
+  "Nada patrocinado na editoria Política nem nas respostas do Perguntar ao CityNews.",
+  "O anunciante não revisa nem altera a cobertura jornalística.",
+] as const;
+
+const ADVERTISE_CONTACTS = [`E-mail: ${COMMERCIAL_EMAIL}`, `Telefone: ${PENDING}`] as const;
+
 export const ADVERTISE: InstitutionalDoc = {
   path: "/anuncie",
   metaTitle: meta("Anuncie"),
@@ -292,19 +350,47 @@ export const ADVERTISE: InstitutionalDoc = {
   sections: [
     {
       title: "Regras fixas",
-      items: [
-        "Todo conteúdo pago leva o rótulo PATROCINADO, visível e em texto.",
-        "No máximo 1 item patrocinado a cada 6 itens em listas e recomendações.",
-        "Nada patrocinado na editoria Política nem nas respostas do Perguntar ao CityNews.",
-        "O anunciante não revisa nem altera a cobertura jornalística.",
-      ],
+      items: ADVERTISE_RULES,
     },
     {
       title: "Contato comercial",
-      items: [`E-mail: contato@citynews.com.br`, `Telefone: ${PENDING}`],
+      items: ADVERTISE_CONTACTS,
     },
   ],
 };
+
+/**
+ * Página Anuncie em blocos de marketing (UI-T11). Mesmo conteúdo de `ADVERTISE`, com títulos
+ * curtos para cada regra; nada de número de audiência, cliente ou depoimento (não há dado real).
+ */
+export const ADVERTISE_PAGE = {
+  heroCta: "Ver o contato comercial",
+  cta: "Falar com o comercial",
+  ctaHref: `mailto:${COMMERCIAL_EMAIL}`,
+  rulesIntro: "Valem para todo anúncio, sem exceção.",
+  rules: [
+    { icon: "eye", title: "Sempre identificado", text: ADVERTISE_RULES[0] },
+    { icon: "percent", title: "Na medida certa", text: ADVERTISE_RULES[1] },
+    { icon: "ban", title: "Fora da Política", text: ADVERTISE_RULES[2] },
+    { icon: "scale", title: "Redação independente", text: ADVERTISE_RULES[3] },
+  ],
+  contactText: "Conte o que você quer divulgar e quando. Respondemos por e-mail.",
+  faq: [
+    {
+      question: "Posso anunciar na editoria Política?",
+      answer:
+        "Não. Nada patrocinado aparece em Política nem nas respostas do Perguntar ao CityNews.",
+    },
+    {
+      question: "Como o leitor sabe que é anúncio?",
+      answer: "Todo conteúdo pago leva o rótulo PATROCINADO, visível e em texto.",
+    },
+    {
+      question: "O anunciante pode ver a matéria antes?",
+      answer: "Não. O anunciante não revisa nem altera a cobertura jornalística.",
+    },
+  ],
+} as const;
 
 export const CONTACT: InstitutionalDoc = {
   path: "/contato",

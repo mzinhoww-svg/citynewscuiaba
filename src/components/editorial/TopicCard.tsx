@@ -48,7 +48,7 @@ export function TopicCard({
         aria-hidden="true"
         className="flex size-12 items-center justify-center rounded-pill bg-card-white text-strong"
       >
-        <Icon name={icon} size={22} />
+        <Icon name={icon} size={24} />
       </span>
       <span className="text-center text-14 font-medium leading-snug text-strong">{label}</span>
       <Button

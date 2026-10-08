@@ -9,6 +9,7 @@ import { useConsent, useConsentKnown } from "@/lib/consent/client";
 import { Button } from "../ui/Button";
 import { InlineAlert } from "../ui/InlineAlert";
 import { Skeleton } from "../ui/Skeleton";
+import { useToast } from "../ui/Toast";
 import { Toggle } from "../ui/Toggle";
 
 function Block({ title, children, id }: { title: string; children: React.ReactNode; id: string }) {
@@ -53,6 +54,7 @@ export function RecommendationControls() {
   const known = useConsentKnown();
   const { profile, degraded, ready, act } = useAnonProfile();
   const [status, setStatus] = useState("");
+  const toast = useToast();
   const id = useId();
 
   if (!known || !ready || !profile) {
@@ -63,6 +65,12 @@ export function RecommendationControls() {
       </div>
     );
   }
+
+  /** Anuncia o sucesso só quando gravou; a falha vira toast de erro (item 88). */
+  const done = (r: { ok: boolean }, message: string) => {
+    if (r.ok) setStatus(message);
+    else toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+  };
 
   const on = consent.personalization;
   const setPersonalization = (next: boolean) => {
@@ -123,7 +131,7 @@ export function RecommendationControls() {
                   variant="outline"
                   aria-label={T.remove(i.key)}
                   onClick={() => {
-                    void act((s) => s.removeInterest(i.key)).then(() => setStatus(T.removed));
+                    void act((s) => s.removeInterest(i.key)).then((r) => done(r, T.removed));
                   }}
                 >
                   {T.removeText}
@@ -141,9 +149,10 @@ export function RecommendationControls() {
             variant="outline"
             onClick={() =>
               // Apagar histórico local também limpa as cópias offline de lidas e páginas (§8.3).
-              void Promise.all([act((s) => s.clearHistory()), clearOffline()]).then(() =>
-                setStatus(T.cleared),
-              )
+              void Promise.all([
+                act((s) => s.clearHistory()),
+                clearOffline().catch(() => false),
+              ]).then(([r]) => done(r, T.cleared))
             }
           >
             {T.clear}
@@ -152,7 +161,7 @@ export function RecommendationControls() {
             size="sm"
             variant="outline"
             onClick={() =>
-              void act((s) => s.resetRecommendations()).then(() => setStatus(T.resetDone))
+              void act((s) => s.resetRecommendations()).then((r) => done(r, T.resetDone))
             }
           >
             {T.reset}

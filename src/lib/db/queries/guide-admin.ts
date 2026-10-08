@@ -168,24 +168,33 @@ export async function adminOpenReports(db: DbClient): Promise<AdminReport[]> {
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw new Error(`guia reclamações: ${error.message}`);
-  const out: AdminReport[] = [];
-  for (const r of data ?? []) {
-    const suspended = await db
+  const reports = data ?? [];
+  // Listas suspensas por cada reclamação numa consulta só (antes, uma contagem por reclamação).
+  const suspended = new Map<string, number>();
+  if (reports.length > 0) {
+    const lists = await db
       .from("guide_lists")
-      .select("id", { count: "exact", head: true })
+      .select("suspended_reason")
       .eq("status", "suspended")
-      .like("suspended_reason", `venue_report:${r.id}`);
-    out.push({
-      id: r.id,
-      venueId: r.venue_id,
-      venueName: r.venues?.name ?? "—",
-      reason: r.reason,
-      contact: r.contact,
-      createdAt: r.created_at,
-      suspendedLists: suspended.count ?? 0,
-    });
+      .in(
+        "suspended_reason",
+        reports.map((r) => `venue_report:${r.id}`),
+      );
+    // Como antes, a contagem é informativa: falha nela mostra 0, sem derrubar a tela.
+    for (const l of lists.data ?? []) {
+      if (l.suspended_reason)
+        suspended.set(l.suspended_reason, (suspended.get(l.suspended_reason) ?? 0) + 1);
+    }
   }
-  return out;
+  return reports.map((r) => ({
+    id: r.id,
+    venueId: r.venue_id,
+    venueName: r.venues?.name ?? "—",
+    reason: r.reason,
+    contact: r.contact,
+    createdAt: r.created_at,
+    suspendedLists: suspended.get(`venue_report:${r.id}`) ?? 0,
+  }));
 }
 
 export interface GuideStatus {

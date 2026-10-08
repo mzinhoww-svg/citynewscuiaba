@@ -117,7 +117,7 @@ function sentEvents(page: Page): { events: Sent[]; statuses: number[] } {
   return out;
 }
 
-test("Aceitar recomendações cria o anonId e os eventos vão com personalização", async ({
+test("Aceitar métricas e recomendações cria o anonId e os eventos vão com personalização", async ({
   page,
 }) => {
   // IP próprio por execução: o limite de 120 eventos a cada 10 min vale por conexão, e as outras
@@ -125,7 +125,7 @@ test("Aceitar recomendações cria o anonId e os eventos vão com personalizaç�
   await page.setExtraHTTPHeaders(forwardedFor());
   const sent = sentEvents(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Aceitar recomendações" }).click();
+  await page.getByRole("button", { name: "Aceitar métricas e recomendações" }).click();
   await expect.poll(() => sent.events.map((e) => e.name)).toContain("privacy_settings_updated");
   const enabled = sent.events.find((e) => e.name === "personalization_enabled")!;
   expect(enabled.props).toEqual({ from: "banner" });
@@ -176,7 +176,7 @@ test("banner não é modal, não cobre o h1 em 360 px e respeita a CSP", async (
     const b = (await banner(page).boundingBox())!;
     expect(b.y, `banner cobre o h1 em ${path}`).toBeGreaterThanOrEqual(h.y + h.height);
     // Alvos de toque ≥ 44 px.
-    for (const name of ["Só o necessário", "Escolher", "Aceitar recomendações"]) {
+    for (const name of ["Só o necessário", "Escolher", "Aceitar métricas e recomendações"]) {
       const box = (await page.getByRole("button", { name }).boundingBox())!;
       expect(box.height, name).toBeGreaterThanOrEqual(44);
     }
@@ -186,7 +186,11 @@ test("banner não é modal, não cobre o h1 em 360 px e respeita a CSP", async (
   expect(errors).toEqual([]);
 });
 
-test("compacto: até 15% da altura no celular e barra de uma linha no desktop", async ({ page }) => {
+/*
+ * UX-W1-T5: texto inteiro em 14 px e botões em 14 px (leitura ao sol). No celular são três linhas
+ * de texto e duas de ações: até 180 px (antes, 15% da altura com texto de 12 px cortado).
+ */
+test("compacto: até 180 px no celular e barra de uma linha no desktop", async ({ page }) => {
   for (const [width, height] of [
     [360, 640],
     [390, 844],
@@ -195,8 +199,12 @@ test("compacto: até 15% da altura no celular e barra de uma linha no desktop", 
     await page.goto("/");
     await expect(banner(page)).toBeVisible();
     const b = (await banner(page).boundingBox())!;
-    expect(b.height / height, `banner em ${width}x${height}`).toBeLessThanOrEqual(0.15);
-    for (const name of ["Só o necessário", "Escolher", "Aceitar recomendações"]) {
+    expect(b.height, `banner em ${width}x${height}`).toBeLessThanOrEqual(180);
+    const learn = (await page
+      .getByRole("link", { name: "Saiba mais sobre privacidade" })
+      .boundingBox())!;
+    expect(learn.height, "Saiba mais").toBeGreaterThanOrEqual(44);
+    for (const name of ["Só o necessário", "Escolher", "Aceitar métricas e recomendações"]) {
       const box = (await page.getByRole("button", { name }).boundingBox())!;
       expect(box.height, name).toBeGreaterThanOrEqual(44);
     }
@@ -210,7 +218,9 @@ test("compacto: até 15% da altura no celular e barra de uma linha no desktop", 
   await page.goto("/");
   await expect(banner(page)).toBeVisible();
   const bar = (await banner(page).boundingBox())!;
-  const btn = (await page.getByRole("button", { name: "Aceitar recomendações" }).boundingBox())!;
+  const btn = (await page
+    .getByRole("button", { name: "Aceitar métricas e recomendações" })
+    .boundingBox())!;
   // Uma linha: os botões cabem na altura do botão mais o respiro da barra.
   expect(bar.height).toBeLessThanOrEqual(btn.height + 24);
   expect(bar.width).toBeGreaterThanOrEqual(1270);

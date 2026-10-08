@@ -27,7 +27,10 @@ export default function Page() {
           </p>
         ))}
         <p className="type-body">
-          <Link href="/alertas" className="font-semibold text-link underline underline-offset-4">
+          <Link
+            href="/alertas"
+            className="inline-flex min-h-tap items-center font-semibold text-link underline underline-offset-4"
+          >
             Ajustar avisos em Alertas
           </Link>
         </p>
@@ -42,7 +45,7 @@ export default function Page() {
       <p className="max-w-read type-body">
         <Link
           href="/privacidade/recomendacoes"
-          className="font-semibold text-link underline underline-offset-4"
+          className="inline-flex min-h-tap items-center font-semibold text-link underline underline-offset-4"
         >
           {RECS_PAGE_TEXT.title}
         </Link>

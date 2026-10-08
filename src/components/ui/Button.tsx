@@ -1,10 +1,18 @@
 import Link from "next/link";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
+import { UI } from "@/content/pt-BR/ui";
 import { cx } from "../cx";
 import { Icon, type IconName } from "./Icon";
 
 export type ButtonVariant =
-  "primary" | "secondary" | "outline" | "outline-strong" | "accent" | "text" | "danger";
+  | "primary"
+  | "secondary"
+  | "outline"
+  | "outline-strong"
+  | "accent"
+  | "text"
+  | "danger"
+  | "destructive";
 
 export interface ButtonProps {
   variant?: ButtonVariant;
@@ -16,6 +24,12 @@ export interface ButtonProps {
   leading?: ReactNode;
   fullWidth?: boolean;
   disabled?: boolean;
+  /**
+   * Envio em andamento: desabilita, marca `aria-busy` e troca o texto por `loadingLabel`
+   * ("Salvando…" por padrão). Evita o segundo clique e diz o que está acontecendo.
+   */
+  loading?: boolean;
+  loadingLabel?: string;
   type?: "button" | "submit";
   /** Com `href`, o botão vira link (mesma aparência). */
   href?: string;
@@ -37,6 +51,8 @@ export interface ButtonProps {
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   children?: ReactNode;
   "aria-label"?: string;
+  /** Texto que explica o botão (ex.: o motivo de estar desabilitado). */
+  "aria-describedby"?: string;
   /** Só quando outro elemento precisa apontar para este botão (ex.: âncora "#id"). */
   id?: string;
   className?: string;
@@ -52,13 +68,15 @@ const SIZE = {
 const VARIANT: Record<ButtonVariant, string> = {
   primary:
     "bg-action-primary text-on-inverse border border-transparent active:bg-action-primary-pressed hover:bg-action-primary-pressed",
-  secondary: "bg-action-secondary text-strong border border-transparent hover:bg-nevoa-2",
+  secondary: "bg-action-secondary text-strong border border-transparent hover:bg-hover",
   outline: "bg-card-white text-strong border border-line-control hover:bg-section",
   "outline-strong": "bg-transparent text-strong border border-line-strong hover:bg-section",
   /* R14: Tinta sobre Urgente (5,05:1); branco sobre Urucum reprova AA. */
   accent: "bg-urgente text-tinta border border-transparent",
   text: "bg-transparent text-link underline-offset-4 hover:text-strong hover:underline",
   danger: "bg-transparent text-danger underline-offset-4 hover:underline",
+  /* Ação irreversível em confirmação: Erro sólido; branco 5,7:1 (claro), Noite 7,8:1 (escuro). */
+  destructive: "bg-danger text-on-inverse border border-transparent hover:opacity-90",
 };
 
 /**
@@ -70,9 +88,13 @@ const VARIANT: Record<ButtonVariant, string> = {
  * <Button variant="outline" fullWidth leading={<GoogleMark />}>Entrar com Google</Button>
  * <Button size="sm">Seguir</Button> <Button size="sm" variant="outline-strong">Seguindo</Button>
  * <Button variant="danger">Sair</Button>
+ * <Button loading={pending} type="submit">Salvar</Button>
+ * <Button variant="destructive">Apagar matéria</Button>
  * ```
  * - Tamanhos: lg 56 (formulários, folhas), md 44, sm 36 (Seguir em cards de tema).
  * - `accent` (Urgente com texto Tinta) só para momentos de "Agora", nunca como CTA padrão.
+ * - `destructive` (Erro sólido) só na ação final de uma confirmação (`ConfirmDialog`); `danger`
+ *   (texto) para "Sair" e afins. Em formulário com Server Action, prefira `SubmitButton`.
  * - Desabilitado = Névoa 2 + texto de placeholder. Pressionado = escala .98.
  */
 export function Button({
@@ -82,7 +104,9 @@ export function Button({
   iconRight,
   leading,
   fullWidth = false,
-  disabled = false,
+  disabled: disabledProp = false,
+  loading = false,
+  loadingLabel,
   type = "button",
   href,
   download = false,
@@ -95,8 +119,10 @@ export function Button({
   className,
   style,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: ButtonProps) {
   const inline = variant === "text" || variant === "danger";
+  const disabled = disabledProp || loading;
   const s = SIZE[size];
   const classes = cx(
     fullWidth ? "flex w-full" : "inline-flex",
@@ -107,12 +133,14 @@ export function Button({
     disabled
       ? cx(
           "cursor-not-allowed border border-transparent text-placeholder",
-          inline ? "bg-transparent" : "bg-nevoa-2",
+          inline ? "bg-transparent" : "bg-section",
         )
       : VARIANT[variant],
     className,
   );
-  const content = (
+  const content = loading ? (
+    (loadingLabel ?? UI.saving)
+  ) : (
     <>
       {leading}
       {icon && <Icon name={icon} size={s.icon} />}
@@ -143,7 +171,9 @@ export function Button({
       onClick={onClick}
       formAction={formAction}
       aria-pressed={pressed}
-      aria-label={ariaLabel}
+      aria-busy={loading || undefined}
+      aria-label={loading ? undefined : ariaLabel}
+      aria-describedby={ariaDescribedBy}
       className={classes}
       style={style}
     >

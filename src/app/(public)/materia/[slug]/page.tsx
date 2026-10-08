@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { PHASE_PRODUCTION_BUILD } from "next/constants";
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense } from "react";
 
+import { headers } from "next/headers";
 import { notFound, redirect, RedirectType } from "next/navigation";
 import {
   AdSlot,
@@ -16,6 +17,7 @@ import {
   CorrectionNote,
   CreditLine,
   EmptyState,
+  FirstVisitGate,
   GoneState,
   JsonLd,
   MadeHow,
@@ -24,10 +26,10 @@ import {
   ReportProblemForm,
   ReviewBanner,
   SourcesList,
-  TopicStatus,
   UpdateNote,
   UpdatedWhileReading,
   NotificationInviteSlot,
+  TagLink,
 } from "@/components";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { CARD } from "@/content/pt-BR/portal-card";
@@ -37,9 +39,11 @@ import { SYSTEM } from "@/content/pt-BR/system";
 import { getArticleBySlug, type ArticleView } from "@/lib/db/queries";
 import { findRedirect } from "@/lib/db/queries/redirects";
 import { formatDateTime } from "@/lib/format/date";
+import { proxyGoneHint } from "@/lib/http/gone";
 import { withInlineFigure } from "@/lib/media/inline-figure";
 import { publicLabels } from "@/lib/labels";
 import { articleJsonLd, breadcrumbJsonLd, ldScript } from "@/lib/seo/jsonld";
+import { withDirectImage } from "@/lib/db/media-direct";
 import { reportProblemAction } from "./actions";
 
 /** Matéria: leituras em cache por 300 s com a tag `article:<id>` (architecture §8; A-038). */
@@ -50,9 +54,13 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 type Props = { params: Promise<{ slug: string }> };
 
+/**
+ * Uma leitura por requisição (UX-W5-T2): `getArticleBySlug` é memorizada com `cache()`, e a
+ * checagem de "removida" que o proxy já fez chega pelo cabeçalho dele (`proxyGoneHint`).
+ */
 async function load(slug: string) {
   if (!SLUG.test(slug) || slug.length > 200) return null;
-  return getArticleBySlug(slug, { cache: true });
+  return getArticleBySlug(slug, { cache: true, gone: proxyGoneHint(await headers()) });
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -194,7 +202,6 @@ function Article({ a }: { a: ArticleView }) {
             <header className="flex max-w-read flex-col gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag>{a.section.name}</CategoryTag>
-                {a.topic && <TopicStatus state={a.topic.state} />}
               </div>
               <h1 className="type-headline-xl text-balance text-strong">{a.title}</h1>
               <p className="font-serif text-20 leading-snug text-meta">{a.dek}</p>
@@ -205,7 +212,6 @@ function Article({ a }: { a: ArticleView }) {
 
             <ArticleActions
               article={{ id: a.id, title: a.title, href: a.href, section: a.section.name }}
-              reportAction={reportProblemAction}
             />
 
             {a.image && <ArticleFigure image={a.image} priority className="reading-column -my-2" />}
@@ -267,21 +273,16 @@ function Article({ a }: { a: ArticleView }) {
               </h2>
               <ul className="flex flex-wrap gap-2">
                 <li>
-                  <Link
-                    href={`/${a.section.slug}`}
-                    className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
-                  >
-                    {a.section.name}
-                  </Link>
+                  <TagLink href={`/${a.section.slug}`}>{a.section.name}</TagLink>
                 </li>
                 {a.topic && (
                   <li>
-                    <Link
+                    <TagLink
                       href={`/assunto/${a.topic.slug}`}
-                      className="inline-flex min-h-tap items-center rounded-pill bg-section px-4 text-14 text-strong no-underline hover:bg-nevoa-2"
+                      className="max-w-full whitespace-normal! py-2.5 leading-snug!"
                     >
                       {ARTICLE.topicTag(a.topic.title)}
-                    </Link>
+                    </TagLink>
                   </li>
                 )}
               </ul>
@@ -309,9 +310,12 @@ function Article({ a }: { a: ArticleView }) {
                 ))}
               </ul>
             </section>
+
+            {/* Convite da primeira visita (item 63): só no fim da leitura, nunca sobre o texto. */}
+            <FirstVisitGate placement="article-end" />
           </article>
 
-          <aside className="flex flex-col gap-6 lg:sticky lg:top-6 lg:self-start">
+          <aside className="flex flex-col gap-6 lg:sticky lg:top-sticky-public lg:self-start">
             <MadeHow
               article={a}
               versionsHref={historyHref}
@@ -324,11 +328,21 @@ function Article({ a }: { a: ArticleView }) {
                 />
               }
             />
-            {ads && <AdSlot code="RAIL-A" sectionSlug={a.section.slug} />}
+            {ads && (
+              <Suspense fallback={null}>
+                <AdSlot code="RAIL-A" sectionSlug={a.section.slug} />
+              </Suspense>
+            )}
           </aside>
         </div>
 
-        {ads && <AdSlot code="ART-2" sectionSlug={a.section.slug} className="mt-12" />}
+        {/* Blocos secundários (item 87): o texto não espera os campos de banner fora dele; o
+            ART-1, no meio do texto, fica fora do Suspense para não empurrar a leitura. */}
+        {ads && (
+          <Suspense fallback={null}>
+            <AdSlot code="ART-2" sectionSlug={a.section.slug} className="mt-12" />
+          </Suspense>
+        )}
 
         {a.related.length > 0 && (
           <section
@@ -347,7 +361,11 @@ function Article({ a }: { a: ArticleView }) {
             </ul>
           </section>
         )}
-        {ads && <AdSlot code="STICKY" sectionSlug={a.section.slug} />}
+        {ads && (
+          <Suspense fallback={null}>
+            <AdSlot code="STICKY" sectionSlug={a.section.slug} />
+          </Suspense>
+        )}
       </div>
     </>
   );
@@ -387,5 +405,7 @@ export default async function ArticleRoute({ params }: Props) {
   if (!result.value) notFound();
   // O status 410 vem do proxy (src/proxy.ts); a página mostra o motivo (P25, Review Focus 2).
   if ("gone" in result.value) return <GoneState reason={result.value.reason} />;
-  return <Article a={result.value} />;
+  // Capa com URL direta do Storage (LCP sem o redirecionamento da rota, item 79).
+  const a = result.value;
+  return <Article a={a.image ? { ...a, image: await withDirectImage(a.image) } : a} />;
 }

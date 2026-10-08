@@ -264,7 +264,7 @@ describe("#1 restringir campo crítico aplica na hora (D-F3)", () => {
     );
     expect(r).toMatchObject({
       ok: true,
-      message: "Alterações salvas. 1 alteração aguarda segunda aprovação",
+      message: "Alterações salvas. 1 alteração aguarda aprovação de admin ou editor-chefe",
     });
     expect(await rowBySlug("diario-oficial-de-cuiaba")).toMatchObject({
       may_be_sole_source: false,
@@ -543,7 +543,7 @@ describe("#6 auditoria complementar e pedido obsoleto", () => {
       .single();
     expect(approved.data).toMatchObject({ status: "approved" });
     expect(approved.data?.decided_at).not.toBeNull();
-    // O campo mudou de novo no meio do caminho (pela service role: sem duas pessoas).
+    // O campo mudou de novo no meio do caminho (pela service role: sem pedido de aprovação).
     await svc.from("sources").update({ image_policy: changed }).eq("id", s.id);
     expect(
       await asUser(MARINA, () => decideApprovalAction(formFrom({ id: p.id, decision: "approve" }))),
@@ -658,5 +658,42 @@ describe("#10 runs pulados com o gatilho real", () => {
       trigger: "cron",
       outcome: "skipped:previous_pending",
     });
+  });
+});
+
+describe("ativar sem termos revisados (A-127)", () => {
+  it("fonte sem a caixa de termos ativa pelo Estúdio; termos seguem não revisados", async () => {
+    process.env.CRAWLER_FIXTURES = "1";
+    try {
+      const created = await asUser(DIEGO, () =>
+        createSourceAction(
+          formFrom({
+            name: "Sem Termos MT",
+            slug: "sem-termos-mt-teste",
+            baseUrl: "https://cadencia.example",
+            strategy: "rss",
+            feedUrl: "https://cadencia.example/feed",
+            locality: "cuiaba",
+          }),
+        ),
+      );
+      expect(created).toMatchObject({ ok: true });
+      if (!created.ok) throw new Error("cadastro");
+      const id = (created.data as { id: string }).id;
+      createdSources.push(id);
+      const row = (await svc.from("sources").select("*").eq("id", id).single()).data!;
+      expect(row.terms_reviewed_at).toBeNull();
+
+      const activated = await asUser(DIEGO, () =>
+        activateSourceAction(formFrom({ id, version: row.version })),
+      );
+      expect(activated).toMatchObject({ ok: true });
+      const after = (await svc.from("sources").select("*").eq("id", id).single()).data!;
+      expect(after.status).toBe("active");
+      expect(after.terms_reviewed_at).toBeNull();
+      await svc.from("sources").update({ status: "paused" }).eq("id", id);
+    } finally {
+      delete process.env.CRAWLER_FIXTURES;
+    }
   });
 });

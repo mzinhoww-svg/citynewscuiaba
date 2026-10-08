@@ -6,6 +6,7 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Icon } from "../ui/Icon";
 import { Select, type SelectOption } from "../ui/Select";
+import { Table } from "../ui/Table";
 
 export interface EvalReply {
   ok: boolean;
@@ -101,65 +102,46 @@ export function EvalCasesTable({ caption, columns, rows, toggle }: EvalCasesTabl
           <span className={status.ok ? "text-service" : "text-danger"}>{status.message}</span>
         )}
       </p>
-      <div
-        role="region"
-        aria-label={caption}
-        tabIndex={0}
-        className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+      <Table
+        caption={caption}
+        minWidth="md"
+        headers={[
+          columns.key,
+          columns.question,
+          columns.expect,
+          { label: columns.sources, align: "right" },
+          columns.active,
+        ]}
       >
-        <table className="w-full min-w-[44rem] border-collapse text-left">
-          <caption className="sr-only">{caption}</caption>
-          <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-            <tr>
-              <th scope="col" className="px-3 py-3">
-                {columns.key}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {columns.question}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {columns.expect}
-              </th>
-              <th scope="col" className="px-3 py-3 text-right">
-                {columns.sources}
-              </th>
-              <th scope="col" className="px-3 py-3">
-                {columns.active}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
-                <th scope="row" className="px-3 py-2 type-meta font-semibold text-strong">
-                  {r.key}
-                </th>
-                <td className="px-3 py-2 type-body text-body">{r.question}</td>
-                <td className="px-3 py-2 type-meta text-body">{r.expect}</td>
-                <td className="px-3 py-2 text-right type-body tabular-nums">{r.sources}</td>
-                <td className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    checked={r.active}
-                    disabled={!toggle || pending}
-                    aria-label={r.toggleLabel}
-                    onChange={(e) => {
-                      if (!toggle) return;
-                      const active = e.target.checked;
-                      start(async () => {
-                        const out = await toggle({ id: r.id, active });
-                        setStatus(out);
-                        if (out.ok) router.refresh();
-                      });
-                    }}
-                    className="size-5 accent-(--action-primary)"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {rows.map((r) => (
+          <tr key={r.id} className="border-b border-line-subtle align-top last:border-b-0">
+            <th scope="row" className="px-3 py-2 type-meta font-semibold text-strong">
+              {r.key}
+            </th>
+            <td className="px-3 py-2 type-body text-body">{r.question}</td>
+            <td className="px-3 py-2 type-meta text-body">{r.expect}</td>
+            <td className="px-3 py-2 text-right type-body tabular-nums">{r.sources}</td>
+            <td className="px-3 py-2">
+              <input
+                type="checkbox"
+                checked={r.active}
+                disabled={!toggle || pending}
+                aria-label={r.toggleLabel}
+                onChange={(e) => {
+                  if (!toggle) return;
+                  const active = e.target.checked;
+                  start(async () => {
+                    const out = await toggle({ id: r.id, active });
+                    setStatus(out);
+                    if (out.ok) router.refresh();
+                  });
+                }}
+                className="size-5 accent-(--action-primary)"
+              />
+            </td>
+          </tr>
+        ))}
+      </Table>
     </div>
   );
 }

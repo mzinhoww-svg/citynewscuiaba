@@ -9,6 +9,7 @@ import {
   cleanOgTitle,
   createEnrichStep,
   ENRICH_DELAY_MS,
+  ENRICH_MAX_RETRIES,
   enrichEnabled,
   parseEnrichment,
   SOURCE_TEXT_MAX,
@@ -254,7 +255,13 @@ async function setup({ routes, src = source(), items }: Setup) {
       { signal },
     );
   const advance = (ms: number) => void (clock += ms);
-  return { repo, calls, sleeps, run, ids, advance };
+  const msg = (i = 0, attempt = 1): PipelineMessage => ({
+    runId: "run-1",
+    step: "enrich",
+    itemRef: `item:${ids[i]}`,
+    attempt,
+  });
+  return { repo, calls, sleeps, run, ids, advance, step, msg };
 }
 
 const nextIsDedupe = (
@@ -413,6 +420,47 @@ describe("enrich", () => {
     expect((await step(msg(3))).ok).toBe(true);
   });
 
+  it("registra o motivo de não guardar o texto (ctx.note): nunca pula em silêncio", async () => {
+    const cases: [Record<string, FakeRoute>, Record<string, unknown>][] = [
+      [
+        { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: { status: 403 } },
+        { enrich: "skipped", reason: "http_403" },
+      ],
+      [
+        {
+          [`${HOST}/robots.txt`]: { body: "User-agent: *\nDisallow: /" },
+          [CHUVA]: ok200(FULL_PAGE),
+        },
+        { enrich: "skipped", reason: "robots_disallowed" },
+      ],
+      [
+        {
+          [`${HOST}/robots.txt`]: { status: 404 },
+          [CHUVA]: { body: "{}", headers: { "content-type": "application/json" } },
+        },
+        { enrich: "skipped", reason: "not_html" },
+      ],
+      [{ [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) }, { enrich: "saved" }],
+    ];
+    for (const [routes, expected] of cases) {
+      const t = await setup({ routes });
+      const notes: Record<string, unknown>[] = [];
+      const r = await t.step(t.msg(0), { note: (d) => void notes.push(d) });
+      nextIsDedupe(r, t.ids[0]!);
+      expect(notes).toEqual([expect.objectContaining(expected)]);
+    }
+  });
+
+  it("fonte com a flag desligada anota o motivo (disabled)", async () => {
+    const t = await setup({
+      src: source({ consumption: { strategy: "sitemap_news", enrich: false } }),
+      routes: {},
+    });
+    const notes: Record<string, unknown>[] = [];
+    await t.step(t.msg(0), { note: (d) => void notes.push(d) });
+    expect(notes).toEqual([{ enrich: "skipped", reason: "disabled" }]);
+  });
+
   it("404/403 não é transitório: segue direto, sem nova tentativa", async () => {
     for (const status of [404, 403, 410]) {
       const t = await setup({
@@ -429,15 +477,53 @@ describe("enrich", () => {
     expect((await t.run(0, 1)).ok).toBe(false);
   });
 
-  it("limite por hora da fonte atingido: segue sem enriquecer, sem tentar de novo", async () => {
+  it("limite por hora da fonte atingido: item novo segue sem enriquecer, sem tentar de novo", async () => {
     const t = await setup({
       src: source({ rateLimitPerHour: 1 }),
       routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
     });
+    const notes: Record<string, unknown>[] = [];
     // 1 requisição por hora: a do robots.txt já consome a cota
-    nextIsDedupe(await t.run(), t.ids[0]!);
+    nextIsDedupe(await t.step(t.msg(), { note: (d) => notes.push(d) }), t.ids[0]!);
+    expect(notes).toEqual([{ enrich: "skipped", reason: "rate_limited" }]);
     expect(t.calls.map((c) => c.url)).toEqual([`${HOST}/robots.txt`]);
     expect(t.repo.collected()[0]!.imageUrl).toBeNull();
+  });
+
+  const refetchMsg = (id: string, attempt = 1): PipelineMessage => ({
+    runId: "recuperacao-a126",
+    step: "enrich",
+    itemRef: `item:${id}#refetch`,
+    attempt,
+  });
+
+  it("limite por hora no refetch: tenta de novo na próxima janela, sem requisitar a página", async () => {
+    const t = await setup({
+      src: source({ rateLimitPerHour: 1 }),
+      routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
+    });
+    const r = await t.step(refetchMsg(t.ids[0]!));
+    expect(r).toMatchObject({ ok: false, error: { kind: "transient", retryable: true } });
+    const after = r.ok ? 0 : (r.error.retryAfterSec ?? 0);
+    // NOW é 17h00 em ponto: a próxima janela abre em 1 h; o espalhamento fica abaixo de 10 min.
+    expect(after).toBeGreaterThanOrEqual(3600);
+    expect(after).toBeLessThan(3600 + 600);
+    expect(t.calls.map((c) => c.url)).toEqual([`${HOST}/robots.txt`]);
+  });
+
+  it("limite por hora no refetch, tentativas esgotadas: para sem texto e registra o motivo", async () => {
+    const t = await setup({
+      src: source({ rateLimitPerHour: 1 }),
+      routes: { [`${HOST}/robots.txt`]: { status: 404 }, [CHUVA]: ok200(FULL_PAGE) },
+    });
+    const notes: Record<string, unknown>[] = [];
+    const r = await t.step(refetchMsg(t.ids[0]!, ENRICH_MAX_RETRIES + 1), {
+      note: (d) => notes.push(d),
+    });
+    expect(r).toEqual({ ok: true, value: [] });
+    expect(notes).toEqual([
+      { enrich: "skipped", reason: "retries_exhausted", lastError: "rate_limited" },
+    ]);
   });
 
   it("URL de outro host (loc fora do site da fonte) não é requisitada", async () => {

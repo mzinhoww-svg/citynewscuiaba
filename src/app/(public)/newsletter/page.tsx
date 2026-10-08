@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { NewsletterForm } from "@/components";
+import { Cta, Faq, Hero, NewsletterForm } from "@/components";
 import { NEWSLETTER_LISTS, NEWSLETTER_PAGE as T } from "@/content/pt-BR/newsletter";
 import { getHomeData, listEvents, listSection } from "@/lib/db/queries";
 import { formatDayMonth, formatHour } from "@/lib/format/date";
+import { MARKETING } from "@/content/pt-BR/site";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { subscribeListsAction } from "./actions";
 
-/** Newsletter (P19): listas com amostra da última edição e inscrição só com e-mail. */
+/**
+ * Newsletter (P19): listas com amostra da última edição e inscrição só com e-mail. UI-T11: hero,
+ * lista, CTA de inscrição e FAQ em blocos de marketing.
+ */
 export const metadata: Metadata = pageMetadata({
   title: T.title,
   documentTitle: T.metaTitle,
@@ -46,16 +50,18 @@ export default async function NewsletterRoute() {
   const sample = await samples();
   return (
     <div className={`${CONTAINER} flex flex-col gap-10 py-8 lg:py-10`}>
-      <header className="flex max-w-read flex-col gap-3 border-b-2 border-line-strong pb-5">
-        <h1 className="type-display text-strong">{T.title}</h1>
-        <p className="type-body text-body">{T.intro}</p>
-      </header>
+      <Hero
+        id="newsletter-titulo"
+        title={T.title}
+        intro={T.intro}
+        action={{ label: T.heroCta, href: "#inscrever", icon: "arrow-down" }}
+      />
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14">
-        <ul className="flex flex-col gap-6">
+        <ul aria-label={T.listsTitle} className="flex flex-col gap-6">
           {NEWSLETTER_LISTS.map((l) => (
             <li
               key={l.id}
-              className="flex flex-col gap-3 border border-line-section bg-card-white p-5"
+              className="flex flex-col gap-3 border-t-2 border-line-strong pt-4 first:border-t-0 first:pt-0"
             >
               <div className="flex flex-col gap-1">
                 <h2 className="type-section text-strong">{l.name}</h2>
@@ -85,19 +91,18 @@ export default async function NewsletterRoute() {
             </li>
           ))}
         </ul>
-        <section
-          aria-labelledby="inscrever"
-          className="flex flex-col gap-4 self-start border border-line-strong bg-card-white p-5 lg:sticky lg:top-6"
+        <Cta
+          id="inscrever"
+          title={T.submit}
+          className="scroll-mt-6 self-start lg:sticky lg:top-sticky-public"
         >
-          <h2 id="inscrever" className="type-section text-strong">
-            {T.submit}
-          </h2>
           <NewsletterForm
             action={subscribeListsAction}
             lists={NEWSLETTER_LISTS.map((l) => ({ id: l.id, name: l.name, when: l.when }))}
           />
-        </section>
+        </Cta>
       </div>
+      <Faq id="newsletter-faq" title={MARKETING.faqTitle} items={T.faq} />
     </div>
   );
 }

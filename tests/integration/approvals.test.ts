@@ -1,7 +1,8 @@
 // @vitest-environment node
-// P5-T1 · Aprovações (Review Focus 1): quem pede não decide ("A aprovação precisa ser de outra
-// pessoa"), justificativa vazia é inválida, aprovação válida ativa o alvo e audita as duas
-// pessoas; `approval_apply` (0029) recusa aprovação expirada e tipo sem consumidor aqui.
+// P5-T1 · Aprovações (Review Focus 1): só quem tem o papel decide; A-128: quem pede e tem o papel
+// pede, aprova e aplica numa ação só, e a linha de `approvals` e a auditoria registram quem fez.
+// Justificativa vazia é inválida, aprovação válida ativa o alvo e audita cada passo;
+// `approval_apply` (0029) recusa aprovação expirada e tipo sem consumidor aqui.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { APPROVAL_ERROR_TEXT } from "@/content/pt-BR/approvals";
 import { createApprovals } from "@/lib/approvals/approvals";
@@ -9,20 +10,24 @@ import { rulesTarget } from "@/lib/approvals/targets";
 import { AUDIT_ACTIONS } from "@/lib/audit/actions";
 import type { Json } from "@/lib/db/types";
 import { DEFAULT_RULES } from "@/lib/rules/defaults";
-import { decideApprovalCommand, requestApprovalCommand } from "@/lib/studio/approvals";
+import {
+  decideApprovalCommand,
+  requestAndApproveCommand,
+  requestApprovalCommand,
+} from "@/lib/studio/approvals";
 import { asUser, clientOf, SEED_USERS, service } from "./studio";
 
 const run = Date.now() % 1_000_000;
 const version = (n: number) => 3_000_000 + run * 10 + n;
 const created: string[] = [];
 
-async function propose(v: number) {
-  const diego = await clientOf("diego");
-  const r = await diego.from("rules").insert({
+async function propose(v: number, who: "diego" | "marina" = "diego") {
+  const db = await clientOf(who);
+  const r = await db.from("rules").insert({
     version: v,
     body: { ...DEFAULT_RULES, version: v } as unknown as NonNullable<Json>,
     force_review: true,
-    proposed_by: SEED_USERS.diego.id,
+    proposed_by: SEED_USERS[who].id,
   });
   if (r.error) throw new Error(r.error.message);
 }
@@ -97,19 +102,19 @@ describe("aprovações de mudança crítica (banco real)", () => {
     if (first.ok && again.ok) expect(again.value.id).toBe(first.value.id);
   });
 
-  it("quem pediu não aprova, nem pela ação nem direto no banco", async () => {
+  it("quem pediu sem o papel de aprovar regras não decide, nem pela ação nem direto no banco", async () => {
     const id = created[0]!;
     const r = await asUser("diego", () => decideApprovalCommand({ id, decision: "approve" }));
     expect(r).toMatchObject({
       ok: false,
       error: "forbidden",
-      message: APPROVAL_ERROR_TEXT.self_approval,
+      message: APPROVAL_ERROR_TEXT.forbidden,
     });
-    expect(APPROVAL_ERROR_TEXT.self_approval).toBe("A aprovação precisa ser de outra pessoa");
+    expect(APPROVAL_ERROR_TEXT).not.toHaveProperty("self_approval");
 
     const diego = await clientOf("diego");
-    // A RLS `approvals_decide` esconde a linha de quem não é admin/editor-chefe (0 linhas) e
-    // `guard_approvals` barra quem pediu mesmo com o papel: o estado não muda.
+    // A RLS `approvals_decide` esconde a linha de quem não é admin/editor-chefe (0 linhas): o
+    // estado não muda. Operador de IA propõe regras, mas não as aprova.
     const direct = await diego
       .from("approvals")
       .update({ status: "approved", approved_by: SEED_USERS.diego.id })
@@ -119,12 +124,12 @@ describe("aprovações de mudança crítica (banco real)", () => {
     const row = await service.from("approvals").select("status").eq("id", id).single();
     expect(row.data?.status).toBe("pending");
 
-    // Papel sem a segunda assinatura das regras (analista) também não decide.
+    // Papel sem permissão de aprovar regras (analista) também não decide.
     const t = await asUser("thiago", () => decideApprovalCommand({ id, decision: "approve" }));
     expect(t).toMatchObject({ ok: false, error: "forbidden" });
   });
 
-  it("aprovação válida ativa a versão proposta e audita as duas pessoas", async () => {
+  it("aprovação válida ativa a versão proposta e audita quem pediu e quem aprovou", async () => {
     const id = created[0]!;
     const r = await asUser("marina", () => decideApprovalCommand({ id, decision: "approve" }));
     expect(r).toMatchObject({ ok: true, value: { applied: true } });
@@ -192,5 +197,64 @@ describe("aprovações de mudança crítica (banco real)", () => {
     expect(r.ok ? "" : r.message).toMatch(/expirou/);
     const v3 = await service.from("rules").select("active").eq("version", version(3)).single();
     expect(v3.data?.active).toBe(false);
+  });
+
+  it("A-128: quem pede e tem o papel pede, aprova e aplica numa ação só; o histórico registra quem fez", async () => {
+    await propose(version(4), "marina");
+    const r = await asUser("marina", () =>
+      requestAndApproveCommand({
+        kind: "rules.activate",
+        targetRef: rulesTarget(version(4)),
+        justification: "Editora-chefe propõe e aplica direto",
+      }),
+    );
+    expect(r).toMatchObject({ ok: true, value: { status: "applied" } });
+    const id = r.ok ? r.value.id : "";
+    created.push(id);
+
+    const rule = await service
+      .from("rules")
+      .select("active, proposed_by, approved_by")
+      .eq("version", version(4))
+      .single();
+    expect(rule.data).toEqual({
+      active: true,
+      proposed_by: SEED_USERS.marina.id,
+      approved_by: SEED_USERS.marina.id,
+    });
+    const ap = await service
+      .from("approvals")
+      .select("status, requested_by, approved_by, decided_at")
+      .eq("id", id)
+      .single();
+    expect(ap.data).toMatchObject({
+      status: "applied",
+      requested_by: SEED_USERS.marina.id,
+      approved_by: SEED_USERS.marina.id,
+    });
+    expect(ap.data?.decided_at).not.toBeNull();
+    const audit = await auditRows(id);
+    expect(audit).toEqual(
+      expect.arrayContaining([
+        { actor: SEED_USERS.marina.id, action: "approval.requested" },
+        { actor: SEED_USERS.marina.id, action: "approval.approved" },
+        { actor: SEED_USERS.marina.id, action: "approval.applied" },
+      ]),
+    );
+  });
+
+  it("A-128: quem pede sem o papel de aprovar deixa o pedido pendente", async () => {
+    await propose(version(5));
+    const r = await asUser("diego", () =>
+      requestAndApproveCommand({
+        kind: "rules.activate",
+        targetRef: rulesTarget(version(5)),
+        justification: "Operador de IA propõe",
+      }),
+    );
+    expect(r).toMatchObject({ ok: true, value: { status: "pending" } });
+    if (r.ok) created.push(r.value.id);
+    const v5 = await service.from("rules").select("active").eq("version", version(5)).single();
+    expect(v5.data?.active).toBe(false);
   });
 });

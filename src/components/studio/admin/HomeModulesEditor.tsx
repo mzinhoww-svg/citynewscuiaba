@@ -13,9 +13,11 @@ import {
 } from "@/lib/admin/home-layout";
 import type { HomeLayoutsView } from "@/lib/db/queries/admin";
 import { formatDateTime } from "@/lib/format/date";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { IconButton } from "../../ui/IconButton";
+import { Panel } from "../../ui/Panel";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
@@ -55,6 +57,8 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
   const [busy, start] = useTransition();
   const dirty = !base || !sameLayout(modules, base.modules) || note !== (data.draft?.note ?? "");
   const valid = validateHomeLayout(modules);
+  // Item 47: sem versão salva, só a nota pode mudar (a lista nasce vazia).
+  useUnsavedGuard(base ? dirty : note !== "");
 
   const done = (r: AdminReply) => {
     setStatus(r);
@@ -78,7 +82,7 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4">
+      <Panel as="div" className="flex flex-col gap-1">
         <p className="type-body text-strong">
           {data.published
             ? H.published(
@@ -91,7 +95,7 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
         <p className="type-meta text-meta">
           {data.draft ? H.draft(data.draft.version) : H.noDraft}
         </p>
-      </div>
+      </Panel>
 
       <AdminStatus status={status} />
       <p className="sr-only" aria-live="polite">
@@ -146,7 +150,7 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
         </ol>
       </section>
 
-      <div className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4">
+      <Panel as="div" className="flex flex-col gap-4">
         <TextField
           id={`${uid}-note`}
           label={H.note}
@@ -189,7 +193,7 @@ export function HomeModulesEditor({ data, saveDraft, publish, discard }: HomeMod
             </>
           )}
         </div>
-      </div>
+      </Panel>
 
       <section aria-labelledby={`${uid}-hist`} className="flex flex-col gap-3">
         <h2 id={`${uid}-hist`} className="type-section text-strong">

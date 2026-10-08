@@ -37,7 +37,7 @@ describe("pausa automática: vale a do painel de fontes (R8)", () => {
         feed_url: "https://exemplo.test/feed",
         locality: "cuiaba",
         status: "active",
-        // Retomar (paused → active) exige termos revisados (painel, 0011).
+        // Termos revisados registrados (opcional desde A-127).
         terms_reviewed_at: new Date().toISOString(),
       })
       .select("id")

@@ -57,7 +57,7 @@ export function StoryCard({
     <article
       className={cx(
         "relative flex shrink-0 flex-col gap-3.5 rounded-xl bg-card p-3.5 [--card-radius:var(--r-xl)]",
-        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-nevoa-2",
+        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-hover",
         className,
       )}
       style={{ width, ...style }}

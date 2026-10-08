@@ -31,4 +31,6 @@ export interface FeaturedApi {
   unpin: (i: { id: string }) => Promise<AdminReply>;
   reorder: (i: { slotKey: string; ids: string[] }) => Promise<AdminReply>;
   search: (q: string) => Promise<SearchHit[]>;
+  /** Dispensa a pauta quente (HOT-T3): o assunto sai dos destaques e o mesmo sinal não o traz de volta. */
+  dismiss: (i: { id: string }) => Promise<AdminReply>;
 }

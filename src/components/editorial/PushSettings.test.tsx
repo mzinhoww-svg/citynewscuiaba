@@ -43,8 +43,11 @@ describe("PushSettings (P18)", () => {
     expect(
       screen.getByText("Avisos pelo celular ainda não estão disponíveis neste navegador."),
     ).toBeVisible();
+    // Sem suporte, uma linha de nota: sem caixa nem título para algo que não dá para usar aqui.
+    expect(screen.queryByRole("heading", { name: "Avisos no celular e no computador" })).toBeNull();
     rerender(<PushSettings support="no_keys" />);
     expect(screen.getByText("Avisos pelo celular ainda não estão disponíveis.")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Avisos no celular e no computador" })).toBeNull();
     rerender(<PushSettings support="ios_needs_install" />);
     expect(
       screen.getByText("No iPhone, os avisos funcionam com o CityNews na Tela de Início."),

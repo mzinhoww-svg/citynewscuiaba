@@ -11,6 +11,7 @@ import {
   pinViaDb,
   reloadUntil,
 } from "./helpers/featured";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * FD-T2 · Destaques estáveis nas páginas públicas (R28, R39 e R40 do dono):
@@ -18,8 +19,8 @@ import {
  *  - a manchete tem sempre capa aprovada (candidata sem capa é pulada e a busca de imagem é pedida);
  *  - "Assuntos em destaque" nunca repete a manchete e só mostra assunto com foto;
  *  - pino manual passa na frente na home e na editoria; a urgência continua na frente de tudo.
- * As mutações rodam só no projeto desktop (as posições são globais) e com o cadeado dos destaques;
- * o celular confere o que não muda dado.
+ * As mutações rodam só no projeto serial-flags (desktop; as posições são globais) e com o cadeado
+ * dos destaques; o celular confere o que não muda dado.
  */
 
 const h1Text = async (page: Page) =>
@@ -61,7 +62,10 @@ test.describe("posições com dados de teste", () => {
   const other = { id: "", slug: "", title: "" };
 
   test.beforeAll(async ({}, info) => {
-    if (info.project.name !== "desktop") return;
+    if (!mutatesGlobalState(info)) return;
+    // O `beforeAll` tem tempo próprio (30 s), fora do `test.setTimeout` do grupo; a espera pelo
+    // cadeado dos destaques chega a 240 s quando outro grupo (pauta quente, admin) o segura.
+    test.setTimeout(300_000);
     release = await acquireFeaturedLock();
     await endAllPins();
     topicA = await createTopic(fx, t("Assunto da manchete"));
@@ -117,7 +121,10 @@ test.describe("posições com dados de teste", () => {
   });
 
   test.beforeEach(({}, info) => {
-    test.skip(info.project.name !== "desktop", "mexe nas posições globais: só no projeto desktop");
+    test.skip(
+      !mutatesGlobalState(info),
+      "mexe nas posições globais: só no projeto serial do desktop",
+    );
   });
 
   test("R39: a manchete automática tem capa, pula a candidata sem capa e pede a imagem dela", async ({
@@ -214,9 +221,15 @@ test.describe("posições com dados de teste", () => {
     await reloadUntil(
       page,
       "/",
-      async () => (await page.getByRole("alert").filter({ hasText: urgent.title }).count()) > 0,
+      async () =>
+        (await page
+          .getByRole("region", { name: "Urgente" })
+          .filter({ hasText: urgent.title })
+          .count()) > 0,
     );
-    await expect(page.getByRole("alert").filter({ hasText: urgent.title })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Urgente" }).filter({ hasText: urgent.title }),
+    ).toBeVisible();
     expect(await h1Text(page)).toBe(pinned.title);
   });
 

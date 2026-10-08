@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { IOS_STEPS_TEXT as T } from "@/content/pt-BR/app";
 import { Button } from "../ui/Button";
+import { Dialog } from "../ui/Dialog";
 
 export interface IosInstallStepsProps {
   open: boolean;
@@ -34,42 +35,40 @@ function ShareGlyph() {
 }
 
 /**
- * C08 · Passos no iPhone (spec §7.3): diálogo nativo com foco preso e devolvido; "Agora não"
- * conta como recusa da instalação; Esc equivale a fechar sem contar.
+ * C08 · Passos no iPhone (spec §7.3): `Dialog` do kit (foco preso e devolvido); "Agora não"
+ * conta como recusa da instalação; Esc, o X ou o toque fora equivalem a fechar sem contar.
+ * `onClose` é chamado uma vez por abertura.
  */
 export function IosInstallSteps({ open, safari, onClose }: IosInstallStepsProps) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const titleId = useId();
-  const chose = useRef<"ok" | "not_now" | null>(null);
-
+  const done = useRef(false);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open && !el.open) {
-      chose.current = null;
-      el.showModal?.();
-    }
-    if (!open && el.open) el.close();
+    if (open) done.current = false;
   }, [open]);
 
   if (!open) return null;
-  const close = (reason: "ok" | "not_now") => {
-    chose.current = reason;
-    ref.current?.close();
+  const finish = (reason: "ok" | "not_now" | "dismiss") => {
+    if (done.current) return;
+    done.current = true;
+    onClose(reason);
   };
 
   return (
-    <dialog
-      ref={ref}
-      tabIndex={-1}
-      aria-labelledby={titleId}
-      onClose={() => onClose(chose.current ?? "dismiss")}
-      className="m-auto w-[min(100%-2rem,28rem)] rounded-xl border border-line-section bg-card-white p-6 text-body shadow-dialog backdrop:bg-overlay"
+    <Dialog
+      wide
+      title={T.title}
+      onClose={() => finish("dismiss")}
+      actions={
+        <div className="flex w-full flex-wrap justify-end gap-3">
+          <Button size="md" variant="outline" onClick={() => finish("not_now")}>
+            {T.notNow}
+          </Button>
+          <Button size="md" onClick={() => finish("ok")}>
+            {T.ok}
+          </Button>
+        </div>
+      }
     >
-      <h2 id={titleId} className="type-section text-strong">
-        {T.title}
-      </h2>
-      <ol className="mt-4 flex list-decimal flex-col gap-3 pl-5 type-body">
+      <ol className="mt-2 flex list-decimal flex-col gap-3 pl-5 text-body">
         <li>
           <span className="inline-flex items-center gap-2">
             <ShareGlyph />
@@ -80,14 +79,6 @@ export function IosInstallSteps({ open, safari, onClose }: IosInstallStepsProps)
         <li>{T.step3}</li>
       </ol>
       <p className="mt-4 type-meta text-meta">{T.note}</p>
-      <div className="mt-6 flex flex-wrap justify-end gap-3">
-        <Button size="md" variant="outline" onClick={() => close("not_now")}>
-          {T.notNow}
-        </Button>
-        <Button size="md" onClick={() => close("ok")}>
-          {T.ok}
-        </Button>
-      </div>
-    </dialog>
+    </Dialog>
   );
 }

@@ -67,6 +67,41 @@ describe("drain", () => {
     expect(events.events.map((e) => e.step)).toEqual(["fetch", "validate"]);
   });
 
+  it("próxima mensagem com delaySec só fica visível depois da espera", async () => {
+    let t = 0;
+    const queue = createMemoryQueue(() => t);
+    await queue.enqueue("pipeline", m("source:a"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: true,
+        value: [{ ...nextMessage(msg, "validate", "raw:1"), delaySec: 600 }],
+      }),
+      validate: async () => ({ ok: true, value: [] }),
+    });
+    const r = await drain({ queue, runStep, events: sink(), now: () => 0 });
+    expect(r).toMatchObject({ processed: 1, remaining: 1 });
+    t = 600_000;
+    expect(await queue.readBatch("pipeline", 10, 30)).toHaveLength(1);
+  });
+
+  it("nota da etapa (ctx.note) entra nos detalhes do evento ok", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("item:1", "enrich"));
+    const runStep = createRunStep({
+      enrich: async (_msg, ctx) => {
+        ctx?.note?.({ enrich: "skipped", reason: "http_403" });
+        return { ok: true, value: [] };
+      },
+    });
+    const events = sink();
+    await drain({ queue, runStep, events, now: () => 0 });
+    expect(events.events[0]).toMatchObject({
+      level: "info",
+      message: "ok",
+      details: { next: 0, note: { enrich: "skipped", reason: "http_403" } },
+    });
+  });
+
   it("falha transitória reagenda com espera de 1 min", async () => {
     const queue = createMemoryQueue();
     await queue.enqueue("pipeline", m("source:a"));
@@ -76,6 +111,23 @@ describe("drain", () => {
     const r = await drain({ queue, runStep, events: sink(), now: () => 0 });
     expect(r).toMatchObject({ retried: 1, quarantined: 0, remaining: 1 });
     expect(queue.delays()).toEqual([60]);
+  });
+
+  it("falha transitória com retryAfterSec espera o maior entre o pedido e a política", async () => {
+    const queue = createMemoryQueue();
+    await queue.enqueue("pipeline", m("source:a"));
+    await queue.enqueue("pipeline", m("source:b"));
+    const runStep = createRunStep({
+      fetch: async (msg) => ({
+        ok: false,
+        error: {
+          ...stepError.transient("limite por hora"),
+          retryAfterSec: msg.itemRef === "source:a" ? 1500 : 10,
+        },
+      }),
+    });
+    await drain({ queue, runStep, events: sink(), now: () => 0 });
+    expect(queue.delays()).toEqual([1500, 60]);
   });
 
   it("injeção vai direto para a quarentena e gera alerta de segurança", async () => {

@@ -12,9 +12,14 @@ import {
 } from "@/content/pt-BR/rules-admin";
 import type { CategoryRule, Mode, Route, RuleSet } from "@/lib/rules";
 import type { RouteChange } from "@/lib/rules/simulate";
+import { useUnsavedGuard } from "@/lib/studio/use-unsaved-guard";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
 import { Icon } from "../ui/Icon";
+import { SelectControl } from "../ui/Select";
+import { Table } from "../ui/Table";
+import { TextArea } from "../ui/TextArea";
 
 export interface RuleSetDraft {
   forceReview: boolean;
@@ -42,7 +47,8 @@ export interface RuleProposalFormProps {
 }
 
 const MODES = Object.keys(MODE_TEXT) as Mode[];
-const CONTROL =
+/** Campo numérico da matriz (o kit não tem primitiva de número; mesmo visual de controle). */
+const NUMBER_CONTROL =
   "border-control h-10 w-full min-w-16 rounded-md bg-input px-2 type-body text-strong";
 
 const toDraft = (r: RuleSet): RuleSetDraft => ({
@@ -68,6 +74,12 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
   const [status, setStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [busy, start] = useTransition();
   const [phase, setPhase] = useState<"idle" | "simulating" | "proposing">("idle");
+  // Item 47: o que foi proposto por último (ou a versão ativa) é o ponto "salvo".
+  const snapshot = (dr: RuleSetDraft, tp: string, j: string) => JSON.stringify([dr, tp, j]);
+  const [saved, setSaved] = useState(() =>
+    snapshot(toDraft(current), current.sensitiveTopics.join("\n"), ""),
+  );
+  useUnsavedGuard(snapshot(draft, topics, justification) !== saved);
 
   const current_ = (): RuleSetDraft => ({
     ...draft,
@@ -110,166 +122,131 @@ export function RuleProposalForm({ current, simulate, propose, className }: Rule
           setPhase("idle");
           if (r.ok) {
             setSim(null);
+            setSaved(snapshot(draft, topics, justification));
             router.refresh();
           }
         });
       }}
     >
-      <div
-        role="region"
-        aria-label={T.form.editCaption}
-        tabIndex={0}
-        className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
-      >
-        <table className="w-full min-w-[56rem] border-collapse text-left">
-          <caption className="sr-only">{T.form.editCaption}</caption>
-          <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-            <tr>
-              <th scope="col" className="px-3 py-3">
-                Categoria
+      <Table caption={T.form.editCaption} minWidth="lg" headers={["Categoria", ...cols]}>
+        {orderedCategories(draft.categories).map(([key, c]) => {
+          const name = categoryText(key);
+          return (
+            <tr key={key} className="border-b border-line-subtle last:border-0">
+              <th scope="row" className="px-3 py-2 type-body font-medium text-strong">
+                {name}
               </th>
-              {cols.map((c) => (
-                <th key={c} scope="col" className="px-3 py-3">
-                  {c}
-                </th>
-              ))}
+              <td className="px-3 py-2">
+                <label htmlFor={`${uid}-${key}-mode`} className="sr-only">
+                  {T.form.field(name, F.mode)}
+                </label>
+                <SelectControl
+                  id={`${uid}-${key}-mode`}
+                  name={`${key}-modo`}
+                  size="sm"
+                  value={c.mode}
+                  onChange={(v) => setCat(key, { mode: v as Mode })}
+                  options={MODES.map((m) => ({ value: m, label: MODE_TEXT[m] }))}
+                  className="min-w-40"
+                />
+              </td>
+              <td className="px-3 py-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  aria-label={T.form.field(name, F.minSources)}
+                  value={c.minSources}
+                  onChange={(e) => setCat(key, { minSources: Number(e.target.value) })}
+                  className={NUMBER_CONTROL}
+                />
+              </td>
+              <td className="px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label={T.form.field(name, F.requirePrimary)}
+                  checked={c.requirePrimary}
+                  onChange={(e) => setCat(key, { requirePrimary: e.target.checked })}
+                  className="size-5 accent-(--action-primary)"
+                />
+              </td>
+              <td className="px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label={T.form.field(name, F.requireApprovedImage)}
+                  checked={c.requireApprovedImage}
+                  onChange={(e) => setCat(key, { requireApprovedImage: e.target.checked })}
+                  className="size-5 accent-(--action-primary)"
+                />
+              </td>
+              <td className="px-3 py-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  aria-label={T.form.field(name, F.minScore)}
+                  value={c.minScore ?? ""}
+                  onChange={(e) => setCat(key, { minScore: num(e.target.value) })}
+                  className={NUMBER_CONTROL}
+                />
+              </td>
+              <td className="px-3 py-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={500}
+                  aria-label={T.form.field(name, F.summaryWords)}
+                  value={c.summaryWords ?? ""}
+                  onChange={(e) => setCat(key, { summaryWords: num(e.target.value) })}
+                  className={NUMBER_CONTROL}
+                />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {orderedCategories(draft.categories).map(([key, c]) => {
-              const name = categoryText(key);
-              return (
-                <tr key={key} className="border-b border-line-subtle last:border-0">
-                  <th scope="row" className="px-3 py-2 type-body font-medium text-strong">
-                    {name}
-                  </th>
-                  <td className="px-3 py-2">
-                    <select
-                      aria-label={T.form.field(name, F.mode)}
-                      value={c.mode}
-                      onChange={(e) => setCat(key, { mode: e.target.value as Mode })}
-                      className={CONTROL}
-                    >
-                      {MODES.map((m) => (
-                        <option key={m} value={m}>
-                          {MODE_TEXT[m]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      aria-label={T.form.field(name, F.minSources)}
-                      value={c.minSources}
-                      onChange={(e) => setCat(key, { minSources: Number(e.target.value) })}
-                      className={CONTROL}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      aria-label={T.form.field(name, F.requirePrimary)}
-                      checked={c.requirePrimary}
-                      onChange={(e) => setCat(key, { requirePrimary: e.target.checked })}
-                      className="size-5 accent-action-primary"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      aria-label={T.form.field(name, F.requireApprovedImage)}
-                      checked={c.requireApprovedImage}
-                      onChange={(e) => setCat(key, { requireApprovedImage: e.target.checked })}
-                      className="size-5 accent-action-primary"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={1}
-                      step={0.05}
-                      aria-label={T.form.field(name, F.minScore)}
-                      value={c.minScore ?? ""}
-                      onChange={(e) => setCat(key, { minScore: num(e.target.value) })}
-                      className={CONTROL}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={500}
-                      aria-label={T.form.field(name, F.summaryWords)}
-                      value={c.summaryWords ?? ""}
-                      onChange={(e) => setCat(key, { summaryWords: num(e.target.value) })}
-                      className={CONTROL}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          );
+        })}
+      </Table>
 
       <div className="grid gap-5 md:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label htmlFor={`${uid}-topics`} className="type-label text-16 text-strong">
-            {T.form.sensitiveTopics}
-          </label>
-          <textarea
-            id={`${uid}-topics`}
-            rows={6}
-            value={topics}
-            onChange={(e) => {
-              setTopics(e.target.value);
-              setSim(null);
-            }}
-            aria-describedby={`${uid}-topics-hint`}
-            className="border-control min-h-24 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
-          />
-          <p id={`${uid}-topics-hint`} className="type-meta text-meta">
-            {T.form.sensitiveHint}
-          </p>
-        </div>
+        <TextArea
+          id={`${uid}-topics`}
+          name="temas-sensiveis"
+          label={T.form.sensitiveTopics}
+          rows={6}
+          value={topics}
+          onChange={(v) => {
+            setTopics(v);
+            setSim(null);
+          }}
+          hint={T.form.sensitiveHint}
+        />
         <div className="flex flex-col gap-3">
-          <label className="flex min-h-tap items-center gap-2.5 type-body text-strong">
-            <input
-              type="checkbox"
-              checked={draft.forceReview}
-              onChange={(e) => {
-                setSim(null);
-                setDraft((d) => ({ ...d, forceReview: e.target.checked }));
-              }}
-              className="size-5 shrink-0 accent-action-primary"
-            />
-            {T.form.forceReview}
-          </label>
+          <Checkbox
+            id={`${uid}-force-review`}
+            name="revisao-obrigatoria"
+            label={T.form.forceReview}
+            checked={draft.forceReview}
+            onChange={(checked) => {
+              setSim(null);
+              setDraft((d) => ({ ...d, forceReview: checked }));
+            }}
+          />
           {current.forceReview && !draft.forceReview && (
             <p className="flex items-start gap-2 rounded-md bg-atencao-soft px-3 py-2 type-meta text-strong">
               <Icon name="shield" size={16} className="mt-0.5 shrink-0 text-warn" />
               {T.form.forceReviewCritical}
             </p>
           )}
-          <label htmlFor={`${uid}-just`} className="type-label text-16 text-strong">
-            {T.form.justification}
-          </label>
-          <textarea
+          <TextArea
             id={`${uid}-just`}
+            name="justificativa"
+            label={T.form.justification}
             rows={4}
             required
             value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            aria-describedby={`${uid}-just-hint`}
-            className="border-control min-h-24 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+            onChange={setJustification}
+            hint={T.form.justificationHint}
           />
-          <p id={`${uid}-just-hint`} className="type-meta text-meta">
-            {T.form.justificationHint}
-          </p>
         </div>
       </div>
 

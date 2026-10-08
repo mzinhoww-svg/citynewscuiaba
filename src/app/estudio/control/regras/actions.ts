@@ -25,6 +25,9 @@ export async function proposeRulesAction(i: {
 }): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
   const r = await proposeRulesCommand(i);
   if (!r.ok) return { ok: false, message: r.message ?? T.form.genericError };
-  const msg = T.form.proposed(r.value.version);
-  return { ok: true, message: r.value.approvalId ? msg : `${msg} ${T.form.approvalFailed}` };
+  const { version, status } = r.value;
+  return {
+    ok: true,
+    message: status === "applied" ? T.form.applied(version) : T.form.proposed(version),
+  };
 }

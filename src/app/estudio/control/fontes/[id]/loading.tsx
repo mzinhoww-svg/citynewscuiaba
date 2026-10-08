@@ -8,12 +8,10 @@ export default function Loading() {
       <p className="sr-only">{DETAIL_TEXT.loading}</p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-24 rounded-lg bg-section" />
+          <Skeleton key={i} shape="block" round="lg" className="h-24" />
         ))}
       </div>
-      <div className="rounded-lg border border-line-section bg-card-white p-4">
-        <Skeleton lines={4} />
-      </div>
+      <Skeleton shape="card" lines={4} />
     </div>
   );
 }

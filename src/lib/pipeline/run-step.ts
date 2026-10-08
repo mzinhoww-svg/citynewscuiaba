@@ -13,6 +13,8 @@ export interface StepError {
   message: string;
   retryable: boolean;
   details?: Record<string, unknown>;
+  /** Espera mínima até a nova tentativa (ex.: limite por hora); o drain usa o maior valor. */
+  retryAfterSec?: number;
 }
 
 const make =
@@ -37,6 +39,11 @@ export type StepResult = Result<PipelineMessage[], StepError>;
 /** Contexto de execução: o prazo do drain (as chamadas de rede e IA usam o menor tempo). */
 export interface StepContext {
   signal?: AbortSignal;
+  /**
+   * Detalhes do resultado que entram no evento `ok` em `pipeline_events` (ex.: por que o `enrich`
+   * não guardou o texto). Sem isso, um desvio silencioso não deixa rastro em produção.
+   */
+  note?: (details: Record<string, unknown>) => void;
 }
 
 export type StepHandler = (msg: PipelineMessage, ctx?: StepContext) => Promise<StepResult>;

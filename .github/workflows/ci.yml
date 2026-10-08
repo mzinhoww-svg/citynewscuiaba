@@ -75,23 +75,34 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
 
-      # Detector de anti-padrões de design (impeccable). Não bloqueante até UI-T15, que o torna
-      # obrigatório; baseline: 2 avisos border-accent-on-rounded (ConsentBanner, FirstVisitInvite).
+      # Detector de anti-padrões de design (impeccable). Obrigatório desde UI-T15 (zero avisos).
       - name: Detector de design
         run: pnpm design:detect
-        continue-on-error: true
+
+      # Código morto (item 90): só aviso no log, nunca reprova; configuração em knip.json.
+      - name: Código morto (knip, aviso)
+        run: pnpm dlx knip --no-exit-code
 
       - name: SW gerado confere
         run: pnpm sw:build && git diff --exit-code public/sw.js public/offline.js public/offline.css
 
       - run: pnpm build
 
+      # zod fora dos chunks do navegador (item 85, A-156): o `pnpm test` acima roda antes do
+      # build e pula esta checagem; aqui ela roda com o build pronto e não pode pular.
+      - name: zod fora do cliente (chunks do build)
+        run: pnpm vitest run --project unit tests/ci/no-zod-in-client.test.ts
+        env:
+          REQUIRE_BUILD: "1"
+
       - if: always()
         run: supabase stop --no-backup
 
-  # E2E em 7 partes em paralelo: a suíte inteira num job só passou de 90 min, e `--shard` sozinho
+  # E2E em 9 partes em paralelo: a suíte inteira num job só passou de 90 min, e `--shard` sozinho
   # não serve (o projeto `fixtures` depende dos outros e um shard saiu vazio). Cada parte roda um
   # projeto do Playwright (metade dele, nos três grandes) com a sua pilha local e o seu build.
+  # Os specs que mudam estado global (tests/e2e/projects.ts) rodam em `serial-flags*`, um worker
+  # por vez, em jobs próprios: o do desktop muda dado; o do celular e do WebKit confere leitura.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -107,6 +118,11 @@ jobs:
           - { name: webkit 1/2, args: "--project=mobile-webkit --shard=1/2" }
           - { name: webkit 2/2, args: "--project=mobile-webkit --shard=2/2" }
           - { name: fixtures, args: "--project=fixtures --no-deps" }
+          - { name: serial desktop, args: "--project=serial-flags --no-deps" }
+          - {
+              name: serial mobile e webkit,
+              args: "--project=serial-flags-mobile --project=serial-flags-webkit --no-deps --workers=1",
+            }
     env:
       AI_PROVIDER: fake
       # Valor fictício, só para o runner (a pilha local do CI não é acessível de fora).

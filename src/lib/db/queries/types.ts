@@ -27,6 +27,12 @@ export interface ArticleImage {
   author?: string;
   /** Página da matéria da fonte (`media_assets.page_url`), para "Ver original"; ausente = sem link. */
   originUrl?: string;
+  /**
+   * URL direta (assinada) e `srcset` direto do Storage, resolvidos no servidor só para a manchete
+   * (item 79, `src/lib/db/media-direct.ts`). Ausentes, a foto usa a rota `src`.
+   */
+  directSrc?: string;
+  directSrcSet?: string;
 }
 
 /** Imagem dentro do texto: entra depois do parágrafo `position` (a partir de 1) do corpo. */
@@ -288,6 +294,8 @@ export interface HomeData {
   aggregated: AggregatedView[];
   /** Ordem e ativação dos módulos abaixo da primeira dobra (A06, `home_layouts`). */
   modules: HomeModule[];
+  /** Manchete e destaques que estão ali pela pauta quente (HOT-T3): "Em alta em Cuiabá". */
+  hotIds?: string[];
 }
 
 /**

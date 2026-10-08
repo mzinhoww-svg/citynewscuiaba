@@ -5,6 +5,8 @@ import { useId, useState, useTransition } from "react";
 import { AUDIENCE_TEXT, REC_TEXT as T } from "@/content/pt-BR/recommendation-admin";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { DateField } from "../ui/DateField";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
 import { TextField } from "../ui/TextField";
@@ -89,52 +91,40 @@ export function CampaignForm({ sources, create, className }: CampaignFormProps) 
         maxLength={120}
       />
       <fieldset className="flex flex-col gap-2">
-        <legend className="type-label text-16 text-strong">{T.campaignSources}</legend>
+        <legend className="type-label text-strong">{T.campaignSources}</legend>
         <ul className="grid gap-1 md:grid-cols-2">
           {sources.map((s) => (
             <li key={s.id}>
-              <label className="flex min-h-tap items-center gap-2.5 type-body text-strong">
-                <input
-                  type="checkbox"
-                  checked={chosen.includes(s.id)}
-                  onChange={(e) =>
-                    setChosen((c) =>
-                      e.target.checked ? [...c, s.id].slice(0, 20) : c.filter((x) => x !== s.id),
-                    )
-                  }
-                  className="size-5 shrink-0 accent-action-primary"
-                />
-                {s.name}
-              </label>
+              <Checkbox
+                name="fontes"
+                value={s.id}
+                label={s.name}
+                checked={chosen.includes(s.id)}
+                onChange={(checked) =>
+                  setChosen((c) =>
+                    checked ? [...c, s.id].slice(0, 20) : c.filter((x) => x !== s.id),
+                  )
+                }
+              />
             </li>
           ))}
         </ul>
       </fieldset>
       <div className="grid gap-4 md:grid-cols-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-start`} className="type-label text-16 text-strong">
-            {T.campaignStart}
-          </label>
-          <input
-            id={`${uid}-start`}
-            type="date"
-            value={startsOn}
-            onChange={(e) => setStartsOn(e.target.value)}
-            className="border-control h-tap rounded-lg bg-input px-3 type-body text-strong"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-end`} className="type-label text-16 text-strong">
-            {T.campaignEnd}
-          </label>
-          <input
-            id={`${uid}-end`}
-            type="date"
-            value={endsOn}
-            onChange={(e) => setEndsOn(e.target.value)}
-            className="border-control h-tap rounded-lg bg-input px-3 type-body text-strong"
-          />
-        </div>
+        <DateField
+          id={`${uid}-start`}
+          name="inicio"
+          label={T.campaignStart}
+          value={startsOn}
+          onChange={setStartsOn}
+        />
+        <DateField
+          id={`${uid}-end`}
+          name="fim"
+          label={T.campaignEnd}
+          value={endsOn}
+          onChange={setEndsOn}
+        />
         <Select
           id={`${uid}-quota`}
           name="quota"
@@ -238,7 +228,7 @@ export function ExperimentForm({ versions, create, className }: ExperimentFormPr
           onChange={setB}
         />
         <div className="flex flex-col gap-1">
-          <label htmlFor={`${uid}-split`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-split`} className="type-label text-strong">
             {T.splitLabel}
           </label>
           <input

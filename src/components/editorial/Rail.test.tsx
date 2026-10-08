@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { Rail } from "./Rail";
 
@@ -13,16 +13,56 @@ function setup(props: Partial<Parameters<typeof Rail>[0]> = {}) {
   return screen.getByRole("list", { name: "Assuntos em destaque" });
 }
 
+/** Simula a medida do navegador e avisa o trilho (como faria um resize). */
+function overflow(el: HTMLElement, client: number, scroll: number) {
+  Object.defineProperty(el, "clientWidth", { value: client, configurable: true });
+  Object.defineProperty(el, "scrollWidth", { value: scroll, configurable: true });
+  act(() => {
+    window.dispatchEvent(new Event("resize"));
+  });
+}
+
 describe("Rail", () => {
-  it("é uma lista nomeada, focável, com um item por filho e encaixe obrigatório", () => {
+  it("é uma lista nomeada, com um item por filho e encaixe obrigatório", () => {
     const list = setup();
-    expect(list).toHaveAttribute("tabindex", "0");
     expect(list.className).toMatch(/snap-x/);
     expect(list.className).toMatch(/snap-mandatory/);
     expect(list.className).toMatch(/overflow-x-auto/);
     const items = within(list).getAllByRole("listitem");
     expect(items).toHaveLength(3);
     for (const item of items) expect(item.className).toMatch(/snap-start/);
+  });
+
+  it("tabIndex só quando há o que rolar (UX item 77)", () => {
+    const list = setup();
+    // jsdom: sem layout, nada transborda; o trilho não é parada de Tab à toa.
+    expect(list).not.toHaveAttribute("tabindex");
+    overflow(list, 300, 900);
+    expect(list).toHaveAttribute("tabindex", "0");
+    overflow(list, 900, 900);
+    expect(list).not.toHaveAttribute("tabindex");
+  });
+
+  it("esmaece a borda que ainda tem itens, só no celular (data-fade + max-lg:scroll-fade no invólucro)", () => {
+    const list = setup();
+    const wrap = list.parentElement as HTMLElement;
+    // Máscara num contêiner rolável vira bloco preto no Safari do iPhone (A-152).
+    expect(list.className).not.toMatch(/scroll-fade/);
+    expect(list).not.toHaveAttribute("data-fade");
+    expect(wrap.className).toMatch(/(^|\s)max-lg:scroll-fade(\s|$)/);
+    expect(wrap).toHaveAttribute("data-fade", "none");
+    overflow(list, 300, 900);
+    expect(wrap).toHaveAttribute("data-fade", "end");
+    act(() => {
+      list.scrollLeft = 300;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(wrap).toHaveAttribute("data-fade", "both");
+    act(() => {
+      list.scrollLeft = 600;
+      list.dispatchEvent(new Event("scroll"));
+    });
+    expect(wrap).toHaveAttribute("data-fade", "start");
   });
 
   it("largura do item vem de itemWidth (sm menor que md)", () => {

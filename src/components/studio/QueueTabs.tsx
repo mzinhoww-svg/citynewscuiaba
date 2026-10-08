@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 
 export interface QueueTabItem {
@@ -22,7 +23,10 @@ export interface QueueTabsProps {
 export function QueueTabs({ label, items, current, className }: QueueTabsProps) {
   return (
     <nav aria-label={label} className={cx("border-b border-line-subtle", className)}>
-      <ul className="-mb-px flex gap-1 overflow-x-auto">
+      {/* `relative`: o `ul` rola na horizontal e é o bloco de contenção de qualquer descendente
+          absoluto. Sem isso, os antigos `sr-only` das contagens escapavam da rolagem, alargavam a
+          página e o celular afastava o zoom (a tela inteira ficava com 800 px de largura). */}
+      <ul className="relative -mb-px flex gap-1 overflow-x-auto">
         {items.map((it) => {
           const active = it.key === current;
           return (
@@ -30,6 +34,13 @@ export function QueueTabs({ label, items, current, className }: QueueTabsProps) 
               <Link
                 href={it.href}
                 aria-current={active ? "page" : undefined}
+                // Nome com a contagem por extenso ("Fila de exceção, 3 itens"). Em `aria-label`,
+                // não num span `sr-only`: o Chromium separaria com espaço ("Fila de exceção , 3").
+                aria-label={
+                  it.count !== undefined
+                    ? `${it.label}${STUDIO_TEXT.tabCount(it.count)}`
+                    : undefined
+                }
                 className={cx(
                   "flex min-h-tap items-center gap-2 border-b-2 px-3 text-14 no-underline",
                   active
@@ -39,7 +50,10 @@ export function QueueTabs({ label, items, current, className }: QueueTabsProps) 
               >
                 {it.label}
                 {it.count !== undefined && (
-                  <span className="rounded-pill bg-section px-2 py-0.5 text-13 tabular-nums text-strong">
+                  <span
+                    aria-hidden="true"
+                    className="rounded-pill bg-section px-2 py-0.5 text-13 tabular-nums text-strong"
+                  >
                     {it.count}
                   </span>
                 )}

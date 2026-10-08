@@ -190,24 +190,37 @@ export default async function GuideVenuePage({ params }: Props) {
             {v.priceLevel && (
               <Fact label={GUIDE.venue.priceLabel}>{GUIDE.venue.price(v.priceLevel)}</Fact>
             )}
-            {v.rating !== null && v.ratingSource === "tripadvisor" && (
-              <Fact label="Avaliações">
-                {GUIDE.list.rating(ratingText(v.rating), v.ratingCount)}
-                {v.tripadvisorRank !== null && <> · {GUIDE.list.rank(v.tripadvisorRank)}</>}
-                {v.tripadvisorUrl && (
-                  <>
-                    {" · "}
-                    <a
-                      href={v.tripadvisorUrl}
-                      rel="noopener noreferrer"
-                      className="text-link underline underline-offset-4"
-                    >
-                      {GUIDE.venue.tripadvisor}
-                    </a>
-                  </>
-                )}
-              </Fact>
-            )}
+            {v.rating !== null &&
+              (v.ratingSource === "google" || v.ratingSource === "tripadvisor") && (
+                <Fact label="Avaliações">
+                  {GUIDE.list.rating(ratingText(v.rating), v.ratingCount, v.ratingSource)}
+                  {v.googleMapsUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={v.googleMapsUrl}
+                        rel="noopener noreferrer"
+                        className="text-link underline underline-offset-4"
+                      >
+                        {GUIDE.venue.googleMaps}
+                      </a>
+                    </>
+                  )}
+                  {v.tripadvisorRank !== null && <> · {GUIDE.list.rank(v.tripadvisorRank)}</>}
+                  {v.tripadvisorUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={v.tripadvisorUrl}
+                        rel="noopener noreferrer"
+                        className="text-link underline underline-offset-4"
+                      >
+                        {GUIDE.venue.tripadvisor}
+                      </a>
+                    </>
+                  )}
+                </Fact>
+              )}
           </dl>
         </section>
       </div>

@@ -25,7 +25,10 @@ export function VideoLowerThird({
 }: VideoLowerThirdProps) {
   return (
     <div
-      className={cx("flex flex-col gap-2.5 rounded-xs bg-tinta px-5 py-4.5", className)}
+      className={cx(
+        "flex flex-col gap-2.5 plate-edge rounded-xs border bg-tinta px-5 py-4.5",
+        className,
+      )}
       style={style}
     >
       <LiveIndicator label={kicker} inverse pulse={false} />

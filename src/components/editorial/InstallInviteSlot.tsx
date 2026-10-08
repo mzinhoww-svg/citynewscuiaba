@@ -6,18 +6,21 @@ import { isBlockedPath } from "@/lib/app/invites";
 import { readAppState } from "@/lib/app/storage";
 import { usePathname } from "next/navigation";
 import { safeDefault } from "@/lib/lazy";
+import { useInstallInvite } from "./use-install-invite";
 
 // O `beforeinstallprompt` pode disparar antes de qualquer pedaço carregado sob demanda: a
 // captura fica no bundle principal (poucas linhas) e o convite em si vem depois.
 captureInstallPrompt();
 
-const InstallInvite = lazy(() =>
-  safeDefault(() => import("./InstallInvite").then((m) => m.InstallInvite)),
+const InstallInviteBar = lazy(() =>
+  safeDefault(() => import("./InstallInviteBar").then((m) => m.InstallInviteBar)),
 );
 
 /**
- * Carrega a faixa de instalação (C07) sob demanda, só quando faz sentido: fora do app
- * instalado, com armazenamento disponível e fora das rotas bloqueadas. Mantém o JS da home leve.
+ * Faixa de instalação (C07) em duas partes: a contagem (visitas, leituras, `appinstalled`,
+ * primeira abertura do app) roda só quando faz sentido (fora do app instalado, com
+ * armazenamento e fora das rotas bloqueadas); a faixa em si só baixa quando o gatilho acende
+ * (2ª visita ou 3 leituras, com como instalar). Mantém o JS das páginas leve (item 85, A-156).
  */
 const never = () => () => {};
 const onServer = () => false;
@@ -35,12 +38,17 @@ function wanted(pathname: string): boolean {
   return true;
 }
 
+function InstallInviteLoader() {
+  const model = useInstallInvite();
+  return model.trigger !== false ? (
+    <Suspense fallback={null}>
+      <InstallInviteBar {...model} />
+    </Suspense>
+  ) : null;
+}
+
 export function InstallInviteSlot() {
   const pathname = usePathname() ?? "/";
   const load = useSyncExternalStore(never, () => wanted(pathname), onServer);
-  return load ? (
-    <Suspense fallback={null}>
-      <InstallInvite />
-    </Suspense>
-  ) : null;
+  return load ? <InstallInviteLoader /> : null;
 }

@@ -20,6 +20,8 @@ export function venueRecord(over: Partial<VenueRecord> = {}): VenueRecord {
     ratingSource: null,
     tripadvisorRank: null,
     tripadvisorUrl: null,
+    googleMapsUrl: null,
+    googleType: null,
     placeIds: {},
     sources: ["osm"],
     ...over,

@@ -30,6 +30,8 @@
 /* Medidas de layout descritas em DESIGN.md §1 que ainda não tinham token. */
 :root {
   --layout-rail: 300px; /* barra lateral da web (agenda) e navegação do Estúdio */
+  --layout-chat: 720px; /* conversa do Pergunte ao CityNews (spec ui-publica §4.8) */
+  --layout-chat-history: 240px; /* histórico local do chat no desktop */
 }
 
 @theme inline {
@@ -43,6 +45,7 @@
   --color-photo: var(--surface-photo);
   --color-overlay: var(--surface-overlay);
   --color-aggregated: var(--surface-aggregated);
+  --color-hover: var(--surface-hover);
 
   /* Texto */
   --color-strong: var(--text-strong);
@@ -116,6 +119,7 @@
   --spacing-rail: var(--layout-rail);
   --container-page: var(--container-max);
   --container-read: var(--measure-read);
+  --container-chat: var(--layout-chat);
 
   /* Tipografia auxiliar */
   --leading-tight: var(--lh-tight);
@@ -149,8 +153,19 @@
   --animate-live-pulse: cn-live-pulse 1.8s var(--ease-standard) infinite;
   --animate-sheet-in: cn-sheet-in var(--dur-slow) var(--ease-out);
   --animate-drawer-in: cn-drawer-in var(--dur-slow) var(--ease-out);
+  --animate-drawer-in-right: cn-drawer-in-right var(--dur-slow) var(--ease-out); /* [UX-W2-T8] */
   --animate-fade-in: cn-fade-in var(--dur-base) var(--ease-out);
-  --animate-ticker: cn-ticker var(--ticker-duration, 60s) linear infinite;
+  --animate-nav-progress: cn-nav-progress 8s var(--ease-out) forwards; /* [UX-W5-T6] */
+}
+
+/* Navegação pendente (NavProgress): avança rápido e desacelera sem chegar ao fim. */
+@keyframes cn-nav-progress {
+  from {
+    transform: scaleX(0.08);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
 }
 
 @keyframes cn-live-pulse {
@@ -179,12 +194,12 @@
     transform: translateX(0);
   }
 }
-@keyframes cn-ticker {
+@keyframes cn-drawer-in-right {
   from {
-    transform: translateX(0);
+    transform: translateX(100%);
   }
   to {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
 }
 @keyframes cn-fade-in {
@@ -307,21 +322,34 @@
 
 /*
  * R4 + R5 no contêiner de campo: foco troca a borda para Tinta 2 px (1 px de borda + 1 px
- * interno) e mostra o anel Urucum no contêiner. O anel do input some porque o contêiner o
- * substitui; botões internos (mostrar senha, filtros) mantêm o anel próprio.
+ * interno) e mostra o anel Urucum no contêiner. O anel do input, select ou textarea (item 27)
+ * some porque o contêiner o substitui; botões internos (mostrar senha, filtros) mantêm o anel
+ * próprio.
  */
 @utility control-field {
   &:focus-within {
     border-color: var(--border-strong);
     box-shadow: inset 0 0 0 1px var(--border-strong);
   }
-  &:has(input:focus-visible) {
+  &:has(:is(input, select, textarea):focus-visible) {
     outline: var(--focus-ring);
     outline-offset: var(--focus-offset);
   }
-  /* `!important`: o anel global de tokens.css fica fora de camada e venceria esta utilidade. */
-  & input:focus-visible {
-    outline: none !important;
+  & :is(input, select, textarea):focus-visible {
+    outline: none;
+  }
+}
+
+/*
+ * Placa Tinta (UX-W1-T1, D-18): no claro a borda é transparente (a placa já contrasta com a
+ * página); no escuro a Tinta quase some sobre o fundo, então a placa ganha a hairline do tema.
+ * Só a cor: a largura vem do componente (`border`, `border-t`), para não brigar com a ordem dos
+ * utilitários de largura do Tailwind.
+ */
+@utility plate-edge {
+  border-color: transparent;
+  :root[data-theme="dark"] & {
+    border-color: var(--border-subtle);
   }
 }
 
@@ -337,6 +365,32 @@
     height: max(100%, var(--tap-min));
     transform: translate(-50%, -50%);
   }
+}
+
+/*
+ * Utilitários de layout (item 41, D-17). `grid-rail`: coluna principal + barra lateral com a
+ * largura do token `--layout-rail` a partir de `lg` (64rem); no celular, só define a grade e
+ * as colunas seguem o padrão (uma). `table-*`: largura mínima da tabela dentro da região
+ * rolável, para colunas não espremerem no celular.
+ */
+@utility grid-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  @media (width >= 64rem) {
+    grid-template-columns: minmax(0, 1fr) var(--layout-rail);
+  }
+}
+@utility table-sm {
+  min-width: 36rem;
+}
+@utility table-md {
+  min-width: 44rem;
+}
+@utility table-lg {
+  min-width: 52rem;
+}
+@utility table-xl {
+  min-width: 64rem;
 }
 
 /*
@@ -359,6 +413,30 @@
   }
 }
 
+/*
+ * Topo livre abaixo do cabeçalho fixo do portal [UX-W4-T1]: a altura real dele, medida no
+ * navegador (`--cn-header-h`, gravada pelo StickyHeader, já com a área segura) + 16 px de folga.
+ * Antes da medição (ou sem JavaScript) vale o token `--h-sticky-public` (102 medidos + 16).
+ */
+:root {
+  --cn-sticky-top: calc(
+    var(
+        --cn-header-h,
+        calc(var(--h-sticky-public) - var(--sp-16) + env(safe-area-inset-top, 0px))
+      ) +
+      var(--sp-16)
+  );
+}
+/* Coluna `sticky` do portal: para logo abaixo do cabeçalho fixo (altura medida + folga). */
+@utility top-sticky-public {
+  top: var(--cn-sticky-top);
+}
+/* Área segura superior (entalhe do iPhone com `viewport-fit=cover`): zero onde não há entalhe,
+   para o cabeçalho não mudar de altura no desktop. */
+@utility pt-safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Área segura inferior (barra de gestos) e espaço da barra inferior do app. */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
@@ -372,6 +450,26 @@
 @utility bottom-tabbar-safe {
   bottom: calc(var(--h-tabbar) + env(safe-area-inset-bottom));
 }
+/* Campo do chat (UI-T13): acima da barra inferior e do aviso de privacidade ou da faixa de
+   convite abertos (um de cada vez; a altura de cada um vem do próprio componente). */
+/* No desktop o campo é sticky: fica logo acima da barra de privacidade enquanto ela está aberta. */
+@utility bottom-consent-safe {
+  bottom: var(--cn-consent-h, 0px);
+}
+/* Toast (item 36): acima da barra inferior do portal (quando existe), da área segura e do aviso
+   de privacidade aberto; no Estúdio, só a área segura. */
+@utility bottom-toast-safe {
+  bottom: calc(
+    max(var(--cn-bottom-bar, 0px), env(safe-area-inset-bottom, 0px)) + var(--cn-consent-h, 0px) +
+      var(--sp-16)
+  );
+}
+@utility bottom-chat-safe {
+  bottom: calc(
+    var(--h-tabbar) + env(safe-area-inset-bottom) + var(--cn-consent-h, 0px) +
+      var(--cn-invite-h, 0px)
+  );
+}
 
 /*
  * Foco nunca coberto (WCAG 2.4.11): o cabeçalho fixo e a barra inferior do portal (só abaixo de
@@ -379,7 +477,7 @@
  * deles. Cada cabeçalho fixo se declara com `data-sticky`.
  */
 :root:has(header[data-sticky="public"]) {
-  scroll-padding-top: var(--h-sticky-public);
+  scroll-padding-top: var(--cn-sticky-top);
 }
 :root:has(header[data-sticky="studio"]) {
   scroll-padding-top: var(--h-sticky-studio);
@@ -411,6 +509,31 @@
 }
 :root[data-consent-open] body {
   padding-bottom: var(--cn-consent-h, 0px);
+}
+/*
+ * Anúncio fixo do rodapé no celular aberto (AdSlotClient, item 64) [UX-W4-T1]: a página ganha
+ * no fim a altura dele (`--cn-ad-h`) e a rolagem por foco/âncora para acima dele. Ele nunca
+ * aparece junto com um convite ou o aviso de privacidade (um de cada vez, `lib/app/slot`).
+ */
+:root:root[data-ad-open] {
+  scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-ad-h, 0px) + var(--tap-min));
+}
+:root[data-ad-open] body {
+  padding-bottom: var(--cn-ad-h, 0px);
+}
+
+/*
+ * Chat do Pergunte (UI-T13): no celular o campo de envio fica fixo acima da barra inferior; a
+ * página ganha no fim a altura dele (`--cn-chat-h`, medida pelo AskChat) e o foco rola para
+ * acima dele. No desktop o campo é `sticky` dentro da coluna e nada muda.
+ */
+@media (max-width: 1023.98px) {
+  :root:root[data-chat-open] {
+    scroll-padding-bottom: calc(var(--cn-bottom-bar, 0px) + var(--cn-chat-h, 0px) + var(--tap-min));
+  }
+  :root[data-chat-open] body {
+    padding-bottom: var(--cn-chat-h, 0px);
+  }
 }
 
 /* Slider nativo (input range): trilho com preenchimento Urucum até --cn-range-fill. */
@@ -465,25 +588,43 @@
 }
 
 /*
- * Borda rolável (UI-T2): a lista indica em `data-fade` (start, end, both) de que lado ainda há
- * itens; a máscara apaga só esse lado. Função de legibilidade, não decoração.
+ * Borda rolável (UI-T2): o contêiner indica em `data-fade` (start, end, both) de que lado ainda
+ * há itens; um véu da cor da página apaga só esse lado. Função de legibilidade, não decoração.
+ * Vai no pai da lista rolável, nunca nela: `mask-image` num contêiner com rolagem vira um bloco
+ * preto no Safari do iPhone (a fileira de editorias sumia sob uma faixa preta).
  */
 @utility scroll-fade {
   --scroll-fade-w: var(--sp-24);
-  &[data-fade="end"] {
-    mask-image: linear-gradient(to right, black calc(100% - var(--scroll-fade-w)), transparent);
+  position: relative;
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    width: var(--scroll-fade-w);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-standard);
   }
-  &[data-fade="start"] {
-    mask-image: linear-gradient(to left, black calc(100% - var(--scroll-fade-w)), transparent);
+  &::before {
+    inset-inline-start: 0;
+    background: linear-gradient(to right, var(--bg-page), transparent);
   }
-  &[data-fade="both"] {
-    mask-image: linear-gradient(
-      to right,
-      transparent,
-      black var(--scroll-fade-w),
-      black calc(100% - var(--scroll-fade-w)),
-      transparent
-    );
+  &::after {
+    inset-inline-end: 0;
+    background: linear-gradient(to left, var(--bg-page), transparent);
+  }
+  &[data-fade="start"]::before,
+  &[data-fade="both"]::before,
+  &[data-fade="end"]::after,
+  &[data-fade="both"]::after {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::before,
+    &::after {
+      transition: none;
+    }
   }
 }
 

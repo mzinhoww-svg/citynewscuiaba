@@ -3,13 +3,20 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { analyzeImage } from "@/lib/media/analyze";
+import { makeVariants } from "@/lib/media/make-variants";
 import { createMemoryMediaStore } from "@/lib/media/store";
 import { takedownReproduction } from "@/lib/media/takedown";
 import type { FlagKey, MediaSourceItem } from "../ports";
 import { createFakeHttp, type FakeRoute, fakeResolve } from "../testing/fake-http";
 import { createMemoryMediaRepo } from "../testing/memory-media-repo";
 import type { PipelineMessage } from "../types";
-import { createMediaStep } from "./media";
+import {
+  createMediaStep,
+  PHOTO_REFETCH_LEAD_SEC,
+  PHOTO_RETRIES,
+  PHOTO_RETRY_DELAY_SEC,
+  reusableAsset,
+} from "./media";
 import { inlinePosition } from "@/lib/media/score";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
@@ -52,8 +59,14 @@ function setup(opts: {
   routes?: Record<string, FakeRoute>;
   category?: string;
   failPut?: boolean;
+  /** `false`: o limite por hora da fonte está esgotado. */
+  rateLimit?: boolean;
+  /** Gera variantes por largura (item 79). */
+  variants?: boolean;
 }) {
-  const repo = createMemoryMediaRepo();
+  const repo = createMemoryMediaRepo(
+    opts.rateLimit === undefined ? {} : { rateLimit: opts.rateLimit },
+  );
   repo.setContext({
     articleId: "a1",
     topicId: "t1",
@@ -80,6 +93,7 @@ function setup(opts: {
     userAgent: "CityNewsBot/1.0",
     now: () => NOW,
     analyze: analyzeImage,
+    ...(opts.variants ? { variants: makeVariants } : {}),
   });
   return { repo, store, step, calls };
 }
@@ -124,6 +138,28 @@ describe("etapa de imagem (13 e 14)", () => {
         label: "REPRODUÇÃO · Folha do Cerrado · Ana Prado",
       }),
     });
+  });
+
+  it("variantes 480/960/1440 em WebP ao lado do original, sem novo ativo; remoção a pedido apaga todas", async () => {
+    const { repo, store, step } = setup({ variants: true });
+    await step(msg);
+    const assets = repo.assets();
+    expect(assets).toHaveLength(1);
+    const path = assets[0]!.storagePath;
+    const base = path.replace(/\.jpg$/, "");
+    for (const w of [480, 960, 1440])
+      expect(store.files.get(`${base}.w${w}.webp`)?.contentType).toBe("image/webp");
+    // O original continua byte a byte.
+    expect(store.files.get(path)?.bytes).toEqual(image("reproducao-1600x900.jpg"));
+
+    const r = await takedownReproduction(
+      { repo, store, revalidate: async () => {}, now: () => NOW },
+      { mediaId: assets[0]!.id },
+      "editor@citynews.example",
+      "pedido do veículo",
+    );
+    expect(r.ok).toBe(true);
+    expect(store.files.size).toBe(0);
   });
 
   it("flag image_reproduction_enabled desligada: nada é baixado; cai para o acervo", async () => {
@@ -568,6 +604,61 @@ describe("capa e imagem no texto (UI-T16)", () => {
   });
 });
 
+describe("foto que ainda não deu para buscar: nova tentativa agendada", () => {
+  it("limite da fonte esgotado: publica com o card e agenda nova tentativa da foto", async () => {
+    const { repo, step } = setup({ rateLimit: false });
+    const r = await step(msg);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value).toEqual([
+      { ...msg, step: "rules" },
+      { ...msg, step: "image", itemRef: "article:a1#photo1", delaySec: PHOTO_RETRY_DELAY_SEC },
+    ]);
+    expect(repo.decisions()[0]!.output).toMatchObject({ kind: "typographic" });
+  });
+
+  it("item sem URL de foto: pede a página de novo (og:image) antes da nova tentativa", async () => {
+    const { step } = setup({ items: [sourceItem({}, { itemId: "i9", imageUrl: null })] });
+    const r = await step(msg);
+    expect(r.ok && r.value).toEqual([
+      { ...msg, step: "rules" },
+      { ...msg, step: "enrich", itemRef: "item:i9#refetch", delaySec: PHOTO_RETRY_DELAY_SEC },
+      {
+        ...msg,
+        step: "image",
+        itemRef: "article:a1#photo1",
+        delaySec: PHOTO_RETRY_DELAY_SEC + PHOTO_REFETCH_LEAD_SEC,
+      },
+    ]);
+  });
+
+  it("nova tentativa acha a foto: liga a capa e não volta para as regras", async () => {
+    const { repo, step } = setup({});
+    const r = await step({ ...msg, itemRef: "article:a1#photo1" });
+    expect(r).toEqual({ ok: true, value: [] });
+    expect(repo.links()).toEqual([expect.objectContaining({ articleId: "a1", role: "cover" })]);
+  });
+
+  it("capa do acervo já resolve: não agenda nova tentativa", async () => {
+    const { repo, step } = setup({ rateLimit: false });
+    repo.addArchive({ id: "acervo-1", tags: ["cultura"] });
+    expect(await step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+  });
+
+  it("para depois de PHOTO_RETRIES tentativas", async () => {
+    const { step } = setup({ rateLimit: false });
+    const r = await step({ ...msg, itemRef: `article:a1#photo${PHOTO_RETRIES}` });
+    expect(r).toEqual({ ok: true, value: [] });
+  });
+
+  it("política none ou reprodução desligada não agenda nada (não é falta de cota)", async () => {
+    const none = setup({ items: [sourceItem({ imagePolicy: "none" }, { imageUrl: null })] });
+    expect(await none.step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+    const off = setup({ flags: { image_reproduction_enabled: false }, rateLimit: false });
+    expect(await off.step(msg)).toEqual({ ok: true, value: [{ ...msg, step: "rules" }] });
+  });
+});
+
 describe("takedownReproduction (remoção em 24 h)", () => {
   it("bloqueia, apaga a cópia, invalida as páginas e audita", async () => {
     const { repo, step, store } = setup({});
@@ -600,5 +691,29 @@ describe("takedownReproduction (remoção em 24 h)", () => {
       ok: false,
       error: "not_found",
     });
+  });
+});
+
+describe("reaproveitamento pelo Media Registry (D-02)", () => {
+  const asset = {
+    id: "m",
+    kind: "reproduction" as const,
+    storagePath: "x",
+    originUrl: "https://x/a.jpg",
+    status: "approved" as const,
+    width: 800,
+    height: 600,
+    credit: null,
+    sourceId: null,
+    tags: [],
+  };
+  it("bloqueada ou com autorização vencida nunca volta a ser escolhida", () => {
+    expect(reusableAsset({ ...asset, status: "blocked" })).toBe(false);
+    expect(reusableAsset({ ...asset, rightsStatus: "expired" })).toBe(false);
+    expect(reusableAsset({ ...asset, rightsStatus: "blocked" })).toBe(false);
+  });
+  it("direitos desconhecidos seguem a política de reprodução (não bloqueiam)", () => {
+    expect(reusableAsset({ ...asset, rightsStatus: "unknown" })).toBe(true);
+    expect(reusableAsset(asset)).toBe(true);
   });
 });

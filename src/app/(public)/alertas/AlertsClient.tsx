@@ -2,18 +2,22 @@
 
 import { useId, useState, type FormEvent } from "react";
 import {
+  AccountInvite,
   Button,
   EmptyState,
   InlineAlert,
   NotificationInviteSlot,
   PushSettings,
+  RadioGroup,
   Select,
   Skeleton,
   TextField,
+  useToast,
 } from "@/components";
 import { ALERTS_TEXT as T } from "@/content/pt-BR/alerts";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
+import { looksLikeEmail } from "@/lib/auth/email-shape";
 import type { AlertChannel, AlertFrequency, AlertKind, LocalAlert } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { showNotification } from "@/lib/offline/sw";
@@ -23,6 +27,8 @@ type Option = { value: string; label: string };
 
 export interface AlertsClientProps {
   targets: { bairro: Option[]; tema: Option[]; assunto: Option[] };
+  /** A lista de assuntos não carregou (banco fora): o tipo Assunto explica em vez de calar. */
+  topicsError?: boolean;
 }
 
 const KINDS: AlertKind[] = ["bairro", "tema", "assunto", "urgentes", "agenda"];
@@ -43,9 +49,10 @@ async function askPermission(): Promise<"granted" | "denied" | "unsupported"> {
   }
 }
 
-export function AlertsClient({ targets }: AlertsClientProps) {
+export function AlertsClient({ targets, topicsError = false }: AlertsClientProps) {
   const id = useId();
   const { profile, degraded, ready, act } = useAnonProfile();
+  const toast = useToast();
   const [kind, setKind] = useState<AlertKind>("bairro");
   const [target, setTarget] = useState("");
   const [frequency, setFrequency] = useState<AlertFrequency>("immediate");
@@ -53,6 +60,12 @@ export function AlertsClient({ targets }: AlertsClientProps) {
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const [emailError, setEmailError] = useState(false);
+  const emailId = `${id}-email`;
+  const flagEmail = () => {
+    setEmailError(true);
+    document.getElementById(emailId)?.focus();
+  };
 
   const options = kind === "bairro" || kind === "tema" || kind === "assunto" ? targets[kind] : [];
   const chosen = options.find((o) => o.value === target) ?? options[0];
@@ -66,8 +79,13 @@ export function AlertsClient({ targets }: AlertsClientProps) {
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!resolved || busy) return;
-    setBusy(true);
     setFeedback(null);
+    if (channel === "email" && !looksLikeEmail(email)) {
+      flagEmail();
+      return;
+    }
+    setEmailError(false);
+    setBusy(true);
     try {
       const base = { kind, target: resolved.value, label: resolved.label, frequency, channel };
       if (channel === "browser") {
@@ -76,7 +94,11 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           setFeedback({ tone: "warn", text: p === "unsupported" ? T.unsupported : T.denied });
           return;
         }
-        await act((s) => s.addAlert(base));
+        const saved = await act((s) => s.addAlert(base));
+        if (!saved.ok) {
+          setFeedback({ tone: "error", text: T.error });
+          return;
+        }
         void showNotification(T.testTitle, { body: T.testBody, href: "/alertas", tag: "cn-teste" });
         setFeedback({ tone: "success", text: T.created });
         requestNotificationInvite("alert");
@@ -93,19 +115,21 @@ export function AlertsClient({ targets }: AlertsClientProps) {
         } | null;
         if (body?.status === "pending" && body.email) {
           const confirmed = body.email;
-          await act((s) => s.addAlert({ ...base, status: "pending_email", email: confirmed }));
+          const saved = await act((s) =>
+            s.addAlert({ ...base, status: "pending_email", email: confirmed }),
+          );
+          if (!saved.ok) {
+            setFeedback({ tone: "error", text: T.error });
+            return;
+          }
           setFeedback({ tone: "success", text: T.createdEmail });
           setEmail("");
           requestLoginInvite("alert");
-        } else
+        } else if (body?.status === "invalid") flagEmail();
+        else
           setFeedback({
             tone: "error",
-            text:
-              body?.status === "invalid"
-                ? T.invalidEmail
-                : body?.status === "rate_limited"
-                  ? T.rateLimited
-                  : T.error,
+            text: body?.status === "rate_limited" ? T.rateLimited : T.error,
           });
       }
     } finally {
@@ -113,15 +137,22 @@ export function AlertsClient({ targets }: AlertsClientProps) {
     }
   };
 
-  const remove = (a: LocalAlert) => void act((s) => s.removeAlert(a.id));
+  // Remover que falha ao gravar (item 88): o alerta continua na lista e o toast avisa.
+  const remove = (a: LocalAlert) =>
+    void act((s) => s.removeAlert(a.id)).then((r) => {
+      if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    });
 
   return (
+    // Ordem de leitura no celular: o que já existe e os avisos do navegador, o formulário de criar
+    // (a ação da página) e o convite de conta. Os avisos ficam antes do formulário: ao ativá-los a
+    // página rola até eles, e o formulário abaixo não fica sob o cabeçalho fixo. No desktop o
+    // formulário vai para a coluna lateral, ocupando as duas linhas; a segunda (1fr) absorve a sobra.
     <div
       data-ready={ready ? "true" : undefined}
-      className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)] lg:gap-14"
+      className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:grid-rows-[auto_1fr] lg:gap-x-6"
     >
-      <div className="flex min-w-0 flex-col gap-10">
-        <PushSettings />
+      <div className="flex min-w-0 flex-col gap-10 lg:col-span-8 lg:row-start-1">
         <section aria-labelledby={`${id}-ativos`} className="flex min-w-0 flex-col gap-4">
           <h2 id={`${id}-ativos`} className="type-section text-strong">
             {T.activeTitle}
@@ -173,13 +204,16 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               ))}
             </ul>
           )}
-          <p className="type-meta text-meta">{T.whileOpen}</p>
         </section>
+        <div className="flex flex-col gap-2">
+          <p className="type-meta text-meta">{T.whileOpen}</p>
+          <PushSettings />
+        </div>
       </div>
 
       <section
         aria-labelledby={`${id}-criar`}
-        className="flex flex-col gap-4 self-start border border-line-strong bg-card-white p-5"
+        className="flex min-w-0 flex-col gap-4 self-start border border-line-strong bg-card-white p-5 lg:col-span-4 lg:col-start-9 lg:row-span-2 lg:row-start-1"
       >
         <h2 id={`${id}-criar`} className="type-section text-strong">
           {T.createTitle}
@@ -209,47 +243,28 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               options={options}
             />
           )}
-          <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.frequency}</legend>
-            {FREQS.map((f) => (
-              <label
-                key={f}
-                className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-              >
-                <input
-                  type="radio"
-                  name="frequency"
-                  value={f}
-                  checked={frequency === f}
-                  onChange={() => setFrequency(f)}
-                  className="size-5 accent-(--action-primary)"
-                />
-                {T.frequencies[f]}
-              </label>
-            ))}
-          </fieldset>
-          <fieldset className="flex flex-col gap-1">
-            <legend className="mb-1 type-label text-16 text-strong">{T.channel}</legend>
-            {CHANNELS.map((c) => (
-              <label
-                key={c}
-                className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong"
-              >
-                <input
-                  type="radio"
-                  name="channel"
-                  value={c}
-                  checked={channel === c}
-                  onChange={() => setChannel(c)}
-                  className="size-5 accent-(--action-primary)"
-                />
-                {T.channels[c]}
-              </label>
-            ))}
-          </fieldset>
+          {kind === "assunto" && options.length === 0 && (
+            <InlineAlert tone={topicsError ? "error" : "info"} role="none">
+              <p>{topicsError ? T.topicsError : T.topicsEmpty}</p>
+            </InlineAlert>
+          )}
+          <RadioGroup
+            name="frequency"
+            legend={T.frequency}
+            options={FREQS.map((f) => ({ value: f, label: T.frequencies[f] }))}
+            value={frequency}
+            onChange={(v) => setFrequency(FREQS.find((f) => f === v) ?? "immediate")}
+          />
+          <RadioGroup
+            name="channel"
+            legend={T.channel}
+            options={CHANNELS.map((c) => ({ value: c, label: T.channels[c] }))}
+            value={channel}
+            onChange={(v) => setChannel(CHANNELS.find((c) => c === v) ?? "browser")}
+          />
           {channel === "email" && (
             <TextField
-              id={`${id}-email`}
+              id={emailId}
               name="email"
               type="email"
               icon="mail"
@@ -258,7 +273,11 @@ export function AlertsClient({ targets }: AlertsClientProps) {
               hint={T.emailHint}
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError && looksLikeEmail(e.target.value)) setEmailError(false);
+              }}
+              error={emailError ? T.invalidEmail : undefined}
             />
           )}
           <Button type="submit" icon="bell" disabled={busy || !resolved}>
@@ -274,6 +293,10 @@ export function AlertsClient({ targets }: AlertsClientProps) {
           <NotificationInviteSlot trigger="alert" />
         </form>
       </section>
+
+      <div className="flex min-w-0 flex-col gap-6 self-start lg:col-span-8 lg:row-start-2">
+        <AccountInvite next="/alertas" />
+      </div>
     </div>
   );
 }

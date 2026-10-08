@@ -3,8 +3,9 @@ import { expect, test, type Page } from "@playwright/test";
 
 /*
  * Convites (C01 e P23, P2-T10): convite contextual depois de salvar, com os textos fixos e
- * "Agora não"; 1 por gatilho a cada 7 dias; Esc vale como "Agora não". Painel da primeira
- * visita depois de 3 leituras qualificadas na sessão, não modal.
+ * "Agora não"; 1 por gatilho a cada 7 dias; Esc vale como "Agora não". Convite da primeira
+ * visita depois de 3 leituras qualificadas na sessão (item 63): faixa compacta no fluxo, no fim
+ * da matéria ou na home, nunca sobre o texto; "Agora não" fecha até o fim da sessão.
  */
 const ARTICLE = "/materia/prefeitura-detalha-novo-plano-de-onibus-cpa-centro";
 const INVITE = "Quer manter suas fontes e notícias salvas em qualquer dispositivo?";
@@ -88,20 +89,22 @@ test.describe("primeira visita", () => {
     });
   });
 
-  test("depois de 3 leituras oferece fontes, sem bloquear a página", async ({ page }) => {
+  test("depois de 3 leituras oferece fontes na home, sem bloquear a página", async ({ page }) => {
     await page.goto("/");
     const panel = page.getByRole("complementary", {
       name: "Personalize suas fontes e receba uma experiência mais relevante.",
     });
     await expect(panel).toBeVisible();
-    for (const b of [
-      "Escolher fontes agora",
-      "Continuar sem personalizar",
-      "Entrar ou criar conta",
-    ])
+    for (const b of ["Escolher fontes agora", "Agora não", "Entrar ou criar conta"])
       await expect(panel.getByRole("button", { name: b })).toBeVisible();
-    // Não modal: o resto da página continua usável.
+    // Não modal e no fluxo da página: dentro do conteúdo, sem posição fixa.
     await expect(page.getByRole("link", { name: "Pular para o conteúdo" })).toBeAttached();
+    await expect(
+      page.locator("main").getByRole("complementary", { name: /Personalize/ }),
+    ).toBeVisible();
+    expect(await panel.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+    // Compacto: o seletor só abre sob demanda.
+    await expect(panel.getByRole("heading", { name: "Locais" })).toHaveCount(0);
 
     await panel.getByRole("button", { name: "Escolher fontes agora" }).click();
     await expect(panel.getByRole("heading", { name: "Locais" })).toBeVisible();
@@ -122,12 +125,36 @@ test.describe("primeira visita", () => {
     await expect(page.getByRole("link", { name: "Folha do Cerrado" })).toBeVisible();
   });
 
-  test("Continuar sem personalizar decide e não volta", async ({ page }) => {
+  test("na matéria aparece no fim da leitura, depois do texto e das fontes", async ({ page }) => {
+    await openArticle(page);
+    const panel = page.getByRole("complementary", { name: /Personalize suas fontes/ });
+    await expect(panel).toBeAttached();
+    expect(await panel.evaluate((el) => getComputedStyle(el).position)).toBe("static");
+    // Dentro da matéria, depois do corpo e da lista de fontes: nunca no meio do texto.
+    const after = await panel.evaluate((el) => {
+      const body = document.querySelector("#materia .reading-body");
+      const last = body?.lastElementChild;
+      return (
+        el.closest("#materia") !== null &&
+        !!last &&
+        !body!.contains(el) &&
+        (last.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+      );
+    });
+    expect(after).toBe(true);
+  });
+
+  test("Agora não fecha e não volta na mesma sessão", async ({ page }) => {
     await page.goto("/");
     const panel = page.getByRole("complementary", { name: /Personalize suas fontes/ });
-    await panel.getByRole("button", { name: "Continuar sem personalizar" }).click();
+    await panel.getByRole("button", { name: "Agora não" }).click();
     await expect(panel).toBeHidden();
-    await page.goto("/explorar");
+    await openArticle(page);
+    await expect(page.locator("main")).toBeVisible();
+    await expect(page.getByRole("complementary", { name: /Personalize suas fontes/ })).toHaveCount(
+      0,
+    );
+    await page.goto("/");
     await expect(page.locator("main")).toBeVisible();
     await expect(page.getByRole("complementary", { name: /Personalize suas fontes/ })).toHaveCount(
       0,

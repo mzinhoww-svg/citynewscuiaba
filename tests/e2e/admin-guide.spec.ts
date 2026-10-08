@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openStudioMenu } from "./helpers/studio-menu";
 import { loginAs, service, tag } from "./studio";
 
 /*
@@ -257,5 +258,7 @@ test("jornalista não entra no admin do Guia, e o editor-chefe vê o item no men
   await expect(page).toHaveURL(/\/entrar\?next=.*motivo=sem-permissao/);
   await page.context().clearCookies();
   await loginAs(page, "marina");
-  await expect(page.getByRole("link", { name: "Guia Cuiabá" }).first()).toBeVisible();
+  // A-123: no celular o item do menu fica na gaveta.
+  const nav = await openStudioMenu(page);
+  await expect(nav.getByRole("link", { name: "Guia Cuiabá" }).first()).toBeVisible();
 });

@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { APPROVALS_TEXT as T, KIND_TEXT, targetText } from "@/content/pt-BR/approvals";
 import type { ApprovalItem } from "@/lib/db/queries/approvals";
-import { applyHref, approvalHref } from "@/lib/approvals/targets";
+import { applyHref, approvalHref, decidedElsewhere } from "@/lib/approvals/targets";
 import { formatDateTime } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Table } from "../ui/Table";
 import { TextField } from "../ui/TextField";
 
 export interface ApprovalReply {
@@ -97,7 +98,7 @@ export function ApprovalInbox({
             {pending.map((a) => {
               const own = a.requestedBy.id === currentUserId;
               const can = decidable.includes(a.kind);
-              const elsewhere = a.kind === "source.critical";
+              const elsewhere = decidedElsewhere(a.kind);
               return (
                 <li
                   key={a.id}
@@ -113,12 +114,10 @@ export function ApprovalInbox({
                     {own && (
                       <p className="flex items-center gap-2 type-meta font-medium text-strong">
                         <Icon name="info" size={16} />
-                        {T.ownRequest}: {T.waitOther}
+                        {T.ownRequest}
                       </p>
                     )}
-                    {!own && !can && !elsewhere && (
-                      <p className="type-meta text-meta">{T.noRole}</p>
-                    )}
+                    {!can && !elsewhere && <p className="type-meta text-meta">{T.noRole}</p>}
                   </div>
                   <div className="shrink-0">
                     {elsewhere ? (
@@ -127,10 +126,9 @@ export function ApprovalInbox({
                         size="sm"
                         variant="outline-strong"
                       >
-                        {T.reviewAt}
+                        {a.kind.startsWith("push.") ? T.reviewAtPush : T.reviewAt}
                       </Button>
                     ) : (
-                      !own &&
                       can && (
                         <Button
                           size="sm"
@@ -160,66 +158,63 @@ export function ApprovalInbox({
         {recent.length === 0 ? (
           <p className="type-body text-meta">{T.historyEmpty}</p>
         ) : (
-          <div
-            role="region"
-            aria-label={T.historyTitle}
-            tabIndex={0}
-            className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
-          >
-            <table className="w-full min-w-[48rem] border-collapse text-left">
-              <caption className="sr-only">{T.historyTitle}</caption>
-              <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                <tr>
-                  {(["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const).map(
-                    (k) => (
-                      <th key={k} scope="col" className="px-3 py-3">
-                        {T.col[k]}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((a) => (
-                  <tr key={a.id} className="border-b border-line-subtle last:border-0">
-                    <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                      {KIND_TEXT[a.kind]}
-                    </th>
-                    <td className="px-3 py-3 type-body text-body">
-                      {a.kind === "source.critical" && a.target.kind === "source" ? (
-                        <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
-                          {targetText(a.target)}
-                        </Link>
-                      ) : (
-                        targetText(a.target)
-                      )}
-                    </td>
-                    <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
-                    <td className="px-3 py-3 type-body text-body">
-                      {a.approvedBy ? who(a.approvedBy) : "—"}
-                    </td>
-                    <td className="px-3 py-3 type-body text-body">
-                      {T.status[a.status] ?? a.status}
-                      {a.status === "approved" && applyHref(a.kind, a.target) && (
-                        <>
-                          {" · "}
-                          <Link
-                            href={applyHref(a.kind, a.target) ?? "#"}
-                            className="text-link underline"
-                          >
-                            {T.applyAt}
-                          </Link>
-                        </>
-                      )}
-                    </td>
-                    <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+          <>
+            {/* Celular (< md): cartões; a tabela aparece a partir de md. */}
+            <ul aria-label={T.historyTitle} className="flex flex-col gap-3 md:hidden">
+              {recent.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex min-w-0 flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4"
+                >
+                  <p className="type-meta text-meta">{KIND_TEXT[a.kind]}</p>
+                  <p className="type-body font-semibold text-strong [overflow-wrap:anywhere]">
+                    <HistoryTarget approval={a} />
+                  </p>
+                  <p className="type-body text-strong">
+                    <HistoryStatus approval={a} />
+                  </p>
+                  <p className="type-meta text-meta">
+                    {T.col.requestedBy} {who(a.requestedBy)}
+                  </p>
+                  <p className="type-meta text-meta">
+                    {T.col.decidedBy} {a.approvedBy ? who(a.approvedBy) : "—"} ·{" "}
+                    <span className="tabular-nums">
                       {formatDateTime(a.decidedAt ?? a.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </span>
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <Table
+              caption={T.historyTitle}
+              minWidth="lg"
+              className="hidden md:block"
+              headers={(
+                ["kind", "target", "requestedBy", "decidedBy", "status", "when"] as const
+              ).map((k) => T.col[k])}
+            >
+              {recent.map((a) => (
+                <tr key={a.id} className="border-b border-line-subtle last:border-0">
+                  <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                    {KIND_TEXT[a.kind]}
+                  </th>
+                  <td className="px-3 py-3 type-body text-body">
+                    <HistoryTarget approval={a} />
+                  </td>
+                  <td className="px-3 py-3 type-body text-body">{who(a.requestedBy)}</td>
+                  <td className="px-3 py-3 type-body text-body">
+                    {a.approvedBy ? who(a.approvedBy) : "—"}
+                  </td>
+                  <td className="px-3 py-3 type-body text-body">
+                    <HistoryStatus approval={a} />
+                  </td>
+                  <td className="px-3 py-3 type-meta text-meta whitespace-nowrap">
+                    {formatDateTime(a.decidedAt ?? a.createdAt)}
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </>
         )}
       </section>
 
@@ -234,6 +229,35 @@ export function ApprovalInbox({
         />
       )}
     </div>
+  );
+}
+
+/** Mudança decidida: a fonte (mudança crítica) abre o detalhe; o resto é texto. */
+function HistoryTarget({ approval: a }: { approval: ApprovalItem }) {
+  return a.kind === "source.critical" && a.target.kind === "source" ? (
+    <Link href={approvalHref(a.kind, a.target)} className="text-link underline">
+      {targetText(a.target)}
+    </Link>
+  ) : (
+    <>{targetText(a.target)}</>
+  );
+}
+
+/** Situação da decisão; aprovada sem aplicar leva ao lugar onde se aplica. */
+function HistoryStatus({ approval: a }: { approval: ApprovalItem }) {
+  const apply = a.status === "approved" ? applyHref(a.kind, a.target) : null;
+  return (
+    <>
+      {T.status[a.status] ?? a.status}
+      {apply && (
+        <>
+          {" · "}
+          <Link href={apply} className="text-link underline">
+            {T.applyAt}
+          </Link>
+        </>
+      )}
+    </>
   );
 }
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { EmptyState, InlineAlert, OriginLabel } from "@/components";
-import { ImageApproval, ImageTextForm, MediaThumb } from "@/components/estudio";
+import { EmptyState, InlineAlert, OriginLabel, Panel } from "@/components";
+import { ImageApproval, ImageTextForm, MediaThumb, StudioScreen } from "@/components/estudio";
 import { ARTICLE_STATUS_LABEL, IMAGE_TEXT, MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -74,22 +74,20 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
   }).shown[1]!;
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <Link
-          href="/estudio/midia"
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {T.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">
-          {T.approvalTitle} · {T.status[m.status]}
-        </p>
-        <h1 className="type-screen-title text-strong">{m.credit ?? m.license}</h1>
+    <StudioScreen
+      as="article"
+      section={`${T.approvalTitle} · ${T.status[m.status]}`}
+      title={m.credit ?? m.license}
+      breadcrumbs={[
+        { href: "/estudio/midia", label: T.title },
+        { href: `/estudio/midia/${m.id}`, label: m.credit ?? m.license },
+      ]}
+      intro={
         <div>
           <OriginLabel label={label} />
         </div>
-      </header>
+      }
+    >
       {expired && publicArticles.length > 0 && (
         <InlineAlert tone="warn" role="none" title={T.alertsTitle}>
           {publicArticles.map((a) => (
@@ -104,16 +102,26 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
             alt={m.credit ?? m.license}
             className="max-w-2xl"
           />
-          <section
-            aria-labelledby="origem-direitos"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="origem-direitos">
             <h2 id="origem-direitos" className="type-section text-strong">
               {T.details}
             </h2>
             <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
               {[
                 [T.field.kind, T.kind[m.kind] ?? m.kind],
+                [
+                  T.field.rights,
+                  expired
+                    ? T.rights.expired
+                    : m.rightsStatus
+                      ? (T.rights[m.rightsStatus] ?? m.rightsStatus)
+                      : "—",
+                ],
+                [
+                  T.field.usageScope,
+                  m.usageScope.map((u) => T.usageScope[u] ?? u).join(", ") || "—",
+                ],
+                [T.field.disclaimer, m.disclaimer ?? "—"],
                 [T.field.credit, m.credit ?? "—"],
                 [T.field.license, m.license],
                 [
@@ -151,11 +159,8 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
                 </div>
               )}
             </dl>
-          </section>
-          <section
-            aria-labelledby="usada-em"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          </Panel>
+          <Panel aria-labelledby="usada-em">
             <h2 id="usada-em" className="type-section text-strong">
               {T.usedIn}
             </h2>
@@ -190,7 +195,7 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
                 ))}
               </ul>
             )}
-          </section>
+          </Panel>
         </div>
         <ImageApproval
           mediaId={m.id}
@@ -210,6 +215,6 @@ export default async function MediaApprovalPage({ params }: { params: Promise<{ 
           }
         />
       </div>
-    </article>
+    </StudioScreen>
   );
 }

@@ -15,9 +15,11 @@ import { isReadOnly, READ_ONLY_MESSAGE } from "./read-only";
 
 /*
  * Pedir e decidir aprovações de mudança crítica (P5-T1). O papel exigido depende do tipo
- * (`APPROVER_ACTION`), por isso não passa pelo `studioAction` de ação fixa; a auditoria grava
- * as duas pessoas: `approval.requested` por quem pede e `approval.approved` / `approval.rejected`
- * / `approval.applied` por quem decide. A RLS e `guard_approvals` conferem tudo de novo no banco.
+ * (`APPROVER_ACTION`), por isso não passa pelo `studioAction` de ação fixa. A-128: quem pede e
+ * tem o papel de aprovar decide e aplica na mesma ação (`requestAndApproveCommand`). A auditoria
+ * grava cada passo com quem o fez: `approval.requested` por quem pede e `approval.approved` /
+ * `approval.rejected` / `approval.applied` por quem decide (podem ser a mesma pessoa). A RLS e
+ * `guard_approvals` conferem tudo de novo no banco.
  */
 
 type Fail = Extract<StudioResult<never>, { ok: false }>;
@@ -33,7 +35,7 @@ export interface RequestApprovalInput {
   details?: Record<string, unknown>;
 }
 
-/** Pede a segunda assinatura em nome da pessoa da sessão; não duplica pedido pendente igual. */
+/** Registra o pedido em nome da pessoa da sessão; não duplica pedido pendente igual. */
 export async function requestApprovalCommand(
   i: RequestApprovalInput,
 ): Promise<StudioResult<{ id: string; existing: boolean }>> {
@@ -87,9 +89,6 @@ export async function decideApprovalCommand(
   const row = await port.get(i.id);
   if (!row) return fail("not_found", APPROVAL_ERROR_TEXT.not_pending);
   const kind = row.kind as CriticalKind;
-  // Autoaprovação primeiro: a mesma pessoa recebe a mensagem certa, com ou sem o papel.
-  if (row.requestedBy === session.userId)
-    return fail("forbidden", APPROVAL_ERROR_TEXT.self_approval);
   const action = APPROVER_ACTION[kind];
   if (!action || !canAccess(session.roles, action)) {
     await audit(
@@ -133,7 +132,7 @@ export async function decideApprovalCommand(
   }
 
   const r = await approvals.approveAndApply({ id: i.id });
-  const decided = r.ok || !["self_approval", "forbidden", "not_pending"].includes(r.error);
+  const decided = r.ok || !["forbidden", "not_pending"].includes(r.error);
   if (decided)
     await audit(
       session.userId,
@@ -154,4 +153,43 @@ export async function decideApprovalCommand(
     ctx.db,
   );
   return { ok: true, value: { applied: true, row: { ...row, status: "applied" } } };
+}
+
+export interface RequestAndApproveOutcome {
+  id: string;
+  /**
+   * `applied`: aplicado aqui (regras, flags). `approved`: aprovado, o consumidor do alvo aplica em
+   * seguida (prompt, pesos, papel, fonte, push). `pending`: o papel de quem pediu não aprova este
+   * tipo; o pedido fica na caixa de aprovações para quem pode.
+   */
+  status: "pending" | "approved" | "applied";
+}
+
+/**
+ * A-128: pede e, se a pessoa tem o papel que aprova o tipo, aprova (e aplica, quando o tipo se
+ * aplica aqui) na mesma ação. O pedido e a decisão ficam registrados em `approvals` e na
+ * auditoria com o nome de quem fez cada passo.
+ */
+export async function requestAndApproveCommand(
+  i: RequestApprovalInput,
+): Promise<StudioResult<RequestAndApproveOutcome>> {
+  const req = await requestApprovalCommand(i);
+  if (!req.ok) return req;
+  const ctx = await studioContext();
+  const action = APPROVER_ACTION[i.kind];
+  if (!ctx.session || !action || !canAccess(ctx.session.roles, action))
+    return { ok: true, value: { id: req.value.id, status: "pending" } };
+  const decided = await decideApprovalCommand({ id: req.value.id, decision: "approve" });
+  if (!decided.ok) {
+    // A RLS do banco pode recusar a decisão a um papel que a matriz deixa propor e aprovar (ex.:
+    // operador_ia nos pesos): o pedido segue aberto na caixa de aprovações.
+    const row = await supabaseApprovalsPort(ctx.db).get(req.value.id);
+    if (row?.status === "pending")
+      return { ok: true, value: { id: req.value.id, status: "pending" } };
+    return decided;
+  }
+  return {
+    ok: true,
+    value: { id: req.value.id, status: decided.value.applied ? "applied" : "approved" },
+  };
 }

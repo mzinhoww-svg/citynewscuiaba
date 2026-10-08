@@ -7,6 +7,7 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { TextArea } from "../ui/TextArea";
 import type { RecReply } from "./WeightSliders";
 
 export interface AbTestCardProps {
@@ -120,19 +121,15 @@ export function AbTestCard({
           }
         >
           <p className="text-left type-meta text-meta">{T.promoteHint}</p>
-          <label
-            htmlFor={`${uid}-just`}
-            className="mt-3 block text-left type-label text-16 text-strong"
-          >
-            {T.promoteJustification}
-          </label>
-          <textarea
+          <TextArea
             id={`${uid}-just`}
+            name="justification"
+            label={T.promoteJustification}
             rows={3}
             required
             value={justification}
-            onChange={(e) => setJustification(e.target.value)}
-            className="border-control mt-2 min-h-20 w-full rounded-lg bg-input px-4 py-3 type-body text-strong"
+            onChange={setJustification}
+            className="mt-3 text-left"
           />
         </Dialog>
       )}

@@ -5,7 +5,6 @@ import { CARD } from "@/content/pt-BR/portal-card";
 import { cx } from "../cx";
 import { ImageCaption } from "./ImageCaption";
 import { Photo } from "./Photo";
-import { TopicStatus } from "./TopicStatus";
 
 export interface TopicSummaryCardProps {
   topic: TopicView;
@@ -51,7 +50,6 @@ export function TopicSummaryCard({
           {topic.cover.kind === "reproduction" && <ImageCaption image={topic.cover} />}
         </div>
       )}
-      <TopicStatus state={topic.state} className="self-start" />
       <Heading className="type-headline text-strong">
         <Link href={topic.href} className="card-link no-underline">
           {topic.title}

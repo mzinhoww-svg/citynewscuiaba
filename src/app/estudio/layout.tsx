@@ -1,11 +1,13 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { NotificationBell, StudioShell } from "@/components/estudio";
+import { ToastProvider } from "@/components";
+import { HotkeysHelp, NotificationBell, StudioShell } from "@/components/estudio";
 import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import { canAccess, loginRedirect } from "@/lib/auth";
 import { hasAnyPushAction } from "@/lib/push/permissions";
 import { getSession } from "@/lib/auth/require-role";
 import { pendingCount } from "@/lib/db/queries/push-admin";
+import { studioCounts } from "@/lib/db/queries/studio-counts";
 import { pushHrefFor, studioNav } from "./nav";
 
 /* Sessão por requisição: nunca pré-renderizar nem cachear o Estúdio. */
@@ -18,19 +20,26 @@ export default async function StudioLayout({ children }: Readonly<{ children: Re
     redirect(loginRedirect("/estudio", session.expired ? "sessao-expirada" : "sem-permissao"));
 
   // "Notificações (n)" para quem aprova pedidos de push (G10); a contagem nunca derruba a casca.
-  const pendingPush = canAccess(session.roles, "push.approve") ? await pendingCount() : 0;
+  // Pendências do menu (item 51): exceções, denúncias vencidas, aprovações, falhas e mídia.
+  const [pendingPush, counts] = await Promise.all([
+    canAccess(session.roles, "push.approve") ? pendingCount() : Promise.resolve(0),
+    studioCounts(session.roles),
+  ]);
   const role = [...new Set(session.roles.map((r) => ROLE_LABEL[r.role]))].join(" · ");
   return (
-    <StudioShell
-      nav={studioNav(session.roles, { pendingPush })}
-      user={{ name: session.email ?? role, role }}
-      bell={
-        <NotificationBell
-          pushHref={hasAnyPushAction(session.roles) ? pushHrefFor(session.roles) : null}
-        />
-      }
-    >
-      {children}
-    </StudioShell>
+    <ToastProvider>
+      <StudioShell
+        nav={studioNav(session.roles, { pendingPush, counts })}
+        user={{ name: session.email ?? role, role }}
+        bell={
+          <NotificationBell
+            pushHref={hasAnyPushAction(session.roles) ? pushHrefFor(session.roles) : null}
+          />
+        }
+      >
+        {children}
+        <HotkeysHelp />
+      </StudioShell>
+    </ToastProvider>
   );
 }

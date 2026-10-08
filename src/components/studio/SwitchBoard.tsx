@@ -7,6 +7,7 @@ import { cx } from "../cx";
 import { Button } from "../ui/Button";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 import { TextField } from "../ui/TextField";
 
 export interface SwitchCard {
@@ -72,42 +73,45 @@ export function SwitchBoard({ cards, run, className }: SwitchBoardProps) {
       </p>
       <ul className="grid gap-4 md:grid-cols-2">
         {cards.map((c) => (
-          <li
-            key={c.key}
-            className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4"
-          >
-            <h2 className="type-section text-strong">{c.title}</h2>
-            <p className="type-body text-body">{c.about}</p>
-            <p className="flex items-start gap-2 type-body text-strong">
-              <Icon
-                name={c.enabled ? "check" : "triangle-alert"}
-                size={18}
-                className={c.enabled ? "mt-0.5 shrink-0 text-service" : "mt-0.5 shrink-0 text-warn"}
-              />
-              <span>
-                <span className="sr-only">{T.stateLabel}: </span>
-                <strong>{c.enabled === null ? T.missing : c.enabled ? T.onWord : T.offWord}</strong>
-                {c.enabled !== null && <> · {c.effect}</>}
-                {c.since && <span className="block type-meta text-meta">{c.since}</span>}
-              </span>
-            </p>
-            {c.note && <p className="type-meta font-medium text-strong">{c.note}</p>}
-            {c.enabled !== null && (
-              <div className="mt-auto">
-                <Button
-                  size="md"
-                  variant={c.enabled ? "outline-strong" : "outline"}
-                  aria-label={`${c.enabled ? T.turnOff : T.turnOn} ${c.title}`}
-                  onClick={(e) => {
-                    setTrigger(e.currentTarget);
-                    setError(null);
-                    setOpen(c);
-                  }}
-                >
-                  {c.enabled ? T.turnOff : T.turnOn}
-                </Button>
-              </div>
-            )}
+          <li key={c.key}>
+            <Panel as="div" className="flex flex-col gap-3">
+              <h2 className="type-section text-strong">{c.title}</h2>
+              <p className="type-body text-body">{c.about}</p>
+              <p className="flex items-start gap-2 type-body text-strong">
+                <Icon
+                  name={c.enabled ? "check" : "triangle-alert"}
+                  size={18}
+                  className={
+                    c.enabled ? "mt-0.5 shrink-0 text-service" : "mt-0.5 shrink-0 text-warn"
+                  }
+                />
+                <span>
+                  <span className="sr-only">{T.stateLabel}: </span>
+                  <strong>
+                    {c.enabled === null ? T.missing : c.enabled ? T.onWord : T.offWord}
+                  </strong>
+                  {c.enabled !== null && <> · {c.effect}</>}
+                  {c.since && <span className="block type-meta text-meta">{c.since}</span>}
+                </span>
+              </p>
+              {c.note && <p className="type-meta font-medium text-strong">{c.note}</p>}
+              {c.enabled !== null && (
+                <div className="mt-auto">
+                  <Button
+                    size="md"
+                    variant={c.enabled ? "outline-strong" : "outline"}
+                    aria-label={`${c.enabled ? T.turnOff : T.turnOn} ${c.title}`}
+                    onClick={(e) => {
+                      setTrigger(e.currentTarget);
+                      setError(null);
+                      setOpen(c);
+                    }}
+                  >
+                    {c.enabled ? T.turnOff : T.turnOn}
+                  </Button>
+                </div>
+              )}
+            </Panel>
           </li>
         ))}
       </ul>

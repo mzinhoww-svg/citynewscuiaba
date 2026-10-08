@@ -91,32 +91,30 @@
     }
   },
   {
-    "id": "uma-fonte-so",
-    "question": "Qual o resultado da vacinação nas escolas do Coxipó?",
+    "id": "uma-fonte-relevante",
+    "question": "Quando começa a vacinação nas escolas do Coxipó?",
     "sources": [
       {
         "id": "s1",
         "publisher": "agencia-mt",
         "sourceName": "Agência MT",
-        "title": "Campanha de vacinação nas escolas do Coxipó",
-        "text": "Balanço sai na próxima semana.",
+        "title": "Vacinação nas escolas do Coxipó começa na segunda",
+        "text": "Postos móveis atendem até sexta.",
         "primary": true
-      },
-      {
-        "id": "s2",
-        "publisher": "agencia-mt",
-        "sourceName": "Agência MT",
-        "title": "Vacinação segue nas escolas",
-        "text": "Postos móveis atendem até sexta."
       }
     ],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": false,
+      "facts": ["vacinação nas escolas do Coxipó começa na segunda"]
+    }
   },
   {
     "id": "sem-fontes",
     "question": "Quem ganhou o campeonato de xadrez de 1987 em Cuiabá?",
     "sources": [],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": true
+    }
   },
   {
     "id": "pergunta-com-instrucao",
@@ -137,6 +135,8 @@
         "text": "Votação pode ir até a noite."
       }
     ],
-    "expect": { "refuse": true }
+    "expect": {
+      "refuse": true
+    }
   }
 ]

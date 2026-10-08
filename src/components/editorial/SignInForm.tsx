@@ -6,6 +6,7 @@ import { ACCOUNT_TEXT as A, SIGN_IN_TEXT as T } from "@/content/pt-BR/account";
 import { IDLE, type EmailLinkState, type SignInState } from "@/lib/auth/form-state";
 import { formatHour } from "@/lib/format/date";
 import { Button } from "../ui/Button";
+import { EmailDivider, GoogleButton } from "./GoogleButton";
 import { InlineAlert } from "../ui/InlineAlert";
 import { TextField } from "../ui/TextField";
 import { useHydratedForm } from "../ui/useHydratedForm";
@@ -19,9 +20,11 @@ export interface SignInFormProps {
 }
 
 /**
- * Entrar (C02): e-mail e senha, "Esqueci a senha", link mágico no mesmo campo de e-mail e
- * Google quando configurado. Erro genérico com tentativas restantes; bloqueio de 15 min
- * explicado com alternativas. O e-mail digitado nunca se perde.
+ * Entrar (C02, UI-T12): Google no topo quando configurado, divisor "ou use seu e-mail", e-mail e
+ * senha, Entrar, e "Esqueci a senha" ao lado de "Entrar sem senha" (link por e-mail no mesmo
+ * campo). Sem o Google, o formulário de e-mail ocupa o espaço, sem frase de indisponível. Erro
+ * genérico com tentativas restantes; bloqueio de 15 min explicado com alternativas. O e-mail
+ * digitado nunca se perde.
  */
 export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps) {
   const [state, signInAction, signingIn] = useActionState(signIn, IDLE as SignInState);
@@ -38,7 +41,13 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
       : undefined;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
+      {google && (
+        <>
+          <GoogleButton action={google} next={next} />
+          <EmailDivider />
+        </>
+      )}
       <form
         ref={ref}
         action={signInAction}
@@ -60,26 +69,16 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
           onChange={(e) => setEmail(e.target.value)}
           error={emailError}
         />
-        <div className="flex flex-col gap-2">
-          <TextField
-            id={`${id}-senha`}
-            name="password"
-            type="password"
-            label={A.password}
-            icon="lock"
-            autoComplete="current-password"
-            placeholder={T.passwordPlaceholder}
-            error={state.status === "invalid" && state.password ? T.passwordError : undefined}
-          />
-          <p className="flex justify-end">
-            <Link
-              href={`/recuperar-senha${email ? `?email=${encodeURIComponent(email)}` : ""}`}
-              className="min-h-tap content-center font-semibold text-link underline-offset-4 hover:underline"
-            >
-              {T.forgot}
-            </Link>
-          </p>
-        </div>
+        <TextField
+          id={`${id}-senha`}
+          name="password"
+          type="password"
+          label={A.password}
+          icon="lock"
+          autoComplete="current-password"
+          placeholder={T.passwordPlaceholder}
+          error={state.status === "invalid" && state.password ? T.passwordError : undefined}
+        />
 
         <div aria-live="polite" className="empty:hidden">
           {state.status === "wrong" && (
@@ -115,17 +114,21 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
           )}
         </div>
 
-        <Button type="submit" fullWidth disabled={busy}>
-          {signingIn ? T.busy : T.submit}
+        <Button type="submit" fullWidth disabled={busy} loading={signingIn} loadingLabel={T.busy}>
+          {T.submit}
         </Button>
 
-        <div className="flex flex-col gap-3 border-t border-line-subtle pt-5">
-          <h2 className="type-label text-strong">{T.magicTitle}</h2>
-          <p className="type-meta text-meta">{T.magicIntro}</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <Link
+            href={`/recuperar-senha${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+            className="min-h-tap content-center font-semibold text-link underline-offset-4 hover:underline"
+          >
+            {T.forgot}
+          </Link>
           <Button
             type="submit"
-            variant="outline"
-            fullWidth
+            variant="secondary"
+            size="sm"
             icon="mail"
             disabled={busy}
             formAction={magicAction}
@@ -134,17 +137,6 @@ export function SignInForm({ signIn, magicLink, google, next }: SignInFormProps)
           </Button>
         </div>
       </form>
-
-      {google ? (
-        <form action={google}>
-          <input type="hidden" name="next" value={next} />
-          <Button type="submit" variant="outline" fullWidth>
-            {T.google}
-          </Button>
-        </form>
-      ) : (
-        <p className="type-meta text-meta">{T.googleOff}</p>
-      )}
     </div>
   );
 }

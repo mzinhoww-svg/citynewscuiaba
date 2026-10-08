@@ -4,13 +4,14 @@
  * extração e montagem do patch aceito por `source_admin_update` (0031/0032). Nada aqui toca rede
  * ou banco.
  */
+import "server-only";
 import { z } from "zod";
+import { BLOCK_REASONS, type BlockReason } from "./activation-constants";
 import { effectiveFrequency } from "./frequency";
 import { consumptionSchema } from "./schema";
 import type { ConsumptionStrategy } from "./types";
 
-export const BLOCK_REASONS = ["robots", "legal", "quality", "other"] as const;
-export type BlockReason = (typeof BLOCK_REASONS)[number];
+export { BLOCK_REASONS, type BlockReason } from "./activation-constants";
 
 const expectSchema = z.object({
   /** Itens válidos exigidos no teste de extração. */

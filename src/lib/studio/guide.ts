@@ -595,6 +595,8 @@ export const saveVenueCommand = studioAction(
       ratingSource: null,
       tripadvisorRank: null,
       tripadvisorUrl: null,
+      googleMapsUrl: null,
+      googleType: null,
       placeIds: {},
       sources: ["manual"],
     };

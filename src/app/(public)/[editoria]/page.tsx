@@ -9,6 +9,7 @@ import {
   Button,
   Chip,
   EmptyState,
+  LoadingRegion,
   NewItemsPill,
   SectionFiltersForm,
   Skeleton,
@@ -16,6 +17,7 @@ import {
 import { neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { SECTIONS } from "@/content/pt-BR/nav";
 import { SECTION_DESCRIPTION, SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { CARD } from "@/content/pt-BR/portal-card";
 import { getSectionRef, listSection, type SectionPage } from "@/lib/db/queries";
 import {
   parseSectionFilters,
@@ -181,7 +183,15 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             <ol id="lista" className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
               {listed.map((a, i) => (
                 <li key={a.id} className={i === 0 ? "md:col-span-2" : undefined}>
-                  <ArticleCard variant={i === 0 ? "lead" : "standard"} article={a} />
+                  <ArticleCard
+                    variant={i === 0 ? "lead" : "standard"}
+                    article={a}
+                    kicker={
+                      i === 0 && data.featuredHot && a.id === data.featured?.id
+                        ? CARD.hot
+                        : undefined
+                    }
+                  />
                 </li>
               ))}
             </ol>
@@ -223,13 +233,21 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             </aside>
           )}
           {/* Lateral abaixo de "Mais lidas": retângulo e arranha-céu (este fixo ao rolar). */}
-          <AdSlot code="RAIL-A" sectionSlug={adSection} />
-          <div className="lg:sticky lg:top-6">
-            <AdSlot code="RAIL-B" sectionSlug={adSection} />
+          {/* Blocos secundários (item 87): a lista não espera os campos de banner da lateral.
+              O TOP fica fora do Suspense para não empurrar a lista quando chegar. */}
+          <Suspense fallback={null}>
+            <AdSlot code="RAIL-A" sectionSlug={adSection} />
+          </Suspense>
+          <div className="lg:sticky lg:top-sticky-public">
+            <Suspense fallback={null}>
+              <AdSlot code="RAIL-B" sectionSlug={adSection} />
+            </Suspense>
           </div>
         </div>
       </div>
-      <AdSlot code="STICKY" sectionSlug={adSection} />
+      <Suspense fallback={null}>
+        <AdSlot code="STICKY" sectionSlug={adSection} />
+      </Suspense>
     </div>
   );
 }
@@ -267,24 +285,19 @@ function SectionLoading({ name }: { name: string }) {
         <Skeleton lines={1} className="max-w-md" />
       </header>
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)]">
-        <div
-          aria-busy="true"
-          aria-live="polite"
+        <LoadingRegion
+          label={SECTION_PAGE.loading}
           className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2"
         >
-          <p className="sr-only">{SECTION_PAGE.loading}</p>
           {/* Mesma forma da lista pronta: lead em largura total e depois standard em 2 colunas. */}
-          <div
-            aria-hidden="true"
-            className="flex flex-col gap-4 motion-safe:animate-pulse md:col-span-2"
-          >
-            <div className="aspect-video w-full bg-section" />
+          <div className="flex flex-col gap-4 md:col-span-2">
+            <Skeleton shape="block" className="aspect-video w-full" />
             <Skeleton lines={3} />
           </div>
           {Array.from({ length: 4 }, (_, i) => (
             <Skeleton key={i} media lines={3} />
           ))}
-        </div>
+        </LoadingRegion>
       </div>
     </div>
   );

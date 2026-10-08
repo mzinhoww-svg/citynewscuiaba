@@ -2,12 +2,14 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { hasMailbox, lastLinkFor } from "./mailbox";
 import { loginAs, service, STAFF, tag } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T8 · Administração (A01–A06): convidar pessoa mostra "Convite pendente" e manda o link;
- * conceder admin abre pedido `role.admin` (outra pessoa decide); mesclar tags duplicadas
- * preserva vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
- * Mutações só no projeto desktop e cada teste restaura o que criou.
+ * conceder admin é uma ação só, confirmada pelo nome: o pedido `role.grant` nasce aprovado e
+ * aplicado pela própria admin (A-128, A-150, `role_set` 0158); mesclar tags duplicadas preserva
+ * vínculos; reordenar módulos da home por teclado (Alt + setas) e publicar.
+ * Mutações só no projeto serial do desktop e cada teste restaura o que criou.
  */
 
 test("A01/A03 · painel e matriz de permissões", async ({ page }) => {
@@ -29,7 +31,7 @@ test("editora-chefe não entra em Usuários, mas entra em Taxonomia", async ({ p
 });
 
 test("A02 · convidar pessoa envia link e aparece como convite pendente", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "cria conta: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "cria conta: só no projeto serial do desktop");
   const mark = tag();
   const email = `convite-e2e-${mark}@exemplo.com`;
   const db = service();
@@ -57,8 +59,10 @@ test("A02 · convidar pessoa envia link e aparece como convite pendente", async 
   }
 });
 
-test("A03 · conceder admin pede aprovação role.admin de outra pessoa", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "muda papéis do seed: só no projeto desktop");
+test("A03 · admin concede admin numa ação só; o pedido role.grant fica no histórico (A-150)", async ({
+  page,
+}, info) => {
+  test.skip(!mutatesGlobalState(info), "muda papéis do seed: só no projeto serial do desktop");
   const db = service();
   try {
     await loginAs(page, "helena", "/estudio/admin/usuarios");
@@ -68,25 +72,47 @@ test("A03 · conceder admin pede aprovação role.admin de outra pessoa", async 
     await dialog.getByLabel("Administração").check();
     await dialog.getByLabel(/Justificativa/).fill("Cobrir férias da administração");
     await dialog.getByRole("button", { name: "Salvar papéis" }).click();
-    await expect(page.getByRole("status")).toContainText("Pedido de papel de administração aberto");
-    await expect(page.getByRole("row").filter({ hasText: "Thiago Moraes" })).toContainText(
-      "Pedido de administração aguardando aprovação",
+    await page
+      .getByRole("dialog", { name: "Conceder administração a Thiago Moraes?" })
+      .getByRole("button", { name: "Conceder administração a Thiago Moraes" })
+      .click();
+    await expect(page.getByRole("status")).toContainText(
+      "Papel de administração aplicado. Fica registrado no histórico.",
     );
-    const roles = await db.from("user_roles").select("role").eq("user_id", STAFF.thiago.id);
-    expect(roles.data?.map((r) => r.role)).toEqual(["analista"]);
-    // Quem pediu não decide: na caixa de aprovações o pedido aparece sem "Revisar".
+    const roles = await db
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", STAFF.thiago.id)
+      .order("role");
+    expect(roles.data?.map((r) => r.role)).toEqual(["admin", "analista"]);
+    const { data: ap } = await db
+      .from("approvals")
+      .select("status, requested_by, approved_by")
+      .eq("kind", "role.grant")
+      .eq("target_ref", `user:${STAFF.thiago.id}:admin`)
+      .single();
+    expect(ap).toEqual({
+      status: "applied",
+      requested_by: STAFF.helena.id,
+      approved_by: STAFF.helena.id,
+    });
+    // O pedido aplicado aparece no histórico da caixa de aprovações.
     await page.goto("/estudio/control/aprovacoes");
-    const mine = page.getByRole("listitem").filter({ hasText: "Cobrir férias da administração" });
-    await expect(mine).toContainText("A aprovação precisa ser de outra pessoa");
-    await expect(mine.getByRole("button", { name: "Revisar" })).toHaveCount(0);
+    await expect(page.getByRole("table", { name: "Últimas decisões" })).toContainText(
+      "Conceder papel",
+    );
   } finally {
-    await db.from("approvals").delete().eq("kind", "role.admin").eq("target_ref", STAFF.thiago.id);
+    await db
+      .from("approvals")
+      .delete()
+      .in("kind", ["role.grant", "role.revoke"])
+      .like("target_ref", `user:${STAFF.thiago.id}:%`);
     await db.from("user_roles").delete().eq("user_id", STAFF.thiago.id).eq("role", "admin");
   }
 });
 
 test("A05 · mesclar tags duplicadas preserva vínculos", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "muda tags de matérias: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda tags de matérias: só no projeto serial do desktop");
   const db = service();
   const mark = tag();
   const ids = [randomUUID(), randomUUID()];
@@ -129,7 +155,7 @@ test("A05 · mesclar tags duplicadas preserva vínculos", async ({ page }, info)
 test("A06 · reordenar módulos da home por teclado (Alt + setas) e publicar", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "publica a home: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "publica a home: só no projeto serial do desktop");
   const db = service();
   try {
     await loginAs(page, "marina", "/estudio/admin/home");

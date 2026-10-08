@@ -11,6 +11,7 @@ export const SWITCH_KEYS = [
   "source_link_analysis",
   "sponsored_native_enabled",
   "ads_enabled",
+  "hot_featured_enabled",
 ] as const satisfies readonly FlagKey[];
 
 export interface SwitchInfo {
@@ -72,6 +73,13 @@ export const SWITCH_INFO: Record<(typeof SWITCH_KEYS)[number], SwitchInfo> = {
       "Campos de banner do portal (topo, lateral, no texto, rodapé). Nunca em Política, Justiça, Segurança ou Saúde.",
     on: "Ligado: os campos mostram as peças no ar, pagas ou da casa.",
     off: "Desligado: nenhum banner aparece no portal.",
+  },
+  hot_featured_enabled: {
+    title: "Pauta quente nos destaques",
+    about:
+      "Quando vários portais de Cuiabá põem o mesmo assunto no topo, a matéria já publicada dele ocupa a manchete e o destaque da editoria por 3 h (até 12 h). Fixação manual sempre vence.",
+    on: "Ligada: o assunto em alta sobe para a manchete, com o texto Em alta em Cuiabá.",
+    off: "Desligada: os destaques ficam só com a fixação manual e o automático.",
   },
 };
 

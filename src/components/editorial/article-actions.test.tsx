@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { REPORT_IDLE } from "@/lib/reports/form-state";
 import { ArticleActions } from "./ArticleActions";
 
 vi.mock("@/lib/anon/use-profile", async () => {
@@ -11,7 +10,10 @@ vi.mock("@/lib/anon/use-profile", async () => {
       return {
         profile: { saved },
         ready: true,
-        act: async () => setSaved([{ ref: "article:a1" }]),
+        act: async () => {
+          setSaved([{ ref: "article:a1" }]);
+          return { ok: true, value: undefined };
+        },
       };
     },
   };
@@ -24,27 +26,35 @@ vi.mock("@/lib/anon/store", () => ({
 vi.mock("@/lib/offline/sw", () => ({ cacheSaved: vi.fn() }));
 
 const article = { id: "a1", title: "Título", href: "/materia/x", section: "Cidade" };
-const action = async () => REPORT_IDLE;
 
 describe("ArticleActions", () => {
-  it("três botões sm de mesma altura no grupo e o link Informar problema fora dele", () => {
-    render(<ArticleActions article={article} reportAction={action} />);
+  it("três botões md (44 px) com folga gap-3, sem Informar problema (fica no De onde veio)", () => {
+    render(<ArticleActions article={article} />);
     const group = screen.getByRole("group", { name: "Ações da matéria" });
+    expect(group.className).toMatch(/(^|\s)gap-3(\s|$)/);
     const buttons = within(group).getAllByRole("button");
     expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual([
       "Salvar",
       "Compartilhar",
       "Ajustar leitura",
     ]);
-    for (const b of buttons) expect(b.className).toContain("h-button-sm");
-    expect(within(group).queryByText("Informar problema")).toBeNull();
-    const link = screen.getByRole("button", { name: "Informar problema" });
-    expect(group.contains(link)).toBe(false);
-    expect(link.className).not.toMatch(/(^|\s)h-button-sm(\s|$)/);
+    for (const b of buttons) {
+      expect(b.className).toContain("h-tap");
+      expect(b.className).not.toMatch(/(^|\s)h-button-sm(\s|$)/);
+    }
+    expect(screen.queryByText("Informar problema")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Informar problema" })).toBeNull();
+  });
+
+  it("Ver favoritos tem alvo de toque de 44 px", async () => {
+    render(<ArticleActions article={article} />);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    const link = await screen.findByRole("link", { name: /ver favoritos/i });
+    expect(link.className).toMatch(/min-h-tap/);
   });
 
   it("a mensagem de salvo é role=status fora do grupo de botões", async () => {
-    render(<ArticleActions article={article} reportAction={action} />);
+    render(<ArticleActions article={article} />);
     const group = screen.getByRole("group", { name: "Ações da matéria" });
     expect(screen.queryByRole("status")).toBeNull();
     fireEvent.click(within(group).getByRole("button", { name: "Salvar" }));
@@ -53,7 +63,7 @@ describe("ArticleActions", () => {
   });
 
   it("sem curtir", () => {
-    const { container } = render(<ArticleActions article={article} reportAction={action} />);
+    const { container } = render(<ArticleActions article={article} />);
     expect(container.textContent).not.toMatch(/curt|coment/i);
   });
 });

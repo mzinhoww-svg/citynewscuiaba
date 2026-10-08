@@ -1,6 +1,7 @@
 import { CHECKLIST_TEXT as T } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
+import { Panel } from "../ui/Panel";
 
 export interface ChecklistPanelItem {
   key: string;
@@ -22,10 +23,7 @@ export interface ChecklistPanelProps {
 export function ChecklistPanel({ items, complete, className }: ChecklistPanelProps) {
   const pending = items.filter((i) => !i.ok).length;
   return (
-    <section
-      aria-labelledby="checklist-titulo"
-      className={cx("rounded-lg border border-line-subtle bg-card-white p-4", className)}
-    >
+    <Panel aria-labelledby="checklist-titulo" className={className}>
       <h2 id="checklist-titulo" className="type-section text-strong">
         {T.title}
       </h2>
@@ -50,6 +48,6 @@ export function ChecklistPanel({ items, complete, className }: ChecklistPanelPro
           </li>
         ))}
       </ul>
-    </section>
+    </Panel>
   );
 }

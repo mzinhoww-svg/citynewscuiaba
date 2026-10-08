@@ -9,7 +9,7 @@ import { createUsed, hasApprovedCover, type Used } from "@/lib/featured";
 import { isEligibleForFeature } from "@/lib/geo/news-scope";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
-import { getFeatured } from "./featured";
+import { getFeaturedMany, requestFeaturedImages } from "./featured";
 import { many, readPublic } from "./run";
 import { fetchActiveTopics } from "./topics";
 import type { Database } from "@/lib/db/types";
@@ -151,6 +151,26 @@ export async function pickMostRead(
   return out;
 }
 
+type MostReadRow = { article_id: string };
+
+/** Parte pura de `rankMostRead`: dado o ranking de `public_most_read` já lido. */
+export function rankMostReadFrom(
+  ranked: readonly MostReadRow[],
+  pool: readonly ArticleSummary[],
+): ArticleSummary[] {
+  const byId = new Map(pool.map((a) => [a.id, a]));
+  const fromReads = ranked.flatMap((r) => byId.get(r.article_id) ?? []);
+  const seen = new Set<string>();
+  return [...fromReads, ...pool].filter((a) => {
+    if (a.sponsored || seen.has(a.id)) return false;
+    seen.add(a.id);
+    return true;
+  });
+}
+
+const mostReadQuery = (db: DbClient, hours: number) =>
+  db.rpc("public_most_read", { p_hours: hours, p_limit: 10 }).then(many);
+
 /**
  * Mais lidas na ordem de leitura: as lidas primeiro (ranking de `public_most_read`), depois o
  * resto da lista por recência. Sem patrocinadas. A home aplica o registro de "já exibidos" (R40)
@@ -161,15 +181,7 @@ export async function rankMostRead(
   pool: ArticleSummary[],
   hours = 24,
 ): Promise<ArticleSummary[]> {
-  const ranked = await db.rpc("public_most_read", { p_hours: hours, p_limit: 10 }).then(many);
-  const byId = new Map(pool.map((a) => [a.id, a]));
-  const fromReads = ranked.flatMap((r) => byId.get(r.article_id) ?? []);
-  const seen = new Set<string>();
-  return [...fromReads, ...pool].filter((a) => {
-    if (a.sponsored || seen.has(a.id)) return false;
-    seen.add(a.id);
-    return true;
-  });
+  return rankMostReadFrom(await mostReadQuery(db, hours), pool);
 }
 
 /**
@@ -245,18 +257,46 @@ export async function getHomeData(
 ): Promise<Result<HomeData, QueryError>> {
   return readPublic(
     async (db) => {
-      const [rows, activeTopics, collections, events, sources, aggregated, modules, gate] =
-        await Promise.all([
-          fetchRecentArticles(db, 60, "home"),
-          fetchActiveTopics(db, TOPIC_POOL),
-          fetchCollections(db, 4),
-          fetchEvents(db, { limit: 3 }, now),
-          fetchFeaturedSources(db, 8),
-          fetchHomeAggregated(db, 4),
-          fetchPublishedHomeLayout(db),
-          fetchSponsoredGate(db),
-        ]);
-      const articles = await summarize(db, rows);
+      // Leituras sem dependência numa rodada (UX-W5-T2, item 80): destaques, pinos e "mais lidas"
+      // junto com a lista; a única segunda rodada é a hidratação dos cards (e as contagens dos
+      // assuntos), que depende dela. Exclusões entre posições resolvidas em memória.
+      const featuredSet = getFeaturedMany(db, ["home.lead", "home.destaques"]);
+      const summaries = Promise.all([fetchRecentArticles(db, 60, "home"), featuredSet]).then(
+        async ([rows, f]) => {
+          const listed = new Set(rows.map((r) => r.id));
+          const extra = f.pinnedRows.filter((r) => !listed.has(r.id));
+          const all = await summarize(db, [...rows, ...extra]);
+          return { articles: all.slice(0, rows.length), pinned: all.slice(rows.length) };
+        },
+      );
+      // Só a página com o módulo "Mais lidas" precisa do ranking; a falha só derruba essa página.
+      const mostReadRanking = mostReadQuery(db, 24).then(
+        (rows) => ({ ok: true as const, rows }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
+      const [
+        { articles, pinned },
+        featured,
+        activeTopics,
+        collections,
+        events,
+        sources,
+        aggregated,
+        modules,
+        gate,
+        ranking,
+      ] = await Promise.all([
+        summaries,
+        featuredSet,
+        fetchActiveTopics(db, TOPIC_POOL),
+        fetchCollections(db, 4),
+        fetchEvents(db, { limit: 3 }, now),
+        fetchFeaturedSources(db, 8),
+        fetchHomeAggregated(db, 4),
+        fetchPublishedHomeLayout(db),
+        fetchSponsoredGate(db),
+        mostReadRanking,
+      ]);
       const editorial = articles.filter((a) => !a.sponsored);
 
       // Urgente: publicado por humano, ou automático e local/regional (ou comoção nacional): A2 e
@@ -280,9 +320,10 @@ export async function getHomeData(
       // Manchete (home.lead): pino manual > automático por janela, sempre com capa aprovada (R39).
       // Sem a tabela ou sem candidata, cai no comportamento anterior preferindo a mais recente com
       // capa; só sem nenhuma capa na lista a manchete sai sem foto.
-      const featuredLead = await getFeatured(db, "home.lead", {
+      const featuredLead = featured.resolve("home.lead", {
         now,
         pool: articles,
+        pinned,
         exclude: urgent ? [urgent.id] : [],
       });
       const rest = editorial.filter((a) => a.id !== urgent?.id);
@@ -291,9 +332,10 @@ export async function getHomeData(
       if (lead) used.add(lead);
 
       // Destaques (home.destaques): até 3 com capa, nunca a manchete nem a urgência.
-      const featuredHighlights = await getFeatured(db, "home.destaques", {
+      const featuredHighlights = featured.resolve("home.destaques", {
         now,
         pool: articles,
+        pinned,
         exclude: [...(urgent ? [urgent.id] : []), ...(lead ? [lead.id] : [])],
       });
       const highlights = used.takeArticles(featuredHighlights.items, HIGHLIGHT_COUNT, (a) =>
@@ -316,9 +358,19 @@ export async function getHomeData(
             return { section, articles: used.takeArticles(inSection, 3) };
           }).filter((b) => b.articles.length > 0);
         } else if (m.id === "most_read") {
-          mostRead = used.takeArticles(await rankMostRead(db, editorial), MOST_READ_COUNT);
+          if (!ranking.ok) throw ranking.error;
+          mostRead = used.takeArticles(rankMostReadFrom(ranking.rows, editorial), MOST_READ_COUNT);
         }
       }
+
+      // Matéria sem capa que ganhou a posição pede imagem (R39): escrita de melhor esforço.
+      await requestFeaturedImages(db, [featuredLead, featuredHighlights]);
+
+      // Pauta quente (HOT-T3): só o que de fato saiu da posição (a manchete de reserva não conta).
+      const hotIds = [
+        ...(lead && featuredLead.hot.includes(lead.id) ? [lead.id] : []),
+        ...highlights.filter((a) => featuredHighlights.hot.includes(a.id)).map((a) => a.id),
+      ];
 
       return {
         generatedAt: now.toISOString(),
@@ -335,6 +387,7 @@ export async function getHomeData(
         sources,
         aggregated,
         modules,
+        hotIds,
       };
     },
     opts.cache ? { tags: ["home"], revalidate: HOME_REVALIDATE } : undefined,

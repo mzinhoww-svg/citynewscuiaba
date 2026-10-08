@@ -274,6 +274,21 @@ describe("verify", () => {
     expect(both.confidence.level).toBe("alta");
   });
 
+  it("verify mede em sombra as linhagens: o mesmo release em 3 veículos é 1 linhagem, sem mudar a confiança", async () => {
+    const { verifyTopic } = setup();
+    const release =
+      "A Prefeitura de Cuiabá publicou nesta sexta-feira os novos itinerários das linhas entre o CPA " +
+      "e o Centro, que passam a valer em 6 de outubro com saídas a cada 12 minutos nos horários de pico.";
+    const bundle = fixtureTopicWith(["diario-oficial-de-cuiaba", "mt-agora", "folha-do-cerrado"]);
+    const copies = { ...bundle, items: bundle.items.map((i) => ({ ...i, excerpt: release })) };
+    const v = unwrap(await verifyTopic(copies, NOW));
+    expect(v.independentSources).toBe(3);
+    expect(v.independentLineages).toBe(1);
+    const own = unwrap(await verifyTopic(bundle, NOW));
+    expect(own.independentLineages).toBe(3);
+    expect(own.confidence).toEqual(v.confidence);
+  });
+
   it("detecta conflito central de números", async () => {
     const { verifyTopic, fake } = setup();
     fake.script([{ output: readAiFixture("verify-viaduto-60x90.json") }]);
@@ -339,6 +354,12 @@ describe("verify", () => {
       confidence: "alta",
       confidenceScore: 0.9,
       sectionSlug: "cidade",
+    });
+    const recorded = repo.decisions().find((d) => d.step === "verify");
+    expect(recorded?.output).toMatchObject({
+      independentSources: 2,
+      independentLineages: 2,
+      lineageMethod: expect.stringMatching(/shingle4/),
     });
     await handlers.verify!(msg);
     expect(fake.calls).toHaveLength(1);

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { mediaHref } from "@/lib/media/serve";
 import { guideTags } from "@/lib/guide/tags";
 import type { DataSource } from "@/lib/guide/types";
@@ -49,6 +50,8 @@ export interface GuideVenueView {
   ratingSource: "tripadvisor" | "google" | "manual" | null;
   tripadvisorRank: number | null;
   tripadvisorUrl: string | null;
+  /** Link do Google Maps (atribuição exigida pelos termos do Google). */
+  googleMapsUrl: string | null;
   lat: number | null;
   lng: number | null;
   sources: DataSource[];
@@ -109,6 +112,7 @@ function toVenue(v: VenueRow, photos: GuidePhoto[]): GuideVenueView {
         : null,
     tripadvisorRank: v.tripadvisor_rank,
     tripadvisorUrl: v.tripadvisor_url,
+    googleMapsUrl: v.google_maps_url,
     lat: v.lat,
     lng: v.lng,
     sources: v.data_sources.filter(isSource),
@@ -190,9 +194,9 @@ export async function listGuideLists(): Promise<
 }
 
 /** Uma lista publicada com os lugares, na ordem; `null` quando não existe ou não está no ar. */
-export async function getGuideList(
-  slug: string,
-): Promise<Result<GuideListView | null, QueryError>> {
+export const getGuideList = cache(readGuideList);
+
+async function readGuideList(slug: string): Promise<Result<GuideListView | null, QueryError>> {
   return readPublic(
     async (db) => {
       const list = await db
@@ -253,9 +257,9 @@ export interface GuideVenuePage {
 }
 
 /** Página do lugar: só lugar ativo citado por lista publicada (a RLS garante). */
-export async function getGuideVenue(
-  slug: string,
-): Promise<Result<GuideVenuePage | null, QueryError>> {
+export const getGuideVenue = cache(readGuideVenue);
+
+async function readGuideVenue(slug: string): Promise<Result<GuideVenuePage | null, QueryError>> {
   return readPublic(
     async (db) => {
       const v = await db.from("venues").select("*").eq("slug", slug).maybeSingle().then(one);

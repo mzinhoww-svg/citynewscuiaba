@@ -53,7 +53,7 @@ export function ImageTextForm({
   if (!save) {
     return (
       <div className={cx("flex flex-col gap-1", className)}>
-        <h3 className="type-label text-16 text-strong">{heading}</h3>
+        <h3 className="type-label text-strong">{heading}</h3>
         <p className="type-body text-body">
           {alt === "" ? T.decorativeShort : alt ? alt : T.missing}
         </p>
@@ -88,11 +88,11 @@ export function ImageTextForm({
         submit();
       }}
     >
-      <h3 id={`${uid}-titulo`} className="type-label text-16 text-strong">
+      <h3 id={`${uid}-titulo`} className="type-label text-strong">
         {heading}
       </h3>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={`${uid}-alt`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-alt`} className="type-label text-strong">
           {T.alt}
         </label>
         <textarea

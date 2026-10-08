@@ -1,18 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { createGoneChecker, goneSlugFromPath, supabaseGoneLookup } from "@/lib/http/gone";
+import {
+  GONE_CHECKED_HEADER,
+  createGoneResolver,
+  goneHeaderValue,
+  goneSlugFromPath,
+  supabaseGoneLookup,
+  type GoneHint,
+} from "@/lib/http/gone";
 import { buildCsp } from "@/lib/security/headers";
 import { OFFLINE_MARKER_HEADER } from "@/sw/contract";
 import { routeKind } from "@/sw/core";
 import { SW_SECTIONS } from "@/sw/sections";
 
-let isGone: ((slug: string) => Promise<boolean>) | null | undefined;
+let isGone: ((slug: string) => Promise<GoneHint | null>) | null | undefined;
 
 /** Sem variáveis do Supabase não há o que consultar: a página cuida do estado. */
 function goneChecker() {
   if (isGone !== undefined) return isGone;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  isGone = url && key ? createGoneChecker(supabaseGoneLookup(url, key)) : null;
+  isGone = url && key ? createGoneResolver(supabaseGoneLookup(url, key)) : null;
   return isGone;
 }
 
@@ -56,9 +63,13 @@ export async function proxy(req: NextRequest) {
   headers.set("x-nonce", nonce);
   headers.set("content-security-policy", csp);
 
+  // Só o proxy define o resultado da checagem: o valor que veio do cliente nunca chega à página.
+  headers.delete(GONE_CHECKED_HEADER);
   const slug = goneSlugFromPath(req.nextUrl.pathname);
   const check = slug ? goneChecker() : null;
-  const gone = !!(slug && check && (await check(slug)));
+  const status = slug && check ? await check(slug) : null;
+  if (status) headers.set(GONE_CHECKED_HEADER, goneHeaderValue(status.reason));
+  const gone = !!status?.reason;
 
   const res = NextResponse.next({ request: { headers }, ...(gone ? { status: 410 } : {}) });
   res.headers.set("content-security-policy", csp);

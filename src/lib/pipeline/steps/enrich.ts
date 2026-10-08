@@ -193,8 +193,43 @@ export interface EnrichDeps extends IngestDeps {
   sleep?: (ms: number) => Promise<void>;
 }
 
+/** Motivo de seguir sem o texto da página (vai para `pipeline_events` pelo `ctx.note`). */
+export type EnrichSkipReason =
+  | "disabled"
+  | "old"
+  | "other_site"
+  | "robots_disallowed"
+  | "rate_limited"
+  | "not_html"
+  | "too_large"
+  | "not_modified"
+  | "network_blocked"
+  | "retries_exhausted"
+  | "source_missing"
+  | `http_${number}`;
+
+/**
+ * Cota por hora da fonte esgotada (`crawler:<slug>`, janela fixa da hora cheia em
+ * `hit_rate_limit`). Nada foi pedido ao site, então tentar de novo não pesa na fonte; o item
+ * espera a próxima janela em vez de seguir sem texto (A-126: o refetch da recuperação perdia o
+ * texto de centenas de itens assim). Vale só para `#refetch`; item novo segue sem esperar.
+ * O espalhamento por item evita que todos voltem juntos.
+ */
+const RATE_LIMITED = { kind: "retry", reason: "rate_limited", nextWindow: true } as const;
+const RATE_WINDOW_SEC = 3600;
+const RATE_SPREAD_SEC = 540;
+
+export function secondsToNextWindow(now: Date, key: string): number {
+  const nowSec = Math.floor(now.getTime() / 1000);
+  let h = 0;
+  for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return RATE_WINDOW_SEC - (nowSec % RATE_WINDOW_SEC) + 30 + (h % RATE_SPREAD_SEC);
+}
+
 type PageOutcome =
-  { kind: "page"; html: string } | { kind: "skip" } | { kind: "retry"; reason: string };
+  | { kind: "page"; html: string }
+  | { kind: "skip"; reason: EnrichSkipReason }
+  | { kind: "retry"; reason: string; nextWindow?: boolean };
 
 /**
  * Passo `enrich` (entre `normalize` e `dedupe`): para a fonte com `consumption.enrich === true`,
@@ -259,12 +294,12 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
       // robots.txt não é página: sem atraso, e em cache por fonte.
       const v = await checkRobots(deps, url, { ...limits, onHop });
       if (v.kind === "unavailable") return { kind: "retry", reason: v.reason };
-      if (v.kind === "rate_limited") return { kind: "skip" };
+      if (v.kind === "rate_limited") return RATE_LIMITED;
       robots = { txt: v.robotsTxt, until: clock() + ROBOTS_TTL_MS };
       robotsCache.set(source.slug, robots);
     }
     if (robots.txt !== null && !isAllowedByRobots(robots.txt, deps.userAgent, path))
-      return { kind: "skip" };
+      return { kind: "skip", reason: "robots_disallowed" };
 
     const res = await paced(source.slug, () =>
       crawlGet(deps, url, {
@@ -277,18 +312,22 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
     switch (res.kind) {
       case "ok":
         return res.contentType && !/html|xml/i.test(res.contentType)
-          ? { kind: "skip" }
+          ? { kind: "skip", reason: "not_html" }
           : { kind: "page", html: res.body };
       case "http_error":
         return res.status === 429 || res.status >= 500
           ? { kind: "retry", reason: `HTTP ${res.status}` }
-          : { kind: "skip" };
+          : { kind: "skip", reason: `http_${res.status}` };
       case "network_error":
-        return res.blocked ? { kind: "skip" } : { kind: "retry", reason: res.message };
+        return res.blocked
+          ? { kind: "skip", reason: "network_blocked" }
+          : { kind: "retry", reason: res.message };
       case "rate_limited":
+        return RATE_LIMITED;
       case "not_modified":
+        return { kind: "skip", reason: "not_modified" };
       case "too_large":
-        return { kind: "skip" };
+        return { kind: "skip", reason: "too_large" };
     }
   }
 
@@ -300,25 +339,35 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
     const next = refetch ? ok([]) : ok([nextMessage(msg, "dedupe", `item:${id}`)]);
     const item = await deps.repo.collectedForEnrich(id);
     if (!item) return err(stepError.notFound(`item ${id} não encontrado`));
+    // Todo desvio vira nota no evento: "enrich ok" sem `source_text` precisa dizer por quê.
+    const skip = (reason: EnrichSkipReason, extra: Record<string, unknown> = {}) => {
+      ctx?.note?.({ enrich: "skipped", reason, ...extra });
+      return next;
+    };
     const source = await deps.repo.sourceById(item.sourceId);
-    if (!source || (!refetch && !enrichEnabled(source.consumption, item.excerpt))) return next;
+    if (!source) return skip("source_missing");
+    if (!refetch && !enrichEnabled(source.consumption, item.excerpt)) return skip("disabled");
 
     const now = deps.now();
     const old =
       item.publishedAt !== null && Date.parse(item.publishedAt) < now.getTime() - ENRICH_MAX_AGE_MS;
-    if (old && !refetch) return next;
-    if (!sameSite(item.canonicalUrl, source.baseUrl)) return next;
+    if (old && !refetch) return skip("old");
+    if (!sameSite(item.canonicalUrl, source.baseUrl)) return skip("other_site");
 
     const outcome = await exclusive(source.slug, () =>
       fetchPage(source, item.canonicalUrl, ctx?.signal),
     );
-    if (outcome.kind === "skip") return next;
+    if (outcome.kind === "skip") return skip(outcome.reason);
+    // Item novo não espera a próxima janela: a notícia segue sem o texto da página (atraso de
+    // até 2 h numa notícia quente custa mais). Só o refetch da recuperação, sem pressa, espera.
+    if (outcome.kind === "retry" && outcome.nextWindow && !refetch) return skip("rate_limited");
     if (outcome.kind === "retry") {
       // Prazo do drain: a mensagem volta à fila sem contar tentativa.
       if (ctx?.signal?.aborted) return err(stepError.transient("prazo do drain"));
-      return msg.attempt <= ENRICH_MAX_RETRIES
-        ? err(stepError.transient(`enriquecimento adiado: ${outcome.reason}`))
-        : next;
+      if (msg.attempt > ENRICH_MAX_RETRIES)
+        return skip("retries_exhausted", { lastError: outcome.reason });
+      const e = stepError.transient(`enriquecimento adiado: ${outcome.reason}`);
+      return err(outcome.nextWindow ? { ...e, retryAfterSec: secondsToNextWindow(now, id) } : e);
     }
 
     const found = parseEnrichment(outcome.html, item.canonicalUrl, source.name);
@@ -338,6 +387,12 @@ export function createEnrichStep(deps: EnrichDeps): StepHandler {
     if (found.publishedAt && Date.parse(found.publishedAt) <= now.getTime() + DAY_MS)
       patch.publishedAt = found.publishedAt;
     if (Object.keys(patch).length > 0) await deps.repo.applyEnrichment(id, patch);
+    ctx?.note?.({
+      enrich: patch.sourceText ? "saved" : "no_text",
+      bodyChars: found.body?.length ?? 0,
+      excerptChars: item.excerpt?.length ?? 0,
+      ...(found.rejected.length > 0 ? { rejected: found.rejected } : {}),
+    });
     return next;
   };
 }

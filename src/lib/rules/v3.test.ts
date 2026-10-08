@@ -131,7 +131,10 @@ describe("proposta SQL v3 inativa", () => {
     const json = /'(\{"forceReview".*?\})'::jsonb/s.exec(sql)?.[1];
     expect(json).toBeTruthy();
     const body = JSON.parse(json!) as Record<string, unknown>;
-    const expected = Object.fromEntries(Object.entries(RULES_V3).filter(([k]) => k !== "version"));
+    // `riskLevels` (D-05) nasceu depois da proposta v3: ausente no corpo vale `false`.
+    const expected = Object.fromEntries(
+      Object.entries(RULES_V3).filter(([k]) => k !== "version" && k !== "riskLevels"),
+    );
     expect(body).toEqual(expected);
     expect(sql).toMatch(/false, '00000000-0000-4000-8000-0000000000a1', null, false/);
     expect(sql).not.toMatch(/\bdelete\b/i);

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { ADMIN_OPS_TEXT as T } from "@/content/pt-BR/admin-ops";
 import type { AuditFilters, AuditRow } from "@/lib/admin/audit-export";
 import { formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
 import { EmptyState } from "../../ui/EmptyState";
 import { TextField } from "../../ui/TextField";
 import { AdminTable } from "./AdminStatus";
@@ -33,46 +33,49 @@ export function AuditExplorer({
 }: AuditExplorerProps) {
   return (
     <div className="flex flex-col gap-6">
-      <form
-        action={action}
-        method="get"
-        className="grid gap-4 rounded-lg border border-line-subtle bg-card-white p-4 md:grid-cols-2 xl:grid-cols-5"
+      <CollapsibleFilters
+        activeCount={Object.values(filters).filter(Boolean).length}
+        clearHref={action}
+        clearLabel={A.clear}
+        className="rounded-lg border border-line-subtle bg-card-white px-4 py-2"
+        bodyClassName="pb-2"
       >
-        <h2 className="sr-only">{A.filters}</h2>
-        <TextField id="aud-ator" name="ator" label={A.actor} defaultValue={filters.actor ?? ""} />
-        <TextField id="aud-acao" name="acao" label={A.action} defaultValue={filters.action ?? ""} />
-        <TextField
-          id="aud-objeto"
-          name="objeto"
-          label={A.object}
-          defaultValue={filters.object ?? ""}
-        />
-        <TextField
-          id="aud-de"
-          name="de"
-          label={A.from}
-          defaultValue={filters.from ?? ""}
-          placeholder="AAAA-MM-DD"
-        />
-        <TextField
-          id="aud-ate"
-          name="ate"
-          label={A.to}
-          defaultValue={filters.to ?? ""}
-          placeholder="AAAA-MM-DD"
-        />
-        <div className="flex flex-wrap items-end gap-3 md:col-span-2 xl:col-span-5">
-          <Button type="submit" size="md" icon="search">
-            {A.apply}
-          </Button>
-          <Link
-            href={action}
-            className="inline-flex min-h-tap items-center type-body font-medium text-link underline"
-          >
-            {A.clear}
-          </Link>
-        </div>
-      </form>
+        <form action={action} method="get" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <h2 className="sr-only">{A.filters}</h2>
+          <TextField id="aud-ator" name="ator" label={A.actor} defaultValue={filters.actor ?? ""} />
+          <TextField
+            id="aud-acao"
+            name="acao"
+            label={A.action}
+            defaultValue={filters.action ?? ""}
+          />
+          <TextField
+            id="aud-objeto"
+            name="objeto"
+            label={A.object}
+            defaultValue={filters.object ?? ""}
+          />
+          <TextField
+            id="aud-de"
+            name="de"
+            label={A.from}
+            defaultValue={filters.from ?? ""}
+            placeholder="AAAA-MM-DD"
+          />
+          <TextField
+            id="aud-ate"
+            name="ate"
+            label={A.to}
+            defaultValue={filters.to ?? ""}
+            placeholder="AAAA-MM-DD"
+          />
+          <div className="flex flex-wrap items-end gap-3 md:col-span-2 xl:col-span-5">
+            <Button type="submit" size="md" icon="search">
+              {A.apply}
+            </Button>
+          </div>
+        </form>
+      </CollapsibleFilters>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="type-meta text-meta" aria-live="polite">

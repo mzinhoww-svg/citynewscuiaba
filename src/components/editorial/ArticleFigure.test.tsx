@@ -13,9 +13,9 @@ const repro: ArticleImage = {
 };
 
 describe("ArticleFigure", () => {
-  it("legenda 'Reprodução web · Fonte' com crédito do autor e 'Ver original' fora da área da foto", () => {
+  it("legenda 'Foto: reprodução web · Fonte' com crédito do autor e 'Ver original' fora da área da foto", () => {
     const { container } = render(<ArticleFigure image={repro} />);
-    const caption = screen.getByText(/Reprodução web · mtagora\.example/);
+    const caption = screen.getByText(/Foto: reprodução web · mtagora\.example/);
     expect(caption).toHaveTextContent("Foto: Ana Souza");
     const img = screen.getByRole("img", { name: "Fumaça sobre o rio Cuiabá" });
     const box = img.parentElement!;
@@ -53,9 +53,9 @@ describe("ArticleFigure", () => {
     expect(screen.queryByText(/Foto:/)).toBeNull();
   });
 
-  it("foto própria não ganha 'Reprodução web' nem 'Ver original'", () => {
+  it("foto própria não ganha 'Foto: reprodução web' nem 'Ver original'", () => {
     render(<ArticleFigure image={{ src: "/x", alt: "Praça", kind: "original" }} />);
-    expect(screen.queryByText(/Reprodução web/)).toBeNull();
+    expect(screen.queryByText(/Foto: reprodução web/)).toBeNull();
     expect(screen.getByText("Foto original")).toBeInTheDocument();
   });
 
@@ -93,7 +93,7 @@ describe("ArticleFigure", () => {
     render(
       <ArticleFigure image={{ src: "/x", alt: "Orla", kind: "reproduction", credit: "RDNews" }} />,
     );
-    expect(screen.getByText("Reprodução web · RDNews")).toBeInTheDocument();
+    expect(screen.getByText("Foto: reprodução web · RDNews")).toBeInTheDocument();
     expect(screen.queryByText(/cdn\./)).toBeNull();
   });
 });

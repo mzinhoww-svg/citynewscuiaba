@@ -1,8 +1,9 @@
 // @vitest-environment node
 // A09 no servidor (PW-T11; spec 2026-09-28 §10, critérios 18, 20, 21, 23): Server Actions e
 // leituras ponta a ponta sem navegador, com sessões reais do seed (Marina editora-chefe, Helena
-// admin, Otávio editor de cidade, Thiago analista). A regra de duas pessoas vale no banco (0041);
-// aqui conferimos as mensagens e o que cada papel enxerga. E06: publicar com "Push urgente".
+// admin, Otávio editor de cidade, Thiago analista). A aprovação registrada vale no banco (0041);
+// A-128: quem pede e tem push.approve aprova na mesma ação. Aqui conferimos as mensagens e o que
+// cada papel enxerga. E06: publicar com "Push urgente".
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { DbClient } from "@/lib/db/client";
@@ -129,33 +130,27 @@ afterAll(async () => {
   await service.from("rate_limits").delete().like("bucket", "push_admin_%");
 });
 
-describe("duas pessoas nas ações (critério 18)", () => {
-  it("Marina pede urgente, tenta aprovar e recebe a mensagem; Helena aprova", async () => {
+describe("aprovação nas ações (critério 18; A-128)", () => {
+  it("Marina pede urgente e aprova na mesma ação; a linha guarda quem pediu e quem aprovou", async () => {
     const r = await asUser("marina", () => requestPushAction(form(urgent(ART_CIDADE))));
     expect(r).toMatchObject({
       ok: true,
-      message: "Pedido criado. Aguardando aprovação de outra pessoa.",
+      message: "Aplicado. O aviso entrou na fila de envio e fica registrado no histórico.",
     });
     const id = okId(r);
-    expect((await sendRow(id)).status).toBe("pending_approval");
-    expect(await asUser("helena", () => pendingCount())).toBeGreaterThanOrEqual(1);
-    expect(
-      await asUser("marina", () => decidePushAction(form({ id, decision: "approve" }))),
-    ).toMatchObject({ ok: false, message: "A aprovação precisa ser de outra pessoa." });
-    // Analista não aprova (sem push.approve).
-    expect(
-      await asUser("thiago", () => decidePushAction(form({ id, decision: "approve" }))),
-    ).toMatchObject({
-      ok: false,
-    });
-    expect(
-      await asUser("helena", () => decidePushAction(form({ id, decision: "approve" }))),
-    ).toMatchObject({
-      ok: true,
-      message: "Pedido aprovado",
-    });
     const row = await sendRow(id);
-    expect(row).toMatchObject({ status: "queued", approved_by: SEED_USERS.helena.id });
+    expect(row).toMatchObject({ status: "queued", approved_by: SEED_USERS.marina.id });
+    const ap = await service
+      .from("approvals")
+      .select("kind, requested_by, approved_by, status")
+      .eq("target_ref", `push:${id}`)
+      .single();
+    expect(ap.data).toEqual({
+      kind: "push.urgent",
+      requested_by: SEED_USERS.marina.id,
+      approved_by: SEED_USERS.marina.id,
+      status: "approved",
+    });
     expect(
       await asUser("helena", () => decidePushAction(form({ id, decision: "reject", reason: "x" }))),
     ).toMatchObject({
@@ -173,8 +168,35 @@ describe("duas pessoas nas ações (critério 18)", () => {
     expect((await sendRow(id)).status).toBe("cancelled");
   });
 
+  it("editor pede Destaque e o pedido aguarda; analista não aprova; Helena aprova", async () => {
+    const r = await asUser("otavio", () => requestPushAction(form(highlight(ART_CIDADE))));
+    expect(r).toMatchObject({
+      ok: true,
+      message: "Pedido criado. Aguardando aprovação de quem pode aprovar avisos.",
+    });
+    const id = okId(r);
+    expect((await sendRow(id)).status).toBe("pending_approval");
+    expect(await asUser("helena", () => pendingCount())).toBeGreaterThanOrEqual(1);
+    // Analista não aprova (sem push.approve).
+    expect(
+      await asUser("thiago", () => decidePushAction(form({ id, decision: "approve" }))),
+    ).toMatchObject({
+      ok: false,
+    });
+    expect(
+      await asUser("helena", () => decidePushAction(form({ id, decision: "approve" }))),
+    ).toMatchObject({
+      ok: true,
+      message: "Pedido aprovado",
+    });
+    expect(await sendRow(id)).toMatchObject({
+      status: "queued",
+      approved_by: SEED_USERS.helena.id,
+    });
+  });
+
   it("recusar exige motivo e grava; urgente sem justificativa ou agendado é recusado no servidor", async () => {
-    const id = okId(await asUser("marina", () => requestPushAction(form(urgent(ART_CLIMA)))));
+    const id = okId(await asUser("otavio", () => requestPushAction(form(highlight(ART_CLIMA)))));
     expect(
       await asUser("helena", () => decidePushAction(form({ id, decision: "reject" }))),
     ).toMatchObject({
@@ -214,17 +236,27 @@ describe("duas pessoas nas ações (critério 18)", () => {
       ok: false,
       fieldErrors: { at: "Agende no máximo 7 dias à frente." },
     });
-    // Destaque agendado dentro da janela: pedido criado com o horário de Cuiabá convertido.
+    // Destaque agendado dentro da janela: horário de Cuiabá convertido; a editora-chefe aprova na
+    // mesma ação e o envio fica agendado.
     const ok = await asUser("marina", () =>
       requestPushAction(form(highlight(ART_CLIMA, { whenType: "at", at: `${inTwoDays}T10:30` }))),
     );
-    expect(ok).toMatchObject({ ok: true });
+    expect(ok).toMatchObject({
+      ok: true,
+      message: "Aplicado. O aviso sai no horário agendado e fica registrado no histórico.",
+    });
     const row = await sendRow(okId(ok));
     expect(Date.parse(row.scheduled_at!)).toBe(Date.parse(`${inTwoDays}T10:30:00-04:00`));
+    expect(row.status).toBe("scheduled");
+    // Agendado de editor aguarda a aprovação de quem pode aprovar.
+    const pend = await asUser("otavio", () =>
+      requestPushAction(form(highlight(ART_CIDADE, { whenType: "at", at: `${inTwoDays}T11:30` }))),
+    );
+    const pendId = okId(pend);
     expect(
-      await asUser("helena", () => decidePushAction(form({ id: row.id, decision: "approve" }))),
+      await asUser("helena", () => decidePushAction(form({ id: pendId, decision: "approve" }))),
     ).toMatchObject({ ok: true, message: "Pedido aprovado. Sai no horário agendado." });
-    expect((await sendRow(row.id)).status).toBe("scheduled");
+    expect((await sendRow(pendId)).status).toBe("scheduled");
   });
 });
 
@@ -287,11 +319,8 @@ describe("papéis (critérios 20, 21)", () => {
     ).rejects.toThrow("motivo=sem-permissao");
     const nothing = await asUser("thiago", () => queueRows());
     expect(nothing.ok && nothing.value).toEqual([]);
-    expect(
-      await asUser("helena", () => decidePushAction(form({ id: other, decision: "approve" }))),
-    ).toMatchObject({
-      ok: true,
-    });
+    // O Destaque da editora-chefe já saiu aprovado na mesma ação (A-128).
+    expect((await sendRow(other)).status).toBe("queued");
   });
 
   it("CSV do histórico não tem endpoint, token, id de inscrição nem alvo; filtros inválidos são ignorados", async () => {
@@ -332,7 +361,7 @@ describe("papéis (critérios 20, 21)", () => {
 });
 
 describe("pausa, retomada e configurações (§10.5)", () => {
-  it("pausar exige digitar PAUSAR e vale na hora; retomar exige outra pessoa com push.approve", async () => {
+  it("pausar exige digitar PAUSAR e vale na hora; quem pede a retomada e tem push.approve retoma na hora (A-128)", async () => {
     expect(
       await asUser("helena", () =>
         pausePushAction(form({ reason: "incidente", confirm: "pausar" })),
@@ -362,21 +391,28 @@ describe("pausa, retomada e configurações (§10.5)", () => {
     });
 
     const resume = await asUser("helena", () => requestResumeAction(form({ reason: "resolvido" })));
-    expect(resume).toMatchObject({ ok: true });
-    const approvalId = (resume as { data: { approvalId: string } }).data.approvalId;
-    expect(await asUser("helena", () => approveResumeAction(form({ approvalId })))).toMatchObject({
-      ok: false,
-      message: "A aprovação precisa ser de outra pessoa.",
-    });
-    expect(await asUser("otavio", () => approveResumeAction(form({ approvalId })))).toMatchObject({
-      ok: false,
-      message: "Sua conta não tem permissão para esta ação.",
-    });
-    expect(await asUser("marina", () => approveResumeAction(form({ approvalId })))).toMatchObject({
+    expect(resume).toMatchObject({
       ok: true,
-      message: "Envios retomados",
+      message: "Envios retomados. Fica registrado no histórico.",
     });
+    const approvalId = (resume as { data: { approvalId: string } }).data.approvalId;
     expect((await asUser("marina", () => pushSettings())).paused.on).toBe(false);
+    const ap = await service
+      .from("approvals")
+      .select("kind, status, requested_by, approved_by")
+      .eq("id", approvalId)
+      .single();
+    expect(ap.data).toEqual({
+      kind: "push.resume",
+      status: "applied",
+      requested_by: SEED_USERS.helena.id,
+      approved_by: SEED_USERS.helena.id,
+    });
+    // Decisão é final: ninguém aprova de novo um pedido já aplicado.
+    expect(await asUser("marina", () => approveResumeAction(form({ approvalId })))).toMatchObject({
+      ok: false,
+      message: "Este pedido já foi decidido.",
+    });
   });
 
   it("limite 1–3, silêncio 18–22/7–10 e modelos só com {titulo} e {linha_fina}", async () => {
@@ -454,7 +490,7 @@ describe("E06 · publicar com Push urgente (§10.7)", () => {
     await service.from("articles").delete().eq("id", id);
   });
 
-  it("sem justificativa é recusado antes de publicar; com justificativa publica e cria o pedido; despublicar cancela", async () => {
+  it("sem justificativa é recusado antes de publicar; com justificativa publica, cria e aprova o pedido (A-128); despublicar cancela", async () => {
     const refused = await asUser("marina", () =>
       publishAction(1, { id, when: "now", destinations: ["home"], push: { justification: "  " } }),
     );
@@ -473,15 +509,17 @@ describe("E06 · publicar com Push urgente (§10.7)", () => {
     );
     expect(r).toEqual({
       ok: true,
-      message: "Matéria publicada. Pedido de push criado. Aguardando aprovação de outra pessoa.",
+      message:
+        "Matéria publicada. Push urgente aprovado e na fila de envio. Fica registrado no histórico.",
       pushQueueHref: "/estudio/admin/notificacoes/fila",
     });
     const { data: sends } = await service.from("push_sends").select("*").eq("article_id", id);
     expect(sends).toHaveLength(1);
     expect(sends![0]).toMatchObject({
       kind: "urgent",
-      status: "pending_approval",
+      status: "queued",
       requested_by: SEED_USERS.marina.id,
+      approved_by: SEED_USERS.marina.id,
       title: "Festival de teatro de teste abre inscrições hoje",
       body: "Grupos de Cuiabá podem se inscrever até sexta.",
       justification: "Alerta da Defesa Civil",

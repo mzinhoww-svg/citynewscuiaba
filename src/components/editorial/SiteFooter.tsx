@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { FOOTER_NAV, LEGAL, NAV_TEXT } from "@/content/pt-BR/nav";
+import { NAV_TEXT } from "@/content/pt-BR/nav";
+import { FOOTER_NAV, LEGAL } from "@/content/pt-BR/nav-footer";
 import { isFilled } from "@/content/pt-BR/institutional";
 import { cx } from "../cx";
 import { Logo } from "./Logo";
@@ -16,7 +17,7 @@ export interface SiteFooterProps {
 export function SiteFooter({ className }: SiteFooterProps) {
   const company = [LEGAL.companyName, LEGAL.cnpj, LEGAL.dpo].filter(isFilled);
   return (
-    <footer className={cx("bg-tinta text-branco", className)}>
+    <footer className={cx("plate-edge border-t bg-tinta text-branco", className)}>
       <div className="mx-auto flex max-w-page flex-col gap-6 px-gutter py-8 lg:gap-8 lg:py-10">
         <div className="flex flex-col gap-3">
           <Logo tone="negative" size="md" className="-ml-3 self-start" />

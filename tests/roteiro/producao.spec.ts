@@ -1,5 +1,6 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { nextFrames } from "../e2e/helpers/wait";
 
 /*
  * Roteiro de fumaça de PRODUÇÃO, SOMENTE LEITURA: só GET e navegação. Não cria conta, não envia
@@ -85,7 +86,8 @@ async function shots(page: Page, name: string) {
   for (const w of WIDTHS) {
     await page.setViewportSize({ width: w, height: w === 390 ? 844 : 800 });
     await page.evaluate(() => document.fonts.ready).catch(() => {});
-    await page.waitForTimeout(500);
+    // Depois do novo tamanho: espera a página repintar (quadros), não um tempo fixo.
+    await nextFrames(page, 2);
     await page.screenshot({ path: `${SHOT_DIR}/${name}-${w}.png`, animations: "disabled" });
   }
 }
@@ -120,7 +122,7 @@ test("/entrar responde 200 com campos e botão do Google", async ({ page }) => {
   expect(res.status()).toBe(200);
   await expect(page.locator('input[type="email"], input[name="email"]').first()).toBeVisible();
   await expect(page.locator('input[type="password"]').first()).toBeVisible();
-  const google = page.getByRole("button", { name: /Entrar com (o )?Google/i });
+  const google = page.getByRole("button", { name: /(Continuar|Entrar) com (o )?Google/i });
   await expect(google, "botão do Google ausente").toBeVisible();
   if (await google.isDisabled()) {
     test.info().annotations.push({

@@ -100,7 +100,8 @@ for (const width of [1280, 800]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto(`/materia/${SLUG}`);
     const { group, box } = await barBox(page);
-    expect(box.height).toBeLessThanOrEqual(56);
+    // botões md de 44 px + py-2 (UX item 75)
+    expect(box.height).toBeLessThanOrEqual(64);
     const boxes = [];
     for (const name of ACTIONS)
       boxes.push((await group.getByRole("button", { name }).boundingBox())!);
@@ -108,7 +109,7 @@ for (const width of [1280, 800]) {
       Math.max(...boxes.map((b) => b.height)) - Math.min(...boxes.map((b) => b.height)),
     ).toBeLessThan(1);
     expect(Math.max(...boxes.map((b) => b.y)) - Math.min(...boxes.map((b) => b.y))).toBeLessThan(2);
-    for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(34);
+    for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(44);
     const summary = page.getByRole("heading", { name: "Resumo em poucos segundos" });
     const block = (await summary
       .locator("xpath=ancestor::*[self::section or self::div][1]")
@@ -125,17 +126,22 @@ for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 800 });
     await page.goto(`/materia/${SLUG}`);
     const { group, box } = await barBox(page);
-    expect(box.height).toBeLessThanOrEqual(56 * 2);
+    expect(box.height).toBeLessThanOrEqual(16 + 44 * 2 + 12);
+    const boxes = [];
     for (const name of ACTIONS) {
       const btn = group.getByRole("button", { name });
       await expect(btn).toBeVisible();
-      // alvo de toque de 44 px (padding invisível): o ::before cobre a área.
-      const hit = await btn.evaluate((el) => {
-        const r = getComputedStyle(el, "::before");
-        return [parseFloat(r.width), parseFloat(r.height)];
-      });
-      expect(hit[0]).toBeGreaterThanOrEqual(44);
-      expect(hit[1]).toBeGreaterThanOrEqual(44);
+      // UX item 75: o botão visível tem 44 px (md), não só o alvo invisível.
+      const b = (await btn.boundingBox())!;
+      expect(b.height).toBeGreaterThanOrEqual(44);
+      expect(b.width).toBeGreaterThanOrEqual(44);
+      boxes.push(b);
+    }
+    // folga de pelo menos 8 px entre botões vizinhos na mesma linha
+    const sorted = boxes.sort((a, b) => a.y - b.y || a.x - b.x);
+    for (let i = 1; i < sorted.length; i++) {
+      const [p, c] = [sorted[i - 1]!, sorted[i]!];
+      if (Math.abs(p.y - c.y) < 2) expect(c.x - (p.x + p.width)).toBeGreaterThanOrEqual(8);
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       width,
@@ -160,13 +166,25 @@ test("depois de salvar, a mensagem fica abaixo dos botões e não quebra a linha
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
 
-test("Informar problema é link discreto fora do grupo de botões", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto(`/materia/${SLUG}`);
-  const { group } = await barBox(page);
-  await expect(group.getByRole("button", { name: "Informar problema" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Informar problema" }).first()).toBeVisible();
-});
+for (const width of [1280, 390]) {
+  test(`Informar problema tem uma entrada só, em "De onde veio" (${width} px)`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/materia/${SLUG}`);
+    const { bar } = await barBox(page);
+    await expect(bar.getByRole("button", { name: "Informar problema" })).toHaveCount(0);
+    // getByRole ignora a versão escondida por CSS: só uma entrada visível por largura.
+    const visible = page.getByRole("button", { name: "Informar problema" });
+    await expect(visible).toHaveCount(1);
+    await expect(visible).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "De onde veio" }).getByRole("button", {
+        name: "Informar problema",
+      }),
+    ).toHaveCount(1);
+  });
+}
 
 test("'De onde veio' vem aberto no desktop já no HTML do servidor (sem JS)", async ({
   browser,
@@ -349,7 +367,7 @@ test("matéria no modo escuro sem violações graves @a11y", async ({ page }) =>
 
 /*
  * UI-T16 · capa e imagem no texto: matéria com dois ativos de fontes diferentes (capa sob o título
- * e figura depois do 3º parágrafo), ambas com "Reprodução web · Fonte", crédito e "Ver original".
+ * e figura depois do 3º parágrafo), ambas com "Foto: reprodução web · Fonte", crédito e "Ver original".
  * As imagens são fictícias (a pilha local não tem Storage: o arquivo não carrega, a caixa de
  * proporção fixa continua no lugar).
  */
@@ -456,7 +474,9 @@ test.describe("capa e imagem no texto", () => {
 
     const cover = figures.nth(0);
     await expect(cover.getByRole("img", { name: "Barracas da feira na Orla" })).toBeAttached();
-    await expect(cover.locator("figcaption")).toContainText("Reprodução web · Folha do Cerrado");
+    await expect(cover.locator("figcaption")).toContainText(
+      "Foto: reprodução web · Folha do Cerrado",
+    );
     await expect(cover.locator("figcaption")).toContainText("Foto: Ana Prado");
     await expect(cover.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -481,7 +501,7 @@ test.describe("capa e imagem no texto", () => {
     const inline = body.locator("figure");
     await expect(inline).toHaveCount(1);
     await expect(inline.getByRole("img", { name: "Artesã trabalha na feira" })).toBeAttached();
-    await expect(inline.locator("figcaption")).toContainText("Reprodução web · MT Agora");
+    await expect(inline.locator("figcaption")).toContainText("Foto: reprodução web · MT Agora");
     await expect(inline.locator("figcaption")).toContainText("Foto: Rui Lopes");
     await expect(inline.getByRole("link", { name: /Ver original/ })).toHaveAttribute(
       "href",
@@ -520,7 +540,7 @@ test.describe("capa e imagem no texto", () => {
       expect(Math.abs(photo.width - body.width)).toBeLessThanOrEqual(1);
       expect(Math.abs(photo.x - body.x)).toBeLessThanOrEqual(1);
       // legenda e foto no mesmo <figure>, crédito com o nome do veículo (nunca o host da CDN)
-      await expect(fig.locator("figcaption")).toContainText("Reprodução web · RDNews");
+      await expect(fig.locator("figcaption")).toContainText("Foto: reprodução web · RDNews");
       await expect(fig.locator("figcaption")).not.toContainText("cdn.rdnews");
       // foto e título na primeira dobra
       const h1 = (await page.getByRole("heading", { level: 1 }).boundingBox())!;

@@ -10,6 +10,9 @@ import {
   EmptyState,
   EventCard,
   FilterBar,
+  LoadMore,
+  LoadingRegion,
+  loadMoreAnchor,
   RecurringDates,
   Skeleton,
   cx,
@@ -17,7 +20,14 @@ import {
 import { NEIGHBORHOODS, neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { upcomingRecurring } from "@/lib/agenda/recurring";
-import { listEvents, type EventView } from "@/lib/db/queries";
+import type { EventView } from "@/lib/db/queries";
+import {
+  listAgendaEvents,
+  listAgendaEventsThrough,
+  listEventsInRange,
+  type EventFilters,
+} from "@/lib/db/queries/events";
+import { ok } from "@/lib/result";
 import {
   AGENDA_CATEGORIES,
   AGENDA_PARAM_VALUES,
@@ -29,7 +39,7 @@ import {
   type AgendaOrigin,
   type AgendaWhen,
 } from "@/lib/filters/agenda";
-import type { SearchParamsInput } from "@/lib/filters/section";
+import { firstParam, type SearchParamsInput } from "@/lib/filters/section";
 import { dayStart, formatLongDate, formatMonthYear, localDateKey } from "@/lib/format/date";
 
 /** Agenda (P09): filtros e visão na URL, renderizada por requisição. */
@@ -230,10 +240,8 @@ function recurringFor(f: AgendaFilters, events: readonly EventView[], now: Date)
   return unfiltered && near.length < 3 ? upcomingRecurring(now, 6) : [];
 }
 
-async function Results({ f }: { f: AgendaFilters }) {
-  const now = new Date();
-  const range = agendaRange(f, now);
-  const r = await listEvents({
+function eventFilters(f: AgendaFilters, range: { from: string; to: string }): EventFilters {
+  return {
     from: range.from,
     to: range.to,
     freeOnly: f.free,
@@ -241,8 +249,44 @@ async function Results({ f }: { f: AgendaFilters }) {
     category: f.category,
     neighborhood: f.neighborhood ? neighborhoodBySlug(f.neighborhood)?.name : undefined,
     origin: f.origin,
-    limit: 100,
+  };
+}
+
+/** Link de "Carregar mais": mesmos filtros, cursor e âncora do primeiro evento novo. */
+function moreHref(f: AgendaFilters, cursor: string, shown: number): string {
+  const base = agendaHref(f);
+  return `${base}${base.includes("?") ? "&" : "?"}cursor=${cursor}#${loadMoreAnchor(shown)}`;
+}
+
+/**
+ * Lista: página por cursor ("Carregar mais" acumula até o cursor e mais uma página).
+ * Calendário: o mês inteiro, em páginas, para a contagem por dia não parar em 100.
+ */
+async function loadEvents(f: AgendaFilters, cursor: string | undefined, now: Date) {
+  const filters = eventFilters(f, agendaRange(f, now));
+  if (f.view === "cal") {
+    const all = await listEventsInRange(filters);
+    return all.ok
+      ? ok({ events: all.value, total: all.value.length, nextCursor: null, firstNew: -1 })
+      : all;
+  }
+  const [page, head] = await Promise.all([
+    listAgendaEvents(filters, { cursor }),
+    cursor ? listAgendaEventsThrough(filters, cursor) : Promise.resolve(ok([] as EventView[])),
+  ]);
+  if (!page.ok) return page;
+  const before = head.ok ? head.value : [];
+  return ok({
+    events: [...before, ...page.value.rows],
+    total: page.value.total,
+    nextCursor: page.value.nextCursor,
+    firstNew: before.length > 0 && page.value.rows.length > 0 ? before.length : -1,
   });
+}
+
+async function Results({ f, cursor }: { f: AgendaFilters; cursor?: string }) {
+  const now = new Date();
+  const r = await loadEvents(f, cursor, now);
   if (!r.ok) {
     return (
       <EmptyState
@@ -258,7 +302,8 @@ async function Results({ f }: { f: AgendaFilters }) {
       </EmptyState>
     );
   }
-  const events = r.value;
+  const { events, total, nextCursor, firstNew } = r.value;
+  const firstNewId = firstNew >= 0 ? events[firstNew]?.id : undefined;
 
   if (f.view === "cal") {
     const month = calendarMonth(f, now);
@@ -338,12 +383,11 @@ async function Results({ f }: { f: AgendaFilters }) {
     const key = localDateKey(e.startsAt);
     groups.set(key, [...(groups.get(key) ?? []), e]);
   }
-  const mini = await miniCalendar(f, now);
   return (
     <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_var(--layout-rail)]">
       <div className="flex min-w-0 flex-col gap-8">
         <p className="type-meta text-meta">
-          {AGENDA.results(events.length)}
+          {AGENDA.results(total)}
           {f.day && (
             <>
               {" · "}
@@ -363,43 +407,46 @@ async function Results({ f }: { f: AgendaFilters }) {
             </h2>
             <ol className="flex flex-col">
               {list.map((e) => (
-                <li key={e.id}>
+                <li
+                  key={e.id}
+                  id={e.id === firstNewId ? loadMoreAnchor(firstNew) : undefined}
+                  tabIndex={e.id === firstNewId ? -1 : undefined}
+                >
                   <EventCard event={e} />
                 </li>
               ))}
             </ol>
           </section>
         ))}
+        <LoadMore
+          href={nextCursor ? moreHref(f, nextCursor, events.length) : null}
+          shown={events.length}
+          total={total}
+          label={AGENDA.loadMore}
+        />
         {recurring.length > 0 && (
           <RecurringDates items={recurring} headingLevel={2} id="agenda-recorrentes" />
         )}
       </div>
-      {mini && (
-        <aside
-          aria-label={AGENDA.miniCalendar}
-          className="hidden lg:sticky lg:top-40 lg:block lg:self-start"
-        >
-          {mini}
-        </aside>
-      )}
+      {/* Bloco secundário: a lista não espera o mini-calendário (item 87). */}
+      <Suspense
+        fallback={
+          <div className="hidden lg:block lg:self-start">
+            <Skeleton shape="block" round="lg" className="aspect-square w-full" />
+          </div>
+        }
+      >
+        <MiniCalendar f={f} now={now} />
+      </Suspense>
     </div>
   );
 }
 
 /** Mini-calendário lateral da lista (desktop): contagem por dia do mês com os mesmos filtros. */
-async function miniCalendar(f: AgendaFilters, now: Date) {
+async function MiniCalendar({ f, now }: { f: AgendaFilters; now: Date }) {
   const month = f.day ? f.day.slice(0, 7) : calendarMonth(f, now);
   const range = agendaRange({ ...f, view: "cal", month, day: undefined }, now);
-  const r = await listEvents({
-    from: range.from,
-    to: range.to,
-    freeOnly: f.free,
-    kidsOnly: f.kids,
-    category: f.category,
-    neighborhood: f.neighborhood ? neighborhoodBySlug(f.neighborhood)?.name : undefined,
-    origin: f.origin,
-    limit: 100,
-  });
+  const r = await listEventsInRange(eventFilters(f, range));
   if (!r.ok) return null;
   const counts = new Map<string, number>();
   for (const e of r.value) {
@@ -410,37 +457,45 @@ async function miniCalendar(f: AgendaFilters, now: Date) {
   const prev = m === 1 ? `${(y ?? 0) - 1}-12` : `${y}-${String((m ?? 1) - 1).padStart(2, "0")}`;
   const next = m === 12 ? `${(y ?? 0) + 1}-01` : `${y}-${String((m ?? 1) + 1).padStart(2, "0")}`;
   return (
-    <AgendaCalendar
-      compact
-      month={month}
-      title={formatMonthYear(month)}
-      today={localDateKey(now)}
-      prevHref={agendaHref(f, { view: "cal", month: prev, day: undefined })}
-      nextHref={agendaHref(f, { view: "cal", month: next, day: undefined })}
-      days={[...counts.entries()].map(([key, count]) => ({
-        key,
-        count,
-        label: formatLongDate(dayStart(key).toISOString()),
-        href: agendaHref(f, { view: "list", day: key, month: undefined }),
-      }))}
-    />
+    <aside
+      aria-label={AGENDA.miniCalendar}
+      className="hidden lg:sticky lg:top-sticky-public lg:block lg:self-start"
+    >
+      <AgendaCalendar
+        compact
+        month={month}
+        title={formatMonthYear(month)}
+        today={localDateKey(now)}
+        prevHref={agendaHref(f, { view: "cal", month: prev, day: undefined })}
+        nextHref={agendaHref(f, { view: "cal", month: next, day: undefined })}
+        days={[...counts.entries()].map(([key, count]) => ({
+          key,
+          count,
+          label: formatLongDate(dayStart(key).toISOString()),
+          href: agendaHref(f, { view: "list", day: key, month: undefined }),
+        }))}
+      />
+    </aside>
   );
 }
 
 function Loading() {
   return (
-    <div aria-busy="true" className="flex flex-col gap-4">
-      <p className="sr-only">{AGENDA.loading}</p>
-      <div aria-hidden="true" className="h-7 w-48 bg-section motion-safe:animate-pulse" />
+    <LoadingRegion label={AGENDA.loading} className="flex flex-col gap-4">
+      <Skeleton shape="block" className="h-7 w-48" />
       {[0, 1, 2].map((i) => (
         <Skeleton key={i} media lines={4} className="border-t border-line-subtle py-4" />
       ))}
-    </div>
+    </LoadingRegion>
   );
 }
 
 export default async function AgendaRoute({ searchParams }: Props) {
-  const f = parseAgendaFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseAgendaFilters(sp);
+  const rawCursor = firstParam(sp, "cursor") ?? "";
+  const cursor =
+    f.view === "list" && /^[A-Za-z0-9_-]{1,512}$/.test(rawCursor) ? rawCursor : undefined;
   return (
     <div className={`${CONTAINER} flex flex-col gap-6 py-6 lg:py-10`}>
       <header className="flex flex-col gap-4 border-b border-line-strong pb-4 sm:flex-row sm:items-end sm:justify-between">
@@ -462,8 +517,8 @@ export default async function AgendaRoute({ searchParams }: Props) {
         </div>
         <Filters f={f} />
       </div>
-      <Suspense key={agendaHref(f)} fallback={<Loading />}>
-        <Results f={f} />
+      <Suspense key={`${agendaHref(f)}|${cursor ?? ""}`} fallback={<Loading />}>
+        <Results f={f} cursor={cursor} />
       </Suspense>
     </div>
   );

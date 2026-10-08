@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Icon } from "@/components";
-import { AddSourceWizard } from "@/components/estudio";
+import { AddSourceWizard, StudioScreen } from "@/components/estudio";
 import { WIZARD_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { createServerClient } from "@/lib/db/client";
 import { many } from "@/lib/db/queries/run";
 import { analyzeLinkAction, createSourceAction } from "../actions";
@@ -33,18 +32,15 @@ export default async function NewSourcePage({ searchParams }: Props) {
   const defaultFrequency = typeof value === "number" ? value : 30;
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <Link
-          href={BASE}
-          className="inline-flex items-center gap-1 type-meta text-link no-underline hover:underline"
-        >
-          <Icon name="arrow-left" size={16} />
-          {T.back}
-        </Link>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="max-w-read type-body text-meta">{T.description}</p>
-      </header>
+    <StudioScreen
+      title={T.title}
+      intro={T.description}
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: BASE, label: T.back },
+        { href: `${BASE}/nova`, label: T.title },
+      ]}
+    >
       <AddSourceWizard
         analyze={analyzeLinkAction}
         create={createSourceAction}
@@ -53,6 +49,6 @@ export default async function NewSourcePage({ searchParams }: Props) {
         basePath={BASE}
         initialUrl={initialUrl}
       />
-    </section>
+    </StudioScreen>
   );
 }
