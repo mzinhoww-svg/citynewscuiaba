@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/require-role";
 import { createServerClient } from "@/lib/db/client";
 import { SupabaseEnvError } from "@/lib/db/env";
 import { mediaServeDeps } from "@/lib/db/media-serve";
+import { canPreviewMedia } from "@/lib/media/preview-access";
 import { serveMedia } from "@/lib/media/serve";
 
 export const runtime = "nodejs";
@@ -14,8 +15,10 @@ const notFound = () =>
   });
 
 /**
- * Prévia de imagem no Estúdio (E09/E10): qualquer estado (pendente, aprovada, bloqueada), só
- * para quem tem papel no Estúdio. Mesmo bucket privado da rota pública; nunca em cache público.
+ * Prévia de imagem no Estúdio (E09/E10): só para quem a vê nas telas (C3-02, `canPreviewMedia`):
+ * `media.approve` no escopo da imagem vê qualquer estado; `article.edit` numa matéria que a usa vê
+ * pendente ou aprovada. Mesmo bucket privado da rota pública; nunca em cache público. A flag
+ * `image_reproduction_enabled` não vale aqui: a equipe precisa ver a imagem para decidir.
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -34,10 +37,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     async asset(x) {
       const { data } = await db
         .from("media_assets")
-        .select("id, kind, storage_path, content_type")
+        .select(
+          "id, kind, status, storage_path, content_type, article_media(articles(section_slug, author_id))",
+        )
         .eq("id", x)
         .maybeSingle();
-      return data
+      const articles = (data?.article_media ?? []).flatMap((l) =>
+        l.articles ? [{ section: l.articles.section_slug, authorId: l.articles.author_id }] : [],
+      );
+      return data &&
+        canPreviewMedia(session.roles, session.userId, { status: data.status, articles })
         ? {
             id: data.id,
             kind: data.kind,
