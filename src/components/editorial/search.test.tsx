@@ -89,11 +89,10 @@ const article = {
   dek: "A prefeitura detalhou as linhas.",
   section: { slug: "cidade", name: "Cidade" },
   status: "published",
-  publishMode: "human",
   publishedAt: "2026-09-27T17:48:00Z",
   updatedAt: "2026-09-27T17:48:00Z",
   labels: { shown: [{ kind: "original", text: "ORIGINAL CITYNEWS" }], hidden: [] },
-  confidence: { level: "alta", score: 0.9 },
+  confidence: { score: 0.9 },
   sourceCount: 0,
   readMinutes: 2,
   aiSummary: null,
@@ -101,6 +100,7 @@ const article = {
   reviewer: null,
   topicId: null,
   urgent: false,
+  urgentStrip: false,
   sponsored: false,
 } as unknown as ArticleSummary;
 
