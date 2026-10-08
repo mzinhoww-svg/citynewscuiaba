@@ -3,6 +3,8 @@
  * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-152). Nada aqui
  * promete prazo ou serviço que o produto não entrega.
  */
+import { PHONE } from "./contact";
+
 export const PENDING = "[PREENCHER]";
 
 /** `false` para valor vazio, só espaços ou ainda pendente (`[PREENCHER]`): não vai à tela. */
@@ -197,7 +199,7 @@ export const PRINCIPLES: InstitutionalDoc = {
     {
       title: "Temas sensíveis",
       paragraphs: [
-        "Crimes, violência, mortes, acidentes, saúde de pessoas e eleições nunca são publicados sem revisão humana. Não usamos imagem gerada por IA para ilustrar esses temas e nunca geramos imagem realista de pessoa real.",
+        "Crimes, violência, mortes, acidentes, saúde de pessoas e eleições seguem regras mais rígidas: vão ao ar sempre com a fonte citada, e vão para a revisão da redação quando as fontes divergem no ponto central do fato, quando a informação é duvidosa ou quando depende de uma única fonte que não é confiável. Não usamos imagem gerada por IA para ilustrar esses temas e nunca geramos imagem realista de pessoa real.",
       ],
     },
     {
@@ -246,7 +248,7 @@ export const AI_USE: InstitutionalDoc = {
     {
       title: "Supervisão humana",
       paragraphs: [
-        "Cada publicação automática segue regras públicas (veja a metodologia), registra por que foi publicada e pode ser desfeita por um editor em um clique. Enquanto o portal está em fase inicial, a revisão humana está ligada para todas as editorias.",
+        "Cada publicação automática segue regras públicas (veja a metodologia), registra por que foi publicada e pode ser desfeita por um editor em um clique.",
       ],
     },
   ],
@@ -338,7 +340,10 @@ const ADVERTISE_RULES = [
   "O anunciante não revisa nem altera a cobertura jornalística.",
 ] as const;
 
-const ADVERTISE_CONTACTS = [`E-mail: ${COMMERCIAL_EMAIL}`, `Telefone: ${PENDING}`] as const;
+const ADVERTISE_CONTACTS = [
+  `E-mail: ${COMMERCIAL_EMAIL}`,
+  `Telefone e WhatsApp: ${PHONE.display}`,
+] as const;
 
 export const ADVERTISE: InstitutionalDoc = {
   path: "/anuncie",
@@ -374,7 +379,9 @@ export const ADVERTISE_PAGE = {
     { icon: "ban", title: "Fora da Política", text: ADVERTISE_RULES[2] },
     { icon: "scale", title: "Redação independente", text: ADVERTISE_RULES[3] },
   ],
-  contactText: "Conte o que você quer divulgar e quando. Respondemos por e-mail.",
+  contactText: `Conte o que você quer divulgar e quando, por e-mail ou pelo WhatsApp ${PHONE.display}.`,
+  whatsappCta: "Chamar no WhatsApp",
+  whatsappHref: PHONE.whatsapp,
   faq: [
     {
       question: "Posso anunciar na editoria Política?",
@@ -401,7 +408,10 @@ export const CONTACT: InstitutionalDoc = {
   sections: [
     {
       title: "Redação",
-      items: [`E-mail da redação: contato@citynews.com.br`, `WhatsApp para pautas: ${PENDING}`],
+      items: [
+        `E-mail da redação: contato@citynews.com.br`,
+        `WhatsApp para pautas: ${PHONE.display}`,
+      ],
     },
     {
       title: "Erro em uma matéria",
@@ -436,7 +446,7 @@ export const METHOD = {
     "Cada matéria vem de fontes citadas, que aparecem na própria matéria com link para o original. Quando as fontes são outras, o texto diz de quantas veio. Reportagem própria da redação leva a marca ORIGINAL CITYNEWS, e links para outros veículos levam AGREGADO e o nome da fonte.",
   howItems: [
     "Erros são corrigidos na própria matéria, com nota visível e histórico de versões.",
-    "Crime, violência, morte, saúde de pessoas e eleições passam sempre por revisão humana antes de ir ao ar.",
+    "Crime, violência, morte, saúde de pessoas e eleições seguem regras mais rígidas e vão para a revisão da redação quando há divergência central, informação duvidosa ou fonte única não confiável.",
     "Conteúdo pago é identificado como Patrocinado.",
   ],
   labelsTitle: "O que cada rótulo significa",
@@ -444,7 +454,7 @@ export const METHOD = {
     "Cada card mostra até 4 rótulos. Os demais ficam no bloco De onde veio, dentro da matéria.",
   rulesTitle: "Regras de publicação automática",
   rulesIntro:
-    "O sistema só publica sozinho quando a categoria permite e a informação cumpre os requisitos abaixo. Temas sensíveis e notícias urgentes sempre passam por uma pessoa. Nesta fase inicial, a revisão humana está ligada para todas as categorias.",
+    "O sistema só publica sozinho quando a informação cumpre as regras em vigor, sempre com a fonte citada. Em temas sensíveis, vai para a revisão da redação o que tem fontes divergentes no ponto central, conteúdo duvidoso ou uma única fonte que não é confiável.",
   rulesCaption: "Regras de autonomia por categoria (versão 1)",
   columns: {
     category: "Categoria",
@@ -475,7 +485,7 @@ export const METHOD = {
   yes: "Sim",
   no: "Não",
   none: "Não se aplica",
-  sensitiveTitle: "Temas que sempre passam por revisão humana",
+  sensitiveTitle: "Temas com regras mais rígidas",
   sensitive:
     "Crime, violência, morte, tragédia, acidente, suicídio, abuso, saúde de pessoas e eleições.",
 } as const;
