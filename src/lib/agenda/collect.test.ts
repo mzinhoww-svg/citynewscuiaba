@@ -4,7 +4,13 @@ import { createFakeProvider } from "@/lib/ai/fake";
 import { createMemoryAiStore } from "@/lib/ai/testing/memory-store";
 import type { FetchOutcome } from "@/lib/sources/status";
 import { crawlDeps } from "@/lib/sources/http-deps";
-import { AI_DEADLINE_MS, collectAgenda, type CollectDeps, type StoredCollected } from "./collect";
+import {
+  AI_DEADLINE_MS,
+  AI_HARD_DEADLINE_MS,
+  collectAgenda,
+  type CollectDeps,
+  type StoredCollected,
+} from "./collect";
 import { dedupeKeyOf } from "./normalize";
 import { FIXTURE_AGENDA_SOURCES } from "./sources";
 import type { AgendaSource, NormalizedEvent } from "./types";
@@ -81,7 +87,7 @@ function storedRow(over: Partial<StoredCollected> & { dedupeKey: string }): Stor
     sourceRef: TEATRO.uuid,
     origin: "organizer",
     confirms: true,
-    confirmedBySourceId: TEATRO.uuid,
+    confirmedBySourceId: null,
     evidence: {},
     ...over,
   };
@@ -206,13 +212,15 @@ describe("collectAgenda · caminho ai_page", () => {
     const r = await collectAgenda(d);
     const rep = r.sources[0]!;
     expect(rep).toMatchObject({ id: "teatro-cerrado", status: "ok", found: 2, approved: 2 });
-    expect(rep.aiPages).toBe(2);
+    // Listagem + 2 páginas: as três chamadas ao modelo contam no teto.
+    expect(rep.aiPages).toBe(3);
     expect(saved).toHaveLength(2);
     const forro = saved.find((e) => e.title === "Forró da Praça")!;
     expect(forro.startsAt).toBe("2026-10-25T00:00:00.000Z");
     expect(forro.venue).toBe("Teatro Cerrado");
     expect(forro.evidence.data?.trecho).toBe("sábado, 24 de outubro de 2026");
     expect(forro.sourceRef).toBe(TEATRO.uuid);
+    expect(forro.confirmedBySourceId).toBeNull();
   });
 
   it("página igual não passa de novo pelo modelo (cache por URL e hash)", async () => {
@@ -225,16 +233,25 @@ describe("collectAgenda · caminho ai_page", () => {
     expect(r.sources[0]).toMatchObject({ aiPages: 0, approved: 2 });
   });
 
-  it("teto por execução: perRun = 1 processa 1 página e adia a fonte", async () => {
-    const { d, saved } = deps({ aiBudget: { perRun: 1, remainingToday: 160 } });
+  it("teto por execução: perRun = 2 lê a listagem e 1 página e adia a fonte", async () => {
+    const { d, saved, fake } = deps({ aiBudget: { perRun: 2, remainingToday: 160 } });
     const r = await collectAgenda(d);
     const rep = r.sources.find((s) => s.id === "teatro-cerrado")!;
     expect(rep.status).toBe("ia_adiada");
-    expect(rep.aiPages).toBe(1);
-    expect(r.aiPages).toBe(1);
+    expect(rep.found).toBe(1);
+    expect(rep.aiPages).toBe(2);
+    expect(r.aiPages).toBe(2);
+    expect(fake.calls.length).toBe(2);
     // A fonte adiada não grava pela metade; as outras gravam.
     expect(saved.some((e) => e.sourceId === "teatro-cerrado")).toBe(false);
     expect(saved.some((e) => e.title === "Cine Praça: sessão ao ar livre")).toBe(true);
+  });
+
+  it("perRun = 1: só a listagem vai ao modelo (a chamada da listagem conta no teto)", async () => {
+    const { d, fake } = deps({ sources: [TEATRO], aiBudget: { perRun: 1, remainingToday: 160 } });
+    const r = await collectAgenda(d);
+    expect(r.sources[0]).toMatchObject({ status: "ia_adiada", aiPages: 1, found: 0 });
+    expect(fake.calls.length).toBe(1);
   });
 
   it("teto do dia zerado: a fonte ai_page fica adiada sem chamar o modelo", async () => {
@@ -257,18 +274,23 @@ describe("collectAgenda · caminho ai_page", () => {
     const r = await collectAgenda(d);
     const rep = r.sources.find((s) => s.id === "teatro-cerrado")!;
     expect(rep.status).toBe("ia_adiada");
-    expect(rep.aiPages).toBe(1);
+    expect(rep.aiPages).toBe(2);
     expect(saved.some((e) => e.sourceId === "teatro-cerrado")).toBe(false);
     expect(saved.some((e) => e.title === "Sarau da Casa Exemplo")).toBe(true);
   });
 
-  it("prazo duro (signal) esgotado: a fonte ai_page fica adiada sem contar falha; estruturadas gravam", async () => {
-    const { d, saved, states } = deps({ signal: AbortSignal.abort() });
-    const r = await collectAgenda(d);
+  it("prazo duro no meio de uma página: a ai_page fica adiada (a fonte respondeu), estruturadas gravam", async () => {
+    const ctrl = new AbortController();
+    const base = deps({ sources: [TEATRO, INGRESSOS], signal: ctrl.signal });
+    const callAgent: CallAgent = (agentId, input, schema, opts) => {
+      if (input.data.some((x) => x.id === "pagina")) ctrl.abort();
+      return base.d.callAgent(agentId, input, schema, opts);
+    };
+    const r = await collectAgenda({ ...base.d, callAgent });
     const rep = r.sources.find((s) => s.id === "teatro-cerrado")!;
     expect(rep.status).toBe("ia_adiada");
-    expect(states.find((s) => s.uuid === TEATRO.uuid)?.outcome).toBe("ok");
-    expect(saved.some((e) => e.title === "Cine Praça: sessão ao ar livre")).toBe(true);
+    expect(base.states.find((s) => s.uuid === TEATRO.uuid)?.outcome).toBe("ok");
+    expect(base.saved.some((e) => e.sourceId === "ingressosmt")).toBe(true);
   });
 
   it("estruturadas rodam antes das ai_page; relatório na ordem das fontes", async () => {
@@ -282,17 +304,20 @@ describe("collectAgenda · caminho ai_page", () => {
     expect(r.sources.map((s) => s.id)).toEqual(["teatro-cerrado", "ingressosmt"]);
   });
 
-  it("Sympla e a casa com o mesmo show: 1 evento, confirmado pela casa", async () => {
+  it("Sympla e a casa com o mesmo show: 1 evento, a linha da casa", async () => {
     const { d, saved } = deps({ sources: [TEATRO, INGRESSOS] });
     const r = await collectAgenda(d);
     const fest = saved.filter((e) => e.title === "Festival Cerrado Eletrônico");
     expect(fest).toHaveLength(1);
+    // A casa confirma por `sources.confirms`; `confirmedBySourceId` é só para outra fonte.
     expect(fest[0]).toMatchObject({
       sourceId: "teatro-cerrado",
-      confirmedBySourceId: TEATRO.uuid,
+      sourceRef: TEATRO.uuid,
+      confirmedBySourceId: null,
       startsAt: "2026-11-21T23:00:00.000Z",
     });
     expect(r.duplicates).toBe(1);
+    expect(r.sources.find((s) => s.id === "teatro-cerrado")?.confirmed).toBe(1);
   });
 });
 
@@ -375,6 +400,68 @@ describe("collectAgenda · eventos já guardados", () => {
     const r = await collectAgenda(d);
     expect(saved.some((e) => e.title === "Festival Cerrado Eletrônico")).toBe(false);
     expect(r.duplicates).toBe(1);
+  });
+});
+
+describe("collectAgenda · prazo da execução", () => {
+  it("HTTP lento (10 s por pedido): para no corte, termina antes do prazo duro e grava o que terminou", async () => {
+    let t = 0;
+    const base = crawlDeps({
+      repo: { hitRateLimit: async () => true },
+      env: { CRAWLER_FIXTURES: "1", NODE_ENV: "test" },
+    });
+    const { d, saved, states } = deps({
+      monotonic: () => t,
+      crawl: {
+        ...base,
+        http: async (url, init) => {
+          t += 10_000;
+          return base.http(url, init);
+        },
+      },
+    });
+    const r = await collectAgenda(d);
+    expect(t).toBeLessThanOrEqual(AI_HARD_DEADLINE_MS);
+    const status = Object.fromEntries(r.sources.map((s) => [s.id, s.status]));
+    // Estruturadas na ordem: iCal (robots + feed) e JSON-LD terminam; as seguintes, não.
+    expect(status).toMatchObject({
+      culturavarzea: "ok",
+      "cerrado-vivo": "ok",
+      agendamt: "adiada",
+      ingressosmt: "adiada",
+      "eventos-cerrado": "adiada",
+      "teatro-cerrado": "ia_adiada",
+    });
+    expect(saved.some((e) => e.title === "Cine Praça: sessão ao ar livre")).toBe(true);
+    expect(saved.some((e) => e.title === "Noite do Siriri Moderno")).toBe(true);
+    expect(saved.some((e) => e.sourceId === "agendamt" || e.sourceId === "teatro-cerrado")).toBe(
+      false,
+    );
+    // Adiada não conta falha nem sucesso da fonte.
+    expect(states.map((s) => s.uuid)).not.toContain(byId("agendamt").uuid);
+  });
+
+  it("prazo duro abortado no meio de um pedido: a fonte fica adiada, sem falha", async () => {
+    const ctrl = new AbortController();
+    const base = crawlDeps({
+      repo: { hitRateLimit: async () => true },
+      env: { CRAWLER_FIXTURES: "1", NODE_ENV: "test" },
+    });
+    const { d, states } = deps({
+      sources: [INGRESSOS],
+      signal: ctrl.signal,
+      crawl: {
+        ...base,
+        http: async (url, init) => {
+          if (url.endsWith("/robots.txt")) return base.http(url, init);
+          ctrl.abort();
+          throw new DOMException("aborted", "AbortError");
+        },
+      },
+    });
+    const r = await collectAgenda(d);
+    expect(r.sources[0]?.status).toBe("adiada");
+    expect(states).toEqual([]);
   });
 });
 

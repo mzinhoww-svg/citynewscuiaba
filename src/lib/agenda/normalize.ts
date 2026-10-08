@@ -251,8 +251,9 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
       venueKnown,
       sourceRef: source.uuid || null,
       confirms: source.confirms,
-      // A fonte que confirma confirma o próprio evento (`confirmed_by_source_id` = ela mesma).
-      confirmedBySourceId: source.confirms ? source.uuid || null : null,
+      // Só outra fonte que confirma preenche (confirmação entre fontes); a fonte que confirma
+      // conta como confirmada pelo próprio `sources.confirms`.
+      confirmedBySourceId: null,
       evidence: {},
     },
   };

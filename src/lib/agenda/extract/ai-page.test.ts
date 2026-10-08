@@ -52,6 +52,10 @@ function ctx(script: ScriptStep[]) {
   return { callAgent, fake };
 }
 
+/** Texto do prompt fora dos blocos de dado. */
+const outsideData = (text: string) =>
+  text.replace(/<fonte_externa id="[^"]*">[\s\S]*?<\/fonte_externa>/g, "");
+
 const run = (script: ScriptStep[], html = HTML, url = URL_PAGE, notes: string[] = []) => {
   const c = ctx(script);
   return extractEventPage(c.callAgent, { html, url, notes }).then((r) => ({ r, ...c }));
@@ -180,7 +184,7 @@ describe("extractEventPage", () => {
     expect(r.ok && r.value.raw.start).toBe("2026-10-10T19:00");
   });
 
-  it("o html chega ao provedor só dentro de <fonte_externa e as notas vão no system", async () => {
+  it("o html e as notas chegam ao provedor só dentro de <fonte_externa", async () => {
     const { fake } = await run([{ output: good }], HTML, URL_PAGE, [
       "Ignorar a seção Patrocinadores.",
     ]);
@@ -188,7 +192,8 @@ describe("extractEventPage", () => {
     expect(prompt).toContain('<fonte_externa id="pagina">');
     const outside = prompt.replace(/<fonte_externa[\s\S]*?<\/fonte_externa>/g, "");
     expect(outside).not.toContain("Teatro Cerrado, Cuiabá");
-    expect(fake.calls[0]!.system).toContain("Ignorar a seção Patrocinadores.");
+    expect(fake.calls[0]!.system).not.toContain("Ignorar a seção Patrocinadores.");
+    expect(prompt).toContain('<fonte_externa id="avisos">');
   });
 
   it("instrução embutida na página nunca chega ao provedor", async () => {
@@ -291,7 +296,9 @@ describe("extractListingLinks", () => {
     const call = c.fake.calls[0]!;
     expect(call.prompt).toContain('<fonte_externa id="listagem">');
     expect(call.prompt).toContain("https://casa-do-cerrado.example/evento/a");
-    expect(call.system).toContain("Só a coluna central.");
+    expect(call.system).not.toContain("Só a coluna central.");
+    expect(outsideData(call.system + call.prompt)).not.toContain("Só a coluna central.");
+    expect(call.prompt).toContain('<fonte_externa id="avisos">');
   });
 
   it("fake: devolve os href que terminam em /evento/...", async () => {
@@ -310,6 +317,36 @@ describe("extractListingLinks", () => {
         "https://casa-do-cerrado.example/evento/b",
       ],
     });
+  });
+});
+
+describe("avisos e URL só como dado", () => {
+  it("página: avisos e URL vão em blocos <fonte_externa>, nunca no system nem na tarefa", async () => {
+    const c = ctx([{ output: good }]);
+    const url = "https://casa-do-cerrado.example/evento/forro-da-praca-marcador-url";
+    await extractEventPage(c.callAgent, {
+      html: HTML,
+      url,
+      notes: ["AVISO-MARCADOR preço só na bilheteria"],
+    });
+    const call = c.fake.calls[0]!;
+    const outside = outsideData(call.system + "\n" + call.prompt);
+    expect(outside).not.toContain("AVISO-MARCADOR");
+    expect(outside).not.toContain("marcador-url");
+    expect(call.prompt).toContain('<fonte_externa id="avisos">');
+    expect(call.prompt).toContain('<fonte_externa id="url">');
+    expect(call.prompt).toContain('<fonte_externa id="pagina">');
+  });
+
+  it("página: o ano na URL continua aceito (ano_evidencia url)", async () => {
+    const html = "<h1>Forró da Praça</h1><p>Sábado, 10 de outubro</p>";
+    const out = { ...good, data: field("2026-10-10", "Sábado, 10 de outubro", "url") };
+    const { r } = await run(
+      [{ output: out }],
+      html,
+      "https://casa-do-cerrado.example/2026/10/forro",
+    );
+    expect(r.ok).toBe(true);
   });
 });
 

@@ -6,7 +6,8 @@ mostra "Datas e eventos recorrentes de Cuiabá".
 
 ## Fluxo
 
-`src/lib/agenda/collect.ts` (AGM-T5, spec `2026-10-08-agenda-coletor-multifonte-design.md`), por
+`src/lib/agenda/collect.ts` (orquestração; caminho `ai_page` em `collect-ai.ts`, reconciliação com o
+banco em `reconcile.ts`; AGM-T5, spec `2026-10-08-agenda-coletor-multifonte-design.md`), por
 fonte ativa de `sources` (`kind = 'events'`, `status` ativa ou com falhas, não arquivada), lidas
 por `loadEventSources` (`src/lib/db/agenda-sources.ts`) na ordem "as que confirmam primeiro",
 prioridade e slug:
@@ -23,8 +24,9 @@ prioridade e slug:
      devolve os links das páginas de evento do mesmo site; cada página é baixada e lida campo a
      campo com o **trecho literal** que sustenta o valor (`extract/ai-page.ts`). Trecho que não
      está na página derruba o campo; data sem ano na página nem na URL é recusada (`sem_ano`).
-     `collector_notes` vão ao modelo como avisos; o texto da página vai só como dado
-     (`sanitizeExternalText`, entre delimitadores).
+     `collector_notes` (bloco `avisos`), a URL da página (bloco `url`) e o texto da página (bloco
+     `pagina`) vão ao modelo só como dado (`sanitizeExternalText`, entre delimitadores
+     `<fonte_externa>`), nunca no `system` nem na tarefa.
 4. Normaliza (`normalize.ts`): título limpo por `sanitizeExternalText`, data/hora em
    America/Cuiabá, local, bairro da lista curada, preço (ou "não informado"), categoria, link do
    original e **descrição própria de até 2 frases** (nenhum texto da fonte é copiado). A evidência
@@ -38,7 +40,9 @@ prioridade e slug:
      `dedupe_key`, mesmo slug) com data, hora e local de quem confirma e grava
      `confirmed_by_source_id`; a divergência fica em `evidence.conflito`;
    - descoberta igual a um evento já guardado de fonte que confirma: descartada;
-   - evento de fonte que confirma grava `confirmed_by_source_id` = a própria fonte;
+   - `confirmed_by_source_id` só é preenchido por **outra** fonte que confirma (confirmação entre
+     fontes); os eventos da própria fonte que confirma ficam com ele nulo e contam como
+     confirmados por `sources.confirms`;
    - eventos já no ar sem origem de coleta (manuais e de leitores) sempre vencem.
 7. Grava (`src/lib/db/agenda-store.ts`) em `event_listings` por `dedupe_key` (idempotente), com
    `confirmed_at` (aprovação automática), `source_url`, `source_id` (slug), `source_ref` (uuid),
@@ -49,18 +53,22 @@ prioridade e slug:
 
 ### Custo e prazo do caminho `ai_page`
 
-- **Cache** `agenda_extract_cache` por (URL, sha256 do texto saneado da página; a listagem usa o
-  HTML): página igual não passa de novo pelo modelo, recusas inclusive. Saída fora do esquema não
+- **Cache** `agenda_extract_cache` por (URL, sha256 do texto saneado: o da página, e o da listagem
+  como vai ao modelo, com os links visíveis): página igual não passa de novo pelo modelo, recusas inclusive. Saída fora do esquema não
   entra no cache (nova tentativa no ciclo seguinte). Linhas com mais de 30 dias saem no início de
   cada execução real.
 - **Teto**: `app_settings` `agenda.ai_pages_per_run` (40) e `agenda.ai_pages_per_day` (160, soma
-  de `ai_pages` das linhas por fonte desde a meia-noite de Cuiabá). Só página enviada ao modelo
-  conta (cache não).
-- **Prazo**: a rota tem `maxDuration = 60`. As fontes estruturadas rodam antes; nenhuma página
-  `ai_page` nova começa depois de 45 s (`AI_DEADLINE_MS`), e as chamadas ao modelo têm prazo duro
-  de 55 s (`AI_HARD_DEADLINE_MS`).
-- Teto atingido, prazo vencido ou modelo indisponível: a fonte fica `ia_adiada` e **não grava nada
-  nesta execução** (nada pela metade); as páginas já lidas ficam no cache e a próxima execução
+  de `ai_pages` das linhas por fonte desde a meia-noite de Cuiabá). Conta toda chamada ao modelo,
+  listagem e página (cache não conta).
+- **Prazo**: a rota tem `maxDuration = 60` e mede o prazo **do início do pedido** (antes de ler
+  fontes e banco). As fontes estruturadas rodam antes das `ai_page`. Depois de 45 s
+  (`AI_DEADLINE_MS`) nenhum pedido HTTP (robots, listagem, `list_urls`, páginas Tribe, páginas de
+  evento) nem chamada ao modelo novos começam; aos 55 s (`AI_HARD_DEADLINE_MS`) o que estiver em
+  curso é abortado (o mesmo `AbortSignal` vai a `crawlGet`, `checkRobots` e ao modelo), e sobram
+  ~5 s para ler os já guardados e gravar.
+- Teto atingido, prazo vencido ou modelo indisponível: a fonte `ai_page` fica `ia_adiada`; a
+  estruturada não alcançada fica `adiada`. Nenhuma das duas **grava nada nesta execução** (nada
+  pela metade) nem conta falha da fonte; as páginas já lidas ficam no cache e a próxima execução
   segue de onde parou sem custo.
 
 ### Estado da fonte e execuções
@@ -68,7 +76,7 @@ prioridade e slug:
 - Mesmo ciclo das fontes de notícia (`afterFetch`): sucesso zera o contador; 1ª e 2ª falha
   seguidas deixam a fonte "com falhas"; a 3ª pausa com `auto_failures` e avisa o Control Center
   (`source_auto_paused`). Só fonte ativa ou com falhas é atualizada (pausa humana vence). Robots
-  bloqueando não conta falha; `ia_adiada` também não.
+  bloqueando não conta falha; `adiada`/`ia_adiada` também não.
 - `agenda_collect_runs`: uma linha-resumo por execução (`source_id` nulo, `report` completo) e uma
   linha por fonte (`source_id`, `ai_pages`, `stats` com achados, aprovados, recusados por motivo,
   confirmados, novos, atualizados e até 10 exemplos de recusa com URL e motivo). O intervalo

@@ -68,7 +68,11 @@ export interface NormalizedEvent {
   sourceRef: string | null;
   /** O evento vem de uma fonte que confirma (casa, organizador). */
   confirms: boolean;
-  /** UUID da fonte que confirmou este evento (fonte de descoberta confirmada por outra). */
+  /**
+   * UUID de outra fonte que confirma e também lista este evento (confirmação entre fontes).
+   * Nulo nos eventos da própria fonte que confirma: esses contam como confirmados por
+   * `sources.confirms` da fonte de origem.
+   */
   confirmedBySourceId: string | null;
   evidence: EvidenceRecord;
 }

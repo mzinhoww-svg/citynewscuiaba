@@ -131,7 +131,8 @@ describe("rota da coleta com fixtures", () => {
     );
     const body = (await res.json()) as { status: string; startedAt: string; aiPages: number };
     expect(body.status).toBe("done");
-    expect(body.aiPages).toBe(2);
+    // Listagem + 2 páginas: as três chamadas contam no teto.
+    expect(body.aiPages).toBe(3);
 
     const cache = await db
       .from("agenda_extract_cache")
@@ -153,14 +154,14 @@ describe("rota da coleta com fixtures", () => {
     const summary = (runs.data ?? []).filter((r) => r.source_id === null);
     expect(summary).toHaveLength(1);
     expect(summary[0]?.finished_at).not.toBeNull();
-    expect(summary[0]?.ai_pages).toBe(2);
+    expect(summary[0]?.ai_pages).toBe(3);
     const perSource = (runs.data ?? []).filter((r) => r.source_id !== null);
     expect(perSource.map((r) => r.source_id).sort()).toEqual([...UUIDS].sort());
     const teatro = perSource.find((r) => r.source_id === TEATRO.uuid)!;
-    expect(teatro.ai_pages).toBe(2);
+    expect(teatro.ai_pages).toBe(3);
     expect(teatro.stats).toMatchObject({ found: 2, approved: 2, new: 2 });
 
-    expect(await store.aiPagesToday(new Date())).toBe(before + 2);
+    expect(await store.aiPagesToday(new Date())).toBe(before + 3);
     const last = await store.lastRunStartedAt();
     expect(last?.toISOString()).toBe(body.startedAt);
 
@@ -170,7 +171,8 @@ describe("rota da coleta com fixtures", () => {
       .eq("source_id", "teatro-cerrado");
     const forro = saved.data?.find((e) => e.title === "Forró da Praça");
     expect(forro?.source_ref).toBe(TEATRO.uuid);
-    expect(forro?.confirmed_by_source_id).toBe(TEATRO.uuid);
+    // Evento da própria fonte que confirma: `confirmed_by_source_id` fica nulo.
+    expect(forro?.confirmed_by_source_id).toBeNull();
     expect(forro?.evidence).toMatchObject({ data: { trecho: "sábado, 24 de outubro de 2026" } });
     await cleanEvents();
   });

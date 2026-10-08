@@ -322,7 +322,7 @@ export function createAgendaStore(db: DbClient) {
       const { data, error } = await db
         .from("agenda_collect_runs")
         .insert({ trigger, started_at: at.toISOString() })
-        .select("id, trigger")
+        .select("id")
         .single();
       if (error) throw new Error(`agenda startRun: ${error.message}`);
       return data.id;

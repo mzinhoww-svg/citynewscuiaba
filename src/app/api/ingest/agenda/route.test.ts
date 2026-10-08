@@ -31,6 +31,7 @@ describe("POST /api/ingest/agenda", () => {
 
 const h = vi.hoisted(() => ({
   loadEventSources: vi.fn(),
+  loadStartedAt: 0,
   collectAgenda: vi.fn(),
   store: {
     lastRunStartedAt: vi.fn(async () => null),
@@ -84,7 +85,10 @@ const call = (q = "?force=1") =>
 describe("POST /api/ingest/agenda · fontes e orçamento", () => {
   beforeEach(() => {
     vi.stubEnv("CRON_SECRET", "segredo-de-teste");
-    h.loadEventSources.mockReset().mockResolvedValue([DB_SOURCE]);
+    h.loadEventSources.mockReset().mockImplementation(async () => {
+      h.loadStartedAt = performance.now();
+      return [DB_SOURCE];
+    });
     h.collectAgenda.mockReset().mockResolvedValue({ sources: [], aiPages: 0 });
     for (const fn of Object.values(h.store)) fn.mockClear();
   });
@@ -98,6 +102,9 @@ describe("POST /api/ingest/agenda · fontes e orçamento", () => {
     expect(deps.sources).toEqual([DB_SOURCE]);
     expect(deps.aiBudget).toEqual({ perRun: 40, remainingToday: 10 });
     expect(deps.signal).toBeInstanceOf(AbortSignal);
+    // O prazo conta do início do pedido (antes de ler fontes e banco).
+    expect(deps.startedAt).toBeLessThanOrEqual(deps.monotonic());
+    expect(deps.startedAt).toBeLessThan(h.loadStartedAt);
     expect(typeof deps.monotonic()).toBe("number");
     expect(h.store.cachePurge).toHaveBeenCalledTimes(1);
     expect(h.store.finishRun).toHaveBeenCalledWith("run-1", { sources: [], aiPages: 0 });

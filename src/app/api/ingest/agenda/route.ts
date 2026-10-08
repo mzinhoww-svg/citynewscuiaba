@@ -21,6 +21,10 @@ const MIN_INTERVAL_MS = 5 * 3_600_000;
  * (não grava eventos, cache, execução nem estado da fonte); `?force=1` ignora o intervalo mínimo.
  */
 export async function POST(req: Request): Promise<Response> {
+  // Um prazo só, medido do início do pedido: leitura das fontes, expurgo e abertura da execução
+  // contam nos 45 s do corte e nos 55 s do prazo duro (sobram ~5 s para gravar).
+  const startedAt = performance.now();
+  const hardDeadline = AbortSignal.timeout(AI_HARD_DEADLINE_MS);
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
   const url = new URL(req.url);
@@ -58,7 +62,8 @@ export async function POST(req: Request): Promise<Response> {
     cache,
     aiBudget: { perRun: limits.perRun, remainingToday: Math.max(0, limits.perDay - usedToday) },
     monotonic: () => performance.now(),
-    signal: AbortSignal.timeout(AI_HARD_DEADLINE_MS),
+    startedAt,
+    signal: hardDeadline,
     stored: (keys) => store.stored(keys),
     sourceState: (uuid, outcome, detail) => store.sourceState(uuid, outcome, detail),
   });
