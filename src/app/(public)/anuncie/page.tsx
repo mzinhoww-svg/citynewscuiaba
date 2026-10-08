@@ -49,6 +49,15 @@ export default function Page() {
           {(CONTACT?.items ?? []).filter(isFilled).map((it) => (
             <li key={it}>{it}</li>
           ))}
+          <li>
+            <a
+              href={P.whatsappHref}
+              rel="noopener noreferrer"
+              className="text-link underline underline-offset-4"
+            >
+              {P.whatsappCta}
+            </a>
+          </li>
         </ul>
       </Cta>
       <Faq id="anuncie-faq" title={MARKETING.faqTitle} items={P.faq} />

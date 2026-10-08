@@ -4,6 +4,7 @@
  */
 
 import { ASK_NAME } from "./ask-name";
+import { PHONE, WHATSAPP_LABEL } from "./contact";
 import type { NavItem } from "./nav";
 
 /** Páginas institucionais (docs/screens.md P23). */
@@ -30,4 +31,5 @@ export const LEGAL = {
   cnpj: "CNPJ: [PREENCHER]",
   dpo: "Encarregado de dados (LGPD): [PREENCHER]",
   copyright: "© 2026 CityNews Cuiabá",
+  whatsapp: { label: WHATSAPP_LABEL, href: PHONE.whatsapp },
 } as const;

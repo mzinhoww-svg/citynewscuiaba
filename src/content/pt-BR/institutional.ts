@@ -3,6 +3,8 @@
  * dono informar (B-001, A-014); a tela pública esconde a linha pendente (A-152). Nada aqui
  * promete prazo ou serviço que o produto não entrega.
  */
+import { PHONE } from "./contact";
+
 export const PENDING = "[PREENCHER]";
 
 /** `false` para valor vazio, só espaços ou ainda pendente (`[PREENCHER]`): não vai à tela. */
@@ -338,7 +340,10 @@ const ADVERTISE_RULES = [
   "O anunciante não revisa nem altera a cobertura jornalística.",
 ] as const;
 
-const ADVERTISE_CONTACTS = [`E-mail: ${COMMERCIAL_EMAIL}`, `Telefone: ${PENDING}`] as const;
+const ADVERTISE_CONTACTS = [
+  `E-mail: ${COMMERCIAL_EMAIL}`,
+  `Telefone e WhatsApp: ${PHONE.display}`,
+] as const;
 
 export const ADVERTISE: InstitutionalDoc = {
   path: "/anuncie",
@@ -374,7 +379,9 @@ export const ADVERTISE_PAGE = {
     { icon: "ban", title: "Fora da Política", text: ADVERTISE_RULES[2] },
     { icon: "scale", title: "Redação independente", text: ADVERTISE_RULES[3] },
   ],
-  contactText: "Conte o que você quer divulgar e quando. Respondemos por e-mail.",
+  contactText: `Conte o que você quer divulgar e quando, por e-mail ou pelo WhatsApp ${PHONE.display}.`,
+  whatsappCta: "Chamar no WhatsApp",
+  whatsappHref: PHONE.whatsapp,
   faq: [
     {
       question: "Posso anunciar na editoria Política?",
@@ -401,7 +408,10 @@ export const CONTACT: InstitutionalDoc = {
   sections: [
     {
       title: "Redação",
-      items: [`E-mail da redação: contato@citynews.com.br`, `WhatsApp para pautas: ${PENDING}`],
+      items: [
+        `E-mail da redação: contato@citynews.com.br`,
+        `WhatsApp para pautas: ${PHONE.display}`,
+      ],
     },
     {
       title: "Erro em uma matéria",
