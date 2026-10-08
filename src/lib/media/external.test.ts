@@ -300,6 +300,11 @@ describe("cdnHostsOf", () => {
     expect(cdnHostsOf(html, "https://fotos.terceiro.example/cartaz.jpg")).toEqual([]);
   });
 
+  it("host em maiúsculas no HTML é o mesmo host da imagem", () => {
+    const html = `<img src="https://FOTOS.Terceiro.example/cartaz.jpg">`;
+    expect(cdnHostsOf(html, "https://fotos.terceiro.example/cartaz.jpg")).toEqual([]);
+  });
+
   it("endereço IP nunca vira CDN", () => {
     expect(
       cdnHostsOf('<script src="https://10.0.0.5/a.js"></script>', "https://x.example/a.jpg"),

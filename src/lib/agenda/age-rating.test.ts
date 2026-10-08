@@ -32,6 +32,37 @@ describe("normalizeAgeRating", () => {
     expect(normalizeAgeRating("Casa celebra 18 anos de história")).toBe("consulte");
   });
 
+  it("regra de ingresso não vira faixa etária", () => {
+    for (const t of [
+      "Menores de 12 anos não pagam",
+      "Crianças menores de 10 anos não pagam",
+      "Menores de 12 anos pagam meia",
+      "Menores de 16 anos acompanhados dos pais",
+      "Ingresso R$ 50 +10 de taxa; crianças até 12 anos não pagam",
+      "Entrada livre",
+    ])
+      expect(normalizeAgeRating(t)).toBe("consulte");
+  });
+
+  it("vale o número colado ao sinal de classificação, não o primeiro do texto", () => {
+    expect(normalizeAgeRating("Crianças até 12 anos não pagam. Classificação 16 anos")).toBe("16");
+    expect(normalizeAgeRating("Menores de 12 anos não pagam. Proibido para menores de 18")).toBe(
+      "18",
+    );
+    expect(normalizeAgeRating("Classificação 16 anos. Entrada livre")).toBe("16");
+  });
+
+  it("outras formas comuns de classificação", () => {
+    expect(normalizeAgeRating("A partir de 16 anos")).toBe("16");
+    expect(normalizeAgeRating("Faixa etária: 14 anos")).toBe("14");
+    expect(normalizeAgeRating("Idade mínima: 18 anos")).toBe("18");
+    expect(normalizeAgeRating("Para maiores de 18")).toBe("18");
+    expect(normalizeAgeRating("Censura: 16")).toBe("16");
+    expect(normalizeAgeRating("Classificação etária: 16")).toBe("16");
+    expect(normalizeAgeRating("Não recomendado para menores de 16")).toBe("16");
+    expect(normalizeAgeRating("Livre para todos os públicos")).toBe("livre");
+  });
+
   it("valor já fechado passa como está", () => {
     for (const v of ["livre", "10", "12", "14", "16", "18", "consulte"])
       expect(normalizeAgeRating(v)).toBe(v);

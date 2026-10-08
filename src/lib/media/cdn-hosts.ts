@@ -24,7 +24,9 @@ function imageForms(imageUrl: string): string[] {
  */
 export function cdnHostsOf(html: string, imageUrl: string): string[] {
   let text = html.slice(0, 300_000).replace(/\\\//g, "/");
-  for (const form of imageForms(imageUrl)) text = text.split(form).join(" ");
+  // Host em maiúsculas no HTML ("//CDN.Exemplo/a.jpg") é o mesmo host: troca sem diferenciar caixa.
+  for (const form of imageForms(imageUrl))
+    text = text.replace(new RegExp(form.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi"), " ");
   const hosts = new Set<string>();
   const re =
     /(?:https?:)?\/\/([a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+)/gi;
