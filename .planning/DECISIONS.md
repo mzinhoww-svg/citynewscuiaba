@@ -527,4 +527,6 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 - Estúdio: `/estudio/agenda` lista, cria (`origin = 'newsroom'`), edita e retira eventos; campo editado vai para `locked_fields` e a coleta não sobrescreve; retirado não volta pela coleta.
 - Público: confirmados primeiro em cada dia; origem "CityNews" no filtro para eventos da redação.
 
+**Produção (08/10/2026):** 0195 a 0199 aplicadas pelo conector do Supabase. A 0195 foi em quatro partes (colunas e política com `alter policy` em vez de `drop policy`; busca; execuções, cache e agente; troca da restrição de origem), mesmo estado final. Orçamento: `write` de R$ 14,50 para R$ 13,50, `event_extractor` R$ 1, total R$ 30. `/agenda` no ar mostra "Com informações de Sympla · Confirme na fonte".
+
 **Reversível:** desativar as fontes de eventos no painel; o código antigo do Sympla é o caso de 3 fontes ativas sem `ai_page`.
