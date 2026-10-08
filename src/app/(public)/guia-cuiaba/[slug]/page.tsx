@@ -14,6 +14,7 @@ import {
 } from "@/components";
 import { GUIDE } from "@/content/pt-BR/guide";
 import { getGuideList, listGuideLists } from "@/lib/db/queries/guide";
+import { googleAttribution } from "@/lib/guide/google-photo";
 import { guideListJsonLd } from "@/lib/guide/jsonld";
 import { formatDate } from "@/lib/format/date";
 import { articleParagraphs } from "@/lib/guide/article";
@@ -42,20 +43,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 }
 
-/** Atribuição exigida pelos termos dos dados (TripAdvisor e OpenStreetMap), em texto simples. */
+/**
+ * Atribuição exigida pelos termos dos dados (Google, TripAdvisor e OpenStreetMap), em texto
+ * simples. A linha do Google cobre as fotos quando algum lugar usa a foto de lá (A-212).
+ */
 function Attribution({
   google,
+  googlePhotos,
   tripadvisor,
   osm,
 }: {
   google: boolean;
+  googlePhotos: boolean;
   tripadvisor: boolean;
   osm: boolean;
 }) {
-  if (!google && !tripadvisor && !osm) return null;
+  const googleLine = googleAttribution({ ratings: google, photos: googlePhotos });
+  if (!googleLine && !tripadvisor && !osm) return null;
   return (
     <p className="type-meta text-meta">
-      {google && <>{GUIDE.list.attribution.google} </>}
+      {googleLine && <>{googleLine} </>}
       {tripadvisor && <>{GUIDE.list.attribution.tripadvisor} </>}
       {osm && (
         <>
@@ -205,6 +212,7 @@ export default async function GuideListPage({ params }: Props) {
         google={list.items.some(
           (i) => i.venue.ratingSource === "google" && i.venue.rating !== null,
         )}
+        googlePhotos={list.items.some((i) => i.venue.photos[0]?.fromGoogle === true)}
         tripadvisor={list.items.some(
           (i) => i.venue.ratingSource === "tripadvisor" && i.venue.rating !== null,
         )}

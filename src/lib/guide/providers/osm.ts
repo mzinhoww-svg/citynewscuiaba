@@ -121,6 +121,7 @@ export function toVenue(
     tripadvisorUrl: null,
     googleMapsUrl: null,
     googleType: null,
+    googlePhoto: null,
     placeIds: { osm: `${el.type}/${el.id}` },
     sources: ["osm"],
   };

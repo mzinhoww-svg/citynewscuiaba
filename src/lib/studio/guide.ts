@@ -605,6 +605,7 @@ export const saveVenueCommand = studioAction(
       tripadvisorUrl: null,
       googleMapsUrl: null,
       googleType: null,
+      googlePhoto: null,
       placeIds: {},
       sources: ["manual"],
     };
