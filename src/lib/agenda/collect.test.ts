@@ -561,20 +561,64 @@ describe("collectAgenda · estado da fonte", () => {
   });
 });
 
-/** Registro de imagem falso: guarda as entradas e devolve um id por URL (ou o erro dado). */
+/** Recusas que o registro real decide sem pedido HTTP (não gastam vaga do teto). */
+const NO_NETWORK: ReadonlySet<ExternalImageError> = new Set(["host", "flag_off"]);
+
+/**
+ * Registro de imagem falso: guarda as entradas e devolve um id por URL (ou o erro dado); avisa
+ * `onNetwork` como o real, salvo nas recusas sem rede.
+ */
 function fakeImages(
-  answer: (i: ExternalImageInput) => Result<{ mediaId: string }, ExternalImageError> = (i) =>
-    ok({ mediaId: `media:${i.url}` }),
+  answer: (i: ExternalImageInput, n: number) => Result<{ mediaId: string }, ExternalImageError> = (
+    i,
+  ) => ok({ mediaId: `media:${i.url}` }),
 ) {
   const calls: ExternalImageInput[] = [];
   return {
     calls,
-    registerImage: async (i: ExternalImageInput) => {
+    registerImage: async (i: ExternalImageInput, onNetwork: () => void) => {
       calls.push(i);
-      return answer(i);
+      const r = answer(i, calls.length);
+      if (r.ok || !NO_NETWORK.has(r.error)) onNetwork();
+      return r;
     },
   };
 }
+
+/** Fonte JSON-LD fictícia com `n` eventos, cada um com imagem própria. */
+function manyEvents(n: number) {
+  const items = Array.from({ length: n }, (_, i) => ({
+    "@type": "Event",
+    name: `Show número ${i + 1} da casa`,
+    startDate: `2026-10-${String(10 + (i % 15)).padStart(2, "0")}T20:${String(10 + i).padStart(2, "0")}:00-04:00`,
+    url: `https://muitos.example/show-${i + 1}`,
+    image: `https://muitos.example/img/show-${i + 1}.jpg`,
+    location: {
+      "@type": "Place",
+      name: `Palco ${i + 1}`,
+      address: { "@type": "PostalAddress", addressLocality: "Cuiabá" },
+    },
+  }));
+  const html = `<script type="application/ld+json">${JSON.stringify({ "@graph": items })}</script>`;
+  const { http } = createFakeHttp({ "https://muitos.example/agenda": { body: html } });
+  const crawl: CrawlDeps = {
+    repo: { hitRateLimit: async () => true },
+    http,
+    resolve: fakeResolve(),
+    userAgent: "CityNewsBot/1.0",
+  };
+  const source: AgendaSource = {
+    ...byId("cerrado-vivo"),
+    id: "muitos",
+    name: "Casa Muitos (fictícia)",
+    url: "https://muitos.example/agenda",
+  };
+  return { crawl, source };
+}
+
+/** Os eventos gravados como linhas já guardadas, sem imagem. */
+const asStored = (events: NormalizedEvent[]): StoredCollected[] =>
+  events.map((e) => ({ ...e, id: `id-${e.dedupeKey}`, lockedFields: [], withdrawnAt: null }));
 
 const TRIBE = byId("eventos-cerrado");
 const CERRADO_VIVO = byId("cerrado-vivo");
@@ -649,38 +693,74 @@ describe("collectAgenda · imagem, organizador e faixa (ARD-T2)", () => {
   });
 
   it("teto de 20 imagens por execução", async () => {
-    const items = Array.from({ length: 25 }, (_, i) => ({
-      "@type": "Event",
-      name: `Show número ${i + 1} da casa`,
-      startDate: `2026-10-${String(10 + (i % 15)).padStart(2, "0")}T20:${String(10 + i).padStart(2, "0")}:00-04:00`,
-      url: `https://muitos.example/show-${i + 1}`,
-      image: `https://muitos.example/img/show-${i + 1}.jpg`,
-      location: {
-        "@type": "Place",
-        name: `Palco ${i + 1}`,
-        address: { "@type": "PostalAddress", addressLocality: "Cuiabá" },
-      },
-    }));
-    const html = `<script type="application/ld+json">${JSON.stringify({ "@graph": items })}</script>`;
-    const { http } = createFakeHttp({ "https://muitos.example/agenda": { body: html } });
-    const crawl: CrawlDeps = {
-      repo: { hitRateLimit: async () => true },
-      http,
-      resolve: fakeResolve(),
-      userAgent: "CityNewsBot/1.0",
-    };
-    const source: AgendaSource = {
-      ...CERRADO_VIVO,
-      id: "muitos",
-      name: "Casa Muitos (fictícia)",
-      url: "https://muitos.example/agenda",
-    };
+    const { crawl, source } = manyEvents(25);
     const img = fakeImages();
     const { d, saved } = deps({ crawl, sources: [source], registerImage: img.registerImage });
     await collectAgenda(d);
     expect(saved).toHaveLength(25);
     expect(img.calls).toHaveLength(20);
     expect(saved.filter((e) => e.mediaId !== null)).toHaveLength(20);
+  });
+
+  it("recusa sem pedido HTTP (host) não gasta vaga: 25 guardados, 20 recusados, os 5 restantes ainda tentados", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const stored = asStored(first.saved);
+    const img = fakeImages((i, n) => (n <= 20 ? err("host") : ok({ mediaId: `media:${i.url}` })));
+    const { d, saved } = deps({
+      crawl,
+      sources: [source],
+      registerImage: img.registerImage,
+      stored: async () => stored,
+    });
+    const r = await collectAgenda(d);
+    expect(img.calls).toHaveLength(25);
+    expect(saved.filter((e) => e.mediaId !== null)).toHaveLength(5);
+    expect(r.sources[0]).toMatchObject({ images: 5, imageSkipped: { host: 20 } });
+  });
+
+  it("eventos já guardados giram entre execuções: outra execução tenta outro subconjunto", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const stored = asStored(first.saved);
+    const tried = async (at: Date) => {
+      const img = fakeImages(() => err("fetch"));
+      const { d } = deps({
+        crawl,
+        sources: [source],
+        now: () => at,
+        registerImage: img.registerImage,
+        stored: async () => stored,
+      });
+      await collectAgenda(d);
+      expect(img.calls).toHaveLength(20);
+      return img.calls.map((c) => c.url);
+    };
+    const a = await tried(NOW);
+    const again = await tried(NOW);
+    const b = await tried(new Date(NOW.getTime() + 6 * 3_600_000));
+    // Mesma hora: mesma ordem (determinística); 6 h depois: outro subconjunto entra nas 20 vagas.
+    expect(again).toEqual(a);
+    expect(new Set(b)).not.toEqual(new Set(a));
+  });
+
+  it("evento novo vem antes dos já guardados", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const novo = first.saved.find((e) => e.title === "Show número 25 da casa")!;
+    const stored = asStored(first.saved.filter((e) => e !== novo));
+    const img = fakeImages();
+    const { d } = deps({
+      crawl,
+      sources: [source],
+      registerImage: img.registerImage,
+      stored: async () => stored,
+    });
+    await collectAgenda(d);
+    expect(img.calls[0]?.url).toBe("https://muitos.example/img/show-25.jpg");
   });
 
   it("organizer, age_rating e media_id travados pela redação: nada sobrescrito, imagem nem tentada", async () => {

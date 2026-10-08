@@ -86,7 +86,9 @@ export function agendaCollectDeps(
     ...(o.maxEventPages !== undefined ? { maxEventPages: o.maxEventPages } : {}),
     ...(o.cacheWritesInDryRun ? { cacheWritesInDryRun: true } : {}),
     // Imagem de divulgação no Media Registry: só na coleta real (o ensaio não grava mídia).
-    ...(o.dryRun ? {} : { registerImage: (input) => registerExternalImage(images, input) }),
+    ...(o.dryRun
+      ? {}
+      : { registerImage: (input, onNetwork) => registerExternalImage(images, input, onNetwork) }),
   };
 }
 

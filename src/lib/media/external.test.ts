@@ -148,6 +148,46 @@ describe("registerExternalImage", () => {
     expect(assets).toHaveLength(0);
   });
 
+  it("redirecionamento de https para http no mesmo site: host", async () => {
+    const plain = "http://teatro-cerrado.example/img/forro.jpg";
+    const { deps, calls, assets } = setup({
+      [IMG]: { status: 302, headers: { location: plain } },
+      [plain]: jpeg(BIG),
+    });
+    expect(await registerExternalImage(deps, input)).toEqual({ ok: false, error: "host" });
+    expect(calls.some((c) => c.url === plain)).toBe(false);
+    expect(assets).toHaveLength(0);
+  });
+
+  it("imagem em endereço IP é recusada, mesmo listada em cdnHosts", async () => {
+    const ip = "https://93.184.215.14/cartaz.jpg";
+    const { deps, calls } = setup({ [ip]: jpeg(BIG) });
+    expect(
+      await registerExternalImage(deps, { ...input, url: ip, cdnHosts: ["93.184.215.14"] }),
+    ).toEqual({ ok: false, error: "host" });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("onNetwork só é avisado quando há pedido HTTP", async () => {
+    let n = 0;
+    const tick = () => void n++;
+    const off = setup({ [IMG]: jpeg(BIG) }, { flag: false });
+    await registerExternalImage(off.deps, input, tick);
+    const other = setup({});
+    await registerExternalImage(
+      other.deps,
+      { ...input, url: "https://outro-site.example/x.jpg" },
+      tick,
+    );
+    expect(n).toBe(0);
+    const good = setup({ [IMG]: jpeg(BIG) });
+    await registerExternalImage(good.deps, input, tick);
+    expect(n).toBe(1);
+    // Origem já registrada: reaproveita sem rede.
+    await registerExternalImage(good.deps, input, tick);
+    expect(n).toBe(1);
+  });
+
   it("só https", async () => {
     const { deps } = setup({});
     expect(
@@ -251,6 +291,19 @@ describe("cdnHostsOf", () => {
     expect(hosts).toContain("cdn.cerrado-midia.example");
     expect(hosts).toContain("static.cerrado-midia.example");
     expect(hosts).not.toContain("fotos.terceiro.example");
+  });
+
+  it("a própria URL da imagem relativa ao protocolo (//host/caminho) não conta", () => {
+    const html = `<img src="//fotos.terceiro.example/cartaz.jpg">
+      <meta property="og:image" content="https://fotos.terceiro.example/cartaz.jpg">
+      <a href="http://fotos.terceiro.example/cartaz.jpg">ver</a>`;
+    expect(cdnHostsOf(html, "https://fotos.terceiro.example/cartaz.jpg")).toEqual([]);
+  });
+
+  it("endereço IP nunca vira CDN", () => {
+    expect(
+      cdnHostsOf('<script src="https://10.0.0.5/a.js"></script>', "https://x.example/a.jpg"),
+    ).toEqual([]);
   });
 
   it("a própria URL da imagem (inclusive escapada em JSON) não conta como referência", () => {

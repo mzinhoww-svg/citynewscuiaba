@@ -10,6 +10,7 @@ import type { MediaAssetRecord } from "@/lib/pipeline/ports";
 import { err, ok, type Result } from "@/lib/result";
 import { analyzeImage } from "./analyze";
 import { cdnHostsOf } from "./cdn-hosts";
+import { isIpLiteral } from "./ip-literal";
 import { fetchImage, registrableDomain } from "./fetch-image";
 import { isReusable } from "./rights";
 import { mediaPath, type MediaStore } from "./store";
@@ -144,6 +145,8 @@ const hostOf = (u: string): string | null => {
 function hostProblem(u: URL, sites: readonly string[], cdnHosts: readonly string[]): string | null {
   if (u.protocol !== "https:") return `imagem sem https: ${u.href}`;
   const host = u.hostname.toLowerCase().replace(/\.$/, "");
+  // IP literal nunca: não tem domínio registrável (nem como CDN declarada).
+  if (isIpLiteral(host)) return `imagem em endereço IP (${host})`;
   const reg = registrableDomain(host);
   if (sites.some((s) => registrableDomain(s) === reg)) return null;
   if (cdnHosts.includes(host)) return null;
@@ -158,11 +161,14 @@ const unusable = (a: MediaAssetRecord): boolean =>
  * Registra a imagem de divulgação do evento: flag ligada; só `https`; mesmo domínio registrável da
  * página (ou da página que trouxe a imagem) ou CDN referenciada nela, inclusive a URL final depois
  * dos redirecionamentos; `robots.txt`; raster com pelo menos 400 px de largura. Mesma origem ou
- * mesmo arquivo (sha256) reaproveitam o ativo; bloqueado ou vencido → `blocked`.
+ * mesmo arquivo (sha256) reaproveitam o ativo; bloqueado ou vencido → `blocked`. `onNetwork`
+ * avisa quem conta o teto: flag desligada, host recusado e origem conhecida não fazem pedido.
  */
 export async function registerExternalImage(
   deps: ExternalImageDeps,
   input: ExternalImageInput,
+  /** Chamado uma vez, logo antes do primeiro pedido HTTP (recusa sem rede não o chama). */
+  onNetwork: () => void = () => {},
 ): Promise<Result<{ mediaId: string }, ExternalImageError>> {
   if (!(await deps.reproductionEnabled())) return err("flag_off");
   let parsed: URL;
@@ -182,6 +188,7 @@ export async function registerExternalImage(
   if (known && unusable(known)) return err("blocked");
   if (known) return ok({ mediaId: known.id });
 
+  onNetwork();
   const robots = await checkRobots(deps.crawl, parsed.href, {
     bucket: `media-ext:${parsed.hostname.toLowerCase()}`,
     limitPerHour: 60,

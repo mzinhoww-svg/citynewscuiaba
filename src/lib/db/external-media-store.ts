@@ -51,14 +51,6 @@ function toRecord(r: Row, now: Date): MediaAssetRecord {
   };
 }
 
-/** Bloqueado ou vencido vence (a origem/o arquivo retirado nunca volta); senão o mais antigo. */
-function pick(rows: Row[], now: Date): MediaAssetRecord | null {
-  const recs = rows.map((r) => toRecord(r, now));
-  return (
-    recs.find((r) => r.status === "blocked" || r.rightsStatus === "expired") ?? recs[0] ?? null
-  );
-}
-
 /** Insere um ativo de reprodução externa pela mesma função das matérias e do Guia. */
 export async function insertExternalAsset(db: DbClient, a: NewExternalAsset): Promise<string> {
   const { data, error } = await db.rpc("media_insert_asset", {
@@ -92,15 +84,31 @@ export function createExternalMediaRepo(
   now: () => Date = () => new Date(),
 ): ExternalImageRepo {
   async function by(column: "origin_url" | "sha256", value: string) {
+    const today = now().toISOString().slice(0, 10);
+    // 1º: qualquer linha bloqueada ou vencida, sem teto de linhas (a retirada vence sempre).
+    const barred = await db
+      .from("media_assets")
+      .select(COLUMNS)
+      .eq(column, value)
+      .or(
+        `status.eq.blocked,removed_at.not.is.null,rights_status.in.(blocked,expired),license_until.lt.${today}`,
+      )
+      .limit(1)
+      .returns<Row[]>();
+    if (barred.error) throw new Error(`external media (${column}): ${barred.error.message}`);
+    const hit = barred.data?.[0];
+    if (hit) return toRecord(hit, now());
+    // 2º: o ativo mais antigo com a mesma origem/arquivo.
     const { data, error } = await db
       .from("media_assets")
       .select(COLUMNS)
       .eq(column, value)
       .order("captured_at", { ascending: true })
-      .limit(20)
+      .limit(1)
       .returns<Row[]>();
     if (error) throw new Error(`external media (${column}): ${error.message}`);
-    return pick(data ?? [], now());
+    const first = data?.[0];
+    return first ? toRecord(first, now()) : null;
   }
   return {
     assetByOrigin: (url) => by("origin_url", url),

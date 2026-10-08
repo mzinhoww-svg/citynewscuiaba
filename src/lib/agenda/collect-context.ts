@@ -27,7 +27,7 @@ export const AI_DEADLINE_MS = 45_000;
  */
 export const AI_HARD_DEADLINE_MS = 55_000;
 export const LIMIT_PER_HOUR = 60;
-/** Teto de imagens registradas (tentativas) por execução (spec agenda rica §4). */
+/** Teto de tentativas de imagem com pedido HTTP por execução (spec agenda rica §4). */
 export const MAX_IMAGES_PER_RUN = 20;
 const MAX_SAMPLES = 10;
 
@@ -103,6 +103,8 @@ export interface CollectDeps {
    */
   registerImage?: (
     input: ExternalImageInput,
+    /** Avisado antes do primeiro pedido HTTP: só tentativa com rede gasta o teto. */
+    onNetwork: () => void,
   ) => Promise<Result<{ mediaId: string }, ExternalImageError>>;
 }
 
