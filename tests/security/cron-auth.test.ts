@@ -64,6 +64,11 @@ const CRON_ROUTES: {
     method: "POST",
     load: () => import("@/app/api/jobs/revalidate/route"),
   },
+  {
+    path: "/api/jobs/media-variants",
+    method: "POST",
+    load: () => import("@/app/api/jobs/media-variants/route"),
+  },
 ];
 
 beforeEach(() => vi.stubEnv("CRON_SECRET", SECRET));
