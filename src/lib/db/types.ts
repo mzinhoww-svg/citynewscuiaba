@@ -4487,6 +4487,8 @@ export type Database = {
           intro: string | null;
           intro_auto: boolean;
           article_signature: string | null;
+          article_attempts: number;
+          article_problems: string[];
           neighborhood: string | null;
           next_refresh_at: string | null;
           origin: string;
@@ -4516,6 +4518,8 @@ export type Database = {
           intro?: string | null;
           intro_auto?: boolean;
           article_signature?: string | null;
+          article_attempts?: number;
+          article_problems?: string[];
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
@@ -4545,6 +4549,8 @@ export type Database = {
           intro?: string | null;
           intro_auto?: boolean;
           article_signature?: string | null;
+          article_attempts?: number;
+          article_problems?: string[];
           neighborhood?: string | null;
           next_refresh_at?: string | null;
           origin?: string;
