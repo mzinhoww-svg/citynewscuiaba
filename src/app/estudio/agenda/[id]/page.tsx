@@ -4,13 +4,9 @@ import { Button, InlineAlert, StatusBadge } from "@/components";
 import { EventForm, StudioScreen } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
-import { toLocalInput } from "@/lib/agenda/event-form";
+import { eventFormValues } from "@/lib/agenda/event-form";
 import { requireRole } from "@/lib/auth/require-role";
-import {
-  getStudioEvent,
-  situationOf,
-  type StudioEventDetail,
-} from "@/lib/db/queries/studio-events";
+import { getStudioEvent, situationOf } from "@/lib/db/queries/studio-events";
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
 import { restoreEventAction, saveEventAction, withdrawEventAction } from "../actions";
 
@@ -24,27 +20,6 @@ type Props = {
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-/** Valores guardados com os nomes dos campos do formulário. */
-function formValues(e: StudioEventDetail): Record<string, string> {
-  return {
-    title: e.title,
-    startsAt: toLocalInput(e.starts_at),
-    endsAt: toLocalInput(e.ends_at),
-    venue: e.venue,
-    neighborhood: e.neighborhood ?? "",
-    price:
-      e.price_unknown || e.price_cents === null
-        ? ""
-        : (e.price_cents / 100).toFixed(2).replace(".", ",").replace(/,00$/, ""),
-    priceUnknown: e.price_unknown ? "1" : "",
-    category: e.category,
-    ageRating: e.age_rating,
-    accessibility: e.accessibility ?? "",
-    link: e.source_url ?? "",
-    description: e.description ?? "",
-  };
-}
 
 /** Editar evento (AGM-T7): o que mudar fica travado contra a coleta; retirar e devolver. */
 export default async function EditEventPage({ params, searchParams }: Props) {
@@ -136,7 +111,7 @@ export default async function EditEventPage({ params, searchParams }: Props) {
         action={saveEventAction}
         cancelHref={BASE}
         eventId={event.id}
-        initial={formValues(event)}
+        initial={eventFormValues(event)}
         categories={AGENDA_CATEGORIES.map((c) => ({ value: c, label: AGENDA.categories[c] ?? c }))}
       />
     </StudioScreen>

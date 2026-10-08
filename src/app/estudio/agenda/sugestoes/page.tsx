@@ -17,9 +17,14 @@ export const dynamic = "force-dynamic";
 type Params = Record<string, string | string[] | undefined>;
 
 export default async function SubmissionsPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const session = await requireRole("article.publish", undefined, {
-    next: "/estudio/agenda/sugestoes",
-  });
+  // Aba da Agenda (AGM-T7): mesma guarda das outras telas da área, a editoria Agenda.
+  const session = await requireRole(
+    "article.publish",
+    { section: "agenda" },
+    {
+      next: "/estudio/agenda/sugestoes",
+    },
+  );
   const sp = await searchParams;
   const decide = can(session.roles, "article.publish", {
     section: "agenda",

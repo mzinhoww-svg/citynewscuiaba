@@ -260,8 +260,9 @@ type EditableColumn = keyof ReturnType<typeof columnsOf>;
 const TIMESTAMP_COLUMNS = new Set<EditableColumn>(["starts_at", "ends_at"]);
 
 function same(column: EditableColumn, a: unknown, b: unknown): boolean {
+  // O campo do formulário (datetime-local) só tem minutos: segundos guardados não contam.
   if (TIMESTAMP_COLUMNS.has(column) && typeof a === "string" && typeof b === "string")
-    return Date.parse(a) === Date.parse(b);
+    return Math.floor(Date.parse(a) / 60_000) === Math.floor(Date.parse(b) / 60_000);
   // Espaços a mais no texto guardado (coleta) não contam como edição.
   const norm = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim() || null : v);
   return (norm(a) ?? null) === (norm(b) ?? null);
@@ -287,8 +288,27 @@ export interface EventActor {
   now: Date;
 }
 
-export type EventWriteError = "not_found" | "forbidden";
+/**
+ * `forbidden`: a RLS ou o papel barrou; `conflict`: duplicidade (endereço do evento, 23505);
+ * `invalid`: o banco recusou um valor (check, 23514/22xxx); `not_found`: não existe para a pessoa.
+ */
+export type EventWriteError = "not_found" | "forbidden" | "conflict" | "invalid";
 export type EventWriteResult<T> = Result<T, EventWriteError>;
+
+/** Registra o erro do PostgREST (código e mensagem) e o traduz para o domínio. */
+function dbFailure(
+  what: string,
+  error: { code?: string; message?: string } | null,
+): EventWriteError {
+  console.error(`evento da agenda (${what})`, {
+    code: error?.code ?? null,
+    message: error?.message ?? "sem linha devolvida",
+  });
+  const code = error?.code ?? "";
+  if (code === "23505") return "conflict";
+  if (code === "23514" || code.startsWith("22")) return "invalid";
+  return "forbidden";
+}
 
 async function record(
   actor: EventActor,
@@ -325,7 +345,7 @@ export async function createEvent(
     locked_fields: Object.keys(LOCKABLE_COLUMNS),
     updated_at: stamp,
   });
-  if (error) return err("forbidden");
+  if (error) return err(dbFailure("cadastro", error));
   await record(actor, "event.create", id, { after: values });
   return ok({ id, slug });
 }
@@ -344,7 +364,7 @@ export async function updateEvent(
     .select(STORED_COLUMNS)
     .eq("id", id)
     .maybeSingle();
-  if (readError) return err("forbidden");
+  if (readError) return err(dbFailure("leitura", readError));
   if (!before) return err("not_found");
   const changed = changedColumns(before, input);
   if (changed.length === 0) return ok({ id, slug: before.slug, changed: [] });
@@ -358,7 +378,7 @@ export async function updateEvent(
     .eq("id", id)
     .select("id, slug")
     .maybeSingle();
-  if (error || !data) return err("forbidden");
+  if (error || !data) return err(dbFailure("edição", error));
   const diff: Record<string, { from: unknown; to: unknown }> = {};
   for (const c of changed) diff[c] = { from: before[c], to: next[c] };
   await record(actor, "event.update", id, { changed, diff, locked_fields: locked });
@@ -377,7 +397,7 @@ async function setWithdrawn(
     .eq("id", id);
   const filtered = withdraw ? base.is("withdrawn_at", null) : base.not("withdrawn_at", "is", null);
   const { data, error } = await filtered.select("id, slug").maybeSingle();
-  if (error) return err("forbidden");
+  if (error) return err(dbFailure(withdraw ? "retirada" : "devolução", error));
   if (!data) {
     // Já estava no estado pedido (clique repetido), não existe ou a RLS barrou a escrita.
     const { data: row } = await actor.db

@@ -12,11 +12,14 @@ import { crawlerUserAgent } from "@/lib/pipeline/http";
 import { systemResolve, type ResolveHost } from "@/lib/pipeline/net";
 import type { HttpFetch, IngestRepo } from "@/lib/pipeline/ports";
 import { FAKE_PUBLIC_IP } from "@/lib/pipeline/testing/fake-http";
+import { fixtureShiftDays, shiftFixtureDates } from "./fixture-dates";
 
 /** `fetch` real (identidade comparável nos testes). */
 export const realHttp: HttpFetch = (url, init) => fetch(url, init);
 
-type Env = Partial<Record<"CRAWLER_FIXTURES" | "NODE_ENV", string | undefined>>;
+type Env = Partial<
+  Record<"CRAWLER_FIXTURES" | "CRAWLER_FIXTURES_DATES" | "NODE_ENV", string | undefined>
+>;
 
 export function fixturesEnabled(env: Env = process.env): boolean {
   return env.CRAWLER_FIXTURES === "1" && env.NODE_ENV !== "production";
@@ -89,8 +92,30 @@ function candidates(host: string, path: string): string[] {
   return out;
 }
 
+/**
+ * Sites fictícios de eventos cujas datas acompanham o calendário com
+ * `CRAWLER_FIXTURES_DATES=relative` (`fixture-dates.ts`). Feeds de notícia ficam como estão.
+ */
+export const AGENDA_FIXTURE_HOSTS: ReadonlySet<string> = new Set([
+  "cerradovivo.example",
+  "bloqueado-agenda.example",
+  "teatro-cerrado.example",
+  "culturavarzea.example",
+  "agendamt.example",
+  "ingressosmt.example",
+  "eventos-cerrado.example",
+]);
+
+export interface FixtureHttpOptions {
+  /** Dias somados às datas das páginas de eventos (múltiplo de 7; 0 = como no arquivo). */
+  shiftDays?: number;
+}
+
 /** `fetch` falso sobre as fixtures fictícias; recusa hosts fora de `*.example`. */
-export function fixtureHttp(root = join(process.cwd(), "tests/fixtures")): HttpFetch {
+export function fixtureHttp(
+  root = join(process.cwd(), "tests/fixtures"),
+  options: FixtureHttpOptions = {},
+): HttpFetch {
   return async (rawUrl, init) => {
     init.signal?.throwIfAborted();
     const url = new URL(rawUrl);
@@ -102,7 +127,12 @@ export function fixtureHttp(root = join(process.cwd(), "tests/fixtures")): HttpF
       const file = join(root, rel);
       if (!existsSync(file)) continue;
       const type = CONTENT_TYPE[extname(file)] ?? "application/octet-stream";
-      return new Response(readFileSync(file, "utf-8"), {
+      const raw = readFileSync(file, "utf-8");
+      const body =
+        options.shiftDays && AGENDA_FIXTURE_HOSTS.has(host)
+          ? shiftFixtureDates(raw, options.shiftDays)
+          : raw;
+      return new Response(body, {
         status: 200,
         headers: { "content-type": type },
       });
@@ -116,10 +146,14 @@ const fixtureResolve: ResolveHost = async (host) =>
   host.toLowerCase().endsWith(".example") ? [FAKE_PUBLIC_IP] : systemResolve(host);
 
 export function crawlDeps(opts: { repo: Pick<IngestRepo, "hitRateLimit">; env?: Env }): CrawlDeps {
-  const fixtures = fixturesEnabled(opts.env ?? process.env);
+  const env = opts.env ?? process.env;
+  const fixtures = fixturesEnabled(env);
+  // Datas relativas (e2e e integração com relógio real): calculadas a cada coleta.
+  const shiftDays =
+    env.CRAWLER_FIXTURES_DATES === "relative" ? fixtureShiftDays(new Date()) : undefined;
   return {
     repo: opts.repo,
-    http: fixtures ? fixtureHttp() : realHttp,
+    http: fixtures ? fixtureHttp(undefined, { shiftDays }) : realHttp,
     resolve: fixtures ? fixtureResolve : systemResolve,
     userAgent: crawlerUserAgent(),
   };

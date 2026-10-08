@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { fixtureShiftDays, shiftFixtureDates } from "@/lib/sources/fixture-dates";
 import { serviceClient } from "./helpers/pipeline";
 import { loginAs } from "./helpers/studio-login";
 
@@ -104,7 +105,12 @@ test("cadastrar fonte de eventos, prévia com evidência, ativar, coletar, Colet
   await expect(approved.getByRole("heading")).toHaveCount(2);
   await expect(approved).toContainText("Forró da Praça");
   await expect(approved).toContainText("Festival Cerrado Eletrônico");
-  await expect(approved.getByText("“sábado, 24 de outubro de 2026”")).toBeVisible();
+  // Datas relativas no servidor de fixtures (CRAWLER_FIXTURES_DATES=relative).
+  const forroDate = shiftFixtureDates(
+    "sábado, 24 de outubro de 2026",
+    fixtureShiftDays(new Date()),
+  );
+  await expect(approved.getByText(`“${forroDate}”`)).toBeVisible();
   const rejected = page.getByRole("list", { name: "Recusados nesta prévia" });
   await expect(rejected.getByRole("listitem")).toHaveCount(1);
   await expect(rejected).toContainText("Data sem ano na página");

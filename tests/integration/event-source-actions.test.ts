@@ -48,6 +48,8 @@ async function clearLimits() {
 
 beforeAll(async () => {
   vi.stubEnv("CRAWLER_FIXTURES", "1");
+  // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
+  vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
   vi.stubEnv("AI_PROVIDER", "fake");
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;

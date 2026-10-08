@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createCallAgent } from "@/lib/ai/call-agent";
@@ -313,6 +314,29 @@ describe("crawlDeps", () => {
     );
     await expect(deps.http("https://www.exemplo.com.br/", { headers: {} })).rejects.toThrow();
     expect(await deps.resolve("folhadocerrado.example")).toHaveLength(1);
+  });
+
+  it("CRAWLER_FIXTURES_DATES=relative desloca as datas só das páginas de eventos", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-20T15:00:00Z"));
+    try {
+      const env = { CRAWLER_FIXTURES: "1", CRAWLER_FIXTURES_DATES: "relative", NODE_ENV: "test" };
+      const deps = crawlDeps({ repo, env });
+      const forro = await deps.http("https://teatro-cerrado.example/evento/forro-da-praca", {
+        headers: {},
+      });
+      // 12 dias depois da âncora (08/10) → 14 dias: mesmo sábado, duas semanas depois.
+      expect(await forro.text()).toContain("cn-data: sábado, 7 de novembro de 2026");
+      const plain = crawlDeps({ repo, env: { CRAWLER_FIXTURES: "1", NODE_ENV: "test" } });
+      const same = await plain.http("https://teatro-cerrado.example/evento/forro-da-praca", {
+        headers: {},
+      });
+      expect(await same.text()).toContain("cn-data: sábado, 24 de outubro de 2026");
+      const feed = await deps.http("https://folhadocerrado.example/feed", { headers: {} });
+      expect(await feed.text()).toBe(fixture("feeds/folha-do-cerrado.xml"));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

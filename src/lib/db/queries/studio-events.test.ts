@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LOCKABLE_COLUMNS } from "@/lib/agenda/merge";
 import type { EventInput } from "@/lib/agenda/event-form";
 import type { DbClient } from "@/lib/db/client";
@@ -185,6 +185,14 @@ describe("changedColumns / lockedAfterEdit", () => {
     expect(changedColumns(stored, input({ ageRating: "livre" }))).toEqual(["age_rating"]);
   });
 
+  it("início guardado com segundos não vira mudança (o campo só tem minutos)", () => {
+    const withSeconds = { ...stored, starts_at: "2026-10-18T00:00:42+00:00" };
+    expect(changedColumns(withSeconds, input())).toEqual([]);
+    expect(changedColumns(withSeconds, input({ startsAt: "2026-10-18T00:01:00.000Z" }))).toEqual([
+      "starts_at",
+    ]);
+  });
+
   it("trava só colunas da coleta, sem duplicar", () => {
     expect(lockedAfterEdit(["title"], ["title", "venue", "age_rating", "accessibility"])).toEqual([
       "title",
@@ -249,6 +257,43 @@ describe("updateEvent", () => {
       ok: false,
       error: "not_found",
     });
+  });
+});
+
+describe("erros do banco", () => {
+  function failing(code: string) {
+    const error = { code, message: `falha ${code}` };
+    const b = {
+      insert: () => Promise.resolve({ data: null, error }),
+      select: () => b,
+      eq: () => b,
+      maybeSingle: () => Promise.resolve({ data: null, error }),
+    };
+    return {
+      from: () => b,
+      rpc: () => Promise.resolve({ data: null, error: null }),
+    } as unknown as DbClient;
+  }
+
+  it("registra o erro e separa duplicidade (23505) e valor recusado (23514) de permissão", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await createEvent(input(), actor(failing("23505")))).toEqual({
+      ok: false,
+      error: "conflict",
+    });
+    expect(await createEvent(input(), actor(failing("23514")))).toEqual({
+      ok: false,
+      error: "invalid",
+    });
+    expect(await createEvent(input(), actor(failing("42501")))).toEqual({
+      ok: false,
+      error: "forbidden",
+    });
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("evento"),
+      expect.objectContaining({ code: "23505" }),
+    );
+    log.mockRestore();
   });
 });
 

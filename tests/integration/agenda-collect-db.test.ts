@@ -14,6 +14,7 @@ import { createServiceClient } from "@/lib/db/client";
 import { loadEventSources } from "@/lib/db/agenda-sources";
 import { createAgendaStore } from "@/lib/db/agenda-store";
 import { crawlDeps } from "@/lib/sources/http-deps";
+import { fixtureShiftDays, shiftFixtureDates } from "@/lib/sources/fixture-dates";
 
 const db = createServiceClient();
 const store = createAgendaStore(db);
@@ -121,6 +122,8 @@ describe("rota da coleta com fixtures", () => {
     ]);
     vi.stubEnv("CRON_SECRET", "segredo-agm-t5");
     vi.stubEnv("CRAWLER_FIXTURES", "1");
+    // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
+    vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
     vi.stubEnv("AI_PROVIDER", "fake");
     const before = await store.aiPagesToday(new Date());
     const res = await POST(
@@ -181,7 +184,11 @@ describe("rota da coleta com fixtures", () => {
     expect(forro?.source_ref).toBe(TEATRO.uuid);
     // Evento da própria fonte que confirma: `confirmed_by_source_id` fica nulo.
     expect(forro?.confirmed_by_source_id).toBeNull();
-    expect(forro?.evidence).toMatchObject({ data: { trecho: "sábado, 24 de outubro de 2026" } });
+    expect(forro?.evidence).toMatchObject({
+      data: {
+        trecho: shiftFixtureDates("sábado, 24 de outubro de 2026", fixtureShiftDays(new Date())),
+      },
+    });
     await cleanEvents();
   });
 
@@ -192,6 +199,8 @@ describe("rota da coleta com fixtures", () => {
       .select("id", { count: "exact", head: true });
     vi.stubEnv("CRON_SECRET", "segredo-agm-t5");
     vi.stubEnv("CRAWLER_FIXTURES", "1");
+    // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
+    vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
     vi.stubEnv("AI_PROVIDER", "fake");
     const res = await POST(
       new Request("http://x/api/ingest/agenda?dry=1", {

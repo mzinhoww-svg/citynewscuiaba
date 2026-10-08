@@ -194,6 +194,9 @@ export const STUDIO_AGENDA_TEXT = {
     summary: (n: number) =>
       n === 1 ? "Corrija 1 campo para salvar." : `Corrija ${n} campos para salvar.`,
     failed: "Não foi possível salvar o evento. Tente de novo.",
+    conflict:
+      "Já existe um evento com o mesmo endereço na agenda. Mude o nome ou a data e salve de novo.",
+    invalidData: "O banco recusou um dos valores. Confira os campos e salve de novo.",
     forbidden: "Seu papel não permite editar eventos da agenda.",
     notFound: "Evento não encontrado.",
     lockedTitle: "Campos travados pela redação",

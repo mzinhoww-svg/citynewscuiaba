@@ -10,6 +10,7 @@ import {
   agendaSourceRuns,
   rejectionsFromRuns,
 } from "@/lib/db/queries/agenda-runs";
+import { fixtureShiftDays, shiftFixtureDates } from "@/lib/sources/fixture-dates";
 
 const db = createServiceClient();
 const store = createAgendaStore(db);
@@ -26,6 +27,8 @@ async function clean() {
 
 beforeAll(async () => {
   vi.stubEnv("CRAWLER_FIXTURES", "1");
+  // Relógio real: datas das fixtures de eventos acompanham o calendário (AGM-T7).
+  vi.stubEnv("CRAWLER_FIXTURES_DATES", "relative");
   vi.stubEnv("AI_PROVIDER", "fake");
   await db.from("sources").delete().eq("id", ID);
   const ins = await db.from("sources").insert({
@@ -63,7 +66,9 @@ describe("previewEventSource", () => {
       "Forró da Praça",
     ]);
     const forro = r.value.events.find((e) => e.title === "Forró da Praça")!;
-    expect(forro.evidence.data?.trecho).toBe("sábado, 24 de outubro de 2026");
+    expect(forro.evidence.data?.trecho).toBe(
+      shiftFixtureDates("sábado, 24 de outubro de 2026", fixtureShiftDays(new Date())),
+    );
     expect(r.value.rejected).toEqual([
       { url: "https://teatro-cerrado.example/evento/sarau-de-verao", reason: "sem_ano" },
     ]);

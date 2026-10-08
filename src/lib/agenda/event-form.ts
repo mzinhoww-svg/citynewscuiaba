@@ -80,6 +80,47 @@ export function toLocalInput(iso: string | null): string {
   return iso ? toZonedIso(iso).slice(0, 16) : "";
 }
 
+/** Colunas guardadas que o formulário de edição mostra. */
+export interface StoredEventFields {
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  venue: string;
+  neighborhood: string | null;
+  price_cents: number | null;
+  price_unknown: boolean;
+  category: string;
+  age_rating: string;
+  accessibility: string | null;
+  source_url: string | null;
+  description: string | null;
+}
+
+/**
+ * Evento guardado → valores do formulário. Preço nulo (evento antigo, sem informação) já vem
+ * marcado como "Preço não informado": editar outro campo não obriga a inventar um preço.
+ */
+export function eventFormValues(e: StoredEventFields): Record<EventFormField, string> {
+  const unknown = e.price_unknown || e.price_cents === null;
+  return {
+    title: e.title,
+    startsAt: toLocalInput(e.starts_at),
+    endsAt: toLocalInput(e.ends_at),
+    venue: e.venue,
+    neighborhood: e.neighborhood ?? "",
+    price:
+      unknown || e.price_cents === null
+        ? ""
+        : (e.price_cents / 100).toFixed(2).replace(".", ",").replace(/,00$/, ""),
+    priceUnknown: unknown ? "1" : "",
+    category: e.category,
+    ageRating: e.age_rating,
+    accessibility: e.accessibility ?? "",
+    link: e.source_url ?? "",
+    description: e.description ?? "",
+  };
+}
+
 /**
  * Valida o formulário de evento do Estúdio (AGM-T7). Erro por campo, com exemplo; a página
  * devolve o que foi digitado. Título 3–140 e sem palavrão; início obrigatório (futuro no

@@ -80,7 +80,12 @@ export async function saveEventAction(
     ? await updateEvent(id, parsed.value, guard.actor)
     : await createEvent(parsed.value, guard.actor);
   if (!saved.ok) {
-    const message = saved.error === "not_found" ? T.form.notFound : T.form.failed;
+    const message = {
+      not_found: T.form.notFound,
+      conflict: T.form.conflict,
+      invalid: T.form.invalidData,
+      forbidden: T.form.failed,
+    }[saved.error];
     return { status: "error", message, errors: {}, values };
   }
   await refresh(guard.ctx, saved.value.id, saved.value.slug);

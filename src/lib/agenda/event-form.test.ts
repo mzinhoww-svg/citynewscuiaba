@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
-import { EVENT_FORM_FIELDS, parseEventForm, toLocalInput } from "./event-form";
+import { EVENT_FORM_FIELDS, eventFormValues, parseEventForm, toLocalInput } from "./event-form";
 
 const NOW = new Date("2026-10-08T15:00:00Z");
 
@@ -147,5 +147,45 @@ describe("toLocalInput", () => {
   it("instante → valor de datetime-local no relógio de Cuiabá", () => {
     expect(toLocalInput("2026-10-18T00:00:00.000Z")).toBe("2026-10-17T20:00");
     expect(toLocalInput(null)).toBe("");
+  });
+});
+
+describe("eventFormValues", () => {
+  const stored = {
+    title: "Noite do Siriri",
+    starts_at: "2026-10-18T00:00:00+00:00",
+    ends_at: null,
+    venue: "Casa Cerrado Vivo",
+    neighborhood: null,
+    price_cents: 2550,
+    price_unknown: false,
+    category: "musica",
+    age_rating: "livre",
+    accessibility: null,
+    source_url: null,
+    description: null,
+  };
+
+  it("preço em reais com vírgula e caixa desmarcada", () => {
+    expect(eventFormValues(stored)).toMatchObject({
+      startsAt: "2026-10-17T20:00",
+      endsAt: "",
+      price: "25,50",
+      priceUnknown: "",
+    });
+    expect(eventFormValues({ ...stored, price_cents: 4000 }).price).toBe("40");
+    expect(eventFormValues({ ...stored, price_cents: 0 }).price).toBe("0");
+  });
+
+  it("preço nulo (evento antigo) já vem como Preço não informado", () => {
+    expect(eventFormValues({ ...stored, price_cents: null })).toMatchObject({
+      price: "",
+      priceUnknown: "1",
+    });
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(eventFormValues({ ...stored, price_cents: null })))
+      fd.set(k, v);
+    const r = parseEventForm(fd, { now: NOW, mode: "edit" });
+    expect(r.ok && r.value).toMatchObject({ priceCents: null, priceUnknown: true });
   });
 });
