@@ -446,6 +446,32 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 
 **A-155, imagens antigas (08/10/2026):** o script `backfill-variants.mjs` pede a chave de serviço de produção, que só existe no ambiente da Vercel (o agente não lê chaves). A rota `/api/jobs/media-variants` (CRON_SECRET, até 40 imagens por chamada, `nextOffset` na resposta) faz o mesmo trabalho dentro da produção; o agente a chama em lotes depois do deploy. Variante é cópia reduzida do mesmo ativo (§5.11).
 
+## A-216 · Analytics e audiência: contador sem cookie, tela Audiência e GA4 via GTM (08/10/2026)
+
+**Status:** vigente. Decisão do dono (itens 1 a 6 aprovados em 08/10/2026). Emenda a ADR-008 e a D16 da spec mestre. Spec `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`, plano ANL-T1 a T10.
+
+**O que entra:**
+- contador agregado sem cookie nem identificador, por legítimo interesse;
+- os eventos `article_opened`, `article_shared` e `search_submitted`;
+- tela Audiência (`metrics.view`);
+- busca agregada com filtro de dado pessoal;
+- Search Console importado;
+- Speed Insights e Sentry;
+- partições mensais de `events`.
+
+**GA4 via GTM:**
+- flag `ga4_enabled`, desligada por padrão;
+- por decisão do dono, carrega **antes da escolha no banner**, com os quatro sinais do Consent Mode v2 concedidos, inclusive os de anúncio (revisto quando houver AdSense);
+- "Só o necessário" nega os quatro sinais e apaga `_ga*`;
+- consentimento sobe para `v2`.
+
+**Alternativas descartadas:**
+- só medição própria, sem GA4;
+- GA4 só depois do consentimento;
+- GA4 por Measurement Protocol.
+
+**Reversível:** desligar `ga4_enabled` ou remover `NEXT_PUBLIC_GTM_ID`.
+
 ## A-217 · Vercel e Supabase sem pedido de aprovação ao dono (08/10/2026)
 
 **Status:** vigente. O dono disse: "eu não quero mais aprovar nada de Vercel ou Supabase, você tem autorização e permissão para seguir sozinho". `.claude/settings.json` libera as ferramentas `mcp__Vercel` e `mcp__Supabase`. Continuam pedindo confirmação só os casos que a lista fechada do CLAUDE.md reserva ao dono: compra ou transferência de domínio, criar ou pausar projeto, e branches do Supabase (que custam). Exclusão de dado de produção continua fora (B-029). As migrations em produção seguem registradas aqui (B-009).
