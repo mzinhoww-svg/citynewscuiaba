@@ -506,3 +506,25 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 
 **Status:** vigente (B-009). 0187 (PR #75): `anon` sem `publish_mode`, `agent_id` e `confidence`; coluna derivada `urgent_strip` para a faixa Urgente. A lista de colunas do grant foi conferida contra a de produção antes de aplicar. 0189 (PR #76): views e cliques do card nativo, view `public_sponsored_campaigns` e `ad_track` para campanha; `sponsored_native_enabled` segue desligada.
 
+## A-220 · Agenda multifonte: fontes do Radar no coletor, extração com evidência e eventos no Estúdio (08/10/2026)
+
+**Status:** vigente. Decisões do dono no brainstorming de 08/10/2026 (D1 a D4 da spec `docs/superpowers/specs/2026-10-08-agenda-coletor-multifonte-design.md`, subprojeto A). Plano AGM-T1 a AGM-T9.
+
+**Decisões do dono:**
+- D1: ordem A (coletor + Estúdio) → B (agenda mais rica) → C (newsletter e Instagram).
+- D2: extração híbrida. Extrator estruturado quando a fonte oferece (JSON-LD, iCal, RSS, Sympla, API Tribe); senão o agente `event_extractor` lê a página e devolve cada campo com o trecho literal, que o código confere.
+- D3: evento só de fonte de descoberta, sem confirmação, publica sozinho com "Com informações de {fonte}" e "Confirme na fonte".
+- D4: fontes de eventos no Painel de Fontes (`sources.kind = 'events'`).
+
+**Decisões de implementação:**
+- Migrations 0195 a 0199 (renumeradas no merge com a main): colunas de evento em `sources` e `event_listings`, `agenda_extract_cache`, seed das fontes do Radar em `pending_activation` (Sympla segue ativa; Prefeitura de Cuiabá, Mapas MT e Cuiabá Tem bloqueadas), RPCs do painel com `kind` imutável entre notícia e evento, auditoria `event.*` e a visão `public_event_sources`.
+- O pipeline de notícias ignora `kind = 'events'` em toda leitura de fontes (`activeSources`, Panorama, recomendação, lookup por id/slug).
+- Um evento real é uma linha só; a `dedupe_key` é a identidade e não muda com a confirmação. Vale o venue em conflito. `confirmed_by_source_id` só quando outra fonte que confirma achou o mesmo evento.
+- Data só com ano no corpo ou na URL; o trecho tem de sustentar dia, mês e hora do valor; o texto conferido é o mesmo enviado ao modelo; avisos da fonte e URL vão ao modelo só como dado.
+- Teto de IA: 40 páginas por execução e 160 por dia (`app_settings`), contando a listagem. Cache por URL e hash do texto. Corte de 45 s na coleta (rota com 60 s); fonte não alcançada fica `adiada`/`ia_adiada`, sem gravar pela metade.
+- Orçamento: `event_extractor` R$ 1/dia, cedido pelo `write` (agora R$ 7,50); teto global R$ 30 mantido.
+- Painel: prévia de até 5 eventos com evidência (no máximo 6 chamadas, grava só o cache); ativar exige robots, termos e prévia com pelo menos 1 evento aprovado e usa o limite de teste (30/h). "Coletar agora" roda a coleta real só daquela fonte, sem linha de resumo.
+- Estúdio: `/estudio/agenda` lista, cria (`origin = 'newsroom'`), edita e retira eventos; campo editado vai para `locked_fields` e a coleta não sobrescreve; retirado não volta pela coleta.
+- Público: confirmados primeiro em cada dia; origem "CityNews" no filtro para eventos da redação.
+
+**Reversível:** desativar as fontes de eventos no painel; o código antigo do Sympla é o caso de 3 fontes ativas sem `ai_page`.

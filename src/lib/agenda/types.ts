@@ -1,3 +1,5 @@
+import type { EvidenceRecord } from "./extract/evidence";
+
 /** Evento como a página ou o feed da fonte o descreve, ainda sem checagem. */
 export interface RawEvent {
   title: string;
@@ -15,7 +17,7 @@ export interface RawEvent {
   category?: string | null;
 }
 
-export type SourceKind = "jsonld" | "ical" | "rss" | "sympla";
+export type SourceKind = "jsonld" | "ical" | "rss" | "sympla" | "tribe" | "ai_page";
 
 /** Fonte de eventos configurável (docs/agenda-collector.md). */
 export interface AgendaSource {
@@ -33,9 +35,16 @@ export interface AgendaSource {
   requireCity?: boolean;
   /** Categoria usada quando o texto do evento não permite inferir. */
   defaultCategory?: string;
+  /** `status in ('active','degraded') and archived_at is null` em `sources`. */
   enabled: boolean;
-  /** Anotação de termos de uso e robots verificados na inclusão. */
-  note?: string;
+  /** UUID da fonte em `sources` (vai em `event_listings.source_ref`). */
+  uuid: string;
+  /** Fonte que confirma (casa, organizador): um evento de descoberta é confirmado por ela. */
+  confirms: boolean;
+  /** Avisos do coletor (`collector_notes`): dado para o modelo, nunca instrução. */
+  notes: string[];
+  /** URLs de listagem extras (`list_urls`), lidas depois de `url` no caminho `ai_page`. */
+  listUrls: string[];
 }
 
 export interface NormalizedEvent {
@@ -51,24 +60,42 @@ export interface NormalizedEvent {
   sourceId: string;
   origin: "official" | "organizer";
   description: string;
+  /** Identidade da linha (uma por evento real): nunca muda por confirmação nem por edição. */
   dedupeKey: string;
   /** Local reconhecido (casa na lista de bairros/locais ou veio com endereço). */
   venueKnown: boolean;
+  /** UUID da fonte de origem (`sources.id`); `null` quando desconhecido. */
+  sourceRef: string | null;
+  /** O evento vem de uma fonte que confirma (casa, organizador). */
+  confirms: boolean;
+  /**
+   * UUID de outra fonte que confirma e também lista este evento (confirmação entre fontes).
+   * Nulo nos eventos da própria fonte que confirma: esses contam como confirmados por
+   * `sources.confirms` da fonte de origem.
+   */
+  confirmedBySourceId: string | null;
+  evidence: EvidenceRecord;
 }
 
-export type RejectReason =
-  | "sem_titulo"
-  | "sem_data"
-  | "sem_horario"
-  | "data_passada"
-  | "data_distante"
-  | "evento_online"
-  | "fora_de_cuiaba"
-  | "local_desconhecido"
-  | "palavrao"
-  | "texto_suspeito"
-  | "fora_do_perfil"
-  | "link_suspeito"
-  | "sem_link";
+export const REJECT_REASONS = [
+  "sem_titulo",
+  "sem_data",
+  "sem_horario",
+  "data_passada",
+  "data_distante",
+  "evento_online",
+  "fora_de_cuiaba",
+  "local_desconhecido",
+  "palavrao",
+  "texto_suspeito",
+  "fora_do_perfil",
+  "link_suspeito",
+  "sem_link",
+  "sem_ano",
+  "trecho_ausente",
+  "extracao_invalida",
+] as const;
+
+export type RejectReason = (typeof REJECT_REASONS)[number];
 
 export type Verdict = { ok: true } | { ok: false; reasons: RejectReason[] };

@@ -1,89 +1,85 @@
 import type { AgendaSource } from "./types";
 
 /**
- * Fontes de eventos de Cuiabá e Várzea Grande. Ordem = prioridade na duplicidade (oficial antes de
- * organizador). Para incluir uma fonte: confira `robots.txt` e os termos do site, registre em
- * `note` e acrescente aqui; `enabled: false` desliga sem apagar. O coletor lê só título, data,
- * local, preço e link; descrição, imagem e texto longo nunca são copiados.
- */
-export const AGENDA_SOURCES: readonly AgendaSource[] = [
-  {
-    id: "sympla-cuiaba-1",
-    name: "Sympla · Cuiabá",
-    kind: "sympla",
-    url: "https://www.sympla.com.br/eventos/cuiaba-mt",
-    origin: "organizer",
-    requireCity: true,
-    enabled: true,
-    note: "Página pública de busca; robots.txt com Allow: / (verificado em 2026-10-03). Confirmar termos de uso antes de ampliar a frequência.",
-  },
-  {
-    id: "sympla-cuiaba-2",
-    name: "Sympla · Cuiabá (página 2)",
-    kind: "sympla",
-    url: "https://www.sympla.com.br/eventos/cuiaba-mt?page=2",
-    origin: "organizer",
-    requireCity: true,
-    enabled: true,
-    note: "Idem Sympla · Cuiabá.",
-  },
-  {
-    id: "sympla-varzea-grande",
-    name: "Sympla · Várzea Grande",
-    kind: "sympla",
-    url: "https://www.sympla.com.br/eventos/varzea-grande-mt",
-    origin: "organizer",
-    requireCity: true,
-    enabled: true,
-    note: "Idem Sympla · Cuiabá.",
-  },
-];
-
-/**
  * Fontes fictícias do modo de fixtures (`CRAWLER_FIXTURES=1`, nunca em produção): exercitam
- * JSON-LD, iCal, RSS e a lista da Sympla sem rede.
+ * JSON-LD, iCal, RSS, a lista da Sympla, a API Tribe e o caminho `ai_page` sem rede. As fontes de
+ * produção ficam em `sources` (`kind = 'events'`) e são lidas por `loadEventSources`
+ * (`src/lib/db/agenda-sources.ts`). Ordem igual à do banco: as que confirmam primeiro.
  */
+const base: Pick<AgendaSource, "enabled" | "confirms" | "notes" | "listUrls"> = {
+  enabled: true,
+  confirms: false,
+  notes: [],
+  listUrls: [],
+};
+const uuid = (n: number) => `f1000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
 export const FIXTURE_AGENDA_SOURCES: readonly AgendaSource[] = [
   {
+    ...base,
+    id: "teatro-cerrado",
+    uuid: uuid(6),
+    name: "Teatro Cerrado (fictício)",
+    kind: "ai_page",
+    url: "https://teatro-cerrado.example/",
+    origin: "organizer",
+    confirms: true,
+    notes: ["Cada espetáculo tem página própria com data, hora e local."],
+  },
+  {
+    ...base,
     id: "culturavarzea",
+    uuid: uuid(1),
     name: "Secretaria de Cultura de Várzea Grande (fictícia)",
     kind: "ical",
     url: "https://culturavarzea.example/calendario.ics",
     origin: "official",
-    enabled: true,
   },
   {
+    ...base,
     id: "cerrado-vivo",
+    uuid: uuid(2),
     name: "Casa Cerrado Vivo (fictícia)",
     kind: "jsonld",
     url: "https://cerradovivo.example/",
     origin: "organizer",
-    enabled: true,
   },
   {
+    ...base,
     id: "agendamt",
+    uuid: uuid(3),
     name: "Agenda MT (fictícia)",
     kind: "rss",
     url: "https://agendamt.example/feed",
     origin: "organizer",
     defaultNeighborhood: "Centro Sul",
-    enabled: true,
   },
   {
+    ...base,
     id: "ingressosmt",
+    uuid: uuid(4),
     name: "Ingressos MT (fictícia)",
     kind: "sympla",
     url: "https://ingressosmt.example/eventos/cuiaba-mt",
     origin: "organizer",
     requireCity: true,
-    enabled: true,
   },
   {
+    ...base,
     id: "bloqueado-agenda",
+    uuid: uuid(5),
     name: "Site que proíbe robôs (fictícia)",
     kind: "jsonld",
     url: "https://bloqueado-agenda.example/",
     origin: "organizer",
-    enabled: true,
+  },
+  {
+    ...base,
+    id: "eventos-cerrado",
+    uuid: uuid(7),
+    name: "Eventos do Cerrado (fictícia)",
+    kind: "tribe",
+    url: "https://eventos-cerrado.example/wp-json/tribe/events/v1/events",
+    origin: "organizer",
   },
 ];

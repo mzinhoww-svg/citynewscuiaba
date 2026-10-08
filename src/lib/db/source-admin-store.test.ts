@@ -158,4 +158,44 @@ describe("planBulk (§7.6)", () => {
     expect(results.get("b")?.reason).toBe("not_activated");
     expect(results.get("c")?.reason).toBe("not_paused");
   });
+
+  it("fonte de eventos nunca é ativada em lote: cada uma passa pela prévia (AGM-T6)", () => {
+    const { eligible, results } = planBulk(
+      ["e"],
+      [row("e", { status: "paused", status_reason: "manual", kind: "events" })],
+      "activate",
+      {},
+      { max: 10, used: 0 },
+    );
+    expect(eligible).toEqual([]);
+    expect(results.get("e")?.reason).toBe("not_activated");
+  });
+});
+
+describe("toDbPatch · colunas de evento (AGM-T6)", () => {
+  it("converte as chaves de evento para as colunas de 0195", () => {
+    expect(
+      toDbPatch({
+        confirms: true,
+        extractKind: "tribe",
+        eventOrigin: "official",
+        collectorNotes: ["a"],
+        listUrls: [],
+        requireCity: false,
+        defaultVenue: null,
+        defaultNeighborhood: "Centro",
+        defaultCategory: "musica",
+      }),
+    ).toEqual({
+      confirms: true,
+      extract_kind: "tribe",
+      event_origin: "official",
+      collector_notes: ["a"],
+      list_urls: [],
+      require_city: false,
+      default_venue: null,
+      default_neighborhood: "Centro",
+      default_category: "musica",
+    });
+  });
 });

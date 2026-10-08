@@ -37,6 +37,8 @@ interface SourceReport {
   found: number;
   approved: number;
   rejected: Record<string, number>;
+  aiPages?: number;
+  confirmed?: number;
 }
 interface Report {
   status: string;
@@ -46,6 +48,7 @@ interface Report {
   approved?: number;
   duplicates?: number;
   saved?: number;
+  aiPages?: number;
   dryRun?: boolean;
   preview?: { title: string; startsAt: string; venue: string; sourceUrl: string }[];
 }
@@ -69,11 +72,11 @@ for (const s of r.sources ?? []) {
     .map(([k, n]) => `${k}=${n}`)
     .join(" ");
   console.log(
-    `${s.status.padEnd(12)} ${s.name}: ${s.found} encontrados, ${s.approved} aprovados${why ? ` (recusados: ${why})` : ""}${s.detail ? ` [${s.detail}]` : ""}`,
+    `${s.status.padEnd(12)} ${s.name}: ${s.found} encontrados, ${s.approved} aprovados${s.aiPages ? `, ${s.aiPages} páginas lidas` : ""}${s.confirmed ? `, ${s.confirmed} confirmados` : ""}${why ? ` (recusados: ${why})` : ""}${s.detail ? ` [${s.detail}]` : ""}`,
   );
 }
 console.log(
-  `Total: ${r.found} encontrados, ${r.approved} aprovados, ${r.duplicates} repetidos, ${r.saved} gravados${r.dryRun ? " (ensaio)" : ""}.`,
+  `Total: ${r.found} encontrados, ${r.approved} aprovados, ${r.duplicates} repetidos, ${r.saved} gravados, ${r.aiPages ?? 0} páginas lidas${r.dryRun ? " (ensaio)" : ""}.`,
 );
 for (const e of r.preview ?? []) console.log(`  ${e.startsAt}  ${e.title} · ${e.venue}  ${e.sourceUrl}`);
 const alive = (r.sources ?? []).some((s) => s.status === "ok");

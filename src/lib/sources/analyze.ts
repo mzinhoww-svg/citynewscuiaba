@@ -7,6 +7,10 @@
  * Respeita `feature_flags.source_link_analysis` (desliga a análise em um clique).
  */
 import { parseHTML } from "linkedom";
+import { extractJsonLd } from "@/lib/agenda/extract/jsonld";
+import type { SourceKind as ExtractKind } from "@/lib/agenda/types";
+import { isAllowedByRobots } from "@/lib/pipeline/crawl";
+import { checkRobots, crawlGet } from "@/lib/pipeline/http";
 import { removeHiddenElements } from "@/lib/security/hidden";
 import type { CallAgent } from "@/lib/ai/call-agent";
 import type { CrawlDeps } from "@/lib/pipeline/http";
@@ -14,7 +18,13 @@ import type { SourceKind } from "@/lib/pipeline/ports";
 import type { RawEntry } from "@/lib/pipeline/types";
 import { err, ok, type Result } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
-import { discoverConsumption, siteMeta, type DiscoverError, type Discovery } from "./discover";
+import {
+  discoverConsumption,
+  isForbiddenTarget,
+  siteMeta,
+  type DiscoverError,
+  type Discovery,
+} from "./discover";
 import { suggestFrequency } from "./frequency";
 import { extractPageList } from "./page-list";
 import { buildPreview } from "./preview";
@@ -337,5 +347,133 @@ export async function analyzeLink(
     selectorsValidated,
     consumption,
     discoveryId,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Fonte de eventos (AGM-T6, spec 2026-10-08 §5.1)
+// ---------------------------------------------------------------------------
+
+export interface EventAnalyzeDeps {
+  crawl: CrawlDeps;
+  isEnabled: (flag: "source_link_analysis") => Promise<boolean>;
+  existingSources: () => Promise<ExistingSource[]>;
+}
+
+export interface EventLinkAnalysis {
+  status: "analyzed";
+  url: string;
+  /** Como o coletor lê os eventos: a primeira forma estruturada encontrada, senão `ai_page`. */
+  extractKind: ExtractKind;
+  /** Endereço que o coletor busca (`sources.base_url`): a API Tribe ou a própria página. */
+  collectUrl: string;
+  /** Nome sugerido (nome do site ou título da página, saneado). */
+  name: string | null;
+  tried: { url: string; outcome: string }[];
+}
+
+export type EventAnalyzeResult = DuplicateFound | EventLinkAnalysis;
+
+const EVENT_ANALYZE_LIMIT_PER_HOUR = 20;
+const TRIBE_PATH = "/wp-json/tribe/events/v1/events";
+const EVENT_PAGE_ACCEPT =
+  "text/html, application/xhtml+xml;q=0.9, text/calendar;q=0.8, application/rss+xml;q=0.8, application/xml;q=0.7, */*;q=0.1";
+
+/** O corpo é JSON da API Tribe (`events` como lista)? */
+function isTribeBody(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body) as { events?: unknown };
+    return Array.isArray(parsed.events);
+  } catch {
+    return false;
+  }
+}
+
+/** Forma do conteúdo da página: iCal, RSS/Atom, JSON-LD com evento ou nada estruturado. */
+function structuredKind(body: string): ExtractKind | null {
+  const head = body.trimStart().slice(0, 500);
+  if (/^BEGIN:VCALENDAR/i.test(head)) return "ical";
+  if (/^(<\?xml[^>]*>\s*)?<(rss|feed|rdf:RDF)\b/i.test(head)) return "rss";
+  if (/<html|<!doctype html/i.test(head) && extractJsonLd(body).length > 0) return "jsonld";
+  return null;
+}
+
+/**
+ * Análise do link de uma fonte de eventos: duplicidade sem requisição, robots.txt, depois tenta a
+ * API Tribe (`{origem}/wp-json/tribe/events/v1/events?per_page=1` com `events[]`), e na página
+ * colada iCal, RSS e JSON-LD de evento; sem nada estruturado, sugere `ai_page`. Não chama o
+ * modelo: a leitura com IA só acontece na prévia do teste de conexão.
+ */
+export async function analyzeEventLink(
+  input: string,
+  deps: EventAnalyzeDeps,
+): Promise<Result<EventAnalyzeResult, AnalyzeError>> {
+  if (!(await deps.isEnabled("source_link_analysis"))) return err("disabled");
+  const normalized = normalizePastedUrl(withScheme(input));
+  if (!normalized.ok) return normalized;
+  const url = normalized.value;
+
+  const duplicate = matchDuplicate(url, await deps.existingSources());
+  if (duplicate)
+    return ok({
+      status: "duplicate",
+      url: url.toString(),
+      duplicate: { id: duplicate.id, name: duplicate.name, archived: duplicate.archived },
+    });
+
+  if (await isForbiddenTarget(url, deps.crawl.resolve)) return err("forbidden_host");
+  const limits = {
+    bucket: `discover:${url.hostname.toLowerCase()}`,
+    limitPerHour: EVENT_ANALYZE_LIMIT_PER_HOUR,
+  };
+  const robots = await checkRobots(deps.crawl, url.toString(), limits);
+  if (robots.kind === "rate_limited") return err("rate_limited");
+  if (robots.kind === "unavailable") return err("robots_unavailable");
+  if (robots.kind === "disallowed") return err("robots_disallowed");
+  const allowed = (u: URL) =>
+    !robots.robotsTxt ||
+    isAllowedByRobots(robots.robotsTxt, deps.crawl.userAgent, `${u.pathname}${u.search}`);
+
+  const tried: { url: string; outcome: string }[] = [];
+  const tribe = new URL(TRIBE_PATH, url.origin);
+  const probe = new URL(tribe);
+  probe.searchParams.set("per_page", "1");
+  if (!allowed(probe)) tried.push({ url: probe.toString(), outcome: "robots.txt não permite" });
+  else {
+    const res = await crawlGet(deps.crawl, probe.toString(), {
+      ...limits,
+      accept: "application/json",
+    });
+    if (res.kind === "rate_limited") return err("rate_limited");
+    if (res.kind === "ok" && isTribeBody(res.body)) {
+      tried.push({ url: probe.toString(), outcome: "ok" });
+      return ok({
+        status: "analyzed",
+        url: url.toString(),
+        extractKind: "tribe",
+        collectUrl: tribe.toString(),
+        name: null,
+        tried,
+      });
+    }
+    tried.push({
+      url: probe.toString(),
+      outcome: res.kind === "ok" ? "sem API de eventos" : res.kind,
+    });
+  }
+
+  const page = await crawlGet(deps.crawl, url.toString(), { ...limits, accept: EVENT_PAGE_ACCEPT });
+  if (page.kind === "rate_limited") return err("rate_limited");
+  if (page.kind !== "ok") return err("unreachable");
+  const kind = structuredKind(page.body);
+  tried.push({ url: url.toString(), outcome: kind ?? "sem dados estruturados de evento" });
+  const isHtml = /<html|<!doctype html/i.test(page.body.trimStart().slice(0, 500));
+  return ok({
+    status: "analyzed",
+    url: url.toString(),
+    extractKind: kind ?? "ai_page",
+    collectUrl: url.toString(),
+    name: isHtml ? siteMeta(page.body).siteName : null,
+    tried,
   });
 }

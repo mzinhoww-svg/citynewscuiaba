@@ -5,7 +5,7 @@ import type { RankedHit } from "@/lib/search/group";
 import type { SearchHit } from "@/lib/search/types";
 import { toAggregatedView } from "./aggregated";
 import { ARTICLE_COLUMNS, PUBLIC_STATUSES, summarize } from "./articles";
-import { EVENT_COLUMNS, toEventView } from "./events";
+import { EVENT_COLUMNS, eventSourceNames, toEventView } from "./events";
 import { many, one } from "./run";
 import { TOPIC_COLUMNS, withCounts } from "./topics";
 
@@ -106,8 +106,9 @@ export async function hydrateHits(db: DbClient, ranked: RankedHit[]): Promise<Se
     const v = toAggregatedView(row);
     if (v) byId.set(`aggregated:${v.id}`, { kind: "aggregated", score: 0, item: v });
   }
+  const eventSources = await eventSourceNames(db, eventRows);
   for (const row of eventRows)
-    byId.set(`event:${row.id}`, { kind: "event", score: 0, item: toEventView(row) });
+    byId.set(`event:${row.id}`, { kind: "event", score: 0, item: toEventView(row, eventSources) });
   for (const t of topics) byId.set(`topic:${t.id}`, { kind: "topic", score: 0, item: t });
 
   return ranked.flatMap((r) => {

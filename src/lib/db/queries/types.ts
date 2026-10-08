@@ -209,7 +209,16 @@ export interface EventView {
   ageRating: string;
   category: string;
   accessibility: string | null;
-  origin: "official" | "organizer" | "reader";
+  origin: "official" | "organizer" | "reader" | "newsroom";
+  /** Nome público da fonte de onde o evento foi coletado; `null` nos cadastrados na casa. */
+  sourceName: string | null;
+  /** Nome da outra fonte que confirmou o evento; `null` quando nenhuma confirmou. */
+  confirmedByName: string | null;
+  /**
+   * Confirmado: criado pela redação ou fonte oficial, vindo de fonte que confirma (casa,
+   * organizador) ou confirmado por outra fonte. Eventos confirmados vêm primeiro em cada dia.
+   */
+  confirmed: boolean;
   description: string | null;
   /** Quando a organização (ou a fonte oficial) confirmou as informações. */
   confirmedAt: string | null;

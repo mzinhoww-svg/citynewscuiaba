@@ -120,7 +120,12 @@ export const AGENDA = {
     official: "Oficial",
     organizer: "Organização",
     reader: "Sugerido por leitor (aprovado)",
+    newsroom: "CityNews",
   },
+  /** Origem na fonte e confirmação (frases exatas da spec da agenda multifonte, §7). */
+  withInfoFrom: (source: string) => `Com informações de ${source}`,
+  confirmedBy: (source: string) => `Confirmado por ${source}`,
+  confirmAtSource: "Confirme na fonte",
   freeOnly: "Só gratuitos",
   kidsOnly: "Para crianças",
   shortcuts: "Atalhos da agenda",

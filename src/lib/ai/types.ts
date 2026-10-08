@@ -15,6 +15,7 @@ export const AGENT_IDS = [
   "source_profiler",
   "reviewer",
   "guide_writer",
+  "event_extractor",
 ] as const;
 export type AgentId = (typeof AGENT_IDS)[number];
 

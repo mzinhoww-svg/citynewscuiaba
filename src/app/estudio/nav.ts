@@ -82,11 +82,13 @@ const GROUPS: { label: string; items: Entry[] }[] = [
         visibleFor: (roles) =>
           can(roles, "site.manage") || can(roles, "article.edit", { section: GUIDE_SECTION }),
       },
+      // Agenda (AGM-T7): eventos e, numa aba, as sugestões de leitores. Só quem publica na
+      // editoria Agenda (editor-chefe; editor com a editoria), como a RLS de `event_listings`.
       {
-        href: "/estudio/agenda/sugestoes",
-        label: "Sugestões de evento",
+        href: "/estudio/agenda",
+        label: "Agenda",
         icon: "calendar",
-        action: "article.publish",
+        visibleFor: (roles) => can(roles, "article.publish", { section: "agenda" }),
       },
       {
         href: "/estudio/denuncias",

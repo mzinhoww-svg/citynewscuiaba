@@ -171,6 +171,7 @@ export async function recPanel(now: Date = new Date(), db?: DbClient): Promise<R
     client
       .from("sources")
       .select("id, slug, name, display_name")
+      .neq("kind", "events")
       .in("status", ["active", "degraded"])
       .order("name"),
   ]);

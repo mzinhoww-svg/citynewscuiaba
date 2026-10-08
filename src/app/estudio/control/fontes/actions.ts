@@ -56,7 +56,17 @@ import {
   type PageSelectors,
   type SourceConfig,
 } from "@/lib/sources";
-import { analyzeLink, type AnalyzeError, type AnalyzeResult } from "@/lib/sources/analyze";
+import {
+  analyzeEventLink,
+  analyzeLink,
+  type AnalyzeError,
+  type AnalyzeResult,
+} from "@/lib/sources/analyze";
+import { previewActivationProblem } from "@/lib/agenda/preview";
+import { collectEventSource, previewEventSource } from "@/lib/db/agenda-collect";
+import { eventConfigFromRow, eventPatch, parseEventSourceForm } from "@/lib/sources/event-source";
+import { EVENT_ACTION_TEXT as EV, EVENT_FORM_TEXT } from "@/content/pt-BR/sources-admin-events";
+import { EXTRACT_KIND_TEXT, RUN_STATUS_TEXT } from "@/content/pt-BR/studio-agenda";
 import { conflictState, type ActionState } from "@/lib/sources/action-state";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import { validateLogo } from "@/lib/sources/logo";
@@ -82,6 +92,8 @@ const LIMITS = {
   analyze: { bucket: "source_admin_analyze", limit: 10, windowSec: HOUR },
   test: { bucket: "source_admin_test", limit: 30, windowSec: HOUR },
   approve: { bucket: "source_admin_approve", limit: 60, windowSec: HOUR },
+  /** "Coletar agora" de fonte de eventos (coleta real, com IA): 6 por hora por pessoa. */
+  collectEvents: { bucket: "source_admin_collect_events", limit: 6, windowSec: HOUR },
 } as const;
 
 const fail = (message: string, fieldErrors?: Record<string, string>): ActionState =>
@@ -773,9 +785,30 @@ async function activationCheck(
   ctx: Ctx,
   row: Row,
 ): Promise<{ problem: string } | { version: number }> {
+  if (row.kind === "events") return eventActivationCheck(ctx, row);
   const result = await runTest(ctx, row);
   if (!result.ok) return { problem: result.message };
   return { version: await recordCrawlDelay(ctx, row, result.crawlDelaySec) };
+}
+
+/**
+ * Ativar/retomar fonte de eventos (AGM-T6, spec §5.1): roda a prévia (robots.txt, leitura da
+ * fonte e checagens de cada evento; páginas já lidas pelo teste vêm do cache) e só libera com ao
+ * menos 1 evento aprovado. Termos seguem a régua das notícias (A-127: a caixa só registra quando
+ * foram revisados).
+ */
+async function eventActivationCheck(
+  ctx: Ctx,
+  row: Row,
+): Promise<{ problem: string } | { version: number }> {
+  // A prévia chama o modelo (até 6 vezes): mesma cota do "Testar conexão", além da de escrita.
+  if (!(await allow(ctx, LIMITS.test))) return { problem: T.test.rateLimited };
+  const preview = await previewEventSource(row.id);
+  if (!preview.ok) return { problem: EV.previewFailed };
+  const problem = previewActivationProblem(preview.value);
+  if (!problem) return { version: row.version };
+  const text = EV.problem[problem.code];
+  return { problem: problem.detail ? `${text} (${problem.detail})` : text };
 }
 
 export async function sourceStatusAction(form: FormData): Promise<ActionState> {
@@ -925,6 +958,7 @@ export async function testConnectionAction(form: FormData): Promise<ActionState>
   if (!(await allow(ctx, LIMITS.test))) return fail(T.test.rateLimited);
   const row = await sourceRow(ctx, text(form, "id") ?? "");
   if (!row) return fail(T.notFound);
+  if (row.kind === "events") return testEventSource(ctx, row);
   const result = await runTest(ctx, row);
   // O teste também grava o Crawl-delay que o servidor leu (spec §7.8.1), quando o robots respondeu.
   if (result.ok) await recordCrawlDelay(ctx, row, result.crawlDelaySec);
@@ -938,10 +972,86 @@ export async function testConnectionAction(form: FormData): Promise<ActionState>
   return result.ok ? finish(ctx, result.message, result) : fail(result.message);
 }
 
+/** "Testar conexão" de fonte de eventos: a prévia com evidência (até 5 eventos), sem gravar nada. */
+async function testEventSource(ctx: Ctx, row: Row): Promise<ActionState> {
+  const r = await previewEventSource(row.id);
+  if (!r.ok) {
+    await safeAudit(ctx, {
+      actor: ctx.userId,
+      action: "source.test",
+      objectRef: `source:${row.id}`,
+      details: { ok: false, kind: "events" },
+      ipHash: ctx.ipHash,
+    });
+    return fail(EV.previewFailed);
+  }
+  const p = r.value;
+  await safeAudit(ctx, {
+    actor: ctx.userId,
+    action: "source.test",
+    objectRef: `source:${row.id}`,
+    details: {
+      ok: p.status === "ok",
+      kind: "events",
+      status: p.status,
+      found: p.found,
+      approved: p.approved,
+      rejected: p.rejected.length,
+      aiPages: p.aiPages,
+    },
+    ipHash: ctx.ipHash,
+  });
+  const problem = previewActivationProblem(p);
+  const message =
+    problem && problem.code !== "no_events"
+      ? EV.problem[problem.code]
+      : EV.previewDone(p.approved, p.found - p.approved);
+  // A prévia volta inteira (até 5 eventos com trechos e as recusas) para a tela mostrar.
+  return problem && problem.code !== "no_events"
+    ? { ok: false, message, data: p }
+    : finish(ctx, message, p);
+}
+
+/** "Coletar agora" de fonte de eventos: coleta real só desta fonte, gravando a execução. */
+async function collectEventsNow(ctx: Ctx, row: Row): Promise<ActionState> {
+  if (row.archived_at || (row.status !== "active" && row.status !== "degraded"))
+    return fail(T.collectNow.notActive);
+  if (!(await allow(ctx, LIMITS.collectEvents))) return fail(EV.collectRateLimited);
+  const r = await collectEventSource(row.id);
+  if (!r.ok) return fail(T.unavailable);
+  const rep = r.value;
+  const rejected = Object.values(rep.rejected).reduce((n, v) => n + (v ?? 0), 0);
+  await safeAudit(ctx, {
+    actor: ctx.userId,
+    action: "source.collect_now",
+    objectRef: `source:${row.id}`,
+    details: {
+      kind: "events",
+      status: rep.status,
+      found: rep.found,
+      approved: rep.approved,
+      new: rep.new,
+      updated: rep.updated,
+      rejected,
+      aiPages: rep.aiPages,
+    },
+    ipHash: ctx.ipHash,
+  });
+  refresh(row.id);
+  if (rep.status !== "ok")
+    return fail(
+      EV.collectFailed(
+        rep.detail ? `${RUN_STATUS_TEXT[rep.status]} (${rep.detail})` : RUN_STATUS_TEXT[rep.status],
+      ),
+    );
+  return finish(ctx, EV.collected(rep.new, rep.updated, rejected), { report: rep });
+}
+
 export async function collectNowAction(form: FormData): Promise<ActionState> {
   const ctx = await context();
   const row = await sourceRow(ctx, text(form, "id") ?? "");
   if (!row) return fail(T.notFound);
+  if (row.kind === "events") return collectEventsNow(ctx, row);
   const r = await collectNow(row.id, defaultCollectNowDeps(ctx.userId));
   if (!r.ok) {
     if (r.error === "not_active") return fail(T.collectNow.notActive);
@@ -1495,4 +1605,151 @@ export async function createSourceAction(form: FormData): Promise<ActionState> {
   // A fonte foi criada: com falha depois disso, a mensagem diz o que ficou faltando.
   if (problems.length > 0) return { ok: false, message: `${message} ${problems.join(" ")}` };
   return finish(ctx, message, data);
+}
+
+// ---------------------------------------------------------------------------
+// Fontes de eventos (AGM-T6, spec 2026-10-08 §5.1)
+// ---------------------------------------------------------------------------
+
+/** Análise do link de uma agenda: Tribe, iCal, RSS ou JSON-LD antes de sugerir `ai_page`. */
+export async function analyzeEventLinkAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  const input = (text(form, "url") ?? "").trim();
+  if (!input) return fail(ANALYZE_TEXT.errors.invalid, { url: ANALYZE_TEXT.errors.invalid });
+  if (!(await allow(ctx, LIMITS.analyze))) {
+    const msg = ANALYZE_TEXT.errors.rate_limited(60 - ctx.now.getUTCMinutes());
+    return fail(msg, { url: msg });
+  }
+  const svc = createServiceClient();
+  const r = await analyzeEventLink(input, {
+    crawl: crawlDeps({ repo: createIngestRepo(svc) }),
+    isEnabled: async (key) => {
+      const { data } = await svc
+        .from("feature_flags")
+        .select("enabled")
+        .eq("key", key)
+        .maybeSingle();
+      return data?.enabled === true;
+    },
+    existingSources: async () => {
+      const { data } = await ctx.db
+        .from("sources")
+        .select("id, name, display_name, base_url, feed_url, archived_at");
+      return (data ?? []).map((s) => ({
+        id: s.id,
+        name: s.display_name ?? s.name,
+        baseUrl: s.base_url,
+        feedUrl: s.feed_url,
+        archived: s.archived_at !== null,
+      }));
+    },
+  });
+  if (!r.ok) {
+    const msg = analyzeMessage(r.error, input, ctx.now);
+    return fail(msg, { url: msg });
+  }
+  const value = r.value;
+  if (value.status === "duplicate")
+    return finish(
+      ctx,
+      value.duplicate.archived
+        ? ANALYZE_TEXT.duplicateArchived
+        : ANALYZE_TEXT.duplicate(value.duplicate.name),
+      value,
+    );
+  await safeAudit(ctx, {
+    actor: ctx.userId,
+    action: "source.analyze",
+    objectRef: `discovery:events:${new URL(value.url).hostname}`,
+    details: { inputUrl: input, kind: "events", extractKind: value.extractKind },
+    ipHash: ctx.ipHash,
+  });
+  const message =
+    value.extractKind === "ai_page"
+      ? EV.analyzeNone
+      : EVENT_FORM_TEXT.analyze.done(EXTRACT_KIND_TEXT[value.extractKind]);
+  return finish(ctx, message, value);
+}
+
+/** Cadastro de fonte de eventos: nasce pausada (`pending_activation`), ativação pela prévia. */
+export async function createEventSourceAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  if (!(await allow(ctx, LIMITS.write))) return fail(T.rateLimited);
+  const parsed = parseEventSourceForm(form, { create: true });
+  if (!parsed.ok) return fail(T.invalid, parsed.error);
+  const input = parsed.value;
+  const slug = input.slug ?? "";
+  if (!SLUG.test(slug))
+    return fail(T.invalid, { slug: "Use só letras minúsculas, números e hífen." });
+  const created = await ctx.store.create(
+    {
+      slug,
+      name: input.name,
+      baseUrl: input.baseUrl ?? "",
+      kind: "events",
+      feedUrl: null,
+      categories: [],
+      locality: "cuiaba",
+      layer: null,
+      frequencyMinutes: null,
+      rateLimitPerHour: 20,
+      priority: 2,
+      editorialScore: 3,
+      consumption: {},
+      event: input.config,
+    },
+    auditCtx(ctx),
+  );
+  if (!created.ok) {
+    if (created.error === "duplicate")
+      return fail(T.invalid, { slug: "Já existe uma fonte com este slug." });
+    if (created.error === "forbidden") return fail(T.forbidden);
+    return fail(created.error === "invalid" ? T.invalid : T.unavailable);
+  }
+  const id = created.value.id;
+  let version = 1;
+  if (toBool(text(form, "termsReviewed") ?? "")) {
+    const r = await ctx.store.update(
+      id,
+      version,
+      { termsReviewedAt: ctx.now.toISOString(), termsReviewedBy: ctx.userId },
+      auditCtx(ctx),
+    );
+    if (!r.ok) {
+      refresh(id);
+      return { ok: false, message: `${EV.created} ${T.createdFollowUpFailed}` };
+    }
+    version = r.value.version;
+  }
+  refresh(id);
+  return finish(ctx, EV.created, { id, version });
+}
+
+/** Edição da coleta de uma fonte de eventos (nome e campos de evento; endereço e slug não mudam). */
+export async function updateEventSourceAction(form: FormData): Promise<ActionState> {
+  const ctx = await context();
+  if (!(await allow(ctx, LIMITS.write))) return fail(T.rateLimited);
+  const id = text(form, "id") ?? "";
+  const version = toInt(text(form, "version") ?? "");
+  const row = await sourceRow(ctx, id);
+  if (!row) return fail(T.notFound);
+  if (row.kind !== "events") return fail(EV.notEvents);
+  if (!Number.isInteger(version)) return fail(T.invalid);
+  const parsed = parseEventSourceForm(form, { create: false });
+  if (!parsed.ok) return fail(T.invalid, parsed.error);
+  if (row.version !== version) return conflictState(await conflictMessage(ctx, id));
+  const patch: SourcePatch = {
+    ...eventPatch(eventConfigFromRow(row), parsed.value.config),
+    ...(parsed.value.name !== row.name ? { name: parsed.value.name } : {}),
+  };
+  if (Object.keys(patch).length === 0) return finish(ctx, T.nothingToSave, { version });
+  const r = await ctx.store.update(
+    id,
+    version,
+    patch,
+    auditCtx(ctx, { reason: text(form, "reason")?.trim() || null }),
+  );
+  if (!r.ok) return storeFailure(ctx, id, r.error);
+  refresh(id);
+  return finish(ctx, T.saved, { version: r.value.version });
 }

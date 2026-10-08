@@ -17,6 +17,7 @@ export function createSourceLogoStore(db: DbClient): LogoStore {
         db
           .from("sources")
           .select("id, slug, name, display_name, base_url, logo_path, logo_source")
+          .neq("kind", "events")
           .is("archived_at", null)
           .in("status", ["active", "degraded", "paused"])
           .order("slug"),

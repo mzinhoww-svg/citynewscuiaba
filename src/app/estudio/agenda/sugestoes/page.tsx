@@ -9,6 +9,7 @@ import { listSubmissions, type SubmissionRow } from "@/lib/db/queries/studio-mod
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
 import { formatDateTime } from "@/lib/format/date";
 import { approveSubmissionAction, rejectSubmissionAction } from "../../actions";
+import { AgendaTabs } from "../AgendaTabs";
 
 export const metadata: Metadata = { title: "Sugestões de evento · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -16,9 +17,14 @@ export const dynamic = "force-dynamic";
 type Params = Record<string, string | string[] | undefined>;
 
 export default async function SubmissionsPage({ searchParams }: { searchParams: Promise<Params> }) {
-  const session = await requireRole("article.publish", undefined, {
-    next: "/estudio/agenda/sugestoes",
-  });
+  // Aba da Agenda (AGM-T7): mesma guarda das outras telas da área, a editoria Agenda.
+  const session = await requireRole(
+    "article.publish",
+    { section: "agenda" },
+    {
+      next: "/estudio/agenda/sugestoes",
+    },
+  );
   const sp = await searchParams;
   const decide = can(session.roles, "article.publish", {
     section: "agenda",
@@ -34,6 +40,7 @@ export default async function SubmissionsPage({ searchParams }: { searchParams: 
 
   return (
     <StudioScreen title={T.submissionsTitle} intro={T.submissionsIntro}>
+      <AgendaTabs current="submissions" />
       {done && (
         <InlineAlert tone="success" role="status">
           {done}

@@ -66,7 +66,7 @@ function callSignal(timeoutMs: number, outer?: AbortSignal): AbortSignal {
 }
 
 /** Limite de caracteres de cada bloco de dados enviado ao modelo. */
-const MAX_DATA_CHARS = 6000;
+export const MAX_DATA_CHARS = 6000;
 
 type Attempt = { ok: true; value: unknown; row: AiCallRow } | { ok: false; row: AiCallRow };
 

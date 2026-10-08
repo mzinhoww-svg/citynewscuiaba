@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { fullDateTime, SOURCES_LIST_TEXT as T, scoreText } from "@/content/pt-BR/sources-admin";
+import { EVENT_LIST_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
 import type { SourceListRow } from "@/lib/db/queries/sources-admin";
 import { cx } from "../../cx";
 import { FrequencyLabel } from "./FrequencyLabel";
@@ -54,7 +55,10 @@ export function SourceRowMobile({
           <Link href={href} className="type-section text-strong no-underline hover:underline">
             {row.name}
           </Link>
-          <p className="type-meta text-meta">{row.domain}</p>
+          <p className="type-meta text-meta">
+            {row.domain}
+            {row.kind === "events" ? ` · ${EV.typeTag}` : ""}
+          </p>
         </div>
         <SourceRowMenu
           name={row.name}
@@ -67,16 +71,28 @@ export function SourceRowMobile({
           onPauseResume={onPauseResume}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
-        <span className="type-meta text-strong">{scoreText(row.editorialScore)}</span>
-        <HealthBadge score={row.operationalScore} label={row.health} />
-      </div>
-      <FrequencyLabel
-        frequencyMinutes={row.frequencyMinutes}
-        effective={row.effective}
-        nextCollectionAt={row.nextCollectionAt}
-      />
+      {row.kind === "events" ? (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
+          <span className="type-meta text-strong">
+            {EV.columns.confirms}: {row.confirms ? EV.yes : EV.no}
+          </span>
+          <span className="type-meta text-strong">{EV.eventsLive(row.eventsLive ?? 0)}</span>
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
+            <span className="type-meta text-strong">{scoreText(row.editorialScore)}</span>
+            <HealthBadge score={row.operationalScore} label={row.health} />
+          </div>
+          <FrequencyLabel
+            frequencyMinutes={row.frequencyMinutes}
+            effective={row.effective}
+            nextCollectionAt={row.nextCollectionAt}
+          />
+        </>
+      )}
       <p className="type-meta text-meta">
         {T.columns.lastFetch}: {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
       </p>

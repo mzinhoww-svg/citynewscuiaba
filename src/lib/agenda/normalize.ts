@@ -157,6 +157,28 @@ export function dedupeKeyOf(title: string, startsAt: string, venue: string): str
 }
 
 /**
+ * Descrição própria de até 2 frases (nenhum texto da fonte): categoria, local, data, hora e preço.
+ * Refeita quando a confirmação muda data, hora ou local de um evento já guardado.
+ */
+export function describeEvent(
+  e: Pick<
+    NormalizedEvent,
+    "category" | "venue" | "neighborhood" | "startsAt" | "priceCents" | "priceUnknown"
+  >,
+): string {
+  const place =
+    e.neighborhood && e.neighborhood !== "Várzea Grande"
+      ? `${e.venue}, ${e.neighborhood}`
+      : e.venue;
+  const price = e.priceUnknown
+    ? T.unknownPrice
+    : e.priceCents === 0
+      ? T.free
+      : T.from(AGENDA.price(e.priceCents ?? 0));
+  return `${T.where(AGENDA.categories[e.category] ?? e.category, place, formatLongDate(e.startsAt), formatHour(e.startsAt))} ${price}`;
+}
+
+/**
  * Normaliza um evento da fonte: título e local limpos (texto externo é dado), data e hora em
  * America/Cuiabá, bairro da lista curada, preço (ou "não informado"), categoria, link para o
  * original e descrição própria de até 2 frases. Itens que não servem voltam com os motivos.
@@ -201,14 +223,14 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
   const category = categoryOf(raw, source);
   const priceUnknown = raw.priceCents === undefined || raw.priceCents === null;
   const priceCents = priceUnknown ? null : (raw.priceCents ?? 0);
-  const place =
-    neighborhood && neighborhood !== "Várzea Grande" ? `${venue}, ${neighborhood}` : venue;
-  const price = priceUnknown
-    ? T.unknownPrice
-    : priceCents === 0
-      ? T.free
-      : T.from(AGENDA.price(priceCents ?? 0));
-  const description = `${T.where(AGENDA.categories[category] ?? category, place, formatLongDate(startsAt), formatHour(startsAt))} ${price}`;
+  const description = describeEvent({
+    category,
+    venue,
+    neighborhood,
+    startsAt,
+    priceCents,
+    priceUnknown,
+  });
 
   return {
     ok: true,
@@ -227,6 +249,12 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
       description,
       dedupeKey: dedupeKeyOf(title.text, startsAt, venue),
       venueKnown,
+      sourceRef: source.uuid || null,
+      confirms: source.confirms,
+      // Só outra fonte que confirma preenche (confirmação entre fontes); a fonte que confirma
+      // conta como confirmada pelo próprio `sources.confirms`.
+      confirmedBySourceId: null,
+      evidence: {},
     },
   };
 }

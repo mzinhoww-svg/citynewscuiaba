@@ -55,6 +55,14 @@ export const GUIDE_AUDIT_ACTIONS = [
 
 export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];
 
+/** Eventos da Agenda no Estúdio (AGM-T7, migration 0198): cadastro, edição, retirada e devolução. */
+export const AGENDA_AUDIT_ACTIONS = [
+  "event.create",
+  "event.update",
+  "event.withdraw",
+  "event.restore",
+] as const;
+
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
  * lista (`studio_audit_actions()`, migrations 0025/0026/0033/0034); o teste de integração confere as
@@ -133,6 +141,7 @@ export const AUDIT_ACTIONS = [
   "security.key.rotate",
   ...PUSH_AUDIT_ACTIONS,
   ...GUIDE_AUDIT_ACTIONS,
+  ...AGENDA_AUDIT_ACTIONS,
   // Publicação forçada da fila de revisão (REV-T1, 0054)
   "article.force_publish",
   // Aprovar recomendadas em lote (UX-W3-T1, 0159)

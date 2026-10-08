@@ -23,6 +23,7 @@ import {
   type StatusReason,
 } from "@/lib/sources";
 import type { DisplayStatus } from "@/content/pt-BR/sources-admin";
+import { eventConfigFromRow, type EventSourceConfig } from "@/lib/sources/event-source";
 import { many } from "./run";
 import type { QueryError } from "./types";
 import { fold } from "@/lib/text/fold";
@@ -56,6 +57,7 @@ const DISPLAY_STATUSES: readonly DisplayStatus[] = [
 const HEALTHS: readonly HealthLabel[] = ["saudavel", "atencao", "critica", "sem_dados"];
 const LOCALITIES: readonly Locality[] = ["cuiaba", "varzea-grande", "mt", "nacional"];
 const SORTS = ["score", "health", "last", "name"] as const;
+const TYPES: Record<string, "news" | "events"> = { noticias: "news", eventos: "events" };
 export type SourceSort = (typeof SORTS)[number];
 
 export interface SourceFilters {
@@ -67,6 +69,8 @@ export interface SourceFilters {
   health: HealthLabel | null;
   via: "rapida" | "normal" | null;
   pending: boolean;
+  /** `?tipo=noticias|eventos` (AGM-T6); `null` = todas. */
+  type: "news" | "events" | null;
   sort: SourceSort;
   dir: "asc" | "desc";
   page: number;
@@ -91,6 +95,7 @@ export function parseSourceFilters(sp: URLSearchParams): SourceFilters {
     health: pick(HEALTHS, sp.get("saude")),
     via: pick(["rapida", "normal"] as const, sp.get("via")),
     pending: sp.get("pendente") === "1",
+    type: TYPES[sp.get("tipo") ?? ""] ?? null,
     sort,
     dir: dirRaw === "asc" || dirRaw === "desc" ? dirRaw : sort === "name" ? "asc" : "desc",
     page: Number.isInteger(page) && page >= 1 && page <= 10_000 ? page : 1,
@@ -138,6 +143,12 @@ export interface SourceListRow {
   pendingApprovals: number;
   termsReviewedAt: string | null;
   version: number;
+  /** `sources.kind`: `events` = fonte de eventos da Agenda (AGM-T6). */
+  kind: SourceRow["kind"];
+  /** Fonte de eventos que confirma fatos (casa, organizador). */
+  confirms: boolean;
+  /** Eventos desta fonte no ar e por vir; `null` para fonte de notícias. */
+  eventsLive: number | null;
 }
 
 export interface SourceListResult {
@@ -179,6 +190,10 @@ export interface SourceDetail {
   nextCollectionAt: string | null;
   pendingApprovals: PendingSourceApproval[];
   fastLane: { max: number; used: number; paused: number };
+  /** Configuração de coleta da fonte de eventos (`kind = 'events'`); `null` em fonte de notícias. */
+  event: EventSourceConfig | null;
+  /** Eventos desta fonte no ar e por vir; `null` em fonte de notícias. */
+  eventsLive: number | null;
 }
 
 export interface HealthDay {
@@ -419,6 +434,8 @@ export function filterAndSort(
     if (f.via === "rapida" && r.lane !== "fast") return false;
     if (f.via === "normal" && r.lane !== "normal") return false;
     if (f.pending && r.pendingApprovals === 0) return false;
+    if (f.type === "events" && r.kind !== "events") return false;
+    if (f.type === "news" && r.kind === "events") return false;
     return true;
   });
   const sign = f.dir === "asc" ? 1 : -1;
@@ -437,13 +454,17 @@ function single<R extends { data: unknown; error: { message: string } | null }>(
   return res.data;
 }
 
-interface Clients {
+export interface Clients {
   db: DbClient;
   svc: () => DbClient;
   isAdmin: boolean;
 }
 
-async function readAdmin<T>(fn: (c: Clients) => Promise<T>): Promise<Result<T, QueryError>> {
+/**
+ * Leitura do painel: confere a sessão com `source.manage` e devolve `Result` (nunca lança).
+ * Exportada para as leituras de eventos (`agenda-runs.ts`).
+ */
+export async function readAdmin<T>(fn: (c: Clients) => Promise<T>): Promise<Result<T, QueryError>> {
   let db: DbClient;
   try {
     db = await createServerClient();
@@ -534,6 +555,7 @@ function toListRow(
   health: HealthRow[],
   lastItemAt: string | null,
   pending: number,
+  eventsLive?: Map<string, number>,
 ): SourceListRow {
   const effective = effectiveFrequency(row.frequency_minutes, defaultFrequency, {
     crawlDelaySec: crawlDelayOf(row.consumption),
@@ -575,7 +597,76 @@ function toListRow(
     pendingApprovals: pending,
     termsReviewedAt: row.terms_reviewed_at,
     version: row.version,
+    kind: row.kind,
+    confirms: row.confirms,
+    eventsLive: row.kind === "events" ? (eventsLive?.get(row.id) ?? 0) : null,
   };
+}
+
+interface LiveEventRow {
+  source_ref: string | null;
+  starts_at: string;
+  confirmed_at: string | null;
+  withdrawn_at: string | null;
+}
+
+/**
+ * "Eventos no ar" por fonte (spec §5.1): `source_ref` = a fonte, confirmado, não retirado e que
+ * ainda não começou.
+ */
+export function eventsLiveBySource(rows: readonly LiveEventRow[], now: Date): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const r of rows) {
+    if (!r.source_ref || r.confirmed_at === null || r.withdrawn_at !== null) continue;
+    if (new Date(r.starts_at).getTime() < now.getTime()) continue;
+    out.set(r.source_ref, (out.get(r.source_ref) ?? 0) + 1);
+  }
+  return out;
+}
+
+/**
+ * "Eventos no ar" da lista: com "Tipo: Notícias" nem consulta; erro na leitura não derruba a lista
+ * (mapa vazio, a coluna mostra "Nenhum", e o erro vai para o log do servidor).
+ */
+export async function eventsLiveFor(
+  type: SourceFilters["type"],
+  load: () => Promise<readonly LiveEventRow[]>,
+  now: Date,
+): Promise<Map<string, number>> {
+  if (type === "news") return new Map();
+  try {
+    return eventsLiveBySource(await load(), now);
+  } catch (e) {
+    console.error("painel de fontes: leitura dos eventos no ar falhou", e);
+    return new Map();
+  }
+}
+
+async function liveEvents(c: Clients, now: Date): Promise<LiveEventRow[]> {
+  return many(
+    await c
+      .svc()
+      .from("event_listings")
+      .select("source_ref, starts_at, confirmed_at, withdrawn_at")
+      .not("source_ref", "is", null)
+      .not("confirmed_at", "is", null)
+      .is("withdrawn_at", null)
+      .gte("starts_at", now.toISOString())
+      .limit(5000),
+  );
+}
+
+async function liveEventsOf(c: Clients, sourceId: string, now: Date): Promise<number> {
+  const res = await c
+    .svc()
+    .from("event_listings")
+    .select("id", { count: "exact", head: true })
+    .eq("source_ref", sourceId)
+    .not("confirmed_at", "is", null)
+    .is("withdrawn_at", null)
+    .gte("starts_at", now.toISOString());
+  if (res.error) throw new Error(res.error.message);
+  return res.count ?? 0;
 }
 
 async function healthMap(
@@ -604,11 +695,12 @@ export async function listSources(
   now: Date = new Date(),
 ): Promise<Result<SourceListResult, QueryError>> {
   return readAdmin(async (c) => {
-    const [sources, settings, pending, hm] = await Promise.all([
+    const [sources, settings, pending, hm, live] = await Promise.all([
       c.db.from("sources").select("*").then(many),
       settingsOf(c.db),
       pendingRows(c.db),
       healthMap(c, now, 30),
+      eventsLiveFor(f.type, () => liveEvents(c, now), now),
     ]);
     const pendingBySource = new Map<string, number>();
     for (const p of pending)
@@ -621,13 +713,19 @@ export async function listSources(
         hm.health.get(row.id) ?? [],
         hm.lastItem.get(row.id) ?? null,
         pendingBySource.get(row.id) ?? 0,
+        live,
       ),
     );
     const counts = Object.fromEntries(DISPLAY_STATUSES.map((s) => [s, 0])) as Record<
       DisplayStatus,
       number
     >;
-    for (const r of all) counts[r.displayStatus]++;
+    // Contagem por status do tipo escolhido (com "Eventos", só as fontes de eventos).
+    for (const r of all) {
+      if (f.type === "events" && r.kind !== "events") continue;
+      if (f.type === "news" && r.kind === "events") continue;
+      counts[r.displayStatus]++;
+    }
     const fast = sources.filter(
       (s) => s.archived_at === null && s.frequency_minutes !== null && s.frequency_minutes < 30,
     );
@@ -715,6 +813,8 @@ export async function sourceDetail(
         used: fastRows.length,
         paused: fastRows.filter((s) => s.status !== "active" && s.status !== "degraded").length,
       },
+      event: row.kind === "events" ? eventConfigFromRow(row) : null,
+      eventsLive: row.kind === "events" ? await liveEventsOf(c, row.id, now) : null,
     };
   });
 }

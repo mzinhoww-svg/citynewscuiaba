@@ -27,6 +27,9 @@ const event: EventView = {
   category: "musica",
   accessibility: null,
   origin: "organizer",
+  sourceName: null,
+  confirmedByName: null,
+  confirmed: true,
   description: null,
   confirmedAt: null,
   sourceUrl: null,
@@ -96,5 +99,37 @@ describe("EventCard preço não informado", () => {
     render(<EventCard event={{ ...event, priceUnknown: true, isFree: false, priceCents: null }} />);
     expect(screen.getByText("Consulte o valor no site")).toBeInTheDocument();
     expect(screen.queryByText("Gratuito")).not.toBeInTheDocument();
+  });
+});
+
+describe("EventCard origem e confirmação", () => {
+  it("fonte confirmada por outra mostra as duas frases em texto", () => {
+    render(
+      <EventCard
+        event={{
+          ...event,
+          sourceName: "Agenda Cuiabana",
+          confirmedByName: "Teatro Exemplo",
+          confirmed: true,
+        }}
+      />,
+    );
+    const note = screen.getByTestId("event-origin");
+    expect(note).toHaveTextContent("Com informações de Agenda Cuiabana");
+    expect(note).toHaveTextContent("Confirmado por Teatro Exemplo");
+  });
+
+  it("fonte sem confirmação pede para confirmar na fonte", () => {
+    render(<EventCard event={{ ...event, sourceName: "Agenda Cuiabana", confirmed: false }} />);
+    expect(screen.getByTestId("event-origin")).toHaveTextContent(
+      "Com informações de Agenda Cuiabana · Confirme na fonte",
+    );
+  });
+
+  it("evento da redação mostra CityNews e nenhuma nota; nunca 'organização'", () => {
+    render(<EventCard event={{ ...event, origin: "newsroom" }} />);
+    expect(screen.queryByTestId("event-origin")).toBeNull();
+    expect(screen.getByRole("article")).toHaveTextContent("Música · CityNews");
+    expect(screen.getByRole("article")).not.toHaveTextContent("Organização");
   });
 });

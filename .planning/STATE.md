@@ -1,12 +1,13 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-08 · fim da auditoria das decisões do dono: D-06, B-022, segurança (segunda rodada) e incidente de crédito da IA.
+**Última atualização:** 2026-10-08 · Agenda multifonte (A-220, AGM-T1 a T9); antes, fim da auditoria das decisões do dono: D-06, B-022, segurança (segunda rodada) e incidente de crédito da IA.
 **Atualizado por:** Claude Code
 
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Última entrega
 
+- **Agenda multifonte (A-220):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Falta em produção: aplicar 0195 a 0199 e ativar as fontes uma a uma.
 - **D-06 (PR #75):** `anon` sem `publish_mode`, `agent_id` e `confidence`; faixa Urgente lê `urgent_strip`.
 - **B-022 (PR #76):** patrocínio nativo no portal, atrás de `sponsored_native_enabled` (desligada).
 - **Segurança, segunda rodada (PR #77, A-218):** oráculo de papéis, colunas internas, eventos, recibos de push, ICS e CSV, segredos fracos.

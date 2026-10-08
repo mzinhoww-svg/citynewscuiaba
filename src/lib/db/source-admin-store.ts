@@ -10,6 +10,7 @@ import {
   type SourceLayer,
 } from "@/lib/sources";
 import { logoObjectPath } from "@/lib/sources/logo-path";
+import type { EventPatch, EventSourceConfig } from "@/lib/sources/event-source";
 import type { DbClient } from "./client";
 
 /**
@@ -74,7 +75,7 @@ export type SourcePatch = Partial<
   kind?: SourceKindDb;
   feedUrl?: string | null;
   consumption?: Record<string, unknown>;
-};
+} & EventPatch;
 
 export type SourceKindDb = "rss" | "sitemap" | "api" | "page";
 
@@ -83,7 +84,9 @@ export interface SourceCreateInput {
   name: string;
   displayName?: string | null;
   baseUrl: string;
-  kind: SourceKindDb;
+  /** `events` = fonte de eventos da Agenda (AGM-T6), com `event`. */
+  kind: SourceKindDb | "events";
+  event?: EventSourceConfig;
   feedUrl: string | null;
   categories: string[];
   locality: Locality;
@@ -144,6 +147,15 @@ const COLUMN: Record<string, string> = {
   kind: "kind",
   feedUrl: "feed_url",
   consumption: "consumption",
+  confirms: "confirms",
+  extractKind: "extract_kind",
+  eventOrigin: "event_origin",
+  collectorNotes: "collector_notes",
+  listUrls: "list_urls",
+  requireCity: "require_city",
+  defaultVenue: "default_venue",
+  defaultNeighborhood: "default_neighborhood",
+  defaultCategory: "default_category",
 };
 
 /** camelCase → snake_case do contrato de `source_admin_update`; campo sem coluna é descartado. */
@@ -258,6 +270,8 @@ export function planBulk(
     } else if (action === "activate") {
       if (r.status === "blocked") ignore(id, r.name, "blocked");
       else if (r.status !== "paused") ignore(id, r.name, "not_paused");
+      // Fonte de eventos só ativa pela ação única, com a prévia (AGM-T6).
+      else if (r.kind === "events") ignore(id, r.name, "not_activated");
       // Já passou por ativação = feed, termos revisados e nunca `pending_activation` (a ativação
       // única roda robots, teste de conexão e Crawl-delay; o lote não repete isso, FS-T9).
       else if (
@@ -324,6 +338,19 @@ export function createSourceAdminStore(db: DbClient, opts: { storage?: () => DbC
           agreementUntil: input.agreementUntil ?? null,
           agreementNote: input.agreementNote ?? null,
           termsUrl: input.termsUrl ?? null,
+          ...(input.event
+            ? {
+                confirms: input.event.confirms,
+                extractKind: input.event.extractKind,
+                eventOrigin: input.event.origin,
+                collectorNotes: input.event.notes,
+                listUrls: input.event.listUrls,
+                requireCity: input.event.requireCity,
+                defaultVenue: input.event.defaultVenue,
+                defaultNeighborhood: input.event.defaultNeighborhood,
+                defaultCategory: input.event.defaultCategory,
+              }
+            : {}),
         },
         p_ctx: ctxJson(ctx),
         p_ip_hash: ctx.ipHash ?? undefined,

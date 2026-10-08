@@ -10,6 +10,8 @@ export type ActionState =
       /** `conflict`: a fonte mudou de versão desde que a tela foi carregada (oferecer Recarregar). */
       code?: "conflict";
       fieldErrors?: Record<string, string>;
+      /** O que a tela ainda pode mostrar da falha (ex.: a prévia de eventos com a situação). */
+      data?: unknown;
     };
 
 export type ActionFn = (form: FormData) => Promise<ActionState>;

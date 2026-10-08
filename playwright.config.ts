@@ -50,6 +50,10 @@ const FIXTURE_SPECS = [
   "**/roteiro/fontes.spec.ts",
   // Guia: proposta por link com a página fictícia do portal Sabores MT (GUIA-T5).
   "**/admin-guide-link.spec.ts",
+  // Fontes de eventos no painel: cadastro, prévia, ativação e coleta do Teatro Cerrado (AGM-T6).
+  "**/control-event-sources.spec.ts",
+  // Eventos no Estúdio: edição respeitada pela coleta forçada das fontes fictícias (AGM-T7).
+  "**/e2e/studio-agenda.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para
@@ -95,6 +99,10 @@ export default defineConfig({
       // Contra o servidor de fixtures (porta +1); os testes mudam o viewport quando precisam.
       name: "fixtures",
       testMatch: FIXTURE_SPECS,
+      // Um arquivo por vez (AGM-T7): os specs da Agenda chamam a coleta forçada e limpam eventos,
+      // cache e cotas `agenda:*` das mesmas fontes fictícias; em paralelo, um apagaria o do outro.
+      fullyParallel: false,
+      workers: 1,
       dependencies: BROWSER_PROJECTS,
       use: {
         ...devices["Desktop Chrome"],
@@ -130,6 +138,9 @@ export default defineConfig({
       command: `pnpm exec next dev -p ${fixturesPort}`,
       env: {
         CRAWLER_FIXTURES: "1",
+        // Datas das páginas fictícias de eventos acompanham o calendário (AGM-T7): os specs da
+        // Agenda não vencem quando as datas absolutas das fixtures passam.
+        CRAWLER_FIXTURES_DATES: "relative",
         AI_PROVIDER: "fake",
         APP_URL: `http://localhost:${fixturesPort}`,
         ...PUSH_ENV,

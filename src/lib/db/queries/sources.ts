@@ -70,6 +70,7 @@ async function fetchEntries(db: DbClient, q: SourceSignalsQuery): Promise<Source
       .select(
         "id, slug, name, display_name, base_url, logo_path, categories, locality, reliability, status, rec_pinned, rec_excluded, rec_local_highlight, last_fetched_at",
       )
+      .neq("kind", "events")
       .in("status", [...VISIBLE_STATUSES])
       .order("slug")
       .then(many),
@@ -297,6 +298,7 @@ async function readSourceDetail(slug: string): Promise<Result<SourceDetail | nul
         .from("sources")
         .select("kind, frequency_minutes, republish_policy, image_policy, agreement_until")
         .eq("slug", slug)
+        .neq("kind", "events")
         .in("status", [...VISIBLE_STATUSES])
         .maybeSingle()
         .then(one),

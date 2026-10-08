@@ -169,7 +169,82 @@ const RESPONDERS: Record<string, Responder> = {
       : null,
     rationale: "Amostra fictícia.",
   }),
+  // Extrator de eventos: `listagem` devolve os href absolutos `/evento/...` do bloco; `pagina` lê
+  // as linhas `cn-data:`, `cn-hora:`, `cn-local:` (o saneamento remove atributos HTML, então os
+  // marcadores da fixture viram texto) e usa a 1ª linha como título.
+  event_extractor: (data) => {
+    const listing = data.find((d) => d.id === "listagem");
+    if (listing) {
+      const links = [...listing.text.matchAll(/https?:\/\/[^\s()]+\/evento\/[^\s()]*/g)].map(
+        (m) => m[0],
+      );
+      return { links: [...new Set(links)].slice(0, 30) };
+    }
+    return fakeEventPage(data.find((d) => d.id === "pagina")?.text ?? "");
+  },
 };
+
+const MONTHS = [
+  "janeiro",
+  "fevereiro",
+  "marco",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
+function fakeEventPage(text: string) {
+  const lines = text.split("\n").map((l) => l.trim());
+  const marked = (key: string) => {
+    const l = lines.find((x) => x.toLowerCase().startsWith(`cn-${key}:`));
+    return l ? l.slice(key.length + 4).trim() : null;
+  };
+  const field = (value: string, trecho = value) => ({
+    value,
+    trecho: trecho.length >= 3 ? trecho : `${trecho}   `,
+    ano_evidencia: /\b\d{4}\b/.test(trecho) ? ("corpo" as const) : ("ausente" as const),
+  });
+  const title = lines.find((l) => l && !/^cn-/i.test(l)) ?? "Sem evento";
+  const rawDate = marked("data");
+  let iso = "1970-01-01";
+  if (rawDate) {
+    const folded = rawDate
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLowerCase();
+    const num = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(folded);
+    const txt = /(\d{1,2}) de ([a-z]+)(?: de (\d{4}))?/.exec(folded);
+    const pad = (n: number | string) => String(n).padStart(2, "0");
+    if (num) iso = `${num[3]}-${pad(num[2]!)}-${pad(num[1]!)}`;
+    else if (txt) {
+      const m = MONTHS.indexOf(txt[2]!) + 1;
+      iso = `${txt[3] ?? "1970"}-${pad(m || 1)}-${pad(txt[1]!)}`;
+    }
+  }
+  const rawHour = marked("hora");
+  const hm = rawHour ? /(\d{1,2})\s*(?:h|:)\s*(\d{2})?/i.exec(rawHour) : null;
+  const rawPlace = marked("local");
+  return {
+    evento: rawDate !== null,
+    titulo: field(title),
+    data: field(iso, rawDate ?? "sem data"),
+    horario:
+      rawHour && hm
+        ? { ...field(`${String(hm[1]).padStart(2, "0")}:${hm[2] ?? "00"}`, rawHour) }
+        : null,
+    local: rawPlace ? field(rawPlace) : null,
+    cidade: null,
+    preco: null,
+    organizador: null,
+    relativas: [] as string[],
+  };
+}
 
 const tokens = (s: string) => Math.max(1, Math.ceil(s.length / 4));
 

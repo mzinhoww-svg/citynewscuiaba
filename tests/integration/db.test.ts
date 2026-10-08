@@ -19,7 +19,7 @@ function anonClient() {
 describe("banco local com seed fictício", () => {
   it("seed tem 12 fontes fictícias e nenhuma real", async () => {
     const db = createServiceClient();
-    const { data } = await db.from("sources").select("name");
+    const { data } = await db.from("sources").select("name").neq("kind", "events");
     expect(data).toHaveLength(12);
     expect(data!.map((s) => s.name)).toContain("Folha do Cerrado");
     expect(data!.map((s) => s.name)).not.toContain("Midia News");

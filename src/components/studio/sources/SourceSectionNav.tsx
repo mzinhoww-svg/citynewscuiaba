@@ -8,6 +8,8 @@ import { currentNavHref, NavLink } from "../../ui/NavLink";
 export interface SourceSectionNavProps {
   /** `/estudio/control/fontes/<id>`. */
   basePath: string;
+  /** Fonte de eventos (AGM-T6): sem Recomendação e Itens, com a aba Recusas. */
+  kind?: "news" | "events";
   className?: string;
 }
 
@@ -20,14 +22,23 @@ export const SOURCE_SECTIONS = [
   { key: "items", path: "/itens" },
 ] as const;
 
+export const EVENT_SOURCE_SECTIONS = [
+  { key: "summary", path: "", exact: true },
+  { key: "config", path: "/configuracao" },
+  { key: "collection", path: "/coleta" },
+  { key: "rejections", path: "/recusas" },
+  { key: "history", path: "/historico" },
+] as const;
+
 /**
  * Seções do detalhe da fonte (spec §8, O04): `nav aria-label="Seções da fonte"` com a seção atual
  * em `aria-current="page"`. São links (subrotas), não abas de JavaScript: cada seção tem URL e
  * fronteira de erro própria.
  */
-export function SourceSectionNav({ basePath, className }: SourceSectionNavProps) {
+export function SourceSectionNav({ basePath, kind = "news", className }: SourceSectionNavProps) {
   const pathname = usePathname();
-  const items = SOURCE_SECTIONS.map((s) => ({ ...s, href: `${basePath}${s.path}` }));
+  const sections = kind === "events" ? EVENT_SOURCE_SECTIONS : SOURCE_SECTIONS;
+  const items = sections.map((s) => ({ ...s, href: `${basePath}${s.path}` }));
   const winner = currentNavHref(pathname, items);
   return (
     <nav
