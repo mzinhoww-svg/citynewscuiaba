@@ -38,6 +38,8 @@ const SITES: Record<string, string> = {
   // Coletor da Agenda (AGE-T1).
   "cerradovivo.example": "cerrado-vivo",
   "bloqueado-agenda.example": "bloqueado-agenda",
+  // Coletor multifonte (AGM-T5): casa fictícia lida pelo caminho `ai_page`.
+  "teatro-cerrado.example": "teatro-cerrado",
   // Proposta por link do Guia (GUIA-T4): portal fictício com uma lista de padarias.
   "saboresmt.example": "sabores-mt",
 };
@@ -46,6 +48,9 @@ const EXTRA: Record<string, Record<string, string>> = {
   "culturavarzea.example": { "/calendario.ics": "agenda/cultura-varzea.ics" },
   "agendamt.example": { "/feed": "agenda/agenda-mt-feed.xml" },
   "ingressosmt.example": { "/eventos/cuiaba-mt": "agenda/ingressos-cuiaba.html" },
+  "eventos-cerrado.example": {
+    "/wp-json/tribe/events/v1/events": "sites/eventos-cerrado-tribe.json",
+  },
   "folhadocerrado.example": {
     "/feed": "feeds/folha-do-cerrado.xml",
     "/termos": "sites/termos.html",

@@ -6,6 +6,10 @@ import type { AgendaSource, NormalizedEvent, RawEvent } from "./types";
 
 const NOW = new Date("2026-10-03T15:00:00Z");
 const SRC: AgendaSource = {
+  uuid: "f3000000-0000-4000-8000-000000000001",
+  confirms: false,
+  notes: [],
+  listUrls: [],
   id: "cerrado-vivo",
   name: "Casa Cerrado Vivo",
   kind: "jsonld",

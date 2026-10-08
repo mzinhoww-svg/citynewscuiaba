@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { fold } from "@/lib/text/fold";
 
 /** Divergência entre a fonte de descoberta e a que confirma (vence a que confirma). */
@@ -33,4 +34,30 @@ export function verifyEvidence(pageText: string, trecho: string): boolean {
   const needle = squash(trecho);
   if (!needle) return false;
   return squash(pageText).includes(needle);
+}
+
+const evidenceField = z.object({ trecho: z.string(), ano: z.enum(["corpo", "url", "ausente"]) });
+
+/** `EvidenceRecord` lido do banco ou do cache (`unknown`) é conferido antes de usar. */
+export const evidenceRecordSchema = z.object({
+  titulo: evidenceField.optional(),
+  data: evidenceField.optional(),
+  horario: evidenceField.optional(),
+  local: evidenceField.optional(),
+  cidade: evidenceField.optional(),
+  preco: evidenceField.optional(),
+  organizador: evidenceField.optional(),
+  conflito: z
+    .object({
+      campo: z.enum(["data", "horario", "local"]),
+      descoberta: z.string(),
+      venue: z.string(),
+    })
+    .optional(),
+});
+
+/** Evidência guardada; ilegível vira `{}` (o evento continua, sem trechos). */
+export function parseEvidence(v: unknown): EvidenceRecord {
+  const r = evidenceRecordSchema.safeParse(v);
+  return r.success ? r.data : {};
 }

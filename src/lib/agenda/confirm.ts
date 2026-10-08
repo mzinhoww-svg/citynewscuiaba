@@ -31,6 +31,40 @@ function conflictOf(e: NormalizedEvent, c: NormalizedEvent): EvidenceConflict | 
 }
 
 /**
+ * Fonte que confirma `e`: entre os eventos de fontes que confirmam (`confirmed`), o de mesma
+ * chave ou, no mesmo dia e local, o de título mais parecido (≥ `CONFIRM_SIMILARITY`).
+ */
+export function findConfirmer(
+  e: NormalizedEvent,
+  confirmed: readonly NormalizedEvent[],
+): NormalizedEvent | null {
+  let pair: NormalizedEvent | null = null;
+  let best = -1;
+  for (const c of confirmed) {
+    if (!c.confirms || !matches(e, c)) continue;
+    const sim = e.dedupeKey === c.dedupeKey ? 1 : titleSimilarity(e.dedupeKey, c.dedupeKey);
+    if (sim > best) {
+      best = sim;
+      pair = c;
+    }
+  }
+  return pair;
+}
+
+/** `e` confirmado por `pair`: adota data, horário e local dela; a divergência vai para a evidência. */
+export function applyConfirmation(e: NormalizedEvent, pair: NormalizedEvent): NormalizedEvent {
+  const conflito = conflictOf(e, pair);
+  return {
+    ...e,
+    startsAt: pair.startsAt,
+    endsAt: e.startsAt === pair.startsAt ? e.endsAt : pair.endsAt,
+    venue: pair.venue || e.venue,
+    confirmedBySourceId: pair.sourceRef,
+    evidence: conflito ? { ...e.evidence, conflito } : e.evidence,
+  };
+}
+
+/**
  * Confirmação cruzada: evento de descoberta (`confirms = false`) que uma fonte que confirma
  * (`confirmed`) também lista passa a apontar para ela (`confirmedBySourceId`) e adota data,
  * horário e local dela; a divergência fica em `evidence.conflito`. Sem par, volta igual.
@@ -42,27 +76,7 @@ export function confirmEvents(
 ): NormalizedEvent[] {
   return events.map((e) => {
     if (e.confirms) return e;
-    let pair: NormalizedEvent | undefined;
-    let best = -1;
-    for (const c of confirmed) {
-      if (!c.confirms || !matches(e, c)) continue;
-      const sim = e.dedupeKey === c.dedupeKey ? 1 : titleSimilarity(e.dedupeKey, c.dedupeKey);
-      if (sim > best) {
-        best = sim;
-        pair = c;
-      }
-    }
-    if (!pair) return e;
-    const conflito = conflictOf(e, pair);
-    const startsAt = pair.startsAt;
-    const venue = pair.venue || e.venue;
-    return {
-      ...e,
-      startsAt,
-      endsAt: e.startsAt === pair.startsAt ? e.endsAt : pair.endsAt,
-      venue,
-      confirmedBySourceId: pair.sourceRef,
-      evidence: conflito ? { ...e.evidence, conflito } : e.evidence,
-    };
+    const pair = findConfirmer(e, confirmed);
+    return pair ? applyConfirmation(e, pair) : e;
   });
 }

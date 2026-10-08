@@ -1,6 +1,8 @@
-import { collectAgenda } from "@/lib/agenda/collect";
-import { AGENDA_SOURCES, FIXTURE_AGENDA_SOURCES } from "@/lib/agenda/sources";
+import { AI_HARD_DEADLINE_MS, collectAgenda, type ExtractCache } from "@/lib/agenda/collect";
+import { FIXTURE_AGENDA_SOURCES } from "@/lib/agenda/sources";
+import { createProductionAi } from "@/lib/ai/server";
 import { createServiceClient } from "@/lib/db/client";
+import { loadEventSources } from "@/lib/db/agenda-sources";
 import { createAgendaStore } from "@/lib/db/agenda-store";
 import { createIngestRepo } from "@/lib/db/pipeline-store";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
@@ -14,8 +16,9 @@ export const maxDuration = 60;
 const MIN_INTERVAL_MS = 5 * 3_600_000;
 
 /**
- * Coleta de eventos da Agenda (AGE-T1). `POST` com `Authorization: Bearer ${CRON_SECRET}`.
- * `?dry=1` só relata (não grava); `?force=1` ignora o intervalo mínimo (execução manual).
+ * Coleta de eventos da Agenda (AGE-T1, AGM-T5). `POST` com `Authorization: Bearer ${CRON_SECRET}`.
+ * Fontes de `sources` (`kind = 'events'`); no modo de fixtures, as fictícias. `?dry=1` só relata
+ * (não grava eventos, cache, execução nem estado da fonte); `?force=1` ignora o intervalo mínimo.
  */
 export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
@@ -37,14 +40,27 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
   }
+  const sources = fixturesEnabled() ? FIXTURE_AGENDA_SOURCES : await loadEventSources(db);
+  if (!dry) await store.cachePurge(now);
+  const [limits, usedToday] = await Promise.all([store.aiLimits(), store.aiPagesToday(now)]);
+  const cache: ExtractCache = dry
+    ? { get: store.cacheGet, put: async () => {} }
+    : { get: store.cacheGet, put: store.cachePut };
   const runId = dry ? null : await store.startRun(force ? "manual" : "cron", now);
   const report = await collectAgenda({
     crawl: crawlDeps({ repo: createIngestRepo(db) }),
-    sources: fixturesEnabled() ? FIXTURE_AGENDA_SOURCES : AGENDA_SOURCES,
+    sources,
     now: () => now,
     existing: () => store.existing(now),
     save: (events, at) => store.save(events, at),
     dryRun: dry,
+    callAgent: createProductionAi().callAgent,
+    cache,
+    aiBudget: { perRun: limits.perRun, remainingToday: Math.max(0, limits.perDay - usedToday) },
+    monotonic: () => performance.now(),
+    signal: AbortSignal.timeout(AI_HARD_DEADLINE_MS),
+    stored: (keys) => store.stored(keys),
+    sourceState: (uuid, outcome, detail) => store.sourceState(uuid, outcome, detail),
   });
   if (runId) await store.finishRun(runId, report);
   return Response.json({ status: "done", ...report });

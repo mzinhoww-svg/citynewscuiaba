@@ -31,6 +31,10 @@ const good = {
 };
 
 const source: AgendaSource = {
+  uuid: "f3000000-0000-4000-8000-000000000001",
+  confirms: false,
+  notes: [],
+  listUrls: [],
   id: "casa",
   name: "Casa do Cerrado",
   kind: "rss",
