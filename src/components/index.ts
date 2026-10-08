@@ -124,6 +124,7 @@ export {
 } from "./editorial/SearchResults";
 export { PublicShell, type PublicShellProps } from "./editorial/PublicShell";
 export { AdSlot, type AdSlotProps } from "./editorial/AdSlot";
+export { SponsoredCard, type SponsoredCardProps } from "./editorial/SponsoredCard";
 export { AccountShell, type AccountShellProps } from "./editorial/AccountShell";
 export { AccountInvite, type AccountInviteProps } from "./editorial/AccountInvite";
 export {

@@ -430,7 +430,53 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 
 **Fotos:** A-212, foto principal do Google com o crédito do autor, servida por rota própria.
 
-## A-216 · Segurança, segunda rodada (08/10/2026)
+## A-215 · Auditoria das decisões do dono e acertos em produção (08/10/2026)
+
+**Status:** vigente. O dono perguntou o que mais tinha decidido e não foi entregue. A auditoria comparou cada decisão com o código da `main` e com o banco de produção. Feito no mesmo dia:
+
+- **Produção (B-009):** aplicadas 0155 (limpeza dos sinais da pauta quente), 0159 (`article.bulk_approve` na auditoria), 0183/0184 (texto e fotos do Guia), 0185 (rodadas do texto) e 0186 (disjuntor 300/3.000 como padrão da tabela). A 0158 (`role_set`, A-150) e a 0160 travam no conector (contêm `delete`/`drop`) e foram para o SQL do dono em `supabase/bootstrap/2026-10-08-sql-editor-dono.sql`, junto com a 0143 parte C. Sem a 0158, "Salvar papéis" no Estúdio falha em produção.
+- **Regras v4:** estão **ativas** em produção desde 05/10 (versão 4, `active = true`); STATE e A-139 diziam "proposta". Registro corrigido aqui e no CLAUDE.md §5.8.
+- **B-026:** a trava `approved_by <> requested_by` não existe mais em produção (0149); a nota de transição do CLAUDE.md foi corrigida.
+- **R42:** telefone e WhatsApp oficiais (65) 99622-7110 em Contato, Anuncie, Sugerir evento, rodapé e JSON-LD (PR #74).
+- **A-214:** a rota do cron tem 60 s; a escrita passou a ser uma tentativa por rodada, com o texto montado na 3ª rodada reprovada.
+
+**Ainda pendente do agente:** D-06 (fechar `publish_mode`, `agent_id` e `confidence` ao `anon`), reprocessar as fotos antigas em variantes (A-155), texto proposto para `/principios-editoriais` (A-152), patrocínio nativo no portal (B-022), segunda rodada da auditoria de segurança (18 achados adiados, entre eles injeção em ICS e CSV), fechar ou atualizar o PR #68 (B-031 desatualizado).
+
+**A-152, "Temas sensíveis" (08/10/2026):** o texto público dizia que crime, saúde e eleições "nunca são publicados sem revisão humana", o que as regras v3/v4 (decisão do dono) não fazem. A §5.3 proíbe afirmar revisão que não aconteceu, então o texto foi corrigido sem esperar: esses temas "seguem regras mais rígidas", com a fonte sempre citada, e vão para a revisão da redação quando há divergência central, conteúdo duvidoso ou fonte única não confiável. Também saiu "a revisão humana está ligada para todas as editorias" de `/como-usamos-ia` e da `/metodologia` (ambas ocultas, R34). O dono pode ajustar a redação; o fato descrito é o das regras ativas.
+
+**A-155, imagens antigas (08/10/2026):** o script `backfill-variants.mjs` pede a chave de serviço de produção, que só existe no ambiente da Vercel (o agente não lê chaves). A rota `/api/jobs/media-variants` (CRON_SECRET, até 40 imagens por chamada, `nextOffset` na resposta) faz o mesmo trabalho dentro da produção; o agente a chama em lotes depois do deploy. Variante é cópia reduzida do mesmo ativo (§5.11).
+
+## A-216 · Analytics e audiência: contador sem cookie, tela Audiência e GA4 via GTM (08/10/2026)
+
+**Status:** vigente. Decisão do dono (itens 1 a 6 aprovados em 08/10/2026). Emenda a ADR-008 e a D16 da spec mestre. Spec `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`, plano ANL-T1 a T10.
+
+**O que entra:**
+- contador agregado sem cookie nem identificador, por legítimo interesse;
+- os eventos `article_opened`, `article_shared` e `search_submitted`;
+- tela Audiência (`metrics.view`);
+- busca agregada com filtro de dado pessoal;
+- Search Console importado;
+- Speed Insights e Sentry;
+- partições mensais de `events`.
+
+**GA4 via GTM:**
+- flag `ga4_enabled`, desligada por padrão;
+- por decisão do dono, carrega **antes da escolha no banner**, com os quatro sinais do Consent Mode v2 concedidos, inclusive os de anúncio (revisto quando houver AdSense);
+- "Só o necessário" nega os quatro sinais e apaga `_ga*`;
+- consentimento sobe para `v2`.
+
+**Alternativas descartadas:**
+- só medição própria, sem GA4;
+- GA4 só depois do consentimento;
+- GA4 por Measurement Protocol.
+
+**Reversível:** desligar `ga4_enabled` ou remover `NEXT_PUBLIC_GTM_ID`.
+
+## A-217 · Vercel e Supabase sem pedido de aprovação ao dono (08/10/2026)
+
+**Status:** vigente. O dono disse: "eu não quero mais aprovar nada de Vercel ou Supabase, você tem autorização e permissão para seguir sozinho". `.claude/settings.json` libera as ferramentas `mcp__Vercel` e `mcp__Supabase`. Continuam pedindo confirmação só os casos que a lista fechada do CLAUDE.md reserva ao dono: compra ou transferência de domínio, criar ou pausar projeto, e branches do Supabase (que custam). Exclusão de dado de produção continua fora (B-029). As migrations em produção seguem registradas aqui (B-009).
+
+## A-218 · Segurança, segunda rodada (08/10/2026)
 
 **Status:** vigente. Fecha os achados P2/P3 da auditoria de 04/10/2026 (`docs/security-audit/achados.json`) que a spec `2026-10-04-seguranca-p1-design.md` adiou: são 16 (C1-04 a C1-08, C2-01 a C2-03, C3-02, C3-03, C4-02 a C4-05, C5-01, C5-02), mais a política `audit_log_insert`. Branch `claude/seguranca-rodada-2`, migration `0188_seguranca_rodada_2.sql` (aditiva e idempotente, não aplicada em produção). Testes em `tests/security/rodada2.test.ts` e ao lado de cada arquivo.
 
@@ -449,23 +495,7 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 | C2-02 recibo de push | Corrigido: `push_receipt_hit` limita delivered e clicked a `sent_measurable_n` (recibo segue sem id de inscrição) |
 | C2-03 push urgente | Corrigido: `publishAction` reconfere `canRequestUrgent` antes de publicar |
 | C3-03 denúncia | Corrigido: `publicContentExists` (leitura anônima) antes de gravar |
-| C4-02 CRON_SECRET | Corrigido: `isCronAuthorized` recusa placeholder e segredo com menos de 32 caracteres; `src/instrumentation.ts` avisa no log. Conferir o segredo de produção antes do deploy (B-031) |
-| C4-03 segredos derivados | Parcial: aviso no log de produção. Tirar o fallback para `CRON_SECRET` está BLOQUEADO até o dono criar `NEWSLETTER_TOKEN_SECRET` e `RATE_LIMIT_SALT` na Vercel (B-031); sem isso, links e formulários quebrariam |
-| C4-04 backup | Corrigido: `backup.yml` exige `BACKUP_PASSPHRASE` sempre e só publica `.gpg`. Sem o secret o backup não roda (B-010/B-031) |
+| C4-02 CRON_SECRET | Corrigido: `isCronAuthorized` recusa placeholder e segredo com menos de 32 caracteres; `src/instrumentation.ts` avisa no log. Conferir o segredo de produção antes do deploy (B-033) |
+| C4-03 segredos derivados | Parcial: aviso no log de produção. Tirar o fallback para `CRON_SECRET` está BLOQUEADO até o dono criar `NEWSLETTER_TOKEN_SECRET` e `RATE_LIMIT_SALT` na Vercel (B-033); sem isso, links e formulários quebrariam |
+| C4-04 backup | Corrigido: `backup.yml` exige `BACKUP_PASSPHRASE` sempre e só publica `.gpg`. Sem o secret o backup não roda (B-010/B-033) |
 | C4-05 credenciais locais | Sem ação de código: só valores locais e de CI, que o próprio achado classifica como aceitáveis; o placeholder agora é recusado (C4-02) |
-
-## A-215 · Auditoria das decisões do dono e acertos em produção (08/10/2026)
-
-**Status:** vigente. O dono perguntou o que mais tinha decidido e não foi entregue. A auditoria comparou cada decisão com o código da `main` e com o banco de produção. Feito no mesmo dia:
-
-- **Produção (B-009):** aplicadas 0155 (limpeza dos sinais da pauta quente), 0159 (`article.bulk_approve` na auditoria), 0183/0184 (texto e fotos do Guia), 0185 (rodadas do texto) e 0186 (disjuntor 300/3.000 como padrão da tabela). A 0158 (`role_set`, A-150) e a 0160 travam no conector (contêm `delete`/`drop`) e foram para o SQL do dono em `supabase/bootstrap/2026-10-08-sql-editor-dono.sql`, junto com a 0143 parte C. Sem a 0158, "Salvar papéis" no Estúdio falha em produção.
-- **Regras v4:** estão **ativas** em produção desde 05/10 (versão 4, `active = true`); STATE e A-139 diziam "proposta". Registro corrigido aqui e no CLAUDE.md §5.8.
-- **B-026:** a trava `approved_by <> requested_by` não existe mais em produção (0149); a nota de transição do CLAUDE.md foi corrigida.
-- **R42:** telefone e WhatsApp oficiais (65) 99622-7110 em Contato, Anuncie, Sugerir evento, rodapé e JSON-LD (PR #74).
-- **A-214:** a rota do cron tem 60 s; a escrita passou a ser uma tentativa por rodada, com o texto montado na 3ª rodada reprovada.
-
-**Ainda pendente do agente:** D-06 (fechar `publish_mode`, `agent_id` e `confidence` ao `anon`), reprocessar as fotos antigas em variantes (A-155), texto proposto para `/principios-editoriais` (A-152), patrocínio nativo no portal (B-022), segunda rodada da auditoria de segurança (18 achados adiados, entre eles injeção em ICS e CSV), fechar ou atualizar o PR #68 (B-031 desatualizado).
-
-**A-152, "Temas sensíveis" (08/10/2026):** o texto público dizia que crime, saúde e eleições "nunca são publicados sem revisão humana", o que as regras v3/v4 (decisão do dono) não fazem. A §5.3 proíbe afirmar revisão que não aconteceu, então o texto foi corrigido sem esperar: esses temas "seguem regras mais rígidas", com a fonte sempre citada, e vão para a revisão da redação quando há divergência central, conteúdo duvidoso ou fonte única não confiável. Também saiu "a revisão humana está ligada para todas as editorias" de `/como-usamos-ia` e da `/metodologia` (ambas ocultas, R34). O dono pode ajustar a redação; o fato descrito é o das regras ativas.
-
-**A-155, imagens antigas (08/10/2026):** o script `backfill-variants.mjs` pede a chave de serviço de produção, que só existe no ambiente da Vercel (o agente não lê chaves). A rota `/api/jobs/media-variants` (CRON_SECRET, até 40 imagens por chamada, `nextOffset` na resposta) faz o mesmo trabalho dentro da produção; o agente a chama em lotes depois do deploy. Variante é cópia reduzida do mesmo ativo (§5.11).

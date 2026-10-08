@@ -74,6 +74,14 @@ export function createOpenRouterProvider(cfg: OpenRouterConfig): ModelProvider {
       } catch (e) {
         if (ai.NoObjectGeneratedError.isInstance(e))
           throw new ProviderError("schema", "resposta sem JSON válido");
+        // `ai_calls` guarda só o tipo ("provider"); o status e a mensagem do OpenRouter (crédito,
+        // chave, limite) vão para o log, sem a chave e sem o texto enviado.
+        if (ai.APICallError.isInstance(e))
+          console.warn(
+            `[ia] openrouter ${req.agentId} ${req.modelId} ${e.statusCode ?? "sem status"}: ${e.message
+              .replaceAll(cfg.apiKey, "***")
+              .slice(0, 200)}`,
+          );
         throw e;
       }
     },

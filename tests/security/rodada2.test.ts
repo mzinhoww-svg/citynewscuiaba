@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Segurança, segunda rodada (A-216): achados P2/P3 da auditoria de 04/10/2026 que ficaram fora da
+// Segurança, segunda rodada (A-218): achados P2/P3 da auditoria de 04/10/2026 que ficaram fora da
 // spec 2026-10-04-seguranca-p1-design.md. Clientes anon, leitor sem papel e equipe contra o banco
 // local (migration 0188).
 import { execFileSync } from "node:child_process";
@@ -109,7 +109,7 @@ describe("C1-04 colunas internas de articles", () => {
   it("o portal continua lendo as colunas que mostra e filtrando por destino", async () => {
     const { data, error } = await anonClient()
       .from("articles")
-      .select("id, slug, title, publish_mode, confidence_score, author_id")
+      .select("id, slug, title, urgent_strip, confidence_score, author_id")
       .contains("publish_destinations", ["home"])
       .limit(1);
     expect(error).toBeNull();

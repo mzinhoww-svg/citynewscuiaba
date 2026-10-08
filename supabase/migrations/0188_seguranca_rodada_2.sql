@@ -1,4 +1,4 @@
--- A-216 · Segurança, segunda rodada (08/10/2026): achados P2/P3 da auditoria de 04/10/2026
+-- A-218 · Segurança, segunda rodada (08/10/2026): achados P2/P3 da auditoria de 04/10/2026
 -- (docs/security-audit/achados.json) adiados pela spec 2026-10-04-seguranca-p1-design.md.
 -- Aditiva e idempotente: só `create or replace`, `drop policy if exists` + `create policy`,
 -- revoke/grant e constraint `not valid`. Nenhuma migration antiga muda.
