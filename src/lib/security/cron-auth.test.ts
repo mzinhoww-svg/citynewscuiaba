@@ -17,3 +17,15 @@ describe("autorização de cron e worker", () => {
     expect(isCronAuthorized("Bearer undefined", undefined)).toBe(false);
   });
 });
+
+describe("segredo fraco ou de exemplo (C4-02)", () => {
+  it("o placeholder do .env.example nunca autoriza, mesmo enviado certo", () => {
+    const placeholder = "substituir-por-32-caracteres-aleatorios";
+    expect(isCronAuthorized(`Bearer ${placeholder}`, placeholder)).toBe(false);
+  });
+  it("segredo com menos de 32 caracteres nunca autoriza", () => {
+    const short = "a".repeat(31);
+    expect(isCronAuthorized(`Bearer ${short}`, short)).toBe(false);
+    expect(isCronAuthorized(`Bearer ${"a".repeat(32)}`, "a".repeat(32))).toBe(true);
+  });
+});

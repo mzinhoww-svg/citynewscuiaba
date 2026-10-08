@@ -20,9 +20,9 @@ jobs:
     timeout-minutes: 30
     env:
       SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-      # O dump inclui auth.users; em repositório público o artifact só sai cifrado (gpg simétrico).
+      # O dump inclui auth.users (e-mails e hashes de senha): o artifact só sai cifrado (gpg
+      # simétrico), em repositório público ou privado (C4-04). Sem a frase, não há backup.
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
-      REPO_PRIVATE: ${{ github.event.repository.private }}
       # Mesma major do banco (supabase/config.toml → [db] major_version).
       PG_MAJOR: "17"
     steps:
@@ -32,8 +32,8 @@ jobs:
           if [ -z "${SUPABASE_DB_URL:-}" ]; then
             echo "::warning::Secret SUPABASE_DB_URL ausente. Backup não executado."
             echo "skip=true" >> "$GITHUB_OUTPUT"
-          elif [ "$REPO_PRIVATE" != "true" ] && [ -z "${BACKUP_PASSPHRASE:-}" ]; then
-            echo "::warning::Repositório público sem o secret BACKUP_PASSPHRASE. Backup não executado para não expor dados."
+          elif [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "::error::Secret BACKUP_PASSPHRASE ausente. Backup não executado: o dump leva auth.users e só sai cifrado."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -60,12 +60,10 @@ jobs:
             --schema=public --schema=auth --schema=storage \
             --file="backup/${file}" "$SUPABASE_DB_URL"
           "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_restore" --list "backup/${file}" > /dev/null
-          if [ -n "${BACKUP_PASSPHRASE:-}" ]; then
-            gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
-              --symmetric --cipher-algo AES256 -o "backup/${file}.gpg" "backup/${file}" <<< "$BACKUP_PASSPHRASE"
-            rm "backup/${file}"
-            file="${file}.gpg"
-          fi
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "backup/${file}.gpg" "backup/${file}" <<< "$BACKUP_PASSPHRASE"
+          rm "backup/${file}"
+          file="${file}.gpg"
           ls -lh backup
           echo "name=${file}" >> "$GITHUB_OUTPUT"
 
@@ -74,7 +72,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.dump.outputs.name }}
-          path: backup/
+          path: backup/*.gpg
           retention-days: 7
           if-no-files-found: error
           compression-level: 0
