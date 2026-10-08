@@ -13,6 +13,7 @@ import {
   NewItemsPill,
   SectionFiltersForm,
   Skeleton,
+  SponsoredCard,
 } from "@/components";
 import { neighborhoodBySlug } from "@/content/pt-BR/neighborhoods";
 import { SECTIONS } from "@/content/pt-BR/nav";
@@ -156,8 +157,9 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
   const since = data.articles[0]?.publishedAt ?? data.latestAt ?? new Date().toISOString();
   const qs = serializeSectionFilters({ ...filters, sub: data.activeSub?.slug, page: 1 });
   const pillEndpoint = `/api/editoria/${slug}/novas?desde=${encodeURIComponent(since)}${qs ? `&${qs}` : ""}`;
-  // O destaque da editoria (pino ou automático, sempre com capa) abre a lista.
-  const listed = data.featured ? [data.featured, ...data.articles] : data.articles;
+  // O destaque da editoria (pino ou automático, sempre com capa) abre a lista; o patrocinado
+  // nativo (B-022, só com o interruptor ligado) já vem intercalado pelas regras fixas.
+  const listed = data.feed;
   const adSection = data.activeSub?.slug ?? slug;
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
@@ -181,19 +183,25 @@ function Section({ data, filters }: { data: SectionPage; filters: SectionFilters
             <Empty data={data} filters={filters} />
           ) : (
             <ol id="lista" className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2">
-              {listed.map((a, i) => (
-                <li key={a.id} className={i === 0 ? "md:col-span-2" : undefined}>
-                  <ArticleCard
-                    variant={i === 0 ? "lead" : "standard"}
-                    article={a}
-                    kicker={
-                      i === 0 && data.featuredHot && a.id === data.featured?.id
-                        ? CARD.hot
-                        : undefined
-                    }
-                  />
-                </li>
-              ))}
+              {listed.map((item, i) =>
+                item.kind === "sponsored" ? (
+                  <li key={`patrocinado-${item.ad.campaignId}-${i}`}>
+                    <SponsoredCard ad={item.ad} />
+                  </li>
+                ) : (
+                  <li key={item.article.id} className={i === 0 ? "md:col-span-2" : undefined}>
+                    <ArticleCard
+                      variant={i === 0 ? "lead" : "standard"}
+                      article={item.article}
+                      kicker={
+                        i === 0 && data.featuredHot && item.article.id === data.featured?.id
+                          ? CARD.hot
+                          : undefined
+                      }
+                    />
+                  </li>
+                ),
+              )}
             </ol>
           )}
           {data.hasMore && (

@@ -1,8 +1,11 @@
 import "server-only";
 import { parseCreative } from "@/lib/ads/creative";
+import type { Campaign } from "@/lib/ads/rules";
 import type { AdPlacement } from "@/lib/ads/select";
 import { isDisplaySlot, type DisplaySlot } from "@/lib/ads/slots";
+import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
+import { fetchSponsoredGate } from "./home";
 import { many, readPublic } from "./run";
 import type { QueryError } from "./types";
 
@@ -63,4 +66,72 @@ export async function getSectionCategory(slug: string): Promise<Result<string | 
     },
     { tags: ["sections"], revalidate: 600 },
   );
+}
+
+/** O que uma lista precisa para intercalar o patrocinado nativo (`withNativeSponsored`). */
+export interface NativeSponsored {
+  enabled: boolean;
+  campaign: Campaign | null;
+  maxPerPage: number;
+  categoryOf: (slug: string) => string | undefined;
+}
+
+const NATIVE_OFF: NativeSponsored = {
+  enabled: false,
+  campaign: null,
+  maxPerPage: 0,
+  categoryOf: () => undefined,
+};
+
+/**
+ * Patrocínio nativo de uma editoria (B-022): só com `sponsored_native_enabled` ligada, lê a
+ * campanha ativa que inclui a editoria (view `public_sponsored_campaigns`, 0185; a que termina
+ * antes vem primeiro). Peça que não passa na validação tipada fica de fora. Falha fechada:
+ * qualquer erro vira "sem patrocinado", e a lista segue como sempre.
+ */
+export async function fetchNativeSponsored(
+  db: DbClient,
+  sectionSlug: string,
+): Promise<NativeSponsored> {
+  try {
+    const gate = await fetchSponsoredGate(db);
+    if (!gate.enabled) return NATIVE_OFF;
+    const rows = await db
+      .from("public_sponsored_campaigns")
+      .select("id, advertiser, starts_on, ends_on, allowed_sections, creative, max_per_page")
+      .contains("allowed_sections", [sectionSlug])
+      .order("ends_on", { ascending: true })
+      .order("id", { ascending: true })
+      .limit(5)
+      .then(many);
+    for (const r of rows) {
+      const c = parseCreative(r.creative);
+      if (!c.ok || c.value.kind !== "native" || !r.id || !r.advertiser) continue;
+      const { title, href, imageUrl, imageAlt } = c.value;
+      return {
+        enabled: true,
+        categoryOf: gate.categoryOf,
+        maxPerPage: r.max_per_page ?? 1,
+        campaign: {
+          id: r.id,
+          advertiser: r.advertiser,
+          startsOn: r.starts_on ?? "",
+          endsOn: r.ends_on ?? "",
+          allowedSections: r.allowed_sections ?? [],
+          // A view só devolve campanha ativa no período.
+          status: "active",
+          creative: {
+            kind: "native",
+            title,
+            href,
+            ...(imageUrl ? { imageUrl } : {}),
+            ...(imageUrl && imageAlt ? { imageAlt } : {}),
+          },
+        },
+      };
+    }
+    return { ...NATIVE_OFF, enabled: true, categoryOf: gate.categoryOf };
+  } catch {
+    return NATIVE_OFF;
+  }
 }
