@@ -7,7 +7,7 @@ const str = (v: unknown): string | null =>
 
 /** Tira só o sufixo de hora no fim: ", 19h", " - 19h", ", 19h30". */
 const HOUR_SUFFIX = /\s*(?:,|-|–)\s*\d{1,2}h(?:\d{2})?\s*$/i;
-const cleanTitle = (t: string): string => t.replace(HOUR_SUFFIX, "").trim();
+const cleanTitle = (t: string): string => t.replace(HOUR_SUFFIX, "").trim() || t;
 
 /** "YYYY-MM-DD HH:mm:ss" (relógio local do evento) → "YYYY-MM-DDTHH:mm" ou só a data. */
 function toLocal(v: unknown, allDay: boolean): string | null {
@@ -22,7 +22,7 @@ function price(v: unknown): number | null {
   const s = str(v);
   if (!s) return null;
   if (/^(gratuito|gr[aá]tis|free|0)$/i.test(s)) return 0;
-  const m = /R\$\s*(\d{1,3}(?:\.\d{3})*|\d+)(?:,(\d{1,2}))?/.exec(s);
+  const m = /R\$\s*(\d+(?:\.\d{3})*)(?:,(\d{1,2}))?/.exec(s);
   if (!m) return null;
   const reais = Number((m[1] ?? "0").replace(/\./g, ""));
   const cents = m[2] ? Number(m[2].padEnd(2, "0")) : 0;

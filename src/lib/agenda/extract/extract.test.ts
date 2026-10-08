@@ -155,4 +155,21 @@ describe("extractTribe", () => {
       "Baile",
     ]);
   });
+  it("preço acima de mil reais e textos com mais de um valor", () => {
+    const cost = (c: string) =>
+      extractTribe(
+        JSON.stringify({ events: [{ title: "X", start_date: "2026-10-09 20:00:00", cost: c }] }),
+      ).events[0]?.priceCents;
+    expect(cost("R$ 1234")).toBe(123400);
+    expect(cost("R$ 1234,50")).toBe(123450);
+    expect(cost("R$ 1.234,50")).toBe(123450);
+    expect(cost("A partir de R$ 30,00")).toBe(3000);
+    expect(cost("R$ 50 – R$ 120")).toBe(5000);
+  });
+  it("título que é só o sufixo de hora fica como veio", () => {
+    const body = JSON.stringify({
+      events: [{ title: ", 19h", start_date: "2026-10-09 19:00:00" }],
+    });
+    expect(extractTribe(body).events[0]?.title).toBe(", 19h");
+  });
 });
