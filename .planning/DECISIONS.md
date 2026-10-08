@@ -472,3 +472,6 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 
 **Reversível:** desligar `ga4_enabled` ou remover `NEXT_PUBLIC_GTM_ID`.
 
+## A-217 · Vercel e Supabase sem pedido de aprovação ao dono (08/10/2026)
+
+**Status:** vigente. O dono disse: "eu não quero mais aprovar nada de Vercel ou Supabase, você tem autorização e permissão para seguir sozinho". `.claude/settings.json` libera as ferramentas `mcp__Vercel` e `mcp__Supabase`. Continuam pedindo confirmação só os casos que a lista fechada do CLAUDE.md reserva ao dono: compra ou transferência de domínio, criar ou pausar projeto, e branches do Supabase (que custam). Exclusão de dado de produção continua fora (B-029). As migrations em produção seguem registradas aqui (B-009).
