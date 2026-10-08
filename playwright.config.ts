@@ -50,6 +50,8 @@ const FIXTURE_SPECS = [
   "**/roteiro/fontes.spec.ts",
   // Guia: proposta por link com a página fictícia do portal Sabores MT (GUIA-T5).
   "**/admin-guide-link.spec.ts",
+  // Fontes de eventos no painel: cadastro, prévia, ativação e coleta do Teatro Cerrado (AGM-T6).
+  "**/control-event-sources.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para

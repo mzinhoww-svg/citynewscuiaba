@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Button, EmptyState, Panel } from "@/components";
-import { SourceHealthPanel, SourceRunsTable } from "@/components/estudio";
+import { AgendaRunsTable, SourceHealthPanel, SourceRunsTable } from "@/components/estudio";
+import { fullDateTime } from "@/content/pt-BR/sources-admin";
+import { EVENT_LIST_TEXT, EVENT_TABS_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
+import { EVENT_ORIGIN_TEXT, EXTRACT_KIND_TEXT } from "@/content/pt-BR/studio-agenda";
+import { agendaSourceRuns } from "@/lib/db/queries/agenda-runs";
 import { formatMinutes, FREQUENCY_TEXT } from "@/content/pt-BR/sources-admin";
 import { COLLECTION_TAB_TEXT, DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
 import { sourceHealth, sourceRuns } from "@/lib/db/queries/sources-admin";
@@ -21,8 +25,48 @@ export default async function SourceSummaryPage({ params, searchParams }: Props)
   if (!detail.ok) throw new Error(detail.error.kind);
   const d = detail.value;
   if (!d) notFound();
-  const [health, runs] = await Promise.all([sourceHealth(d.id), sourceRuns(d.id)]);
   const created = typeof sp.cadastro === "string" ? T.created[sp.cadastro] : null;
+  if (d.event) {
+    // Fonte de eventos (AGM-T6): resumo da coleta da Agenda e as últimas execuções da fonte.
+    const runs = await agendaSourceRuns(d.id);
+    const items: [string, string][] = [
+      [EV.extractKind, EXTRACT_KIND_TEXT[d.event.extractKind]],
+      [EV.origin, EVENT_ORIGIN_TEXT[d.event.origin]],
+      [EV.confirms, d.event.confirms ? EVENT_LIST_TEXT.yes : EVENT_LIST_TEXT.no],
+      [EV.eventsLive, EVENT_LIST_TEXT.eventsLive(d.eventsLive ?? 0)],
+      [EV.lastFetched, d.lastFetchedAt ? fullDateTime(d.lastFetchedAt) : EV.never],
+    ];
+    return (
+      <section className="flex flex-col gap-6">
+        <h2 className="sr-only">{T.sections.summary}</h2>
+        <Panel aria-labelledby="resumo-eventos" className="flex flex-col gap-3 sm:p-5">
+          <h2 id="resumo-eventos" className="type-section text-strong">
+            {EV.collectionTitle}
+          </h2>
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {items.map(([label, value]) => (
+              <div key={label}>
+                <dt className="type-meta text-meta">{label}</dt>
+                <dd className="type-body font-semibold text-strong">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="type-meta text-meta">{EV.cadence}</p>
+        </Panel>
+        <Panel aria-labelledby="ultimas-coletas" className="flex flex-col gap-3 sm:p-5">
+          <h2 id="ultimas-coletas" className="type-section text-strong">
+            {EV.runsTitle}
+          </h2>
+          {runs.ok ? (
+            <AgendaRunsTable runs={runs.value.slice(0, 5)} />
+          ) : (
+            <p className="type-body text-meta">{T.error.tab}</p>
+          )}
+        </Panel>
+      </section>
+    );
+  }
+  const [health, runs] = await Promise.all([sourceHealth(d.id), sourceRuns(d.id)]);
 
   const parts = [formatMinutes(d.effective.minutes)];
   if (d.config.frequencyMinutes === null) parts.push(FREQUENCY_TEXT.default);

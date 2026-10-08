@@ -363,5 +363,29 @@ export function createAgendaStore(db: DbClient) {
       const ins = await db.from("agenda_collect_runs").insert(rows);
       if (ins.error) throw new Error(`agenda finishRun(fontes): ${ins.error.message}`);
     },
+
+    /**
+     * "Coletar agora" de uma fonte (painel, AGM-T6): grava só as linhas por fonte, sem linha-resumo
+     * — a coleta manual de uma fonte não adia o próximo ciclo de todas (`lastRunStartedAt`) e
+     * conta no teto do dia (`aiPagesToday` soma as linhas por fonte).
+     */
+    async finishSourceRun(report: CollectReport): Promise<void> {
+      const finished = new Date().toISOString();
+      const known = await knownSources(report.sources.map((s) => s.uuid));
+      const rows = report.sources
+        .filter((s) => known.has(s.uuid))
+        .map((s) => ({
+          source_id: s.uuid,
+          trigger: "manual",
+          started_at: report.startedAt,
+          finished_at: finished,
+          ai_pages: s.aiPages,
+          report: { saved: report.saved, duplicates: report.duplicates } as Json,
+          stats: toJsonObject(statsOf(s)),
+        }));
+      if (rows.length === 0) return;
+      const ins = await db.from("agenda_collect_runs").insert(rows);
+      if (ins.error) throw new Error(`agenda finishSourceRun: ${ins.error.message}`);
+    },
   };
 }

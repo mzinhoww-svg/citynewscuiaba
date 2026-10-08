@@ -237,6 +237,7 @@ export const DETAIL_TEXT = {
     recommendation: "Recomendação",
     history: "Histórico",
     items: "Itens",
+    rejections: "Recusas",
   },
   actions: {
     collectNow: "Coletar agora",

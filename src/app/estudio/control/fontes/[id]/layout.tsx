@@ -9,12 +9,19 @@ import {
   StudioScreen,
 } from "@/components/estudio";
 import { DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
+import { EVENT_LIST_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
 import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";
 import { collectNowAction, decideApprovalAction, sourceStatusAction } from "../actions";
 import { BASE, detailPath, loadSource, statusLine } from "./detail";
 import NotFound from "./not-found";
+
+/**
+ * Server Actions desta área podem ler uma fonte de eventos (prévia e "Coletar agora", AGM-T6):
+ * o mesmo teto de 60 s da rota da Agenda; o coletor corta em 45 s e aborta em 55 s.
+ */
+export const maxDuration = 60;
 
 type Props = { children: ReactNode; params: Promise<{ id: string }> };
 
@@ -79,7 +86,11 @@ export default async function SourceDetailLayout({ children, params }: Props) {
               <Icon name="external-link" size={14} />
               <span className="sr-only"> {T.openSite(domain)}</span>
             </a>
-            <EditorialScore score={d.config.editorialScore} />
+            {d.kind === "events" ? (
+              <span>{EV.typeTag}</span>
+            ) : (
+              <EditorialScore score={d.config.editorialScore} />
+            )}
           </p>
           <p className="flex flex-wrap items-center gap-2 type-body text-strong">
             <SourceStatusBadge status={d.displayStatus} />
@@ -113,7 +124,10 @@ export default async function SourceDetailLayout({ children, params }: Props) {
         </>
       }
     >
-      <SourceSectionNav basePath={detailPath(d.id)} />
+      <SourceSectionNav
+        basePath={detailPath(d.id)}
+        kind={d.kind === "events" ? "events" : "news"}
+      />
       <div className="min-w-0">{children}</div>
     </StudioScreen>
   );

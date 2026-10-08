@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { displayStatusOf, type SourceListRow } from "@/lib/db/queries/sources-admin";
 import { SourcesTable } from "./SourcesTable";
 
@@ -44,6 +44,9 @@ function row(overrides: Raw): SourceListRow {
     pendingApprovals: 0,
     termsReviewedAt: null,
     version: 1,
+    kind: "rss",
+    confirms: false,
+    eventsLive: null,
     ...rest,
   };
 }
@@ -84,5 +87,44 @@ describe("SourcesTable", () => {
     expect(
       screen.getAllByRole("checkbox", { name: "Selecionar Folha do Cerrado" })[0],
     ).toBeInTheDocument();
+  });
+
+  it("fontes de eventos: colunas Confirma fatos e Eventos no ar, em texto", () => {
+    render(
+      <SourcesTable
+        variant="events"
+        rows={[
+          row({ status: "active", name: "Teatro", kind: "events", confirms: true, eventsLive: 3 }),
+          row({
+            status: "paused",
+            statusReason: "pending_activation",
+            name: "Radar",
+            kind: "events",
+            confirms: false,
+            eventsLive: 0,
+          }),
+        ]}
+        sort="name"
+      />,
+    );
+    const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+    expect(headers).toContain("Confirma fatos");
+    expect(headers).toContain("Eventos no ar");
+    expect(headers.some((h) => h?.includes("Score"))).toBe(false);
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("Sim")).toBeVisible();
+    expect(within(table).getByText("Não")).toBeVisible();
+    expect(within(table).getByText("3 eventos no ar")).toBeVisible();
+    expect(within(table).getByText("Nenhum")).toBeVisible();
+  });
+
+  it("lista mista: a fonte de eventos é identificada em texto", () => {
+    render(
+      <SourcesTable
+        rows={[row({ status: "active", name: "Teatro", kind: "events", confirms: true })]}
+        sort="score"
+      />,
+    );
+    expect(screen.getAllByText(/Fonte de eventos/)[0]).toBeVisible();
   });
 });

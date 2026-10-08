@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Panel } from "@/components";
-import { SourceConfigForm, SourceLogoForm } from "@/components/estudio";
+import { EventSourceForm, SourceConfigForm, SourceLogoForm } from "@/components/estudio";
+import { AGENDA } from "@/content/pt-BR/portal-agenda";
+import { EVENT_FORM_TEXT } from "@/content/pt-BR/sources-admin-events";
 import { DETAIL_TEXT as T, LOGO_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { createServerClient } from "@/lib/db/client";
 import { many } from "@/lib/db/queries/run";
 import {
   discoverLogoAction,
   removeLogoAction,
+  updateEventSourceAction,
   updateSourceAction,
   uploadLogoAction,
 } from "../../actions";
-import { loadSource, logoUrlOf } from "../detail";
+import { BASE, loadSource, logoUrlOf } from "../detail";
 
 export const metadata: Metadata = {
   title: "Configuração da fonte · Control Center · CityNews Cuiabá",
@@ -26,6 +29,33 @@ export default async function SourceConfigPage({ params }: Props) {
   if (!detail.ok) throw new Error(detail.error.kind);
   const d = detail.value;
   if (!d) notFound();
+  if (d.event) {
+    // Fonte de eventos (AGM-T6): só a configuração da coleta da Agenda.
+    return (
+      <section className="flex flex-col gap-6">
+        <h2 className="sr-only">{T.sections.config}</h2>
+        <Panel aria-labelledby="coleta-eventos" className="flex flex-col gap-4 sm:p-5">
+          <h2 id="coleta-eventos" className="type-section text-strong">
+            {EVENT_FORM_TEXT.configTitle}
+          </h2>
+          <EventSourceForm
+            mode="edit"
+            save={updateEventSourceAction}
+            categories={AGENDA.categories}
+            basePath={BASE}
+            source={{
+              id: d.id,
+              version: d.version,
+              name: d.config.name,
+              baseUrl: d.config.baseUrl,
+              config: d.event,
+              archived: d.archivedAt !== null,
+            }}
+          />
+        </Panel>
+      </section>
+    );
+  }
   const db = await createServerClient();
   const [sections, owner] = await Promise.all([
     db.from("sections").select("slug, name").order("name").then(many),

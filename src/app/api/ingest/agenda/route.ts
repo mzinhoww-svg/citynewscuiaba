@@ -1,12 +1,11 @@
-import { AI_HARD_DEADLINE_MS, collectAgenda, type ExtractCache } from "@/lib/agenda/collect";
+import { AI_HARD_DEADLINE_MS, collectAgenda } from "@/lib/agenda/collect";
 import { FIXTURE_AGENDA_SOURCES } from "@/lib/agenda/sources";
-import { createProductionAi } from "@/lib/ai/server";
 import { createServiceClient } from "@/lib/db/client";
+import { agendaCollectDeps, remainingAiBudget } from "@/lib/db/agenda-collect";
 import { loadEventSources } from "@/lib/db/agenda-sources";
 import { createAgendaStore } from "@/lib/db/agenda-store";
-import { createIngestRepo } from "@/lib/db/pipeline-store";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
-import { crawlDeps, fixturesEnabled } from "@/lib/sources/http-deps";
+import { fixturesEnabled } from "@/lib/sources/http-deps";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,27 +45,18 @@ export async function POST(req: Request): Promise<Response> {
   }
   const sources = fixturesEnabled() ? FIXTURE_AGENDA_SOURCES : await loadEventSources(db);
   if (!dry) await store.cachePurge(now);
-  const [limits, usedToday] = await Promise.all([store.aiLimits(), store.aiPagesToday(now)]);
-  const cache: ExtractCache = dry
-    ? { get: store.cacheGet, put: async () => {} }
-    : { get: store.cacheGet, put: store.cachePut };
+  const aiBudget = await remainingAiBudget(store, now);
   const runId = dry ? null : await store.startRun(force ? "manual" : "cron", now);
-  const report = await collectAgenda({
-    crawl: crawlDeps({ repo: createIngestRepo(db) }),
-    sources,
-    now: () => now,
-    existing: () => store.existing(now),
-    save: (events, at) => store.save(events, at),
-    dryRun: dry,
-    callAgent: createProductionAi().callAgent,
-    cache,
-    aiBudget: { perRun: limits.perRun, remainingToday: Math.max(0, limits.perDay - usedToday) },
-    monotonic: () => performance.now(),
-    startedAt,
-    signal: hardDeadline,
-    stored: (keys) => store.stored(keys),
-    sourceState: (uuid, outcome, detail) => store.sourceState(uuid, outcome, detail),
-  });
+  const report = await collectAgenda(
+    agendaCollectDeps(db, store, {
+      sources,
+      now,
+      dryRun: dry,
+      startedAt,
+      signal: hardDeadline,
+      aiBudget,
+    }),
+  );
   if (runId) await store.finishRun(runId, report);
   return Response.json({ status: "done", ...report });
 }

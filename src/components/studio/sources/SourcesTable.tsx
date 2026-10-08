@@ -11,6 +11,7 @@ import {
   SOURCES_LIST_TEXT as T,
 } from "@/content/pt-BR/sources-admin";
 import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
+import { EVENT_LIST_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
 import {
   bulkSourcesAction,
   collectNowAction,
@@ -38,6 +39,11 @@ export interface SourcesTableProps {
   query?: Record<string, string>;
   defaultFrequencyMinutes?: number;
   fastLane?: { max: number; used: number };
+  /**
+   * `events` (filtro Tipo: Eventos, AGM-T6): colunas "Confirma fatos" e "Eventos no ar" no lugar
+   * de score, frequência, saúde e próxima coleta (a Agenda coleta a cada 6 h, sem via rápida).
+   */
+  variant?: "all" | "events";
   className?: string;
 }
 
@@ -86,8 +92,10 @@ export function SourcesTable({
   query = {},
   defaultFrequencyMinutes = 30,
   fastLane = { max: 10, used: 0 },
+  variant = "all",
   className,
 }: SourcesTableProps) {
+  const events = variant === "events";
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [pending, startTransition] = useTransition();
@@ -254,37 +262,58 @@ export function SourcesTable({
               <th scope="col" className="p-3 type-meta text-meta">
                 {T.columns.status}
               </th>
-              <SortableHeader
-                col="score"
-                label={T.columns.score}
-                sort={sort}
-                dir={dir}
-                basePath={basePath}
-                query={query}
-              />
-              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
-                {T.columns.priority}
-              </th>
-              <th scope="col" className="p-3 type-meta text-meta">
-                {T.columns.frequency}
-              </th>
-              <SortableHeader
-                col="health"
-                label={T.columns.health}
-                sort={sort}
-                dir={dir}
-                basePath={basePath}
-                query={query}
-              />
-              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
-                {T.columns.lastFetch}
-              </th>
-              <th scope="col" className="p-3 type-meta text-meta">
-                {T.columns.nextFetch}
-              </th>
-              <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
-                {T.columns.errors}
-              </th>
+              {events ? (
+                <>
+                  <th scope="col" className="p-3 type-meta text-meta">
+                    {EV.columns.confirms}
+                  </th>
+                  <th scope="col" className="p-3 type-meta text-meta">
+                    {EV.columns.eventsLive}
+                  </th>
+                  <SortableHeader
+                    col="last"
+                    label={T.columns.lastFetch}
+                    sort={sort}
+                    dir={dir}
+                    basePath={basePath}
+                    query={query}
+                  />
+                </>
+              ) : (
+                <>
+                  <SortableHeader
+                    col="score"
+                    label={T.columns.score}
+                    sort={sort}
+                    dir={dir}
+                    basePath={basePath}
+                    query={query}
+                  />
+                  <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
+                    {T.columns.priority}
+                  </th>
+                  <th scope="col" className="p-3 type-meta text-meta">
+                    {T.columns.frequency}
+                  </th>
+                  <SortableHeader
+                    col="health"
+                    label={T.columns.health}
+                    sort={sort}
+                    dir={dir}
+                    basePath={basePath}
+                    query={query}
+                  />
+                  <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
+                    {T.columns.lastFetch}
+                  </th>
+                  <th scope="col" className="p-3 type-meta text-meta">
+                    {T.columns.nextFetch}
+                  </th>
+                  <th scope="col" className="hidden wide:table-cell p-3 type-meta text-meta">
+                    {T.columns.errors}
+                  </th>
+                </>
+              )}
               <th scope="col" className="p-3 type-meta text-meta">
                 <span className="sr-only">{T.columns.actions}</span>
               </th>
@@ -297,6 +326,7 @@ export function SourcesTable({
               const canPause = row.displayStatus === "active" || row.displayStatus === "degraded";
               const canResume = row.displayStatus === "paused";
               const secondary = [
+                row.kind === "events" ? EV.typeTag : null,
                 row.layer ? LAYER_TEXT[row.layer] : null,
                 LOCALITY_TEXT[row.locality] ?? row.locality,
               ]
@@ -328,26 +358,42 @@ export function SourcesTable({
                   <td className="p-3">
                     <SourceStatusBadge status={row.displayStatus} reason={row.statusReason} />
                   </td>
-                  <td className="p-3">
-                    <EditorialScore score={row.editorialScore} />
-                  </td>
-                  <td className={SECONDARY_CELL}>{PRIORITY_TEXT[row.priority]}</td>
-                  <td className="p-3">
-                    <FrequencyLabel
-                      frequencyMinutes={row.frequencyMinutes}
-                      effective={row.effective}
-                    />
-                  </td>
-                  <td className="p-3">
-                    <HealthBadge score={row.operationalScore} label={row.health} />
-                  </td>
-                  <td className={SECONDARY_CELL}>
-                    {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
-                  </td>
-                  <td className="p-3 type-meta text-strong">
-                    {row.nextCollectionAt ? clockTime(row.nextCollectionAt) : FREQUENCY_TEXT.noNext}
-                  </td>
-                  <td className={SECONDARY_CELL}>{row.errors24h}</td>
+                  {events ? (
+                    <>
+                      <td className="p-3 type-body text-strong">{row.confirms ? EV.yes : EV.no}</td>
+                      <td className="p-3 type-body text-strong">
+                        {EV.eventsLive(row.eventsLive ?? 0)}
+                      </td>
+                      <td className="p-3 type-meta text-strong">
+                        {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="p-3">
+                        <EditorialScore score={row.editorialScore} />
+                      </td>
+                      <td className={SECONDARY_CELL}>{PRIORITY_TEXT[row.priority]}</td>
+                      <td className="p-3">
+                        <FrequencyLabel
+                          frequencyMinutes={row.frequencyMinutes}
+                          effective={row.effective}
+                        />
+                      </td>
+                      <td className="p-3">
+                        <HealthBadge score={row.operationalScore} label={row.health} />
+                      </td>
+                      <td className={SECONDARY_CELL}>
+                        {row.lastFetchedAt ? fullDateTime(row.lastFetchedAt) : T.never}
+                      </td>
+                      <td className="p-3 type-meta text-strong">
+                        {row.nextCollectionAt
+                          ? clockTime(row.nextCollectionAt)
+                          : FREQUENCY_TEXT.noNext}
+                      </td>
+                      <td className={SECONDARY_CELL}>{row.errors24h}</td>
+                    </>
+                  )}
                   <td className="p-3 text-right">
                     <SourceRowMenu
                       name={row.name}

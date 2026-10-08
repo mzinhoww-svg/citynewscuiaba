@@ -131,8 +131,8 @@ describe("rota da coleta com fixtures", () => {
     );
     const body = (await res.json()) as { status: string; startedAt: string; aiPages: number };
     expect(body.status).toBe("done");
-    // Listagem + 2 páginas: as três chamadas contam no teto.
-    expect(body.aiPages).toBe(3);
+    // Listagem + 3 páginas (uma de cartaz sem ano): as quatro chamadas contam no teto.
+    expect(body.aiPages).toBe(4);
 
     const cache = await db
       .from("agenda_extract_cache")
@@ -154,14 +154,22 @@ describe("rota da coleta com fixtures", () => {
     const summary = (runs.data ?? []).filter((r) => r.source_id === null);
     expect(summary).toHaveLength(1);
     expect(summary[0]?.finished_at).not.toBeNull();
-    expect(summary[0]?.ai_pages).toBe(3);
+    expect(summary[0]?.ai_pages).toBe(4);
     const perSource = (runs.data ?? []).filter((r) => r.source_id !== null);
     expect(perSource.map((r) => r.source_id).sort()).toEqual([...UUIDS].sort());
     const teatro = perSource.find((r) => r.source_id === TEATRO.uuid)!;
-    expect(teatro.ai_pages).toBe(3);
-    expect(teatro.stats).toMatchObject({ found: 2, approved: 2, new: 2 });
+    expect(teatro.ai_pages).toBe(4);
+    expect(teatro.stats).toMatchObject({
+      found: 3,
+      approved: 2,
+      new: 2,
+      rejected: { sem_ano: 1 },
+      rejectedSamples: [
+        { url: "https://teatro-cerrado.example/evento/sarau-de-verao", reason: "sem_ano" },
+      ],
+    });
 
-    expect(await store.aiPagesToday(new Date())).toBe(before + 3);
+    expect(await store.aiPagesToday(new Date())).toBe(before + 4);
     const last = await store.lastRunStartedAt();
     expect(last?.toISOString()).toBe(body.startedAt);
 

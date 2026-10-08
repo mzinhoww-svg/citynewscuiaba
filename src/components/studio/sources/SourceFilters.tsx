@@ -6,6 +6,7 @@ import {
   SOURCES_LIST_TEXT as T,
   type DisplayStatus,
 } from "@/content/pt-BR/sources-admin";
+import { EVENT_LIST_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
 import type { HealthLabel } from "@/lib/sources";
 import type { SourceFilters as Filters } from "@/lib/db/queries/sources-admin";
 import { Button } from "../../ui/Button";
@@ -45,6 +46,7 @@ export function SourceFilters({ filters, basePath, className }: SourceFiltersPro
     filters.health,
     filters.via,
     filters.pending,
+    filters.type,
   ].filter(Boolean).length;
   return (
     <CollapsibleFilters
@@ -65,6 +67,19 @@ export function SourceFilters({ filters, basePath, className }: SourceFiltersPro
             icon="search"
             placeholder={T.search.placeholder}
             defaultValue={filters.q ?? ""}
+          />
+          <Select
+            id="fontes-tipo"
+            name="tipo"
+            label={EV.filters.type}
+            placeholder={EV.filters.typeAll}
+            defaultValue={
+              filters.type === "events" ? "eventos" : filters.type === "news" ? "noticias" : ""
+            }
+            options={[
+              { value: "noticias", label: EV.filters.news },
+              { value: "eventos", label: EV.filters.events },
+            ]}
           />
           <Select
             id="fontes-status"

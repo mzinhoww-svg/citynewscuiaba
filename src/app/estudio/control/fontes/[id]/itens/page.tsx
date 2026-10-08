@@ -17,7 +17,8 @@ export default async function SourceItemsPage({ params }: Props) {
   const detail = await loadSource(id);
   if (!detail.ok) throw new Error(detail.error.kind);
   const d = detail.value;
-  if (!d) notFound();
+  // Fonte de eventos (AGM-T6) não tem esta aba.
+  if (!d || d.event) notFound();
   const items = await sourceRecentItems(d.id);
   return (
     <section className="flex flex-col gap-4">

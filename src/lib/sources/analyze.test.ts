@@ -4,7 +4,13 @@ import { createCallAgent } from "@/lib/ai/call-agent";
 import { createFakeProvider } from "@/lib/ai/fake";
 import { createMemoryAiStore } from "@/lib/ai/testing/memory-store";
 import { createFakeHttp, fakeResolve, type FakeRoute } from "@/lib/pipeline/testing/fake-http";
-import { analyzeLink, matchDuplicate, type AnalyzeDeps, type ExistingSource } from "./analyze";
+import {
+  analyzeEventLink,
+  analyzeLink,
+  matchDuplicate,
+  type AnalyzeDeps,
+  type ExistingSource,
+} from "./analyze";
 import { crawlDeps, realHttp } from "./http-deps";
 
 const NOW = new Date("2026-09-27T18:00:00Z");
@@ -307,5 +313,136 @@ describe("crawlDeps", () => {
     );
     await expect(deps.http("https://www.exemplo.com.br/", { headers: {} })).rejects.toThrow();
     expect(await deps.resolve("folhadocerrado.example")).toHaveLength(1);
+  });
+});
+
+describe("analyzeEventLink (fonte de eventos, AGM-T6)", () => {
+  const json = (body: string): FakeRoute => ({
+    body,
+    headers: { "content-type": "application/json" },
+  });
+  const ROBOTS = text("User-agent: *\nAllow: /");
+  const PLAIN = html(
+    `<!doctype html><html><head><title>Teatro Exemplo</title></head><body><h1>Programação</h1><a href="/evento/a">A</a></body></html>`,
+  );
+
+  function eventDeps(routes: Record<string, FakeRoute>, existing: ExistingSource[] = []) {
+    const { http, calls } = createFakeHttp(routes);
+    return {
+      calls,
+      deps: {
+        crawl: {
+          repo: { hitRateLimit: async () => true },
+          http,
+          resolve: fakeResolve(),
+          userAgent: UA,
+        },
+        isEnabled: async () => true,
+        existingSources: async () => existing,
+      },
+    };
+  }
+
+  it("API Tribe respondendo com events[] → tribe, coletando pelo endereço da API", async () => {
+    const { deps, calls } = eventDeps({
+      "https://eventos.example/robots.txt": ROBOTS,
+      "https://eventos.example/wp-json/tribe/events/v1/events?per_page=1": json(
+        fixture("sites/eventos-cerrado-tribe.json"),
+      ),
+      "https://eventos.example/agenda": PLAIN,
+    });
+    const r = await analyzeEventLink("eventos.example/agenda", deps);
+    expect(r).toMatchObject({
+      ok: true,
+      value: {
+        status: "analyzed",
+        extractKind: "tribe",
+        collectUrl: "https://eventos.example/wp-json/tribe/events/v1/events",
+      },
+    });
+    expect(calls.map((c) => c.url)).toContain(
+      "https://eventos.example/wp-json/tribe/events/v1/events?per_page=1",
+    );
+  });
+
+  it("página com JSON-LD Event → jsonld na própria página", async () => {
+    const { deps } = eventDeps({
+      "https://cerradovivo.example/robots.txt": ROBOTS,
+      "https://cerradovivo.example/": html(fixture("sites/cerrado-vivo-home.html")),
+    });
+    const r = await analyzeEventLink("https://cerradovivo.example/", deps);
+    expect(r).toMatchObject({
+      ok: true,
+      value: { extractKind: "jsonld", collectUrl: "https://cerradovivo.example/" },
+    });
+  });
+
+  it("calendário iCal e feed RSS são reconhecidos pelo conteúdo", async () => {
+    const ical = eventDeps({
+      "https://cal.example/robots.txt": ROBOTS,
+      "https://cal.example/agenda.ics": {
+        body: "BEGIN:VCALENDAR\nVERSION:2.0\nEND:VCALENDAR",
+        headers: { "content-type": "text/calendar" },
+      },
+    });
+    expect(await analyzeEventLink("https://cal.example/agenda.ics", ical.deps)).toMatchObject({
+      ok: true,
+      value: { extractKind: "ical", collectUrl: "https://cal.example/agenda.ics" },
+    });
+    const rss = eventDeps({
+      "https://feed.example/robots.txt": ROBOTS,
+      "https://feed.example/feed": xml(
+        `<?xml version="1.0"?><rss version="2.0"><channel><title>Agenda</title></channel></rss>`,
+      ),
+    });
+    expect(await analyzeEventLink("https://feed.example/feed", rss.deps)).toMatchObject({
+      ok: true,
+      value: { extractKind: "rss" },
+    });
+  });
+
+  it("página comum (sem Tribe, JSON-LD, iCal nem RSS) → ai_page, com o nome da página", async () => {
+    const { deps } = eventDeps({
+      "https://teatro.example/robots.txt": ROBOTS,
+      "https://teatro.example/": PLAIN,
+    });
+    const r = await analyzeEventLink("teatro.example", deps);
+    expect(r).toMatchObject({
+      ok: true,
+      value: {
+        extractKind: "ai_page",
+        collectUrl: "https://teatro.example/",
+        name: "Teatro Exemplo",
+      },
+    });
+  });
+
+  it("robots.txt bloqueando: erro, sem tocar a página", async () => {
+    const { deps, calls } = eventDeps({
+      "https://fechado.example/robots.txt": text("User-agent: *\nDisallow: /"),
+      "https://fechado.example/": PLAIN,
+    });
+    expect(await analyzeEventLink("fechado.example", deps)).toEqual({
+      ok: false,
+      error: "robots_disallowed",
+    });
+    expect(calls.map((c) => c.url)).toEqual(["https://fechado.example/robots.txt"]);
+  });
+
+  it("endereço já cadastrado: duplicada, sem requisição", async () => {
+    const { deps, calls } = eventDeps({}, [
+      {
+        id: "s1",
+        name: "Teatro",
+        baseUrl: "https://teatro.example/",
+        feedUrl: null,
+        archived: false,
+      },
+    ]);
+    expect(await analyzeEventLink("https://teatro.example", deps)).toMatchObject({
+      ok: true,
+      value: { status: "duplicate", duplicate: { id: "s1" } },
+    });
+    expect(calls).toHaveLength(0);
   });
 });

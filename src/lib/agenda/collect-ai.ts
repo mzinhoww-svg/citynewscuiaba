@@ -153,8 +153,10 @@ export async function collectAiPage(
   }
   if (!fetched) return { kind: "failed", detail: fetchError ?? "listagem bloqueada" };
 
+  const max = ctx.deps.maxEventPages;
+  const pages = max === undefined ? links : links.slice(0, Math.max(0, Math.min(max, ctx.budget)));
   let unavailable = 0;
-  for (const url of links) {
+  for (const url of pages) {
     const verdict = await robots(url);
     if (verdict.kind === "deadline")
       return { kind: "deferred", detail: "prazo da execução", fetched };

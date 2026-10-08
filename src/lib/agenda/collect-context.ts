@@ -80,6 +80,12 @@ export interface CollectDeps {
   sourceState: (sourceUuid: string, outcome: FetchOutcome, detail?: string) => Promise<void>;
   /** Só esta fonte (slug ou uuid), mesmo pausada: prévia do teste de conexão. */
   onlySourceId?: string;
+  /**
+   * Prévia limitada (teste de conexão do painel, AGM-T6): no caminho `ai_page`, lê no máximo
+   * estas páginas de evento — e nunca mais do que o teto que sobrou depois das listagens —, em
+   * vez de adiar a fonte quando a listagem traz mais links do que cabem.
+   */
+  maxEventPages?: number;
 }
 
 /**

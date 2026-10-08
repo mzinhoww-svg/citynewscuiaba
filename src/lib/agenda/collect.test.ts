@@ -189,6 +189,32 @@ describe("collectAgenda (fixtures fictícias)", () => {
     expect(r.preview).toHaveLength(2);
   });
 
+  it("prévia limitada: maxEventPages corta as páginas de evento sem adiar a fonte", async () => {
+    const { d, fake } = deps({
+      dryRun: true,
+      sources: [{ ...TEATRO, enabled: false }],
+      onlySourceId: TEATRO.uuid,
+      aiBudget: { perRun: 2, remainingToday: 2 },
+      maxEventPages: 1,
+    });
+    const r = await collectAgenda(d);
+    expect(r.sources[0]).toMatchObject({ status: "ok", found: 1, approved: 1, aiPages: 2 });
+    expect(r.preview?.map((p) => p.title)).toEqual(["Forró da Praça"]);
+    expect(fake.calls.length).toBe(2);
+  });
+
+  it("maxEventPages nunca passa do teto que sobrou depois da listagem", async () => {
+    const { d } = deps({
+      dryRun: true,
+      sources: [TEATRO],
+      onlySourceId: TEATRO.id,
+      aiBudget: { perRun: 3, remainingToday: 160 },
+      maxEventPages: 5,
+    });
+    const r = await collectAgenda(d);
+    expect(r.sources[0]).toMatchObject({ status: "ok", found: 2, aiPages: 3 });
+  });
+
   it("uma fonte fora do ar não derruba as outras", async () => {
     const { d } = deps({
       sources: [
@@ -211,9 +237,14 @@ describe("collectAgenda · caminho ai_page", () => {
     const { d, saved } = deps({ sources: [TEATRO] });
     const r = await collectAgenda(d);
     const rep = r.sources[0]!;
-    expect(rep).toMatchObject({ id: "teatro-cerrado", status: "ok", found: 2, approved: 2 });
-    // Listagem + 2 páginas: as três chamadas ao modelo contam no teto.
-    expect(rep.aiPages).toBe(3);
+    expect(rep).toMatchObject({ id: "teatro-cerrado", status: "ok", found: 3, approved: 2 });
+    // Listagem + 3 páginas: as quatro chamadas ao modelo contam no teto.
+    expect(rep.aiPages).toBe(4);
+    // A página de cartaz sem ano ("10/01") é recusada, nunca adivinhada.
+    expect(rep.rejected).toEqual({ sem_ano: 1 });
+    expect(rep.rejectedSamples).toEqual([
+      { url: "https://teatro-cerrado.example/evento/sarau-de-verao", reason: "sem_ano" },
+    ]);
     expect(saved).toHaveLength(2);
     const forro = saved.find((e) => e.title === "Forró da Praça")!;
     expect(forro.startsAt).toBe("2026-10-25T00:00:00.000Z");

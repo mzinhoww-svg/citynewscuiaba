@@ -10,6 +10,7 @@ import {
 } from "@/components/estudio";
 import { CONTROL_TEXT } from "@/content/pt-BR/control";
 import { SOURCES_LIST_TEXT as T, SOURCE_STATUS_TEXT } from "@/content/pt-BR/sources-admin";
+import { EVENT_LIST_TEXT as EV } from "@/content/pt-BR/sources-admin-events";
 import {
   fastLaneSkippedSources,
   listSources,
@@ -22,7 +23,17 @@ import {
 export const metadata: Metadata = { title: "Fontes · Control Center · CityNews Cuiabá" };
 
 const BASE = "/estudio/control/fontes";
-const FILTER_KEYS = ["q", "status", "camada", "localidade", "editoria", "saude", "via", "pendente"];
+const FILTER_KEYS = [
+  "q",
+  "status",
+  "camada",
+  "localidade",
+  "editoria",
+  "saude",
+  "via",
+  "pendente",
+  "tipo",
+];
 
 type SearchParamsInput = Record<string, string | string[] | undefined>;
 type Props = { searchParams: Promise<SearchParamsInput> };
@@ -39,7 +50,15 @@ function toURLSearchParams(sp: SearchParamsInput): URLSearchParams {
 /** Alguma restrição além da ordenação/página (vazio "sem filtro" × vazio "com filtro"). */
 function hasActiveFilters(f: Filters): boolean {
   return Boolean(
-    f.q || f.status || f.layer || f.locality || f.category || f.health || f.via || f.pending,
+    f.q ||
+    f.status ||
+    f.layer ||
+    f.locality ||
+    f.category ||
+    f.health ||
+    f.via ||
+    f.pending ||
+    f.type,
   );
 }
 
@@ -97,9 +116,17 @@ export default async function SourcesListPage({ searchParams }: Props) {
               fastLane={sourcesResult.value.fastLane}
             />
           )}
-          <Button href={`${BASE}/nova`} size="md" icon="plus">
-            {T.addSource}
-          </Button>
+          {/* Com "Tipo: Eventos" o botão abre o cadastro de fonte de eventos (AGM-T6); o de
+              notícias leva ao de eventos por um link na própria tela. */}
+          {filters.type === "events" ? (
+            <Button href={`${BASE}/nova?tipo=eventos`} size="md" icon="plus">
+              {EV.addEventSource}
+            </Button>
+          ) : (
+            <Button href={`${BASE}/nova`} size="md" icon="plus">
+              {T.addSource}
+            </Button>
+          )}
         </div>
       }
     >
@@ -139,6 +166,7 @@ export default async function SourcesListPage({ searchParams }: Props) {
             query={queryOf(usp)}
             defaultFrequencyMinutes={sourcesResult.value.defaultFrequency}
             fastLane={sourcesResult.value.fastLane}
+            variant={filters.type === "events" ? "events" : "all"}
           />
           <SourcesPagination
             page={filters.page}

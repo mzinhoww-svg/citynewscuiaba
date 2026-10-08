@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { serviceClient } from "../e2e/helpers/pipeline";
 import { loginAs } from "../e2e/helpers/studio-login";
 
 /*
@@ -20,7 +21,29 @@ const ROUTES = [
   `${BASE}/${FOLHA_ID}/historico`,
   `${BASE}/${FOLHA_ID}/itens`,
   `${BASE}/00000000-0000-4000-8000-000000000000`,
+  // Fontes de eventos (AGM-T6): filtro, cadastro e as abas de uma fonte do seed (0183).
+  `${BASE}?tipo=eventos`,
+  `${BASE}/nova?tipo=eventos`,
+  `${BASE}/{eventos}`,
+  `${BASE}/{eventos}/configuracao`,
+  `${BASE}/{eventos}/coleta`,
+  `${BASE}/{eventos}/recusas`,
+  `${BASE}/{eventos}/historico`,
 ];
+/** Fonte de eventos do seed (pausada aguardando ativação); o id é gerado na migration. */
+const EVENT_SLUG = "cine-teatro-cuiaba";
+let eventId: string | null = null;
+async function eventSourceId(): Promise<string> {
+  if (eventId) return eventId;
+  const { data, error } = await serviceClient()
+    .from("sources")
+    .select("id")
+    .eq("slug", EVENT_SLUG)
+    .single();
+  if (error) throw new Error(error.message);
+  eventId = data.id;
+  return data.id;
+}
 const WIDTHS = [360, 768, 1280] as const;
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const blocking = (impact: string | null | undefined) =>
@@ -35,7 +58,9 @@ for (const path of ROUTES) {
       );
       await page.setViewportSize({ width, height: 900 });
       await loginAs(page.context(), "helena");
-      await page.goto(path);
+      await page.goto(
+        path.includes("{eventos}") ? path.replace("{eventos}", await eventSourceId()) : path,
+      );
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
       const bad = results.violations.filter((v) => blocking(v.impact));

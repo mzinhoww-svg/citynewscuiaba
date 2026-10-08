@@ -1,5 +1,6 @@
 import {
   displayStatusOf,
+  eventsLiveBySource,
   fastLaneFullSkips,
   filterAndSort,
   healthOf,
@@ -25,10 +26,18 @@ describe("parseSourceFilters (inválidos ignorados)", () => {
       health: "critica",
       via: "rapida",
       pending: true,
+      type: null,
       sort: "name",
       dir: "asc",
       page: 2,
     });
+  });
+
+  it("tipo: ?tipo=eventos → events, ?tipo=noticias → news, inválido → null", () => {
+    expect(parseSourceFilters(new URLSearchParams("tipo=eventos")).type).toBe("events");
+    expect(parseSourceFilters(new URLSearchParams("tipo=noticias")).type).toBe("news");
+    expect(parseSourceFilters(new URLSearchParams("tipo=events")).type).toBeNull();
+    expect(parseSourceFilters(new URLSearchParams("tipo=")).type).toBeNull();
   });
 
   it("valores inválidos voltam ao padrão (score desc, página 1)", () => {
@@ -141,6 +150,9 @@ describe("filterAndSort", () => {
     pendingApprovals: 0,
     termsReviewedAt: null,
     version: 1,
+    kind: "rss",
+    confirms: false,
+    eventsLive: null,
     ...over,
   });
 
@@ -172,6 +184,101 @@ describe("filterAndSort", () => {
     expect(
       filterAndSort(rows, parseSourceFilters(new URLSearchParams("pendente=1"))).rows[0]?.id,
     ).toBe("id-2");
+  });
+});
+
+describe("filterAndSort · tipo", () => {
+  const row = (i: number, kind: SourceListRow["kind"]): SourceListRow => ({
+    id: `id-${i}`,
+    slug: `s-${i}`,
+    name: `Fonte ${i}`,
+    domain: `f${i}.example`,
+    status: "active",
+    statusReason: null,
+    displayStatus: "active",
+    archived: false,
+    layer: null,
+    locality: "cuiaba",
+    categories: [],
+    editorialScore: 3,
+    priority: 2,
+    frequencyMinutes: null,
+    effective: { minutes: 30, raisedBy: null },
+    lane: "normal",
+    lastFetchedAt: null,
+    nextCollectionAt: null,
+    operationalScore: null,
+    health: "sem_dados",
+    errors24h: 0,
+    pendingApprovals: 0,
+    termsReviewedAt: null,
+    version: 1,
+    kind,
+    confirms: kind === "events",
+    eventsLive: kind === "events" ? 4 : null,
+  });
+  const rows = [row(1, "rss"), row(2, "events"), row(3, "page"), row(4, "events")];
+
+  it("Eventos mostra só fontes de eventos; Notícias, as demais; sem tipo, todas", () => {
+    const ids = (q: string) =>
+      filterAndSort(rows, parseSourceFilters(new URLSearchParams(q))).rows.map((r) => r.id);
+    expect(ids("tipo=eventos")).toEqual(["id-2", "id-4"]);
+    expect(ids("tipo=noticias")).toEqual(["id-1", "id-3"]);
+    expect(ids("")).toHaveLength(4);
+  });
+});
+
+describe("eventsLiveBySource", () => {
+  const NOW = new Date("2026-10-08T12:00:00Z");
+  it("conta só confirmados, não retirados e que ainda não começaram", () => {
+    const m = eventsLiveBySource(
+      [
+        {
+          source_ref: "a",
+          starts_at: "2026-10-09T00:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: null,
+        },
+        {
+          source_ref: "a",
+          starts_at: "2026-10-08T12:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: null,
+        },
+        {
+          source_ref: "a",
+          starts_at: "2026-10-01T00:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: null,
+        },
+        {
+          source_ref: "a",
+          starts_at: "2026-10-10T00:00:00Z",
+          confirmed_at: null,
+          withdrawn_at: null,
+        },
+        {
+          source_ref: "a",
+          starts_at: "2026-10-10T00:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: "y",
+        },
+        {
+          source_ref: "b",
+          starts_at: "2026-10-10T00:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: null,
+        },
+        {
+          source_ref: null,
+          starts_at: "2026-10-10T00:00:00Z",
+          confirmed_at: "x",
+          withdrawn_at: null,
+        },
+      ],
+      NOW,
+    );
+    expect(Object.fromEntries(m)).toEqual({ a: 2, b: 1 });
   });
 });
 
