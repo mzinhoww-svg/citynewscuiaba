@@ -16,12 +16,24 @@ const VENUES: VenueCandidate[] = [
 ];
 
 describe("venueKey", () => {
-  it("dobra acentos, tira pontuação, prefixo genérico e cidade no fim", () => {
-    expect(venueKey("Teatro Zulmira Canavarros")).toBe("zulmira canavarros");
-    expect(venueKey("  Espaço  Cultural: Cerrado-Vivo ")).toBe("cultural cerrado vivo");
-    expect(venueKey("Sesc Arsenal - Cuiabá")).toBe("sesc arsenal");
-    expect(venueKey("Sesc Arsenal, Cuiabá MT")).toBe("sesc arsenal");
-    expect(venueKey("Sesc Arsenal (Cuiabá/MT)")).toBe("sesc arsenal");
+  it("dobra acentos, tira pontuação, cidade no fim e separa o prefixo genérico", () => {
+    expect(venueKey("Teatro Zulmira Canavarros")).toEqual({
+      prefix: "teatro",
+      core: "zulmira canavarros",
+    });
+    expect(venueKey("  Espaço  Cultural: Cerrado-Vivo ")).toEqual({
+      prefix: "espaco",
+      core: "cultural cerrado vivo",
+    });
+    expect(venueKey("Casa de Cultura")).toEqual({ prefix: "casa", core: "cultura" });
+    expect(venueKey("Sesc Arsenal - Cuiabá")).toEqual({ prefix: null, core: "sesc arsenal" });
+    expect(venueKey("Sesc Arsenal, Cuiabá MT")).toEqual({ prefix: null, core: "sesc arsenal" });
+    expect(venueKey("Sesc Arsenal (Cuiabá/MT)")).toEqual({ prefix: null, core: "sesc arsenal" });
+  });
+
+  it("arena, bar e restaurante não são prefixos genéricos", () => {
+    expect(venueKey("Arena Pantanal")).toEqual({ prefix: null, core: "arena pantanal" });
+    expect(venueKey("Bar Cultura")).toEqual({ prefix: null, core: "bar cultura" });
   });
 });
 
@@ -67,6 +79,28 @@ describe("matchVenue", () => {
   it("nome parecido abaixo do limite: sem vínculo", () => {
     expect(matchVenue("Mirante Panorâmico", VENUES)).toBeNull();
     expect(matchVenue("Sesc Pantanal", VENUES)).toBeNull();
+  });
+
+  it("prefixo tirado de um lado só exige núcleo com 2 palavras ou mais", () => {
+    const arena = [v("v-arena", "Arena Pantanal")];
+    expect(matchVenue("Pantanal", arena)).toBeNull();
+    expect(matchVenue("Bar Pantanal", arena)).toBeNull();
+    expect(matchVenue("UFMT", [v("v-ufmt", "Teatro da UFMT")])).toBeNull();
+    expect(matchVenue("Zulmira Canavarros", VENUES)).toBe("v-zulmira");
+  });
+
+  it("prefixos de classes diferentes nunca casam (cine e teatro são da mesma)", () => {
+    const casa = [v("v-casa", "Casa de Cultura")];
+    expect(matchVenue("Bar Cultura", casa)).toBeNull();
+    expect(matchVenue("Espaço Cultura", casa)).toBeNull();
+    expect(matchVenue("Espaço Zulmira Canavarros", VENUES)).toBeNull();
+    expect(matchVenue("Cine Zulmira Canavarros", VENUES)).toBe("v-zulmira");
+  });
+
+  it("limitação conhecida: nome que só sobra genérico depois da cidade não casa", () => {
+    // "Cine Teatro Cuiabá" → cidade fora → prefixo "cine" + núcleo "teatro" (genérico): a redação
+    // escolhe o lugar no Estúdio.
+    expect(matchVenue("Cine Teatro Cuiabá", [v("v-cine", "Cine Teatro Cuiabá")])).toBeNull();
   });
 
   it("texto vazio ou só a cidade: sem vínculo", () => {

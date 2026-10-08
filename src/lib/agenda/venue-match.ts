@@ -14,17 +14,34 @@ const MIN_SIMILARITY = 0.9;
 /** Nome normalizado mais curto que isto nunca casa ("Ará", "Bar X"). */
 const MIN_KEY_LENGTH = 4;
 
-/** Prefixos genéricos tirados só para comparar ("Teatro X" casa com "X"). */
-const PREFIXES = ["teatro", "espaco", "casa", "centro", "cine", "arena", "bar", "restaurante"];
-const PREFIX = new RegExp(`^(?:${PREFIXES.join("|")})\\s+(?:(?:de|do|da|dos|das)\\s+)?`);
+/**
+ * Prefixos genéricos (spec: teatro, espaço, casa, centro; mais cine) separados só para comparar.
+ * Cada um tem uma classe: prefixos de classes diferentes nunca casam ("Espaço Cultura" ≠ "Casa de
+ * Cultura"); cine e teatro são da mesma ("Cine Teatro", sala de projeção e palco no mesmo lugar).
+ */
+const PREFIX_CLASS: Readonly<Record<string, string>> = {
+  teatro: "palco",
+  cine: "palco",
+  espaco: "espaco",
+  casa: "casa",
+  centro: "centro",
+};
+const PREFIXES = Object.keys(PREFIX_CLASS);
+const PREFIX = new RegExp(`^(${PREFIXES.join("|")})\\s+(?:(?:de|do|da|dos|das)\\s+)?`);
 /** Cidade no fim ("- Cuiabá", "Cuiabá MT", "em Várzea Grande", "MT"). */
 const CITY_SUFFIX = /(?:^|\s)(?:(?:em\s)?(?:cuiaba|varzea grande)(?:\smt)?|mt)$/;
 
+/** Nome do lugar para comparar: prefixo genérico tirado (ou `null`) e o núcleo. */
+export interface VenueKey {
+  prefix: string | null;
+  core: string;
+}
+
 /**
  * Forma de comparação do nome do lugar: fold, sem pontuação, espaços colapsados, sem a cidade no
- * fim e sem um prefixo genérico no começo (se sobrar nome depois dele).
+ * fim e com um prefixo genérico do começo separado do núcleo (se sobrar nome depois dele).
  */
-export function venueKey(name: string): string {
+export function venueKey(name: string): VenueKey {
   let s = fold(name)
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
@@ -32,8 +49,9 @@ export function venueKey(name: string): string {
     prev = s;
     s = s.replace(CITY_SUFFIX, "").trim();
   }
-  const stripped = s.replace(PREFIX, "");
-  return stripped.length > 0 ? stripped : s;
+  const m = PREFIX.exec(s);
+  const core = m ? s.slice(m[0].length) : "";
+  return m && core.length > 0 ? { prefix: m[1] ?? null, core } : { prefix: null, core: s };
 }
 
 /** Distância de edição (inserção, remoção, troca), em duas linhas. */
@@ -55,7 +73,19 @@ function similarity(a: string, b: string): number {
   return max === 0 ? 1 : 1 - levenshtein(a, b) / max;
 }
 
-const usable = (key: string) => key.length >= MIN_KEY_LENGTH && !PREFIXES.includes(key);
+const usable = (k: VenueKey) => k.core.length >= MIN_KEY_LENGTH && !PREFIXES.includes(k.core);
+const words = (core: string) => core.split(" ").length;
+
+/**
+ * Os dois nomes podem ser o mesmo lugar? Prefixos de classes diferentes, não; prefixo tirado de um
+ * lado só ("Zulmira Canavarros" × "Teatro Zulmira Canavarros"), só com núcleo de 2+ palavras —
+ * "Pantanal" não vira "Arena Pantanal" nem "UFMT" vira "Teatro da UFMT".
+ */
+function compatible(a: VenueKey, b: VenueKey): boolean {
+  if (a.prefix && b.prefix) return PREFIX_CLASS[a.prefix] === PREFIX_CLASS[b.prefix];
+  if (a.prefix || b.prefix) return words(a.core) >= 2 && words(b.core) >= 2;
+  return true;
+}
 
 /**
  * Lugar do Guia para o texto de local do evento (spec 2026-10-08 agenda rica §5): nome
@@ -68,12 +98,14 @@ export function matchVenue(text: string, venues: readonly VenueCandidate[]): str
   const active = venues
     .filter((v) => v.status === ACTIVE)
     .map((v) => ({ id: v.id, key: venueKey(v.name) }))
-    .filter((v) => usable(v.key));
+    .filter((v) => usable(v.key) && compatible(v.key, key));
   const unique = (ids: string[]) => {
     const set = new Set(ids);
     return set.size === 1 ? ([...set][0] ?? null) : null;
   };
-  const equal = active.filter((v) => v.key === key).map((v) => v.id);
+  const equal = active.filter((v) => v.key.core === key.core).map((v) => v.id);
   if (equal.length > 0) return unique(equal);
-  return unique(active.filter((v) => similarity(v.key, key) >= MIN_SIMILARITY).map((v) => v.id));
+  return unique(
+    active.filter((v) => similarity(v.key.core, key.core) >= MIN_SIMILARITY).map((v) => v.id),
+  );
 }

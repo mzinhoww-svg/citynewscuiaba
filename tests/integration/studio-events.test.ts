@@ -276,5 +276,65 @@ describe("eventos do Estúdio no banco", () => {
       expect(row2.data?.venue_id).toBe(outro);
       expect(row2.data?.locked_fields).toContain("venue_id");
     });
+
+    it("edição sem escolha: trocar o texto do local refaz o vínculo automático (ou o limpa)", async () => {
+      const otavio = await actor("otavio");
+      const c = await createEvent(
+        input({ title: `Peça que muda ${TAG}`, venue: `Teatro Lume ${TAG}` }),
+        otavio,
+      );
+      expect(c.ok).toBe(true);
+      if (!c.ok) return;
+      created.push(c.value.id);
+      const venueOf = async () =>
+        (
+          await service
+            .from("event_listings")
+            .select("venue_id, locked_fields")
+            .eq("id", c.value.id)
+            .single()
+        ).data;
+      expect((await venueOf())?.venue_id).toBe(teatro);
+
+      await updateEvent(
+        c.value.id,
+        input({ title: `Peça que muda ${TAG}`, venue: `Cine Brisa ${TAG}` }),
+        otavio,
+      );
+      expect((await venueOf())?.venue_id).toBe(outro);
+
+      await updateEvent(
+        c.value.id,
+        input({ title: `Peça que muda ${TAG}`, venue: "Quintal Desconhecido" }),
+        otavio,
+      );
+      const cleared = await venueOf();
+      expect(cleared?.venue_id).toBeNull();
+      expect(cleared?.locked_fields).not.toContain("venue_id");
+    });
+
+    it("escolha explícita igual ao automático também trava", async () => {
+      const otavio = await actor("otavio");
+      const c = await createEvent(
+        input({ title: `Peça confirmada ${TAG}`, venue: `Teatro Lume ${TAG}` }),
+        otavio,
+      );
+      expect(c.ok).toBe(true);
+      if (!c.ok) return;
+      created.push(c.value.id);
+      const u = await updateEvent(
+        c.value.id,
+        input({ title: `Peça confirmada ${TAG}`, venue: `Teatro Lume ${TAG}`, venueId: teatro }),
+        otavio,
+      );
+      expect(u.ok && u.value.changed).toEqual(["venue_id"]);
+      const row = await service
+        .from("event_listings")
+        .select("venue_id, locked_fields")
+        .eq("id", c.value.id)
+        .single();
+      expect(row.data?.venue_id).toBe(teatro);
+      expect(row.data?.locked_fields).toContain("venue_id");
+    });
   });
 });

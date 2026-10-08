@@ -825,7 +825,7 @@ describe("collectAgenda: vínculo com o lugar do Guia (ARD-T3)", () => {
     expect(saved.find((e) => e.title === FESTIVAL)?.venueId).toBeNull();
   });
 
-  it("venue_id travado pela redação (mesmo vazio) e vínculo já guardado não mudam", async () => {
+  it("venue_id travado pela redação (mesmo vazio) não muda", async () => {
     const travado = deps({
       sources: [TEATRO],
       venues: async () => GUIA,
@@ -833,14 +833,44 @@ describe("collectAgenda: vínculo com o lugar do Guia (ARD-T3)", () => {
     });
     await collectAgenda(travado.d);
     expect(travado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBeNull();
+  });
 
-    const guardado = deps({
+  it("vínculo automático sem trava é recalculado: troca de lugar ou some quando nada casa", async () => {
+    const outro = deps({
       sources: [TEATRO],
-      venues: async () => GUIA,
-      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-escolhido" })],
+      venues: async () => [{ id: "lugar-b", name: "Teatro Cerrado", status: "active" }],
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
     });
-    await collectAgenda(guardado.d);
-    expect(guardado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-escolhido");
+    await collectAgenda(outro.d);
+    expect(outro.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-b");
+
+    const nenhum = deps({
+      sources: [TEATRO],
+      venues: async () => [],
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
+    });
+    await collectAgenda(nenhum.d);
+    expect(nenhum.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBeNull();
+
+    const travado = deps({
+      sources: [TEATRO],
+      venues: async () => [{ id: "lugar-b", name: "Teatro Cerrado", status: "active" }],
+      stored: async () => [
+        storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a", lockedFields: ["venue_id"] }),
+      ],
+    });
+    await collectAgenda(travado.d);
+    expect(travado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-a");
+
+    const falha = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        throw new Error("banco fora");
+      },
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
+    });
+    await collectAgenda(falha.d);
+    expect(falha.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-a");
   });
 
   it("ensaio não lê os lugares; falha ao ler os lugares não derruba a coleta", async () => {

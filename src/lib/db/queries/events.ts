@@ -26,6 +26,10 @@ type EventRow = Omit<
   | "featured_until"
 > & { guide_venue?: GuideVenueRef };
 
+/**
+ * Colunas públicas do evento. `guide_venue` (→ `venueSlug`) depende da RLS de `venues` lida como
+ * `anon`: lugar fora do Guia público vem `null`. Nunca ler com service role para saída pública.
+ */
 export const EVENT_COLUMNS =
   "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id, venue_id, guide_venue:venues(slug, status)";
 
@@ -271,6 +275,11 @@ export async function listEventsInRange(
 
 /** Próximos eventos de um lugar do Guia na página do lugar (ARD-T3). */
 export const VENUE_EVENTS_LIMIT = 5;
+/**
+ * Cache da leitura na página do lugar (ISR de 1 h): tag `agenda`, a mesma que o Estúdio e a
+ * publicação automática de evento revalidam, e no máximo 5 min de atraso para o resto.
+ */
+const VENUE_EVENTS_CACHE = { tags: ["agenda"], revalidate: 300 };
 
 /**
  * Próximos eventos de um lugar do Guia ("Próximos eventos aqui"): o mesmo recorte da agenda
@@ -280,7 +289,7 @@ export async function upcomingEventsAtVenue(
   venueId: string,
   limit: number = VENUE_EVENTS_LIMIT,
 ): Promise<Result<EventView[], QueryError>> {
-  return readPublic((db) => fetchEvents(db, { venueId, limit }));
+  return readPublic((db) => fetchEvents(db, { venueId, limit }), VENUE_EVENTS_CACHE);
 }
 
 /** Evento pelo slug; `null` quando não existe ou não foi confirmado. */

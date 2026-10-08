@@ -321,24 +321,23 @@ async function record(
   await audit(actor.userId, action, `event:${id}`, details, actor.db);
 }
 
+/** Casamento automático: o lugar, nenhum (`null`) ou falha na leitura dos candidatos. */
+type AutoVenue = { kind: "match"; id: string | null } | { kind: "error" };
+
 /**
- * Lugar do Guia pelo texto do local (`matchVenue`), com os lugares que a pessoa enxerga (RLS:
- * públicos, ou todos para quem cuida do Guia). Falha na leitura = sem vínculo (o salvar segue).
+ * Lugar do Guia pelo texto do local (`matchVenue`) com o mesmo conjunto de candidatos da coleta
+ * (`agenda_venue_candidates`: todos os lugares ativos, públicos ou não; só quem edita a Agenda).
  */
-async function autoVenue(db: DbClient, venueText: string): Promise<string | null> {
-  const { data, error } = await db
-    .from("venues")
-    .select("id, name, status")
-    .eq("status", "active")
-    .limit(5000);
+async function autoVenue(db: DbClient, venueText: string): Promise<AutoVenue> {
+  const { data, error } = await db.rpc("agenda_venue_candidates");
   if (error) {
     console.error("evento da agenda (lugares do Guia)", {
       code: error.code,
       message: error.message,
     });
-    return null;
+    return { kind: "error" };
   }
-  return matchVenue(venueText, data ?? []);
+  return { kind: "match", id: matchVenue(venueText, data ?? []) };
 }
 
 /**
@@ -360,7 +359,8 @@ export async function createEvent(
   });
   const values = columnsOf(input);
   const explicit = input.venueId !== undefined;
-  const venueId = explicit ? (input.venueId ?? null) : await autoVenue(actor.db, input.venue);
+  const auto = explicit ? null : await autoVenue(actor.db, input.venue);
+  const venueId = explicit ? (input.venueId ?? null) : auto?.kind === "match" ? auto.id : null;
   const { error } = await actor.db.from("event_listings").insert({
     id,
     slug,
@@ -381,9 +381,9 @@ export async function createEvent(
 
 /**
  * Edição: grava só as colunas alteradas, acrescenta-as em `locked_fields` (as que a coleta
- * escreve) e audita o diff. Sem mudança, não grava nada. Lugar do Guia: escolha explícita
- * diferente da guardada conta como edição (trava `venue_id`); sem escolha, linha sem vínculo e
- * sem trava ganha o casamento automático pelo local (sem trava).
+ * escreve) e audita o diff. Sem mudança, não grava nada. Lugar do Guia: escolha explícita conta
+ * como edição e trava `venue_id` (mesmo igual ao atual); sem escolha e sem trava, o vínculo é
+ * recalculado pelo local quando não há vínculo ou o local mudou (pode ficar nulo).
  */
 export async function updateEvent(
   id: string,
@@ -399,22 +399,28 @@ export async function updateEvent(
   if (!before) return err("not_found");
   const formChanged = changedColumns(before, input);
   const next = columnsOf(input);
+  const venueLocked = before.locked_fields.includes("venue_id");
   const explicitVenue = input.venueId !== undefined ? (input.venueId ?? null) : undefined;
-  const venueChanged = explicitVenue !== undefined && explicitVenue !== before.venue_id;
-  const changed: string[] = venueChanged ? [...formChanged, "venue_id"] : formChanged;
-  const autoVenueId =
+  // Escolha explícita sempre trava, mesmo igual ao vínculo automático atual.
+  const venueChosen =
+    explicitVenue !== undefined && (explicitVenue !== before.venue_id || !venueLocked);
+  const changed: string[] = venueChosen ? [...formChanged, "venue_id"] : formChanged;
+  // Sem escolha e sem trava, o vínculo é derivado do local: recalcula sem vínculo ou com o local
+  // alterado (inclusive para nulo). Falha na leitura dos candidatos não mexe no vínculo.
+  const auto =
     explicitVenue === undefined &&
-    before.venue_id === null &&
-    !before.locked_fields.includes("venue_id")
+    !venueLocked &&
+    (before.venue_id === null || formChanged.includes("venue"))
       ? await autoVenue(actor.db, input.venue)
       : null;
-  if (changed.length === 0 && autoVenueId === null)
+  const autoVenueId = auto?.kind === "match" && auto.id !== before.venue_id ? auto.id : undefined;
+  if (changed.length === 0 && autoVenueId === undefined)
     return ok({ id, slug: before.slug, changed: [] });
   const locked = lockedAfterEdit(before.locked_fields, changed);
   const patch: Record<string, unknown> = {};
   for (const c of formChanged) patch[c] = next[c];
-  if (venueChanged) patch.venue_id = explicitVenue;
-  else if (autoVenueId !== null) patch.venue_id = autoVenueId;
+  if (venueChosen) patch.venue_id = explicitVenue;
+  else if (autoVenueId !== undefined) patch.venue_id = autoVenueId;
   const { data, error } = await actor.db
     .from("event_listings")
     .update({ ...patch, locked_fields: locked, updated_at: actor.now.toISOString() })
@@ -424,12 +430,14 @@ export async function updateEvent(
   if (error || !data) return err(dbFailure("edição", error));
   const diff: Record<string, { from: unknown; to: unknown }> = {};
   for (const c of formChanged) diff[c] = { from: before[c], to: next[c] };
-  if (venueChanged) diff.venue_id = { from: before.venue_id, to: explicitVenue };
+  if (venueChosen) diff.venue_id = { from: before.venue_id, to: explicitVenue };
   await record(actor, "event.update", id, {
     changed,
     diff,
     locked_fields: locked,
-    ...(autoVenueId !== null ? { venue_id_auto: autoVenueId } : {}),
+    ...(autoVenueId !== undefined
+      ? { venue_id_auto: { from: before.venue_id, to: autoVenueId } }
+      : {}),
   });
   return ok({ id, slug: data.slug, changed });
 }

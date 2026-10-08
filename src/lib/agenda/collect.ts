@@ -181,21 +181,22 @@ async function collectSource(source: AgendaSource, ctx: RunCtx): Promise<SourceR
 }
 
 /**
- * Vínculo com o lugar do Guia (ARD-T3): só evento sem `venueId` e sem `venue_id` travado pela
- * redação; casamento pelo local final (depois de travas e confirmação). Lugares lidos uma vez;
- * falha na leitura não derruba a coleta (segue sem vínculo).
+ * Vínculo com o lugar do Guia (ARD-T3): `venue_id` sem trava é sempre derivado do local final
+ * (depois de travas e confirmação), então é recalculado a cada gravação — troca de lugar ou fica
+ * nulo quando nada casa. Travado pela redação, fica como está. Lugares lidos uma vez; sem leitor
+ * ou com falha na leitura, mantém o guardado (a coleta segue).
  */
 async function linkVenues(
   events: NormalizedEvent[],
   stored: readonly StoredCollected[],
   load: (() => Promise<VenueCandidate[]>) | undefined,
 ): Promise<NormalizedEvent[]> {
-  if (!load || !events.some((e) => e.venueId === null)) return events;
+  if (!load || events.length === 0) return events;
   let venues: VenueCandidate[];
   try {
     venues = await load();
   } catch (e) {
-    console.warn("agenda: lugares do Guia indisponíveis, coleta segue sem vínculo", {
+    console.warn("agenda: lugares do Guia indisponíveis, vínculos guardados mantidos", {
       message: e instanceof Error ? e.message : String(e),
     });
     return events;
@@ -204,9 +205,7 @@ async function linkVenues(
     stored.filter((s) => s.lockedFields.includes("venue_id")).map((s) => s.dedupeKey),
   );
   return events.map((e) =>
-    e.venueId === null && !locked.has(e.dedupeKey)
-      ? { ...e, venueId: matchVenue(e.venue, venues) }
-      : e,
+    locked.has(e.dedupeKey) ? e : { ...e, venueId: matchVenue(e.venue, venues) },
   );
 }
 

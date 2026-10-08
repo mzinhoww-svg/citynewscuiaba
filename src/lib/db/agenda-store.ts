@@ -197,13 +197,12 @@ export function createAgendaStore(db: DbClient) {
       return rows.length;
     },
 
-    /** Lugares ativos do Guia para o vínculo `venue_id` (uma leitura por execução). */
+    /**
+     * Lugares ativos do Guia para o vínculo `venue_id` (uma leitura por execução): o mesmo
+     * conjunto do Estúdio (`agenda_venue_candidates`, migration 0204).
+     */
     async activeVenues(): Promise<VenueCandidate[]> {
-      const { data, error } = await db
-        .from("venues")
-        .select("id, name, status")
-        .eq("status", "active")
-        .limit(5000);
+      const { data, error } = await db.rpc("agenda_venue_candidates");
       if (error) throw new Error(`agenda activeVenues: ${error.message}`);
       return data ?? [];
     },

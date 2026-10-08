@@ -49,8 +49,8 @@ export type StoredEvent = {
  * linha: vem sempre da coleta, mesmo com título, data ou local travados. Imagem: uma por evento —
  * sem trava, a já guardada fica (a coleta não troca); com `media_id` travado, vale a da redação
  * (inclusive nenhuma) e a coleta nem tenta registrar outra (`imageUrl` nulo). Lugar do Guia
- * (`venue_id`): o guardado vence o da coleta (a coleta nunca limpa nem troca o vínculo); travado,
- * vale o da redação, inclusive nenhum.
+ * (`venue_id`): aqui o guardado fica (sem os lugares carregados, nada muda); travado, vale o da
+ * redação, inclusive nenhum. Sem trava, `collectAgenda` recalcula depois (`linkVenues`).
  */
 export function mergeForSave(
   incoming: NormalizedEvent,

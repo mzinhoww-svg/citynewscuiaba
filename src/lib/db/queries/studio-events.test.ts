@@ -102,14 +102,14 @@ function fakeDb(row: StoredStudioEvent | null) {
         return b;
       },
       maybeSingle: () => Promise.resolve(result()),
-      // Lugares do Guia (vínculo automático): nenhum cadastrado neste cliente falso.
-      limit: () => Promise.resolve({ data: [], error: null }),
     };
     return b;
   }
   const db = {
     from: (table: string) => builder(table),
     rpc: (fn: string, args: Record<string, unknown>) => {
+      // Candidatos do Guia (vínculo automático): nenhum lugar neste cliente falso.
+      if (fn === "agenda_venue_candidates") return Promise.resolve({ data: [], error: null });
       rpcs.push({ fn, args });
       return Promise.resolve({ data: null, error: null });
     },
@@ -273,7 +273,6 @@ describe("erros do banco", () => {
       select: () => b,
       eq: () => b,
       maybeSingle: () => Promise.resolve({ data: null, error }),
-      limit: () => Promise.resolve({ data: [], error: null }),
     };
     return {
       from: () => b,

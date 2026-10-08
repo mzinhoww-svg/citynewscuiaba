@@ -5369,6 +5369,10 @@ export type Database = {
         };
         Returns: boolean;
       };
+      agenda_venue_candidates: {
+        Args: never;
+        Returns: { id: string; name: string; status: string }[];
+      };
       ai_cost_daily: {
         Args: { p_since: string };
         Returns: {
