@@ -499,3 +499,10 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 | C4-03 segredos derivados | Parcial: aviso no log de produção. Tirar o fallback para `CRON_SECRET` está BLOQUEADO até o dono criar `NEWSLETTER_TOKEN_SECRET` e `RATE_LIMIT_SALT` na Vercel (B-033); sem isso, links e formulários quebrariam |
 | C4-04 backup | Corrigido: `backup.yml` exige `BACKUP_PASSPHRASE` sempre e só publica `.gpg`. Sem o secret o backup não roda (B-010/B-033) |
 | C4-05 credenciais locais | Sem ação de código: só valores locais e de CI, que o próprio achado classifica como aceitáveis; o placeholder agora é recusado (C4-02) |
+
+**Produção (08/10/2026, B-009):** 0188 aplicada depois do merge do PR #77. O conector segura SQL com `drop` (B-029), então a versão aplicada troca `drop policy if exists` + `create policy` por `alter policy` (as três políticas já existiam com o mesmo comando e papel) e o `drop constraint if exists` + `add constraint` por um bloco que só cria a constraint se ela faltar. Mesmo estado final do arquivo. Antes de aplicar, os corpos de `contingency_pause_cycle`, `prompt_rollback` e `rules_rollback` em produção foram comparados com os da migration: só a guarda de uid nulo muda. Conferido depois: `anon` sem leitura de `embedding`; portal, Guia e busca respondendo 200.
+
+## A-219 · Migrations de 08/10 em produção (D-06 e B-022)
+
+**Status:** vigente (B-009). 0187 (PR #75): `anon` sem `publish_mode`, `agent_id` e `confidence`; coluna derivada `urgent_strip` para a faixa Urgente. A lista de colunas do grant foi conferida contra a de produção antes de aplicar. 0189 (PR #76): views e cliques do card nativo, view `public_sponsored_campaigns` e `ad_track` para campanha; `sponsored_native_enabled` segue desligada.
+
