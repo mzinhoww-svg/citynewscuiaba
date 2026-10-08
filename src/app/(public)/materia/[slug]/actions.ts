@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { publicContentExists } from "@/lib/db/queries";
 import { hitRateLimit, saveReport } from "@/lib/db/writes";
 import {
   REPORT_LIMIT,
@@ -23,5 +24,6 @@ export async function reportProblemAction(
         ? Promise.resolve(ok(false))
         : hitRateLimit("report", key, REPORT_LIMIT, REPORT_WINDOW_SECONDS),
     save: saveReport,
+    exists: publicContentExists,
   });
 }

@@ -64,11 +64,24 @@ function parsePrice(raw: string): number | null {
   return Number(reais) * 100 + Number(cents.padEnd(2, "0"));
 }
 
+/**
+ * Sem caracteres de controle (C5-01): a descrição guarda quebras como LF; os campos de uma
+ * linha trocam a quebra por espaço. O .ics e as telas recebem só texto.
+ */
+function clean(field: SubmitField, raw: string): string {
+  const text = field === "description" ? raw.replace(/\r\n?/g, "\n") : raw.replace(/[\r\n]+/g, " ");
+
+  return text.replace(
+    field === "description" ? /[\u0000-\u0009\u000b-\u001f\u007f]/g : /[\u0000-\u001f\u007f]/g,
+    "",
+  );
+}
+
 const emailSchema = z.string().trim().toLowerCase().pipe(z.email().max(254));
 
 export async function submitEvent(form: FormData, deps: SubmitDeps): Promise<SubmitState> {
   const values: Partial<Record<SubmitField, string>> = {};
-  for (const f of SUBMIT_FIELDS) values[f] = String(form.get(f) ?? "").slice(0, 2000);
+  for (const f of SUBMIT_FIELDS) values[f] = clean(f, String(form.get(f) ?? "").slice(0, 2000));
   const v = (f: SubmitField) => (values[f] ?? "").trim();
   if (String(form.get(SUBMIT_HONEYPOT) ?? "").trim() !== "") {
     return { status: "success", message: SUGGEST.success, errors: {}, values: {} };

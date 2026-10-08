@@ -11,7 +11,7 @@ vi.mock("@/lib/db/source-logo-run", () => ({
 
 import { POST } from "./route";
 
-const call = (qs = "", auth: string | null = "Bearer segredo") =>
+const call = (qs = "", auth: string | null = "Bearer segredo-de-teste-da-rota-logos-32+") =>
   POST(
     new Request(`http://x/api/ingest/source-logos${qs}`, {
       method: "POST",
@@ -20,7 +20,7 @@ const call = (qs = "", auth: string | null = "Bearer segredo") =>
   );
 
 beforeEach(() => {
-  vi.stubEnv("CRON_SECRET", "segredo");
+  vi.stubEnv("CRON_SECRET", "segredo-de-teste-da-rota-logos-32+");
   run.mockReset().mockResolvedValue({ processed: [], pending: 0 });
   last.mockReset().mockResolvedValue(null);
 });

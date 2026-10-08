@@ -475,3 +475,27 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 ## A-217 · Vercel e Supabase sem pedido de aprovação ao dono (08/10/2026)
 
 **Status:** vigente. O dono disse: "eu não quero mais aprovar nada de Vercel ou Supabase, você tem autorização e permissão para seguir sozinho". `.claude/settings.json` libera as ferramentas `mcp__Vercel` e `mcp__Supabase`. Continuam pedindo confirmação só os casos que a lista fechada do CLAUDE.md reserva ao dono: compra ou transferência de domínio, criar ou pausar projeto, e branches do Supabase (que custam). Exclusão de dado de produção continua fora (B-029). As migrations em produção seguem registradas aqui (B-009).
+
+## A-218 · Segurança, segunda rodada (08/10/2026)
+
+**Status:** vigente. Fecha os achados P2/P3 da auditoria de 04/10/2026 (`docs/security-audit/achados.json`) que a spec `2026-10-04-seguranca-p1-design.md` adiou: são 16 (C1-04 a C1-08, C2-01 a C2-03, C3-02, C3-03, C4-02 a C4-05, C5-01, C5-02), mais a política `audit_log_insert`. Branch `claude/seguranca-rodada-2`, migration `0188_seguranca_rodada_2.sql` (aditiva e idempotente, não aplicada em produção). Testes em `tests/security/rodada2.test.ts` e ao lado de cada arquivo.
+
+| Achado | Resultado |
+|---|---|
+| C5-01 ICS | Corrigido: `src/lib/ics.ts` escapa `;`, trata CR sozinho e remove controles; `src/lib/agenda/submission.ts` limpa controles na entrada |
+| C5-02 CSV | Corrigido: `SourceAuditTable.tsx` prefixa `'` em célula que começa com `= + - @ tab CR` |
+| C3-02 prévia de mídia | Corrigido: `src/lib/media/preview-access.ts` + rota `/api/estudio/midia/[id]` (media.approve no escopo, ou article.edit sem bloqueada) |
+| C1-05 oráculo de papéis | Corrigido na 0188: `has_role`, `is_staff`, `has_any_role`, `push_can`, `article_owner`, `article_section` só respondem sobre outra conta para equipe ou sistema (`role_lookup_allowed`). Não revogamos EXECUTE porque as políticas RLS rodam como quem consulta |
+| C1-04 colunas de articles | Parcial: anon perde `embedding`, `tsv`, `scheduled_for`. Resíduo técnico: anon ainda lê `publish_mode`, `confidence_score`, `agent_id`, `author_id`, `ai_summary_reviewed_by` (o portal os seleciona) e `authenticated` lê todas as colunas (a equipe usa a mesma role); fechar exige servir o portal por view e o Estúdio por funções |
+| C1-06 events e profiles | Corrigido: `events` cru só admin, analista, operador_ia; o painel de recomendação lê agregados (`rec_events_summary`, `rec_return_7d` viram security definer com `control_can_view`); perfil de leitor só editor-chefe, moderador e admin |
+| C1-07 | Corrigido: `approval_target_hash` (só equipe/sistema), `lock_fast_lane_max` (só em gatilho), `push_settings_int` (só as 3 chaves numéricas) |
+| C1-08 | Corrigido: `approval_assert_content` e `staff_invite_accept` revogadas de authenticated; `control_guard_view`, `contingency_pause_cycle`, `prompt_rollback`, `rules_rollback` recusam JWT sem `sub` fora do service role (`caller_is_system`); teste de allowlist das funções security definer executáveis por anon. `consume_source_critical_approval` fica (chamada por função invoker; já devolve nulo fora de gatilho) |
+| audit_log_insert | Corrigido: só `source.*`, papel de source.manage, tamanhos limitados |
+| C2-01 bairro | Corrigido: `perfil/actions.ts` lê o bairro gravado do banco; constraint `profiles_neighborhood_len` (`not valid`) |
+| C2-02 recibo de push | Corrigido: `push_receipt_hit` limita delivered e clicked a `sent_measurable_n` (recibo segue sem id de inscrição) |
+| C2-03 push urgente | Corrigido: `publishAction` reconfere `canRequestUrgent` antes de publicar |
+| C3-03 denúncia | Corrigido: `publicContentExists` (leitura anônima) antes de gravar |
+| C4-02 CRON_SECRET | Corrigido: `isCronAuthorized` recusa placeholder e segredo com menos de 32 caracteres; `src/instrumentation.ts` avisa no log. Conferir o segredo de produção antes do deploy (B-033) |
+| C4-03 segredos derivados | Parcial: aviso no log de produção. Tirar o fallback para `CRON_SECRET` está BLOQUEADO até o dono criar `NEWSLETTER_TOKEN_SECRET` e `RATE_LIMIT_SALT` na Vercel (B-033); sem isso, links e formulários quebrariam |
+| C4-04 backup | Corrigido: `backup.yml` exige `BACKUP_PASSPHRASE` sempre e só publica `.gpg`. Sem o secret o backup não roda (B-010/B-033) |
+| C4-05 credenciais locais | Sem ação de código: só valores locais e de CI, que o próprio achado classifica como aceitáveis; o placeholder agora é recusado (C4-02) |

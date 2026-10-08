@@ -58,7 +58,13 @@ test("o sino aparece em todas as páginas do Estúdio e do admin, e marcar como 
     "href",
     "/estudio/control/aprovacoes",
   );
+  // A marcação é otimista: espera o servidor gravar antes de recarregar (no WebKit o reload cancela
+  // o POST em voo, e com o contador em 99+ a checagem abaixo não espera nada).
+  const saved = page.waitForResponse(
+    (r) => r.url().endsWith("/api/estudio/notificacoes/ler") && r.request().method() === "POST",
+  );
   await panel.getByRole("button", { name: `Marcar como lida: ${title}` }).click();
+  expect((await saved).ok()).toBe(true);
   await expect(panel.getByRole("button", { name: `Marcar como lida: ${title}` })).toHaveCount(0);
   if (countBefore < 99)
     await expect(page.getByTestId("bell-count")).not.toHaveText(String(countBefore));

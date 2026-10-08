@@ -490,6 +490,31 @@ describe("E06 · publicar com Push urgente (§10.7)", () => {
     await service.from("articles").delete().eq("id", id);
   });
 
+  it("C2-03: editor sem urgente é recusado na própria ação, antes de publicar", async () => {
+    await service.from("articles").update({ section_slug: "cidade" }).eq("id", id);
+    try {
+      const r = await asUser("otavio", () =>
+        publishAction(1, {
+          id,
+          when: "now",
+          destinations: ["home"],
+          push: { justification: "Alerta forjado" },
+        }),
+      );
+      expect(r).toEqual({ ok: false, message: "Sua conta não tem permissão para esta ação." });
+      expect(
+        (await service.from("articles").select("status").eq("id", id).single()).data?.status,
+      ).toBe("in_review");
+      const { data: sends } = await service.from("push_sends").select("id").eq("article_id", id);
+      expect(sends).toEqual([]);
+    } finally {
+      await service
+        .from("articles")
+        .update({ section_slug: "cultura", status: "in_review" })
+        .eq("id", id);
+    }
+  });
+
   it("sem justificativa é recusado antes de publicar; com justificativa publica, cria e aprova o pedido (A-128); despublicar cancela", async () => {
     const refused = await asUser("marina", () =>
       publishAction(1, { id, when: "now", destinations: ["home"], push: { justification: "  " } }),

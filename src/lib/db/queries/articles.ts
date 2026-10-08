@@ -651,6 +651,31 @@ export async function getArticleHistory(
   });
 }
 
+/**
+ * O conteúdo de uma denúncia (`article|event|topic|aggregated:<uuid>`) existe e está no ar? Lido
+ * com a chave anônima: público é o que o portal mostra (C3-03).
+ */
+export async function publicContentExists(ref: string): Promise<Result<boolean, QueryError>> {
+  const m = /^(article|event|topic|aggregated):([0-9a-f-]{36})$/.exec(ref);
+  if (!m) return { ok: true, value: false };
+  const [, kind, id] = m as unknown as [string, string, string];
+  return readPublic(async (db) => {
+    const q =
+      kind === "article"
+        ? db
+            .from("articles")
+            .select("id")
+            .eq("id", id)
+            .in("status", [...PUBLIC_STATUSES])
+        : kind === "event"
+          ? db.from("event_listings").select("id").eq("id", id)
+          : kind === "topic"
+            ? db.from("topics").select("id").eq("id", id)
+            : db.from("public_aggregated").select("id").eq("id", id);
+    return (await q.maybeSingle().then(one)) !== null;
+  });
+}
+
 /** id da matéria pública pelo slug (direito de resposta); null se não existe ou saiu do ar. */
 export async function findPublicArticleId(
   slug: string,

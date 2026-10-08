@@ -34,7 +34,23 @@ it("evento que termina depois da meia-noite local mantém o dia seguinte", () =>
 it("sem fim, dura 2 horas; texto escapado", () => {
   const ics = toIcs({ ...base, endsAt: undefined, title: "Show; rock, blues\nnovo" });
   expect(ics).toContain("DTEND;TZID=America/Cuiaba:20261003T220000");
-  expect(ics).toContain("SUMMARY:Show\; rock\\, blues\\nnovo");
+  expect(ics).toContain("SUMMARY:Show\\; rock\\, blues\\nnovo");
+});
+
+it("C5-01: ponto e vírgula escapado e CR sozinho não injeta propriedade nem evento", () => {
+  const ics = toIcs({
+    ...base,
+    title: "a;b\rX:1",
+    venue: "Praça\r\nATTACH:https://mal",
+    description: "fim\rEND:VEVENT\rBEGIN:VEVENT\u0000\u0007",
+  });
+  expect(ics).toContain("SUMMARY:a\\;b\\nX:1");
+  expect(ics).toContain("LOCATION:Praça\\nATTACH:https://mal");
+  expect(ics).toContain("DESCRIPTION:fim\\nEND:VEVENT\\nBEGIN:VEVENT");
+  // Nenhum CR fora do terminador CRLF, nenhum caractere de controle e um único VEVENT.
+  expect(ics.replace(/\r\n/g, "")).not.toMatch(/[\u0000-\u001f\u007f]/);
+  expect(ics.match(/^BEGIN:VEVENT$/gm)).toHaveLength(1);
+  expect(ics.split("\r\n").filter((l) => l.startsWith("ATTACH"))).toHaveLength(0);
 });
 
 it("link do Google Agenda com horário UTC", () => {

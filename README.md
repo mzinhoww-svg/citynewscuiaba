@@ -103,6 +103,6 @@ Secrets (Settings → Secrets and variables → Actions). Sem eles, o watchdog e
 | `SUPABASE_URL` | watchdog | `https://vmvirmemxfdtxfdmivuu.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | watchdog | Service role do `citynews-prod` (leitura de `ingest_runs` via REST) |
 | `SUPABASE_DB_URL` | backup | String de conexão do Postgres de produção. Use a do **session pooler** (`aws-0-sa-east-1.pooler.supabase.com:5432`): a conexão direta `db.<ref>.supabase.co` é só IPv6 e os runners do GitHub não têm IPv6 |
-| `BACKUP_PASSPHRASE` | backup | Senha para cifrar o dump com gpg (AES-256). Obrigatória em repositório público, porque artifacts de repositório público podem ser baixados por qualquer conta do GitHub e o dump inclui `auth.users` |
+| `BACKUP_PASSPHRASE` | backup | Senha para cifrar o dump com gpg (AES-256). Obrigatória: sem ela o backup não roda, em repositório público ou privado, porque o dump inclui `auth.users` e o artifact é baixável por quem lê o repositório (C4-04) |
 
 Restaurar: baixe o artifact, `gpg -d arquivo.dump.gpg > arquivo.dump` (se cifrado) e `pg_restore --no-owner -d "$DB_URL" arquivo.dump`.

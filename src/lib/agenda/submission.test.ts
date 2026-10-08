@@ -112,3 +112,24 @@ it("honeypot finge sucesso sem gravar; limite recusa com mensagem clara", async 
   expect(limited.status).toBe("rate_limited");
   expect(limited.message).toMatch(/limite de 5 envios por hora/);
 });
+
+it("C5-01: controles saem do título e do local; quebra da descrição vira LF", async () => {
+  const d = deps();
+  const r = await submitEvent(
+    form({
+      ...valid,
+      title: "Feira\rEND:VEVENT",
+      venue: "Sesc\u0000 Arsenal",
+      description: "linha 1\r\nlinha 2\rATTACH:x",
+    }),
+    d,
+  );
+  expect(r.status).toBe("success");
+  expect(d.save).toHaveBeenCalledWith(
+    expect.objectContaining({
+      title: "Feira END:VEVENT",
+      venue: "Sesc Arsenal",
+      description: "linha 1\nlinha 2\nATTACH:x",
+    }),
+  );
+});

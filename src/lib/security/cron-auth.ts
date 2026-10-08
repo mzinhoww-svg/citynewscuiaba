@@ -1,15 +1,17 @@
 import "server-only";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { cronSecretProblem } from "./env-check";
 
 const digest = (s: string): Buffer => createHash("sha256").update(s, "utf8").digest();
 
 /**
  * Rotas de cron e worker exigem `Authorization: Bearer ${CRON_SECRET}` (CLAUDE.md §8).
  * Compara resumos SHA-256 de tamanho fixo com `timingSafeEqual`: o tempo não revela o segredo
- * nem o tamanho dele. Sem segredo configurado, recusa tudo (falha fechado).
+ * nem o tamanho dele. Sem segredo configurado, com o valor de exemplo do `.env.example` ou com
+ * menos de 32 caracteres, recusa tudo (falha fechado, C4-02).
  */
 export function isCronAuthorized(header: string | null, secret: string | undefined): boolean {
-  if (!secret) return false;
+  if (!secret || cronSecretProblem(secret) !== null) return false;
   const match = /^Bearer (.+)$/.exec(header ?? "");
   const token = match?.[1] ?? "";
   const equal = timingSafeEqual(digest(token), digest(secret));
