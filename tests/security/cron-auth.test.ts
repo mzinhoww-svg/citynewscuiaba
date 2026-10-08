@@ -143,6 +143,8 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/alertas",
     "/api/alertas/novidades",
     "/api/ask",
+    // Erro do navegador na tela "Algo deu errado": só log, 4 KB no máximo, 10 por IP a cada 10 min.
+    "/api/client-error",
     "/api/editoria/[slug]/novas",
     "/api/events",
     "/api/fontes/onboarding",
