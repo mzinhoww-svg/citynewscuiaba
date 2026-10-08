@@ -1,0 +1,54 @@
+{
+  "events": [
+    {
+      "id": 101,
+      "title": "Sarau da Casa Exemplo, 19h",
+      "url": "https://eventos-cerrado.example/evento/sarau-da-casa/",
+      "all_day": false,
+      "start_date": "2026-10-09 19:00:00",
+      "end_date": "2026-10-09 21:30:00",
+      "timezone": "America/Cuiaba",
+      "cost": "",
+      "cost_details": { "currency_symbol": "R$", "values": [] },
+      "venue": {
+        "venue": "Casa Exemplo",
+        "address": "Rua das Flores, 100",
+        "city": "Cuiabá"
+      },
+      "categories": [{ "name": "Música", "slug": "musica" }]
+    },
+    {
+      "id": 102,
+      "title": "Feira Livre do Cerrado",
+      "url": "https://eventos-cerrado.example/evento/feira-livre/",
+      "all_day": true,
+      "start_date": "2026-10-11 00:00:00",
+      "end_date": "2026-10-11 23:59:59",
+      "timezone": "America/Cuiaba",
+      "cost": "Gratuito",
+      "cost_details": { "currency_symbol": "R$", "values": [] },
+      "venue": [],
+      "categories": []
+    },
+    {
+      "id": 103,
+      "title": "Oficina de Cerâmica - 14h30",
+      "url": "https://eventos-cerrado.example/evento/oficina-ceramica/",
+      "all_day": false,
+      "start_date": "2026-10-12 14:30:00",
+      "end_date": "2026-10-12 17:00:00",
+      "timezone": "America/Cuiaba",
+      "cost": "R$ 50,00",
+      "cost_details": { "currency_symbol": "R$", "values": ["50"] },
+      "venue": {
+        "venue": "Ateliê Exemplo",
+        "address": "Av. Modelo, 45",
+        "city": "Várzea Grande"
+      },
+      "categories": [{ "name": "Oficinas", "slug": "oficinas" }]
+    }
+  ],
+  "next_rest_url": "https://eventos-cerrado.example/wp-json/tribe/events/v1/events/?page=2&per_page=50",
+  "total": 120,
+  "total_pages": 3
+}

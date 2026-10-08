@@ -5,6 +5,7 @@ import { extractIcal } from "./extract/ical";
 import { extractJsonLd } from "./extract/jsonld";
 import { extractRss } from "./extract/rss";
 import { extractSympla } from "./extract/sympla";
+import { extractTribe } from "./extract/tribe";
 import { dedupeKeyOf, normalizeEvent } from "./normalize";
 import type { AgendaSource, NormalizedEvent, RawEvent, RejectReason } from "./types";
 
@@ -53,6 +54,7 @@ export interface CollectReport {
 const ACCEPT: Record<AgendaSource["kind"], string> = {
   jsonld: "text/html, application/xhtml+xml;q=0.9, */*;q=0.1",
   sympla: "text/html, application/xhtml+xml;q=0.9, */*;q=0.1",
+  tribe: "application/json",
   ical: "text/calendar, text/plain;q=0.8, */*;q=0.1",
   rss: "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.9, */*;q=0.1",
 };
@@ -67,6 +69,8 @@ function extract(source: AgendaSource, body: string, now: Date): RawEvent[] {
       return extractRss(body, now);
     case "sympla":
       return extractSympla(body);
+    case "tribe":
+      return extractTribe(body).events;
   }
 }
 

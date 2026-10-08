@@ -5,6 +5,7 @@ import { extractIcal } from "./ical";
 import { extractJsonLd } from "./jsonld";
 import { extractRss } from "./rss";
 import { extractSympla } from "./sympla";
+import { extractTribe } from "./tribe";
 
 const read = (rel: string) => readFileSync(join(process.cwd(), "tests/fixtures", rel), "utf8");
 const NOW = new Date("2026-10-03T15:00:00Z");
@@ -102,5 +103,56 @@ describe("extractSympla", () => {
   });
   it("devolve vazio para página sem a lista", () => {
     expect(extractSympla("<html></html>")).toEqual([]);
+  });
+});
+
+describe("extractTribe", () => {
+  const { events, next } = extractTribe(read("sites/eventos-cerrado-tribe.json"));
+  it("tira o sufixo de hora do título e converte a data", () => {
+    expect(events[0]).toMatchObject({
+      title: "Sarau da Casa Exemplo",
+      start: "2026-10-09T19:00",
+      end: "2026-10-09T21:30",
+      venue: "Casa Exemplo",
+      address: "Rua das Flores, 100",
+      city: "Cuiabá",
+      url: "https://eventos-cerrado.example/evento/sarau-da-casa/",
+      category: "Música",
+    });
+    expect(events[2]?.title).toBe("Oficina de Cerâmica");
+  });
+  it("dia inteiro vira só data e local ausente (array vazio) não quebra", () => {
+    expect(events[1]).toMatchObject({ title: "Feira Livre do Cerrado", start: "2026-10-11" });
+    expect(events[1]?.end ?? null).toBeNull();
+    expect(events[1]?.venue ?? null).toBeNull();
+  });
+  it("preço: vazio ausente, Gratuito 0, R$ em centavos", () => {
+    expect(events[0]?.priceCents ?? null).toBeNull();
+    expect(events[1]?.priceCents).toBe(0);
+    expect(events[2]?.priceCents).toBe(5000);
+  });
+  it("devolve next_rest_url", () => {
+    expect(next).toBe(
+      "https://eventos-cerrado.example/wp-json/tribe/events/v1/events/?page=2&per_page=50",
+    );
+  });
+  it("JSON inválido ou sem eventos devolve vazio", () => {
+    expect(extractTribe("{nao e json")).toEqual({ events: [], next: null });
+    expect(extractTribe("[]")).toEqual({ events: [], next: null });
+    expect(extractTribe('{"events":[]}')).toEqual({ events: [], next: null });
+  });
+  it("só tira sufixo de hora no fim; o resto do título fica", () => {
+    const body = JSON.stringify({
+      events: [
+        { title: "Show 2h de Rock, 20h", start_date: "2026-10-09 20:00:00" },
+        { title: "Noite 19h30 Especial", start_date: "2026-10-09 19:30:00" },
+        { title: "Baile, 21h30", start_date: "2026-10-09 21:30:00" },
+      ],
+    });
+    expect(extractTribe(body).events.map((e) => e.title)).toEqual([
+      "Show 2h de Rock",
+      "Noite 19h30 Especial",
+      "Baile",
+    ]);
   });
 });

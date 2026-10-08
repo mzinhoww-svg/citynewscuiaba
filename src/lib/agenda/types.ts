@@ -15,7 +15,7 @@ export interface RawEvent {
   category?: string | null;
 }
 
-export type SourceKind = "jsonld" | "ical" | "rss" | "sympla";
+export type SourceKind = "jsonld" | "ical" | "rss" | "sympla" | "tribe";
 
 /** Fonte de eventos configurável (docs/agenda-collector.md). */
 export interface AgendaSource {
