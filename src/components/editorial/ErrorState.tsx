@@ -31,12 +31,18 @@ export function ErrorState({ digest, reset }: ErrorStateProps) {
           <Button
             size="md"
             icon="refresh-cw"
-            onClick={() =>
+            onClick={() => {
+              // Sem código = falha no navegador (quase sempre versão antiga da página contra
+              // arquivos novos de um deploy): só recarregar de verdade resolve.
+              if (!digest) {
+                window.location.reload();
+                return;
+              }
               startTransition(() => {
                 router.refresh();
                 reset();
-              })
-            }
+              });
+            }}
           >
             {SYSTEM.retry}
           </Button>
