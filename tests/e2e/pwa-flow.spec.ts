@@ -81,6 +81,9 @@ async function seedSend(): Promise<{ id: string; slug: string; tagValue: string 
       audience: { type: "targets" },
       status: "dispatching",
       started_at: new Date().toISOString(),
+      // O push do teste não passa pelo despacho: conta como entregue a inscrições com Métricas
+      // (o recibo não passa de `sent_measurable_n`, C2-02).
+      sent_measurable_n: 5,
     })
     .select("id")
     .single();

@@ -480,6 +480,7 @@ describe("recibos e retenção", () => {
     const NOW = "2026-09-28T15:00:00Z";
     const old = await insertSend({ kind: "urgent", startedAt: "2026-09-20T15:00:00Z" });
     const recent = await insertSend({ kind: "urgent", startedAt: "2026-09-28T14:00:00Z" });
+    await service.from("push_sends").update({ sent_measurable_n: 1 }).eq("id", recent);
     const r1 = await service.rpc("push_receipt_hit", {
       p_send: old,
       p_event: "clicked",
@@ -519,6 +520,45 @@ describe("recibos e retenção", () => {
       p_now: NOW,
     });
     expect(bad.data).toBe(false);
+  });
+
+  it("C2-02: recibos não passam do número de entregas mensuráveis do envio", async () => {
+    const NOW = "2026-09-28T15:00:00Z";
+    const send = await insertSend({ kind: "urgent", startedAt: "2026-09-28T14:00:00Z" });
+    await service.from("push_sends").update({ sent_measurable_n: 2 }).eq("id", send);
+    const hit = async (event: "delivered" | "clicked", browser: string) =>
+      (
+        await service.rpc("push_receipt_hit", {
+          p_send: send,
+          p_event: event,
+          p_device: "mobile",
+          p_browser: browser,
+          p_now: NOW,
+        })
+      ).data;
+    const delivered = [];
+    for (const b of ["chrome", "safari", "firefox", "chrome"])
+      delivered.push(await hit("delivered", b));
+    expect(delivered).toEqual([true, true, false, false]);
+    const clicked = [];
+    for (const b of ["chrome", "chrome", "safari"]) clicked.push(await hit("clicked", b));
+    expect(clicked).toEqual([true, true, false]);
+    const { data } = await service
+      .from("push_send_counters")
+      .select("delivered, clicked")
+      .eq("send_id", send);
+    const sum = (k: "delivered" | "clicked") => (data ?? []).reduce((n, r) => n + r[k], 0);
+    expect([sum("delivered"), sum("clicked")]).toEqual([2, 2]);
+    // Envio sem entrega mensurável não recebe recibo nenhum.
+    const none = await insertSend({ kind: "urgent", startedAt: "2026-09-28T14:00:00Z" });
+    const r = await service.rpc("push_receipt_hit", {
+      p_send: none,
+      p_event: "delivered",
+      p_device: "mobile",
+      p_browser: "chrome",
+      p_now: NOW,
+    });
+    expect(r.data).toBe(false);
   });
 
   it("retenção: entregas > 30 dias e inscrições sem visita há 180 dias", async () => {

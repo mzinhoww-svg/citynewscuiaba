@@ -69,13 +69,22 @@ describe("preferências do leitor (I2)", () => {
     expect(r.data?.migrated_from_anon).toBe(ANON);
   });
 
-  it("equipe `leitura` vê o perfil público, mas não preferências nem id anônimo", async () => {
-    const row = await paulo.from("profiles").select("*").eq("id", userId).single();
+  it("equipe `leitura` não lê o perfil do leitor (C1-06), nem preferências nem id anônimo", async () => {
+    const row = await paulo.from("profiles").select("*").eq("id", userId);
+    expect(row.error).toBeNull();
+    expect(row.data).toEqual([]);
+    const prefs = await paulo.from("reader_preferences").select("*").eq("user_id", userId);
+    expect(prefs.data ?? []).toEqual([]);
+  });
+
+  it("quem atende leitor (moderador) vê o perfil público, mas não preferências nem id anônimo", async () => {
+    const carlos = await as("carlos.nunes@citynews.local");
+    const row = await carlos.from("profiles").select("*").eq("id", userId).single();
     expect(row.error).toBeNull();
     expect(row.data?.display_name).toBe("Leitora");
     expect(row.data).not.toHaveProperty("preferences");
     expect(row.data).not.toHaveProperty("migrated_from_anon");
-    const prefs = await paulo.from("reader_preferences").select("*").eq("user_id", userId);
+    const prefs = await carlos.from("reader_preferences").select("*").eq("user_id", userId);
     expect(prefs.data ?? []).toEqual([]);
   });
 
