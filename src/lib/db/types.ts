@@ -818,6 +818,7 @@ export type Database = {
           tsv: unknown;
           updated_at: string;
           urgent: boolean;
+          urgent_strip: boolean;
           studio_snapshot: Json | null;
         };
         Insert: {
@@ -861,6 +862,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           urgent?: boolean;
+          urgent_strip?: never;
         };
         Update: {
           agent_id?: string | null;
@@ -903,6 +905,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           urgent?: boolean;
+          urgent_strip?: never;
         };
         Relationships: [
           {

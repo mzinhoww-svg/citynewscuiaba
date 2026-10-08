@@ -57,11 +57,8 @@ describe("queries públicas (P1-T1)", () => {
   it("matéria normalizada tem rótulos, fontes com link e histórico", async () => {
     const r = value(await getArticleBySlug("prefeitura-detalha-novo-plano-de-onibus-cpa-centro"));
     if (!r || "gone" in r) throw new Error("esperava matéria");
-    expect(r.labels.shown.map((l) => l.kind)).toEqual([
-      "normalized",
-      "ai_summary",
-      "human_reviewed",
-    ]);
+    // Sem `human_reviewed`: o modo de publicação não sai da chave anônima (D-06, 0187).
+    expect(r.labels.shown.map((l) => l.kind)).toEqual(["normalized", "ai_summary"]);
     expect(r.labels.shown[0]!.detail).toBe("4 fontes");
     expect(r.sources[0]!.role).toBe("primary");
     expect(r.sources.every((s) => s.url.startsWith("https://"))).toBe(true);
