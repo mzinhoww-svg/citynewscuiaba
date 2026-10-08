@@ -11,13 +11,15 @@ const NOTE_MAX = 400;
  * Texto das listas no banco (service role, A-214). Lê as listas publicadas com os lugares na ordem
  * e grava o texto do Guia sem tocar no que o editor escreveu (`intro_auto`, `note_auto`).
  */
-export function createGuideArticleStore(db: DbClient): Pick<WriteStepDeps, "published" | "save"> {
+export function createGuideArticleStore(
+  db: DbClient,
+): Pick<WriteStepDeps, "published" | "save" | "failed"> {
   return {
     async published() {
       const { data, error } = await db
         .from("guide_lists")
         .select(
-          "id, slug, title, category, intro, intro_auto, article_signature, guide_list_items(position, venues(*))",
+          "id, slug, title, category, intro, intro_auto, article_signature, article_attempts, article_problems, guide_list_items(position, venues(*))",
         )
         .eq("status", "published")
         .order("published_at", { ascending: false })
@@ -31,16 +33,37 @@ export function createGuideArticleStore(db: DbClient): Pick<WriteStepDeps, "publ
         hasIntro: !!l.intro?.trim(),
         introAuto: l.intro_auto,
         signature: l.article_signature,
+        attempts: l.article_attempts,
+        problems: l.article_problems,
         items: (l.guide_list_items ?? []).flatMap((i) =>
           i.venues ? [{ position: i.position, venue: venueFromRow(i.venues) }] : [],
         ),
       }));
     },
 
+    async failed(listId, attempts, problems) {
+      const { error } = await db
+        .from("guide_lists")
+        .update({ article_attempts: attempts, article_problems: problems.slice(0, 20) })
+        .eq("id", listId);
+      if (error) throw new Error(`guide article round: ${error.message}`);
+      await guideSystemAudit(db, "guide.article", `guide_list:${listId}`, {
+        rejected: true,
+        round: attempts,
+        problems: problems.slice(0, 20),
+      });
+    },
+
     async save(listId, a) {
       const up = await db
         .from("guide_lists")
-        .update({ intro: a.intro, intro_auto: true, article_signature: a.signature })
+        .update({
+          intro: a.intro,
+          intro_auto: true,
+          article_signature: a.signature,
+          article_attempts: 0,
+          article_problems: [],
+        })
         .eq("id", listId)
         .or("intro.is.null,intro_auto.eq.true");
       if (up.error) throw new Error(`guide article save: ${up.error.message}`);

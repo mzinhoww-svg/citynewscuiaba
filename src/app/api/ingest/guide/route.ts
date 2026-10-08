@@ -60,7 +60,18 @@ export async function POST(req: Request): Promise<Response> {
     const out = await writeDueArticles(
       {
         ...store,
-        write: (input) => writeListArticle({ callAgent: ai.callAgent, signal: req.signal }, input),
+        // Uma tentativa por chamada: a rota tem 60 s e o modelo leva até 45 s.
+        write: (input, opts) =>
+          writeListArticle(
+            {
+              callAgent: ai.callAgent,
+              signal: req.signal,
+              attempts: 1,
+              fallback: opts.fallback,
+              previous: opts.previous,
+            },
+            input,
+          ),
         revalidate: revalidateTags,
       },
       WRITE_PER_RUN,
