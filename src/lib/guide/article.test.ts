@@ -130,6 +130,7 @@ describe("writeListArticle", () => {
   it("usa o texto do modelo quando ele passa na conferência", async () => {
     const callAgent = agent({ article: GOOD_ARTICLE, notes: NOTES });
     const a = await writeListArticle({ callAgent }, INPUT);
+    if ("failed" in a) throw new Error("esperava texto");
     expect(a.source).toBe("ai");
     expect(a.notes.v2).toBe(NOTES[1]!.note);
     const [agentId, input] = (callAgent as ReturnType<typeof vi.fn>).mock.calls[0]!;
@@ -141,10 +142,24 @@ describe("writeListArticle", () => {
     const bad = { article: `${GOOD_ARTICLE}\n\nEstivemos lá.`, notes: [] };
     const callAgent = agent(bad, "fail");
     const a = await writeListArticle({ callAgent }, INPUT);
+    if ("failed" in a) throw new Error("esperava o texto montado");
     expect(a.source).toBe("fallback");
     expect(a.problems.length).toBeGreaterThan(0);
     const second = (callAgent as ReturnType<typeof vi.fn>).mock.calls[1]![1];
     expect(second.task).toMatch(/Corrija: frase proibida/);
+  });
+
+  it("sem fallback, reprovado devolve failed; a correção da rodada anterior vai na 1ª tentativa", async () => {
+    const bad = { article: `${GOOD_ARTICLE}\n\nEstivemos lá.`, notes: [] };
+    const callAgent = agent(bad);
+    const a = await writeListArticle(
+      { callAgent, attempts: 1, fallback: false, previous: ["não cita Sorella"] },
+      INPUT,
+    );
+    expect(a).toMatchObject({ failed: true });
+    expect(a.problems.join(" ")).toMatch(/frase proibida/);
+    const first = (callAgent as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+    expect(first.task).toMatch(/Corrija: não cita Sorella/);
   });
 });
 

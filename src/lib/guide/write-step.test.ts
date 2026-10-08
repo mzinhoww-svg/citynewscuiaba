@@ -13,6 +13,8 @@ const list = (over: Partial<ArticleList> = {}): ArticleList => ({
   hasIntro: false,
   introAuto: false,
   signature: null,
+  attempts: 0,
+  problems: [],
   items: [
     { position: 2, venue: v2 },
     { position: 1, venue: v1 },
@@ -42,6 +44,7 @@ describe("writeDueArticles", () => {
       problems: [],
     }));
     const save = vi.fn(async () => {});
+    const failed = vi.fn(async () => {});
     const revalidate = vi.fn<(tags: string[]) => Promise<void>>(async () => {});
     const out = await writeDueArticles({
       published: async () => [
@@ -50,9 +53,11 @@ describe("writeDueArticles", () => {
       ],
       write,
       save,
+      failed,
       revalidate,
     });
     expect(out).toEqual([{ slug: "padarias-cuiaba", source: "ai", problems: 0 }]);
+    expect((write.mock.calls[0] as unknown[])[1]).toEqual({ fallback: false, previous: [] });
     const input = (write.mock.calls[0] as unknown[])[0] as {
       noun: string;
       venues: { name: string }[];
@@ -67,5 +72,26 @@ describe("writeDueArticles", () => {
     expect(revalidate.mock.calls[0]![0]).toEqual(
       expect.arrayContaining(["guide:list:padarias-cuiaba", `guide:venue:${v1.slug}`]),
     );
+  });
+
+  it("reprovado guarda a rodada; na 3ª rodada pede o texto montado", async () => {
+    const write = vi.fn(async () => ({ failed: true as const, problems: ["não cita X"] }));
+    const failed = vi.fn(async () => {});
+    const deps = {
+      write,
+      failed,
+      save: vi.fn(async () => {}),
+      revalidate: vi.fn(async () => {}),
+    };
+    const out = await writeDueArticles({
+      ...deps,
+      published: async () => [list({ attempts: 1, problems: ["antes"] })],
+    });
+    expect(out).toEqual([{ slug: "padarias-cuiaba", source: "retry", problems: 1, round: 2 }]);
+    expect(failed).toHaveBeenCalledWith("l1", 2, ["não cita X"]);
+    expect((write.mock.calls[0] as unknown[])[1]).toEqual({ fallback: false, previous: ["antes"] });
+
+    await writeDueArticles({ ...deps, published: async () => [list({ attempts: 2 })] });
+    expect((write.mock.calls[1] as unknown[])[1]).toMatchObject({ fallback: true });
   });
 });

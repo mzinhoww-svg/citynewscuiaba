@@ -217,10 +217,17 @@ export function venueFacts(v: ArticleVenue): string {
 
 export interface WriteArticleDeps {
   callAgent: CallAgent;
-  /** Tentativas do modelo antes do texto montado (padrão 2). */
+  /** Tentativas do modelo nesta chamada (padrão 2). */
   attempts?: number;
+  /** Sem `true`, texto reprovado devolve `failed` em vez do texto montado (outra rodada tenta). */
+  fallback?: boolean;
+  /** Problemas da rodada anterior, pedidos como correção já na primeira tentativa. */
+  previous?: readonly string[];
   signal?: AbortSignal;
 }
+
+export type WriteResult =
+  (ListArticle & { problems: string[] }) | { failed: true; problems: string[] };
 
 /**
  * Escreve o texto da lista: modelo com conferência; falha técnica ou texto reprovado tenta de
@@ -229,8 +236,9 @@ export interface WriteArticleDeps {
 export async function writeListArticle(
   deps: WriteArticleDeps,
   input: ArticleInput,
-): Promise<ListArticle & { problems: string[] }> {
+): Promise<WriteResult> {
   const problems: string[] = [];
+  const asked = [...(deps.previous ?? [])];
   const attempts = deps.attempts ?? 2;
   for (let i = 0; i < attempts; i += 1) {
     const r = await deps.callAgent(
@@ -241,7 +249,7 @@ export async function writeListArticle(
         task:
           `Escreva o texto de abertura da lista "${input.title}" (${input.venues.length} ${input.noun}), ` +
           "citando cada lugar pelo nome, na ordem da lista, e um comentário curto para cada um (use o id do bloco)." +
-          (problems.length > 0 ? ` Corrija: ${problems.slice(-3).join("; ")}.` : ""),
+          (asked.length > 0 ? ` Corrija: ${asked.slice(-3).join("; ")}.` : ""),
       },
       GuideWriterSchema,
       deps.signal ? { signal: deps.signal } : {},
@@ -253,6 +261,8 @@ export async function writeListArticle(
     const checked = checkArticle(r.value, input.venues);
     if (checked.ok) return { ...checked.article, problems };
     problems.push(...checked.problems);
+    asked.push(...checked.problems);
   }
+  if (deps.fallback === false) return { failed: true, problems };
   return { ...fallbackArticle(input), problems };
 }

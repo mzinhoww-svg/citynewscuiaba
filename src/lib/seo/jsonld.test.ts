@@ -118,6 +118,10 @@ it("BreadcrumbList com posições e URLs absolutas", () => {
 it("Organization e WebSite com SearchAction para a busca", () => {
   const org = organizationJsonLd("https://citynews.example");
   expect(org["@type"]).toBe("NewsMediaOrganization");
+  expect(org.contactPoint).toMatchObject({
+    "@type": "ContactPoint",
+    telephone: "+55-65-99622-7110",
+  });
   expect(org.name).toBe("CityNews Cuiabá");
   expect(org.correctionsPolicy).toBe("https://citynews.example/correcoes");
   const site = websiteJsonLd("https://citynews.example");

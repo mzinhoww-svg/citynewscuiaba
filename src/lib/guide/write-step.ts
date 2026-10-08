@@ -9,6 +9,7 @@ import {
   type ArticleInput,
   type ArticleVenue,
   type ListArticle,
+  type WriteResult,
 } from "./article";
 import { guideTags } from "./tags";
 import type { Venue } from "./types";
@@ -21,12 +22,24 @@ export interface ArticleList {
   hasIntro: boolean;
   introAuto: boolean;
   signature: string | null;
+  /** Rodadas seguidas em que o texto do modelo foi reprovado (zera ao gravar). */
+  attempts: number;
+  /** Problemas da última rodada reprovada (pedidos como correção na próxima). */
+  problems: string[];
   items: { position: number; venue: Venue }[];
 }
 
+/** Na 3ª rodada reprovada vale o texto montado com os dados: nenhuma lista espera para sempre. */
+export const MAX_ARTICLE_ROUNDS = 3;
+
 export interface WriteStepDeps {
   published: () => Promise<ArticleList[]>;
-  write: (input: ArticleInput) => Promise<ListArticle & { problems: string[] }>;
+  write: (
+    input: ArticleInput,
+    opts: { fallback: boolean; previous: readonly string[] },
+  ) => Promise<WriteResult>;
+  /** Rodada reprovada: guarda a contagem e os problemas para a próxima. */
+  failed: (listId: string, attempts: number, problems: string[]) => Promise<void>;
   save: (
     listId: string,
     article: { intro: string; notes: Record<string, string>; signature: string },
@@ -34,7 +47,9 @@ export interface WriteStepDeps {
   revalidate: (tags: string[]) => Promise<void>;
 }
 
-export type WriteOutcome = { slug: string; source: ListArticle["source"]; problems: number };
+export type WriteOutcome =
+  | { slug: string; source: ListArticle["source"]; problems: number }
+  | { slug: string; source: "retry"; problems: number; round: number };
 
 /** Lista que precisa de texto: sem texto ou com texto do Guia, e lugares diferentes da última vez. */
 export function needsArticle(l: ArticleList): boolean {
@@ -65,11 +80,20 @@ export async function writeDueArticles(deps: WriteStepDeps, limit = 3): Promise<
   const out: WriteOutcome[] = [];
   for (const l of due) {
     const items = [...l.items].sort((a, b) => a.position - b.position);
-    const a = await deps.write({
-      title: l.title,
-      noun: categoryBySlug(l.category)?.noun ?? "lugares",
-      venues: items.map((i) => articleVenue(i.position, i.venue)),
-    });
+    const round = l.attempts + 1;
+    const a = await deps.write(
+      {
+        title: l.title,
+        noun: categoryBySlug(l.category)?.noun ?? "lugares",
+        venues: items.map((i) => articleVenue(i.position, i.venue)),
+      },
+      { fallback: round >= MAX_ARTICLE_ROUNDS, previous: l.problems },
+    );
+    if ("failed" in a) {
+      await deps.failed(l.id, round, a.problems);
+      out.push({ slug: l.slug, source: "retry", problems: a.problems.length, round });
+      continue;
+    }
     await deps.save(l.id, { intro: a.intro, notes: a.notes, signature: signatureOf(l) });
     await deps.revalidate([
       guideTags.index,
