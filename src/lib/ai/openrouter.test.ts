@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createOpenRouterProvider, openRouterConfigFromEnv } from "./openrouter";
 import { ProviderError } from "./types";
 
@@ -132,6 +132,31 @@ describe("provedor OpenRouter (sem rede)", () => {
     });
     await expect(r).rejects.toMatchObject({ kind: "schema" });
     await r.catch((e: unknown) => expect(e).toBeInstanceOf(ProviderError));
+  });
+
+  it("erro HTTP do OpenRouter vai para o log com status e mensagem, nunca com a chave", async () => {
+    const f: typeof fetch = async () =>
+      new Response(JSON.stringify({ error: { message: "Insufficient credits", code: 402 } }), {
+        status: 402,
+        headers: { "content-type": "application/json" },
+      });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const p = createOpenRouterProvider({ ...cfg, fetch: f });
+    await expect(
+      p.complete({
+        agentId: "classify",
+        modelId: "m",
+        system: "s",
+        prompt: "p",
+        maxTokens: null,
+        temperature: null,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toBeDefined();
+    const logged = warn.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(logged).toMatch(/openrouter.*classify.*m.*402.*Insufficient credits/);
+    expect(logged).not.toContain(cfg.apiKey);
+    warn.mockRestore();
   });
 
   it("configuração do ambiente: sem chave não há OpenRouter", () => {
