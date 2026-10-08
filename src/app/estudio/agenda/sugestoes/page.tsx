@@ -9,6 +9,7 @@ import { listSubmissions, type SubmissionRow } from "@/lib/db/queries/studio-mod
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
 import { formatDateTime } from "@/lib/format/date";
 import { approveSubmissionAction, rejectSubmissionAction } from "../../actions";
+import { AgendaTabs } from "../AgendaTabs";
 
 export const metadata: Metadata = { title: "Sugestões de evento · Estúdio · CityNews Cuiabá" };
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export default async function SubmissionsPage({ searchParams }: { searchParams: 
 
   return (
     <StudioScreen title={T.submissionsTitle} intro={T.submissionsIntro}>
+      <AgendaTabs current="submissions" />
       {done && (
         <InlineAlert tone="success" role="status">
           {done}

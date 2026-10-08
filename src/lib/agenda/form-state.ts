@@ -30,3 +30,18 @@ export interface SubmitState {
 }
 
 export const SUBMIT_IDLE: SubmitState = { status: "idle", message: "", errors: {}, values: {} };
+
+/** Formulário de evento do Estúdio (AGM-T7): erro por campo e o que foi digitado. */
+export interface EventFormState {
+  status: "idle" | "invalid" | "error";
+  message: string;
+  errors: Partial<Record<string, string>>;
+  values: Partial<Record<string, string>>;
+}
+
+export const EVENT_FORM_IDLE: EventFormState = {
+  status: "idle",
+  message: "",
+  errors: {},
+  values: {},
+};

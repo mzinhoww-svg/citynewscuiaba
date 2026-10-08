@@ -1,0 +1,407 @@
+import "server-only";
+import { randomUUID } from "node:crypto";
+import type { EventInput } from "@/lib/agenda/event-form";
+import { LOCKABLE_COLUMNS } from "@/lib/agenda/merge";
+import { audit } from "@/lib/audit";
+import type { AuditAction } from "@/lib/audit/actions";
+import type { DbClient } from "@/lib/db/client";
+import { eventSlug } from "@/lib/db/agenda-store";
+import { dayStart } from "@/lib/format/date";
+import { err, ok, type Result } from "@/lib/result";
+import { studioContext } from "@/lib/studio/context";
+
+/**
+ * Eventos da Agenda no Estúdio (AGM-T7, spec 2026-10-08 §5.2): lista com filtros, cadastro,
+ * edição, retirada e devolução. Tudo com o cliente da pessoa (RLS: escrita só da editoria
+ * `agenda`). Toda edição acrescenta as colunas alteradas em `locked_fields` (a coleta não as
+ * sobrescreve, `mergeForSave`) e toda escrita grava `updated_at` (sem trigger) e o `audit_log`
+ * com o diff.
+ */
+
+export const STUDIO_EVENT_ORIGINS = ["official", "organizer", "reader", "newsroom"] as const;
+export type StudioEventOrigin = (typeof STUDIO_EVENT_ORIGINS)[number];
+export const STUDIO_EVENT_SITUATIONS = [
+  "no_ar",
+  "retirado",
+  "encerrado",
+  "sem_confirmacao",
+] as const;
+export type StudioEventSituation = (typeof STUDIO_EVENT_SITUATIONS)[number];
+
+/** Origem na URL (pt-BR) ↔ valor do banco. */
+export const ORIGIN_PARAM: Record<StudioEventOrigin, string> = {
+  official: "oficial",
+  organizer: "organizacao",
+  reader: "leitor",
+  newsroom: "redacao",
+};
+
+export interface StudioEventFilters {
+  q: string | null;
+  /** Dia local de Cuiabá (AAAA-MM-DD), inclusive. */
+  from: string | null;
+  to: string | null;
+  /** Slug da fonte (`event_listings.source_id`). */
+  source: string | null;
+  origin: StudioEventOrigin | null;
+  situacao: StudioEventSituation | null;
+  page: number;
+}
+
+export const STUDIO_EVENTS_PAGE_SIZE = 50;
+
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function validDay(raw: string | null): string | null {
+  if (!raw || !DAY.test(raw)) return null;
+  const d = new Date(`${raw}T12:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === raw ? raw : null;
+}
+
+/** Filtros da URL; valor inválido é ignorado. */
+export function parseStudioEventFilters(sp: URLSearchParams): StudioEventFilters {
+  const q = (sp.get("q") ?? "").trim().slice(0, 80);
+  const source = sp.get("fonte");
+  const originParam = sp.get("origem");
+  const situacao = sp.get("situacao");
+  const page = Number(sp.get("pagina"));
+  return {
+    q: q || null,
+    from: validDay(sp.get("de")),
+    to: validDay(sp.get("ate")),
+    source: source && SLUG.test(source) && source.length <= 80 ? source : null,
+    origin: STUDIO_EVENT_ORIGINS.find((o) => ORIGIN_PARAM[o] === originParam) ?? null,
+    situacao: STUDIO_EVENT_SITUATIONS.find((s) => s === situacao) ?? null,
+    page: Number.isInteger(page) && page > 1 ? Math.min(page, 1000) : 1,
+  };
+}
+
+interface SituationFields {
+  confirmed_at: string | null;
+  withdrawn_at: string | null;
+  starts_at: string;
+  ends_at: string | null;
+}
+
+/** Retirado > sem confirmação > encerrado (fim, ou início sem fim, no passado) > no ar. */
+export function situationOf(e: SituationFields, now: Date): StudioEventSituation {
+  if (e.withdrawn_at) return "retirado";
+  if (!e.confirmed_at) return "sem_confirmacao";
+  const end = Date.parse(e.ends_at ?? e.starts_at);
+  return end < now.getTime() ? "encerrado" : "no_ar";
+}
+
+export interface StudioEventRow {
+  id: string;
+  slug: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  venue: string;
+  origin: StudioEventOrigin;
+  /** Nome da fonte (cadastrada) ou o slug guardado; `null` sem fonte (redação, leitor). */
+  source: string | null;
+  situation: StudioEventSituation;
+  lockedFields: string[];
+}
+
+const originOf = (o: string): StudioEventOrigin =>
+  STUDIO_EVENT_ORIGINS.find((x) => x === o) ?? "organizer";
+
+/** Texto de busca seguro para o filtro `or` do PostgREST (sem vírgula, aspas nem curingas). */
+function searchTerm(q: string): string {
+  return q
+    .replace(/[^\p{L}\p{N}\s-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const LIST_COLUMNS =
+  "id, slug, title, starts_at, ends_at, venue, origin, source_id, confirmed_at, withdrawn_at, locked_fields, source:sources!event_listings_source_ref_fkey(name)";
+
+/** Lista do Estúdio: todos os eventos (retirados e sem confirmação inclusive), por data desc. */
+export async function listStudioEvents(
+  filters: StudioEventFilters,
+  now: Date = new Date(),
+): Promise<{ rows: StudioEventRow[]; total: number }> {
+  const ctx = await studioContext();
+  const at = `"${now.toISOString()}"`;
+  let q = ctx.db.from("event_listings").select(LIST_COLUMNS, { count: "exact" });
+  const term = filters.q ? searchTerm(filters.q) : "";
+  if (term) q = q.or(`title.ilike."*${term}*",venue.ilike."*${term}*"`);
+  if (filters.from) q = q.gte("starts_at", dayStart(filters.from).toISOString());
+  if (filters.to)
+    q = q.lt("starts_at", new Date(dayStart(filters.to).getTime() + 86_400_000).toISOString());
+  if (filters.source) q = q.eq("source_id", filters.source);
+  if (filters.origin) q = q.eq("origin", filters.origin);
+  switch (filters.situacao) {
+    case "retirado":
+      q = q.not("withdrawn_at", "is", null);
+      break;
+    case "sem_confirmacao":
+      q = q.is("withdrawn_at", null).is("confirmed_at", null);
+      break;
+    case "encerrado":
+      q = q
+        .is("withdrawn_at", null)
+        .not("confirmed_at", "is", null)
+        .or(`ends_at.lt.${at},and(ends_at.is.null,starts_at.lt.${at})`);
+      break;
+    case "no_ar":
+      q = q
+        .is("withdrawn_at", null)
+        .not("confirmed_at", "is", null)
+        .or(`ends_at.gte.${at},and(ends_at.is.null,starts_at.gte.${at})`);
+      break;
+    default:
+      break;
+  }
+  const start = (filters.page - 1) * STUDIO_EVENTS_PAGE_SIZE;
+  const { data, error, count } = await q
+    .order("starts_at", { ascending: false })
+    .order("id", { ascending: true })
+    .range(start, start + STUDIO_EVENTS_PAGE_SIZE - 1);
+  if (error) throw new Error(`eventos do Estúdio: ${error.message}`);
+  return {
+    total: count ?? 0,
+    rows: (data ?? []).map((r) => ({
+      id: r.id,
+      slug: r.slug,
+      title: r.title,
+      startsAt: r.starts_at,
+      endsAt: r.ends_at,
+      venue: r.venue,
+      origin: originOf(r.origin),
+      source: r.source?.name ?? r.source_id ?? null,
+      situation: situationOf(r, now),
+      lockedFields: r.locked_fields,
+    })),
+  };
+}
+
+/** Fontes de eventos para o filtro (nome e slug, como `event_listings.source_id`). */
+export async function listEventSourceOptions(): Promise<{ slug: string; name: string }[]> {
+  const ctx = await studioContext();
+  const { data, error } = await ctx.db
+    .from("sources")
+    .select("slug, name")
+    .eq("kind", "events")
+    .order("name", { ascending: true })
+    .limit(200);
+  if (error) throw new Error(`fontes de eventos: ${error.message}`);
+  return data ?? [];
+}
+
+/** Colunas que a redação edita, como guardadas. */
+export interface StoredStudioEvent {
+  id: string;
+  slug: string;
+  title: string;
+  starts_at: string;
+  ends_at: string | null;
+  venue: string;
+  neighborhood: string | null;
+  price_cents: number | null;
+  price_unknown: boolean;
+  category: string;
+  age_rating: string;
+  accessibility: string | null;
+  source_url: string | null;
+  description: string | null;
+  locked_fields: string[];
+  withdrawn_at: string | null;
+}
+
+const STORED_COLUMNS =
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, age_rating, accessibility, source_url, description, locked_fields, withdrawn_at";
+
+export interface StudioEventDetail extends StoredStudioEvent {
+  origin: StudioEventOrigin;
+  confirmed_at: string | null;
+  source: string | null;
+}
+
+/** Evento para a tela de edição (retirado inclusive); `null` se não existe ou a RLS esconde. */
+export async function getStudioEvent(id: string): Promise<StudioEventDetail | null> {
+  const ctx = await studioContext();
+  const { data, error } = await ctx.db
+    .from("event_listings")
+    .select(
+      `${STORED_COLUMNS}, origin, confirmed_at, source_id, source:sources!event_listings_source_ref_fkey(name)`,
+    )
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(`evento do Estúdio: ${error.message}`);
+  if (!data) return null;
+  const { source, source_id, origin, ...rest } = data;
+  return { ...rest, origin: originOf(origin), source: source?.name ?? source_id ?? null };
+}
+
+/** Coluna → valor do formulário (a ordem é a da tela). */
+function columnsOf(i: EventInput) {
+  return {
+    title: i.title,
+    starts_at: i.startsAt,
+    ends_at: i.endsAt,
+    venue: i.venue,
+    neighborhood: i.neighborhood,
+    price_cents: i.priceCents,
+    price_unknown: i.priceUnknown,
+    category: i.category,
+    age_rating: i.ageRating,
+    accessibility: i.accessibility,
+    source_url: i.sourceUrl,
+    description: i.description,
+  };
+}
+type EditableColumn = keyof ReturnType<typeof columnsOf>;
+
+const TIMESTAMP_COLUMNS = new Set<EditableColumn>(["starts_at", "ends_at"]);
+
+function same(column: EditableColumn, a: unknown, b: unknown): boolean {
+  if (TIMESTAMP_COLUMNS.has(column) && typeof a === "string" && typeof b === "string")
+    return Date.parse(a) === Date.parse(b);
+  // Espaços a mais no texto guardado (coleta) não contam como edição.
+  const norm = (v: unknown) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim() || null : v);
+  return (norm(a) ?? null) === (norm(b) ?? null);
+}
+
+/** Colunas que o formulário mudou em relação ao guardado (instantes comparados pelo valor). */
+export function changedColumns(before: StoredStudioEvent, input: EventInput): EditableColumn[] {
+  const next = columnsOf(input);
+  return (Object.keys(next) as EditableColumn[]).filter((c) => !same(c, before[c], next[c]));
+}
+
+/** Travas depois da edição: as atuais mais as alteradas que a coleta escreve, sem repetir. */
+export function lockedAfterEdit(current: readonly string[], changed: readonly string[]): string[] {
+  const out = [...current];
+  for (const c of changed) if (c in LOCKABLE_COLUMNS && !out.includes(c)) out.push(c);
+  return out;
+}
+
+export interface EventActor {
+  /** Cliente com a sessão da pessoa (RLS valendo). */
+  db: DbClient;
+  userId: string;
+  now: Date;
+}
+
+export type EventWriteError = "not_found" | "forbidden";
+export type EventWriteResult<T> = Result<T, EventWriteError>;
+
+async function record(
+  actor: EventActor,
+  action: AuditAction,
+  id: string,
+  details: Record<string, unknown>,
+) {
+  await audit(actor.userId, action, `event:${id}`, details, actor.db);
+}
+
+/**
+ * Cadastro da redação: `origin = 'newsroom'`, no ar na hora (`confirmed_at`), todas as colunas
+ * da coleta travadas (`locked_fields`) e sem chave de duplicidade (a coleta compara pelo título,
+ * data e local, `existing`).
+ */
+export async function createEvent(
+  input: EventInput,
+  actor: EventActor,
+): Promise<EventWriteResult<{ id: string; slug: string }>> {
+  const id = randomUUID();
+  const stamp = actor.now.toISOString();
+  const slug = eventSlug({
+    title: input.title,
+    startsAt: input.startsAt,
+    dedupeKey: `newsroom|${id}`,
+  });
+  const values = columnsOf(input);
+  const { error } = await actor.db.from("event_listings").insert({
+    id,
+    slug,
+    ...values,
+    origin: "newsroom",
+    confirmed_at: stamp,
+    locked_fields: Object.keys(LOCKABLE_COLUMNS),
+    updated_at: stamp,
+  });
+  if (error) return err("forbidden");
+  await record(actor, "event.create", id, { after: values });
+  return ok({ id, slug });
+}
+
+/**
+ * Edição: grava só as colunas alteradas, acrescenta-as em `locked_fields` (as que a coleta
+ * escreve) e audita o diff. Sem mudança, não grava nada.
+ */
+export async function updateEvent(
+  id: string,
+  input: EventInput,
+  actor: EventActor,
+): Promise<EventWriteResult<{ id: string; slug: string; changed: string[] }>> {
+  const { data: before, error: readError } = await actor.db
+    .from("event_listings")
+    .select(STORED_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+  if (readError) return err("forbidden");
+  if (!before) return err("not_found");
+  const changed = changedColumns(before, input);
+  if (changed.length === 0) return ok({ id, slug: before.slug, changed: [] });
+  const next = columnsOf(input);
+  const locked = lockedAfterEdit(before.locked_fields, changed);
+  const patch: Record<string, unknown> = {};
+  for (const c of changed) patch[c] = next[c];
+  const { data, error } = await actor.db
+    .from("event_listings")
+    .update({ ...patch, locked_fields: locked, updated_at: actor.now.toISOString() })
+    .eq("id", id)
+    .select("id, slug")
+    .maybeSingle();
+  if (error || !data) return err("forbidden");
+  const diff: Record<string, { from: unknown; to: unknown }> = {};
+  for (const c of changed) diff[c] = { from: before[c], to: next[c] };
+  await record(actor, "event.update", id, { changed, diff, locked_fields: locked });
+  return ok({ id, slug: data.slug, changed });
+}
+
+async function setWithdrawn(
+  id: string,
+  withdraw: boolean,
+  actor: EventActor,
+): Promise<EventWriteResult<{ id: string; slug: string; changed: boolean }>> {
+  const stamp = actor.now.toISOString();
+  const base = actor.db
+    .from("event_listings")
+    .update({ withdrawn_at: withdraw ? stamp : null, updated_at: stamp })
+    .eq("id", id);
+  const filtered = withdraw ? base.is("withdrawn_at", null) : base.not("withdrawn_at", "is", null);
+  const { data, error } = await filtered.select("id, slug").maybeSingle();
+  if (error) return err("forbidden");
+  if (!data) {
+    // Já estava no estado pedido (clique repetido), não existe ou a RLS barrou a escrita.
+    const { data: row } = await actor.db
+      .from("event_listings")
+      .select("id, slug, withdrawn_at")
+      .eq("id", id)
+      .maybeSingle();
+    if (!row) return err("not_found");
+    return (row.withdrawn_at !== null) === withdraw
+      ? ok({ id, slug: row.slug, changed: false })
+      : err("forbidden");
+  }
+  await record(actor, withdraw ? "event.withdraw" : "event.restore", id, {
+    withdrawn_at: withdraw ? stamp : null,
+  });
+  return ok({ id, slug: data.slug, changed: true });
+}
+
+/** Retira do ar (`withdrawn_at`): some da agenda pública (RLS) e a coleta não o devolve. */
+export function withdrawEvent(id: string, actor: EventActor) {
+  return setWithdrawn(id, true, actor);
+}
+
+/** Devolve ao ar (limpa `withdrawn_at`). */
+export function restoreEvent(id: string, actor: EventActor) {
+  return setWithdrawn(id, false, actor);
+}

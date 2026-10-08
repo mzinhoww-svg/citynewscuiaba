@@ -87,6 +87,13 @@ export {
 } from "./studio/GenerateImageDrawer";
 export { LicenseActions, type LicenseActionsProps } from "./studio/LicenseActions";
 export { SubmissionReview, type SubmissionReviewProps } from "./studio/SubmissionReview";
+export { EventForm, type EventFormProps } from "./studio/EventForm";
+export {
+  EventsTable,
+  type EventSituation,
+  type EventsTableProps,
+  type EventsTableRow,
+} from "./studio/EventsTable";
 export { ReportResponder, type ReportResponderProps } from "./studio/ReportResponder";
 export { SortHeader, useSort, type SortHeaderProps } from "./studio/SortHeader";
 export {

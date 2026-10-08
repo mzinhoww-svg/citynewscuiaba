@@ -52,6 +52,8 @@ const FIXTURE_SPECS = [
   "**/admin-guide-link.spec.ts",
   // Fontes de eventos no painel: cadastro, prévia, ativação e coleta do Teatro Cerrado (AGM-T6).
   "**/control-event-sources.spec.ts",
+  // Eventos no Estúdio: edição respeitada pela coleta forçada das fontes fictícias (AGM-T7).
+  "**/e2e/studio-agenda.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para

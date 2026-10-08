@@ -133,3 +133,17 @@ it("contagens vão para os itens certos; zero não aparece", () => {
   expect(findItem(nav, "Mídia")?.count).toBe(7);
   expect(findItem(studioNav(ALL), "Mídia")?.count).toBeUndefined();
 });
+
+it("Agenda (AGM-T7) leva a /estudio/agenda só para quem publica na editoria Agenda", () => {
+  const agenda = (roles: Parameters<typeof studioNav>[0]) => findItem(studioNav(roles), "Agenda");
+  expect(agenda([{ role: "editor_chefe", sections: [] }])?.href).toBe("/estudio/agenda");
+  expect(agenda([{ role: "editor", sections: ["cidade", "agenda"] }])?.href).toBe(
+    "/estudio/agenda",
+  );
+  expect(agenda([{ role: "editor", sections: ["cidade"] }])).toBeUndefined();
+  expect(agenda([{ role: "jornalista", sections: [] }])).toBeUndefined();
+  expect(agenda([{ role: "admin", sections: [] }])).toBeUndefined();
+  expect(
+    findItem(studioNav([{ role: "editor_chefe", sections: [] }]), "Sugestões de evento"),
+  ).toBeUndefined();
+});
