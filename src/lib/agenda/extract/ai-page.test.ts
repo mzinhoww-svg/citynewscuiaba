@@ -197,8 +197,53 @@ describe("extractEventPage", () => {
   });
 });
 
+describe("extractEventPage: evidência confere com o texto e o valor", () => {
+  it("página com mais de 6000 caracteres: trecho depois do corte que o modelo recebe é recusado", async () => {
+    const filler = Array.from({ length: 700 }, (_, i) => `Linha de enchimento ${i}`).join("\n");
+    const html = `<h1>Forró da Praça</h1>\n${filler}\n<p>Sábado, 10 de outubro de 2026</p>`;
+    const { r, fake } = await run([{ output: { ...good, horario: null } }], html);
+    expect(r).toEqual({ ok: false, error: "trecho_ausente" });
+    expect(fake.calls[0]!.prompt).not.toContain("10 de outubro de 2026");
+  });
+
+  it("valor da data que contradiz o trecho (dia ou mês): trecho_ausente", async () => {
+    const month = await run([
+      { output: { ...good, data: field("2026-11-10", "Sábado, 10 de outubro de 2026") } },
+    ]);
+    expect(month.r).toEqual({ ok: false, error: "trecho_ausente" });
+    const day = await run([
+      { output: { ...good, data: field("2026-10-11", "Sábado, 10 de outubro de 2026") } },
+    ]);
+    expect(day.r).toEqual({ ok: false, error: "trecho_ausente" });
+  });
+
+  it("data numérica e mês abreviado sustentam o valor", async () => {
+    const html = `${HTML}<p>Também 10/10/2026 · out</p>`;
+    const num = await run([{ output: { ...good, data: field("2026-10-10", "10/10/2026") } }], html);
+    expect(num.r.ok).toBe(true);
+    const wrong = await run(
+      [{ output: { ...good, data: field("2026-10-11", "10/10/2026") } }],
+      html,
+    );
+    expect(wrong.r).toEqual({ ok: false, error: "trecho_ausente" });
+  });
+
+  it("horário que contradiz o trecho é descartado; formas 19h, 19:00, 19h00 e às 19 valem", async () => {
+    const html = `${HTML}<p>Show às 21h</p><p>Abertura 19:00</p><p>Início 19h00</p><p>Começa às 19</p>`;
+    const bad = await run([{ output: { ...good, horario: field("19:00", "Show às 21h") } }], html);
+    expect(bad.r.ok && bad.r.value.raw.start).toBe("2026-10-10");
+    for (const t of ["Abertura 19:00", "Início 19h00", "Começa às 19", "19h"]) {
+      const okRun = await run([{ output: { ...good, horario: field("19:00", t) } }], html);
+      expect(okRun.r.ok && okRun.r.value.raw.start, t).toBe("2026-10-10T19:00");
+    }
+  });
+});
+
 describe("extractListingLinks", () => {
-  const listing = `<ul><li><a href="/evento/a">A</a></li><li><a href="https://casa-do-cerrado.example/evento/b">B</a></li></ul>`;
+  const listing = `<ul><li><a href="/evento/a">A</a></li><li><a href="https://casa-do-cerrado.example/evento/b">B</a></li>
+<li><a href="https://www.casa-do-cerrado.example/evento/b">B2</a></li><li><a href="https://ingressos.casa-do-cerrado.example/evento/e#x">E</a></li>
+<li><a href="http://casa-do-cerrado.example/evento/c">C</a></li><li><a href="https://outro-site.example/evento/d">D</a></li>
+<li><a href="https://user:pw@casa-do-cerrado.example/evento/f">F</a></li></ul>`;
 
   it("descarta outro host, http: e repetidos; mantém https do mesmo site", async () => {
     const c = ctx([
@@ -210,7 +255,9 @@ describe("extractListingLinks", () => {
             "http://casa-do-cerrado.example/evento/c",
             "https://outro-site.example/evento/d",
             "https://www.casa-do-cerrado.example/evento/b",
-            "https://ingressos.casa-do-cerrado.example/evento/e",
+            "https://ingressos.casa-do-cerrado.example/evento/e#x",
+            "https://user:pw@casa-do-cerrado.example/evento/f",
+            "https://casa-do-cerrado.example/evento/inventado",
           ],
         },
       },
@@ -248,7 +295,7 @@ describe("extractListingLinks", () => {
     const fake = createFakeProvider();
     const callAgent = createCallAgent({ store, provider: fake, now: () => NOW });
     const r = await extractListingLinks(callAgent, {
-      html: `${listing}<a href="/sobre">Sobre</a>`,
+      html: `<a href="/evento/a">A</a><a href="/evento/b">B</a><a href="/sobre">Sobre</a>`,
       baseUrl: "https://casa-do-cerrado.example/agenda",
       notes: [],
     });

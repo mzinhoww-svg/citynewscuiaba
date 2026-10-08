@@ -3,7 +3,7 @@
  * trecho literal da página; o código confere o trecho contra o texto saneado, nunca confia no
  * valor sozinho. Ano nunca é deduzido: sem ano na página nem na URL, a data é recusada.
  */
-import type { CallAgent } from "@/lib/ai/call-agent";
+import { MAX_DATA_CHARS, type CallAgent } from "@/lib/ai/call-agent";
 import { eventListingSchema, eventPageSchema } from "@/lib/ai/schemas/event-extract";
 import type { AiError } from "@/lib/ai/types";
 import { err, ok, type Result } from "@/lib/result";
@@ -12,28 +12,44 @@ import { fold } from "@/lib/text/fold";
 import type { RawEvent, RejectReason } from "../types";
 import { verifyEvidence, type EvidenceRecord } from "./evidence";
 
-const PAGE_CHARS = 12000;
+/** Mesmo limite que `callAgent` aplica a cada bloco: o texto verificado é o que o modelo recebe. */
+const PAGE_CHARS = MAX_DATA_CHARS;
+/** Teto do HTML cru antes das regex de âncora (evita custo quadrático em HTML malformado). */
+const MAX_HTML_CHARS = 300_000;
 const MAX_LINKS = 30;
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+const noHash = (u: URL): string => {
+  const c = new URL(u.href);
+  c.hash = "";
+  return c.href;
+};
+
 /**
  * Troca cada `<a href>` por "texto (URL absoluta)" antes do saneamento, que remove as tags: sem
- * isso o modelo não veria para onde cada item da listagem aponta.
+ * isso o modelo não veria para onde cada item da listagem aponta. Devolve também o conjunto de
+ * URLs absolutas (sem fragmento) que de fato aparecem na página.
  */
-function withVisibleLinks(html: string, base: string): string {
-  return html.replace(
-    /<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')[^>]*>([\s\S]*?)<\/a\s*>/gi,
-    (whole, dq: string | undefined, sq: string | undefined, inner: string) => {
-      const href = (dq ?? sq ?? "").trim();
-      if (!href || /^(#|javascript:|mailto:|tel:)/i.test(href)) return inner;
-      try {
-        return `${inner} (${new URL(href, base).href}) `;
-      } catch {
-        return inner;
-      }
-    },
-  );
+function withVisibleLinks(html: string, base: string): { html: string; hrefs: Set<string> } {
+  const hrefs = new Set<string>();
+  const out = html
+    .slice(0, MAX_HTML_CHARS)
+    .replace(
+      /<a\b[^>]{0,2000}?\bhref\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})')[^>]{0,2000}>([\s\S]{0,600}?)<\/a\s*>/gi,
+      (_whole, dq: string | undefined, sq: string | undefined, inner: string) => {
+        const href = (dq ?? sq ?? "").trim();
+        if (!href || /^(#|javascript:|mailto:|tel:)/i.test(href)) return inner;
+        try {
+          const abs = new URL(href, base);
+          hrefs.add(noHash(abs));
+          return `${inner} (${abs.href}) `;
+        } catch {
+          return inner;
+        }
+      },
+    );
+  return { html: out, hrefs };
 }
 
 function notesBlock(notes: string[]): string {
@@ -60,7 +76,8 @@ export async function extractListingLinks(
   callAgent: CallAgent,
   input: { html: string; baseUrl: string; notes: string[] },
 ): Promise<Result<string[], AiError>> {
-  const text = sanitizeExternalText(withVisibleLinks(input.html, input.baseUrl), PAGE_CHARS).text;
+  const visible = withVisibleLinks(input.html, input.baseUrl);
+  const text = sanitizeExternalText(visible.html, PAGE_CHARS).text;
   const res = await callAgent(
     "event_extractor",
     {
@@ -93,11 +110,13 @@ export async function extractListingLinks(
     } catch {
       continue;
     }
-    if (u.protocol !== "https:" || registrable(u.hostname) !== site) continue;
-    u.hash = "";
-    if (seen.has(u.href)) continue;
-    seen.add(u.href);
-    links.push(raw.split("#")[0] ?? raw);
+    if (u.protocol !== "https:" || u.username || u.password) continue;
+    if (registrable(u.hostname) !== site) continue;
+    const href = noHash(u);
+    // Só links que a página realmente traz (o modelo não inventa destino).
+    if (!visible.hrefs.has(href) || seen.has(href)) continue;
+    seen.add(href);
+    links.push(href);
     if (links.length >= MAX_LINKS) break;
   }
   return ok(links);
@@ -114,13 +133,51 @@ function priceCentsOf(text: string): number | undefined {
   return reais * 100 + cents;
 }
 
+const MONTHS = [
+  ["janeiro", "jan"],
+  ["fevereiro", "fev"],
+  ["marco", "mar"],
+  ["abril", "abr"],
+  ["maio", "mai"],
+  ["junho", "jun"],
+  ["julho", "jul"],
+  ["agosto", "ago"],
+  ["setembro", "set"],
+  ["outubro", "out"],
+  ["novembro", "nov"],
+  ["dezembro", "dez"],
+] as const;
+
+/** O trecho sustenta o dia e o mês do valor (mês por número "10/10" ou por nome/abreviação). */
+function dateSupported(trecho: string, month: number, day: number): boolean {
+  const t = fold(trecho);
+  const dayOk = (t.match(/(?<!\d)\d{1,2}(?!\d)/g) ?? []).some((n) => Number(n) === day);
+  if (!dayOk) return false;
+  const [full, abbr] = MONTHS[month - 1]!;
+  if (new RegExp(`(?<![a-z])(?:${full}|${abbr})(?![a-z])`).test(t)) return true;
+  return (t.match(/(?<!\d)(\d{1,2})[/.-](\d{1,2})(?!\d)/g) ?? []).some((p) => {
+    const [d, m] = p.split(/[/.-]/).map(Number);
+    return d === day && m === month;
+  });
+}
+
+/** O trecho traz a hora do valor: "19h", "19:00", "19h00", "19 horas" ou "às 19". */
+function hourSupported(trecho: string, hour: number): boolean {
+  const t = fold(trecho);
+  const lead = `(?<!\\d)0?${hour}(?!\\d)`;
+  return (
+    new RegExp(`${lead}\\s*(?:h|:|hs|horas?)(?![a-z])`).test(t) ||
+    new RegExp(`(?<![a-z])as\\s+${lead}`).test(t)
+  );
+}
+
 type Field = { value: string; trecho: string; ano_evidencia: "corpo" | "url" | "ausente" };
 
 export async function extractEventPage(
   callAgent: CallAgent,
   input: { html: string; url: string; notes: string[] },
 ): Promise<Result<{ raw: RawEvent; evidence: EvidenceRecord }, AiError | RejectReason>> {
-  const page = sanitizeExternalText(withVisibleLinks(input.html, input.url), PAGE_CHARS).text;
+  const page = sanitizeExternalText(withVisibleLinks(input.html, input.url).html, PAGE_CHARS).text;
   const url = sanitizeExternalText(input.url, 300).text;
   const res = await callAgent(
     "event_extractor",
@@ -156,6 +213,8 @@ export async function extractEventPage(
     probe.getUTCDate() !== day
   )
     return err("extracao_invalida");
+  // O valor precisa concordar com o próprio trecho (dia e mês), senão o trecho não o sustenta.
+  if (!dateSupported(e.data.trecho, month, day)) return err("trecho_ausente");
   // O ano precisa estar onde o modelo diz: no trecho da data (corpo) ou na URL da página.
   const yearWhere = e.data.ano_evidencia === "url" ? url : e.data.trecho;
   const years: string[] = yearWhere.match(/(?<!\d)\d{4}(?!\d)/g) ?? [];
@@ -164,7 +223,9 @@ export async function extractEventPage(
   const keep = (f: Field | null): Field | null => (f && verifyEvidence(page, f.trecho) ? f : null);
   const horario = (() => {
     const f = keep(e.horario);
-    return f && TIME_RE.test(f.value) ? f : null;
+    return f && TIME_RE.test(f.value) && hourSupported(f.trecho, Number(f.value.slice(0, 2)))
+      ? f
+      : null;
   })();
   const local = keep(e.local);
   const cidade = keep(e.cidade);
