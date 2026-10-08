@@ -23,6 +23,8 @@ function sourceReport(over: Partial<SourceReport> = {}): SourceReport {
     new: 2,
     updated: 0,
     rejectedSamples: [{ url: "https://teatro.example/evento/sarau", reason: "sem_ano" }],
+    images: 0,
+    imageSkipped: {},
     ...over,
   };
 }

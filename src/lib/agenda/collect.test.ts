@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createCallAgent, type CallAgent } from "@/lib/ai/call-agent";
 import { createFakeProvider } from "@/lib/ai/fake";
 import { createMemoryAiStore } from "@/lib/ai/testing/memory-store";
+import type { ExternalImageError, ExternalImageInput } from "@/lib/media/external";
+import type { CrawlDeps } from "@/lib/pipeline/http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
+import { err, ok, type Result } from "@/lib/result";
 import type { FetchOutcome } from "@/lib/sources/status";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import {
@@ -89,6 +93,9 @@ function storedRow(over: Partial<StoredCollected> & { dedupeKey: string }): Stor
     confirms: true,
     confirmedBySourceId: null,
     evidence: {},
+    organizer: null,
+    ageRating: "consulte",
+    mediaId: null,
     ...over,
   };
 }
@@ -551,5 +558,165 @@ describe("collectAgenda · estado da fonte", () => {
       { uuid: TEATRO.uuid, outcome: "ok", detail: undefined },
     ]);
     expect(r.sources.map((s) => s.id)).toEqual(["quebrada", "teatro-cerrado"]);
+  });
+});
+
+/** Registro de imagem falso: guarda as entradas e devolve um id por URL (ou o erro dado). */
+function fakeImages(
+  answer: (i: ExternalImageInput) => Result<{ mediaId: string }, ExternalImageError> = (i) =>
+    ok({ mediaId: `media:${i.url}` }),
+) {
+  const calls: ExternalImageInput[] = [];
+  return {
+    calls,
+    registerImage: async (i: ExternalImageInput) => {
+      calls.push(i);
+      return answer(i);
+    },
+  };
+}
+
+const TRIBE = byId("eventos-cerrado");
+const CERRADO_VIVO = byId("cerrado-vivo");
+const SIRIRI_IMG = "https://cerradovivo.example/img/siriri-moderno.jpg";
+const SARAU_IMG = "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg";
+const FORRO_IMG = "https://teatro-cerrado.example/img/forro-da-praca.jpg";
+
+describe("collectAgenda · imagem, organizador e faixa (ARD-T2)", () => {
+  it("JSON-LD, Tribe e og:image: registra a imagem e grava media_id, organizador e faixa", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [CERRADO_VIVO, TRIBE, TEATRO],
+      registerImage: img.registerImage,
+    });
+    const r = await collectAgenda(d);
+    expect(img.calls.map((c) => c.url).sort()).toEqual([FORRO_IMG, SARAU_IMG, SIRIRI_IMG].sort());
+    const siriri = saved.find((e) => e.title === "Noite do Siriri Moderno")!;
+    expect(siriri).toMatchObject({
+      mediaId: `media:${SIRIRI_IMG}`,
+      organizer: "Coletivo Siriri Cuiabano",
+      ageRating: "16",
+    });
+    const sarau = saved.find((e) => e.title === "Sarau da Casa Exemplo")!;
+    expect(sarau).toMatchObject({
+      mediaId: `media:${SARAU_IMG}`,
+      organizer: "Casa Exemplo Produções",
+      ageRating: "consulte",
+    });
+    const forro = saved.find((e) => e.dedupeKey === FORRO_KEY)!;
+    expect(forro).toMatchObject({
+      mediaId: `media:${FORRO_IMG}`,
+      organizer: "Coletivo Forró Cerrado",
+      ageRating: "14",
+    });
+    // Sem imagem na fonte: sem registro, sem media_id.
+    expect(saved.find((e) => e.title === "Peça Cuiabana: O Rasqueado")?.mediaId).toBeNull();
+    // Crédito da fonte e página do evento como origem; host conferido contra a página lida.
+    const call = img.calls.find((c) => c.url === FORRO_IMG)!;
+    expect(call).toMatchObject({
+      pageUrl: "https://teatro-cerrado.example/evento/forro-da-praca",
+      siteUrl: "https://teatro-cerrado.example/evento/forro-da-praca",
+      sourceName: "Teatro Cerrado (fictício)",
+    });
+    expect(img.calls.find((c) => c.url === SIRIRI_IMG)?.siteUrl).toBe(CERRADO_VIVO.url);
+    expect(r.sources.find((s) => s.id === "cerrado-vivo")).toMatchObject({ images: 1 });
+  });
+
+  it("falha da imagem não bloqueia o evento; o motivo vai para a estatística da fonte", async () => {
+    const img = fakeImages(() => err("size"));
+    const { d, saved } = deps({ sources: [CERRADO_VIVO], registerImage: img.registerImage });
+    const r = await collectAgenda(d);
+    expect(saved.find((e) => e.title === "Noite do Siriri Moderno")?.mediaId).toBeNull();
+    expect(r.sources[0]).toMatchObject({ images: 0, imageSkipped: { size: 1 } });
+  });
+
+  it("flag desligada: para no primeiro flag_off (nenhuma outra tentativa)", async () => {
+    const img = fakeImages(() => err("flag_off"));
+    const { d, saved } = deps({
+      sources: [CERRADO_VIVO, TRIBE, TEATRO],
+      registerImage: img.registerImage,
+    });
+    await collectAgenda(d);
+    expect(img.calls).toHaveLength(1);
+    expect(saved.every((e) => e.mediaId === null)).toBe(true);
+  });
+
+  it("ensaio não registra imagem (nada gravado no Media Registry)", async () => {
+    const img = fakeImages();
+    const { d } = deps({ sources: [CERRADO_VIVO], registerImage: img.registerImage, dryRun: true });
+    await collectAgenda(d);
+    expect(img.calls).toHaveLength(0);
+  });
+
+  it("teto de 20 imagens por execução", async () => {
+    const items = Array.from({ length: 25 }, (_, i) => ({
+      "@type": "Event",
+      name: `Show número ${i + 1} da casa`,
+      startDate: `2026-10-${String(10 + (i % 15)).padStart(2, "0")}T20:${String(10 + i).padStart(2, "0")}:00-04:00`,
+      url: `https://muitos.example/show-${i + 1}`,
+      image: `https://muitos.example/img/show-${i + 1}.jpg`,
+      location: {
+        "@type": "Place",
+        name: `Palco ${i + 1}`,
+        address: { "@type": "PostalAddress", addressLocality: "Cuiabá" },
+      },
+    }));
+    const html = `<script type="application/ld+json">${JSON.stringify({ "@graph": items })}</script>`;
+    const { http } = createFakeHttp({ "https://muitos.example/agenda": { body: html } });
+    const crawl: CrawlDeps = {
+      repo: { hitRateLimit: async () => true },
+      http,
+      resolve: fakeResolve(),
+      userAgent: "CityNewsBot/1.0",
+    };
+    const source: AgendaSource = {
+      ...CERRADO_VIVO,
+      id: "muitos",
+      name: "Casa Muitos (fictícia)",
+      url: "https://muitos.example/agenda",
+    };
+    const img = fakeImages();
+    const { d, saved } = deps({ crawl, sources: [source], registerImage: img.registerImage });
+    await collectAgenda(d);
+    expect(saved).toHaveLength(25);
+    expect(img.calls).toHaveLength(20);
+    expect(saved.filter((e) => e.mediaId !== null)).toHaveLength(20);
+  });
+
+  it("organizer, age_rating e media_id travados pela redação: nada sobrescrito, imagem nem tentada", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      registerImage: img.registerImage,
+      stored: async () => [
+        storedRow({
+          dedupeKey: FORRO_KEY,
+          organizer: "Produção da Redação",
+          ageRating: "livre",
+          mediaId: null,
+          lockedFields: ["organizer", "age_rating", "media_id"],
+        }),
+      ],
+    });
+    await collectAgenda(d);
+    const forro = saved.find((e) => e.dedupeKey === FORRO_KEY)!;
+    expect(forro).toMatchObject({
+      organizer: "Produção da Redação",
+      ageRating: "livre",
+      mediaId: null,
+    });
+    expect(img.calls.map((c) => c.url)).not.toContain(FORRO_IMG);
+  });
+
+  it("evento que já tem imagem guardada não baixa outra (1 imagem por evento)", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      registerImage: img.registerImage,
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, mediaId: "media-antiga" })],
+    });
+    await collectAgenda(d);
+    expect(saved.find((e) => e.dedupeKey === FORRO_KEY)?.mediaId).toBe("media-antiga");
+    expect(img.calls.map((c) => c.url)).not.toContain(FORRO_IMG);
   });
 });

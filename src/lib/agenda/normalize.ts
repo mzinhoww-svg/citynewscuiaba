@@ -4,6 +4,7 @@ import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { dayStart, formatHour, formatLongDate, localDateKey } from "@/lib/format/date";
 import { slugify } from "@/lib/pipeline/slug";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
+import { normalizeAgeRating } from "./age-rating";
 import type { AgendaSource, NormalizedEvent, RawEvent, RejectReason } from "./types";
 import { fold } from "@/lib/text/fold";
 
@@ -231,6 +232,9 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
     priceCents,
     priceUnknown,
   });
+  // Organizador é dado externo: saneado; com sinal de instrução embutida, descartado.
+  const org = sanitizeExternalText(raw.organizer ?? "", 120);
+  const organizer = org.text.length >= 2 && !org.injection ? org.text : null;
 
   return {
     ok: true,
@@ -255,6 +259,11 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
       // conta como confirmada pelo próprio `sources.confirms`.
       confirmedBySourceId: null,
       evidence: {},
+      organizer,
+      ageRating: normalizeAgeRating(raw.ageRating),
+      imageUrl: resolveUrl(raw.imageUrl, source.url),
+      imageContext: null,
+      mediaId: null,
     },
   };
 }

@@ -23,6 +23,11 @@ function ev(over: Partial<NormalizedEvent> & { title: string; startsAt: string }
     confirms: false,
     confirmedBySourceId: null,
     evidence: {},
+    organizer: null,
+    ageRating: "consulte",
+    imageUrl: null,
+    imageContext: null,
+    mediaId: null,
     ...over,
   };
 }

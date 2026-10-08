@@ -1,3 +1,4 @@
+import type { AgeRating } from "./age-rating";
 import type { EvidenceRecord } from "./extract/evidence";
 
 /** Evento como a página ou o feed da fonte o descreve, ainda sem checagem. */
@@ -15,6 +16,12 @@ export interface RawEvent {
   priceCents?: number | null;
   online?: boolean;
   category?: string | null;
+  /** Imagem de divulgação (JSON-LD `image`, Tribe `image.url`, `og:image`): lida pelo código, nunca pela IA. */
+  imageUrl?: string | null;
+  /** Organização do evento (JSON-LD `organizer.name`, Tribe `organizer`, `organizador` com trecho). */
+  organizer?: string | null;
+  /** Texto da classificação etária da fonte (normalizado por `normalizeAgeRating`). */
+  ageRating?: string | null;
 }
 
 export type SourceKind = "jsonld" | "ical" | "rss" | "sympla" | "tribe" | "ai_page";
@@ -75,6 +82,16 @@ export interface NormalizedEvent {
    */
   confirmedBySourceId: string | null;
   evidence: EvidenceRecord;
+  /** Organização do evento (texto saneado), ou `null`. */
+  organizer: string | null;
+  /** Faixa etária da lista fechada; sem informação na fonte, `consulte`. */
+  ageRating: AgeRating;
+  /** URL absoluta da imagem de divulgação a registrar (ainda sem cópia), ou `null`. */
+  imageUrl: string | null;
+  /** Página cujo HTML trouxe a imagem e os hosts que ela referencia (regra de host da imagem). */
+  imageContext: { site: string; cdnHosts: string[] } | null;
+  /** Ativo no Media Registry (`event_listings.media_id`), ou `null`. */
+  mediaId: string | null;
 }
 
 export const REJECT_REASONS = [

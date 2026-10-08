@@ -29,6 +29,12 @@ function price(v: unknown): number | null {
   return reais * 100 + cents;
 }
 
+/** `organizer`: lista de `{ organizer: nome }` (ou um objeto só); o primeiro nome. */
+function organizerOf(v: unknown): string | null {
+  const first = Array.isArray(v) ? v[0] : v;
+  return isObj(first) ? str(first["organizer"]) : null;
+}
+
 /** Resposta da API REST do The Events Calendar (`/wp-json/tribe/events/v1/events`). */
 export function extractTribe(body: string): { events: RawEvent[]; next: string | null } {
   const none = { events: [], next: null };
@@ -60,6 +66,8 @@ export function extractTribe(body: string): { events: RawEvent[]; next: string |
       city: str(venue["city"]),
       url: str(it["url"]),
       category: isObj(first) ? str(first["name"]) : null,
+      imageUrl: isObj(it["image"]) ? str(it["image"]["url"]) : null,
+      organizer: organizerOf(it["organizer"]),
       ...(priceCents === null ? {} : { priceCents }),
     });
   }

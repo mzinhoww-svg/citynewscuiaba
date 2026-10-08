@@ -8,6 +8,7 @@ import { slugify } from "@/lib/pipeline/slug";
 import { afterFetch, type FetchOutcome } from "@/lib/sources/status";
 import { AUTO_PAUSE_DEDUPE_SEC } from "@/lib/pipeline/steps/fetch";
 import type { CollectReport, ExistingEvent, StoredCollected } from "@/lib/agenda/collect";
+import { normalizeAgeRating } from "@/lib/agenda/age-rating";
 import { parseEvidence } from "@/lib/agenda/extract/evidence";
 import type { NormalizedEvent } from "@/lib/agenda/types";
 import { createIngestRepo, toJsonObject } from "./pipeline-store";
@@ -33,7 +34,7 @@ const chunks = <T>(list: readonly T[]): T[][] => {
 };
 
 const STORED_COLUMNS =
-  "id, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, description, source_url, source_id, source_ref, origin, dedupe_key, confirmed_by_source_id, evidence, locked_fields, withdrawn_at, source:sources!event_listings_source_ref_fkey(confirms)";
+  "id, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, description, source_url, source_id, source_ref, origin, dedupe_key, confirmed_by_source_id, evidence, organizer, age_rating, media_id, locked_fields, withdrawn_at, source:sources!event_listings_source_ref_fkey(confirms)";
 
 const statsOf = (s: CollectReport["sources"][number]) => ({
   status: s.status,
@@ -45,6 +46,8 @@ const statsOf = (s: CollectReport["sources"][number]) => ({
   new: s.new,
   updated: s.updated,
   rejectedSamples: s.rejectedSamples,
+  images: s.images,
+  imageSkipped: s.imageSkipped,
 });
 
 /** Acesso a banco da coleta da Agenda (service role). */
@@ -131,6 +134,9 @@ export function createAgendaStore(db: DbClient) {
           confirms: r.source?.confirms === true,
           confirmedBySourceId: r.confirmed_by_source_id,
           evidence: parseEvidence(r.evidence),
+          organizer: r.organizer,
+          ageRating: normalizeAgeRating(r.age_rating),
+          mediaId: r.media_id,
         });
       }
       return out;
@@ -167,7 +173,9 @@ export function createAgendaStore(db: DbClient) {
         neighborhood: e.neighborhood,
         price_cents: e.priceCents,
         price_unknown: e.priceUnknown,
-        age_rating: "consulte",
+        age_rating: e.ageRating,
+        organizer: e.organizer,
+        media_id: e.mediaId,
         category: e.category,
         origin: e.origin,
         description: e.description,

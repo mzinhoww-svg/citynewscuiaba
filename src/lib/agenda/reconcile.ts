@@ -40,6 +40,11 @@ const placeholder = (e: ExistingEvent): NormalizedEvent => ({
   confirms: false,
   confirmedBySourceId: null,
   evidence: {},
+  organizer: null,
+  ageRating: "consulte",
+  imageUrl: null,
+  imageContext: null,
+  mediaId: null,
 });
 
 const fromStored = (s: StoredCollected): NormalizedEvent => ({
@@ -61,6 +66,11 @@ const fromStored = (s: StoredCollected): NormalizedEvent => ({
   confirms: s.confirms,
   confirmedBySourceId: s.confirmedBySourceId,
   evidence: s.evidence,
+  organizer: s.organizer,
+  ageRating: s.ageRating,
+  imageUrl: null,
+  imageContext: null,
+  mediaId: s.mediaId,
 });
 
 const bump = (m: Map<string, number>, key: string) => m.set(key, (m.get(key) ?? 0) + 1);
@@ -98,7 +108,17 @@ export function reconcile(
     if (!pair) continue;
     absorbed.add(pair);
     const c = applyConfirmation(probe, pair);
-    const upd = { ...c, description: describeEvent(c) };
+    // A linha guardada absorve a fonte que confirma: sem imagem ainda, tenta a dela.
+    const image =
+      c.mediaId === null && pair.imageUrl
+        ? { imageUrl: pair.imageUrl, imageContext: pair.imageContext }
+        : {};
+    const upd = {
+      ...c,
+      ...image,
+      organizer: c.organizer ?? pair.organizer,
+      description: describeEvent(c),
+    };
     updates.add(upd);
     owner.set(upd, pair.sourceId);
     bump(confirmed, pair.sourceId);

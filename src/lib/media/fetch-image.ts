@@ -58,10 +58,16 @@ export function outsideSourceDomain(url: URL, domain: string): string | null {
 export async function fetchImage(
   deps: { http: HttpFetch; resolve: ResolveHost; userAgent: string },
   url: string,
-  opts: { sourceBaseUrl: string; signal?: AbortSignal },
+  opts: {
+    sourceBaseUrl: string;
+    signal?: AbortSignal;
+    /** Regra de host própria (cada salto e a URL final); padrão: domínio da fonte. */
+    allowUrl?: (url: URL) => string | null;
+  },
 ): Promise<Result<DownloadedImage, string>> {
   const domain = sourceDomain(opts.sourceBaseUrl);
   if (!domain) return err(`URL da fonte inválida: ${opts.sourceBaseUrl}`);
+  const allowUrl = opts.allowUrl ?? ((u: URL) => outsideSourceDomain(u, domain));
   const res = await safeGet(deps, url, {
     headers: {
       "User-Agent": deps.userAgent,
@@ -69,7 +75,7 @@ export async function fetchImage(
     },
     signal: deadlineSignal(FETCH_TIMEOUT_MS, opts.signal),
     maxBytes: MAX_IMAGE_BYTES,
-    allowUrl: (u) => outsideSourceDomain(u, domain),
+    allowUrl,
   });
   switch (res.kind) {
     case "blocked":

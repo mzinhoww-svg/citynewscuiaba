@@ -197,6 +197,8 @@ describe("changedColumns / lockedAfterEdit", () => {
     expect(lockedAfterEdit(["title"], ["title", "venue", "age_rating", "accessibility"])).toEqual([
       "title",
       "venue",
+      // A coleta passou a escrever a faixa etária (ARD-T2): editar trava.
+      "age_rating",
     ]);
   });
 });

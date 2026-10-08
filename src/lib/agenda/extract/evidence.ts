@@ -13,7 +13,7 @@ export interface EvidenceConflict {
 /** Trecho que o modelo cita para sustentar cada campo e onde ele viu o ano. */
 export type EvidenceFields = Partial<
   Record<
-    "titulo" | "data" | "horario" | "local" | "cidade" | "preco" | "organizador",
+    "titulo" | "data" | "horario" | "local" | "cidade" | "preco" | "organizador" | "faixa",
     { trecho: string; ano: "corpo" | "url" | "ausente" }
   >
 >;
@@ -47,6 +47,7 @@ export const evidenceRecordSchema = z.object({
   cidade: evidenceField.optional(),
   preco: evidenceField.optional(),
   organizador: evidenceField.optional(),
+  faixa: evidenceField.optional(),
   conflito: z
     .object({
       campo: z.enum(["data", "horario", "local"]),

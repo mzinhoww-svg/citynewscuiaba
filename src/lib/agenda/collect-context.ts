@@ -6,8 +6,11 @@
 import type { CallAgent } from "@/lib/ai/call-agent";
 import { isAllowedByRobots } from "@/lib/pipeline/crawl";
 import { checkRobots, crawlGet, type CrawlDeps, type RobotsVerdict } from "@/lib/pipeline/http";
+import type { ExternalImageError, ExternalImageInput } from "@/lib/media/external";
+import type { Result } from "@/lib/result";
 import type { FetchOutcome } from "@/lib/sources/status";
 import { approveEvent } from "./approve";
+import { cdnHostsOf } from "@/lib/media/cdn-hosts";
 import type { EvidenceRecord } from "./extract/evidence";
 import type { StoredEvent } from "./merge";
 import { normalizeEvent } from "./normalize";
@@ -24,6 +27,8 @@ export const AI_DEADLINE_MS = 45_000;
  */
 export const AI_HARD_DEADLINE_MS = 55_000;
 export const LIMIT_PER_HOUR = 60;
+/** Teto de imagens registradas (tentativas) por execução (spec agenda rica §4). */
+export const MAX_IMAGES_PER_RUN = 20;
 const MAX_SAMPLES = 10;
 
 export interface ExistingEvent {
@@ -92,6 +97,13 @@ export interface CollectDeps {
    * vez de adiar a fonte quando a listagem traz mais links do que cabem.
    */
   maxEventPages?: number;
+  /**
+   * Registro da imagem de divulgação no Media Registry (`registerExternalImage`). Ausente = a
+   * coleta não registra imagem. Nunca chamado no ensaio.
+   */
+  registerImage?: (
+    input: ExternalImageInput,
+  ) => Promise<Result<{ mediaId: string }, ExternalImageError>>;
 }
 
 /**
@@ -121,6 +133,10 @@ export interface SourceReport {
   new: number;
   updated: number;
   rejectedSamples: RejectedSample[];
+  /** Imagens de evento registradas nesta execução. */
+  images: number;
+  /** Imagens não registradas, por motivo (o evento segue sem imagem). */
+  imageSkipped: Partial<Record<ExternalImageError | "erro", number>>;
 }
 
 export interface PreviewItem {
@@ -162,6 +178,8 @@ export interface RunCtx {
   started: number;
   /** Chamadas ao modelo que ainda cabem nesta execução. */
   budget: number;
+  /** Registros de imagem que ainda cabem nesta execução. */
+  imagesLeft: number;
 }
 
 export function createRunCtx(deps: CollectDeps): RunCtx {
@@ -175,6 +193,7 @@ export function createRunCtx(deps: CollectDeps): RunCtx {
     now: deps.now(),
     started: deps.startedAt ?? deps.monotonic(),
     budget: Math.max(0, Math.min(deps.aiBudget.perRun, deps.aiBudget.remainingToday)),
+    imagesLeft: MAX_IMAGES_PER_RUN,
   };
 }
 
@@ -196,6 +215,8 @@ export function emptyReport(source: AgendaSource): SourceReport {
     new: 0,
     updated: 0,
     rejectedSamples: [],
+    images: 0,
+    imageSkipped: {},
   };
 }
 
@@ -207,7 +228,16 @@ export function reject(report: SourceReport, reasons: readonly RejectReason[], u
   }
 }
 
-/** Normaliza e aprova; aprovado entra em `events` com a evidência (se houver). */
+/** Página lida (URL e corpo) de onde veio o evento: base da regra de host da imagem. */
+export interface PageRef {
+  url: string;
+  body: string;
+}
+
+/**
+ * Normaliza e aprova; aprovado entra em `events` com a evidência (se houver). Com imagem, guarda a
+ * página que a trouxe e os hosts que ela referencia (CDN declarada), resolvendo a URL relativa.
+ */
 export function accept(
   raw: RawEvent,
   source: AgendaSource,
@@ -215,13 +245,30 @@ export function accept(
   report: SourceReport,
   events: NormalizedEvent[],
   evidence: EvidenceRecord = {},
+  page?: PageRef,
 ): void {
   const where = raw.url || source.url;
   const n = normalizeEvent(raw, source);
   if (!n.ok) return reject(report, n.reasons, where);
   const v = approveEvent(n.event, ctx.now);
   if (!v.ok) return reject(report, v.reasons, where);
-  events.push({ ...n.event, evidence });
+  const event: NormalizedEvent = { ...n.event, evidence };
+  if (raw.imageUrl) {
+    const site = page?.url ?? source.url;
+    let imageUrl: string | null = null;
+    try {
+      const u = new URL(raw.imageUrl, site);
+      // Só https entra (a regra de host recusaria; não gasta o teto de imagens).
+      imageUrl = u.protocol === "https:" ? u.href : null;
+    } catch {
+      imageUrl = null;
+    }
+    event.imageUrl = imageUrl;
+    event.imageContext = imageUrl
+      ? { site, cdnHosts: page ? cdnHostsOf(page.body, imageUrl) : [] }
+      : null;
+  }
+  events.push(event);
 }
 
 type CrawlResult = Awaited<ReturnType<typeof crawlGet>>;

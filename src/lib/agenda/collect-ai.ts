@@ -18,7 +18,7 @@ import {
   type RunCtx,
   type SourceReport,
 } from "./collect-context";
-import { extractEventPage, extractListingLinks, listingText } from "./extract/ai-page";
+import { extractEventPage, extractListingLinks, listingText, ogImageOf } from "./extract/ai-page";
 import { evidenceRecordSchema } from "./extract/evidence";
 import {
   REJECT_REASONS,
@@ -45,6 +45,9 @@ const rawEventSchema = z.object({
   priceCents: z.number().nullish(),
   online: z.boolean().optional(),
   category: z.string().nullish(),
+  imageUrl: z.string().nullish(),
+  organizer: z.string().nullish(),
+  ageRating: z.string().nullish(),
 });
 export const cachedPageSchema = z.union([
   z.object({
@@ -175,7 +178,12 @@ export async function collectAiPage(
     if (!step.ok) return { kind: "deferred", detail: step.detail, fetched };
     report.found++;
     if (!step.value.ok) reject(report, [step.value.error], url);
-    else accept(step.value.value.raw, source, ctx, report, events, step.value.value.evidence);
+    else {
+      const { raw, evidence } = step.value.value;
+      // Página em cache de antes da imagem (ARD-T2): o `og:image` sai do HTML que acabou de vir.
+      const withImage = raw.imageUrl ? raw : { ...raw, imageUrl: ogImageOf(res.body, url) };
+      accept(withImage, source, ctx, report, events, evidence, { url, body: res.body });
+    }
   }
   if (unavailable > 0) report.detail = `${unavailable} página(s) de evento indisponível(is)`;
   return { kind: "ok" };

@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { normalizeAgeRating } from "@/lib/agenda/age-rating";
 import { categoryFromText } from "@/lib/agenda/normalize";
 import type { EventSubmission } from "@/lib/agenda/submission";
 import { startOfDay } from "@/lib/format/date";
@@ -92,7 +93,8 @@ export async function autoApproveSubmission(
     venue: e.venue,
     neighborhood: e.neighborhood,
     price_cents: e.priceCents,
-    age_rating: e.ageRating,
+    // Lista fechada (check da 0200): fora dela, `consulte`.
+    age_rating: normalizeAgeRating(e.ageRating),
     category: categoryFromText(`${e.title} ${e.venue}`),
     origin: "reader",
     confirmed_at: now.toISOString(),

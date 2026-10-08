@@ -61,6 +61,7 @@ export const EVIDENCE_FIELD_TEXT = {
   cidade: "Cidade",
   preco: "Preço",
   organizador: "Organizador",
+  faixa: "Faixa etária",
 } as const;
 
 /** Onde o modelo viu o ano da data. */

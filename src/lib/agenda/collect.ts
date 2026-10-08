@@ -18,6 +18,7 @@ import { extractJsonLd } from "./extract/jsonld";
 import { extractRss } from "./extract/rss";
 import { extractSympla } from "./extract/sympla";
 import { extractTribe } from "./extract/tribe";
+import { attachImages } from "./images";
 import { reconcile } from "./reconcile";
 import type { AgendaSource, NormalizedEvent, RawEvent } from "./types";
 import type { FetchOutcome } from "@/lib/sources/status";
@@ -68,16 +69,18 @@ async function collectTribe(
   source: AgendaSource,
   ctx: RunCtx,
   report: SourceReport,
+  firstUrl: string,
   firstBody: string,
   robots: RobotsGate,
   events: NormalizedEvent[],
 ): Promise<boolean> {
   let body = firstBody;
+  let pageUrl = firstUrl;
   const seen = new Set<string>();
   for (let page = 1; ; page++) {
     const { events: raws, next } = extractTribe(body);
     report.found += raws.length;
-    for (const raw of raws) accept(raw, source, ctx, report, events);
+    for (const raw of raws) accept(raw, source, ctx, report, events, {}, { url: pageUrl, body });
     if (!next || page >= TRIBE_MAX_PAGES || seen.has(next)) return true;
     seen.add(next);
     let nextUrl: URL;
@@ -95,6 +98,7 @@ async function collectTribe(
     if (res.kind === "deadline") return false;
     if (res.kind !== "ok") return true;
     body = res.body;
+    pageUrl = nextUrl.href;
   }
 }
 
@@ -163,12 +167,12 @@ async function collectSource(source: AgendaSource, ctx: RunCtx): Promise<SourceR
     };
   }
   if (source.kind === "tribe") {
-    if (!(await collectTribe(source, ctx, report, res.body, robots, events)))
+    if (!(await collectTribe(source, ctx, report, url, res.body, robots, events)))
       return deferred("prazo da execução", { outcome: "ok" });
   } else {
     const raws = extractStructured(source, res.body, ctx.now);
     report.found += raws.length;
-    for (const raw of raws) accept(raw, source, ctx, report, events);
+    for (const raw of raws) accept(raw, source, ctx, report, events, {}, { url, body: res.body });
   }
   report.approved = events.length;
   return { report, events, outcome: { outcome: "ok" } };
@@ -229,7 +233,11 @@ export async function collectAgenda(deps: CollectDeps): Promise<CollectReport> {
     r.new += rec.created.get(r.id) ?? 0;
     r.updated += rec.updated.get(r.id) ?? 0;
   }
-  const saved = deps.dryRun ? 0 : rec.toSave.length > 0 ? await deps.save(rec.toSave, now) : 0;
+  // Imagem só na execução real (o ensaio não grava nada no Media Registry), depois das travas.
+  const toSave = deps.dryRun
+    ? rec.toSave
+    : await attachImages(rec.toSave, stored, selected, ctx, reports);
+  const saved = deps.dryRun ? 0 : toSave.length > 0 ? await deps.save(toSave, now) : 0;
   return {
     startedAt: now.toISOString(),
     sources: reports,

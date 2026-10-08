@@ -9,6 +9,7 @@ import type { AiError } from "@/lib/ai/types";
 import { err, ok, type Result } from "@/lib/result";
 import { sanitizeExternalText } from "@/lib/security/sanitize";
 import { fold } from "@/lib/text/fold";
+import { normalizeAgeRating } from "../age-rating";
 import type { RawEvent, RejectReason } from "../types";
 import { verifyEvidence, type EvidenceFields, type EvidenceRecord } from "./evidence";
 
@@ -126,6 +127,33 @@ export async function extractListingLinks(
   return ok(links);
 }
 
+/**
+ * Imagem de divulgação da página (`og:image`, `og:image:secure_url`, `og:image:url`), lida do
+ * HTML pelo código (a IA nunca escolhe imagem), em URL absoluta http(s); sem meta, `null`.
+ */
+export function ogImageOf(html: string, pageUrl: string): string | null {
+  const head = html.slice(0, MAX_HTML_CHARS);
+  const re = /<meta\b[^>]{0,2000}>/gi;
+  for (let m = re.exec(head); m; m = re.exec(head)) {
+    const tag = m[0];
+    const attr = (name: string) =>
+      new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]{0,2000})"|'([^']{0,2000})')`, "i").exec(tag);
+    const prop = attr("property") ?? attr("name");
+    const key = (prop?.[1] ?? prop?.[2] ?? "").trim().toLowerCase();
+    if (!/^og:image(?::secure_url|:url)?$/.test(key)) continue;
+    const content = attr("content");
+    const value = (content?.[1] ?? content?.[2] ?? "").trim();
+    if (!value) continue;
+    try {
+      const abs = new URL(value, pageUrl);
+      if (abs.protocol === "https:" || abs.protocol === "http:") return abs.href;
+    } catch {
+      // URL inválida: tenta a próxima meta
+    }
+  }
+  return null;
+}
+
 /** Preço em centavos a partir do texto do campo; `undefined` quando não dá para ler. */
 function priceCentsOf(text: string): number | undefined {
   const t = fold(text);
@@ -239,7 +267,13 @@ export async function extractEventPage(
     const f = keep(e.preco);
     return f && priceCentsOf(f.trecho) !== undefined ? f : null;
   })();
-  const organizador = keep(e.organizador);
+  // Organizador: o valor precisa estar no próprio trecho, como local e cidade.
+  const organizador = inTrecho(keep(e.organizador));
+  // Faixa etária: lida do trecho (nunca do valor); trecho sem classificação descarta o campo.
+  const faixa = (() => {
+    const f = keep(e.faixa ?? null);
+    return f && normalizeAgeRating(f.trecho) !== "consulte" ? f : null;
+  })();
 
   const evidence: EvidenceRecord = {
     titulo: { trecho: e.titulo.trecho, ano: e.titulo.ano_evidencia },
@@ -251,6 +285,7 @@ export async function extractEventPage(
     ["cidade", cidade],
     ["preco", preco],
     ["organizador", organizador],
+    ["faixa", faixa],
   ];
   for (const [key, f] of optional)
     if (f) evidence[key] = { trecho: f.trecho, ano: f.ano_evidencia };
@@ -262,6 +297,10 @@ export async function extractEventPage(
     city: cidade?.value ?? null,
     url: input.url,
   };
+  if (organizador) raw.organizer = organizador.value;
+  if (faixa) raw.ageRating = normalizeAgeRating(faixa.trecho);
+  const image = ogImageOf(input.html, input.url);
+  if (image) raw.imageUrl = image;
   if (preco) {
     const cents = priceCentsOf(preco.trecho);
     if (cents !== undefined) raw.priceCents = cents;

@@ -3,7 +3,7 @@ import { createFakeProvider, type ScriptStep } from "@/lib/ai/fake";
 import { createMemoryAiStore } from "@/lib/ai/testing/memory-store";
 import { normalizeEvent } from "../normalize";
 import type { AgendaSource } from "../types";
-import { extractEventPage, extractListingLinks } from "./ai-page";
+import { extractEventPage, extractListingLinks, ogImageOf } from "./ai-page";
 
 const NOW = new Date("2026-10-08T12:00:00Z");
 const URL_PAGE = "https://casa-do-cerrado.example/evento/forro-da-praca";
@@ -428,5 +428,110 @@ describe("fake event_extractor (página)", () => {
     if (!r.ok) return;
     expect(r.value.raw.start).toBe("2026-10-10T19:30");
     expect(r.value.raw.venue).toBe("Praça Alencastro");
+  });
+});
+
+describe("extractEventPage: organizador, faixa etária e imagem (ARD-T2)", () => {
+  const HTML_RICO = `<html><head>
+<meta property="og:image" content="/img/forro-cartaz.jpg">
+</head><body><h1>Forró da Praça</h1>
+<p>Sábado, 10 de outubro de 2026 · 19h</p><p>Teatro Cerrado, Cuiabá</p>
+<p>Produção: Grupo Cerrado</p><p>Classificação indicativa: 14 anos</p></body></html>`;
+  const rico = { ...good, faixa: field("14", "Classificação indicativa: 14 anos") };
+
+  it("organizador e faixa com trecho viram campos do evento, com evidência", async () => {
+    const { r } = await run([{ output: rico }], HTML_RICO);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.raw.organizer).toBe("Grupo Cerrado");
+    expect(r.value.raw.ageRating).toBe("14");
+    expect(r.value.evidence.faixa?.trecho).toBe("Classificação indicativa: 14 anos");
+  });
+
+  it("faixa lida do trecho, não do valor; trecho sem classificação descarta o campo", async () => {
+    const outro = await run(
+      [{ output: { ...good, faixa: field("18", "Classificação indicativa: 14 anos") } }],
+      HTML_RICO,
+    );
+    expect(outro.r.ok && outro.r.value.raw.ageRating).toBe("14");
+    const semClass = await run(
+      [{ output: { ...good, faixa: field("16", "Teatro Cerrado, Cuiabá") } }],
+      HTML_RICO,
+    );
+    expect(semClass.r.ok).toBe(true);
+    if (!semClass.r.ok) return;
+    expect(semClass.r.value.raw.ageRating ?? null).toBeNull();
+    expect(semClass.r.value.evidence.faixa).toBeUndefined();
+  });
+
+  it("organizador e faixa sem trecho na página são descartados", async () => {
+    const { r } = await run(
+      [
+        {
+          output: {
+            ...good,
+            organizador: field("Produtora Inventada", "Produção: Produtora Inventada"),
+            faixa: field("16", "Classificação 16 anos"),
+          },
+        },
+      ],
+      HTML_RICO,
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.raw.organizer ?? null).toBeNull();
+    expect(r.value.raw.ageRating ?? null).toBeNull();
+    expect(r.value.evidence.organizador).toBeUndefined();
+  });
+
+  it("organizador que não está no próprio trecho é descartado", async () => {
+    const { r } = await run(
+      [{ output: { ...good, organizador: field("Outra Produtora", "Produção: Grupo Cerrado") } }],
+      HTML_RICO,
+    );
+    expect(r.ok && (r.value.raw.organizer ?? null)).toBeNull();
+  });
+
+  it("faixa ausente da saída (campo opcional) não quebra o esquema", async () => {
+    const { r } = await run([{ output: good }], HTML_RICO);
+    expect(r.ok).toBe(true);
+  });
+
+  it("og:image vem do HTML pelo código (URL absoluta), nunca do modelo", async () => {
+    const { r, fake } = await run([{ output: rico }], HTML_RICO);
+    expect(r.ok && r.value.raw.imageUrl).toBe(
+      "https://casa-do-cerrado.example/img/forro-cartaz.jpg",
+    );
+    // A tarefa não pede imagem ao modelo.
+    expect(outsideData(fake.calls[0]!.prompt)).not.toMatch(/imagem|image/i);
+    const sem = await run([{ output: good }]);
+    expect(sem.r.ok && (sem.r.value.raw.imageUrl ?? null)).toBeNull();
+  });
+
+  it("fake: lê cn-organizador e cn-faixa", async () => {
+    const store = createMemoryAiStore();
+    const fake = createFakeProvider();
+    const callAgent = createCallAgent({ store, provider: fake, now: () => NOW });
+    const html = `<h1>Feira do Cerrado</h1><p>cn-data: Sábado, 10 de outubro de 2026</p><p>cn-hora: 19h30</p><p>cn-local: Praça Alencastro</p><p>cn-organizador: Coletivo Feira Viva</p><p>cn-faixa: Classificação livre</p>`;
+    const r = await extractEventPage(callAgent, { html, url: URL_PAGE, notes: [] });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.raw.organizer).toBe("Coletivo Feira Viva");
+    expect(r.value.raw.ageRating).toBe("livre");
+  });
+});
+
+describe("ogImageOf", () => {
+  it("lê og:image em qualquer ordem de atributos e resolve contra a página", () => {
+    expect(
+      ogImageOf('<meta content="https://cdn.x.example/a.jpg" property="og:image" />', URL_PAGE),
+    ).toBe("https://cdn.x.example/a.jpg");
+    expect(ogImageOf("<meta property='og:image:secure_url' content='/b.png'>", URL_PAGE)).toBe(
+      "https://casa-do-cerrado.example/b.png",
+    );
+    expect(ogImageOf("<p>sem meta</p>", URL_PAGE)).toBeNull();
+    expect(
+      ogImageOf('<meta property="og:image" content="javascript:alert(1)">', URL_PAGE),
+    ).toBeNull();
   });
 });

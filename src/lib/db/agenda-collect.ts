@@ -16,7 +16,10 @@ import { createProductionAi } from "@/lib/ai/server";
 import { createServiceClient, type DbClient } from "@/lib/db/client";
 import { loadEventSources } from "@/lib/db/agenda-sources";
 import { createAgendaStore } from "@/lib/db/agenda-store";
-import { createIngestRepo } from "@/lib/db/pipeline-store";
+import { createExternalMediaRepo } from "@/lib/db/external-media-store";
+import { registerExternalImage } from "@/lib/media/external";
+import { productionMediaStore } from "@/lib/pipeline/deps";
+import { createFlags, createIngestRepo } from "@/lib/db/pipeline-store";
 import type { QueryError } from "@/lib/db/queries/types";
 import { err, ok, type Result } from "@/lib/result";
 import { crawlDeps } from "@/lib/sources/http-deps";
@@ -48,8 +51,21 @@ export function agendaCollectDeps(
   store: AgendaStore,
   o: AgendaDepsOptions,
 ): CollectDeps {
+  const crawl = crawlDeps({ repo: createIngestRepo(db) });
+  // Flag lida uma vez por execução (falha na leitura = desligada).
+  let reproduction: Promise<boolean> | null = null;
+  const reproductionEnabled = () =>
+    (reproduction ??= createFlags(db).isEnabled("image_reproduction_enabled"));
+  const images = {
+    crawl,
+    repo: createExternalMediaRepo(db),
+    store: productionMediaStore(db),
+    reproductionEnabled,
+    now: () => new Date(),
+    signal: o.signal,
+  };
   return {
-    crawl: crawlDeps({ repo: createIngestRepo(db) }),
+    crawl,
     sources: o.sources,
     now: () => o.now,
     existing: () => store.existing(o.now),
@@ -69,6 +85,8 @@ export function agendaCollectDeps(
     ...(o.onlySourceId ? { onlySourceId: o.onlySourceId } : {}),
     ...(o.maxEventPages !== undefined ? { maxEventPages: o.maxEventPages } : {}),
     ...(o.cacheWritesInDryRun ? { cacheWritesInDryRun: true } : {}),
+    // Imagem de divulgação no Media Registry: só na coleta real (o ensaio não grava mídia).
+    ...(o.dryRun ? {} : { registerImage: (input) => registerExternalImage(images, input) }),
   };
 }
 
