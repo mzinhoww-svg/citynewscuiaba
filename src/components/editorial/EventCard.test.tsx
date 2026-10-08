@@ -34,6 +34,7 @@ const event: EventView = {
   confirmedAt: null,
   sourceUrl: null,
   priceUnknown: false,
+  venueSlug: null,
 };
 
 beforeEach(() => {

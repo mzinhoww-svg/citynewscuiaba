@@ -8,16 +8,21 @@ import {
   JsonLd,
   ReportVenueForm,
   VenueCover,
+  VenueEvents,
   categoryLabel,
   ratingText,
 } from "@/components";
 import { dataLine, GUIDE } from "@/content/pt-BR/guide";
+import { upcomingEventsAtVenue } from "@/lib/db/queries/events";
 import { getGuideVenue } from "@/lib/db/queries/guide";
 import { formatDate } from "@/lib/format/date";
 import { venueJsonLd } from "@/lib/guide/jsonld";
 import { pageMetadata } from "@/lib/seo/metadata";
 
-/** Página do lugar: contato, horário, fotos oficiais com crédito e as listas em que aparece. */
+/**
+ * Página do lugar: contato, horário, fotos oficiais com crédito, as listas em que aparece e os
+ * próximos eventos da Agenda ligados a ele (até 5; sem eventos ou com a agenda fora, a seção some).
+ */
 export const revalidate = 3600;
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
@@ -89,6 +94,8 @@ export default async function GuideVenuePage({ params }: Props) {
   const page = result.value;
   if (!page) notFound();
   const { venue: v, lists } = page;
+  const upcoming = await upcomingEventsAtVenue(v.id);
+  const events = upcoming.ok ? upcoming.value : [];
   const telHref = v.phone ? `tel:${v.phone.replace(/[^\d+]/g, "")}` : null;
   const data = dataLine(v.sources);
 
@@ -243,6 +250,8 @@ export default async function GuideVenuePage({ params }: Props) {
           </ul>
         </section>
       )}
+
+      <VenueEvents events={events} />
 
       <p className="type-meta text-meta">
         {data && <span>{data}. </span>}

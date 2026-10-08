@@ -27,6 +27,20 @@ const parse = (over: Record<string, string> = {}, mode: "create" | "edit" = "cre
   parseEventForm(form(over), { now: NOW, mode });
 
 describe("parseEventForm", () => {
+  it("lugar do Guia: sem o campo = automático; uuid = escolha da redação; 'nenhum' = sem vínculo", () => {
+    const auto = parse();
+    expect(auto.ok && auto.value.venueId).toBeUndefined();
+    const vazio = parse({ venueId: "" });
+    expect(vazio.ok && vazio.value.venueId).toBeUndefined();
+    const id = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
+    const escolhido = parse({ venueId: id });
+    expect(escolhido.ok && escolhido.value.venueId).toBe(id);
+    const nenhum = parse({ venueId: "nenhum" });
+    expect(nenhum.ok && nenhum.value.venueId).toBeNull();
+    const lixo = parse({ venueId: "x'; drop" });
+    expect(lixo.ok && lixo.value.venueId).toBeUndefined();
+  });
+
   it("aceita o evento completo e converte a hora de Cuiabá e o preço", () => {
     const r = parse();
     expect(r).toEqual({

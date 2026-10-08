@@ -96,6 +96,7 @@ function storedRow(over: Partial<StoredCollected> & { dedupeKey: string }): Stor
     organizer: null,
     ageRating: "consulte",
     mediaId: null,
+    venueId: null,
     ...over,
   };
 }
@@ -798,5 +799,71 @@ describe("collectAgenda · imagem, organizador e faixa (ARD-T2)", () => {
     await collectAgenda(d);
     expect(saved.find((e) => e.dedupeKey === FORRO_KEY)?.mediaId).toBe("media-antiga");
     expect(img.calls.map((c) => c.url)).not.toContain(FORRO_IMG);
+  });
+});
+
+describe("collectAgenda: vínculo com o lugar do Guia (ARD-T3)", () => {
+  const GUIA = [
+    { id: "lugar-teatro-cerrado", name: "Teatro Cerrado - Cuiabá", status: "active" },
+    { id: "lugar-arena-1", name: "Arena Pantanal Fictícia", status: "active" },
+    { id: "lugar-arena-2", name: "Arena Pantanal Fictícia", status: "active" },
+  ];
+  const FESTIVAL = "Festival Cerrado Eletrônico";
+
+  it("casa o local com um único lugar ativo; ambíguo fica sem vínculo; lugares lidos uma vez", async () => {
+    let loads = 0;
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        loads++;
+        return GUIA;
+      },
+    });
+    await collectAgenda(d);
+    expect(loads).toBe(1);
+    expect(saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-teatro-cerrado");
+    expect(saved.find((e) => e.title === FESTIVAL)?.venueId).toBeNull();
+  });
+
+  it("venue_id travado pela redação (mesmo vazio) e vínculo já guardado não mudam", async () => {
+    const travado = deps({
+      sources: [TEATRO],
+      venues: async () => GUIA,
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, lockedFields: ["venue_id"] })],
+    });
+    await collectAgenda(travado.d);
+    expect(travado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBeNull();
+
+    const guardado = deps({
+      sources: [TEATRO],
+      venues: async () => GUIA,
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-escolhido" })],
+    });
+    await collectAgenda(guardado.d);
+    expect(guardado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-escolhido");
+  });
+
+  it("ensaio não lê os lugares; falha ao ler os lugares não derruba a coleta", async () => {
+    let loads = 0;
+    const ensaio = deps({
+      sources: [TEATRO],
+      dryRun: true,
+      venues: async () => {
+        loads++;
+        return GUIA;
+      },
+    });
+    await collectAgenda(ensaio.d);
+    expect(loads).toBe(0);
+
+    const falha = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        throw new Error("banco fora");
+      },
+    });
+    const r = await collectAgenda(falha.d);
+    expect(r.saved).toBeGreaterThan(0);
+    expect(falha.saved.every((e) => e.venueId === null)).toBe(true);
   });
 });

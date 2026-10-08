@@ -41,7 +41,15 @@ const input = (over: Partial<EventInput> = {}): EventInput => ({
   ...over,
 });
 
+const venueIds: string[] = [];
+const listIds: string[] = [];
+
 afterAll(async () => {
+  if (listIds.length) {
+    await service.from("guide_list_items").delete().in("list_id", listIds);
+    await service.from("guide_lists").delete().in("id", listIds);
+  }
+  if (venueIds.length) await service.from("venues").delete().in("id", venueIds);
   if (created.length) {
     await service
       .from("audit_log")
@@ -74,7 +82,9 @@ describe("eventos do Estúdio no banco", () => {
     expect(row.data).toMatchObject({ origin: "newsroom", dedupe_key: null });
     expect(row.data?.confirmed_at).not.toBeNull();
     expect([...(row.data?.locked_fields ?? [])].sort()).toEqual(
-      Object.keys(LOCKABLE_COLUMNS).sort(),
+      Object.keys(LOCKABLE_COLUMNS)
+        .filter((c) => c !== "venue_id")
+        .sort(),
     );
     const pub = await anon.from("event_listings").select("id").eq("id", c.value.id);
     expect(pub.data).toHaveLength(1);
@@ -146,5 +156,125 @@ describe("eventos do Estúdio no banco", () => {
       .eq("id", seeded.data!.id)
       .single();
     expect(still.data?.withdrawn_at).toBeNull();
+  });
+
+  describe("vínculo com o lugar do Guia (ARD-T3)", () => {
+    const CRITERIA =
+      "Reunimos teatros fictícios de Cuiabá para o teste do vínculo com a Agenda, com dados públicos.";
+    let teatro = "";
+    let outro = "";
+
+    async function publicVenue(name: string, slug: string) {
+      const v = await service
+        .from("venues")
+        .insert({ slug: `${slug}-${TAG}`, name, category: "teatro" })
+        .select("id")
+        .single();
+      if (v.error) throw v.error;
+      venueIds.push(v.data.id);
+      return v.data.id;
+    }
+
+    it("prepara dois lugares públicos do Guia", async () => {
+      teatro = await publicVenue(`Teatro Lume ${TAG}`, "teatro-lume");
+      outro = await publicVenue(`Cine Brisa ${TAG}`, "cine-brisa");
+      const l = await service
+        .from("guide_lists")
+        .insert({
+          slug: `teatros-${TAG}`,
+          title: `Teatros ${TAG}`,
+          category: "teatro",
+          criteria: CRITERIA,
+          status: "published",
+          published_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+      if (l.error) throw l.error;
+      listIds.push(l.data.id);
+      const items = await service.from("guide_list_items").insert([
+        { list_id: l.data.id, venue_id: teatro, position: 1 },
+        { list_id: l.data.id, venue_id: outro, position: 2 },
+      ]);
+      expect(items.error).toBeNull();
+    });
+
+    it("cadastro sem escolha casa pelo local e não trava; escolha explícita trava", async () => {
+      const otavio = await actor("otavio");
+      const auto = await createEvent(
+        input({ title: `Peça automática ${TAG}`, venue: `Lume ${TAG} - Cuiabá` }),
+        otavio,
+      );
+      expect(auto.ok).toBe(true);
+      if (!auto.ok) return;
+      created.push(auto.value.id);
+      const a = await service
+        .from("event_listings")
+        .select("venue_id, locked_fields")
+        .eq("id", auto.value.id)
+        .single();
+      expect(a.data?.venue_id).toBe(teatro);
+      expect(a.data?.locked_fields).not.toContain("venue_id");
+
+      const manual = await createEvent(
+        input({ title: `Peça escolhida ${TAG}`, venue: `Lume ${TAG}`, venueId: outro }),
+        otavio,
+      );
+      expect(manual.ok).toBe(true);
+      if (!manual.ok) return;
+      created.push(manual.value.id);
+      const m = await service
+        .from("event_listings")
+        .select("venue_id, locked_fields")
+        .eq("id", manual.value.id)
+        .single();
+      expect(m.data?.venue_id).toBe(outro);
+      expect(m.data?.locked_fields).toContain("venue_id");
+    });
+
+    it("edição: sem vínculo casa pelo local; escolha explícita grava, trava e audita", async () => {
+      const otavio = await actor("otavio");
+      const c = await createEvent(
+        input({ title: `Peça sem lugar ${TAG}`, venue: "Quintal Desconhecido" }),
+        otavio,
+      );
+      expect(c.ok).toBe(true);
+      if (!c.ok) return;
+      created.push(c.value.id);
+      const row0 = await service
+        .from("event_listings")
+        .select("venue_id")
+        .eq("id", c.value.id)
+        .single();
+      expect(row0.data?.venue_id).toBeNull();
+
+      const u = await updateEvent(
+        c.value.id,
+        input({ title: `Peça sem lugar ${TAG}`, venue: `Teatro Lume ${TAG}` }),
+        otavio,
+      );
+      expect(u.ok).toBe(true);
+      const row1 = await service
+        .from("event_listings")
+        .select("venue_id, locked_fields")
+        .eq("id", c.value.id)
+        .single();
+      expect(row1.data?.venue_id).toBe(teatro);
+      expect(row1.data?.locked_fields).not.toContain("venue_id");
+
+      const e = await updateEvent(
+        c.value.id,
+        input({ title: `Peça sem lugar ${TAG}`, venue: `Teatro Lume ${TAG}`, venueId: outro }),
+        otavio,
+      );
+      expect(e.ok && e.value.changed).toEqual(["venue_id"]);
+      const row2 = await service
+        .from("event_listings")
+        .select("venue_id, locked_fields")
+        .eq("id", c.value.id)
+        .single();
+      expect(row2.data?.venue_id).toBe(outro);
+      expect(row2.data?.locked_fields).toContain("venue_id");
+    });
   });
 });

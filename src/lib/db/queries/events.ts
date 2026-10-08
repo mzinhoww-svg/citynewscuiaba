@@ -7,6 +7,9 @@ import { afterKey, cursorOf, decodeCursor, throughKey, type KeySpec, type Page }
 import { many, one, readPublic } from "./run";
 import type { EventView, QueryError } from "./types";
 
+/** Lugar do Guia embutido (`venues` pela FK `venue_id`); a RLS devolve `null` se não é público. */
+type GuideVenueRef = { slug: string; status: string } | null;
+
 type EventRow = Omit<
   Database["public"]["Tables"]["event_listings"]["Row"],
   | "tsv"
@@ -19,13 +22,12 @@ type EventRow = Omit<
   | "updated_at"
   // Campos ricos (ARD-T1): entram na seleção pública nas tarefas seguintes.
   | "media_id"
-  | "venue_id"
   | "organizer"
   | "featured_until"
->;
+> & { guide_venue?: GuideVenueRef };
 
 export const EVENT_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id, venue_id, guide_venue:venues(slug, status)";
 
 export interface EventFilters {
   /** ISO; padrão = agora (só eventos que ainda não terminaram). */
@@ -37,6 +39,8 @@ export interface EventFilters {
   /** Só classificação livre (para crianças). */
   kidsOnly?: boolean;
   origin?: "official" | "organizer" | "reader" | "newsroom";
+  /** Só eventos ligados a este lugar do Guia (`venue_id`). */
+  venueId?: string;
   excludeId?: string;
   limit?: number;
 }
@@ -80,6 +84,7 @@ export function toEventView(r: EventRow, sources: EventSourceNames = new Map()):
     confirmedAt: r.confirmed_at,
     sourceUrl: r.source_url,
     priceUnknown: r.price_unknown,
+    venueSlug: r.venue_id && r.guide_venue?.status === "active" ? r.guide_venue.slug : null,
   };
 }
 
@@ -147,6 +152,7 @@ function eventsQuery(db: DbClient, f: EventFilters, now: Date, opts: EventQueryO
   if (f.freeOnly) q = q.eq("is_free", true);
   if (f.kidsOnly) q = q.eq("age_rating", "livre");
   if (f.origin) q = q.eq("origin", f.origin);
+  if (f.venueId) q = q.eq("venue_id", f.venueId);
   if (f.excludeId) q = q.neq("id", f.excludeId);
   if (opts.where) q = q.or(opts.where);
   if (opts.countOnly) return q;
@@ -261,6 +267,20 @@ export async function listEventsInRange(
     } while (cursor && out.length < max);
     return out;
   });
+}
+
+/** Próximos eventos de um lugar do Guia na página do lugar (ARD-T3). */
+export const VENUE_EVENTS_LIMIT = 5;
+
+/**
+ * Próximos eventos de um lugar do Guia ("Próximos eventos aqui"): o mesmo recorte da agenda
+ * pública (`eventsQuery`: ainda não terminou; RLS: confirmado e não retirado), por início.
+ */
+export async function upcomingEventsAtVenue(
+  venueId: string,
+  limit: number = VENUE_EVENTS_LIMIT,
+): Promise<Result<EventView[], QueryError>> {
+  return readPublic((db) => fetchEvents(db, { venueId, limit }));
 }
 
 /** Evento pelo slug; `null` quando não existe ou não foi confirmado. */

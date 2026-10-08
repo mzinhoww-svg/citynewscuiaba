@@ -1500,6 +1500,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           venue: string;
+          venue_id?: string | null;
           withdrawn_at?: string | null;
         };
         Update: {

@@ -264,6 +264,7 @@ export function normalizeEvent(raw: RawEvent, source: AgendaSource): NormalizeRe
       imageUrl: resolveUrl(raw.imageUrl, source.url),
       imageContext: null,
       mediaId: null,
+      venueId: null,
     },
   };
 }

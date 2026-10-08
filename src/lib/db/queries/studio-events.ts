@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import type { EventInput } from "@/lib/agenda/event-form";
 import { LOCKABLE_COLUMNS } from "@/lib/agenda/merge";
+import { matchVenue } from "@/lib/agenda/venue-match";
 import { audit } from "@/lib/audit";
 import type { AuditAction } from "@/lib/audit/actions";
 import type { DbClient } from "@/lib/db/client";
@@ -209,12 +210,13 @@ export interface StoredStudioEvent {
   accessibility: string | null;
   source_url: string | null;
   description: string | null;
+  venue_id: string | null;
   locked_fields: string[];
   withdrawn_at: string | null;
 }
 
 const STORED_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, age_rating, accessibility, source_url, description, locked_fields, withdrawn_at";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, age_rating, accessibility, source_url, description, venue_id, locked_fields, withdrawn_at";
 
 export interface StudioEventDetail extends StoredStudioEvent {
   origin: StudioEventOrigin;
@@ -306,7 +308,7 @@ function dbFailure(
   });
   const code = error?.code ?? "";
   if (code === "23505") return "conflict";
-  if (code === "23514" || code.startsWith("22")) return "invalid";
+  if (code === "23514" || code === "23503" || code.startsWith("22")) return "invalid";
   return "forbidden";
 }
 
@@ -320,9 +322,30 @@ async function record(
 }
 
 /**
- * Cadastro da redação: `origin = 'newsroom'`, no ar na hora (`confirmed_at`), todas as colunas
- * da coleta travadas (`locked_fields`) e sem chave de duplicidade (a coleta compara pelo título,
- * data e local, `existing`).
+ * Lugar do Guia pelo texto do local (`matchVenue`), com os lugares que a pessoa enxerga (RLS:
+ * públicos, ou todos para quem cuida do Guia). Falha na leitura = sem vínculo (o salvar segue).
+ */
+async function autoVenue(db: DbClient, venueText: string): Promise<string | null> {
+  const { data, error } = await db
+    .from("venues")
+    .select("id, name, status")
+    .eq("status", "active")
+    .limit(5000);
+  if (error) {
+    console.error("evento da agenda (lugares do Guia)", {
+      code: error.code,
+      message: error.message,
+    });
+    return null;
+  }
+  return matchVenue(venueText, data ?? []);
+}
+
+/**
+ * Cadastro da redação: `origin = 'newsroom'`, no ar na hora (`confirmed_at`), as colunas da coleta
+ * travadas (`locked_fields`) e sem chave de duplicidade (a coleta compara pelo título, data e
+ * local, `existing`). Lugar do Guia: a escolha da redação (travada) ou, sem escolha, o casamento
+ * automático pelo local (sem trava em `venue_id`).
  */
 export async function createEvent(
   input: EventInput,
@@ -336,23 +359,31 @@ export async function createEvent(
     dedupeKey: `newsroom|${id}`,
   });
   const values = columnsOf(input);
+  const explicit = input.venueId !== undefined;
+  const venueId = explicit ? (input.venueId ?? null) : await autoVenue(actor.db, input.venue);
   const { error } = await actor.db.from("event_listings").insert({
     id,
     slug,
     ...values,
+    venue_id: venueId,
     origin: "newsroom",
     confirmed_at: stamp,
-    locked_fields: Object.keys(LOCKABLE_COLUMNS),
+    locked_fields: Object.keys(LOCKABLE_COLUMNS).filter((c) => explicit || c !== "venue_id"),
     updated_at: stamp,
   });
   if (error) return err(dbFailure("cadastro", error));
-  await record(actor, "event.create", id, { after: values });
+  await record(actor, "event.create", id, {
+    after: { ...values, venue_id: venueId },
+    ...(explicit ? {} : { venue_id_auto: true }),
+  });
   return ok({ id, slug });
 }
 
 /**
  * Edição: grava só as colunas alteradas, acrescenta-as em `locked_fields` (as que a coleta
- * escreve) e audita o diff. Sem mudança, não grava nada.
+ * escreve) e audita o diff. Sem mudança, não grava nada. Lugar do Guia: escolha explícita
+ * diferente da guardada conta como edição (trava `venue_id`); sem escolha, linha sem vínculo e
+ * sem trava ganha o casamento automático pelo local (sem trava).
  */
 export async function updateEvent(
   id: string,
@@ -366,12 +397,24 @@ export async function updateEvent(
     .maybeSingle();
   if (readError) return err(dbFailure("leitura", readError));
   if (!before) return err("not_found");
-  const changed = changedColumns(before, input);
-  if (changed.length === 0) return ok({ id, slug: before.slug, changed: [] });
+  const formChanged = changedColumns(before, input);
   const next = columnsOf(input);
+  const explicitVenue = input.venueId !== undefined ? (input.venueId ?? null) : undefined;
+  const venueChanged = explicitVenue !== undefined && explicitVenue !== before.venue_id;
+  const changed: string[] = venueChanged ? [...formChanged, "venue_id"] : formChanged;
+  const autoVenueId =
+    explicitVenue === undefined &&
+    before.venue_id === null &&
+    !before.locked_fields.includes("venue_id")
+      ? await autoVenue(actor.db, input.venue)
+      : null;
+  if (changed.length === 0 && autoVenueId === null)
+    return ok({ id, slug: before.slug, changed: [] });
   const locked = lockedAfterEdit(before.locked_fields, changed);
   const patch: Record<string, unknown> = {};
-  for (const c of changed) patch[c] = next[c];
+  for (const c of formChanged) patch[c] = next[c];
+  if (venueChanged) patch.venue_id = explicitVenue;
+  else if (autoVenueId !== null) patch.venue_id = autoVenueId;
   const { data, error } = await actor.db
     .from("event_listings")
     .update({ ...patch, locked_fields: locked, updated_at: actor.now.toISOString() })
@@ -380,8 +423,14 @@ export async function updateEvent(
     .maybeSingle();
   if (error || !data) return err(dbFailure("edição", error));
   const diff: Record<string, { from: unknown; to: unknown }> = {};
-  for (const c of changed) diff[c] = { from: before[c], to: next[c] };
-  await record(actor, "event.update", id, { changed, diff, locked_fields: locked });
+  for (const c of formChanged) diff[c] = { from: before[c], to: next[c] };
+  if (venueChanged) diff.venue_id = { from: before.venue_id, to: explicitVenue };
+  await record(actor, "event.update", id, {
+    changed,
+    diff,
+    locked_fields: locked,
+    ...(autoVenueId !== null ? { venue_id_auto: autoVenueId } : {}),
+  });
   return ok({ id, slug: data.slug, changed });
 }
 

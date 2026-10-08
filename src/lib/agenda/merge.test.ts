@@ -27,6 +27,7 @@ const INCOMING: NormalizedEvent = {
   imageUrl: "https://fonte.example/cartaz.jpg",
   imageContext: { site: "https://fonte.example/agenda", cdnHosts: [] },
   mediaId: null,
+  venueId: null,
 };
 
 const STORED: StoredEvent = {
@@ -46,6 +47,7 @@ const STORED: StoredEvent = {
   organizer: "Produtora Editada",
   ageRating: "livre",
   mediaId: "media-guardada",
+  venueId: "lugar-guardado",
 };
 
 describe("mergeForSave", () => {
@@ -90,6 +92,21 @@ describe("mergeForSave", () => {
     expect(out?.organizer).toBe("Produtora da Coleta");
     expect(out?.ageRating).toBe("16");
     expect(out?.mediaId).toBe("media-guardada");
+  });
+
+  it("venue_id: o guardado fica (a coleta nunca limpa nem troca); travado vale o da redação", () => {
+    expect(LOCKABLE_COLUMNS.venue_id).toBe("venueId");
+    expect(mergeForSave(INCOMING, { ...STORED, lockedFields: [] })?.venueId).toBe("lugar-guardado");
+    const travadoVazio = mergeForSave(
+      { ...INCOMING, venueId: "lugar-da-coleta" },
+      { ...STORED, venueId: null, lockedFields: ["venue_id"] },
+    );
+    expect(travadoVazio?.venueId).toBeNull();
+    const semGuardado = mergeForSave(
+      { ...INCOMING, venueId: "lugar-da-coleta" },
+      { ...STORED, venueId: null, lockedFields: [] },
+    );
+    expect(semGuardado?.venueId).toBe("lugar-da-coleta");
   });
 
   it("retirado não é regravado", () => {

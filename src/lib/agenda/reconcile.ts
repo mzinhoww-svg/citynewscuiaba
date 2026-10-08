@@ -45,6 +45,7 @@ const placeholder = (e: ExistingEvent): NormalizedEvent => ({
   imageUrl: null,
   imageContext: null,
   mediaId: null,
+  venueId: null,
 });
 
 const fromStored = (s: StoredCollected): NormalizedEvent => ({
@@ -71,6 +72,7 @@ const fromStored = (s: StoredCollected): NormalizedEvent => ({
   imageUrl: null,
   imageContext: null,
   mediaId: s.mediaId,
+  venueId: s.venueId,
 });
 
 const bump = (m: Map<string, number>, key: string) => m.set(key, (m.get(key) ?? 0) + 1);

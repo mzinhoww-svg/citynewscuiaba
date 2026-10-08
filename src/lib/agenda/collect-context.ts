@@ -15,6 +15,7 @@ import type { EvidenceRecord } from "./extract/evidence";
 import type { StoredEvent } from "./merge";
 import { normalizeEvent } from "./normalize";
 import type { AgendaSource, NormalizedEvent, RawEvent, RejectReason } from "./types";
+import type { VenueCandidate } from "./venue-match";
 
 /**
  * Corte da execução: a rota tem 60 s (`maxDuration`); depois de 45 s, contados do início do
@@ -106,6 +107,11 @@ export interface CollectDeps {
     /** Avisado antes do primeiro pedido HTTP: só tentativa com rede gasta o teto. */
     onNetwork: () => void,
   ) => Promise<Result<{ mediaId: string }, ExternalImageError>>;
+  /**
+   * Lugares ativos do Guia (id, nome, estado) para o vínculo `venue_id` (`matchVenue`): lidos uma
+   * vez por execução real, nunca no ensaio. Ausente ou com falha = a coleta segue sem vínculo.
+   */
+  venues?: () => Promise<VenueCandidate[]>;
 }
 
 /**

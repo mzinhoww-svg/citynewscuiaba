@@ -28,6 +28,7 @@ function ev(over: Partial<NormalizedEvent> & { title: string; startsAt: string }
     imageUrl: null,
     imageContext: null,
     mediaId: null,
+    venueId: null,
     ...over,
   };
 }

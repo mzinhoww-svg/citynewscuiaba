@@ -33,6 +33,7 @@ const stored: StoredStudioEvent = {
   accessibility: null,
   source_url: "https://cerradovivo.example/siriri",
   description: "Roda de siriri.",
+  venue_id: null,
   locked_fields: ["title"],
   withdrawn_at: null,
 };
@@ -101,6 +102,8 @@ function fakeDb(row: StoredStudioEvent | null) {
         return b;
       },
       maybeSingle: () => Promise.resolve(result()),
+      // Lugares do Guia (vínculo automático): nenhum cadastrado neste cliente falso.
+      limit: () => Promise.resolve({ data: [], error: null }),
     };
     return b;
   }
@@ -270,6 +273,7 @@ describe("erros do banco", () => {
       select: () => b,
       eq: () => b,
       maybeSingle: () => Promise.resolve({ data: null, error }),
+      limit: () => Promise.resolve({ data: [], error: null }),
     };
     return {
       from: () => b,
@@ -300,7 +304,7 @@ describe("erros do banco", () => {
 });
 
 describe("createEvent", () => {
-  it("origem newsroom, confirmado agora e todos os campos travados; audita", async () => {
+  it("origem newsroom, confirmado agora e todos os campos travados (menos o lugar sem escolha); audita", async () => {
     const fake = fakeDb(null);
     const r = await createEvent(input({ title: "Feira do Porto" }), actor(fake.db));
     expect(r.ok).toBe(true);
@@ -310,8 +314,9 @@ describe("createEvent", () => {
       origin: "newsroom",
       confirmed_at: NOW.toISOString(),
       updated_at: NOW.toISOString(),
-      locked_fields: Object.keys(LOCKABLE_COLUMNS),
+      locked_fields: Object.keys(LOCKABLE_COLUMNS).filter((c) => c !== "venue_id"),
       age_rating: "consulte",
+      venue_id: null,
     });
     expect((ins?.payload as { slug: string }).slug).toMatch(/^feira-do-porto-1710-[0-9a-f]{6}$/);
     expect(fake.rpcs[0]?.args).toMatchObject({ p_action: "event.create" });

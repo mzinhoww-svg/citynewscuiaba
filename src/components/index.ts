@@ -317,6 +317,7 @@ export {
   type VenueCardProps,
 } from "./editorial/guide/VenueCard";
 export { VenueCover, type VenueCoverProps } from "./editorial/guide/VenueCover";
+export { VenueEvents, type VenueEventsProps } from "./editorial/guide/VenueEvents";
 export { FirstVisitGate } from "./editorial/DeferredShell";
 export { NavProgress } from "./editorial/NavProgress"; // [UX-W5-T6]
 export { LoadingRegion, type LoadingRegionProps } from "./ui/LoadingRegion"; // [UX-W5-T6]

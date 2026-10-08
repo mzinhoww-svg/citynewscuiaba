@@ -11,6 +11,7 @@ import type { CollectReport, ExistingEvent, StoredCollected } from "@/lib/agenda
 import { normalizeAgeRating } from "@/lib/agenda/age-rating";
 import { parseEvidence } from "@/lib/agenda/extract/evidence";
 import type { NormalizedEvent } from "@/lib/agenda/types";
+import type { VenueCandidate } from "@/lib/agenda/venue-match";
 import { createIngestRepo, toJsonObject } from "./pipeline-store";
 
 /** Slug estável por evento (mesma chave de duplicidade, mesmo endereço). */
@@ -34,7 +35,7 @@ const chunks = <T>(list: readonly T[]): T[][] => {
 };
 
 const STORED_COLUMNS =
-  "id, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, description, source_url, source_id, source_ref, origin, dedupe_key, confirmed_by_source_id, evidence, organizer, age_rating, media_id, locked_fields, withdrawn_at, source:sources!event_listings_source_ref_fkey(confirms)";
+  "id, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, description, source_url, source_id, source_ref, origin, dedupe_key, confirmed_by_source_id, evidence, organizer, age_rating, media_id, venue_id, locked_fields, withdrawn_at, source:sources!event_listings_source_ref_fkey(confirms)";
 
 const statsOf = (s: CollectReport["sources"][number]) => ({
   status: s.status,
@@ -137,6 +138,7 @@ export function createAgendaStore(db: DbClient) {
           organizer: r.organizer,
           ageRating: normalizeAgeRating(r.age_rating),
           mediaId: r.media_id,
+          venueId: r.venue_id,
         });
       }
       return out;
@@ -176,6 +178,7 @@ export function createAgendaStore(db: DbClient) {
         age_rating: e.ageRating,
         organizer: e.organizer,
         media_id: e.mediaId,
+        venue_id: e.venueId,
         category: e.category,
         origin: e.origin,
         description: e.description,
@@ -192,6 +195,17 @@ export function createAgendaStore(db: DbClient) {
       const { error } = await db.from("event_listings").upsert(rows, { onConflict: "dedupe_key" });
       if (error) throw new Error(`agenda save: ${error.message}`);
       return rows.length;
+    },
+
+    /** Lugares ativos do Guia para o vínculo `venue_id` (uma leitura por execução). */
+    async activeVenues(): Promise<VenueCandidate[]> {
+      const { data, error } = await db
+        .from("venues")
+        .select("id, name, status")
+        .eq("status", "active")
+        .limit(5000);
+      if (error) throw new Error(`agenda activeVenues: ${error.message}`);
+      return data ?? [];
     },
 
     async cacheGet(url: string, hash: string): Promise<unknown | null> {

@@ -85,10 +85,14 @@ export function agendaCollectDeps(
     ...(o.onlySourceId ? { onlySourceId: o.onlySourceId } : {}),
     ...(o.maxEventPages !== undefined ? { maxEventPages: o.maxEventPages } : {}),
     ...(o.cacheWritesInDryRun ? { cacheWritesInDryRun: true } : {}),
-    // Imagem de divulgação no Media Registry: só na coleta real (o ensaio não grava mídia).
+    // Imagem de divulgação no Media Registry e vínculo com o Guia: só na coleta real (o ensaio
+    // não grava mídia nem vínculo).
     ...(o.dryRun
       ? {}
-      : { registerImage: (input, onNetwork) => registerExternalImage(images, input, onNetwork) }),
+      : {
+          registerImage: (input, onNetwork) => registerExternalImage(images, input, onNetwork),
+          venues: () => store.activeVenues(),
+        }),
   };
 }
 

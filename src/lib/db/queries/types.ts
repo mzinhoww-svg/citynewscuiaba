@@ -226,6 +226,8 @@ export interface EventView {
   sourceUrl: string | null;
   /** Preço não informado pela fonte: nunca vale como gratuito. */
   priceUnknown: boolean;
+  /** Slug do lugar do Guia ("Ver no Guia"), só com lugar vinculado, ativo e público. */
+  venueSlug: string | null;
 }
 
 export interface CollectionView {

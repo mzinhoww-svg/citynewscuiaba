@@ -92,6 +92,11 @@ export interface NormalizedEvent {
   imageContext: { site: string; cdnHosts: string[] } | null;
   /** Ativo no Media Registry (`event_listings.media_id`), ou `null`. */
   mediaId: string | null;
+  /**
+   * Lugar do Guia (`event_listings.venue_id`), ou `null`. A coleta só preenche quando a linha
+   * não tem vínculo e a redação não o travou (`matchVenue`); nunca limpa nem troca.
+   */
+  venueId: string | null;
 }
 
 export const REJECT_REASONS = [

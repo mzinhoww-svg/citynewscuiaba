@@ -26,6 +26,7 @@ const row = (p: Partial<Row>): Row => ({
   price_unknown: false,
   source_ref: null,
   confirmed_by_source_id: null,
+  venue_id: null,
   ...p,
 });
 
@@ -74,5 +75,22 @@ describe("toEventView origem e confirmação", () => {
   it("sem fonte conhecida (cadastro da casa ou sugestão de leitor): sem nomes", () => {
     const v = toEventView(row({ origin: "reader" }), names);
     expect(v).toMatchObject({ origin: "reader", sourceName: null, confirmedByName: null });
+  });
+});
+
+describe("toEventView lugar do Guia", () => {
+  it("lugar ativo vinculado: slug do Guia; sem vínculo, inativo ou oculto pela RLS: null", () => {
+    const venueId = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
+    expect(
+      toEventView(
+        row({ venue_id: venueId, guide_venue: { slug: "teatro-exemplo", status: "active" } }),
+      ).venueSlug,
+    ).toBe("teatro-exemplo");
+    expect(toEventView(row({})).venueSlug).toBeNull();
+    expect(
+      toEventView(row({ venue_id: venueId, guide_venue: { slug: "fechado", status: "inactive" } }))
+        .venueSlug,
+    ).toBeNull();
+    expect(toEventView(row({ venue_id: venueId, guide_venue: null })).venueSlug).toBeNull();
   });
 });

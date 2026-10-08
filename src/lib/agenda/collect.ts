@@ -12,6 +12,7 @@ import {
   type RobotsGate,
   type RunCtx,
   type SourceReport,
+  type StoredCollected,
 } from "./collect-context";
 import { extractIcal } from "./extract/ical";
 import { extractJsonLd } from "./extract/jsonld";
@@ -21,6 +22,7 @@ import { extractTribe } from "./extract/tribe";
 import { attachImages } from "./images";
 import { reconcile } from "./reconcile";
 import type { AgendaSource, NormalizedEvent, RawEvent } from "./types";
+import { matchVenue, type VenueCandidate } from "./venue-match";
 import type { FetchOutcome } from "@/lib/sources/status";
 
 export {
@@ -179,6 +181,36 @@ async function collectSource(source: AgendaSource, ctx: RunCtx): Promise<SourceR
 }
 
 /**
+ * Vínculo com o lugar do Guia (ARD-T3): só evento sem `venueId` e sem `venue_id` travado pela
+ * redação; casamento pelo local final (depois de travas e confirmação). Lugares lidos uma vez;
+ * falha na leitura não derruba a coleta (segue sem vínculo).
+ */
+async function linkVenues(
+  events: NormalizedEvent[],
+  stored: readonly StoredCollected[],
+  load: (() => Promise<VenueCandidate[]>) | undefined,
+): Promise<NormalizedEvent[]> {
+  if (!load || !events.some((e) => e.venueId === null)) return events;
+  let venues: VenueCandidate[];
+  try {
+    venues = await load();
+  } catch (e) {
+    console.warn("agenda: lugares do Guia indisponíveis, coleta segue sem vínculo", {
+      message: e instanceof Error ? e.message : String(e),
+    });
+    return events;
+  }
+  const locked = new Set(
+    stored.filter((s) => s.lockedFields.includes("venue_id")).map((s) => s.dedupeKey),
+  );
+  return events.map((e) =>
+    e.venueId === null && !locked.has(e.dedupeKey)
+      ? { ...e, venueId: matchVenue(e.venue, venues) }
+      : e,
+  );
+}
+
+/**
  * Coleta da Agenda: para cada fonte ativa (robots.txt respeitado, limite por hora, uma fonte
  * que falha não derruba as outras) extrai — estruturado ou pela leitura da página (`ai_page`,
  * com cache, teto e prazo) —, normaliza, aprova, reconcilia com o banco (`reconcile.ts`) e grava.
@@ -234,9 +266,14 @@ export async function collectAgenda(deps: CollectDeps): Promise<CollectReport> {
     r.updated += rec.updated.get(r.id) ?? 0;
   }
   // Imagem só na execução real (o ensaio não grava nada no Media Registry), depois das travas.
+  // Lugar do Guia também só na execução real (o ensaio não lê nem grava vínculo).
   const toSave = deps.dryRun
     ? rec.toSave
-    : await attachImages(rec.toSave, stored, selected, ctx, reports);
+    : await linkVenues(
+        await attachImages(rec.toSave, stored, selected, ctx, reports),
+        stored,
+        deps.venues,
+      );
   const saved = deps.dryRun ? 0 : toSave.length > 0 ? await deps.save(toSave, now) : 0;
   return {
     startedAt: now.toISOString(),

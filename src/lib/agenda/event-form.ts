@@ -41,6 +41,23 @@ export interface EventInput {
   /** Link oficial (`event_listings.source_url`). */
   sourceUrl: string | null;
   description: string | null;
+  /**
+   * Lugar do Guia escolhido pela redação (`event_listings.venue_id`): ausente = automático pelo
+   * local (`matchVenue`, sem trava); uuid = escolha (trava); `null` = sem vínculo (trava).
+   */
+  venueId?: string | null;
+}
+
+/** Campo do seletor de lugar do Guia: vazio = automático; `VENUE_NONE` = sem vínculo. */
+export const VENUE_FIELD = "venueId";
+export const VENUE_NONE = "nenhum";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Escolha de lugar do formulário: `undefined` (automático), uuid ou `null` (nenhum). */
+function venueChoice(fd: FormData): string | null | undefined {
+  const raw = String(fd.get(VENUE_FIELD) ?? "").trim();
+  if (raw === VENUE_NONE) return null;
+  return UUID.test(raw) ? raw.toLowerCase() : undefined;
 }
 
 export type EventFormErrors = Partial<Record<EventFormField, string>>;
@@ -177,6 +194,7 @@ export function parseEventForm(
   else if (description && hasProfanity(description)) errors.description = E.profanity;
 
   if (Object.keys(errors).length > 0 || !start) return err(errors);
+  const venueId = venueChoice(fd);
   return ok({
     title,
     startsAt: start.toISOString(),
@@ -190,5 +208,6 @@ export function parseEventForm(
     accessibility: accessibility || null,
     sourceUrl: link || null,
     description: description || null,
+    ...(venueId !== undefined ? { venueId } : {}),
   });
 }
