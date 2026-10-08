@@ -85,7 +85,7 @@ const NATIVE_OFF: NativeSponsored = {
 
 /**
  * Patrocínio nativo de uma editoria (B-022): só com `sponsored_native_enabled` ligada, lê a
- * campanha ativa que inclui a editoria (view `public_sponsored_campaigns`, 0185; a que termina
+ * campanha ativa que inclui a editoria (view `public_sponsored_campaigns`, 0189; a que termina
  * antes vem primeiro). Peça que não passa na validação tipada fica de fora. Falha fechada:
  * qualquer erro vira "sem patrocinado", e a lista segue como sempre.
  */
