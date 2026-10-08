@@ -6,7 +6,6 @@ import type { DbClient } from "@/lib/db/client";
 import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
 import { createUsed, hasApprovedCover, type Used } from "@/lib/featured";
-import { isEligibleForFeature } from "@/lib/geo/news-scope";
 import { fetchRecentArticles, summarize } from "./articles";
 import { fetchEvents } from "./events";
 import { getFeaturedMany, requestFeaturedImages } from "./featured";
@@ -300,17 +299,9 @@ export async function getHomeData(
       const editorial = articles.filter((a) => !a.sponsored);
 
       // Urgente: publicado por humano, ou automático e local/regional (ou comoção nacional): A2 e
-      // A15. Notícia nacional sem comoção nunca ocupa a faixa Urgente.
-      const urgent =
-        editorial.find(
-          (a) =>
-            a.urgent &&
-            (a.publishMode === "human" ||
-              isEligibleForFeature({
-                newsScope: a.newsScope,
-                nationalCommotion: a.nationalCommotion ?? false,
-              })),
-        ) ?? null;
+      // A15. Notícia nacional automática sem comoção nunca ocupa a faixa Urgente. A regra roda no
+      // banco (`urgent_strip`, migration 0187): o modo de publicação não sai da chave anônima (D-06).
+      const urgent = editorial.find((a) => a.urgent && a.urgentStrip) ?? null;
 
       // Registro de "já exibidos" (R40): cada módulo, na ordem em que a página o mostra, só leva o
       // que ainda não saiu em outro lugar; módulo sem item novo some.

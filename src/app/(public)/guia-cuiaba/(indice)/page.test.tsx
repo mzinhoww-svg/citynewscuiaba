@@ -20,11 +20,10 @@ const article = (i: number): ArticleSummary => ({
   dek: "Roteiro de fim de semana em Cuiabá.",
   section: { slug: "guia-cuiaba", name: "Guia Cuiabá" },
   status: "published",
-  publishMode: "human",
   publishedAt: "2026-10-04T12:00:00Z",
   updatedAt: "2026-10-04T12:00:00Z",
   labels: { shown: [], hidden: [] },
-  confidence: { level: "alta", score: 0.9 },
+  confidence: { score: 0.9 },
   sourceCount: 1,
   readMinutes: 2,
   aiSummary: [],
@@ -32,6 +31,7 @@ const article = (i: number): ArticleSummary => ({
   reviewer: undefined,
   topicId: null,
   urgent: false,
+  urgentStrip: false,
   sponsored: false,
 });
 
