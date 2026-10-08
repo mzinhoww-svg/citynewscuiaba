@@ -3,6 +3,9 @@
 // extração só da service role e seed das fontes de eventos.
 import { afterAll, describe, expect, it } from "vitest";
 import { createPublicClient, createServiceClient } from "@/lib/db/client";
+import { createIngestRepo } from "@/lib/db/pipeline-store";
+import { collectNow } from "@/lib/pipeline/collect-now";
+import { activateSource } from "@/lib/pipeline/activate-source";
 
 const db = createServiceClient();
 const anon = createPublicClient();
@@ -190,5 +193,26 @@ describe("agenda_extract_cache, agenda_collect_runs e configurações", () => {
       .eq("version", 1)
       .single();
     expect(prompt.data?.status).toBe("production");
+  });
+});
+
+describe("fonte de eventos fora da coleta de notícias", () => {
+  it("collectNow numa fonte de eventos ativa devolve not_found", async () => {
+    const repo = createIngestRepo(db);
+    const { data } = await db.from("sources").select("id").eq("slug", "sympla-cuiaba-1").single();
+    const r = await collectNow(data!.id, {
+      repo,
+      actor: "00000000-0000-0000-0000-000000000000",
+    } as unknown as Parameters<typeof collectNow>[1]);
+    expect(r).toMatchObject({ ok: false, error: "not_found" });
+  });
+
+  it("activateSource (notícias) não encontra fonte de eventos", async () => {
+    const repo = createIngestRepo(db);
+    const r = await activateSource("cine-teatro-cuiaba", {
+      repo,
+    } as unknown as Parameters<typeof activateSource>[1]);
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.error).toContain("não encontrada");
   });
 });

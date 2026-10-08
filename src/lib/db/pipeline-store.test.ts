@@ -1,4 +1,4 @@
-import { createFrontpageRepo, createRunStore } from "./pipeline-store";
+import { createFrontpageRepo, createIngestRepo, createRunStore } from "./pipeline-store";
 import type { DbClient } from "./client";
 
 type Call = [string, ...unknown[]];
@@ -58,5 +58,14 @@ describe("fontes de eventos fora do pipeline de notícias (AGM-T1)", () => {
     const { db, calls } = fakeDb([]);
     await createFrontpageRepo(db).frontpageSources();
     expect(calls).toContainEqual(["neq", "kind", "events"]);
+  });
+
+  it("sourceBySlug e sourceById não resolvem fonte kind='events' (Coletar agora e ativação de notícias)", async () => {
+    const a = fakeDb([]);
+    await createIngestRepo(a.db).sourceBySlug("x");
+    expect(a.calls).toContainEqual(["neq", "kind", "events"]);
+    const b = fakeDb([]);
+    await createIngestRepo(b.db).sourceById("x");
+    expect(b.calls).toContainEqual(["neq", "kind", "events"]);
   });
 });

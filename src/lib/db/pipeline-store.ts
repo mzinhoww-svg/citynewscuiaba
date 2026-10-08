@@ -392,6 +392,7 @@ export function createIngestRepo(db: DbClient): IngestRepo {
       .from("sources")
       .select(SOURCE_COLUMNS)
       .eq(column, value)
+      .neq("kind", "events")
       .maybeSingle();
     check("source", error);
     return data ? toSource(data) : null;
