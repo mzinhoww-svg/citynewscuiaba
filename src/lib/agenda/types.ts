@@ -69,6 +69,9 @@ export type RejectReason =
   | "texto_suspeito"
   | "fora_do_perfil"
   | "link_suspeito"
-  | "sem_link";
+  | "sem_link"
+  | "sem_ano"
+  | "trecho_ausente"
+  | "extracao_invalida";
 
 export type Verdict = { ok: true } | { ok: false; reasons: RejectReason[] };

@@ -219,6 +219,7 @@ export const PLAYGROUND_TEXT = {
     image: "Decida se o tema permite ilustração gerada.",
     aggregate_summary: "Escreva o resumo de até 2 frases com palavras próprias.",
     source_profiler: "Sugira editorias, localidade e alertas de qualidade da fonte.",
+    event_extractor: "Extraia o evento da página, com o trecho literal de cada campo.",
     reviewer: "Decida publish, hold ou archive para a matéria em revisão e justifique.",
   } as Record<string, string>,
 } as const;

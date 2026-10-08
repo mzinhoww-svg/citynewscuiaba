@@ -3,6 +3,7 @@ import type { AgentId } from "../types";
 import { AggregateSummarySchema } from "./aggregate-summary";
 import { AnswerDraftSchema } from "./answer";
 import { ClassifySchema } from "./classify";
+import { eventPageSchema } from "./event-extract";
 import { ImageSchema } from "./image";
 import { LocateSchema } from "./locate";
 import { ReviewSchema } from "./review";
@@ -23,4 +24,6 @@ export const AGENT_SCHEMAS = {
   aggregate_summary: AggregateSummarySchema,
   source_profiler: sourceProfileSchema,
   reviewer: ReviewSchema,
+  // A listagem usa `eventListingSchema` com o mesmo agente (src/lib/agenda/extract/ai-page.ts).
+  event_extractor: eventPageSchema,
 } satisfies Record<AgentId, z.ZodType>;

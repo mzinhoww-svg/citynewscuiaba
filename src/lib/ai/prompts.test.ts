@@ -55,22 +55,23 @@ describe("prompts versionados (puro)", () => {
     expect(rollbackTargets(versions).map((v) => v.version)).toEqual([2, 1]);
   });
 
-  it("orçamentos por agente somam no máximo o teto global (write 9 + source_profiler 1 + reviewer 1 = 30)", () => {
+  it("orçamentos por agente somam no máximo o teto global (write 8 + source_profiler 1 + reviewer 1 + event_extractor 1 = 30)", () => {
     const seed = [
       ["classify", 3],
       ["locate", 2],
       ["verify", 4],
-      ["write", 9],
+      ["write", 8],
       ["answer", 6],
       ["image", 2],
       ["aggregate_summary", 1],
       ["source_profiler", 1],
       ["reviewer", 1],
+      ["event_extractor", 1],
       ["embed", 1],
     ] as const;
     const agents = seed.map(([id, dailyBudgetBrl]) => ({ id, dailyBudgetBrl }));
     expect(budgetsValid(agents, GLOBAL_DAILY_BUDGET_BRL)).toEqual({ ok: true, sum: 30 });
-    const over = agents.map((a) => (a.id === "write" ? { ...a, dailyBudgetBrl: 10 } : a));
+    const over = agents.map((a) => (a.id === "write" ? { ...a, dailyBudgetBrl: 9 } : a));
     expect(budgetsValid(over, GLOBAL_DAILY_BUDGET_BRL)).toEqual({ ok: false, sum: 31 });
     const negative = agents.map((a) => (a.id === "embed" ? { ...a, dailyBudgetBrl: -1 } : a));
     expect(budgetsValid(negative, GLOBAL_DAILY_BUDGET_BRL).ok).toBe(false);
