@@ -17,6 +17,11 @@ type EventRow = Omit<
   | "locked_fields"
   | "withdrawn_at"
   | "updated_at"
+  // Campos ricos (ARD-T1): entram na seleção pública nas tarefas seguintes.
+  | "media_id"
+  | "venue_id"
+  | "organizer"
+  | "featured_until"
 >;
 
 export const EVENT_COLUMNS =

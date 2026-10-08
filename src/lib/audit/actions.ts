@@ -61,6 +61,11 @@ export const AGENDA_AUDIT_ACTIONS = [
   "event.update",
   "event.withdraw",
   "event.restore",
+  // Destaque e pacotes sociais (ARD-T1, migration 0200).
+  "event.feature",
+  "social.approve",
+  "social.publish",
+  "social.discard",
 ] as const;
 
 /**
