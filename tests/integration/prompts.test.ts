@@ -1,6 +1,7 @@
 // @vitest-environment node
 // P5-T5 · Prompts versionados e playground (banco real): publicar sem aprovação falha; quem pede
-// não publica; aprovação de outra pessoa publica e arquiva a anterior; rollback cria versão nova
+// sem o papel de aprovar (operador) não publica; aprovação de admin ou editor-chefe publica e
+// arquiva a anterior (A-128: o mesmo papel pode pedir e publicar); rollback cria versão nova
 // e marca a anterior `reverted`; playground nunca grava em `articles`; orçamentos dentro do teto
 // (write R$ 9 + source_profiler R$ 1 + reviewer R$ 1 = R$ 30, A-056 e AUT-T6).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -78,10 +79,11 @@ describe("prompts versionados (banco real)", () => {
     }
   });
 
-  it("orçamentos do seed: write R$ 9, source_profiler R$ 1, reviewer R$ 1, total R$ 30; o banco recusa passar do teto", async () => {
+  it("orçamentos do seed: write R$ 8,50, source_profiler R$ 1, reviewer R$ 1, guide_writer R$ 0,50, total R$ 30; o banco recusa passar do teto", async () => {
     const { data } = await service.from("ai_agents").select("id, daily_budget_brl");
     const by = new Map((data ?? []).map((a) => [a.id, Number(a.daily_budget_brl)]));
-    expect(by.get("write")).toBe(9);
+    expect(by.get("write")).toBe(8.5);
+    expect(by.get("guide_writer")).toBe(0.5);
     expect(by.get("source_profiler")).toBe(1);
     expect(by.get("reviewer")).toBe(1);
     expect([...by.values()].reduce((s, x) => s + x, 0)).toBe(30);
@@ -126,7 +128,7 @@ describe("prompts versionados (banco real)", () => {
     approvals.push(approvalId);
     expect((await version(v2))?.status).toBe("pending");
 
-    // Sem aprovação: nem quem pediu, nem o banco direto.
+    // Sem aprovação: nem quem pediu (operador não aprova prompt), nem o banco direto.
     const self = await asUser("diego", () => publishPromptCommand({ approvalId }));
     expect(self).toMatchObject({ ok: false, error: "forbidden" });
     const direct = await service.rpc("prompt_publish", { p_approval: approvalId });

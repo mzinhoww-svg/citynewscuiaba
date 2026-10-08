@@ -90,7 +90,7 @@ export function SubmissionReview({
         />
       </div>
       <div className="flex flex-col gap-2">
-        <label htmlFor={`${uid}-desc`} className="type-label text-16 text-strong">
+        <label htmlFor={`${uid}-desc`} className="type-label text-strong">
           {T.fields.description}
         </label>
         <textarea
@@ -172,7 +172,7 @@ export function SubmissionReview({
         }
       >
         <div className="flex flex-col gap-2 text-left">
-          <label htmlFor={`${uid}-motivo`} className="type-label text-16 text-strong">
+          <label htmlFor={`${uid}-motivo`} className="type-label text-strong">
             {T.reasonLabel}
           </label>
           <textarea

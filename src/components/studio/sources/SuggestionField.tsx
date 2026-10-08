@@ -3,15 +3,10 @@
 import { useId, useState, type ReactNode } from "react";
 import { FIELD_TEXT } from "@/content/pt-BR/sources-admin-detail";
 import { cx } from "../../cx";
+import { describedBy, FieldShell } from "../../ui/Field";
 import { Icon } from "../../ui/Icon";
-import {
-  CONTROL_CLASS,
-  describedBy,
-  FieldShell,
-  NativeSelect,
-  type OptionGroupLike,
-  type OptionLike,
-} from "./fields";
+import { SelectControl } from "../../ui/Select";
+import type { OptionGroupLike, OptionLike } from "./fields";
 
 export type SuggestionValue = string | number | readonly string[] | null;
 
@@ -151,9 +146,10 @@ export function SuggestionField({
       className={className}
     >
       {options || groups ? (
-        <NativeSelect
+        <SelectControl
           id={fieldId}
           name={name}
+          size="sm"
           value={current}
           onChange={set}
           options={options}
@@ -162,16 +158,24 @@ export function SuggestionField({
           error={error}
         />
       ) : (
-        <input
-          id={fieldId}
-          name={name}
-          value={current}
-          inputMode={inputMode}
-          onChange={(e) => set(e.target.value)}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy(fieldId, hint, error)}
-          className={cx(CONTROL_CLASS, error && "field-error")}
-        />
+        <div
+          className={cx(
+            "border-control control-field flex h-input items-center rounded-lg bg-input px-4",
+            "transition-[border-color,box-shadow] duration-(--dur-base) ease-(--ease-standard)",
+            error && "field-error",
+          )}
+        >
+          <input
+            id={fieldId}
+            name={name}
+            value={current}
+            inputMode={inputMode}
+            onChange={(e) => set(e.target.value)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={describedBy(fieldId, hint, error)}
+            className="min-w-0 flex-1 bg-transparent type-body text-strong"
+          />
+        </div>
       )}
       {box}
     </FieldShell>

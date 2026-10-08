@@ -42,8 +42,8 @@ describe("mapDbError", () => {
       mapDbError({
         code: "42501",
         message:
-          "Alterar image_policy exige aprovação de outra pessoa antes de aplicar (source.critical).",
-        hint: "Regra de duas pessoas (spec §8).",
+          "Alterar image_policy exige aprovação registrada antes de aplicar (source.critical).",
+        hint: "Mudança crítica (spec §8; A-128).",
       }),
     ).toBe("needs_approval");
     expect(

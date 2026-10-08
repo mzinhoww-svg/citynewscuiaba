@@ -3,8 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SECTION_PAGE } from "@/content/pt-BR/portal-section";
+import { fetchJson } from "@/lib/http/fetch-json";
 import { cx } from "../cx";
-import { Icon } from "../ui/Icon";
+import { Button } from "../ui/Button";
 
 export interface NewItemsPillProps {
   /** Rota que responde `{ count: number }` com as novas desde o carregamento. */
@@ -39,16 +40,13 @@ export function NewItemsPill({
     let alive = true;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(endpoint, { cache: "no-store" });
-        if (!res.ok) return;
-        const body: unknown = await res.json();
-        const n =
-          typeof body === "object" && body !== null && "count" in body ? Number(body.count) : 0;
-        if (alive && Number.isFinite(n)) setCount(n);
-      } catch {
-        // Sem rede: tenta de novo no próximo intervalo.
-      }
+      // Com prazo (item 83): rede lenta ou erro não acumulam consultas; tenta no próximo intervalo.
+      const r = await fetchJson(endpoint);
+      if (!r.ok) return;
+      const body = r.value;
+      const n =
+        typeof body === "object" && body !== null && "count" in body ? Number(body.count) : 0;
+      if (alive && Number.isFinite(n)) setCount(n);
     };
     const timer = window.setInterval(check, intervalMs);
     if (box.current) box.current.dataset.polling = "on";
@@ -66,18 +64,17 @@ export function NewItemsPill({
       className={cx("flex justify-center", className)}
     >
       {count > 0 && (
-        <button
-          type="button"
+        <Button
+          size="md"
+          icon="arrow-up"
           onClick={() => {
             setCount(0);
             router.refresh();
             if (targetId) document.getElementById(targetId)?.scrollIntoView({ block: "start" });
           }}
-          className="inline-flex min-h-tap cursor-pointer items-center gap-2 rounded-pill bg-action-primary px-5 text-14 font-semibold text-on-inverse hover:bg-action-primary-pressed"
         >
-          <Icon name="arrow-up" size={16} />
           {SECTION_PAGE.newItems(count)}
-        </button>
+        </Button>
       )}
     </div>
   );

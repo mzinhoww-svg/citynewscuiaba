@@ -85,7 +85,7 @@ export function Panel({
 export function FieldGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="flex min-w-0 flex-col gap-4 border-0 p-0">
-      <legend className="mb-3 type-label text-16 font-semibold text-strong">{title}</legend>
+      <legend className="mb-3 type-label font-semibold text-strong">{title}</legend>
       <div className="grid gap-4 md:grid-cols-2">{children}</div>
     </fieldset>
   );

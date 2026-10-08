@@ -31,6 +31,7 @@ const sources: SourceRef[] = [
 
 const answer: Extract<AiAnswerData, { kind: "answer" }> = {
   kind: "answer",
+  basis: "multiple_sources",
   confidence: "baixa",
   facts: [{ text: "O plano começa em 6 de outubro.", citations: [0, 1] }],
   inferences: [{ text: "Deve haver ajuste de horários.", citations: [1] }],
@@ -53,14 +54,14 @@ it("resposta separa fato, inferência, conflito e lacuna, com citações e aviso
   expect(screen.getByRole("heading", { name: "Resposta do CityNews" })).toBeInTheDocument();
   expect(screen.queryByText(/RESUMO POR IA|gerada por IA/i)).not.toBeInTheDocument();
   expect(screen.getByText("Pode conter erros. Confira nas fontes.")).toBeInTheDocument();
-  const facts = screen.getByRole("region", { name: "O que as fontes confirmam" });
+  const facts = screen.getByRole("region", { name: "O que se sabe" });
   expect(within(facts).getByRole("link", { name: "Fonte 1" })).toHaveAttribute("href", "#fonte-1");
   expect(within(facts).getByRole("link", { name: "Fonte 2" })).toHaveAttribute("href", "#fonte-2");
   expect(screen.getByRole("region", { name: "Inferência" })).toHaveTextContent(/não confirmada/);
   expect(screen.getByRole("region", { name: "Onde as fontes divergem" })).toHaveTextContent(
     "Intervalo no pico",
   );
-  expect(screen.getByRole("region", { name: "O que ainda não se sabe" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Ainda não se sabe" })).toBeInTheDocument();
 });
 
 it("resposta não mostra nível de confiança, nem medidor nem aviso de baixa confiança (R13)", () => {
@@ -71,6 +72,21 @@ it("resposta não mostra nível de confiança, nem medidor nem aviso de baixa co
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
     unmount();
   }
+});
+
+it("fonte única e informação antiga aparecem como aviso, sem rótulo de IA (D-01, D-06)", () => {
+  const single = {
+    ...answer,
+    basis: "single_source" as const,
+    sources: answer.sources.slice(0, 1),
+  };
+  const { container, unmount } = render(<AiAnswer answer={single} />);
+  expect(container.textContent).toMatch(/uma única fonte \(.+\), ainda sem confirmação/);
+  expect(container.textContent).not.toMatch(/\bIA\b|inteligência artificial|gerad[ao] por/i);
+  unmount();
+  render(<AiAnswer answer={{ ...answer, staleSince: "2026-08-01T12:00:00Z" }} />);
+  expect(screen.getByText(/Informação de .+: pode ter mudado/)).toBeInTheDocument();
+  expect(screen.queryByText(/uma única fonte/)).not.toBeInTheDocument();
 });
 
 it("lista de fontes numerada, com alvo das citações e link externo em nova aba", () => {

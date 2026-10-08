@@ -53,6 +53,10 @@ export interface MediaDetail extends MediaCardData {
   height: number | null;
   provenance: Json;
   removalReason: string | null;
+  /** Media Registry (D-02, 0152). */
+  rightsStatus: string | null;
+  usageScope: string[];
+  disclaimer: string | null;
   articles: {
     id: string;
     title: string;
@@ -71,7 +75,7 @@ export async function getMedia(id: string): Promise<MediaDetail | null> {
   const { data: m } = await ctx.db
     .from("media_assets")
     .select(
-      "id, kind, status, credit, license, license_until, source_name, risk, captured_at, origin_url, page_url, allowed_use, width, height, provenance, removal_reason",
+      "id, kind, status, credit, license, license_until, source_name, risk, captured_at, origin_url, page_url, allowed_use, width, height, provenance, removal_reason, rights_status, usage_scope, disclaimer",
     )
     .eq("id", id)
     .maybeSingle();
@@ -97,6 +101,9 @@ export async function getMedia(id: string): Promise<MediaDetail | null> {
     height: m.height,
     provenance: m.provenance,
     removalReason: m.removal_reason,
+    rightsStatus: m.rights_status,
+    usageScope: m.usage_scope ?? [],
+    disclaimer: m.disclaimer,
     articles: (links ?? []).flatMap((l) =>
       l.articles
         ? [

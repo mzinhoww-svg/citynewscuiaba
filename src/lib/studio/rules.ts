@@ -16,14 +16,15 @@ import type { RuleSet } from "@/lib/rules";
 import { canAccess } from "@/lib/auth/permissions";
 import { StudioFailure, studioAction, type StudioResult } from "./action";
 import { studioContext } from "./context";
-import { requestApprovalCommand } from "./approvals";
+import { requestAndApproveCommand } from "./approvals";
 
 /*
  * Regras de autonomia (O05, P5-T2): simular e propor. A proposta nasce inativa em nome de quem
- * propõe (RLS `rules_propose` + `guard_proposal`) e abre um pedido `rules.activate` (ou
+ * propõe (RLS `rules_propose` + `guard_proposal`) e registra um pedido `rules.activate` (ou
  * `force_review.disable`, quando desliga a revisão obrigatória, ou `safety.disable`, quando tira
- * tema sensível) para outra pessoa aprovar na
- * caixa de aprovações; `approval_apply` ativa a versão.
+ * tema sensível). A-128: se quem propõe tem o papel que aprova o tipo, aprova e `approval_apply`
+ * ativa a versão na mesma ação; sem o papel, o pedido fica na caixa de aprovações. O histórico
+ * (approvals + auditoria) guarda quem propôs e quem aprovou.
  */
 
 const CategoryRuleSchema = z.object({
@@ -45,6 +46,8 @@ export const RuleSetInput = z.object({
     .optional(),
   breakingReview: z.boolean().optional(),
   sensitiveFlagReview: z.boolean().optional(),
+  /** Níveis de risco (D-05, regras v4); ausente herda da versão em vigor. */
+  riskLevels: z.boolean().optional(),
   categories: z.record(z.string().regex(/^[a-z0-9-]+$/), CategoryRuleSchema),
 });
 export type RuleSetInput = z.infer<typeof RuleSetInput>;
@@ -58,6 +61,7 @@ function withGates(input: RuleSetInput, current: RuleSet): Omit<RuleSet, "versio
     neverAuto: input.neverAuto ?? current.neverAuto,
     breakingReview: input.breakingReview ?? current.breakingReview,
     sensitiveFlagReview: input.sensitiveFlagReview ?? current.sensitiveFlagReview,
+    riskLevels: input.riskLevels ?? current.riskLevels,
   };
 }
 
@@ -106,6 +110,8 @@ export interface ProposeOutcome {
   version: number;
   approvalId: string | null;
   kind: "rules.activate" | "force_review.disable" | "safety.disable";
+  /** `applied`: a versão já está em vigor; `pending`: aguarda quem tem o papel de aprovar. */
+  status: "applied" | "pending";
 }
 
 export const proposeRulesCommand = studioAction(
@@ -143,7 +149,7 @@ export const proposeRulesCommand = studioAction(
       : current.forceReview && !i.rules.forceReview
         ? "force_review.disable"
         : "rules.activate";
-    const approval = await requestApprovalCommand({
+    const approval = await requestAndApproveCommand({
       kind,
       targetRef: rulesTarget(version),
       justification: i.justification,
@@ -151,7 +157,9 @@ export const proposeRulesCommand = studioAction(
     });
     ctx.setObjectRef(rulesTarget(version));
     ctx.detail({ version, kind, diff, justification: i.justification });
-    return { version, approvalId: approval.ok ? approval.value.id : null, kind };
+    if (!approval.ok) throw new StudioFailure(approval.error, approval.message);
+    const status = approval.value.status === "applied" ? "applied" : "pending";
+    return { version, approvalId: approval.value.id, kind, status };
   },
   { schema: ProposeInput, auditAs: "rules.propose", objectRef: () => "rules:" },
 );

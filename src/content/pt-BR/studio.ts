@@ -14,7 +14,7 @@ export const STUDIO_TEXT = {
   signedInAs: "Conectado como",
   welcome: "Bem-vindo ao Estúdio",
   intro:
-    "Redação, Control Center e Governança ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
+    "Redação, Control Center e Administração ficam aqui. A navegação lateral mostra só o que o seu papel permite.",
   loading: "Carregando",
   backToSite: "Ver o portal",
   errorTitle: "Não foi possível carregar esta tela do Estúdio",
@@ -29,6 +29,33 @@ export const STUDIO_TEXT = {
   menuTitle: "Menu do Estúdio",
   menuSearch: "Buscar no menu",
   menuEmpty: (q: string) => `Nenhuma tela com “${q}”.`,
+  /** Final do nome acessível de um item com contagem: "Exceções, 3 pendentes". */
+  navCount: (n: number, kind: "pending" | "overdue" = "pending") =>
+    kind === "overdue"
+      ? `, ${n} ${n === 1 ? "vencida" : "vencidas"}`
+      : `, ${n} ${n === 1 ? "pendente" : "pendentes"}`,
+  /** Final do nome acessível de uma aba com contagem: "Fila de exceção, 3 itens". */
+  tabCount: (n: number) => `, ${n} ${n === 1 ? "item" : "itens"}`,
+  breadcrumbs: "Caminho",
+  sections: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
+} as const;
+
+/** Grupos e subgrupos do menu do Estúdio (item 50). */
+export const STUDIO_NAV_TEXT = {
+  groups: {
+    newsroom: "Redação",
+    control: "Control Center",
+    admin: "Administração",
+  },
+  subgroups: {
+    operation: "Operação",
+    ai: "IA",
+    sourcesRules: "Fontes e regras",
+  },
 } as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -66,7 +93,7 @@ export const RECOMMENDED_LABEL: Record<string, string> = {
 export const CONFIDENCE_LABEL = { alta: "Alta", média: "Média", baixa: "Baixa" } as const;
 
 export const QUEUE_TEXT = {
-  newsroomTitle: "Newsroom",
+  newsroomTitle: "Redação",
   queueTitle: "Fila de matérias",
   kpiRegion: "Indicadores do dia",
   kpi: {
@@ -90,6 +117,8 @@ export const QUEUE_TEXT = {
       : `${n} matérias foram publicadas automaticamente nas últimas 24 h. Confira e despublique com motivo se algo estiver errado.`,
   autoBannerLink: "Ver publicadas automaticamente",
   seeAll: "Ver fila completa",
+  seeInQueue: "Ver na Fila",
+  loadMore: "Carregar mais",
   caption: "Matérias da fila",
   scrollRegion: "Tabela da fila (role para os lados no celular)",
   col: {
@@ -105,7 +134,7 @@ export const QUEUE_TEXT = {
   noAssignee: "Sem responsável",
   noRecommendation: "Sem recomendação",
   noDue: "Sem prazo",
-  overdue: "Vencido",
+  overdue: "Atrasada",
   sensitive: "Tema sensível",
   aiFallback: "Sem IA",
   pipeline: "Pipeline",
@@ -224,6 +253,11 @@ export const CHECKLIST_TEXT = {
   missing: "pendente",
 } as const;
 
+/** Saída com alterações não salvas (item 47, E-03). */
+export const UNSAVED_TEXT = {
+  leave: "Há alterações não salvas. Sair mesmo assim?",
+} as const;
+
 export const EDITOR_TEXT = {
   title: "Editor de matéria",
   conflict:
@@ -232,6 +266,10 @@ export const EDITOR_TEXT = {
   conflictReload: "Recarregar a versão atual",
   conflictSaved: "Versão salva por outra pessoa",
   conflictMine: "O que você tentou salvar",
+  draftKept: "Guardamos o seu texto neste aparelho.",
+  draftKeptHint: "Confira a versão atual e, se quiser, traga o seu texto de volta para continuar.",
+  restoreDraft: "Restaurar meu texto",
+  discardDraft: "Descartar meu texto",
   publishedNeedsMode:
     "Matéria publicada: use o modo Atualização ou Correção para mudar o texto público.",
   suggestionDecided: "Esta sugestão já foi decidida.",
@@ -242,6 +280,12 @@ export const EDITOR_TEXT = {
   saved: (v: number) => `Rascunho salvo · versão ${v}`,
   save: "Salvar rascunho",
   saving: "Salvando…",
+  /** Barra de salvar (item 48, E-18). */
+  savedAt: (hour: string) => `Salvo às ${hour}`,
+  unsaved: "Alterações não salvas",
+  autosaved: (hour: string) => `Guardado neste aparelho às ${hour}`,
+  titleCounter: (n: number, max: number) => `${n}/${max}`,
+  titleTooLong: (max: number) => `Título longo: o ideal é até ${max} caracteres.`,
   fields: {
     title: "Título",
     dek: "Linha fina",
@@ -303,6 +347,8 @@ export const EDITOR_TEXT = {
   history: "Versões",
   openHistory: "Comparar versões",
   bodyToolbar: "Formatação do texto",
+  /** Esqueleto do editor rico enquanto o código dele baixa (item 85). */
+  bodyLoading: "Carregando o editor",
   bold: "Negrito",
   italic: "Itálico",
   heading: "Intertítulo",
@@ -358,7 +404,7 @@ export const REVIEW_TEXT = {
   noImage: "Nenhuma imagem escolhida.",
   alerts: "Alertas",
   aiFallbackAlert: "Rascunho montado sem IA: confira fontes e texto com atenção.",
-  sensitiveAlert: "Tema sensível: nunca publica sozinho.",
+  sensitiveAlert: "Tema sensível: confira a fonte citada e o tom antes de decidir.",
   history: "Histórico",
   actions: "Decisão",
   reject: "Rejeitar",
@@ -428,21 +474,28 @@ export const PUBLISH_TEXT = {
   noTopic: "sem assunto vinculado",
   push: "Push urgente",
   pushNote:
-    "Cria um pedido de aviso urgente em Notificações; sai só depois da aprovação de outra pessoa.",
-  pushUnavailable: "Push urgente é pedido por admin ou editor-chefe e aprovado por outra pessoa.",
+    "Cria e aprova o aviso urgente em Notificações na mesma ação; fica registrado no histórico.",
+  pushUnavailable: "Push urgente é só para admin ou editor-chefe.",
   pushJustification: "Justificativa do push",
   pushJustificationHint: "Por que este aviso é urgente (até 300 caracteres).",
   pushJustificationRequired: "Informe a justificativa do push urgente.",
-  pushRequested: "Pedido de push criado. Aguardando aprovação de outra pessoa.",
+  pushRequested: "Pedido de push criado. Aguardando aprovação na fila de notificações.",
+  pushApproved: "Push urgente aprovado e na fila de envio. Fica registrado no histórico.",
   pushQueueLink: "Ver fila de notificações",
   pushFailed: (why: string) => `Matéria publicada, mas o pedido de push não foi criado: ${why}`,
   headline: (title: string) => `A manchete atual da home é "${title}". Esta matéria entra no topo.`,
   confirm: "Confirmar publicação",
   confirmSchedule: "Confirmar agendamento",
+  saveAndPublish: "Salvar e publicar",
+  saveAndSchedule: "Salvar e agendar",
+  unsaved: "Há alterações não salvas no editor. Elas são salvas antes de publicar.",
+  saveFailed:
+    "Não foi possível salvar as alterações. Nada foi publicado: confira o aviso no editor.",
   cancel: "Cancelar",
   published: "Matéria publicada",
   scheduled: (when: string) => `Matéria agendada para ${when}`,
   pastDate: "Escolha um horário futuro",
+  noDestination: "Escolha ao menos um destino.",
   invalidDate: "Data ou hora inválida",
   tooFar: "Agende para no máximo 90 dias",
   blocked: (why: string) => `Publicação indisponível: ${why}`,
@@ -521,6 +574,7 @@ export const CALENDAR_TEXT = {
   prev: "7 dias antes",
   next: "Próximos 7 dias",
   today: "A partir de hoje",
+  todayLabel: "Hoje",
   weekOf: (from: string, to: string) => `${from} a ${to}`,
   kind: { scheduled: "Agendada", due: "Prazo", published: "Publicada" },
   empty: "Nada neste dia.",
@@ -572,7 +626,23 @@ export const MEDIA_TEXT = {
     allowedUse: "Uso permitido",
     provenance: "Proveniência",
     removal: "Motivo do bloqueio",
+    rights: "Direitos",
+    usageScope: "Usos permitidos",
+    disclaimer: "Aviso exibido",
   },
+  /** Media Registry (D-02): status de direitos, explícito e sem ambiguidade. */
+  rights: {
+    authorized: "Autorizada (própria ou com acordo)",
+    licensed: "Licença identificada",
+    unknown: "Direitos desconhecidos: reprodução web, sem autorização registrada",
+    pending: "Direitos em apuração",
+    expired: "Autorização vencida: não reutilizar",
+    blocked: "Bloqueada: não reutilizar",
+  } as Record<string, string>,
+  usageScope: { editorial: "matéria", social: "redes sociais", thumbnail: "miniatura" } as Record<
+    string,
+    string
+  >,
   noUntil: "Sem vencimento",
   expired: "Vencida",
   usedIn: "Usada em",

@@ -1,10 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service, STAFF } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T5 · Agentes, modelos, prompts versionados e playground (O10, O11, O12, O15).
  * A jornada de publicação muda o prompt em produção do agente `locate` (compartilhado entre
- * projetos): só no projeto desktop, e devolve a v1 do seed no fim.
+ * projetos): só no projeto serial do desktop, e devolve a v1 do seed no fim.
  */
 
 const AGENT = "locate";
@@ -57,7 +58,7 @@ test("playground: operador roda o agente de classificação com o provedor falso
   page,
 }) => {
   await loginAs(page, "diego", "/estudio/control/testes");
-  await expect(page.getByRole("heading", { level: 1, name: "Playground de testes" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Testar prompts" })).toBeVisible();
   await expect(page.getByText(/Provedor falso/)).toBeVisible();
   await page.getByLabel("Agente").selectOption("classify");
   await page
@@ -77,10 +78,13 @@ test("playground: analista só lê", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Rodar" })).toHaveCount(0);
 });
 
-test("prompts: rascunho, pedido, bloqueio de autoaprovação, publicação e rollback", async ({
+test("prompts: rascunho, pedido de quem não aprova, publicação e rollback", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda o prompt em produção: só no projeto desktop");
+  test.skip(
+    !mutatesGlobalState(info),
+    "muda o prompt em produção: só no projeto serial do desktop",
+  );
   test.setTimeout(120_000);
   await restorePrompt();
   try {
@@ -106,18 +110,16 @@ test("prompts: rascunho, pedido, bloqueio de autoaprovação, publicação e rol
       page.getByRole("heading", { level: 2, name: "Diferença entre v1 e v2" }),
     ).toBeVisible();
 
-    // Pedido de publicação; quem pede não publica.
+    // Pedido de publicação: operador de IA não tem o papel de aprovar, o pedido fica aberto.
     await page.getByRole("button", { name: "Pedir publicação da v2" }).click();
     const dialog = page.getByRole("dialog");
     await dialog
       .getByLabel("Justificativa para publicar")
       .fill("Menos bairros inventados no teste");
     await dialog.getByRole("button", { name: "Pedir publicação da v2" }).click();
-    await expect(page.getByRole("status")).toContainText("Pedido de publicação aberto");
-    await expect(page.getByText("v2 aguarda aprovação de outra pessoa.")).toBeVisible();
-    await expect(
-      page.getByText("Seu pedido: a aprovação precisa ser de outra pessoa.", { exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("Pedido de publicação registrado");
+    await expect(page.getByText("v2 aguarda aprovação de admin ou editor-chefe.")).toBeVisible();
+    await expect(page.getByText("Aguarda admin ou editor-chefe.", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Aprovar e publicar v2" })).toHaveCount(0);
 
     // Editora-chefe aprova e publica na tela do agente.

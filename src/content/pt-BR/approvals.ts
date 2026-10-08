@@ -2,6 +2,7 @@
 import type { CriticalKind } from "@/lib/approvals/approvals";
 import type { ApprovalTarget } from "@/lib/approvals/targets";
 import { AGENT_NAME } from "./ai-control";
+import { ROLE_LABEL } from "./studio";
 import { CRITICAL_FIELD_TEXT, criticalValueText } from "./sources-admin";
 
 export { APPROVAL_ERROR_TEXT } from "./sources-admin";
@@ -17,6 +18,8 @@ export const KIND_TEXT: Record<CriticalKind, string> = {
   "push.highlight": "Push de destaque",
   "push.resume": "Retomar envios de push",
   "source.critical": "Mudança crítica de fonte",
+  "role.grant": "Conceder papel",
+  "role.revoke": "Revogar papel",
 };
 
 export const FLAG_TEXT: Record<string, string> = {
@@ -45,6 +48,8 @@ export function targetText(target: ApprovalTarget): string {
       return `pesos de recomendação ${target.version}`;
     case "user":
       return `papel de administração para a conta ${target.userId.slice(0, 8)}`;
+    case "role":
+      return `papel ${ROLE_LABEL[target.role]} para a conta ${target.userId.slice(0, 8)}`;
     case "other":
       return target.ref;
   }
@@ -56,7 +61,7 @@ export const APPROVALS_TEXT = {
   sectionLabel: "Control Center",
   title: "Aprovações",
   intro:
-    "Mudança crítica só entra em vigor com duas pessoas: quem pede nunca decide. Aqui ficam os pedidos abertos e os últimos decididos.",
+    "Mudança crítica fica registrada aqui: quem pediu, quem aprovou e quando. Quem tem o papel de aprovar aplica na hora, na própria tela; ficam abertos só os pedidos de quem não tem esse papel.",
   pendingTitle: (n: number) =>
     n === 0
       ? "Nenhum pedido aguardando"
@@ -81,13 +86,14 @@ export const APPROVALS_TEXT = {
     rejected: "Recusado",
     applied: "Aplicado",
   } as Record<string, string>,
-  someone: "outra pessoa",
+  someone: "alguém da equipe",
   review: "Revisar",
   reviewAt: "Revisar na fonte",
+  reviewAtPush: "Decidir em Notificações",
   ownRequest: "Seu pedido",
-  waitOther: "A aprovação precisa ser de outra pessoa",
+  ownPending: "Pedido seu: decida aqui se seu papel aprova este tipo",
   noRole: "Seu papel não decide este tipo de pedido",
-  approved: "Pedido aprovado e aplicado.",
+  approved: "Aplicado. Fica registrado no histórico.",
   approvedApplyElsewhere: "Pedido aprovado. Agora aplique na tela do alvo.",
   applyAt: "Aplicar na tela",
   approvedNotApplied: (why: string) => `Pedido aprovado, mas não aplicado: ${why}`,
@@ -114,12 +120,10 @@ export const APPROVALS_TEXT = {
     rejectReason: "Motivo da recusa",
     confirmReject: "Confirmar recusa",
     rejectRequired: "Informe o motivo da recusa.",
-    selfNote: "Você fez este pedido: a aprovação precisa ser de outra pessoa.",
     cancel: "Cancelar",
   },
   banner: {
-    title: (n: number) =>
-      `${n} ${plural(n, "pedido aguarda", "pedidos aguardam")} segunda aprovação`,
+    title: (n: number) => `${n} ${plural(n, "pedido aguarda", "pedidos aguardam")} aprovação`,
     line: (what: string, who: string) => `${what}, pedido por ${who}`,
     open: "Ver aprovações",
   },

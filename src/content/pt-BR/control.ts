@@ -110,7 +110,7 @@ export const CONTROL_TEXT = {
     live: "Tempo real",
     failures: "Falhas",
     runs: "Execuções",
-    logs: "Logs",
+    logs: "Registros",
     sources: "Fontes",
   },
 
@@ -178,6 +178,9 @@ export const CONTROL_TEXT = {
     paused: "Atualização pausada enquanto a aba está em segundo plano.",
     updatedAt: (t: string) => `Atualizado às ${t}`,
     stale: "Não foi possível atualizar. Mostrando os últimos dados.",
+    pausedByUser: "Atualização pausada.",
+    runState: (state: string) => `Ciclo atual: ${state}.`,
+    noRun: "Nenhum ciclo em andamento.",
     pause: "Pausar atualização",
     resume: "Retomar atualização",
     phasesTitle: "Ciclo atual por fase",
@@ -231,6 +234,18 @@ export const CONTROL_TEXT = {
     cancel: "Cancelar",
     retryingNote:
       "Mensagens aguardando nova tentativa voltam sozinhas; só a quarentena é reprocessada.",
+    selectAll: "Selecionar todas em quarentena",
+    clearSelection: "Limpar seleção",
+    select: "Selecionar",
+    groupsTitle: "Falhas agrupadas por etapa e erro",
+    groupsHint: "Números e identificadores aparecem como # e ‹id› para juntar o mesmo erro.",
+    occurrences: (n: number) => (n === 1 ? "1 ocorrência" : `${n} ocorrências`),
+    selectGroup: (n: number) => `Selecionar ${n} em quarentena`,
+    selectGroupLabel: (n: number, what: string) => `Selecionar ${n} em quarentena: ${what}`,
+    noMessage: "Sem mensagem de erro",
+    itemLogs: "Logs do objeto",
+    openRun: "Ver execução",
+    attemptsN: (n: number) => (n === 1 ? "1 tentativa" : `${n} tentativas`),
   },
 
   reprocess: {
@@ -306,7 +321,7 @@ export const CONTROL_TEXT = {
   },
 
   logs: {
-    title: "Logs",
+    title: "Registros",
     intro: "Registro das etapas do pipeline, do mais novo para o mais antigo.",
     filters: "Filtros",
     run: "Ciclo (id)",

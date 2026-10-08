@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { closeStudioMenu, openStudioMenu } from "./helpers/studio-menu";
 import { loginAs } from "./helpers/studio-login";
 import { service, tag } from "./studio";
 
@@ -124,7 +125,10 @@ test("push descobrível: item no menu e cartão na home para quem tem ações de
 }) => {
   await loginAs(page.context(), "marina");
   await page.goto("/estudio");
-  await expect(page.getByRole("link", { name: /^Notificações push/ })).toBeVisible();
+  // A-123: no celular o item do menu fica na gaveta.
+  const nav = await openStudioMenu(page);
+  await expect(nav.getByRole("link", { name: /^Notificações push/ })).toBeVisible();
+  await closeStudioMenu(page);
   const card = page.getByRole("region", { name: "Notificações push" });
   await expect(card).toBeVisible();
   await expect(card.getByText("Na fila")).toBeVisible();
@@ -139,7 +143,10 @@ test("push descobrível: item no menu e cartão na home para quem tem ações de
   await page.context().clearCookies();
   await loginAs(page.context(), "juliana");
   await page.goto("/estudio");
-  await expect(page.getByRole("link", { name: /^Notificações push/ })).toHaveCount(0);
+  const navJ = await openStudioMenu(page);
+  await expect(navJ).toBeVisible();
+  await expect(navJ.getByRole("link", { name: /^Notificações push/ })).toHaveCount(0);
+  await closeStudioMenu(page);
   await expect(page.getByRole("region", { name: "Notificações push" })).toHaveCount(0);
 });
 

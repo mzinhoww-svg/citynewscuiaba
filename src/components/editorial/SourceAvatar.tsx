@@ -9,8 +9,11 @@ export interface SourceAvatarProps {
   initials?: string;
   /** Código curto da fonte (monograma de 2 letras); sinônimo de `initials`. */
   code?: string;
-  /** 40 (listas), 56 (grade), 64 (fileira mobile), 72 (fileira desktop), "rail" (64 → 72 no desktop). */
-  size?: 40 | 56 | 64 | 72 | "rail";
+  /**
+   * 40 (listas), 56 (grade), 64 (fileira mobile), 72 (fileira desktop), "rail" (64 → 72 no
+   * desktop), "card" (40 na linha do celular → 56 no card a partir de sm).
+   */
+  size?: 40 | 56 | 64 | 72 | "rail" | "card";
   href?: string;
   onClick?: () => void;
   /** Só o círculo, escondido de leitores de tela (o nome já está ao lado, em cards e linhas). */
@@ -24,6 +27,7 @@ const SIZE = {
   64: { box: "size-16", text: "text-18", width: "w-20" },
   72: { box: "size-18", text: "text-20", width: "w-22" },
   rail: { box: "size-16 lg:size-18", text: "text-18 lg:text-20", width: "w-20 lg:w-22" },
+  card: { box: "size-10 sm:size-14", text: "text-14 sm:text-16", width: "w-14 sm:w-18" },
 } as const;
 
 const AVATAR_BG = [

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 import { service, tag } from "./studio";
 
 /*
- * GUIA-T6 · Páginas públicas do Guia: índice, lista ("Como escolhemos", "Dados: ...", "Atualizada
- * em"), página do lugar, JSON-LD ItemList e LocalBusiness, vocabulário sem IA/revisão, lista
+ * GUIA-T6 · Páginas públicas do Guia: índice, lista (texto de abertura e "Atualizada em", sem o
+ * quadro "Como escolhemos" desde a A-214), página do lugar ("Dados: ..."), JSON-LD ItemList e LocalBusiness, vocabulário sem IA/revisão, lista
  * suspensa ou rascunho fora do ar. Dados próprios fictícios por execução (apagados no fim). As
  * páginas usam cache por tag: o spec abre cada página só depois de criar os dados.
  */
@@ -40,11 +40,17 @@ test.beforeAll(async () => {
         price_level: 2,
         rating: 4.9 - n / 10,
         rating_count: 100 * n,
-        rating_source: "tripadvisor",
-        tripadvisor_rank: n,
-        tripadvisor_url: `https://www.tripadvisor.com.br/fixture-${run}-${n}`,
-        place_ids: { osm: `node/e2e${run}${n}` },
-        data_sources: ["osm", "tripadvisor", "site"],
+        // O 5º lugar vem do Google (A-210): nota com a fonte e link do Google Maps.
+        rating_source: n === 5 ? "google" : "tripadvisor",
+        tripadvisor_rank: n === 5 ? null : n,
+        tripadvisor_url: n === 5 ? null : `https://www.tripadvisor.com.br/fixture-${run}-${n}`,
+        google_maps_url: n === 5 ? `https://maps.google.com/?cid=${n}` : null,
+        google_fetched_at: n === 5 ? new Date().toISOString() : null,
+        place_ids:
+          n === 5
+            ? { google: `ChIJ-e2e-${run}`, osm: `node/e2e${run}${n}` }
+            : { osm: `node/e2e${run}${n}` },
+        data_sources: n === 5 ? ["google", "osm"] : ["osm", "tripadvisor", "site"],
         data_updated_at: new Date().toISOString(),
       })
       .select("id")
@@ -98,6 +104,10 @@ test.afterAll(async () => {
   await db.from("guide_list_items").delete().in("list_id", listIds);
   await db.from("guide_lists").delete().in("id", listIds);
   await db.from("venues").delete().in("id", venueIds);
+  // fullyParallel: o mesmo worker pode rodar o beforeAll de novo depois deste afterAll; ids de
+  // linhas já apagadas virariam erro de chave estrangeira no próximo insert.
+  venueIds.length = 0;
+  listIds.length = 0;
 });
 
 test("índice do Guia: título, link das matérias e listas, sem rótulo de IA", async ({ page }) => {
@@ -113,18 +123,20 @@ test("índice do Guia: título, link das matérias e listas, sem rótulo de IA",
   expect(await page.locator("main").innerText()).not.toMatch(FORBIDDEN);
 });
 
-test("lista: Como escolhemos, Dados, Atualizada em, lugares em ordem e vocabulário limpo", async ({
+test("lista: texto de abertura, Atualizada em, lugares em ordem e vocabulário limpo, sem quadro de critério", async ({
   page,
 }) => {
   await page.goto(`/guia-cuiaba/${slugs.list}`);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     `Os 5 melhores hotéis ${slugs.list}`,
   );
-  const criteria = page.getByRole("region", { name: "Como escolhemos" });
-  await expect(criteria).toContainText(CRITERIA);
-  await expect(criteria).toContainText("Dados: TripAdvisor, OpenStreetMap e sites dos lugares.");
-  await expect(criteria.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
-  await expect(page.getByText("Introdução do editor para a lista.")).toBeVisible();
+  // A-214: o quadro "Como escolhemos" saiu do público; o critério segue gravado.
+  await expect(page.getByRole("region", { name: "Como escolhemos" })).toHaveCount(0);
+  await expect(page.getByText(CRITERIA)).toHaveCount(0);
+  await expect(page.getByText(/Atualizada em \d{2}\/\d{2}\/\d{4}/)).toBeVisible();
+  await expect(page.getByTestId("guide-article")).toContainText(
+    "Introdução do editor para a lista.",
+  );
 
   const cards = page.getByRole("article").filter({ hasText: "º lugar" });
   await expect(cards).toHaveCount(5);
@@ -204,6 +216,18 @@ test("lugar: endereço, telefone, horário, site, nota com fonte, listas e JSON-
   expect(biz.openingHours).toEqual(["Mo-Su 00:00-24:00"]);
   expect(biz.aggregateRating).toBeUndefined();
   expect(await page.locator("main").innerText()).not.toMatch(FORBIDDEN);
+});
+
+test("lugar do Google: nota com a fonte, link do Google Maps e Dados com Google", async ({
+  page,
+}) => {
+  await page.goto(`/guia-cuiaba/lugar/hotel-publico-${run}-5`);
+  await expect(page.getByText("4,4 no Google (500 avaliações)")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Ver no Google Maps" })).toHaveAttribute(
+    "href",
+    "https://maps.google.com/?cid=5",
+  );
+  await expect(page.getByText(/Dados: Google e OpenStreetMap\./)).toBeVisible();
 });
 
 test("lista suspensa, rascunho e slug inexistente respondem 404; /guia-cuiaba/lugar não é lista", async ({

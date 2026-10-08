@@ -138,7 +138,7 @@ export function publicLabels(input: PublicLabelInput): PublicLabels {
   return out;
 }
 
-/** Legenda da foto em frase: "Reprodução web · Fonte". */
+/** Legenda da foto em frase: "Foto: reprodução web · Fonte" (D-02). */
 export function publicImageCaption(kind: ImageKind, detail?: string): string {
   const text = PUBLIC_LABEL.image[kind];
   return detail?.trim() ? `${text}${META_SEPARATOR}${detail.trim()}` : text;

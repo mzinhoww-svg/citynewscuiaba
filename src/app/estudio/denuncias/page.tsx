@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, Select } from "@/components";
-import { ReportResponder } from "@/components/estudio";
+import { Button, CollapsibleFilters, EmptyState, Icon, InlineAlert, Select } from "@/components";
+import { ReportResponder, StudioScreen } from "@/components/estudio";
 import { MODERATION_TEXT as T, QUEUE_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
@@ -44,11 +44,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const correct = canAccess(session.roles, "correction.manage");
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="type-screen-title text-strong">{T.reportsTitle}</h1>
-        <p className="type-body text-meta">{T.reportsIntro}</p>
-      </header>
+    <StudioScreen title={T.reportsTitle} intro={T.reportsIntro}>
       {sp.encerrada === "1" && (
         <InlineAlert tone="success" role="status">
           {T.escalation.resolved}
@@ -77,7 +73,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                 </p>
                 <form action={resolveEscalationAction} className="flex flex-wrap items-end gap-3">
                   <input type="hidden" name="id" value={e.id} />
-                  <label className="flex min-w-56 flex-col gap-1 type-label text-16 text-strong">
+                  <label className="flex min-w-56 flex-col gap-1 type-label text-strong">
                     {T.escalation.resolveNote}
                     <input
                       name="note"
@@ -100,22 +96,24 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           {T.answered}
         </InlineAlert>
       )}
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <Select
-          id="filtro-tipo"
-          name="tipo"
-          label={T.kindLabel}
-          options={[
-            { value: "", label: T.filterAll },
-            ...KINDS.map((k) => ({ value: k, label: T.kind[k] ?? k })),
-          ]}
-          defaultValue={kind ?? ""}
-          className="min-w-56"
-        />
-        <Button type="submit" size="md" variant="outline">
-          {T.filterApply}
-        </Button>
-      </form>
+      <CollapsibleFilters activeCount={kind ? 1 : 0} clearHref="/estudio/denuncias">
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <Select
+            id="filtro-tipo"
+            name="tipo"
+            label={T.kindLabel}
+            options={[
+              { value: "", label: T.filterAll },
+              ...KINDS.map((k) => ({ value: k, label: T.kind[k] ?? k })),
+            ]}
+            defaultValue={kind ?? ""}
+            className="min-w-56"
+          />
+          <Button type="submit" size="md" variant="outline">
+            {T.filterApply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       {rows === null ? (
         <EmptyState
           tone="error"
@@ -159,8 +157,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                     </span>
                     <span className="text-meta"> · {r.contactEmail ?? T.noContact}</span>
                   </p>
-                  <blockquote className="border-l-4 border-line-section pl-3 type-body text-strong">
-                    {r.message ?? T.noMessage}
+                  <blockquote className="flex items-start gap-2 rounded-md bg-section px-3 py-2 type-body text-strong">
+                    <Icon name="message-circle" size={18} className="mt-0.5 shrink-0 text-meta" />
+                    <span className="min-w-0 break-words">{r.message ?? T.noMessage}</span>
                   </blockquote>
                   {correct &&
                     r.content.articleId &&
@@ -196,6 +195,6 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           })}
         </ul>
       )}
-    </section>
+    </StudioScreen>
   );
 }

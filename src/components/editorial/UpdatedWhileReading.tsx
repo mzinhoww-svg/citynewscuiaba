@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { formatHour } from "@/lib/format/date";
+import { fetchJson } from "@/lib/http/fetch-json";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { Icon } from "../ui/Icon";
 
@@ -38,19 +39,16 @@ export function UpdatedWhileReading({
     let alive = true;
     const check = async () => {
       if (document.visibilityState !== "visible") return;
-      try {
-        const res = await fetch(endpoint, { cache: "no-store" });
-        if (!res.ok) return;
-        const body: unknown = await res.json();
-        const next =
-          typeof body === "object" && body !== null && "updatedAt" in body
-            ? String(body.updatedAt)
-            : "";
-        const t = new Date(next).getTime();
-        if (alive && Number.isFinite(t) && t > seen) setNewer(next);
-      } catch {
-        // Sem rede: tenta no próximo intervalo.
-      }
+      // Com prazo (item 83); falha ou rede lenta: tenta no próximo intervalo.
+      const r = await fetchJson(endpoint);
+      if (!r.ok) return;
+      const body = r.value;
+      const next =
+        typeof body === "object" && body !== null && "updatedAt" in body
+          ? String(body.updatedAt)
+          : "";
+      const t = new Date(next).getTime();
+      if (alive && Number.isFinite(t) && t > seen) setNewer(next);
     };
     const timer = window.setInterval(check, intervalMs);
     if (box.current) box.current.dataset.polling = "on";

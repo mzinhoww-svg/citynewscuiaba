@@ -1,5 +1,7 @@
 /** Newsletter (P19): listas, página, centro de preferências e e-mails de confirmação. */
 
+import { NEWSLETTER } from "./newsletter-form";
+
 export const NEWSLETTER_LISTS = [
   {
     id: "diaria",
@@ -30,7 +32,7 @@ export const NEWSLETTER_PAGE = {
   title: "Newsletters",
   intro:
     "Escolha o que quer receber. Não precisa de conta: só o e-mail. Você confirma pelo link que enviamos e sai quando quiser.",
-  listsLegend: "Quais newsletters?",
+  listsLegend: NEWSLETTER.listsLegend,
   sample: "Amostra da última edição",
   sampleEmpty: "A primeira edição sai em breve.",
   email: "E-mail",
@@ -44,6 +46,34 @@ export const NEWSLETTER_PAGE = {
     "Este e-mail já recebe essas newsletters. Enviamos um link para você mudar as preferências.",
   privacy: "Usamos o e-mail só para as newsletters. Você pode sair a qualquer momento.",
   loading: "Carregando as newsletters",
+  /** UI-T11: hero, lista e FAQ em blocos de marketing. */
+  heroCta: "Escolher e inscrever",
+  listsTitle: "As newsletters",
+  faq: [
+    {
+      question: "Preciso criar conta?",
+      answer: "Não. Só pedimos o e-mail, mais nada.",
+    },
+    {
+      question: "Por que preciso confirmar?",
+      answer:
+        "Enviamos um link de confirmação para o seu e-mail. Sem confirmação, nada é enviado: ninguém inscreve você sem você saber.",
+    },
+    {
+      question: "Quando chega a primeira edição?",
+      answer:
+        "O envio das edições começa em breve. O dia e o horário de cada newsletter aparecem na lista.",
+    },
+    {
+      question: "Como mudo ou cancelo?",
+      answer:
+        "Peça a inscrição de novo com o mesmo e-mail: enviamos um link para você mudar as newsletters ou sair de todas.",
+    },
+    {
+      question: "O que vocês fazem com o meu e-mail?",
+      answer: "Usamos o e-mail só para as newsletters. Você pode sair a qualquer momento.",
+    },
+  ],
 } as const;
 
 export const NEWSLETTER_PREFS = {
@@ -72,25 +102,7 @@ export const NEWSLETTER_PREFS = {
   status: { active: "Recebendo", pending: "Aguardando confirmação", off: "Não recebe" },
 } as const;
 
-/**
- * Formulário curto de inscrição (home e rodapé). Mora aqui, e não em `portal.ts`, para o bundle
- * do navegador não levar os textos da home inteira (B-018).
- */
-export const NEWSLETTER = {
-  title: "Receba a newsletter",
-  intro: "O resumo do dia em Cuiabá, cedo, no seu e-mail. Só pedimos o endereço.",
-  label: "E-mail",
-  placeholder: "voce@exemplo.com",
-  submit: "Inscrever",
-  sending: "Enviando…",
-  invalid: "Confira o e-mail digitado. Exemplo: ana@exemplo.com",
-  rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
-  error: "Não conseguimos registrar agora. Tente de novo em alguns minutos.",
-  success:
-    "Inscrição recebida. Enviamos um link de confirmação para o seu e-mail; sem confirmação, nada é enviado. O envio das edições começa em breve.",
-  privacy: "Você pode sair da lista a qualquer momento.",
-  honeypotLabel: "Não preencha este campo",
-} as const;
+export { NEWSLETTER } from "./newsletter-form";
 
 /** E-mails para quem não tem conta (fila `reader_emails`, B-005). */
 export const NEWSLETTER_MAIL = {

@@ -3,6 +3,7 @@ import type { AgentId } from "../types";
 import { AggregateSummarySchema } from "./aggregate-summary";
 import { AnswerDraftSchema } from "./answer";
 import { ClassifySchema } from "./classify";
+import { GuideWriterSchema } from "./guide-writer";
 import { ImageSchema } from "./image";
 import { LocateSchema } from "./locate";
 import { ReviewSchema } from "./review";
@@ -10,17 +11,7 @@ import { sourceProfileSchema } from "./source-profile";
 import { VerifySchema } from "./verify";
 import { WriteSchema } from "./write";
 
-export {
-  AggregateSummarySchema,
-  AnswerDraftSchema,
-  ClassifySchema,
-  ImageSchema,
-  LocateSchema,
-  ReviewSchema,
-  sourceProfileSchema,
-  VerifySchema,
-  WriteSchema,
-};
+export { ClassifySchema };
 
 /** Schema de saída de cada agente. */
 export const AGENT_SCHEMAS = {
@@ -33,4 +24,5 @@ export const AGENT_SCHEMAS = {
   aggregate_summary: AggregateSummarySchema,
   source_profiler: sourceProfileSchema,
   reviewer: ReviewSchema,
+  guide_writer: GuideWriterSchema,
 } satisfies Record<AgentId, z.ZodType>;

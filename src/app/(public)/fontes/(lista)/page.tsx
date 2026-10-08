@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Button, EmptyState, Icon } from "@/components";
-import { SOURCES_PAGE as T } from "@/content/pt-BR/sources";
+import { AggregatedCard, Button, EmptyState, Icon } from "@/components";
+import { SOURCES_PAGE as T } from "@/content/pt-BR/sources-list";
 import { CONSENT_COOKIE, parseConsent } from "@/lib/consent";
 import { getRecConfig, getSourceSignals, listAggregated } from "@/lib/db/queries";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -83,16 +83,23 @@ export default async function SourcesRoute({ searchParams }: Props) {
   }
 
   const entries: SourceListEntry[] = signals.value;
+  const now = new Date();
+  // Cards dos itens agregados renderizados aqui (item 86): o navegador não baixa o card.
+  const itemCards = (items.ok ? items.value : []).map((item) => ({
+    id: item.id,
+    sourceSlug: item.sourceSlug,
+    card: <AggregatedCard item={item} surface="white" now={now} className="min-w-0 flex-1" />,
+  }));
   return (
     <div className={`${CONTAINER} flex flex-col gap-8 py-8 lg:py-10`}>
       <Header />
       <SourcesClient
         entries={entries}
-        items={items.ok ? items.value : []}
+        items={itemCards}
         config={config}
         query={query}
         initialPersonalization={consent.personalization}
-        now={new Date().toISOString()}
+        now={now.toISOString()}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ok } from "@/lib/result";
-import { DEFAULT_RULES, RULES_V3 } from "@/lib/rules/defaults";
+import { DEFAULT_RULES, RULES_V3, RULES_V4 } from "@/lib/rules/defaults";
 import type { DecisionContext } from "../ports";
 import { candidateOf, isGrave, neverAuto, routeArticle } from "./decide";
 
@@ -102,5 +102,50 @@ describe("neverAuto e candidato", () => {
       true,
     );
     expect(isGrave({ category: "seguranca-urbana", sensitive: false, tags: [] })).toBe(true);
+  });
+});
+
+describe("routeArticle com níveis de risco (D-05)", () => {
+  const city: DecisionContext = {
+    ...ctx,
+    sectionSlug: "cidade",
+    category: "cidade",
+    urgent: false,
+    tags: [],
+    sensitive: false,
+    independentSources: 2,
+    confidenceScore: 0.6,
+  };
+
+  it("toda decisão traz o nível de risco e os motivos, com qualquer versão de regras", () => {
+    expect(routeArticle(city, ok(RULES_V3), ON)).toMatchObject({
+      route: "publish",
+      risk: { level: 1, reasons: [] },
+    });
+    expect(routeArticle({ ...city, aiFallback: true }, ok(RULES_V4), ON)).toMatchObject({
+      route: "review",
+      risk: { level: 4, reasons: ["no_ai_draft"] },
+    });
+  });
+
+  it("v4: divergência secundária publica (nível 2); grave vai para revisão (nível 3)", () => {
+    expect(routeArticle({ ...city, centralConflict: true }, ok(RULES_V4), ON)).toMatchObject({
+      route: "publish",
+      risk: { level: 2, reasons: ["divergence"] },
+    });
+    expect(
+      routeArticle({ ...city, centralConflict: true, sensitive: true }, ok(RULES_V4), ON),
+    ).toMatchObject({ route: "review", rule: "conflict_grave", risk: { level: 3 } });
+  });
+
+  it("v4: crítico nunca publica sozinho, mesmo com flags ligadas", () => {
+    expect(routeArticle({ ...city, aiFallback: true }, ok(RULES_V4), ON).route).toBe("review");
+  });
+
+  it("notícia noturna e urgente de baixo risco segue publicando (o horário não é portão)", () => {
+    expect(routeArticle({ ...city, urgent: true }, ok(RULES_V4), ON)).toMatchObject({
+      route: "publish",
+      risk: { level: 2, reasons: ["preliminary"] },
+    });
   });
 });

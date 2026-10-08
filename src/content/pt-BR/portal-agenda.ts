@@ -3,12 +3,13 @@
  * navegador importam daqui para levar só o que usam (B-018).
  */
 
+import { PHONE } from "./contact";
+
 /** Sugerir evento (P11). */
 export const SUGGEST = {
   metaTitle: "Sugerir um evento · Agenda · CityNews Cuiabá",
   title: "Sugerir um evento",
-  intro:
-    "Não precisa de conta. A equipe de Agenda confere cada sugestão com a organização antes de publicar.",
+  intro: `Não precisa de conta. A equipe de Agenda confere cada sugestão com a organização antes de publicar. Se preferir, mande pelo WhatsApp ${PHONE.display}.`,
   required: "obrigatório",
   optional: "opcional",
   fields: {
@@ -138,6 +139,7 @@ export const AGENDA = {
   day: (date: string) => `Eventos de ${date}`,
   seeAllDates: "Ver todas as datas",
   results: (n: number) => (n === 1 ? "1 evento" : `${n} eventos`),
+  loadMore: "Carregar mais",
   free: "Gratuito",
   recurring: {
     title: "Datas e eventos recorrentes de Cuiabá",
@@ -199,6 +201,7 @@ export const AGENDA = {
   dayEvents: (n: number) => (n === 1 ? "1 evento" : `${n} eventos`),
   dayLink: (date: string, n: number) => `${date}: ${n === 1 ? "1 evento" : `${n} eventos`}`,
   noEventsDay: "sem eventos",
+  todayDay: "hoje",
   // Evento (P10)
   when2: "Data e hora",
   where: "Local",

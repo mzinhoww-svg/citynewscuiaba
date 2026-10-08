@@ -19,7 +19,7 @@ interface Look {
 
 /* DESIGN.md §5: forma + ícone + texto; a cor só reforça. */
 const LOOK: Record<LabelKind, Look> = {
-  original: { classes: "border-tinta bg-tinta text-branco", icon: "symbol" },
+  original: { classes: "plate-edge bg-tinta text-branco", icon: "symbol" },
   normalized: { classes: "border-line-strong text-strong", icon: "layers" },
   aggregated: { classes: "border-meta text-meta", icon: "external-link" },
   ai_summary: { classes: "border-ai bg-ia-soft text-ai", dashed: true },

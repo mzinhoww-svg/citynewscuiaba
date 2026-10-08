@@ -1,5 +1,6 @@
 import { defaultTickDeps } from "@/lib/pipeline/deps";
 import { revalidateTags } from "@/lib/pipeline/revalidate";
+import { runHotPins } from "@/lib/pipeline/hot-pins";
 import { handleTick } from "@/lib/pipeline/tick";
 import { publishDueScheduled } from "@/lib/studio/publish";
 import { isCronAuthorized, unauthorized } from "@/lib/security/cron-auth";
@@ -18,5 +19,8 @@ export async function POST(req: Request): Promise<Response> {
   await publishDueScheduled(revalidateTags).catch((e: unknown) =>
     console.error("agendadas:", e instanceof Error ? e.message : e),
   );
-  return handleTick(req, defaultTickDeps());
+  const res = await handleTick(req, defaultTickDeps());
+  // Pauta quente no fim do ciclo (HOT-T3): renova ou encerra pinos; falha não derruba o tick.
+  await runHotPins("tick");
+  return res;
 }

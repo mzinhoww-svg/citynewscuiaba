@@ -6,16 +6,16 @@
 - contador agregado sem cookie;
 - eventos que faltam;
 - tela Audiência no Estúdio;
-- integrações externas: Search Console, Speed Insights, Sentry, e GA4 via GTM com consentimento.
+- integrações externas: Search Console, Speed Insights, Sentry, e GA4 via GTM com Consent Mode.
 
 **Architecture:**
 - **Contador próprio.** `POST /api/metrics/hit`, com deduplicação por hash diário. Função `metric_track` (`security definer`) soma em tabelas `*_stats_daily`. É o mesmo padrão de `ad_track`, da migration 0082.
 - **Estúdio.** Lê só as funções `audience_*`, que conferem `metrics.view`.
-- **GA4.** Espelho externo: carrega via GTM só com flag ligada e consentimento de Métricas. Nunca alimenta o Estúdio.
+- **GA4.** Espelho externo: carrega via GTM com a flag ligada, antes da escolha no banner. Nunca alimenta o Estúdio.
 
 **Tech Stack:** Next.js 16.3 (App Router, `after()`, `next/script`), Supabase (Postgres, RLS, `pg_cron`), zod, Vitest, Playwright e axe, `@vercel/speed-insights`, `@sentry/nextjs`, `googleapis` (só a parte webmasters) ou `fetch` com JWT da conta de serviço.
 
-**Spec:** `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`. Decisão do dono: A-127.
+**Spec:** `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`. Decisão do dono: A-216.
 
 ## Global Constraints
 - **Contador agregado:** nenhum identificador de pessoa, nenhum cookie, nenhum `localStorage`. A chave é `sha256(sal:ip:ua:alvo:evento:janela30min)`, sumindo no dia seguinte. O sal é o de `rateLimitSalt()`.
@@ -26,9 +26,10 @@
   - 413 acima de 1 KB;
   - 503 sem sal ou sem banco.
 - **Nada é medido em `/estudio`.** Nem contador, nem GTM, nem Speed Insights. O Sentry é a exceção: vale em todo lugar.
-- **GA4/GTM:** carrega só com `ga4_enabled` ligada, `NEXT_PUBLIC_GTM_ID` definido e `consent.metrics === true`. Consent Mode v2:
-  - padrão `denied`;
-  - `ad_storage`, `ad_user_data` e `ad_personalization` sempre `denied`;
+- **GA4/GTM** (decisão do dono, 08/10/2026): carrega em toda página pública com `ga4_enabled` ligada e `NEXT_PUBLIC_GTM_ID` definido, antes da escolha no banner. Consent Mode v2:
+  - padrão `granted` nos quatro sinais, enquanto não há escolha e com "Aceitar";
+  - "Só o necessário" muda os quatro para `denied` e apaga `_ga*`;
+  - só Métricas: `analytics_storage` concedido e `ad_*` negados;
   - nada de termo de busca, e-mail, `user_id` ou `anonId` no dataLayer.
 - **CSP:** muda só se `NEXT_PUBLIC_GTM_ID` estiver definido. Os hosts exatos:
   - `connect-src` e `img-src` ganham `https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`;
@@ -40,12 +41,12 @@
   - agregados: 25 meses;
   - termos de busca com menos de 3 buscas: 90 dias;
   - `metric_keys`: até ontem.
-- **Migrations:** 0148, 0149 e 0150. Se o número estiver ocupado na hora da execução, renumerar na sequência e anotar em DECISIONS. Toda tabela nova tem RLS na mesma migration.
+- **Migrations:** 0187, 0188 e 0189. Se o número estiver ocupado na hora da execução, renumerar na sequência e anotar em DECISIONS. Toda tabela nova tem RLS na mesma migration.
 - **Fim de tarefa:** um commit por tarefa com `[ANL-T#]`, `pnpm verify` verde e `progress.json`/`STATE.md` atualizados.
 
 ## Review Focus
 - **Navegação no cliente** (link interno sem recarregar) precisa contar 1 `view` por troca de rota. Não pode contar 0, nem 2 por causa do StrictMode ou de re-render. Teste em ANL-T1.
-- **Leitor com "Só o necessário"** precisa ser contado no agregado e **não** pode gerar nenhum pedido a `googletagmanager.com` nem cookie `_ga`. Teste e2e em ANL-T9.
+- **Leitor com "Só o necessário"** precisa ser contado no agregado e **não** pode ficar com cookie `_ga`. O GTM recebe os quatro sinais `denied` antes de qualquer tag disparar. Teste e2e em ANL-T9.
 - **Editor com editoria** que abre a Audiência só vê as suas editorias, inclusive no CSV e na aba Busca, que é global. Na aba Busca ele vê o vazio "disponível para quem vê todas as editorias". Teste em ANL-T5.
 - **Busca com dado pessoal** (`maria@x.com`, `65 99999-1234`, CPF) nunca é gravada. Termo com acento e caixa diferentes soma no mesmo registro. Teste em ANL-T3.
 - **Recarga rápida e robôs** (`curl`, `facebookexternalhit`, Lighthouse) não somam visita. Teste em ANL-T1.
@@ -55,7 +56,7 @@
 ### Task ANL-T1: Contador agregado de visitas (banco, rota e cliente)
 
 **Files:**
-- Create: `supabase/migrations/0148_metrics_aggregate.sql`
+- Create: `supabase/migrations/0187_metrics_aggregate.sql`
 - Create: `src/lib/metrics/classify.ts` + `classify.test.ts` (`classifyReferrer`, `deviceClass`, `pageKind`, `cleanUtm`)
 - Create: `src/lib/metrics/schema.ts` + `schema.test.ts` (`metricHitSchema`)
 - Create: `src/lib/metrics/api.ts` + `api.test.ts` (`handleMetricHit`)
@@ -65,7 +66,7 @@
 - Create: `src/components/editorial/PageMetrics.tsx` + `.test.tsx`
 - Modify: `src/components/editorial/PublicShell.tsx` (monta `PageMetrics`)
 - Modify: `src/lib/db/writes.ts` (`trackMetric`)
-- Modify: `docs/architecture.md` (emenda da ADR-008), `docs/tracking-plan.md` (§7 nova: contador agregado), `.planning/DECISIONS.md` (A-127)
+- Modify: `docs/architecture.md` (emenda da ADR-008), `docs/tracking-plan.md` (§7 nova: contador agregado), `.planning/DECISIONS.md` (A-216)
 - Modify: texto de `/privacidade` (`src/content/pt-BR/privacy*.ts`)
 
 **Interfaces:**
@@ -120,7 +121,7 @@
   - `visitorKey` muda por dia e **não** por página.
 - [ ] **Step 5:** Implementar `schema.ts`, `api.ts` e a rota.
   - A rota aplica `checkRateLimit` (120 por 10 min, como `/api/events`) e cabeçalhos `no-store` e `noindex`.
-- [ ] **Step 6:** Escrever a migration 0148.
+- [ ] **Step 6:** Escrever a migration 0187.
   - Tabelas da spec §3, com PK composta por dia e dimensões, e `content_id`/`source_id` com `on delete set null`.
   - `metric_track` deduplica em `metric_keys` (`on conflict do nothing`; se não inseriu, devolve `false`) e faz upsert somando no dia de Cuiabá.
   - `visitors` sobe quando `p_visitor_key` é novo no dia (`metric_keys` com prefixo `v:`).
@@ -141,7 +142,7 @@
 - [ ] **Step 10:** Atualizar os documentos:
   - emenda da ADR-008 em `docs/architecture.md`;
   - §7 em `docs/tracking-plan.md`;
-  - A-127 em `.planning/DECISIONS.md`;
+  - A-216 em `.planning/DECISIONS.md`;
   - parágrafo em `/privacidade`: "Contamos visitas de forma agregada, sem cookie e sem identificar você".
 - [ ] **Step 11:** `pnpm verify`. Esperado: verde.
 - [ ] **Step 12:** Commit `feat: contador agregado de visitas sem cookie [ANL-T1]`.
@@ -175,8 +176,8 @@
 
 **Files:**
 - Create: `src/lib/metrics/search-query.ts` + `.test.ts` (`normalizeSearchQuery`)
-- Modify: `supabase/migrations/0148_metrics_aggregate.sql`
-  - Só se T1 ainda não estiver em produção. Senão, criar `0148b`, renumerada na sequência.
+- Modify: `supabase/migrations/0187_metrics_aggregate.sql`
+  - Só se T1 ainda não estiver em produção. Senão, criar `0187b`, renumerada na sequência.
   - Acrescenta a tabela `search_stats_daily (day, query, searches, zero_results)` e o ramo `search` em `metric_track`, mais o cron de 90 dias para termos raros.
 - Modify: `src/app/(public)/busca/page.tsx` (`after(() => trackSearch(...))`)
 - Modify: `src/lib/db/writes.ts` (`trackSearch`)
@@ -204,7 +205,7 @@
 ### Task ANL-T4: Partições mensais de `events`
 
 **Files:**
-- Create: `supabase/migrations/0150_events_partitions.sql`
+- Create: `supabase/migrations/0189_events_partitions.sql`
 - Test: `src/lib/db/events-partitions.integration.test.ts`
 
 **Interfaces:**
@@ -225,7 +226,7 @@
 ### Task ANL-T5: Tela Audiência: Visão geral e Matérias
 
 **Files:**
-- Create: `supabase/migrations/0149_audience.sql`
+- Create: `supabase/migrations/0188_audience.sql`
   - funções `audience_overview`, `audience_articles`, `audience_traffic`, `audience_search`, `audience_sources`, `audience_google`, com o mesmo padrão de checagem de `ai_cost_daily`;
   - flag `ga4_enabled` desligada (usada em T9);
   - tabela `search_console_daily` (usada em T7).
@@ -254,7 +255,7 @@
   - `delta(120, 100) = 0.2`;
   - `delta(5, 0) = null`.
 - [ ] **Step 2:** Implementar `period.ts`. Rodar. Esperado: PASS.
-- [ ] **Step 3:** Migration 0149 e teste de integração:
+- [ ] **Step 3:** Migration 0188 e teste de integração:
   - analista vê todas as editorias;
   - editor de `cidades` recebe só linhas de `cidades` em `audience_articles` e um erro de permissão em `audience_search`;
   - leitor sem papel recebe um erro.
@@ -297,11 +298,11 @@
   - `fetchSearchAnalytics`: JWT da conta de serviço assinado com `node:crypto`, troca por token em `oauth2.googleapis.com`, chamada à `searchanalytics.query`;
   - dependências injetáveis para teste.
 - Create: `src/app/api/jobs/search-console/route.ts` (Bearer `CRON_SECRET`)
-- Create: `supabase/migrations/0151_gsc_cron.sql` (cron às 05h17 UTC chamando a rota por `pg_net`, como os crons do Guia em 0133)
+- Create: `supabase/migrations/0190_gsc_cron.sql` (cron às 05h17 UTC chamando a rota por `pg_net`, como os crons do Guia em 0133)
 - Create: `src/app/estudio/audiencia/google/page.tsx`
 - Modify: `src/lib/db/queries/admin-ops.ts` (`integrationsOverview`: linhas Search Console, GTM, Sentry, Speed Insights)
 - Modify: `.env.example` (`GOOGLE_SITE_VERIFICATION`, `GSC_SERVICE_ACCOUNT_JSON`, `GSC_SITE_URL`)
-- Modify: `.planning/BLOCKERS.md`: B-026, ação do dono:
+- Modify: `.planning/BLOCKERS.md`: B-031, ação do dono:
   - criar a propriedade;
   - adicionar a conta de serviço como usuário;
   - enviar os sitemaps.
@@ -366,39 +367,46 @@
 - Modify: banner e `/privacidade`, com o texto do Google Analytics na categoria Métricas.
 - Modify: `src/lib/studio/switches.ts` (`ga4_enabled` na lista, admin, auditado)
 - Modify: `docs/architecture.md` (regra: sem tag de HTML personalizada no GTM; publicação do contêiner só pelo dono)
-- Modify: `.planning/BLOCKERS.md`: B-027, ação do dono:
+- Modify: `.planning/BLOCKERS.md`: B-032, ação do dono:
   - criar o contêiner GTM e a tag GA4;
-  - retenção de 2 meses;
-  - Google Signals desligado;
+  - retenção de dados (recomendado: 2 meses);
+  - Google Signals (recomendado: desligado até haver AdSense);
   - definir `NEXT_PUBLIC_GTM_ID` na Vercel.
 - Test: `e2e/analytics-consent.spec.ts`
 
 **Interfaces:**
 - Consumes: `Consent` de `src/lib/consent`; `EventName`.
 - Produces:
-  - `consentModeState(c: Consent): { analytics_storage: "granted"|"denied"; ad_storage: "denied"; ad_user_data: "denied"; ad_personalization: "denied" }`
+  - `type Signal = "granted"|"denied"`
+  - `consentModeState(c: Consent): { analytics_storage: Signal; ad_storage: Signal; ad_user_data: Signal; ad_personalization: Signal }`
+    - `UNDECIDED` e `ACCEPT_ALL`: tudo `granted`;
+    - `NECESSARY_ONLY`: tudo `denied`;
+    - só Métricas: `analytics_storage` concedido, `ad_*` negados.
   - `gtmCspSources(): { connect: string[]; img: string[]; frame: string[] }` (os hosts exatos das Global Constraints)
   - `toDataLayerEvent(name: EventName, props: Record<string, unknown>): { event: string; [k: string]: string|number } | null`
     - devolve `null` para eventos fora da lista da spec §8;
     - remove `query`, `userId`, `anonId` e qualquer chave fora da lista branca `content_id`, `section`, `article_kind`, `channel`, `results_count`, `page_kind`.
 
 - [ ] **Step 1: Testes que falham**
-  - `consentModeState(NECESSARY_ONLY).analytics_storage === "denied"` e com Métricas `"granted"`; os campos `ad_*` são sempre `"denied"`.
+  - `consentModeState(UNDECIDED)` e `consentModeState(ACCEPT_ALL)` → os quatro `"granted"`;
+  - `consentModeState(NECESSARY_ONLY)` → os quatro `"denied"`;
+  - `{ metrics: true, personalization: false, decided: true }` → `analytics_storage: "granted"`, `ad_*` `"denied"`.
   - `buildCsp({ ..., gtm: false })` fica idêntico ao snapshot atual; com `gtm: true`, contém os três grupos de hosts.
   - `toDataLayerEvent("search_submitted", { query: "x", resultsCount: 3 })` → `{ event: "search_submitted", results_count: 3 }`, sem `query`.
   - `toDataLayerEvent("login_started", {})` → `null`.
   - Cookie `v1|m1|p1` → `decided: false` (o banner volta).
 - [ ] **Step 2:** Implementar.
-  - `GoogleTagManager`: com `consent.metrics` falso, não renderiza nada.
-  - Com consentimento:
-    - um `Script` inline com nonce define `dataLayer`, `gtag('consent','default', …denied)` e `gtag('consent','update', consentModeState(c))`;
+  - `GoogleTagManager` renderiza com a flag e o ID, em qualquer estado de consentimento:
+    - um `Script` inline com nonce define `dataLayer` e `gtag('consent','default', consentModeState(c))` **antes** do `gtm.js`;
+    - a cada mudança de escolha no banner, chama `gtag('consent','update', consentModeState(novo))`;
     - em seguida, o `Script` do `gtm.js?id=…` com nonce.
   - Envia `page_view` a cada troca de `usePathname()`.
-  - Retirar o consentimento apaga os cookies `_ga` e `_ga_*` do domínio e recarrega a página.
+  - Escolher "Só o necessário" apaga os cookies `_ga` e `_ga_*` do domínio.
 - [ ] **Step 3:** e2e, com `NEXT_PUBLIC_GTM_ID=GTM-TESTE` e uma rota interceptada que devolve um `gtm.js` falso:
   - (a) flag desligada → zero pedidos a `googletagmanager.com`;
-  - (b) flag ligada e "Só o necessário" → zero pedidos e nenhum cookie `_ga`;
-  - (c) flag ligada e "Aceitar" → exatamente 1 pedido a `gtm.js`, e o `dataLayer` contém `consent update` com `analytics_storage: "granted"`;
+  - (b) flag ligada, sem escolha → 1 pedido a `gtm.js`, e o `consent default` com os quatro `granted` vem antes dele no `dataLayer`;
+  - (b2) depois, "Só o necessário" → `consent update` com os quatro `denied`, e nenhum cookie `_ga` depois da recarga;
+  - (c) "Aceitar" → exatamente 1 pedido a `gtm.js` e `analytics_storage: "granted"`;
   - (d) `/estudio` nunca pede o GTM;
   - (e) sem violação de CSP no console em (c).
 - [ ] **Step 4:** `pnpm verify` e `pnpm test:e2e e2e/analytics-consent.spec.ts`. Esperado: verde.
@@ -421,7 +429,7 @@
   - a rota de cron.
 - [ ] **Step 4:** Relatório com:
   - o que entrou;
-  - as migrations a aplicar em produção (0148 a 0151, nessa ordem, antes do deploy);
-  - as pendências do dono, B-026 e B-027;
+  - as migrations a aplicar em produção (0187 a 0190, nessa ordem, antes do deploy);
+  - as pendências do dono, B-031 e B-032;
   - como ligar o GA4: interruptor `ga4_enabled` depois de publicar o contêiner.
 - [ ] **Step 5:** Commit `docs: gate do analytics e audiência [ANL-T10]`.

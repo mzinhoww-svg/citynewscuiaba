@@ -2,6 +2,7 @@ import type { CallAgent } from "@/lib/ai/call-agent";
 import { VerifySchema, type VerifyOutput } from "@/lib/ai/schemas/verify";
 import type { AiError } from "@/lib/ai/types";
 import { computeConfidence, type Confidence } from "@/lib/confidence";
+import { LINEAGE_METHOD, safeIndependentLineages } from "@/lib/confidence/lineage";
 import { normalizePlace } from "@/lib/geo/neighborhoods";
 import { err, ok, type Result } from "@/lib/result";
 import { isDubious } from "@/lib/rules/dubious";
@@ -11,6 +12,7 @@ import type { TopicBundle, TopicItem } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import type { UnderstandStepDeps } from "./classify";
 import { aiStepError, inputHash } from "./understanding";
+import { fold } from "@/lib/text/fold";
 
 export type { TopicBundle, TopicItem } from "../ports";
 
@@ -21,6 +23,14 @@ export interface VerifyResult {
   topicId: string;
   mainFact: string;
   independentSources: number;
+  /**
+   * Linhagens de texto independentes (cópias do mesmo release contam uma vez). Indicador
+   * informativo (D-03): vai para a decisão do `verify`; nenhum portão, nem a confiança, nem o
+   * revisor o usam (ADR-012). `null` quando o cálculo falhou.
+   */
+  independentLineages: number | null;
+  /** Método da medição de linhagens (para auditoria). */
+  lineageMethod: string;
   primarySources: number;
   centralConflict: boolean;
   /** O agente marcou o assunto como extremamente duvidoso ou sem atribuição possível. */
@@ -49,10 +59,7 @@ const SCALE: Record<string, number> = {
  * "2,1%" = 2,1. Base da confirmação de conflito numérico.
  */
 export function extractNumbers(text: string): number[] {
-  const t = text
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase();
+  const t = fold(text);
   const re =
     /(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d+))?(?:\s*(mil|milhoes|milhao|mi|bilhoes|bilhao|bi)\b)?/g;
   const out: number[] = [];
@@ -152,6 +159,8 @@ export function createVerifyTopic(deps: { callAgent: CallAgent }) {
       topicId: bundle.topicId,
       mainFact: r.value.mainFact,
       independentSources,
+      independentLineages: safeIndependentLineages(items),
+      lineageMethod: LINEAGE_METHOD,
       primarySources,
       centralConflict,
       dubious: isDubious(r.value),

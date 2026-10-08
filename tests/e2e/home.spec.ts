@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { scrolledWithin } from "./helpers/wait";
 import { forwardedFor } from "./own-ip";
 
 const blocking = (impact: string | null | undefined) =>
@@ -66,12 +67,19 @@ test("trilhos da home rolam por teclado, sem rolagem automática", async ({ page
   await expect(rail).toHaveAttribute("tabindex", "0");
   await rail.focus();
   const before = await rail.evaluate((el) => el.scrollLeft);
-  await page.waitForTimeout(1500);
-  expect(await rail.evaluate((el) => el.scrollLeft)).toBe(before);
+  // Sem rolagem automática: observado na própria faixa (evento e posição) por 1,5 s.
+  expect(await scrolledWithin(rail, 1_500)).toBe(false);
   await page.keyboard.press("ArrowRight");
   await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBeGreaterThan(before);
   await page.keyboard.press("Home");
   await expect.poll(() => rail.evaluate((el) => el.scrollLeft)).toBe(0);
+  // Celular: a borda que ainda tem itens esmaece (UX item 77).
+  // O véu fica no invólucro do trilho, nunca na lista rolável (A-152).
+  await expect(rail.locator("xpath=..")).toHaveAttribute("data-fade", /end|both/);
+  // Desktop: o trilho vira grade e não rola, então não é parada de Tab (UX item 77).
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(rail).not.toHaveAttribute("tabindex", /.*/);
+  expect(await rail.evaluate((el) => getComputedStyle(el).maskImage)).toBe("none");
 });
 
 test("editorias em abas no celular trocam o painel; no desktop, três colunas", async ({ page }) => {

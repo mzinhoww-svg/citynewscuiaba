@@ -5,7 +5,6 @@ import { Suspense } from "react";
 import {
   Button,
   CategoryTag,
-  CriteriaNote,
   EmptyState,
   JsonLd,
   ListCard,
@@ -15,10 +14,13 @@ import {
 } from "@/components";
 import { GUIDE } from "@/content/pt-BR/guide";
 import { getGuideList, listGuideLists } from "@/lib/db/queries/guide";
+import { googleAttribution } from "@/lib/guide/google-photo";
 import { guideListJsonLd } from "@/lib/guide/jsonld";
+import { formatDate } from "@/lib/format/date";
+import { articleParagraphs } from "@/lib/guide/article";
 import { pageMetadata } from "@/lib/seo/metadata";
 
-/** Lista do Guia: critério à vista ("Como escolhemos"), lugares em ordem e a origem dos dados. */
+/** Lista do Guia: texto de abertura, lugares em ordem e a origem dos dados (A-214). */
 export const revalidate = 3600;
 
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
@@ -34,18 +36,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return pageMetadata({ title: GUIDE.nav.index, path: `/guia-cuiaba/${slug}`, noindex: true });
   return pageMetadata({
     title: list.title,
-    description: `${list.title}: ${list.criteria.slice(0, 140).trim()}`,
+    description: `${list.title}: ${(list.intro ?? list.criteria).slice(0, 140).trim()}`,
     path: list.href,
     type: "article",
     modifiedTime: list.refreshedAt,
   });
 }
 
-/** Atribuição exigida pelos termos dos dados (TripAdvisor e OpenStreetMap), em texto simples. */
-function Attribution({ tripadvisor, osm }: { tripadvisor: boolean; osm: boolean }) {
-  if (!tripadvisor && !osm) return null;
+/**
+ * Atribuição exigida pelos termos dos dados (Google, TripAdvisor e OpenStreetMap), em texto
+ * simples. A linha do Google cobre as fotos quando algum lugar usa a foto de lá (A-212).
+ */
+function Attribution({
+  google,
+  googlePhotos,
+  tripadvisor,
+  osm,
+}: {
+  google: boolean;
+  googlePhotos: boolean;
+  tripadvisor: boolean;
+  osm: boolean;
+}) {
+  const googleLine = googleAttribution({ ratings: google, photos: googlePhotos });
+  if (!googleLine && !tripadvisor && !osm) return null;
   return (
     <p className="type-meta text-meta">
+      {googleLine && <>{googleLine} </>}
       {tripadvisor && <>{GUIDE.list.attribution.tripadvisor} </>}
       {osm && (
         <>
@@ -156,18 +173,27 @@ export default async function GuideListPage({ params }: Props) {
         <h1 className="type-screen-title text-strong">{list.title}</h1>
         {list.sponsored && list.sponsorName && (
           <p className="type-meta font-semibold text-strong">
-            {GUIDE.list.sponsoredBy(list.sponsorName)}
+            {GUIDE.list.sponsoredBy(list.sponsorName)}. {GUIDE.list.sponsoredNote}
           </p>
         )}
-        {list.intro && <p className="max-w-read type-body-read text-body">{list.intro}</p>}
+        {list.refreshedAt && (
+          <p className="type-meta text-meta">
+            <time dateTime={list.refreshedAt}>
+              {GUIDE.list.updated(formatDate(list.refreshedAt))}
+            </time>
+          </p>
+        )}
       </header>
 
-      <CriteriaNote
-        criteria={list.criteria}
-        dataSources={list.dataSources}
-        refreshedAt={list.refreshedAt}
-        sponsorName={list.sponsored ? list.sponsorName : null}
-      />
+      {list.intro && (
+        <div data-testid="guide-article" className="flex max-w-read flex-col gap-4">
+          {articleParagraphs(list.intro).map((p, i) => (
+            <p key={i} className="type-body-read text-body">
+              {p}
+            </p>
+          ))}
+        </div>
+      )}
 
       <section aria-labelledby="lugares-da-lista" className="flex flex-col">
         <h2 id="lugares-da-lista" className="type-section pb-2 text-strong">
@@ -183,6 +209,10 @@ export default async function GuideListPage({ params }: Props) {
       </section>
 
       <Attribution
+        google={list.items.some(
+          (i) => i.venue.ratingSource === "google" && i.venue.rating !== null,
+        )}
+        googlePhotos={list.items.some((i) => i.venue.photos[0]?.fromGoogle === true)}
         tripadvisor={list.items.some(
           (i) => i.venue.ratingSource === "tripadvisor" && i.venue.rating !== null,
         )}

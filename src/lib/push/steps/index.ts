@@ -13,8 +13,6 @@ import type { PushSender, SendOutcome } from "../sender";
 import type { TargetKey } from "../types";
 import type { DeliverySub, PushSend, PushSendStore } from "./store";
 
-export type { PushArticle, PushSend, PushSendStore, DeliverySub, DueDelivery } from "./store";
-
 export interface PushStepsDeps {
   store: PushSendStore;
   sender: PushSender;

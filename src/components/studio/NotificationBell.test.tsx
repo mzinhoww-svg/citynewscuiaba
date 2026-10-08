@@ -70,6 +70,27 @@ describe("NotificationBell", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("mostra quando cada notificação chegou: relativo até 24 h, data e hora depois", async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 3_600_000).toISOString();
+    mockFetch(() => ({
+      items: [
+        n("nova", { title: "Nova", createdAt: twoHoursAgo }),
+        n("velha", { title: "Velha", createdAt: "2026-09-28T13:12:00Z" }),
+      ],
+      unread: 2,
+    }));
+    const user = userEvent.setup();
+    render(<NotificationBell />);
+    await user.click(await screen.findByRole("button", { name: /Notificações/ }));
+    const panel = screen.getByRole("dialog", { name: "Central de notificações" });
+    const nova = within(panel).getByText("há 2 h");
+    expect(nova.tagName).toBe("TIME");
+    expect(nova).toHaveAttribute("datetime", twoHoursAgo);
+    expect(nova).toHaveAttribute("title");
+    const velha = within(panel).getByText("28/09/2026, 9h12");
+    expect(velha).toHaveAttribute("datetime", "2026-09-28T13:12:00Z");
+  });
+
   it("agrupa por severidade e leva ao link de ação", async () => {
     mockFetch(() => ({
       items: [
@@ -173,6 +194,28 @@ describe("NotificationBell", () => {
     fail = false;
     await user.click(within(alert).getByRole("button", { name: "Tentar de novo" }));
     expect(await screen.findByText("Título a")).toBeVisible();
+  });
+
+  it("servidor que não responde vira erro no prazo, sem ficar carregando para sempre", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((_r, reject) =>
+            init?.signal?.addEventListener("abort", () => reject(init.signal?.reason)),
+          ),
+      ),
+    );
+    render(<NotificationBell pollMs={600_000} />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_100);
+    });
+    await act(async () => screen.getByRole("button", { name: /Notificações/ }).click());
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Não foi possível carregar as notificações",
+    );
+    vi.useRealTimers();
   });
 
   it("falha ao marcar volta ao estado anterior", async () => {

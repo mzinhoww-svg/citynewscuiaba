@@ -6,6 +6,7 @@ import type { Weights } from "@/lib/guide/score";
 import type { GuideItem, ListOrigin, Venue } from "@/lib/guide/types";
 import { slugify } from "@/lib/pipeline/slug";
 import { venueFromRow } from "./guide-store";
+import { fold as foldText } from "@/lib/text/fold";
 
 type ListRow = Database["public"]["Tables"]["guide_lists"]["Row"];
 type TemplateDbRow = Database["public"]["Tables"]["guide_templates"]["Row"];
@@ -15,12 +16,7 @@ const REPROPOSE_AFTER_DAYS = 90;
 export const REFRESH_DAYS = 90;
 const DAY = 86_400_000;
 
-const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
+const fold = (s: string) => foldText(s).trim();
 
 function parseWeights(w: Json | null): Weights | null {
   if (!w || typeof w !== "object" || Array.isArray(w)) return null;
@@ -113,17 +109,23 @@ export function createGuideListStore(db: DbClient): EngineStore & {
     /** Matérias publicadas que citam o lugar pelo nome (busca de frase em português). */
     async mentions(venues: readonly Venue[]) {
       const out = new Map<string, number>();
+      const ids: string[] = [];
+      const phrases: string[] = [];
       for (const v of venues.slice(0, 80)) {
         const phrase = fold(v.name);
         if (phrase.split(/\s+/).length < 2) continue;
-        const { count, error } = await db
-          .from("articles")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["published", "updated"])
-          .textSearch("tsv", phrase, { config: "portuguese", type: "phrase" });
-        if (error) throw new Error(`guide mentions: ${error.message}`);
-        out.set(v.id, count ?? 0);
+        ids.push(v.id);
+        phrases.push(phrase);
       }
+      if (ids.length === 0) return out;
+      // Uma chamada para todos os lugares (antes, uma busca de frase por lugar).
+      const { data, error } = await db.rpc("guide_venue_mentions", {
+        p_ids: ids,
+        p_phrases: phrases,
+      });
+      if (error) throw new Error(`guide mentions: ${error.message}`);
+      const counts = new Map((data ?? []).map((r) => [r.venue_id, r.mentions]));
+      for (const id of ids) out.set(id, counts.get(id) ?? 0);
       return out;
     },
 

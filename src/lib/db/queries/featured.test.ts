@@ -192,6 +192,84 @@ describe("getFeatured", () => {
   });
 });
 
+describe("getFeatured · pauta quente (HOT-T3)", () => {
+  const base = {
+    sections: [{ slug: "cidade", name: "Cidade", parent_slug: null }],
+    featured_slots: [{ key: "home.lead", page: "home", label: "Início · manchete", capacity: 1 }],
+  };
+  const now = at("2026-10-03T14:10:00");
+  const hotRow = (articleId: string, over: Partial<PinRow> = {}): Row => ({
+    ...pinRow(articleId, {
+      id: `hot-${articleId}`,
+      kind: "hot",
+      dismissed_at: null,
+      starts_at: at("2026-10-03T13:00:00").toISOString(),
+      ends_at: at("2026-10-03T16:00:00").toISOString(),
+      ...over,
+    }),
+  });
+
+  it("pino quente vigente vira o lead com source hot e a matéria em `hot`", async () => {
+    const db = fakeDb({
+      ...base,
+      articles: [articleRow("auto", { confidence_score: 0.9 }), articleRow("quente")],
+      article_media: [cover("auto"), cover("quente")],
+      featured_items: [hotRow("quente")],
+    });
+    const r = await getFeatured(db, "home.lead", { now });
+    expect(r.items.map((a) => a.id)).toEqual(["quente"]);
+    expect(r.source).toBe("hot");
+    expect(r.hot).toEqual(["quente"]);
+  });
+
+  it("manual vence o quente", async () => {
+    const db = fakeDb({
+      ...base,
+      articles: [articleRow("manual"), articleRow("quente")],
+      article_media: [cover("manual"), cover("quente")],
+      featured_items: [{ ...pinRow("manual") }, hotRow("quente")],
+    });
+    const r = await getFeatured(db, "home.lead", { now });
+    expect(r.items.map((a) => a.id)).toEqual(["manual"]);
+    expect(r.source).toBe("manual");
+    expect(r.hot).toEqual([]);
+  });
+
+  it("quente dispensado, vencido ou ainda não começado não ocupa: volta ao automático", async () => {
+    for (const over of [
+      { dismissed_at: at("2026-10-03T13:30:00").toISOString() },
+      { ends_at: at("2026-10-03T14:00:00").toISOString() },
+      { starts_at: at("2026-10-03T15:00:00").toISOString() },
+    ]) {
+      const db = fakeDb({
+        ...base,
+        articles: [articleRow("auto", { confidence_score: 0.9 }), articleRow("quente")],
+        article_media: [cover("auto"), cover("quente")],
+        featured_items: [hotRow("quente", over)],
+      });
+      const r = await getFeatured(db, "home.lead", { now });
+      expect(r.items.map((a) => a.id)).toEqual(["auto"]);
+      expect(r.source).toBe("automatic");
+      expect(r.hot).toEqual([]);
+    }
+  });
+
+  it("matéria do pino quente patrocinada ou sem capa é pulada", async () => {
+    const db = fakeDb({
+      ...base,
+      articles: [
+        articleRow("auto", { confidence_score: 0.9 }),
+        articleRow("quente", { sponsored: true }),
+      ],
+      article_media: [cover("auto"), cover("quente")],
+      featured_items: [hotRow("quente")],
+    });
+    const r = await getFeatured(db, "home.lead", { now });
+    expect(r.items.map((a) => a.id)).toEqual(["auto"]);
+    expect(r.hot).toEqual([]);
+  });
+});
+
 describe("resolveFeatured / toCandidate", () => {
   it("toCandidate: reprodução sem crédito não é capa", async () => {
     const db = fakeDb({

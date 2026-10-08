@@ -1,5 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { openFilters } from "./helpers/filters";
+import { acquireFeaturedLock } from "./helpers/featured";
 
 const TOPIC = "/assunto/obra-do-viaduto-na-miguel-sutil";
 
@@ -39,6 +41,8 @@ test("assunto tem resumo sem selo de revisão, linha do tempo e perguntas", asyn
 
 test("filtro de origem esconde a outra cobertura", async ({ page }) => {
   await page.goto(TOPIC);
+  // A-140: o filtro da cobertura fica recolhido no celular.
+  await openFilters(page);
   await page.getByRole("radio", { name: "Do CityNews" }).click();
   await expect(page.getByRole("region", { name: "Cobertura de outros veículos" })).toBeHidden();
   await expect(page.getByRole("region", { name: "Do CityNews" })).toBeVisible();
@@ -50,22 +54,38 @@ test("assunto inexistente responde 404", async ({ page }) => {
   expect((await page.goto("/assunto/nao-existe"))!.status()).toBe(404);
 });
 
+// Os specs de destaques (featured-*.spec) criam assuntos temporários sob o cadeado dos destaques;
+// quem conta os assuntos do seed pega o mesmo cadeado para não ver os deles.
+async function withSeedTopics(run: () => Promise<void>) {
+  test.setTimeout(300_000);
+  const release = await acquireFeaturedLock();
+  try {
+    await run();
+  } finally {
+    release();
+  }
+}
+
 test("lista de assuntos não oferece filtro de situação, nem Corrigidos (R34)", async ({ page }) => {
-  await page.goto("/assuntos");
-  await expect(page.getByRole("heading", { level: 1, name: "Assuntos" })).toBeVisible();
-  await expect(page.locator("main article")).toHaveCount(3);
-  for (const name of ["Em apuração", "Confirmados", "Corrigidos", "Encerrados"])
-    await expect(page.getByRole("link", { name })).toHaveCount(0);
+  await withSeedTopics(async () => {
+    await page.goto("/assuntos");
+    await expect(page.getByRole("heading", { level: 1, name: "Assuntos" })).toBeVisible();
+    await expect(page.locator("main article")).toHaveCount(3);
+    for (const name of ["Em apuração", "Confirmados", "Corrigidos", "Encerrados"])
+      await expect(page.getByRole("link", { name })).toHaveCount(0);
+  });
 });
 
 test("lista de assuntos vazia oferece ver todos e ignora filtro inválido", async ({ page }) => {
-  await page.goto("/assuntos?situacao=encerrados");
-  await expect(page.getByText("Nenhum assunto com esses filtros")).toBeVisible();
-  await page.getByRole("link", { name: "Ver todos os assuntos" }).click();
-  await expect(page).toHaveURL(/\/assuntos$/);
-  const res = await page.goto("/assuntos?situacao=abc&editoria=%3Cx%3E");
-  expect(res!.status()).toBe(200);
-  await expect(page.locator("main article")).toHaveCount(3);
+  await withSeedTopics(async () => {
+    await page.goto("/assuntos?situacao=encerrados");
+    await expect(page.getByText("Nenhum assunto com esses filtros")).toBeVisible();
+    await page.getByRole("link", { name: "Ver todos os assuntos" }).click();
+    await expect(page).toHaveURL(/\/assuntos$/);
+    const res = await page.goto("/assuntos?situacao=abc&editoria=%3Cx%3E");
+    expect(res!.status()).toBe(200);
+    await expect(page.locator("main article")).toHaveCount(3);
+  });
 });
 
 test("sem rolagem horizontal no celular", async ({ page }) => {

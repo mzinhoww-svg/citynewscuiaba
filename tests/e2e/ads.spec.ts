@@ -128,7 +128,12 @@ async function openWithSticky(page: Page, url: string) {
       await page.goto(url);
       await page.waitForLoadState("networkidle");
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-      await page.waitForTimeout(300);
+      // A barra entra depois da rolagem: espera por ela (curta); sem peça, a sondagem recarrega.
+      await page
+        .locator("[data-ad-sticky]")
+        .first()
+        .waitFor({ state: "attached", timeout: 2_000 })
+        .catch(() => {});
       return page.locator("[data-ad-sticky]").count();
     }, CACHE_WAIT)
     .toBeGreaterThan(0);

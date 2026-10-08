@@ -1,5 +1,7 @@
 # Posições de mídia do CityNews · inventário
 
+> **Desatualizado em parte (auditoria 360, 04/10/2026).** Este inventário é anterior às tarefas ADS-T1..T4: hoje existem `ad_slots` (migration 0082), o componente `AdSlot`, as rotas `/api/ads/view` e `/api/ads/click` e a Publicidade no Estúdio (A-119 a A-122). Onde este texto diz que esses itens "não existem", vale o código.
+
 Data: 03/10/2026. Base: `main` em `83a2f18`. Serve para fechar o mídia kit comercial e a spec do plano P7 CityNews TV. Versão em máquina: [`docs/media-slots.json`](media-slots.json). Prints: [`docs/reports/media-slots/`](reports/media-slots/) (script: `scripts/ops/media-slots-shots.mjs`).
 
 Regra de leitura: **nada foi inventado**. O que não existe no código está marcado `não implementado`; o que só está na spec ou no pedido do dono está `PLANEJADO`; o que este inventário sugere sem spec está `CANDIDATO`; o que a regra proíbe está `VETADO`.

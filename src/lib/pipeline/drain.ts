@@ -201,14 +201,27 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
             }
             r.processed++;
             const signal = AbortSignal.timeout(Math.max(0, remainingMs));
-            const res = await runStep(q.msg, { signal });
+            let notes: Record<string, unknown> = {};
+            const note = (d: Record<string, unknown>) => void (notes = { ...notes, ...d });
+            const res = await runStep(q.msg, { signal, note });
             let e: StepError;
             if (res.ok) {
               try {
-                for (const next of res.value) await queue.enqueue(queueFor(next.step), next);
+                for (const next of res.value)
+                  await queue.enqueue(
+                    queueFor(next.step),
+                    next,
+                    next.delaySec ? { delaySec: next.delaySec } : undefined,
+                  );
                 await queue.ack(name, q.msgId);
                 r.succeeded++;
-                await push(event(q, "info", "ok", { next: res.value.length }));
+                await push(
+                  event(q, "info", "ok", {
+                    next: res.value.length,
+                    // Em `note`, para nunca sobrescrever `attempt`, `runRef` ou `kind` do evento.
+                    ...(Object.keys(notes).length > 0 ? { note: notes } : {}),
+                  }),
+                );
                 continue;
               } catch (ex) {
                 // Etapa feita, próxima não enfileirada: a mensagem volta como falha transitória
@@ -226,7 +239,11 @@ export async function drain(deps: DrainDeps): Promise<DrainResult> {
               await push(event(q, "info", "prazo do drain: devolvida à fila", { kind: e.kind }));
               continue;
             }
-            const decision = retryPolicy(q.readCt, { retryable: e.retryable });
+            const policy = retryPolicy(q.readCt, { retryable: e.retryable });
+            const decision =
+              policy.action === "retry" && e.retryAfterSec !== undefined
+                ? { ...policy, delaySec: Math.max(policy.delaySec, Math.ceil(e.retryAfterSec)) }
+                : policy;
             const details = { kind: e.kind, ...(e.details ?? {}) };
             if (decision.action === "retry") {
               await queue.fail(name, q.msgId, `${e.kind}: ${e.message}`, decision.delaySec);

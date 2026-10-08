@@ -2,7 +2,7 @@
  * Opções e regras compartilhadas pelos formulários do painel de fontes (assistente e aba
  * Configuração). Puro: sem estado, sem banco.
  */
-import { FAST_FREQUENCIES } from "@/lib/sources/schema";
+import { FAST_FREQUENCIES } from "@/lib/sources/schema-constants";
 import type { ImagePolicy, Reliability, RepublishPolicy, SourceConfig } from "@/lib/sources/types";
 import { criticalChanges } from "@/lib/sources/critical";
 import {
@@ -125,7 +125,7 @@ const BASE: SourceConfig = {
   trusted: false,
 };
 
-/** Campos que AFROUXAM direitos (D-F3) e por isso exigem segunda aprovação. */
+/** Campos que AFROUXAM direitos (D-F3) e por isso são mudança crítica (pedido e aprovação registrados). */
 export function looseningFields(before: RightsFields, after: RightsFields): string[] {
   return criticalChanges({ ...BASE, ...before }, { ...BASE, ...after }).map((c) => c.field);
 }

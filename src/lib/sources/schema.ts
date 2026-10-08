@@ -1,13 +1,14 @@
 /**
  * Validação zod do domínio de fontes (spec §7.2, D-F14/D-F15). `frequencySchema` espelha o
  * `check` de `sources.frequency_minutes` em `supabase/migrations/0011_source_admin.sql`.
+ * Só servidor: zod fora do JavaScript do navegador (item 85, A-156).
  */
+import "server-only";
 import { z } from "zod";
+import { FAST_FREQUENCIES, isNormalGridValue } from "./schema-constants";
 
-/** Grade da via rápida (D-F15, D-F28): abaixo de 30 min, uma destas três. */
-export const FAST_FREQUENCIES = [10, 15, 20] as const;
-
-const isNormalGridValue = (v: number): boolean => v >= 30 && v <= 1440 && v % 30 === 0;
+// Constantes puras em módulo próprio (o navegador importa de lá, sem zod; item 85).
+export { FAST_FREQUENCIES } from "./schema-constants";
 
 /** `null` (padrão global), 10/15/20 (via rápida) ou múltiplo de 30 entre 30 e 1440. */
 export const frequencySchema = z
@@ -51,6 +52,11 @@ export const consumptionSchema = z.object({
    * entre `normalize` e `dedupe`. Desligado por padrão; fonte sem a flag nunca paga a requisição.
    */
   enrich: z.boolean().optional(),
+  /**
+   * Leitura do topo da página inicial (passo `frontpage`, HOT-T2, a cada 20 min): só URL e posição
+   * dos 3 primeiros links de matéria, para a pauta quente. Desligado por padrão (ausente = falso).
+   */
+  frontpage: z.boolean().optional(),
   robots: z
     .object({
       crawlDelaySec: z.number().int().nonnegative().nullable(),

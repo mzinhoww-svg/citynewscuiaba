@@ -36,16 +36,22 @@ test("salvos anônimos mostram aviso de aparelho e funcionam", async ({ page }) 
   await saveArticle(page);
   await page.goto("/favoritos");
   await ready(page);
-  await expect(page.getByText("Salvos só neste aparelho")).toBeVisible();
+  await expect(
+    page.getByText("Se você limpar os dados do navegador, os favoritos somem."),
+  ).toBeVisible();
   const link = page.getByRole("link", { name: TITLE });
   await expect(link).toBeVisible();
   await expect(page.getByText(/Mobilidade · (não lido|lido)/)).toBeVisible();
 
   await page.getByRole("button", { name: `Remover dos salvos: ${TITLE}` }).click();
   await expect(link).toHaveCount(0);
-  await expect(page.getByText("Nenhuma matéria salva")).toBeVisible();
-  await page.getByRole("button", { name: "Desfazer" }).click();
+  // UX-W4-T4 (item 71): o "Desfazer" fica no lugar do item e recebe o foco.
+  const undo = page.getByRole("button", { name: `Desfazer a remoção de ${TITLE}` });
+  await expect(undo).toBeFocused();
+  await expect(page.getByText(`Removido: ${TITLE}`)).toBeVisible();
+  await undo.click();
   await expect(page.getByRole("link", { name: TITLE })).toBeVisible();
+  await expect(page.getByRole("button", { name: `Remover dos salvos: ${TITLE}` })).toBeFocused();
 });
 
 test("salva fica disponível para leitura offline", async ({ page, browserName }) => {
@@ -171,6 +177,10 @@ test("alerta por e-mail fica pendente até a confirmação", async ({ page }) =>
   await page.getByRole("textbox", { name: "E-mail" }).fill("nao-e-email");
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Confira o e-mail digitado/)).toBeVisible();
+  // UI-T14: o erro fica no campo, com ícone e exemplo, ligado por aria-describedby.
+  const field = page.getByRole("textbox", { name: "E-mail" });
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(/Exemplo: ana@exemplo.com/);
   await page.getByRole("textbox", { name: "E-mail" }).fill(email);
   await page.getByRole("button", { name: "Criar alerta" }).click();
   await expect(page.getByText(/Enviamos um link de confirmação/)).toBeVisible();
@@ -217,3 +227,43 @@ for (const path of ["/favoritos", "/alertas"]) {
     expect(bad, JSON.stringify(bad.map((v) => [v.id, v.nodes.map((n) => n.target)]))).toEqual([]);
   });
 }
+
+/*
+ * UI-T14: Perfil, Favoritos e Alertas no grid do portal (8 + 4 colunas) e com o convite de conta
+ * que explica os benefícios e sempre oferece "Agora não" (login nunca é obrigatório).
+ */
+for (const path of ["/perfil", "/favoritos", "/alertas"]) {
+  test(`${path}: convite de conta com benefícios e Agora não`, async ({ page }) => {
+    await page.goto(path);
+    const invite = page.getByRole("region", { name: "Por que criar uma conta" });
+    await expect(invite).toBeVisible();
+    await expect(
+      invite.getByRole("list", { name: "O que a conta guarda para você" }).getByRole("listitem"),
+    ).toHaveCount(3);
+    const h1 = page.locator("main h1");
+    expect(
+      await h1.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+    ).toBeLessThanOrEqual(28);
+    const notNow = invite.getByRole("button", { name: "Agora não" });
+    expect((await notNow.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // O convite vem no HTML do servidor; o toque só vale depois da hidratação (no WebKit, mais
+    // lenta), então toca de novo até o convite recolher.
+    await expect(async () => {
+      if (await notNow.isVisible()) await notNow.click();
+      await expect(invite).toBeHidden({ timeout: 1000 });
+    }).toPass();
+    await expect(page.getByText("Tudo bem: você continua sem conta.")).toBeFocused();
+    await page.reload();
+    await expect(page.getByRole("region", { name: "Por que criar uma conta" })).toHaveCount(0);
+  });
+}
+
+test("coleção sem nome mostra erro com exemplo no campo", async ({ page }) => {
+  await page.goto("/favoritos");
+  await ready(page);
+  await page.getByRole("tab", { name: "Coleções pessoais" }).click();
+  await page.getByRole("button", { name: "Criar coleção" }).click();
+  const field = page.getByLabel("Nome da nova coleção");
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(field).toHaveAccessibleDescription(/Exemplo: Para ler no fim de semana/);
+});

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Icon, Table } from "@/components";
+import { StudioScreen } from "@/components/estudio";
 import { AI_TEXT, agentName } from "@/content/pt-BR/ai-control";
 import { formatBrl } from "@/content/pt-BR/control";
 import { requireRole } from "@/lib/auth/require-role";
@@ -33,23 +34,27 @@ export default async function GovernancePage() {
   const data = await loadOrNull("ai governance", () => governanceOverview());
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{AI_TEXT.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title}</h1>
-        <p className="type-body text-meta">{T.intro}</p>
-        <nav aria-label={T.title} className="flex flex-wrap gap-4">
-          <Link href="/estudio/control/custos" className="type-body text-link underline">
-            {T.links.costs}
-          </Link>
-          <Link href="/estudio/control/avaliacoes" className="type-body text-link underline">
-            {T.links.evals}
-          </Link>
-          <Link href="/estudio/control/conhecimento" className="type-body text-link underline">
-            {T.links.knowledge}
-          </Link>
-        </nav>
-      </header>
+    <StudioScreen
+      section={AI_TEXT.sectionLabel}
+      title={T.title}
+      gap="lg"
+      intro={
+        <>
+          <p className="max-w-read type-body text-meta">{T.intro}</p>
+          <nav aria-label={T.title} className="flex flex-wrap gap-4">
+            <Link href="/estudio/control/custos" className="type-body text-link underline">
+              {T.links.costs}
+            </Link>
+            <Link href="/estudio/control/avaliacoes" className="type-body text-link underline">
+              {T.links.evals}
+            </Link>
+            <Link href="/estudio/control/conhecimento" className="type-body text-link underline">
+              {T.links.knowledge}
+            </Link>
+          </nav>
+        </>
+      }
+    >
       {data === null ? (
         <EmptyState
           tone="error"
@@ -95,76 +100,59 @@ export default async function GovernancePage() {
                 <h2 id="agentes" className="type-section text-strong">
                   {T.agentsTitle}
                 </h2>
-                <div
-                  role="region"
-                  aria-label={T.agentsCaption}
-                  tabIndex={0}
-                  className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+                <Table
+                  caption={T.agentsCaption}
+                  minWidth="xl"
+                  headers={(
+                    ["agent", "fn", "model", "prompt", "budget", "eval", "status"] as const
+                  ).map((k) => T.agentCol[k])}
                 >
-                  <table className="w-full min-w-[60rem] border-collapse text-left">
-                    <caption className="sr-only">{T.agentsCaption}</caption>
-                    <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                      <tr>
-                        {(
-                          ["agent", "fn", "model", "prompt", "budget", "eval", "status"] as const
-                        ).map((k) => (
-                          <th key={k} scope="col" className="px-3 py-3">
-                            {T.agentCol[k]}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {g.agents.map((a) => (
-                        <tr
-                          key={a.id}
-                          className="border-b border-line-subtle align-top last:border-b-0"
-                        >
-                          <th scope="row" className="px-3 py-2 type-body font-semibold text-strong">
-                            {agentName(a.id)}
-                          </th>
-                          <td className="px-3 py-2 type-meta max-w-xs text-body">{a.fn}</td>
-                          <td className="px-3 py-2 type-meta break-all text-body">
-                            {a.modelId}
-                            {a.fallbackModelId && (
-                              <span className="block text-meta">({a.fallbackModelId})</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 type-body">
-                            {a.promptVersion ? `v${a.promptVersion}` : T.noPrompt}
-                            {a.pendingPrompts > 0 && (
-                              <span className="block type-meta text-warn">
-                                {T.pending(a.pendingPrompts)}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 type-body tabular-nums">
-                            {formatBrl(a.dailyBudgetBrl)}
-                          </td>
-                          <td className="px-3 py-2 type-meta">
-                            {!evalAgents.has(a.id) ? (
-                              <span className="text-meta">{T.evalNone}</span>
-                            ) : a.lastEval ? (
-                              <span
-                                className={
-                                  a.lastEval.passed ? "text-service" : "font-semibold text-warn"
-                                }
-                              >
-                                {a.lastEval.passed ? T.evalPassed : T.evalFailed} ·{" "}
-                                {formatDateTime(a.lastEval.at)}
-                              </span>
-                            ) : (
-                              <span className="text-meta">{AI_TEXT.evals.noRuns}</span>
-                            )}
-                          </td>
-                          <td className="px-3 py-2 type-body">
-                            {a.enabled ? T.enabled : T.disabled}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  {g.agents.map((a) => (
+                    <tr
+                      key={a.id}
+                      className="border-b border-line-subtle align-top last:border-b-0"
+                    >
+                      <th scope="row" className="px-3 py-2 type-body font-semibold text-strong">
+                        {agentName(a.id)}
+                      </th>
+                      <td className="px-3 py-2 type-meta max-w-xs text-body">{a.fn}</td>
+                      <td className="px-3 py-2 type-meta break-all text-body">
+                        {a.modelId}
+                        {a.fallbackModelId && (
+                          <span className="block text-meta">({a.fallbackModelId})</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 type-body">
+                        {a.promptVersion ? `v${a.promptVersion}` : T.noPrompt}
+                        {a.pendingPrompts > 0 && (
+                          <span className="block type-meta text-warn">
+                            {T.pending(a.pendingPrompts)}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 type-body tabular-nums">
+                        {formatBrl(a.dailyBudgetBrl)}
+                      </td>
+                      <td className="px-3 py-2 type-meta">
+                        {!evalAgents.has(a.id) ? (
+                          <span className="text-meta">{T.evalNone}</span>
+                        ) : a.lastEval ? (
+                          <span
+                            className={
+                              a.lastEval.passed ? "text-service" : "font-semibold text-warn"
+                            }
+                          >
+                            {a.lastEval.passed ? T.evalPassed : T.evalFailed} ·{" "}
+                            {formatDateTime(a.lastEval.at)}
+                          </span>
+                        ) : (
+                          <span className="text-meta">{AI_TEXT.evals.noRuns}</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 type-body">{a.enabled ? T.enabled : T.disabled}</td>
+                    </tr>
+                  ))}
+                </Table>
               </section>
 
               {g.prompts.length > 0 && (
@@ -172,53 +160,38 @@ export default async function GovernancePage() {
                   <h2 id="prompts" className="type-section text-strong">
                     {T.promptsTitle}
                   </h2>
-                  <div
-                    role="region"
-                    aria-label={T.promptsCaption}
-                    tabIndex={0}
-                    className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+                  <Table
+                    caption={T.promptsCaption}
+                    minWidth="md"
+                    headers={(["agent", "version", "status", "approvals", "when"] as const).map(
+                      (k) => T.promptCol[k],
+                    )}
                   >
-                    <table className="w-full min-w-[40rem] border-collapse text-left">
-                      <caption className="sr-only">{T.promptsCaption}</caption>
-                      <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                        <tr>
-                          {(["agent", "version", "status", "approvals", "when"] as const).map(
-                            (k) => (
-                              <th key={k} scope="col" className="px-3 py-3">
-                                {T.promptCol[k]}
-                              </th>
-                            ),
-                          )}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {g.prompts.map((p) => (
-                          <tr
-                            key={`${p.agentId}:${p.version}`}
-                            className="border-b border-line-subtle last:border-b-0"
-                          >
-                            <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
-                              {agentName(p.agentId)}
-                            </th>
-                            <td className="px-3 py-2 type-body">v{p.version}</td>
-                            <td className="px-3 py-2 type-body">
-                              {T.promptStatus[p.status] ?? p.status}
-                            </td>
-                            <td className="px-3 py-2 type-body tabular-nums">{p.approvals}</td>
-                            <td className="px-3 py-2 type-body tabular-nums">
-                              {formatDateTime(p.createdAt)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                    {g.prompts.map((p) => (
+                      <tr
+                        key={`${p.agentId}:${p.version}`}
+                        className="border-b border-line-subtle last:border-b-0"
+                      >
+                        <th scope="row" className="px-3 py-2 type-body font-normal text-strong">
+                          {agentName(p.agentId)}
+                        </th>
+                        <td className="px-3 py-2 type-body">v{p.version}</td>
+                        <td className="px-3 py-2 type-body">
+                          {T.promptStatus[p.status] ?? p.status}
+                        </td>
+                        <td className="px-3 py-2 type-body tabular-nums">{p.approvals}</td>
+                        <td className="px-3 py-2 type-body tabular-nums">
+                          {formatDateTime(p.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </Table>
                 </section>
               )}
             </>
           );
         })()
       )}
-    </section>
+    </StudioScreen>
   );
 }

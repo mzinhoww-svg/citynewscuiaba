@@ -45,7 +45,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       v.neighborhood ? `no bairro ${v.neighborhood}` : "",
     ),
     path: v.href,
-    ...(v.photos[0] ? { images: [v.photos[0].src] } : {}),
+    // A foto do Google (A-212) só aparece na página, com o crédito; nunca em metadados.
+    ...(v.photos[0] && !v.photos[0].fromGoogle ? { images: [v.photos[0].src] } : {}),
   });
 }
 
@@ -106,7 +107,7 @@ export default async function GuideVenuePage({ params }: Props) {
           hours: v.hours,
           lat: v.lat,
           lng: v.lng,
-          images: v.photos.map((p) => p.src),
+          images: v.photos.filter((p) => !p.fromGoogle).map((p) => p.src),
         })}
       />
       <header className="flex flex-col gap-3 border-b border-line-strong pb-5">
@@ -190,24 +191,37 @@ export default async function GuideVenuePage({ params }: Props) {
             {v.priceLevel && (
               <Fact label={GUIDE.venue.priceLabel}>{GUIDE.venue.price(v.priceLevel)}</Fact>
             )}
-            {v.rating !== null && v.ratingSource === "tripadvisor" && (
-              <Fact label="Avaliações">
-                {GUIDE.list.rating(ratingText(v.rating), v.ratingCount)}
-                {v.tripadvisorRank !== null && <> · {GUIDE.list.rank(v.tripadvisorRank)}</>}
-                {v.tripadvisorUrl && (
-                  <>
-                    {" · "}
-                    <a
-                      href={v.tripadvisorUrl}
-                      rel="noopener noreferrer"
-                      className="text-link underline underline-offset-4"
-                    >
-                      {GUIDE.venue.tripadvisor}
-                    </a>
-                  </>
-                )}
-              </Fact>
-            )}
+            {v.rating !== null &&
+              (v.ratingSource === "google" || v.ratingSource === "tripadvisor") && (
+                <Fact label="Avaliações">
+                  {GUIDE.list.rating(ratingText(v.rating), v.ratingCount, v.ratingSource)}
+                  {v.googleMapsUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={v.googleMapsUrl}
+                        rel="noopener noreferrer"
+                        className="text-link underline underline-offset-4"
+                      >
+                        {GUIDE.venue.googleMaps}
+                      </a>
+                    </>
+                  )}
+                  {v.tripadvisorRank !== null && <> · {GUIDE.list.rank(v.tripadvisorRank)}</>}
+                  {v.tripadvisorUrl && (
+                    <>
+                      {" · "}
+                      <a
+                        href={v.tripadvisorUrl}
+                        rel="noopener noreferrer"
+                        className="text-link underline underline-offset-4"
+                      >
+                        {GUIDE.venue.tripadvisor}
+                      </a>
+                    </>
+                  )}
+                </Fact>
+              )}
           </dl>
         </section>
       </div>

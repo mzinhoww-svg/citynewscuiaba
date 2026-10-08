@@ -1,8 +1,10 @@
 "use client";
 
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { Button } from "../ui/Button";
+import { useToast } from "../ui/Toast";
 
 export interface SaveEventButtonProps {
   /** `event:<id>`. */
@@ -24,10 +26,14 @@ export interface SaveEventButtonProps {
  */
 export function SaveEventButton({ contentRef, title, href, className }: SaveEventButtonProps) {
   const { profile, ready, act } = useAnonProfile();
+  const toast = useToast();
   const saved = profile?.saved.some((s) => s.ref === contentRef) ?? false;
   const toggle = () => {
-    if (saved) void act((s) => s.unsave(contentRef));
-    else void act((s) => s.save(contentRef, 0, { title, href, section: "agenda" }));
+    void act((s) =>
+      saved ? s.unsave(contentRef) : s.save(contentRef, 0, { title, href, section: "agenda" }),
+    ).then((r) => {
+      if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    });
   };
   return (
     <span data-save-event="" data-ready={ready ? "true" : undefined} className="inline-flex">

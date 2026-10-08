@@ -102,7 +102,7 @@ export async function approvalsInbox(recentLimit = 20, db?: DbClient): Promise<A
   };
 }
 
-/** Pedidos abertos de um alvo (prefixo), para a faixa "aguardando segunda aprovação". */
+/** Pedidos abertos de um alvo (prefixo), para a faixa "aguardando aprovação". */
 export async function pendingApprovalsFor(
   targetPrefix: string,
   db?: DbClient,

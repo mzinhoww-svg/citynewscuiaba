@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import type { Result } from "@/lib/result";
@@ -81,9 +82,9 @@ function parseFaq(raw: unknown): { q: string; a: string }[] {
 const TIMELINE_MAX = 10;
 
 /** Assunto com matérias do CityNews, itens agregados, convergências e linha do tempo. */
-export async function getTopicBySlug(
-  slug: string,
-): Promise<Result<TopicDetail | null, QueryError>> {
+export const getTopicBySlug = cache(readTopicBySlug);
+
+async function readTopicBySlug(slug: string): Promise<Result<TopicDetail | null, QueryError>> {
   return readPublic(async (db) => {
     const row = await db
       .from("topics")

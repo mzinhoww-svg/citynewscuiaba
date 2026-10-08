@@ -53,7 +53,7 @@ function anon() {
 }
 
 describe("achado 7 · Segurança nas regras (A4: a v3 do dono libera a proposta)", () => {
-  it("versão nova com `seguranca` em auto é aceita como proposta inativa (ativação segue com duas pessoas)", async () => {
+  it("versão nova com `seguranca` em auto é aceita como proposta inativa (ativação segue pelo pedido registrado)", async () => {
     const body = {
       ...DEFAULT_RULES,
       categories: {
@@ -66,11 +66,21 @@ describe("achado 7 · Segurança nas regras (A4: a v3 do dono libera a proposta)
       .from("rules")
       .insert({ version, body, force_review: true, proposed_by: SEED_USERS.marina.id });
     expect(s.error).toBeNull();
-    const active = await service
+    const row = await service
       .from("rules")
-      .update({ active: true, approved_by: SEED_USERS.marina.id })
-      .eq("version", version);
-    expect(active.error).not.toBeNull();
+      .select("active, approved_by")
+      .eq("version", version)
+      .single();
+    expect(row.data).toEqual({ active: false, approved_by: null });
+    // Quem não tem o papel de aprovar regras (operador de IA) não ativa direto no banco.
+    const diego = await clientOf("diego");
+    const direct = await diego
+      .from("rules")
+      .update({ active: true, approved_by: SEED_USERS.diego.id })
+      .eq("version", version)
+      .select("version");
+    expect(direct.data ?? []).toEqual([]);
+    await service.from("rules").delete().eq("version", version);
   });
 });
 

@@ -89,6 +89,9 @@ function build(): VenueRecord[] {
         ratingSource: hasRating ? "tripadvisor" : null,
         tripadvisorRank: hasRating ? 1 + ((seq * 29) % 90) : null,
         tripadvisorUrl: hasRating ? `https://www.tripadvisor.com.br/fixture-${seq}` : null,
+        googleMapsUrl: null,
+        googleType: null,
+        googlePhoto: null,
         placeIds: { osm: `fixture/${seq}`, ...(hasRating ? { tripadvisor: `99${seq}` } : {}) },
         sources: hasRating ? ["osm", "tripadvisor", "site"] : ["osm", "site"],
       });

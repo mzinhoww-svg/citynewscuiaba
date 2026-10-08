@@ -5,6 +5,7 @@ import {
   draftOf,
   eligibleFor,
   isVerified,
+  MIN_RATING_COUNT,
   proposeFromLink,
   proposeFromTemplate,
 } from "./proposals";
@@ -50,12 +51,19 @@ describe("proposeFromTemplate", () => {
     expect(p.dataSources.sort()).toEqual(["osm", "tripadvisor"]);
   });
 
+  it("o número do título acompanha quantos lugares entraram", () => {
+    const tpl = { ...TPL, title: "As 10 melhores padarias de Cuiabá", take: 10 };
+    const p = proposeFromTemplate(tpl, pool());
+    expect(p.items).toHaveLength(8);
+    expect(p.title).toBe("As 8 melhores padarias de Cuiabá");
+  });
+
   it("lugar com uma fonte só, suspenso, inativo ou de outra categoria nunca entra", () => {
     const good = pool().slice(0, 5);
     const bad = [
       venue({
-        name: "Padaria Uma Fonte",
-        sources: ["osm"],
+        name: "Padaria Sem Fonte",
+        sources: [],
         rating: 5,
         ratingCount: 9000,
         tripadvisorRank: 1,
@@ -120,6 +128,40 @@ describe("proposeFromTemplate", () => {
     const vs = pool();
     const p = proposeFromTemplate(TPL, vs);
     expect(autoPublishCheck(TPL, p, vs)).toEqual({ ok: true, missing: [] });
+  });
+
+  it("lugar só com Google é elegível e conferido (A-211)", () => {
+    const v = venue({
+      sources: ["google"],
+      placeIds: { google: "ChIJ-teste-1" },
+      googleType: "bakery",
+      rating: 4.5,
+      ratingCount: 300,
+      ratingSource: "google",
+    });
+    expect(eligibleFor(TPL, v)).toBe(true);
+    expect(isVerified(v)).toBe(true);
+  });
+
+  it("só entra lugar com pelo menos 300 avaliações (A-213)", () => {
+    expect(MIN_RATING_COUNT).toBe(300);
+    expect(eligibleFor(TPL, venue({ ratingCount: 129 }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ rating: null, ratingCount: null }))).toBe(false);
+    expect(eligibleFor(TPL, venue({ ratingCount: 300 }))).toBe(true);
+  });
+
+  it("lugar só com Google de outro tipo ou sem tipo não entra (hotel em padarias)", () => {
+    const base = { placeIds: { google: "ChIJ-teste-2" }, rating: 4.7, ratingCount: 4000 };
+    expect(eligibleFor(TPL, venue({ ...base, sources: ["google"], googleType: "hotel" }))).toBe(
+      false,
+    );
+    expect(
+      eligibleFor(TPL, venue({ ...base, sources: ["google", "site"], googleType: null })),
+    ).toBe(false);
+    // Confirmado pelo OpenStreetMap como padaria, o tipo do Google não decide.
+    expect(eligibleFor(TPL, venue({ ...base, sources: ["osm", "google"], googleType: null }))).toBe(
+      true,
+    );
   });
 
   it("lugar sem provedor que o reconheça não conta como verificado", () => {

@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from "react";
 import { ASK } from "@/content/pt-BR/ask";
 import type { AiAnswer as AiAnswerData, Claim } from "@/lib/ai/answer";
-import { formatHour } from "@/lib/format/date";
+import { formatDayMonth, formatHour } from "@/lib/format/date";
 import { cx } from "../cx";
 import { Icon } from "../ui/Icon";
 import { AnswerFeedback } from "./AnswerFeedback";
@@ -11,14 +11,24 @@ export interface AiAnswerProps {
   answer: Extract<AiAnswerData, { kind: "answer" }>;
   /** Prefixo dos ids da lista de fontes (alvo das citações). */
   sourceIdPrefix?: string;
+  /** Citação [n] clicada (chat, UI-T13): abre e rola até a fonte n. */
+  onCite?: (n: number) => void;
   className?: string;
 }
 
-function Cites({ claim, prefix }: { claim: Claim; prefix: string }) {
+function Cites({
+  claim,
+  prefix,
+  onCite,
+}: {
+  claim: Claim;
+  prefix: string;
+  onCite?: (n: number) => void;
+}) {
   return (
     <>
       {claim.citations.map((i) => (
-        <Citation key={i} n={i + 1} target={prefix} />
+        <Citation key={i} n={i + 1} target={prefix} onSelect={onCite} />
       ))}
     </>
   );
@@ -47,7 +57,7 @@ function Block({ title, children, hint }: { title: string; children: ReactNode; 
  * ```
  * - Sem rótulo de IA nas telas públicas; inferência com borda tracejada e rótulo em texto.
  */
-export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnswerProps) {
+export function AiAnswer({ answer, sourceIdPrefix = "fonte", onCite, className }: AiAnswerProps) {
   const id = useId();
   return (
     <article
@@ -63,13 +73,19 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
             {ASK.asOf(formatHour(answer.asOf))}
           </time>
         </p>
+        {answer.basis === "single_source" && answer.sources[0] && (
+          <p className="type-meta text-meta">{ASK.singleSource(answer.sources[0].sourceName)}</p>
+        )}
+        {answer.staleSince && (
+          <p className="type-meta text-meta">{ASK.staleSince(formatDayMonth(answer.staleSince))}</p>
+        )}
       </header>
 
       <Block title={ASK.factsTitle}>
         <ul className="flex list-disc flex-col gap-2 pl-5 type-body-read text-strong">
           {answer.facts.map((f) => (
             <li key={f.text}>
-              {f.text} <Cites claim={f} prefix={sourceIdPrefix} />
+              {f.text} <Cites claim={f} prefix={sourceIdPrefix} onCite={onCite} />
             </li>
           ))}
         </ul>
@@ -80,7 +96,7 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
           <ul className="flex flex-col gap-2 rounded-xs border border-dashed border-warn bg-atencao-soft px-4 py-3 type-body text-strong">
             {answer.inferences.map((f) => (
               <li key={f.text}>
-                {f.text} <Cites claim={f} prefix={sourceIdPrefix} />
+                {f.text} <Cites claim={f} prefix={sourceIdPrefix} onCite={onCite} />
               </li>
             ))}
           </ul>
@@ -97,7 +113,7 @@ export function AiAnswer({ answer, sourceIdPrefix = "fonte", className }: AiAnsw
                   <li key={p.text} className="flex gap-2">
                     <Icon name="scale" size={16} className="mt-1 shrink-0 text-warn" />
                     <span>
-                      {p.text} <Cites claim={p} prefix={sourceIdPrefix} />
+                      {p.text} <Cites claim={p} prefix={sourceIdPrefix} onCite={onCite} />
                     </span>
                   </li>
                 ))}

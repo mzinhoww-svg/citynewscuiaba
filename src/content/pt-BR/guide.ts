@@ -8,6 +8,7 @@ const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
 /** Fontes de dados → nome na tela pública. */
 export const DATA_SOURCE_LABEL = {
+  google: "Google",
   osm: "OpenStreetMap",
   tripadvisor: "TripAdvisor",
   site: "sites dos lugares",
@@ -16,7 +17,7 @@ export const DATA_SOURCE_LABEL = {
 } as const;
 
 /** Ordem fixa da linha "Dados: ..." (a mais abrangente primeiro). */
-const DATA_ORDER = ["tripadvisor", "osm", "wikidata", "site", "manual"] as const;
+const DATA_ORDER = ["google", "tripadvisor", "osm", "wikidata", "site", "manual"] as const;
 
 /** "Dados: TripAdvisor, OpenStreetMap e sites dos lugares". */
 export function dataLine(sources: readonly string[]): string {
@@ -35,17 +36,17 @@ export const GUIDE = {
   index: {
     metaTitle: "Guia Cuiabá: listas de lugares",
     metaDescription:
-      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com o critério de cada lista à vista.",
+      "Listas de padarias, restaurantes, bares, hotéis e outros lugares de Cuiabá, com fotos, notas e o que cada lugar tem de bom.",
     title: "Guia Cuiabá",
-    intro:
-      "Listas de lugares de Cuiabá, com o critério de cada uma à vista: de onde vêm os dados e como a ordem foi montada.",
+    intro: "Os lugares mais bem avaliados de Cuiabá, lista por lista.",
     listsTitle: "Listas do Guia",
     sponsoredTitle: "Listas patrocinadas",
     sponsoredNote: "O patrocínio nunca altera a ordem das listas.",
     articlesLink: "Matérias do Guia",
     articlesText: "Reportagens e serviços sobre a vida em Cuiabá.",
     emptyTitle: "As primeiras listas do Guia chegam em breve",
-    emptyText: "Enquanto isso, leia as matérias do Guia Cuiabá.",
+    emptyText: "Enquanto isso, as matérias mais recentes do Guia Cuiabá:",
+    emptyNoArticles: "Enquanto isso, veja as matérias do Guia Cuiabá pelo link acima.",
     errorTitle: "Não foi possível carregar o Guia agora",
     errorText: "Tente de novo em instantes.",
     retry: "Tentar de novo",
@@ -55,12 +56,16 @@ export const GUIDE = {
     cardCta: "Ver lista",
   },
   list: {
-    criteriaTitle: "Como escolhemos",
     placesTitle: "Os lugares",
     updated: (date: string) => `Atualizada em ${date}`,
     sponsoredBy: (name: string) => `Patrocinado · ${name}`,
     sponsoredNote: "O patrocínio não altera a ordem da lista.",
     attribution: {
+      google: "Avaliações: Google.",
+      /** Lista com nota e foto do Google (A-212). */
+      googleWithPhotos: "Avaliações e fotos: Google.",
+      /** Lista só com foto do Google, sem nota de lá. */
+      googlePhotos: "Fotos: Google.",
       tripadvisor: "Avaliações e ranking: TripAdvisor.",
       osm: "Mapa e endereços: © colaboradores do OpenStreetMap.",
     },
@@ -68,10 +73,12 @@ export const GUIDE = {
     notFoundText: "Ela pode ter sido atualizada ou retirada do ar.",
     errorTitle: "Não foi possível carregar a lista agora",
     loading: "Carregando a lista",
-    rating: (value: string, count: number | null) =>
-      count && count > 0
-        ? `${value} no TripAdvisor (${count.toLocaleString("pt-BR")} ${plural(count, "avaliação", "avaliações")})`
-        : `${value} no TripAdvisor`,
+    rating: (value: string, count: number | null, source: "google" | "tripadvisor") => {
+      const where = source === "google" ? "no Google" : "no TripAdvisor";
+      return count && count > 0
+        ? `${value} ${where} (${count.toLocaleString("pt-BR")} ${plural(count, "avaliação", "avaliações")})`
+        : `${value} ${where}`;
+    },
     rank: (n: number) => `${n}º no ranking do TripAdvisor em Cuiabá`,
     seeVenue: "Ver o lugar",
     otherLists: "Outras listas do Guia",
@@ -90,8 +97,11 @@ export const GUIDE = {
     priceLabel: "Faixa de preço",
     appearsIn: "Aparece nestas listas",
     photos: "Fotos",
-    photoCredit: (name: string) => `Reprodução web · ${name}`,
+    photoCredit: (name: string) => `Foto: reprodução web · ${name}`,
     photoSource: "Fonte",
+    /** Crédito da foto do Google (termos: nome do autor; A-212). */
+    googlePhotoCredit: (author: string | null) =>
+      author ? `Foto: ${author} · Google` : "Foto: Google",
     noPhoto: "Sem foto oficial por enquanto.",
     updated: (date: string) => `Dados atualizados em ${date}`,
     notFoundTitle: "Este lugar não está disponível",
@@ -99,6 +109,7 @@ export const GUIDE = {
     errorTitle: "Não foi possível carregar o lugar agora",
     loading: "Carregando o lugar",
     tripadvisor: "Ver no TripAdvisor",
+    googleMaps: "Ver no Google Maps",
     report: {
       title: "Informar um problema",
       intro: "Endereço errado, lugar fechado ou outra informação desatualizada? Conte para nós.",

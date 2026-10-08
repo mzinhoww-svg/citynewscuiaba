@@ -89,3 +89,42 @@ nenhum bloco Tinta. A faixa do `lead` usa Urucum (Cerrado em Serviços e Guia Cu
 terceiros: legenda "Reprodução web · Fonte" com "Foto: autor" e "Ver original" abaixo da imagem,
 fora do recorte; nas miniaturas o `alt` inclui a mesma frase. O campo `author` e `originUrl` do
 `ArticleImage` vem de `media_assets` (política reproduction).
+
+## Retomada e fechamento (UI-T10 a UI-T15, 04/10/2026)
+
+Plano de retomada `docs/superpowers/plans/2026-10-04-retomada-ui-e-pauta-quente.md` (A-140), PR #43
+(merge `03b7d2c`). Entregue: UI-T12 (login e cadastro com o Google em destaque), UI-T13 (Pergunte como
+chat), UI-T10 (Fontes e Panorama enxutos), UI-T11 (Newsletter, Anuncie, App e Sobre em blocos), UI-T14
+(Conta, Favoritos, Alertas e páginas legais no grid do portal).
+
+### Critérios da spec §6
+
+| # | Critério | Situação | Evidência |
+| - | -------- | -------- | --------- |
+| 1 | 1ª dobra do celular sem nada fixo acima de 15% | Atendido | UI-T1: aviso de consentimento 11,3% (390x844) e 14,8% (360x640) |
+| 2 | Home mobile ≤ 4.700 px | Atendido | UI-T5: 4.673 px no Chromium com o seed (DECISIONS, nota UI-T5) |
+| 3 | Matéria com até 2 itens antes do `h1`; sem `OriginStrip` | Atendido | UI-T6; teste de ausência do componente |
+| 4 | 1 plaqueta por card; nenhuma tela pública diz "IA" | Atendido | `vocabulary.spec.ts`, `src/content/vocabulary.test.ts`; UI-T10 deixa 1 plaqueta AGREGADO por agregado |
+| 5 | Sem bloco chapado; capa e imagem no texto | Atendido | UI-T4, UI-T16 |
+| 6 | Rodapé sem `[PREENCHER]` | Atendido | UI-T2, `SiteFooter.test.tsx` |
+| 7 | Google como 1º controle, branco, com "G", 56 px; sem frase de indisponível | Atendido | `GoogleButton.test.tsx`, `tests/e2e/auth.spec.ts`; produção conferida (`/entrar` mostra "Continuar com o Google", o divisor e "Continuar sem entrar") |
+| 8 | Pergunte como chat: campo fixo, bolhas, citações, recusa sem fonte, teclado, `aria-live`, `?q=` | Atendido | `ChatThread.test.tsx`, `useAskStream.test.ts`, `tests/e2e/ask.spec.ts`, `tests/a11y/ask.spec.ts`. Regra da recusa pela D-01 (A-133): uma fonte basta, atribuída; sem fonte, explica |
+| 9 | Lighthouse mobile (LCP ≤ 2,5 s, CLS ≤ 0,1, INP ≤ 200 ms) e JS sem subir além do chat | **Não atendido (LCP)** | JS da home acima de 170 KB e LCP de 3,2 a 4,0 s no CI em home, busca e fontes, também sem mudança de cliente sobre a `main` (L-026, deriva da base). O chat (cerca de 55 KB sem compressão) só carrega em `/pergunte`: o pedaço não aparece no manifesto de `/` nem de `/busca` |
+| 10 | axe sem violação séria; teclado e foco; contraste; alvos ≥ 44 px | Atendido no CI | suítes `@a11y`; o axe do modo simples do Pergunte mede o HTML do servidor com JavaScript ligado (com JavaScript desligado o axe não roda) |
+| 11 | `impeccable detect` sem erro nem aviso | Atendido | 0 avisos; o passo passou a bloquear o CI. Corrigido o único aviso (`side-tab` no `CriteriaNote` do Guia) |
+| 12 | Capturas antes e depois (390 e 1280, claro e escuro) | **Pendente** | O container de nuvem não tem a pilha Supabase local para `pnpm design:shoot`; rodar numa máquina com a pilha (`scripts/local-stack/`) |
+
+### Achados corrigidos no fechamento
+
+- No celular, o campo fixo do chat ficava atrás do aviso de privacidade aberto (mesma altura, `z-index` menor). Agora sobe pela altura do aviso ou da faixa de convite (`bottom-chat-safe`; no desktop, `bottom-consent-safe`).
+- Sem JavaScript, o botão "Enviar pergunta" saía do servidor com `aria-disabled` e nunca liberava; e o campo fixo ficava sob o aviso de privacidade, que sem JavaScript não fecha. O botão não sai mais desabilitado antes da hidratação e o campo fica no fluxo da página.
+- Alertas validava o e-mail com `zod` no navegador (B-018); trocado por uma conferência leve, com a validação que vale no servidor.
+- Guia vazio repetia o link "Matérias do Guia" do cabeçalho.
+
+### Pendências
+
+- Capturas antes e depois (critério 12).
+- LCP e orçamento de JS da home (critério 9, L-026), com o relatório do Lighthouse.
+- Roteiro de leitor de tela humano (`docs/runbooks/revisao-leitor-de-tela.md`) nas telas alteradas.
+- Aviso de privacidade não fecha sem JavaScript em todo o site (tarefa sugerida à parte).
+- Completar pergunta curta com a anterior no chat ("e no CPA?"): a rota `/api/ask` não recebe contexto.

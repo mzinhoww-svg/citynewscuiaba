@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
-import { Button, EmptyState } from "@/components";
-import { AbTestCard, ShareChart } from "@/components/estudio";
+import { Button, EmptyState, Table } from "@/components";
+import { AbTestCard, ShareChart, StudioScreen } from "@/components/estudio";
 import {
   AB_TEXT as T,
   EXPERIMENT_STATUS_TEXT,
   formatInt,
   formatPct,
   formatWeight,
+  REC_TEXT,
 } from "@/content/pt-BR/recommendation-admin";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { canAccess } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
 import { experimentById, recPanel } from "@/lib/db/queries/recommendation";
@@ -102,83 +104,64 @@ export default async function AbTestPage({ params }: { params: Promise<{ id: str
   const hasData = rows.some((r) => r.impressions > 0 || r.clicks > 0);
 
   return (
-    <section className="flex flex-col gap-8">
-      <header className="flex flex-col gap-2">
-        <p className="type-eyebrow">{T.sectionLabel}</p>
-        <h1 className="type-screen-title text-strong">{T.title(exp.name)}</h1>
+    <StudioScreen
+      section={T.sectionLabel}
+      title={T.title(exp.name)}
+      gap="lg"
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: "/estudio/control/recomendacao", label: REC_TEXT.title },
+        { href: `/estudio/control/recomendacao/testes/${exp.id}`, label: T.title(exp.name) },
+      ]}
+      intro={
         <p className="type-body text-meta">
           {T.status}: {EXPERIMENT_STATUS_TEXT[exp.status] ?? exp.status} · {T.started}:{" "}
           {formatDateTime(exp.startedAt)}
           {exp.endedAt && ` · ${T.ended}: ${formatDateTime(exp.endedAt)}`}
         </p>
-        <div>
-          <Button
-            href="/estudio/control/recomendacao"
-            size="sm"
-            variant="outline"
-            icon="arrow-left"
-          >
-            {T.back}
-          </Button>
-        </div>
-      </header>
-
+      }
+    >
       <section aria-labelledby="variantes" className="flex flex-col gap-3">
         <h2 id="variantes" className="type-section text-strong">
           {T.variantsTitle}
         </h2>
-        <div
-          role="region"
-          aria-label={T.variantsCaption}
-          tabIndex={0}
-          className="overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+        <Table
+          caption={T.variantsCaption}
+          minWidth="xl"
+          headers={(
+            [
+              "variant",
+              "version",
+              "split",
+              "label",
+              "impressions",
+              "clicks",
+              "ctr",
+              "return7d",
+              "diversity",
+              "hideRate",
+            ] as const
+          ).map((k) => T.col[k])}
         >
-          <table className="w-full min-w-[64rem] border-collapse text-left">
-            <caption className="sr-only">{T.variantsCaption}</caption>
-            <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-              <tr>
-                {(
-                  [
-                    "variant",
-                    "version",
-                    "split",
-                    "label",
-                    "impressions",
-                    "clicks",
-                    "ctr",
-                    "return7d",
-                    "diversity",
-                    "hideRate",
-                  ] as const
-                ).map((k) => (
-                  <th key={k} scope="col" className="px-3 py-3">
-                    {T.col[k]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.index} className="border-b border-line-subtle last:border-0">
-                  <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
-                    {r.name}
-                  </th>
-                  <td className="px-3 py-3 type-body">{r.version}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{r.split}%</td>
-                  <td className="px-3 py-3 type-meta text-meta">{r.label}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.impressions)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.clicks)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.ctr)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">
-                    {r.return7d === null ? "—" : formatPct(r.return7d)}
-                  </td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatWeight(r.diversity)}</td>
-                  <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.hideRate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+          {rows.map((r) => (
+            <tr key={r.index} className="border-b border-line-subtle last:border-0">
+              <th scope="row" className="px-3 py-3 type-body font-medium text-strong">
+                {r.name}
+              </th>
+              <td className="px-3 py-3 type-body">{r.version}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{r.split}%</td>
+              <td className="px-3 py-3 type-meta text-meta">{r.label}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.impressions)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatInt(r.clicks)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.ctr)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">
+                {r.return7d === null ? "—" : formatPct(r.return7d)}
+              </td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatWeight(r.diversity)}</td>
+              <td className="px-3 py-3 type-body tabular-nums">{formatPct(r.hideRate)}</td>
+            </tr>
+          ))}
+        </Table>
         {hasData ? (
           <ShareChart
             label={T.chart}
@@ -213,6 +196,6 @@ export default async function AbTestPage({ params }: { params: Promise<{ id: str
         end={endExperimentAction}
         promote={promoteExperimentAction}
       />
-    </section>
+    </StudioScreen>
   );
 }

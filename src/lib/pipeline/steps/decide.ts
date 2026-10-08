@@ -8,11 +8,13 @@ import {
 } from "@/lib/geo/news-scope";
 import { err, ok, type Result } from "@/lib/result";
 import {
+  classifyRisk,
   decidePublication,
   isNeverAutoCategory,
   isSafetyCategory,
   type Candidate,
   type Decision,
+  type Risk,
   type RuleSet,
 } from "@/lib/rules";
 import { resolveRules } from "@/lib/rules/load";
@@ -20,6 +22,7 @@ import type { DecisionContext } from "../ports";
 import { nextMessage, stepError, type StepHandler } from "../run-step";
 import { inputHash } from "./understanding";
 import type { PublishStepDeps } from "./write";
+import { fold as foldText } from "@/lib/text/fold";
 
 const ARTICLE_REF = /^article:(\S+)$/;
 /** Etiquetas que marcam notícia urgente (breaking). Só vira revisão se as regras mantêm o portão. */
@@ -27,11 +30,8 @@ const BREAKING_TAGS = new Set(["urgente", "breaking", "breaking-news", "ultima-h
 export const articleIdFrom = (ref: string): string | null => ARTICLE_REF.exec(ref)?.[1] ?? null;
 
 const fold = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+  foldText(s)
     .trim()
-    .toLowerCase()
     .replace(/[\s_]+/g, "-");
 
 export function isBreaking(ctx: Pick<DecisionContext, "urgent" | "tags">): boolean {
@@ -129,6 +129,8 @@ export interface RouteDecision extends Decision {
   rulesVersion: number | null;
   /** Rota que a regra recomendou antes das travas (flag, IA, falha de regras). */
   recommended: Decision["route"];
+  /** Nível de risco editorial e motivos (D-05), registrados em toda decisão. */
+  risk: Risk;
 }
 
 /**
@@ -142,8 +144,15 @@ export function routeArticle(
   flags: { autoPublish: boolean; readOnly: boolean },
 ): RouteDecision {
   const { rules, rulesVersion, failure } = resolveRules(loaded);
-  const base = decidePublication(candidateOf(ctx), rules);
-  const out = (d: Decision): RouteDecision => ({ ...d, rulesVersion, recommended: base.route });
+  const candidate = candidateOf(ctx);
+  const base = decidePublication(candidate, rules);
+  const risk = classifyRisk(candidate, { aiFallback: ctx.aiFallback });
+  const out = (d: Decision): RouteDecision => ({
+    ...d,
+    rulesVersion,
+    recommended: base.route,
+    risk,
+  });
   if (failure && base.rule === "force_review")
     return out({
       route: "review",
@@ -209,13 +218,14 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
     // Escopo regional (A15): grava o escopo e rebaixa `urgent` de notícia nacional sem comoção.
     const scope = newsScopeOf(ctx);
     const demote = urgentDemoted(ctx);
+    const d = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
     await deps.repo.setStatus(articleId, {
       status: ctx.status,
       newsScope: scope,
       nationalCommotion: hasNationalCommotion(ctx),
+      riskLevel: d.risk.level,
       ...(demote ? { urgent: false } : {}),
     });
-    const d = routeArticle(demote ? { ...ctx, urgent: false } : ctx, loaded, flags);
     const hash = inputHash(
       "rules",
       ctx.version,
@@ -242,6 +252,7 @@ export function createDecideStep(deps: PublishStepDeps): StepHandler {
           version: ctx.version,
           confidence: { level: ctx.confidence, score: ctx.confidenceScore },
           candidate: { ...candidate },
+          risk: d.risk,
           flags,
           rulesError: loaded.ok ? null : loaded.error,
         },

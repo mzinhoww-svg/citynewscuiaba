@@ -3,15 +3,17 @@
 import { useId, useState } from "react";
 import { FUNNEL_TEXT as T } from "@/content/pt-BR/notifications-admin";
 import type { FunnelFilter } from "@/lib/push/funnel";
-import { Button } from "@/components";
-import { NativeSelect, TextInput } from "@/components/estudio";
+import { Button, CollapsibleFilters, DateField, Select } from "@/components";
 
 export interface FunnelFiltersProps {
   filter: FunnelFilter;
   basePath: string;
 }
 
-/** Filtros do funil na URL (formulário GET, funciona sem JS): período, aparelho, navegador. */
+/**
+ * Filtros do funil na URL (formulário GET, funciona sem JS): período, aparelho, navegador.
+ * Recolhível (`CollapsibleFilters`): fechado no celular, aberto no desktop.
+ */
 export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
   const uid = useId().replace(/:/g, "");
   const [period, setPeriod] = useState(
@@ -21,18 +23,19 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
   const [to, setTo] = useState(filter.to ?? "");
   const [device, setDevice] = useState(filter.device ?? "");
   const [browser, setBrowser] = useState(filter.browser ?? "");
+  const activeCount = [filter.days !== 30, filter.device, filter.browser].filter(Boolean).length;
   return (
-    <form
-      method="get"
-      action={basePath}
-      className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
-    >
-      <div className="flex min-w-0 flex-col gap-2 sm:w-44">
-        <label htmlFor={`${uid}-periodo`} className="type-label text-16 text-strong">
-          {T.filters.period}
-        </label>
-        <NativeSelect
+    <CollapsibleFilters activeCount={activeCount} clearHref={basePath}>
+      <form
+        method="get"
+        action={basePath}
+        className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+      >
+        <Select
           id={`${uid}-periodo`}
+          label={T.filters.period}
+          size="sm"
+          className="sm:w-44"
           name="periodo"
           value={period}
           onChange={setPeriod}
@@ -44,33 +47,29 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
             { value: "personalizado", label: T.filters.custom },
           ]}
         />
-      </div>
-      {period === "personalizado" && (
-        <>
-          <TextInput
-            id={`${uid}-de`}
-            name="de"
-            label={T.filters.from}
-            type="date"
-            value={from}
-            onChange={setFrom}
-          />
-          <TextInput
-            id={`${uid}-ate`}
-            name="ate"
-            label={T.filters.to}
-            type="date"
-            value={to}
-            onChange={setTo}
-          />
-        </>
-      )}
-      <div className="flex min-w-0 flex-col gap-2 sm:w-44">
-        <label htmlFor={`${uid}-aparelho`} className="type-label text-16 text-strong">
-          {T.filters.device}
-        </label>
-        <NativeSelect
+        {period === "personalizado" && (
+          <>
+            <DateField
+              id={`${uid}-de`}
+              name="de"
+              label={T.filters.from}
+              value={from}
+              onChange={setFrom}
+            />
+            <DateField
+              id={`${uid}-ate`}
+              name="ate"
+              label={T.filters.to}
+              value={to}
+              onChange={setTo}
+            />
+          </>
+        )}
+        <Select
           id={`${uid}-aparelho`}
+          label={T.filters.device}
+          size="sm"
+          className="sm:w-44"
           name="aparelho"
           value={device}
           onChange={setDevice}
@@ -79,13 +78,11 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
             ...Object.entries(T.devices).map(([value, label]) => ({ value, label })),
           ]}
         />
-      </div>
-      <div className="flex min-w-0 flex-col gap-2 sm:w-48">
-        <label htmlFor={`${uid}-navegador`} className="type-label text-16 text-strong">
-          {T.filters.browser}
-        </label>
-        <NativeSelect
+        <Select
           id={`${uid}-navegador`}
+          label={T.filters.browser}
+          size="sm"
+          className="sm:w-48"
           name="navegador"
           value={browser}
           onChange={setBrowser}
@@ -94,10 +91,10 @@ export function FunnelFilters({ filter, basePath }: FunnelFiltersProps) {
             ...Object.entries(T.browsers).map(([value, label]) => ({ value, label })),
           ]}
         />
-      </div>
-      <Button type="submit" size="md" variant="outline">
-        {T.filters.apply}
-      </Button>
-    </form>
+        <Button type="submit" size="md" variant="outline">
+          {T.filters.apply}
+        </Button>
+      </form>
+    </CollapsibleFilters>
   );
 }

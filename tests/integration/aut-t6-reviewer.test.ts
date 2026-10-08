@@ -153,6 +153,23 @@ describe("review_due_articles", () => {
     expect(await listed(early)).toBe(false);
   });
 
+  it("nunca rascunho sem IA (lista de trechos das fontes, migration 0150)", async () => {
+    const fb = await make();
+    await overdue(fb);
+    expect(await listed(fb)).toBe(true);
+    await service.from("articles").update({ ai_fallback: true }).eq("id", fb);
+    expect(await listed(fb)).toBe(false);
+  });
+
+  it("nunca risco crítico (nível 4, migration 0151); nível 3 entra", async () => {
+    const crit = await make();
+    await overdue(crit);
+    await service.from("articles").update({ risk_level: 3 }).eq("id", crit);
+    expect(await listed(crit)).toBe(true);
+    await service.from("articles").update({ risk_level: 4 }).eq("id", crit);
+    expect(await listed(crit)).toBe(false);
+  });
+
   it("nunca denúncia, correção, direito de resposta, escalada, edição de pessoa nem matéria sem agente", async () => {
     const rep = await make();
     await overdue(rep);

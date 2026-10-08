@@ -20,7 +20,8 @@ export const FIRST_VISIT_TEXT = {
   region: "Personalizar fontes",
   title: "Personalize suas fontes e receba uma experiência mais relevante.",
   choose: "Escolher fontes agora",
-  skip: "Continuar sem personalizar",
+  intro: "Escolha quem você quer acompanhar. Fica neste navegador, sem conta.",
+  skip: "Agora não",
   account: "Entrar ou criar conta",
   pickerTitle: "Escolha as fontes que você quer acompanhar",
   pickerIntro: "Fica guardado neste navegador. Você pode mudar quando quiser em Favoritos.",
@@ -36,7 +37,6 @@ export const FIRST_VISIT_TEXT = {
       : n === 1
         ? "1 fonte seguida neste navegador."
         : `${n} fontes seguidas neste navegador.`,
-  close: "Fechar",
 } as const;
 
 /** Partes comuns das telas de conta. */
@@ -46,10 +46,34 @@ export const ACCOUNT_TEXT = {
   emailError: "Confira o e-mail. Exemplo: ana@exemplo.com",
   password: "Senha",
   continueWithout: "Continuar sem login",
+  /** Login e cadastro (UI-T12): a mesma saída, em botão de contorno ("Agora não"). */
+  continueWithoutSignIn: "Continuar sem entrar",
+  benefitsLabel: "O que a conta guarda para você",
+  benefits: ["Salvos em todos os aparelhos", "Alertas do seu bairro", "Fontes que você segue"],
   optionalNote: "A conta é opcional: ler, buscar, ver a agenda e seguir fontes funcionam sem ela.",
   unavailable: "Não conseguimos falar com o serviço de contas agora. Tente de novo em instantes.",
   rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
   or: "ou",
+} as const;
+
+/**
+ * Convite de conta nas telas de Perfil, Favoritos e Alertas (UI-T14): por que criar conta, sem
+ * tornar o login obrigatório. "Agora não" recolhe o convite neste navegador.
+ */
+export const ACCOUNT_INVITE_TEXT = {
+  title: "Por que criar uma conta",
+  intro: "Opcional: tudo continua funcionando sem conta. Com ela, o que você guarda vai junto.",
+  create: "Criar conta",
+  signIn: "Entrar",
+  notNow: "Agora não",
+  dismissed: "Tudo bem: você continua sem conta.",
+} as const;
+
+/** Botão do Google no login e no cadastro (UI-T12, spec de UI pública §4.7). */
+export const GOOGLE_TEXT = {
+  button: "Continuar com o Google",
+  privacy: "Usamos seu nome e e-mail para criar a conta.",
+  divider: "ou use seu e-mail",
 } as const;
 
 /** C02 · Entrar. */
@@ -71,14 +95,10 @@ export const SIGN_IN_TEXT = {
     `Muitas tentativas. Por segurança, o acesso com senha fica bloqueado até ${time}. Você pode entrar por link no e-mail ou redefinir a senha.`,
   notConfirmed: "Confirme seu e-mail antes de entrar.",
   resendConfirm: "Reenviar confirmação",
-  magicTitle: "Entrar sem senha",
-  magicIntro: "Receba no seu e-mail um link para entrar, sem digitar senha.",
-  magicSubmit: "Receber link por e-mail",
+  /** Botão secundário compacto: envia um link de acesso para o e-mail digitado. */
+  magicSubmit: "Entrar sem senha",
   magicSent: (email: string) =>
     `Se houver conta com ${email}, enviamos um link para entrar. Ele vale por 1 hora.`,
-  google: "Entrar com Google",
-  googleOff:
-    "Entrar com Google ainda não está disponível. Use e-mail e senha ou o link por e-mail.",
   noAccount: "Ainda não tem conta?",
   create: "Criar conta",
   noPermission:
@@ -129,7 +149,7 @@ export const RECOVER_TEXT = {
   resetIntro: "Escolha uma senha nova para a sua conta.",
   newPassword: "Nova senha",
   confirm: "Confirme a nova senha",
-  confirmError: "As senhas não são iguais.",
+  confirmError: "As senhas não são iguais. Digite a mesma senha nos dois campos.",
   resetSubmit: "Salvar nova senha",
   resetBusy: "Salvando…",
   resetExpired: "Este link expirou ou já foi usado.",
@@ -198,26 +218,34 @@ export const PROFILE_TEXT = {
   title: "Perfil",
   description: "Seu perfil neste navegador e, se quiser, sua conta para sincronizar.",
   loading: "Carregando seu perfil",
+  loadError: "Não conseguimos carregar os dados da sua conta agora",
+  loadErrorDetail: "Suas escolhas neste navegador continuam aqui. Tente de novo em instantes.",
+  retry: "Tentar de novo",
+  back: "Perfil",
   anon: {
     title: "Seu perfil neste navegador",
-    intro: "Sem conta, o CityNews guarda suas escolhas só aqui. Nada disso exige cadastro.",
+    intro:
+      "Suas escolhas ficam guardadas só aqui, sem cadastro. Com uma conta, elas aparecem também em outros aparelhos.",
     localId: "Identificador local",
     noId: "Sem identificador (personalização desligada)",
     createdAt: "Criado em",
-    counts: "Guardado aqui",
-    count: {
-      follows: (n: number) =>
-        n === 1 ? "1 fonte ou tema seguido" : `${n} fontes e temas seguidos`,
-      saved: (n: number) => (n === 1 ? "1 matéria salva" : `${n} matérias salvas`),
-      alerts: (n: number) => (n === 1 ? "1 alerta" : `${n} alertas`),
-      collections: (n: number) => (n === 1 ? "1 coleção" : `${n} coleções`),
-    },
     loss: "Se você limpar os dados do navegador ou trocar de aparelho, isto se perde.",
     create: "Criar conta para sincronizar",
     signIn: "Entrar",
     export: "Baixar dados deste navegador",
   },
-  shortcuts: "Atalhos",
+  groups: {
+    activity: "Seu CityNews",
+    preferences: "Preferências",
+    security: "Segurança",
+    data: "Seus dados",
+  },
+  count: {
+    saved: (n: number) => (n === 1 ? "1 salva" : `${n} salvas`),
+    follows: (n: number) => (n === 1 ? "1 seguido" : `${n} seguidos`),
+    collections: (n: number) => (n === 1 ? "1 coleção" : `${n} coleções`),
+    alerts: (n: number) => (n === 1 ? "1 alerta" : `${n} alertas`),
+  },
   links: {
     favorites: "Favoritos",
     alerts: "Alertas",
@@ -227,50 +255,71 @@ export const PROFILE_TEXT = {
   },
   account: {
     title: "Sua conta",
+    edit: "Editar perfil",
+    editTitle: "Editar perfil",
     name: "Nome de exibição",
     email: "E-mail",
+    emailHint: "Usado para entrar na conta.",
     neighborhood: "Bairro principal",
     neighborhoodHint: "Usado em Perto de você. Opcional.",
     none: "Não informar",
-    save: "Salvar dados",
+    save: "Salvar",
+    cancel: "Cancelar",
     saved: "Dados salvos.",
-    nameError: "Digite um nome de exibição (até 80 caracteres).",
+    nameError: "Digite um nome de exibição (até 80 caracteres). Exemplo: Ana Cuiabana",
   },
   sessions: {
     title: "Sessões",
     current: "Este navegador",
+    inUse: "Em uso",
     since: (when: string) => `Última entrada ${when}`,
-    note: "Para encerrar o acesso em outros aparelhos, saia de todos os dispositivos.",
-    signOut: "Sair",
-    signOutAll: "Sair de todos os dispositivos",
+    signOut: "Sair da conta",
+    signOutNote: "Suas escolhas neste navegador continuam aqui.",
+    signOutOthers: "Sair dos outros aparelhos",
+    othersNote: "Use se você entrou num aparelho que não é seu. Este navegador continua conectado.",
     signedOut: "Você saiu da conta. Suas escolhas neste navegador continuam aqui.",
+    signedOutOthers: "Você saiu dos outros aparelhos. Este navegador continua conectado.",
+  },
+  security: {
+    metaTitle: "Senha e sessões · CityNews Cuiabá",
+    title: "Senha e sessões",
+    passwordRow: "Senha",
+    passwordRowDetail: "Alterar a senha da conta",
   },
   password: {
     title: "Alterar senha",
     changed: "Senha alterada. Você continua na sua conta.",
     submit: "Alterar senha",
+    note: "Você continua conectado neste navegador depois de trocar.",
   },
   data: {
     title: "Seus dados",
-    intro:
-      "Baixe uma cópia do que a conta guarda: perfil, fontes, salvos, alertas, coleções e preferências.",
-    export: "Exportar dados",
+    export: "Baixar meus dados",
+    exportDetail: "Conta e este navegador, num arquivo só",
     exporting: "Preparando…",
     exportError: "Não conseguimos preparar o arquivo agora. Tente de novo.",
+    browser: "Dados deste navegador",
+    browserDetail: "O que fica guardado só aqui",
+    technical: "Detalhes técnicos",
   },
   delete: {
+    metaTitle: "Excluir conta · CityNews Cuiabá",
     title: "Excluir conta",
-    intro:
-      "A exclusão vale depois de 7 dias. Até lá, você pode cancelar. Os dados deste navegador não são apagados.",
-    open: "Excluir conta",
-    dialogTitle: "Excluir sua conta?",
-    dialogBody:
-      "Fontes, salvos, alertas, coleções e preferências da conta serão apagados em 7 dias.",
+    what: "O que acontece",
+    points: [
+      "Fontes, salvos, alertas, coleções e preferências da conta são apagados.",
+      "Vale depois de 7 dias. Até lá, a conta funciona e você pode desistir.",
+      "O que está guardado neste navegador continua aqui.",
+    ],
+    before: "Antes de excluir",
+    copy: "Baixar uma cópia dos seus dados",
+    justLeave: "Prefere só sair? Sair da conta sem excluir",
     type: "Digite EXCLUIR para confirmar",
     word: "EXCLUIR",
-    confirm: "Excluir conta",
+    confirm: "Excluir conta em 7 dias",
     cancel: "Cancelar",
     scheduled: (date: string) => `Exclusão agendada para ${date}.`,
+    scheduledRow: (date: string) => `Agendada para ${date}`,
     scheduledDetail: "Até lá, a conta continua funcionando e você pode desistir.",
     undo: "Cancelar exclusão",
     undone: "Exclusão cancelada. Sua conta continua ativa.",

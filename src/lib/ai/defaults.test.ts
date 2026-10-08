@@ -14,12 +14,13 @@ const readSql = (name: string) =>
 const sql0006 = readSql("0006_ai_seed.sql");
 const sql0011 = readSql("0011_source_admin.sql");
 const sql0141 = readSql("0141_auto_reviewer.sql");
+const sql0183 = readSql("0183_guide_article.sql");
 /** Compara ignorando como o SQL quebra linha entre os valores de um `insert`/`update`. */
 const norm = (s: string) => s.replace(/\s+/g, " ");
-const sqlAll = norm(`${sql0006}\n${sql0011}\n${sql0141}`);
+const sqlAll = norm(`${sql0006}\n${sql0011}\n${sql0141}\n${sql0183}`);
 
 describe("registro padrão de IA", () => {
-  it("espelha as migrations 0006 + 0011 + 0141 (modelos, agentes e prompts v1)", () => {
+  it("espelha as migrations 0006 + 0011 + 0141 + 0183 (modelos, agentes e prompts v1)", () => {
     for (const m of DEFAULT_MODELS) {
       expect(sqlAll).toContain(`'${m.id}'`);
       expect(sqlAll).toContain(String(m.costPer1kIn));
@@ -32,13 +33,14 @@ describe("registro padrão de IA", () => {
     expect(sql0011).toContain("update ai_agents set daily_budget_brl = 10 where id = 'write';");
   });
 
-  it("todo agente de texto tem prompt e fallback; orçamentos somam o teto global (write R$ 9 + source_profiler R$ 1 + reviewer R$ 1)", () => {
+  it("todo agente de texto tem prompt e fallback; orçamentos somam o teto global (write R$ 8,50 + source_profiler R$ 1 + reviewer R$ 1 + guide_writer R$ 0,50)", () => {
     for (const id of AGENT_IDS) {
       const a = DEFAULT_AGENTS.find((x) => x.id === id);
       expect(a?.prompt, id).toBeTruthy();
       expect(a?.fallback, id).toBeTruthy();
     }
-    expect(DEFAULT_AGENTS.find((a) => a.id === "write")?.dailyBudgetBrl).toBe(9);
+    expect(DEFAULT_AGENTS.find((a) => a.id === "write")?.dailyBudgetBrl).toBe(8.5);
+    expect(DEFAULT_AGENTS.find((a) => a.id === "guide_writer")?.dailyBudgetBrl).toBe(0.5);
     expect(DEFAULT_AGENTS.find((a) => a.id === "reviewer")?.dailyBudgetBrl).toBe(1);
     expect(DEFAULT_AGENTS.find((a) => a.id === "source_profiler")?.dailyBudgetBrl).toBe(1);
     expect(DEFAULT_AGENTS.reduce((s, a) => s + a.dailyBudgetBrl, 0)).toBe(GLOBAL_DAILY_BUDGET_BRL);

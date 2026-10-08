@@ -4,14 +4,19 @@ import type { Consent } from "@/lib/consent";
 import { ConsentProvider } from "@/lib/consent/client";
 import { BottomNav } from "./BottomNav";
 import { ConsentBanner } from "./ConsentBanner";
-import { FirstVisitGate, LoginInviteGate, NotificationWatchers } from "./DeferredShell";
+import { LoginInviteGate, NotificationWatchers } from "./DeferredShell";
+import { HideOnRoutes } from "./HideOnRoutes";
 import { InstallInviteSlot } from "./InstallInviteSlot";
 import { listTickerItems } from "@/lib/db/queries/ticker";
+import { NavProgress } from "./NavProgress";
 import { NewsTicker } from "./NewsTicker";
 import { OfflineNotice } from "./OfflineNotice";
 import { SwRegistrar } from "./SwRegistrar";
 import { SiteFooter } from "./SiteFooter";
 import { SiteHeader } from "./SiteHeader";
+
+/** Telas de conta: o letreiro de manchetes só disputa atenção com o que a pessoa veio fazer. */
+const TICKER_HIDDEN_ON = ["/perfil"] as const;
 
 export interface PublicShellProps {
   children: ReactNode;
@@ -37,15 +42,18 @@ export async function PublicShell({ children, consent }: PublicShellProps) {
           {NAV_TEXT.skipToContent}
         </a>
         <ConsentBanner />
+        {/* Linha fina no topo do cabeçalho enquanto a próxima página carrega (item 87). */}
+        <NavProgress />
         <SiteHeader />
-        <NewsTicker items={tickerItems} />
+        <HideOnRoutes prefixes={TICKER_HIDDEN_ON}>
+          <NewsTicker items={tickerItems} />
+        </HideOnRoutes>
         <OfflineNotice />
         <main id="conteudo" className="flex-1">
           {children}
         </main>
         <SiteFooter />
         <BottomNav />
-        <FirstVisitGate />
         <LoginInviteGate />
         <InstallInviteSlot />
         <SwRegistrar />

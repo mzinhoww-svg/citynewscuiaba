@@ -27,6 +27,12 @@ import type {
   StatusReply,
 } from "@/components/estudio";
 import { PUSH_ADMIN_TEXT } from "@/content/pt-BR/notifications-admin";
+import { MEDIA_FLOW_TEXT, QUEUE_FLOW_TEXT } from "@/content/pt-BR/studio-flow";
+import {
+  approveRecommended,
+  type ApproveRecommendedOutcome,
+} from "@/lib/studio/approve-recommended";
+import { withSharedStudioContext } from "@/lib/studio/context";
 import { createServerClient } from "@/lib/db/client";
 import { createPushAdminStore } from "@/lib/db/push-admin-store";
 import { formatDateTime } from "@/lib/format/date";
@@ -126,6 +132,28 @@ export async function unpublishManyAction(input: {
 }): Promise<ActionReply> {
   if (!input.reason.trim()) return { ok: false, message: QUEUE_TEXT.reasonRequired };
   return batchReply(await unpublishAutoBatch(input), QUEUE_TEXT.unpublishedMany);
+}
+
+/**
+ * "Aprovar recomendadas" (UX-W3-T1, item 46): publica as selecionadas que as regras recomendaram
+ * publicar e diz quantas ficaram na fila e por quê. Guarda e auditoria em `approveRecommended`.
+ */
+export async function approveRecommendedAction(input: {
+  ids: string[];
+}): Promise<ActionReply & ApproveRecommendedOutcome> {
+  const out = await approveRecommended(Array.isArray(input.ids) ? input.ids.map(String) : []);
+  const F = QUEUE_FLOW_TEXT;
+  const parts: string[] = [];
+  if (out.approved > 0) parts.push(F.approvedRecommended(out.approved));
+  if (out.skipped.length > 0) {
+    const reasons = [...new Set(out.skipped.map((k) => F.skipReason[k.reason] ?? k.reason))];
+    parts.push(`${F.skipped(out.skipped.length)}: ${reasons.join("; ")}`);
+  }
+  return {
+    ok: out.approved > 0 && out.skipped.length === 0,
+    message: parts.join(". ") || QUEUE_TEXT.genericError,
+    ...out,
+  };
 }
 
 /*
@@ -244,8 +272,10 @@ export async function reprocessAction(input: { id: string }): Promise<ActionRepl
 
 /**
  * E06: publica e, com "Push urgente" marcado (admin ou editor-chefe), cria o pedido Urgente em A09
- * já preenchido com título e linha fina da matéria (spec 2026-09-28 §10.7). A justificativa é
- * conferida antes de publicar; a falha do pedido não desfaz a publicação e vira mensagem.
+ * já preenchido com título e linha fina da matéria (spec 2026-09-28 §10.7) e, como quem pede tem
+ * `push.approve`, aprova na mesma ação (A-128; o histórico registra quem pediu e quem aprovou). A
+ * justificativa é conferida antes de publicar; a falha do pedido não desfaz a publicação e vira
+ * mensagem.
  */
 export async function publishAction(
   baseVersion: number,
@@ -273,7 +303,9 @@ export async function publishAction(
   if (outcome.ok)
     return {
       ok: true,
-      message: `${PUBLISH_TEXT.published}. ${PUBLISH_TEXT.pushRequested}`,
+      message: `${PUBLISH_TEXT.published}. ${
+        outcome.value.approved ? PUBLISH_TEXT.pushApproved : PUBLISH_TEXT.pushRequested
+      }`,
       pushQueueHref: `${PUSH_ADMIN_PATH}/fila`,
     };
   return { ok: true, message: PUBLISH_TEXT.pushFailed(PUSH_ADMIN_TEXT.errors[outcome.error]) };
@@ -295,7 +327,8 @@ async function requestUrgentPush(articleId: string, justification: string) {
     })
   )
     return { ok: false as const, error: "national_scope" as const };
-  return createPushAdminStore(db).request({
+  const store = createPushAdminStore(db);
+  const r = await store.request({
     kind: "urgent",
     articleId,
     title: sanitizeNotificationText(a.title, TITLE_MAX),
@@ -304,6 +337,11 @@ async function requestUrgentPush(articleId: string, justification: string) {
     when: { type: "now" },
     justification,
   });
+  if (!r.ok) return r;
+  // Urgente só é pedido por admin ou editor-chefe, que têm `push.approve`: aprova na hora. Se a
+  // aprovação falhar, o pedido fica na fila de notificações.
+  const approved = await store.approve(r.value.id);
+  return { ok: true as const, value: { id: r.value.id, approved: approved.ok } };
 }
 
 function conflictOr(r: StudioResult<unknown>): SaveReply {
@@ -359,6 +397,29 @@ export async function openCorrectionAction(formData: FormData): Promise<void> {
 
 export async function approveImageAction(input: { id: string }): Promise<ActionReply> {
   return reply(await approveImage(input), MEDIA_TEXT.approved);
+}
+
+/** Aprovação de mídia em lote (UX-W3-T1, item 46): cada imagem com a guarda de `approveImage`. */
+export async function approveImagesAction(input: { ids: string[] }): Promise<ActionReply> {
+  const ids = [...new Set(Array.isArray(input.ids) ? input.ids.map(String) : [])].slice(0, 100);
+  const out = await withSharedStudioContext(async () => {
+    const r: BatchOutcome = { done: [], failed: [] };
+    for (const id of ids) {
+      const one = await approveImage({ id });
+      if (one.ok) r.done.push(id);
+      else r.failed.push({ id, error: one.error, message: one.message });
+    }
+    return r;
+  });
+  const parts: string[] = [];
+  if (out.done.length > 0) parts.push(MEDIA_FLOW_TEXT.approvedMany(out.done.length));
+  if (out.failed.length > 0) {
+    parts.push(MEDIA_FLOW_TEXT.failedSome(out.failed.length));
+    const why = out.failed.find((f) => f.message)?.message;
+    if (why) parts.push(why);
+    else if (out.failed.some((f) => f.error === "forbidden")) parts.push(QUEUE_TEXT.forbidden);
+  }
+  return { ok: out.failed.length === 0 && out.done.length > 0, message: parts.join(". ") };
 }
 
 export async function setImageTextAction(input: ImageTextInput): Promise<ActionReply> {

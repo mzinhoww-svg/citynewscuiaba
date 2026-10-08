@@ -5,8 +5,8 @@
  * entrada e a checagem fina da ação (`can`/`pushKindsFor`), limite por pessoa em
  * `hit_rate_limit`, escrita pelas RPCs com a sessão da pessoa (RLS e triggers de 0041) e, nas
  * configurações, contexto de auditoria com o hash do IP (nunca o IP cru). Só POST: nenhuma rota
- * GET muda estado. As regras de duas pessoas valem no banco mesmo que este arquivo seja
- * contornado; aqui elas só viram a mensagem certa antes.
+ * GET muda estado. Aprovar exige `push.approve` no banco mesmo que este arquivo seja contornado;
+ * A-128: quem pede e tem `push.approve` aprova na mesma ação, e o histórico registra quem fez.
  */
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
@@ -185,8 +185,19 @@ export async function requestPushAction(form: FormData): Promise<ActionState> {
 
   const r = await ctx.store.request(parsed.data);
   if (!r.ok) return storeFailure(r.error);
-  refresh();
   const settings = await pushSettings();
+  // A-128: quem pede e tem `push.approve` aprova na mesma ação; o pedido e a aprovação ficam
+  // registrados (approvals + auditoria do push) com o nome de quem fez.
+  if (!settings.paused.on && canAccess(ctx.roles, "push.approve")) {
+    const a = await ctx.store.approve(r.value.id);
+    refresh();
+    if (!a.ok) return done(T.done.requested, { id: r.value.id });
+    return done(a.value.status === "scheduled" ? T.done.scheduledNow : T.done.sentNow, {
+      id: r.value.id,
+      status: a.value.status,
+    });
+  }
+  refresh();
   return done(settings.paused.on ? T.done.requestedPaused : T.done.requested, { id: r.value.id });
 }
 
@@ -238,7 +249,6 @@ export async function decidePushAction(form: FormData): Promise<ActionState> {
   if (!row) return fail(T.errors.not_pending);
   if (row.status !== "pending_approval") return fail(T.errors.not_pending);
   // Autoaprovação primeiro: quem pediu recebe a mensagem certa, com ou sem o papel.
-  if (row.requested_by === ctx.userId) return fail(T.errors.self_approval);
   if (!canAccess(ctx.roles, "push.approve")) return fail(T.errors.forbidden);
 
   if (decision === "reject") {
@@ -295,6 +305,12 @@ export async function requestResumeAction(form: FormData): Promise<ActionState> 
   if (!reason) return fail(T.errors.reasonRequired, { reason: T.errors.reasonRequired });
   const r = await ctx.store.requestResume(reason);
   if (!r.ok) return storeFailure(r.error);
+  // A-128: quem pede a retomada e tem `push.approve` aprova e retoma na mesma ação.
+  if (canAccess(ctx.roles, "push.approve")) {
+    const a = await ctx.store.approveResume(r.value.approvalId);
+    refresh();
+    if (a.ok) return done(T.done.resumedNow, { approvalId: r.value.approvalId });
+  }
   refresh();
   return done(T.done.resumeRequested, { approvalId: r.value.approvalId });
 }
@@ -311,7 +327,6 @@ export async function approveResumeAction(form: FormData): Promise<ActionState> 
     .maybeSingle();
   if (!appr || appr.kind !== "push.resume" || appr.status !== "pending")
     return fail(T.errors.not_pending);
-  if (appr.requested_by === ctx.userId) return fail(T.errors.self_approval);
   if (!canAccess(ctx.roles, "push.approve")) return fail(T.errors.forbidden);
   const r = await ctx.store.approveResume(id);
   if (!r.ok) return storeFailure(r.error);

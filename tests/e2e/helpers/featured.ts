@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
+import sharp from "sharp";
 import { service } from "../studio";
 
 /*
@@ -38,9 +39,25 @@ export interface FeaturedFixtures {
   articles: string[];
   media: string[];
   topics: string[];
+  /** Arquivos enviados ao bucket `media` (capas das matérias de teste). */
+  files: string[];
 }
 
-export const newFixtures = (): FeaturedFixtures => ({ articles: [], media: [], topics: [] });
+export const newFixtures = (): FeaturedFixtures => ({
+  articles: [],
+  media: [],
+  topics: [],
+  files: [],
+});
+
+let coverBytes: Promise<Buffer> | null = null;
+/** JPEG pequeno de verdade: a capa precisa carregar, senão `Photo` mostra o marcador (item 78). */
+const coverJpeg = () =>
+  (coverBytes ??= sharp({
+    create: { width: 64, height: 36, channels: 3, background: { r: 120, g: 110, b: 90 } },
+  })
+    .jpeg()
+    .toBuffer());
 
 const doc = (text: string) => ({
   type: "doc",
@@ -90,11 +107,17 @@ export async function createPublished(
   if (r.error) throw r.error;
   fx.articles.push(id);
   if (a.cover !== false) {
+    const path = `fd-e2e/${id}.jpg`;
+    const up = await db.storage
+      .from("media")
+      .upload(path, await coverJpeg(), { contentType: "image/jpeg", upsert: true });
+    if (up.error) throw up.error;
+    fx.files.push(path);
     const m = await db
       .from("media_assets")
       .insert({
         kind: "original",
-        storage_path: `fd-e2e/${id}.jpg`,
+        storage_path: path,
         license: "CityNews",
         credit: "CityNews",
         allowed_use: "Livre para o CityNews",
@@ -175,6 +198,7 @@ export async function cleanFixtures(fx: FeaturedFixtures): Promise<void> {
     await db.from("articles").delete().in("id", fx.articles);
   }
   if (fx.media.length) await db.from("media_assets").delete().in("id", fx.media);
+  if (fx.files.length) await db.storage.from("media").remove(fx.files);
   if (fx.topics.length) await db.from("topics").delete().in("id", fx.topics);
 }
 
@@ -188,11 +212,13 @@ export async function reloadUntil(
   predicate: () => Promise<boolean>,
   timeoutMs = 90_000,
 ): Promise<void> {
-  const started = Date.now();
-  for (;;) {
-    await page.goto(url);
-    if (await predicate()) return;
-    if (Date.now() - started > timeoutMs) throw new Error(`a página ${url} não refletiu a mudança`);
-    await page.waitForTimeout(4_000);
-  }
+  await expect
+    .poll(
+      async () => {
+        await page.goto(url);
+        return predicate();
+      },
+      { message: `a página ${url} não refletiu a mudança`, timeout: timeoutMs, intervals: [4_000] },
+    )
+    .toBe(true);
 }

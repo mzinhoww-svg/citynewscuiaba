@@ -1,6 +1,6 @@
 # Analytics e audiência no CityNews: design
 
-Data: 08/10/2026. Origem: pedido do dono ("sinto falta de analytics") e levantamento do que existe (eventos próprios, relatório de anúncios, funil do PWA, custos de IA, painel de recomendação). Aprovado pelo dono em 08/10/2026, itens 1 a 6: Search Console, contador sem cookie e eventos faltantes, tela Audiência, busca e painel por fonte, Speed Insights e Sentry, **GA4 e GTM instalados agora** ("precisamos para o futuro"). Decisão registrada como **A-127**. Esta spec emenda a ADR-008 e a D16 da spec mestre.
+Data: 08/10/2026. Origem: pedido do dono ("sinto falta de analytics") e levantamento do que existe (eventos próprios, relatório de anúncios, funil do PWA, custos de IA, painel de recomendação). Aprovado pelo dono em 08/10/2026, itens 1 a 6 (com o ajuste do GA4 em §8): Search Console, contador sem cookie e eventos faltantes, tela Audiência, busca e painel por fonte, Speed Insights e Sentry, **GA4 e GTM instalados agora** ("precisamos para o futuro"). Decisão registrada como **A-216**. Esta spec emenda a ADR-008 e a D16 da spec mestre.
 
 ## 1. Entendimento
 
@@ -24,7 +24,7 @@ Os quatro problemas:
 |---|---|---|---|
 | Contador agregado (novo, §3) | Sim | Sim | Sim |
 | Eventos `events` (existente) | Não | Sim, sem `anonId` | Sim, completo |
-| GA4 e GTM (novo, §8) | **Não carrega** | Sim | Sim |
+| GA4 e GTM (novo, §8) | Carrega antes da escolha, com sinais concedidos; com "Só o necessário", sinais negados | Sim | Sim |
 
 3. **Contador agregado sem cookie e sem `localStorage`.**
    - Nenhum identificador de pessoa é gravado.
@@ -69,7 +69,7 @@ Os quatro problemas:
 - `utm`: `source`, `medium` e `campaign`, em minúsculas, até 60 caracteres cada, só `[a-z0-9_-]`.
 - `device`: `mobile`, `tablet` ou `desktop`, calculado pela largura da tela no cliente.
 
-**Banco (migration 0148):**
+**Banco (migration 0187):**
 - `site_stats_daily (day, views, visitors)`
   - `visitors` = visitantes únicos estimados por dia, contados pelas chaves diárias (hash de sal + IP + navegador + dia).
 - `content_stats_daily (day, content_id, section, views, reads, read_seconds, shares, outbound)`
@@ -166,15 +166,15 @@ Os quatro problemas:
 
 - **Instalação:** um contêiner GTM (`NEXT_PUBLIC_GTM_ID`). A tag do GA4 (`G-…`) fica **dentro do GTM**, configurada pelo dono. O código não chama `gtag` direto.
 - **Liga e desliga:**
-  - flag `ga4_enabled` em `feature_flags` (padrão desligada, migration 0149);
+  - flag `ga4_enabled` em `feature_flags` (padrão desligada, migration 0188);
   - interruptor em Admin › Interruptores, ação auditada, uma pessoa (admin).
-- **Quando carrega:** só nas páginas públicas, só com a flag ligada, o ID definido e o consentimento "Métricas" (ou mais).
-  - Não carrega antes da escolha nem com "Só o necessário".
-  - Se o leitor retirar o consentimento, nada carrega na próxima navegação e os cookies `_ga*` são apagados.
+- **Quando carrega** (decisão do dono em 08/10/2026): em todas as páginas públicas, com a flag ligada e o ID definido, **antes da escolha no banner**.
+  - Com "Só o necessário", o GTM continua carregando, mas com todos os sinais negados. Isso impede cookie `_ga` e uso para anúncio. Os cookies `_ga*` que já existirem são apagados.
+  - Base legal até a escolha: legítimo interesse, informado no banner e em `/privacidade`.
 - **Consent Mode v2:**
-  - padrão `denied` para todos os sinais;
-  - `analytics_storage: granted` só com Métricas;
-  - `ad_storage`, `ad_user_data` e `ad_personalization` ficam sempre `denied` nesta versão, porque não há publicidade do Google.
+  - padrão `granted` para todos os sinais (`analytics_storage`, `ad_storage`, `ad_user_data`, `ad_personalization`), enquanto o leitor não escolhe e quando ele aceita (decisão do dono, revista quando houver AdSense);
+  - "Só o necessário" muda todos para `denied`;
+  - escolher só Métricas deixa `analytics_storage: granted` e os sinais de anúncio `denied`.
 - **Script:**
   - `next/script` com o `nonce` da requisição; o `strict-dynamic` da CSP aceita o que o GTM carrega;
   - CSP com GTM ligado: `connect-src` e `img-src` ganham `https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com`, e `frame-src` ganha `https://www.googletagmanager.com` (modo de visualização do GTM);
@@ -186,7 +186,7 @@ Os quatro problemas:
 - **Segurança:** o GTM pode injetar qualquer script.
   - Só o dono (ou quem ele designar) publica versões do contêiner.
   - Tags personalizadas de HTML ficam proibidas por regra interna, anotada em `docs/architecture.md`.
-  - Retenção de dados do GA4 em 2 meses e Google Signals desligado: configuração do dono, em BLOCKERS.
+  - Retenção de dados do GA4 e Google Signals: configuração do dono (B-032). Recomendado: retenção de 2 meses e Signals desligado até haver AdSense.
 - **Textos:** o banner e `/privacidade` passam a citar o Google Analytics na categoria Métricas. Sobe a versão da política de consentimento para `v2`, então o banner pergunta de novo a todos.
 - **Integrações (A13):** mostra GTM, Search Console, Sentry e Speed Insights com "configurado", "não configurado" ou "desligado", nunca o valor da chave.
 
@@ -207,7 +207,7 @@ Os quatro problemas:
 ## 10. Ajuste técnico: partições de `events`
 
 - A tabela `events` é particionada por `received_at`, mas só tem `events_default`.
-- Migration 0150:
+- Migration 0189:
   - cria as partições mensais do mês atual e dos 2 seguintes;
   - função `events_ensure_partitions()` com cron mensal (dia 25, 04h11 UTC);
   - move as linhas de `events_default` para as partições do seu mês, em lotes, sem lock longo.
@@ -231,7 +231,9 @@ Os quatro problemas:
   - partição recebe as linhas novas.
 - **e2e:**
   - visita conta sem consentimento;
-  - nenhum pedido a `googletagmanager.com` com "Só o necessário" ou flag desligada;
+  - nenhum pedido a `googletagmanager.com` com a flag desligada;
+  - antes da escolha, o GTM carrega com os sinais concedidos;
+  - com "Só o necessário", sinais negados e nenhum cookie `_ga`;
   - com Métricas e flag ligada, carrega uma vez;
   - tela Audiência com dados fake nos quatro estados;
   - axe sem violação.
@@ -242,7 +244,7 @@ Os quatro problemas:
 - Vercel Web Analytics.
 - Envio servidor a servidor ao GA4 (Measurement Protocol).
 - Medição auditada (Comscore).
-- Publicidade do Google (AdSense e Ad Manager), por isso `ad_*` fica sempre `denied`.
+- Publicidade do Google (AdSense e Ad Manager). Os sinais `ad_*` já ficam concedidos por decisão do dono e serão revistos quando ela entrar.
 - Mapa de calor e gravação de sessão.
 - "Mais lidas" pública passando a usar `content_stats_daily`: pode vir depois, mas hoje a regra é por horas e o agregado é diário.
 - Métricas de newsletter: ainda não há envio.

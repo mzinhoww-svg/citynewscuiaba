@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { CONSENT_TEXT } from "@/content/pt-BR/privacy";
+import { CONSENT_TEXT } from "@/content/pt-BR/privacy-consent";
 import type { ConsentChoice } from "@/lib/consent";
 import { Button } from "../ui/Button";
 import { ConsentChoices } from "./ConsentChoices";

@@ -9,15 +9,9 @@ import { createApprovals, type ApprovalRow, type CriticalKind } from "./approval
 export {
   CRITICAL_KINDS,
   createApprovals,
-  createApprovalsWith,
   supabaseApprovalsPort,
   type ApprovalRow,
-  type Approvals,
-  type ApprovalsPort,
-  type ApprovalStatus,
-  type ApproveError,
   type CriticalKind,
-  type DecideOutcome,
 } from "./approvals";
 export { APPROVAL_ERROR_TEXT } from "@/content/pt-BR/sources-admin";
 

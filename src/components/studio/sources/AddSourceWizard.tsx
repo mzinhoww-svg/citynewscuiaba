@@ -11,7 +11,6 @@ import { cx } from "../../cx";
 import { Button } from "../../ui/Button";
 import { Icon } from "../../ui/Icon";
 import { AnalysisProgress, type AnalysisPhase } from "./AnalysisProgress";
-import { CONTROL_CLASS } from "./fields";
 import { looseningFields } from "./form-options";
 import { SourcePreviewList } from "./SourcePreviewList";
 import { suggestionText } from "./SuggestionField";
@@ -46,7 +45,7 @@ export interface AddSourceWizardProps {
  * Assistente "Nova fonte" (spec §7.1, O04a): Endereço → Análise → Revisão → Termos → Salvar, com a
  * etapa atual em `aria-current="step"` e o progresso da análise em `aria-live="polite"`. Toda
  * sugestão da IA só entra no formulário com o clique em "Usar sugestão"; as políticas começam no
- * padrão mais restrito e o que afrouxar exige justificativa (vira pedido de segunda aprovação).
+ * padrão mais restrito e o que afrouxar exige justificativa (vira mudança crítica registrada, aplicada na hora por quem pode aprovar).
  * O texto digitado nunca se perde em erro.
  */
 export function AddSourceWizard({
@@ -216,23 +215,31 @@ export function AddSourceWizard({
         noValidate
       >
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <label htmlFor={urlId} className="type-label text-16 text-strong">
+          <label htmlFor={urlId} className="type-label text-strong">
             {WIZARD_TEXT.address.label}
           </label>
-          <input
-            id={urlId}
-            name="url"
-            type="url"
-            inputMode="url"
-            autoComplete="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            aria-invalid={analyzeError ? true : undefined}
-            aria-describedby={[`${urlId}-dica`, analyzeError ? `${urlId}-erro` : null]
-              .filter(Boolean)
-              .join(" ")}
-            className={cx(CONTROL_CLASS, analyzeError && "field-error")}
-          />
+          <div
+            className={cx(
+              "border-control control-field flex h-input items-center rounded-lg bg-input px-4",
+              "transition-[border-color,box-shadow] duration-(--dur-base) ease-(--ease-standard)",
+              analyzeError && "field-error",
+            )}
+          >
+            <input
+              id={urlId}
+              name="url"
+              type="url"
+              inputMode="url"
+              autoComplete="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              aria-invalid={analyzeError ? true : undefined}
+              aria-describedby={[`${urlId}-dica`, analyzeError ? `${urlId}-erro` : null]
+                .filter(Boolean)
+                .join(" ")}
+              className="min-w-0 flex-1 bg-transparent type-body text-strong"
+            />
+          </div>
           <p id={`${urlId}-dica`} className="type-meta text-meta">
             {WIZARD_TEXT.address.hint}
           </p>
@@ -321,7 +328,6 @@ export function AddSourceWizard({
           <SaveStep
             uid={uid}
             saving={saving}
-            termsReviewed={fields.termsReviewed}
             result={saveResult}
             onSave={save}
             onFocus={() => setFocusStep(5)}

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openFilters } from "./helpers/filters";
 
 /* P3-T10 · busca tradicional (docs/screens.md P12). Dados do seed (supabase/seed.sql). */
 
@@ -25,6 +26,7 @@ test("sem acento encontra com acento e agrupa por assunto", async ({ page }) => 
 test("filtro de origem vai para a URL e só mostra outros veículos", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
   await expect(page.locator("mark").first()).toBeVisible();
+  await openFilters(page);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Origem").selectOption("outros");
   await expect(page).toHaveURL(/origem=outros/);
@@ -98,14 +100,14 @@ test("consulta com HTML aparece como texto e a página não é indexada", async 
 
 test("atalho Perguntar ao CityNews leva o mesmo texto", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
-  await expect(page.getByRole("link", { name: /Perguntar ao CityNews/ })).toHaveAttribute(
-    "href",
-    "/pergunte?q=viaduto",
-  );
+  await expect(
+    page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ }),
+  ).toHaveAttribute("href", "/pergunte?q=viaduto");
 });
 
 test("filtros aplicam na hora, sem botão Aplicar, e ficam na URL", async ({ page }) => {
   await page.goto("/busca?q=viaduto");
+  await openFilters(page);
   await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Período").selectOption("30d");
@@ -137,9 +139,12 @@ test("resultados de matéria têm miniatura (foto ou capa tipográfica)", async 
   }
 });
 
-test("Perguntar ao CityNews é a linha de destaque no topo, acima dos filtros", async ({ page }) => {
+test("desktop: Perguntar ao CityNews é a linha de destaque no topo, acima dos filtros", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/busca?q=viaduto");
-  const ask = page.getByRole("link", { name: /Perguntar ao CityNews/ });
+  const ask = page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ });
   await expect(ask).toHaveAttribute("href", "/pergunte?q=viaduto");
   const askBox = (await ask.boundingBox())!;
   const tabsBox = (await page
@@ -166,4 +171,26 @@ test("busca a 360 px sem rolagem horizontal", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/busca?q=viaduto");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+});
+
+// UX item 76: no celular, os primeiros resultados vêm antes da linha do Pergunte (compacta).
+test("celular: resultados antes da linha do Pergunte, que vem compacta", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/busca?q=onibus");
+  const ask = page.getByRole("main").getByRole("link", { name: /Perguntar ao CityNews/ });
+  // Só uma linha visível por largura (a do topo some no celular).
+  await expect(ask).toHaveCount(1);
+  await expect(ask).toHaveAttribute("href", "/pergunte?q=onibus");
+  await expect(ask).toHaveAttribute("data-ask-row", "compact");
+  const askBox = (await ask.boundingBox())!;
+  const results = page.locator("#resultados-titulo ~ ol").first().locator(":scope > li");
+  const n = await results.count();
+  expect(n).toBeGreaterThan(0);
+  expect(n).toBeLessThanOrEqual(3);
+  const last = (await results.nth(n - 1).boundingBox())!;
+  expect(askBox.y).toBeGreaterThanOrEqual(last.y + last.height - 1);
+  // Compacta: uma linha, alvo de toque de 44 px.
+  expect(askBox.height).toBeGreaterThanOrEqual(44);
+  expect(askBox.height).toBeLessThan(64);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });

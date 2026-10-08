@@ -30,17 +30,22 @@ test("agendamento para horário passado é recusado e futuro é aceito", async (
   await page.goto(`/estudio/materias/${id}`);
   await page.getByRole("button", { name: "Publicar", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Publicação e agendamento" });
-  // Editora-chefe pode pedir push urgente; ele só sai com a aprovação de outra pessoa (A09).
-  await expect(dialog.getByText(/aprovação de outra pessoa/)).toBeVisible();
+  // Editora-chefe pode pedir push urgente e já o aprova na mesma ação (A09, A-128).
+  await expect(dialog.getByText(/Cria e aprova o aviso urgente/)).toBeVisible();
   await expect(dialog.getByRole("checkbox", { name: "Push urgente" })).toBeEnabled();
   await dialog.getByRole("radio", { name: "Agendar" }).check();
-  await dialog.getByLabel("Data e hora (fuso de Cuiabá)").fill("2020-01-01T08:00");
+  const at = dialog.getByLabel("Data e hora (fuso de Cuiabá)");
+  await at.fill("2020-01-01T08:00");
   await dialog.getByRole("button", { name: "Confirmar agendamento" }).click();
-  await expect(dialog.getByRole("alert")).toHaveText("Escolha um horário futuro");
+  // UX-W3-T2: a recusa aparece no próprio campo (inválido, com a mensagem na descrição).
+  await expect(at).toHaveAttribute("aria-invalid", "true");
+  await expect(at).toHaveAccessibleDescription(/Escolha um horário futuro/);
+  await expect(page.getByRole("status").filter({ hasText: "agendada" })).toHaveCount(0);
 
   const next = new Date(Date.now() + 3 * 86_400_000);
   const local = `${next.toISOString().slice(0, 10)}T09:30`;
-  await dialog.getByLabel("Data e hora (fuso de Cuiabá)").fill(local);
+  await at.fill(local);
+  await expect(at).not.toHaveAttribute("aria-invalid", "true");
   await dialog.getByRole("button", { name: "Confirmar agendamento" }).click();
   await expect(page.getByRole("status").filter({ hasText: "agendada" })).toContainText("9h30");
 });

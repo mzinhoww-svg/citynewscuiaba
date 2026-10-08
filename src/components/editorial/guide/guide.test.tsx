@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { dataLine, GUIDE } from "@/content/pt-BR/guide";
 import type { GuideListItemView, GuideListSummary, GuideVenueView } from "@/lib/db/queries/guide";
-import { CriteriaNote } from "./CriteriaNote";
 import { ListCard } from "./ListCard";
 import { VenueCard } from "./VenueCard";
 import { VenueCover } from "./VenueCover";
@@ -26,6 +25,7 @@ const venue = (over: Partial<GuideVenueView> = {}): GuideVenueView => ({
   ratingSource: "tripadvisor",
   tripadvisorRank: 7,
   tripadvisorUrl: null,
+  googleMapsUrl: null,
   lat: null,
   lng: null,
   sources: ["osm", "tripadvisor"],
@@ -59,6 +59,22 @@ describe("VenueCard", () => {
     expect(screen.getByText("Melhor pão francês.")).toBeInTheDocument();
   });
 
+  it("nota do Google aparece com a fonte, e o ranking do TripAdvisor ao lado quando houver", () => {
+    render(
+      <VenueCard
+        item={item({
+          rating: 4.6,
+          ratingCount: 1234,
+          ratingSource: "google",
+          tripadvisorRank: 7,
+          sources: ["google", "osm"],
+        })}
+      />,
+    );
+    expect(screen.getByText("4,6 no Google (1.234 avaliações)")).toBeInTheDocument();
+    expect(screen.getByText("7º no ranking do TripAdvisor em Cuiabá")).toBeInTheDocument();
+  });
+
   it("sem foto aprovada mostra o cartão tipográfico, nunca imagem", () => {
     const { container } = render(<VenueCard item={item()} />);
     expect(screen.getByTestId("venue-typographic-cover")).toBeInTheDocument();
@@ -80,7 +96,7 @@ describe("VenueCard", () => {
 });
 
 describe("VenueCover", () => {
-  it("foto oficial leva crédito 'Reprodução web · nome' e link da fonte", () => {
+  it("foto oficial leva crédito 'Foto: reprodução web · nome' e link da fonte", () => {
     render(
       <VenueCover
         name="Padaria Pão Dourado"
@@ -88,7 +104,7 @@ describe("VenueCover", () => {
         size="hero"
         photo={{
           src: "/api/media/abc",
-          credit: "Reprodução web · Padaria Pão Dourado",
+          credit: "Foto: reprodução web · Padaria Pão Dourado",
           originUrl: "https://paodourado.example/",
         }}
       />,
@@ -98,42 +114,36 @@ describe("VenueCover", () => {
       "src",
       "/api/media/abc",
     );
-    expect(fig).toHaveTextContent("Reprodução web · Padaria Pão Dourado");
+    expect(fig).toHaveTextContent("Foto: reprodução web · Padaria Pão Dourado");
     expect(within(fig).getByRole("link", { name: "Fonte" })).toHaveAttribute(
       "href",
       "https://paodourado.example/",
     );
   });
-});
 
-describe("CriteriaNote", () => {
-  it("mostra Como escolhemos, a linha Dados em texto simples e Atualizada em", () => {
+  it("foto do Google (A-212) vem da rota própria, com o autor no crédito e o link do autor", () => {
     render(
-      <CriteriaNote
-        criteria="Reunimos padarias de Cuiabá com dados públicos."
-        dataSources={["osm", "tripadvisor", "site"]}
-        refreshedAt="2026-10-01T12:00:00Z"
+      <VenueCover
+        name="Padaria Pão Dourado"
+        categoryLabel="Padaria"
+        photo={{
+          src: "/api/guia/foto/padaria-pao-dourado-goiabeiras",
+          credit: GUIDE.venue.googlePhotoCredit("Maria Fictícia"),
+          originUrl: "https://maps.google.com/maps/contrib/123",
+          fromGoogle: true,
+        }}
       />,
     );
-    expect(screen.getByRole("heading", { name: "Como escolhemos" })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Dados: TripAdvisor, OpenStreetMap e sites dos lugares\./),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Atualizada em 01/10/2026")).toBeInTheDocument();
-  });
-
-  it("patrocínio aparece em texto e diz que não altera a ordem", () => {
-    render(
-      <CriteriaNote
-        criteria="Critério."
-        dataSources={["osm"]}
-        refreshedAt="2026-10-01T12:00:00Z"
-        sponsorName="CityNews"
-      />,
+    const fig = screen.getByTestId("venue-photo");
+    expect(within(fig).getByRole("img", { name: "Foto de Padaria Pão Dourado" })).toHaveAttribute(
+      "src",
+      "/api/guia/foto/padaria-pao-dourado-goiabeiras",
     );
-    expect(
-      screen.getByText(/Patrocinado · CityNews\. O patrocínio não altera a ordem da lista\./),
-    ).toBeInTheDocument();
+    expect(fig).toHaveTextContent("Foto: Maria Fictícia · Google");
+    expect(within(fig).getByRole("link", { name: "Fonte" })).toHaveAttribute(
+      "href",
+      "https://maps.google.com/maps/contrib/123",
+    );
   });
 });
 
@@ -178,5 +188,20 @@ describe("vocabulário público do Guia", () => {
       "Dados: TripAdvisor, OpenStreetMap, sites dos lugares e informações da redação",
     );
     expect(dataLine([])).toBe("");
+    expect(dataLine(["osm", "google", "site"])).toBe(
+      "Dados: Google, OpenStreetMap e sites dos lugares",
+    );
+  });
+
+  it("textos do Google: nota com a fonte, link do Maps e atribuição", () => {
+    expect(GUIDE.list.rating("4,6", 1234, "google")).toBe("4,6 no Google (1.234 avaliações)");
+    expect(GUIDE.list.rating("4,6", 312, "tripadvisor")).toBe(
+      "4,6 no TripAdvisor (312 avaliações)",
+    );
+    expect(GUIDE.venue.googleMaps).toBe("Ver no Google Maps");
+    expect(GUIDE.list.attribution.google).toBe("Avaliações: Google.");
+    expect(GUIDE.list.attribution.googleWithPhotos).toBe("Avaliações e fotos: Google.");
+    expect(GUIDE.venue.googlePhotoCredit(null)).toBe("Foto: Google");
+    expect(GUIDE.venue.googlePhotoCredit("Ana")).not.toMatch(FORBIDDEN);
   });
 });

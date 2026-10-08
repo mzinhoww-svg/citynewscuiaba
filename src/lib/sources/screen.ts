@@ -1,4 +1,4 @@
-import { SOURCE_CATEGORY_TEXT } from "@/content/pt-BR/sources";
+import { SOURCE_CATEGORY_TEXT } from "@/content/pt-BR/sources-list";
 import { LOCALITY_TEXT } from "@/content/pt-BR/recommendations";
 import type { AnonProfile } from "@/lib/anon/types";
 import { explainRecommendation } from "@/lib/ranking/explain";

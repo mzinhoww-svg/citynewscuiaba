@@ -5,6 +5,7 @@ import { GUIDE_ADMIN_TEXT } from "@/content/pt-BR/guide";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { Select } from "../../ui/Select";
+import { TextArea } from "../../ui/TextArea";
 import { TextField } from "../../ui/TextField";
 import type { AdminReply } from "../admin/AdminStatus";
 import type { AdminList } from "./types";
@@ -101,22 +102,15 @@ export function AdjustDialog({
           value={intro}
           onChange={(e) => setIntro(e.target.value)}
         />
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={`${uid}-criterio`} className="type-meta font-semibold text-strong">
-            {T.criteriaField}
-          </label>
-          <textarea
-            id={`${uid}-criterio`}
-            value={criteria}
-            onChange={(e) => setCriteria(e.target.value)}
-            rows={5}
-            aria-describedby={`${uid}-criterio-dica`}
-            className="w-full rounded-md border border-line-control bg-card-white p-3 type-body text-strong"
-          />
-          <p id={`${uid}-criterio-dica`} className="type-meta text-meta">
-            {T.criteriaHint}
-          </p>
-        </div>
+        <TextArea
+          id={`${uid}-criterio`}
+          name="criterio"
+          label={T.criteriaField}
+          value={criteria}
+          onChange={setCriteria}
+          rows={5}
+          hint={T.criteriaHint}
+        />
         <fieldset className="flex flex-col gap-2">
           <legend className="type-meta font-semibold text-strong">{T.items}</legend>
           <ol className="flex flex-col gap-3">

@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState, type MouseEvent } from "react";
+import { useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import {
-  AggregatedCard,
   Button,
   Chip,
+  CollapsibleFilters,
   EmptyState,
   InlineAlert,
   PopularSourcesRail,
@@ -12,15 +12,15 @@ import {
   SourceRow,
   Tabs,
   Toggle,
+  useToast,
 } from "@/components";
 import { SOURCE_TEXT } from "@/content/pt-BR/recommendations";
-import { SOURCES_PAGE as T } from "@/content/pt-BR/sources";
-import { ANON_TEXT } from "@/content/pt-BR/privacy";
+import { SOURCES_PAGE as T } from "@/content/pt-BR/sources-list";
+import { ANON_TEXT } from "@/content/pt-BR/privacy-anon";
 import { requestLoginInvite } from "@/lib/anon/invite";
 import type { DismissReason } from "@/lib/anon/types";
 import { useAnonProfile } from "@/lib/anon/use-profile";
 import { useConsent } from "@/lib/consent/client";
-import type { AggregatedView } from "@/lib/db/queries/types";
 import { useTrack } from "@/lib/events/use-track";
 import { LOCAL_LOCALITIES } from "@/lib/ranking/explain";
 import type { RankList, RecConfig } from "@/lib/ranking/types";
@@ -42,9 +42,17 @@ import {
   type SourcesQuery,
 } from "@/lib/sources/screen";
 
+/** Item agregado já renderizado no servidor (item 86): o cliente só escolhe quais mostrar. */
+export interface SourcesItemCard {
+  id: string;
+  sourceSlug: string;
+  card: ReactNode;
+}
+
 export interface SourcesClientProps {
   entries: SourceListEntry[];
-  items: AggregatedView[];
+  /** Últimas das fontes: cards prontos do servidor, na ordem de publicação. */
+  items: SourcesItemCard[];
   config: RecConfig;
   query: SourcesQuery;
   /** Personalização lida do cookie no servidor (primeira renderização igual à do servidor). */
@@ -62,7 +70,8 @@ type Notice = { text: string; undo: () => void };
 
 /**
  * Parte interativa de Fontes em destaque: abas (`?aba=`), switch de personalização, seguir e
- * ocultar com motivo e desfazer. Tudo local ao navegador (perfil anônimo), sem login.
+ * ocultar com motivo e desfazer. Tudo local ao navegador (perfil anônimo), sem login. Os cards
+ * dos itens agregados vêm prontos do servidor (item 86): aqui só a escolha e a ordem.
  * `data-ready` marca que o perfil local já foi aplicado (testes e2e esperam por ele).
  */
 export function SourcesClient({
@@ -77,6 +86,12 @@ export function SourcesClient({
   const personalization = consent.decided ? consent.personalization : initialPersonalization;
   const { profile, degraded, ready, act } = useAnonProfile();
   const send = useTrack();
+  const toast = useToast();
+  // Falha ao gravar no perfil local (item 88): avisa e não segue como se tivesse dado certo.
+  const saved = (r: { ok: boolean }) => {
+    if (!r.ok) toast.show({ message: ANON_TEXT.actFailed, tone: "error" });
+    return r.ok;
+  };
   const [tab, setTab] = useState<RankList>(query.tab);
   const [notice, setNotice] = useState<Notice | null>(null);
   const noticeRef = useRef<HTMLDivElement>(null);
@@ -138,7 +153,8 @@ export function SourcesClient({
   };
 
   const onFollow = (slug: string, next: boolean) => {
-    void act((s) => (next ? s.follow("source", slug) : s.unfollow("source", slug))).then(() => {
+    void act((s) => (next ? s.follow("source", slug) : s.unfollow("source", slug))).then((r) => {
+      if (!saved(r)) return;
       if (next) {
         void send(
           "source_followed",
@@ -169,10 +185,12 @@ export function SourcesClient({
       });
       return;
     }
-    void act((s) => s.hide(slug, reason));
-    show({
-      text: T.hiddenDone(card?.name ?? slug),
-      undo: () => void act((s) => s.unhide(slug)),
+    void act((s) => s.hide(slug, reason)).then((r) => {
+      if (!saved(r)) return;
+      show({
+        text: T.hiddenDone(card?.name ?? slug),
+        undo: () => void act((s) => s.unhide(slug)).then(saved),
+      });
     });
   };
 
@@ -204,7 +222,7 @@ export function SourcesClient({
 
       <section
         aria-label={T.personalization}
-        className="flex flex-col gap-3 border border-line-section bg-card-white p-4 sm:flex-row sm:items-center sm:justify-between"
+        className="flex items-center justify-between gap-4 border-y border-line-subtle py-3"
       >
         <div className="flex flex-col gap-1">
           <p className="type-body font-semibold text-strong">{T.personalization}</p>
@@ -228,46 +246,44 @@ export function SourcesClient({
         </InlineAlert>
       )}
 
-      <nav aria-label={T.filtersLabel} className="flex flex-col gap-3">
-        {(
-          [
-            ["period", PERIODS],
-            ["region", REGIONS],
-            ["theme", THEMES],
-          ] as const
-        ).map(([group, values]) => (
-          <div key={group} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-            <p className="w-24 shrink-0 type-meta font-semibold text-strong">{T.groups[group]}</p>
-            <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
-              {values.map((v) => {
-                const active = query[group] === v;
-                const href =
-                  group === "period"
-                    ? sourcesHref(
-                        { ...query, tab },
-                        { period: active ? "semana" : (v as SourcesQuery["period"]) },
-                      )
-                    : sourcesHref({ ...query, tab }, { [group]: active ? null : v });
-                return (
-                  <li key={v} className="snap-start">
-                    <Chip href={href} active={active}>
-                      {T.filters[v]}
-                    </Chip>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
-        {filtered && (
-          <a
-            href={sourcesHref({ tab, period: "semana" })}
-            className="inline-flex min-h-tap items-center self-start text-14 font-semibold text-link underline underline-offset-4"
-          >
-            {T.clearFilters}
-          </a>
-        )}
-      </nav>
+      <CollapsibleFilters
+        activeCount={[query.region, query.theme, query.period !== "semana"].filter(Boolean).length}
+        clearHref={sourcesHref({ tab, period: "semana" })}
+        clearLabel={T.clearFilters}
+      >
+        <nav aria-label={T.filtersLabel} className="flex flex-col gap-3">
+          {(
+            [
+              ["period", PERIODS],
+              ["region", REGIONS],
+              ["theme", THEMES],
+            ] as const
+          ).map(([group, values]) => (
+            <div key={group} className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+              <p className="w-24 shrink-0 type-meta font-semibold text-strong">{T.groups[group]}</p>
+              <ul className="flex snap-x gap-2 overflow-x-auto py-1 scrollbar-none">
+                {values.map((v) => {
+                  const active = query[group] === v;
+                  const href =
+                    group === "period"
+                      ? sourcesHref(
+                          { ...query, tab },
+                          { period: active ? "semana" : (v as SourcesQuery["period"]) },
+                        )
+                      : sourcesHref({ ...query, tab }, { [group]: active ? null : v });
+                  return (
+                    <li key={v} className="snap-start">
+                      <Chip href={href} active={active}>
+                        {T.filters[v]}
+                      </Chip>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </nav>
+      </CollapsibleFilters>
 
       <div className="flex flex-col gap-5">
         <Tabs
@@ -342,12 +358,7 @@ export function SourcesClient({
                   <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     {popularItems.map((item) => (
                       <li key={item.id} className="flex min-w-0" data-item-source={item.sourceSlug}>
-                        <AggregatedCard
-                          item={item}
-                          surface="white"
-                          now={now}
-                          className="min-w-0 flex-1"
-                        />
+                        {item.card}
                       </li>
                     ))}
                   </ul>
@@ -382,7 +393,7 @@ export function SourcesClient({
                   size="sm"
                   variant="outline"
                   aria-label={T.showAgainLabel(h.name)}
-                  onClick={() => void act((s) => s.unhide(h.slug))}
+                  onClick={() => void act((s) => s.unhide(h.slug)).then(saved)}
                 >
                   {T.showAgain}
                 </Button>
@@ -501,7 +512,8 @@ function TabBody({
     );
 
   return (
-    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    // Celular: lista com divisórias (o card vira linha); a partir de sm, grade de cards.
+    <ul className="grid grid-cols-1 border-t border-line-subtle sm:grid-cols-2 sm:gap-4 sm:border-t-0 lg:grid-cols-3">
       {cards.map((c, i) => (
         <li
           key={c.slug}

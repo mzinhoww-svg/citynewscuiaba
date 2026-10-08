@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { forwardedFor } from "./own-ip";
+import { openFilters } from "./helpers/filters";
 
 const EVENT = "/agenda/noite-de-rasqueado-no-sesc-arsenal";
 
@@ -171,6 +172,7 @@ test("título da agenda é menor que a manchete lead", async ({ page }) => {
 
 test("filtros da agenda aplicam na hora e ficam na URL", async ({ page }) => {
   await page.goto("/agenda");
+  await openFilters(page);
   await expect(page.getByRole("button", { name: "Aplicar filtros" })).toHaveCount(0);
   await expect(page.locator("form[data-filter-bar][data-ready=true]")).toBeVisible();
   await page.getByLabel("Categoria").selectOption("musica");

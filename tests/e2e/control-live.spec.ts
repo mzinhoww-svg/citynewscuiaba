@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { controlFixture, type ControlFixture } from "./control";
 import { loginAs, service } from "./studio";
+import { openFilters } from "./helpers/filters";
 
 /*
  * P5-T3 · Control Center: visão geral (fonte com 3 falhas = "Pausada automaticamente"), tempo real por
@@ -67,24 +68,7 @@ test("tempo real: novo evento aparece sem recarregar a página", async ({ page }
   );
 });
 
-test("falhas: reprocessa a quarentena mantendo decisões humanas", async ({ page }) => {
-  await loginAs(page, "diego", "/estudio/control/falhas");
-  const row = page.getByRole("row").filter({ hasText: `tempo esgotado ${fx.mark}` });
-  await expect(row).toContainText("Quarentena");
-  await row.getByRole("checkbox").check();
-  await expect(page.getByRole("checkbox", { name: "Manter decisões humanas" })).toBeChecked();
-  await page.getByRole("button", { name: "Reprocessar selecionadas" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "voltou à fila" })).toBeVisible();
-  await expect(page.getByRole("row").filter({ hasText: `tempo esgotado ${fx.mark}` })).toHaveCount(
-    0,
-  );
-  const { data } = await service()
-    .from("pipeline_quarantine")
-    .select("resolved_at, resolved_by")
-    .eq("id", fx.quarantineId)
-    .single();
-  expect(data?.resolved_at).not.toBeNull();
-});
+// Falhas (reprocessar, grupos, cartões no celular): tests/e2e/control-failures.spec.ts.
 
 test("execuções: detalhe do ciclo com gráfico de fases e resumo textual", async ({ page }) => {
   await loginAs(page, "thiago", "/estudio/control/execucoes");
@@ -99,6 +83,7 @@ test("execuções: detalhe do ciclo com gráfico de fases e resumo textual", asy
 
 test("logs: filtra por texto, mascara IP e exporta CSV", async ({ page }) => {
   await loginAs(page, "diego", "/estudio/control/logs");
+  await openFilters(page);
   await page.getByLabel("Buscar no texto").fill(fx.mark);
   await page.getByRole("button", { name: "Filtrar" }).click();
   await expect(page).toHaveURL(new RegExp(`q=${fx.mark}`));

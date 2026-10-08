@@ -206,11 +206,13 @@ describe("I-4 · aprovação aprovada expira em 24 h se não for aplicada", () =
     return (await svc.from("approvals").select("status").eq("id", id).single()).data?.status;
   }
 
-  it("aprovada há 2 dias não é consumida: a regra de duas pessoas recusa", async () => {
+  it("aprovada há 2 dias não é consumida: o banco exige aprovação registrada e recente", async () => {
     const s = await rowBySlug("brasil-hoje");
     expect(s.image_policy).toBe("none");
     const old = await insertApproval(new Date(Date.now() - 2 * 86_400_000).toISOString());
-    expect(await updateAs(diego(), s.id, { image_policy: value })).toMatch(/outra pessoa/);
+    expect(await updateAs(diego(), s.id, { image_policy: value })).toMatch(
+      /exige aprovação registrada/,
+    );
     expect((await rowBySlug("brasil-hoje")).image_policy).toBe("none");
     expect(await approvalStatus(old)).toBe("approved");
   });

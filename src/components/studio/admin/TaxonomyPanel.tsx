@@ -7,6 +7,7 @@ import type { TaxonomyOverview } from "@/lib/db/queries/admin";
 import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { AdminStatus, AdminTable, type AdminReply } from "./AdminStatus";
@@ -117,7 +118,7 @@ export function TaxonomyPanel({
             {X.mergeManual}
           </Button>
         </div>
-        <div className="flex flex-col gap-2 rounded-lg border border-line-subtle bg-card-white p-4">
+        <Panel as="div" className="flex flex-col gap-2">
           <h3 className="type-body font-semibold text-strong">{X.suggestions}</h3>
           <p className="type-meta text-meta">{X.suggestionsIntro}</p>
           {data.suggestions.length === 0 ? (
@@ -146,7 +147,7 @@ export function TaxonomyPanel({
               )}
             </ul>
           )}
-        </div>
+        </Panel>
         {data.tags.length === 0 ? (
           <EmptyState title={X.tagsEmpty} />
         ) : (

@@ -29,7 +29,7 @@ export function CollectionCard({
     <article
       className={cx(
         "relative flex flex-col gap-2 bg-section p-4 [--card-radius:var(--r-0)]",
-        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-nevoa-2",
+        "transition-colors duration-(--dur-base) ease-(--ease-standard) hover:bg-hover",
         className,
       )}
     >

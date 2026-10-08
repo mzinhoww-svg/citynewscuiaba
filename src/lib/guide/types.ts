@@ -4,17 +4,27 @@
  */
 
 /** Origem de um dado do lugar; vira a linha "Dados: ..." na tela pública. */
-export const DATA_SOURCES = ["osm", "tripadvisor", "site", "wikidata", "manual"] as const;
+export const DATA_SOURCES = ["google", "osm", "tripadvisor", "site", "wikidata", "manual"] as const;
 export type DataSource = (typeof DATA_SOURCES)[number];
 
 export type VenueStatus = "active" | "suspended" | "inactive";
 
 /** Identificadores do lugar em cada provedor (`venues.place_ids`). */
 export interface PlaceIds {
+  /** Place ID da Places API (New); o único dado do Google guardado sem prazo. */
+  google?: string;
   /** `node/123`, `way/456` ou `relation/789`. */
   osm?: string;
   tripadvisor?: string;
   wikidata?: string;
+}
+
+/** Referência da foto do Google (`places/{id}/photos/{ref}`) e o autor exigido pelos termos. */
+export interface GooglePhotoRef {
+  name: string;
+  author: string | null;
+  /** Perfil do autor no Google Maps (só https). */
+  authorUri: string | null;
 }
 
 /**
@@ -43,6 +53,15 @@ export interface VenueRecord {
   ratingSource: "tripadvisor" | "google" | "manual" | null;
   tripadvisorRank: number | null;
   tripadvisorUrl: string | null;
+  /** Link do lugar no Google Maps (atribuição exigida pelos termos; vale 30 dias). */
+  googleMapsUrl: string | null;
+  /** `primaryType` do lugar no Google (`bakery`, `hotel`); confere a categoria (A-210). */
+  googleType: string | null;
+  /**
+   * Foto principal do lugar no Google (A-212): só a referência e o crédito do autor; o arquivo
+   * nunca é guardado (a rota `/api/guia/foto/[slug]` busca e repassa). Vale 30 dias, como o resto.
+   */
+  googlePhoto: GooglePhotoRef | null;
   placeIds: PlaceIds;
   /** Fontes que trouxeram dados para este registro. */
   sources: DataSource[];

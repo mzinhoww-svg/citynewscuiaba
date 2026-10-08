@@ -26,24 +26,40 @@ it("500 tenta de novo e mostra o código", async () => {
   expect(reset).toHaveBeenCalled();
 });
 
-it("institucional destaca dado pendente e explica", () => {
-  render(
+it("500 sem código (erro no navegador) recarrega a página em vez de só refazer o render", async () => {
+  const reload = vi.fn();
+  vi.stubGlobal("location", { ...window.location, reload });
+  const reset = vi.fn();
+  render(<ErrorState reset={reset} />);
+  await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }));
+  expect(reload).toHaveBeenCalled();
+  expect(reset).not.toHaveBeenCalled();
+  vi.unstubAllGlobals();
+});
+
+it("institucional esconde dado pendente e a seção que fica vazia (A-152)", () => {
+  const { container } = render(
     <DocPage
       title="Sobre"
       intro="Intro"
       path="/sobre"
-      sections={[{ title: "Quem somos", items: ["CNPJ: [PREENCHER]"] }]}
+      sections={[
+        { title: "Quem somos", items: ["CNPJ: [PREENCHER]", "Endereço: Avenida São Sebastião"] },
+        { title: "Foro", items: ["Foro: [PREENCHER]"] },
+      ]}
     />,
   );
-  expect(screen.getByText("[PREENCHER]").tagName).toBe("MARK");
-  expect(screen.getByText(/aguardam dados oficiais/)).toBeInTheDocument();
+  expect(container.textContent).not.toContain("PREENCHER");
+  expect(screen.queryByText(/aguardam dados oficiais/)).toBeNull();
+  expect(screen.getByText("Endereço: Avenida São Sebastião")).toBeInTheDocument();
+  expect(screen.queryByRole("heading", { name: "Foro" })).toBeNull();
 });
 
 it("404 e 500 são compactos no celular (busca e ações sobem acima do banner)", () => {
   const { container, unmount } = render(<NotFoundState />);
-  expect(container.firstElementChild).toHaveClass("py-6");
+  expect(container.firstElementChild).toHaveClass("py-4");
   expect(container.firstElementChild).not.toHaveClass("py-12");
   unmount();
   const r = render(<ErrorState reset={() => {}} />);
-  expect(r.container.firstElementChild).toHaveClass("py-6");
+  expect(r.container.firstElementChild).toHaveClass("py-4");
 });

@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Pagination } from "@/components";
 import {
   CollectionSettingsDialog,
   FastLaneSkippedNotice,
   SourceApprovalsNotice,
   SourceFilters,
   SourcesTable,
+  StudioScreen,
 } from "@/components/estudio";
+import { CONTROL_TEXT } from "@/content/pt-BR/control";
 import { SOURCES_LIST_TEXT as T, SOURCE_STATUS_TEXT } from "@/content/pt-BR/sources-admin";
 import {
   fastLaneSkippedSources,
@@ -64,44 +65,46 @@ export default async function SourcesListPage({ searchParams }: Props) {
   const fastSkippedNames = fastSkippedResult.ok ? fastSkippedResult.value.map((s) => s.name) : [];
 
   return (
-    <section className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="type-screen-title text-strong">{T.title}</h1>
-            {sourcesResult.ok && (
-              <p className="type-body text-meta">
-                {T.fastLane(sourcesResult.value.fastLane.used, sourcesResult.value.fastLane.max)}
-              </p>
-            )}
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
-            {sourcesResult.ok && (
-              <CollectionSettingsDialog
-                defaultFrequency={sourcesResult.value.defaultFrequency}
-                fastLane={sourcesResult.value.fastLane}
-              />
-            )}
-            <Button href={`${BASE}/nova`} size="md" icon="plus">
-              {T.addSource}
-            </Button>
-          </div>
+    <StudioScreen
+      section={CONTROL_TEXT.sectionLabel}
+      title={T.title}
+      intro={
+        sourcesResult.ok ? (
+          <>
+            <p className="type-body text-meta">
+              {T.fastLane(sourcesResult.value.fastLane.used, sourcesResult.value.fastLane.max)}
+            </p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 type-meta text-meta">
+              {(
+                Object.keys(
+                  sourcesResult.value.counts,
+                ) as (keyof typeof sourcesResult.value.counts)[]
+              ).map((s) => (
+                <li key={s}>
+                  {SOURCE_STATUS_TEXT[s]}:{" "}
+                  <span className="font-semibold text-strong">{sourcesResult.value.counts[s]}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : undefined
+      }
+      actions={
+        <div className="flex flex-wrap items-center gap-3">
+          {sourcesResult.ok && (
+            <CollectionSettingsDialog
+              defaultFrequency={sourcesResult.value.defaultFrequency}
+              fastLane={sourcesResult.value.fastLane}
+            />
+          )}
+          <Button href={`${BASE}/nova`} size="md" icon="plus">
+            {T.addSource}
+          </Button>
         </div>
-        {sourcesResult.ok && (
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 type-meta text-meta">
-            {(
-              Object.keys(sourcesResult.value.counts) as (keyof typeof sourcesResult.value.counts)[]
-            ).map((s) => (
-              <li key={s}>
-                {SOURCE_STATUS_TEXT[s]}:{" "}
-                <span className="font-semibold text-strong">{sourcesResult.value.counts[s]}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        <SourceApprovalsNotice count={pendingTotal} href={`${BASE}?pendente=1`} />
-        <FastLaneSkippedNotice names={fastSkippedNames} />
-      </header>
+      }
+    >
+      <SourceApprovalsNotice count={pendingTotal} href={`${BASE}?pendente=1`} />
+      <FastLaneSkippedNotice names={fastSkippedNames} />
 
       <SourceFilters filters={filters} basePath={BASE} />
 
@@ -137,7 +140,7 @@ export default async function SourcesListPage({ searchParams }: Props) {
             defaultFrequencyMinutes={sourcesResult.value.defaultFrequency}
             fastLane={sourcesResult.value.fastLane}
           />
-          <Pagination
+          <SourcesPagination
             page={filters.page}
             total={sourcesResult.value.total}
             basePath={BASE}
@@ -145,11 +148,11 @@ export default async function SourcesListPage({ searchParams }: Props) {
           />
         </>
       )}
-    </section>
+    </StudioScreen>
   );
 }
 
-function Pagination({
+function SourcesPagination({
   page,
   total,
   basePath,
@@ -161,37 +164,10 @@ function Pagination({
   query: URLSearchParams;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / SOURCES_PAGE_SIZE));
-  if (totalPages <= 1) return null;
   const hrefFor = (p: number) => {
     const params = new URLSearchParams(query);
     params.set("pagina", String(p));
     return `${basePath}?${params.toString()}`;
   };
-  return (
-    <nav aria-label="Paginação" className="flex items-center justify-between gap-4">
-      {page > 1 ? (
-        <Link
-          href={hrefFor(page - 1)}
-          className="inline-flex items-center gap-1 type-body text-link no-underline hover:underline"
-        >
-          <Icon name="chevron-left" size={18} />
-          {T.pagination.prev}
-        </Link>
-      ) : (
-        <span />
-      )}
-      <p className="type-meta text-meta">{T.pagination.of(page, totalPages)}</p>
-      {page < totalPages ? (
-        <Link
-          href={hrefFor(page + 1)}
-          className="inline-flex items-center gap-1 type-body text-link no-underline hover:underline"
-        >
-          {T.pagination.next}
-          <Icon name="chevron-right" size={18} />
-        </Link>
-      ) : (
-        <span />
-      )}
-    </nav>
-  );
+  return <Pagination page={page} totalPages={totalPages} hrefFor={hrefFor} label="Paginação" />;
 }

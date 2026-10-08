@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, EmptyState, Icon } from "@/components";
+import { Button, EmptyState, Icon, StatGrid } from "@/components";
 import { PushBreakdown, PushStatusBadge, PushTimeline } from "@/components/estudio";
 import { clockTime, fullDateTime } from "@/content/pt-BR/sources-admin";
 import { PUSH_ADMIN_TEXT, PUSH_HISTORY_TEXT as T } from "@/content/pt-BR/notifications-admin";
@@ -13,15 +13,6 @@ export const metadata: Metadata = { title: "Envio · Notificações · Estúdio 
 export const dynamic = "force-dynamic";
 
 const BASE = `${PUSH_ADMIN_PATH}/historico`;
-
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-lg border border-line-section bg-card-white px-4 py-3">
-      <dt className="type-meta text-meta">{label}</dt>
-      <dd className="type-section text-strong">{value}</dd>
-    </div>
-  );
-}
 
 /** Detalhe do envio (spec §10.4): linha do tempo, números, pulos, falhas e detalhamento. */
 export default async function PushHistoryDetailPage({
@@ -85,26 +76,29 @@ export default async function PushHistoryDetailPage({
       </header>
 
       <section aria-labelledby="linha-do-tempo" className="flex flex-col gap-3">
-        <h3 id="linha-do-tempo" className="type-label text-16 text-strong">
+        <h3 id="linha-do-tempo" className="type-label text-strong">
           {T.detail.timeline}
         </h3>
         <PushTimeline items={d.timeline} />
       </section>
 
       <section aria-labelledby="numeros" className="flex flex-col gap-3">
-        <h3 id="numeros" className="type-label text-16 text-strong">
+        <h3 id="numeros" className="type-label text-strong">
           {T.detail.numbers}
         </h3>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label={C.targets} value={d.targets} />
-          <Stat label={C.sent} value={d.sent} />
-          <Stat label={C.accepted} value={d.accepted} />
-          <Stat label={C.failed} value={d.failed} />
-          <Stat label={C.removed} value={d.removed} />
-          <Stat label={C.skipped} value={d.skipped} />
-          <Stat label={C.delivered} value={d.delivered} />
-          <Stat label={C.clicked} value={d.clicked} />
-        </dl>
+        <StatGrid
+          columns={4}
+          items={[
+            { label: C.targets, value: d.targets },
+            { label: C.sent, value: d.sent },
+            { label: C.accepted, value: d.accepted },
+            { label: C.failed, value: d.failed },
+            { label: C.removed, value: d.removed },
+            { label: C.skipped, value: d.skipped },
+            { label: C.delivered, value: d.delivered },
+            { label: C.clicked, value: d.clicked },
+          ]}
+        />
         <p className="type-meta text-meta">{T.ctrNote}</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
@@ -139,7 +133,7 @@ export default async function PushHistoryDetailPage({
       </section>
 
       <section aria-labelledby="detalhamento" className="flex flex-col gap-3">
-        <h3 id="detalhamento" className="type-label text-16 text-strong">
+        <h3 id="detalhamento" className="type-label text-strong">
           {T.detail.breakdown}
         </h3>
         <PushBreakdown rows={d.byDevice} />

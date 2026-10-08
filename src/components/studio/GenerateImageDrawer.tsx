@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { MEDIA_TEXT as T } from "@/content/pt-BR/studio";
 import { cx } from "../cx";
 import { Button } from "../ui/Button";
+import { Drawer } from "../ui/Drawer";
 import { Icon } from "../ui/Icon";
-import { IconButton } from "../ui/IconButton";
 
 export type GenerateReply =
   | {
@@ -30,47 +30,23 @@ export interface GenerateImageDrawerProps {
  * sugerida a partir da matéria e recusa explicada quando o tema não permite.
  */
 export function GenerateImageDrawer({ articleId, suggest, className }: GenerateImageDrawerProps) {
-  const uid = useId();
-  const ref = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
   const [reply, setReply] = useState<GenerateReply | null>(null);
   const [pending, start] = useTransition();
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (open && !el.open) el.showModal?.();
-    if (!open && el.open) el.close?.();
-  }, [open]);
 
   return (
     <div className={className}>
       <Button size="md" variant="outline" icon="camera" onClick={() => setOpen(true)}>
         {T.generate}
       </Button>
-      <dialog
-        ref={ref}
-        tabIndex={-1}
-        aria-labelledby={`${uid}-titulo`}
+      <Drawer
+        open={open}
         onClose={() => setOpen(false)}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) setOpen(false);
-        }}
-        className="mt-0 mr-0 mb-0 ml-auto h-dvh max-h-dvh w-full max-w-md bg-transparent p-0 backdrop:bg-overlay backdrop:backdrop-blur-scrim open:motion-safe:animate-fade-in"
+        title={T.generateTitle}
+        side="right"
+        closeLabel={T.close}
       >
-        <div className="flex h-full flex-col gap-5 overflow-y-auto bg-card-white p-6 shadow-dialog">
-          <div className="flex items-start justify-between gap-3">
-            <h2 id={`${uid}-titulo`} className="text-18 font-semibold text-strong">
-              {T.generateTitle}
-            </h2>
-            <IconButton
-              icon="x"
-              variant="ghost"
-              size={44}
-              label={T.close}
-              onClick={() => setOpen(false)}
-            />
-          </div>
+        <div className="flex flex-col gap-5 p-6">
           <section className="flex flex-col gap-2">
             <h3 className="type-eyebrow text-meta">{T.restrictionsTitle}</h3>
             <ul className="flex flex-col gap-1">
@@ -114,7 +90,7 @@ export function GenerateImageDrawer({ articleId, suggest, className }: GenerateI
             )}
           </div>
         </div>
-      </dialog>
+      </Drawer>
     </div>
   );
 }

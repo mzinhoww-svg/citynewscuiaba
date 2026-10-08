@@ -114,14 +114,17 @@ export function FollowButton({
 }
 
 /**
- * Card da grade de exploração (desktop) de "Fontes em destaque" (DESIGN.md §6): card branco com
- * hairline, avatar 56, nome, editoria · localidade, selos, justificativa, alcance aproximado,
- * tendência de 7 dias, matérias hoje e atualização; ações Seguir, Ver matérias e Ocultar.
+ * Card enxuto da grade de "Fontes em destaque" (DESIGN.md §6, spec UI §3, UI-T10): avatar 56,
+ * nome, editoria · localidade, uma justificativa, Seguir e Ver matérias. Números (alcance
+ * aproximado, tendência de 7 dias, matérias hoje, atualização) e selos ficam em "Detalhes";
+ * "Ocultar" fica no menu ⋯ do canto (a tela oferece "Desfazer").
  *
  * ```tsx
  * <SourceCard source={data} onFollow={toggleFollow} onHide={hide} />
  * ```
  * - O card não é um link inteiro: o nome e "Ver matérias" levam à página da fonte.
+ * - No celular (abaixo de sm) é linha com divisória, não card: avatar 40, sem moldura e sem
+ *   "Ver matérias" (o nome já leva à página). A moldura de card volta a partir de sm.
  * - Nunca mostra contagem exata de leitores, "melhor", "top" ou estrelas.
  */
 export function SourceCard({ source, onFollow, onHide, now, className }: SourceCardProps) {
@@ -131,7 +134,8 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
     <article
       aria-labelledby={titleId}
       className={cx(
-        "flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4",
+        "flex flex-col gap-3 border-b border-line-subtle py-4",
+        "sm:rounded-lg sm:border sm:bg-card-white sm:p-4",
         className,
       )}
     >
@@ -140,7 +144,7 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           name={source.name}
           code={source.code}
           image={source.logo}
-          size={56}
+          size="card"
           decorative
         />
         <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -155,51 +159,15 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           <p className="type-meta text-meta">
             {source.category} · {source.locality}
           </p>
-          <SourceBadges preferred={source.preferred} verified={source.verified} />
         </div>
+        <DismissMenu
+          sourceName={source.name}
+          onChoose={(reason) => onHide(source.slug, reason)}
+          className="-mt-2 -mr-2"
+        />
       </div>
 
       <RecommendationReason text={source.reason} />
-
-      <dl
-        aria-label={SOURCE_TEXT.statsLabel(source.name)}
-        className="grid grid-cols-2 gap-x-4 gap-y-2 type-meta text-meta"
-      >
-        <div className="flex flex-col">
-          <dt className="sr-only">{SOURCE_TEXT.reach}</dt>
-          <dd className="flex items-center gap-1.5">
-            <Icon name="users" size={16} />
-            <span>{formatReach(source.reach)}</span>
-          </dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="sr-only">{SOURCE_TEXT.trend}</dt>
-          <dd className="flex items-center gap-1.5">
-            <Icon name={TREND_ICON[source.trend]} size={16} />
-            <span>{SOURCE_TEXT.trendText[source.trend]}</span>
-          </dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="sr-only">{SOURCE_TEXT.today}</dt>
-          <dd className="flex items-center gap-1.5">
-            <Icon name="newspaper" size={16} />
-            <span>{SOURCE_TEXT.todayText(source.itemsToday)}</span>
-          </dd>
-        </div>
-        <div className="flex flex-col">
-          <dt className="sr-only">{SOURCE_TEXT.updated}</dt>
-          <dd className="flex items-center gap-1.5">
-            <Icon name="clock" size={16} />
-            {source.updatedAt ? (
-              <time dateTime={source.updatedAt}>
-                {source.stale ? SOURCE_TEXT.staleText(updated) : SOURCE_TEXT.updatedText(updated)}
-              </time>
-            ) : (
-              <span>{SOURCE_TEXT.neverUpdated}</span>
-            )}
-          </dd>
-        </div>
-      </dl>
 
       <div className="mt-auto flex flex-wrap items-center gap-2">
         <FollowButton source={source} onFollow={onFollow} size="sm" />
@@ -208,15 +176,68 @@ export function SourceCard({ source, onFollow, onHide, now, className }: SourceC
           size="sm"
           href={source.href}
           aria-label={SOURCE_TEXT.seeItemsLabel(source.name)}
+          className="max-sm:hidden"
         >
           {SOURCE_TEXT.seeItems}
         </Button>
-        <DismissMenu
-          sourceName={source.name}
-          onChoose={(reason) => onHide(source.slug, reason)}
-          className="ml-auto"
-        />
       </div>
+
+      {/* No celular, sem fio próprio (a linha já tem a divisória de baixo) e com a seta junto do
+          texto; no card, fio de separação e seta no canto. */}
+      <details className="group -mt-1 sm:mt-0 sm:border-t sm:border-line-subtle">
+        <summary className="flex min-h-tap cursor-pointer list-none items-center gap-2 type-meta font-semibold text-strong sm:justify-between [&::-webkit-details-marker]:hidden">
+          {SOURCE_TEXT.details}
+          <Icon
+            name="chevron-down"
+            size={16}
+            className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none"
+          />
+        </summary>
+        <div className="flex flex-col gap-3 pb-1">
+          <SourceBadges preferred={source.preferred} verified={source.verified} />
+          <dl
+            aria-label={SOURCE_TEXT.statsLabel(source.name)}
+            className="grid grid-cols-2 gap-x-4 gap-y-2 type-meta text-meta"
+          >
+            <div className="flex flex-col">
+              <dt className="sr-only">{SOURCE_TEXT.reach}</dt>
+              <dd className="flex items-center gap-1.5">
+                <Icon name="users" size={16} />
+                <span>{formatReach(source.reach)}</span>
+              </dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="sr-only">{SOURCE_TEXT.trend}</dt>
+              <dd className="flex items-center gap-1.5">
+                <Icon name={TREND_ICON[source.trend]} size={16} />
+                <span>{SOURCE_TEXT.trendText[source.trend]}</span>
+              </dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="sr-only">{SOURCE_TEXT.today}</dt>
+              <dd className="flex items-center gap-1.5">
+                <Icon name="newspaper" size={16} />
+                <span>{SOURCE_TEXT.todayText(source.itemsToday)}</span>
+              </dd>
+            </div>
+            <div className="flex flex-col">
+              <dt className="sr-only">{SOURCE_TEXT.updated}</dt>
+              <dd className="flex items-center gap-1.5">
+                <Icon name="clock" size={16} />
+                {source.updatedAt ? (
+                  <time dateTime={source.updatedAt}>
+                    {source.stale
+                      ? SOURCE_TEXT.staleText(updated)
+                      : SOURCE_TEXT.updatedText(updated)}
+                  </time>
+                ) : (
+                  <span>{SOURCE_TEXT.neverUpdated}</span>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </details>
     </article>
   );
 }

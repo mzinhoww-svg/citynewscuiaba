@@ -139,6 +139,25 @@ const RESPONDERS: Record<string, Responder> = {
     verdict: "hold",
     reason: "Provedor falso: mantida para uma pessoa decidir.",
   }),
+  // Texto do Guia que cita cada lugar pelo nome do bloco, sem número: passa na conferência.
+  guide_writer: (data) => {
+    const names = data.map((d) => /^Nome: (.+)$/m.exec(d.text)?.[1]?.trim() || d.id);
+    const article = [
+      "Esta lista reúne lugares de Cuiabá bem avaliados pelos clientes, na ordem em que aparecem abaixo, com o que cada um tem de bom.",
+      ...names.map(
+        (n) => `${n} é uma das escolhas da lista, lembrada pelos clientes pelo atendimento.`,
+      ),
+      "Endereço, telefone, horário e o link de cada lugar estão logo abaixo, na ordem da lista.",
+      "A nota e o número de avaliações de cada lugar aparecem junto do nome, com a fonte do dado.",
+    ].join("\n\n");
+    return {
+      article,
+      notes: data.map((d, i) => ({
+        id: d.id,
+        note: `${names[i]} aparece entre os lugares mais bem avaliados da lista.`,
+      })),
+    };
+  },
   // Resposta fixa que passa no schema estrito; com `estrutura` enviada, também sugere seletores.
   source_profiler: (data) => ({
     categories: ["cidade"],

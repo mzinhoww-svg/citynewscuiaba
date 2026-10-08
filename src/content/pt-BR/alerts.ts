@@ -11,7 +11,7 @@ export const ALERTS_TEXT = {
     "Os avisos do navegador chegam enquanto houver uma página do CityNews aberta neste aparelho.",
   activeTitle: "Alertas ativos",
   activeEmpty: "Nenhum alerta ainda",
-  activeEmptyText: "Crie o primeiro abaixo: por exemplo, avisos do seu bairro.",
+  activeEmptyText: "Use Criar alerta para receber, por exemplo, os avisos do seu bairro.",
   remove: "Remover",
   removeLabel: (label: string) => `Remover alerta ${label}`,
   createTitle: "Criar alerta",
@@ -47,6 +47,9 @@ export const ALERTS_TEXT = {
   unsupported:
     "Este navegador não mostra notificações. Escolha o canal E-mail para receber os alertas.",
   invalidEmail: "Confira o e-mail digitado. Exemplo: ana@exemplo.com",
+  topicsError:
+    "Não conseguimos carregar os assuntos agora. Escolha outro tipo de alerta ou tente de novo mais tarde.",
+  topicsEmpty: "Ainda não há assuntos para acompanhar. Escolha outro tipo de alerta.",
   rateLimited: "Muitas tentativas a partir desta conexão. Tente de novo em uma hora.",
   error: "Não conseguimos criar o alerta agora. Tente de novo em alguns minutos.",
   notifyTitle: (label: string) => `CityNews · ${label}`,

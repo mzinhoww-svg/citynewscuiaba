@@ -34,6 +34,11 @@ export interface PublishStepDeps {
   copyGuard?: boolean;
   /** Disjuntor de volume e de erro (AUT-T4); ausente = sem disjuntor (testes). */
   breaker?: BreakerStore;
+  /**
+   * Depois de publicar (HOT-T3): aplica a pauta quente, porque a matéria do assunto em alta pode
+   * ter acabado de sair. Melhor esforço: a falha nunca desfaz nem atrasa a publicação.
+   */
+  afterPublish?: () => Promise<unknown>;
 }
 
 /**
@@ -56,15 +61,22 @@ export const REDACTION_RULES =
   'REGRAS DE REDAÇÃO (obrigatórias): 1) presunção de inocência: use "suspeito", "acusado", "segundo a polícia" e nunca "culpado" ou "criminoso" antes de condenação; 2) nenhum menor de idade nem vítima de violência sexual é identificado (nome, foto, escola, endereço, parentesco); 3) em caso de suicídio, nenhum detalhe de método ou local; 4) saúde sem orientação clínica, dose, tratamento nem promessa de cura; 5) atribua sempre à fonte com "segundo {fonte}" ou "de acordo com {fonte}"; fato sem fonte no item não entra no texto.';
 const ATTRIBUTION_RULE =
   'ATRIBUIÇÃO: atribua o fato principal à fonte ("segundo {fonte}"). A linha final "Com informações de {fonte}" é acrescentada pelo sistema; não a escreva.';
+/**
+ * Divergência confirmada entre fontes (D-05, nível 2 ou 3): a matéria publica com as versões
+ * atribuídas em vez de esperar consenso, sem escolher um lado nem afirmar o que não está provado.
+ */
+export const DIVERGENCE_RULE =
+  'DIVERGÊNCIA: as fontes divergem sobre um dado do fato. Apresente cada versão atribuída à fonte que a dá ("segundo X, ...; já Y informa ..."), sem escolher uma nem afirmar o dado como confirmado. Número, estimativa ou balanço ainda em atualização sai como preliminar.';
 /** Editorias cujo texto publica sozinho com as regras de redação reforçadas. */
 const SENSITIVE_SECTIONS = new Set(["seguranca", "politica", "saude"]);
 
 /** Pedido ao agente `write` para a editoria: regras de redação reforçadas em segurança, política e saúde. */
-export function writeTaskFor(section: string, sensitive = false): string {
+export function writeTaskFor(section: string, sensitive = false, divergence = false): string {
   return [
     WRITE_TASK,
     ATTRIBUTION_RULE,
     ...(SENSITIVE_SECTIONS.has(section) || sensitive ? [REDACTION_RULES] : []),
+    ...(divergence ? [DIVERGENCE_RULE] : []),
   ].join("\n");
 }
 
@@ -126,11 +138,20 @@ export function citedParagraphs(
   );
 }
 
-/** Rascunho sem IA (Review Focus 4): lista as fontes para a redação escrever. */
-function fallbackDraft(ctx: DraftContext): { title: string; dek: string; body: Paragraph[] } {
+/**
+ * Rascunho sem IA (Review Focus 4): lista as fontes para a redação escrever. Nasce com o título
+ * da fonte principal, nunca com o título provisório do assunto ("Assunto em apuração · …"), e
+ * sem linha fina: o aviso para a redação fica no motivo da revisão, não num campo público.
+ */
+export function fallbackDraft(ctx: DraftContext): {
+  title: string;
+  dek: string;
+  body: Paragraph[];
+} {
+  const lead = ctx.items.find((i) => i.reliability === "primary") ?? ctx.items[0];
   return {
-    title: ctx.topic.title,
-    dek: `Rascunho sem IA com ${ctx.items.length} fonte(s): revise e escreva antes de publicar.`,
+    title: lead?.title.trim() || ctx.topic.title,
+    dek: "",
     body: ctx.items.map((i) => ({
       text: `${i.sourceName}: ${i.title}${i.excerpt ? `. ${i.excerpt}` : ""} (${i.canonicalUrl})`,
       citations: [i.id],
@@ -148,6 +169,20 @@ function summaryWordsFor(section: string): number {
  * IA estiver desligada), a matéria nasce em revisão com um rascunho sem IA e o motivo: o assunto
  * nunca se perde. Idempotente por (assunto, revisão = itens, versão do prompt). Próxima: `image`.
  */
+/**
+ * Novas tentativas da redação antes do rascunho sem IA. Tempo esgotado, falha do provedor, saída
+ * fora do esquema e texto sem citação válida costumam passar na tentativa seguinte (o drain espera
+ * 1 e 4 min): só na última o rascunho sem IA vai para a revisão humana. Orçamento esgotado e IA
+ * desligada não melhoram em minutos e caem no rascunho sem IA na hora.
+ */
+export const WRITE_AI_RETRIES = 2;
+const RETRYABLE_WRITE_FAILURES: ReadonlySet<string> = new Set([
+  "timeout",
+  "provider",
+  "schema",
+  "citations",
+]);
+
 export function createWriteStep(deps: PublishStepDeps): StepHandler {
   return async (msg, run) => {
     const ref = TOPIC_REF.exec(msg.itemRef);
@@ -196,6 +231,7 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
           writeTaskFor(
             section,
             ctx.items.some((i) => i.sensitive),
+            ctx.verify?.centralConflict === true,
           ),
           ...(rewrite > 0 ? [REWRITE_TASK] : []),
         ].join("\n"),
@@ -216,6 +252,19 @@ export function createWriteStep(deps: PublishStepDeps): StepHandler {
         draft = { ...fallbackDraft(ctx), summary: null };
       }
     } else draft = { ...fallbackDraft(ctx), summary: null };
+
+    // Falha passageira da IA: nova tentativa da etapa (backoff do drain), nunca fila humana de cara.
+    // Prazo do drain esgotado não entra: o drain devolveria a mensagem sem contar a tentativa
+    // (`queue_release`), e o assunto giraria para sempre sem chegar à revisão.
+    if (
+      failure !== null &&
+      RETRYABLE_WRITE_FAILURES.has(failure) &&
+      msg.attempt <= WRITE_AI_RETRIES &&
+      !run?.signal?.aborted
+    )
+      return err(
+        stepError.transient(`redação adiada: IA indisponível (${failure})`, { topicId, failure }),
+      );
 
     // No ar, só troca o texto quando a redação deu certo: falha nunca substitui o que está publicado.
     if (live && failure !== null) return ok([]);

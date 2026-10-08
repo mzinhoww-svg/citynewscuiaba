@@ -1,19 +1,30 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, EmptyState, InlineAlert, OriginLabel, SectionHeader } from "@/components";
-import { ConfidenceMeter, DecisionPanel, FieldDiff } from "@/components/estudio";
+import {
+  Button,
+  EmptyState,
+  InlineAlert,
+  OriginLabel,
+  Panel,
+  SectionHeader,
+  Table,
+} from "@/components";
+import { ConfidenceMeter, DecisionPanel, FieldDiff, StudioScreen } from "@/components/estudio";
 import {
   ARTICLE_STATUS_LABEL,
   EDITOR_TEXT,
+  QUEUE_TEXT,
   RECOMMENDED_LABEL,
   REVIEW_TEXT as T,
 } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { requireRole } from "@/lib/auth/require-role";
+import { nextQueueItem } from "@/lib/db/queries/queue-next";
 import { getStudioArticle } from "@/lib/db/queries/studio-article";
 import { diffWords } from "@/lib/diff/words";
 import { formatDateTime } from "@/lib/format/date";
 import { docText } from "@/lib/studio/doc";
+import { originFrom, withOrigin } from "@/lib/studio/origin";
 import {
   approveAction,
   rejectItemAction,
@@ -22,6 +33,7 @@ import {
 } from "../../actions";
 import { articleLabels } from "../../materias/view";
 import { LoadError, loadOrNull } from "../../load-error";
+import { queueFilterFromOrigin } from "../rows";
 
 export const metadata: Metadata = {
   title: "Revisão de item autônomo · Estúdio · CityNews Cuiabá",
@@ -29,9 +41,35 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 const OPEN = new Set(["draft", "in_review", "changes_requested", "approved"]);
+const FALLBACK_ORIGIN = "/estudio/fila?aba=exceptions";
 
-export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
+type Params = Record<string, string | string[] | undefined>;
+
+/**
+ * Próximo item da lista de origem (mesma aba e filtros), com a mesma origem em `?de=`; `null`
+ * sem próximo, origem fora da fila ou falha de leitura (a revisão continua sem o atalho).
+ */
+async function nextHrefFor(origin: string, id: string): Promise<string | null> {
+  const filter = queueFilterFromOrigin(origin);
+  if (!filter) return null;
+  try {
+    const next = await nextQueueItem(filter, id);
+    return next ? withOrigin(`/estudio/fila/${next}`, origin) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function ReviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<Params>;
+}) {
   const { id } = await params;
+  // Lista de onde a pessoa veio (aba e filtros): "Voltar" e "Aprovar e ir para o próximo".
+  const origin = originFrom((await searchParams) ?? {}, FALLBACK_ORIGIN);
   const session = await requireRole("article.edit", undefined, { next: `/estudio/fila/${id}` });
   const loaded = await loadOrNull("fila", () => getStudioArticle(id));
   if (!loaded) return <LoadError retryHref={`/estudio/fila/${id}`} />;
@@ -44,7 +82,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
         icon="circle-alert"
         title={EDITOR_TEXT.notFoundTitle}
         actions={
-          <Button href="/estudio/fila?aba=exceptions" size="md" variant="outline">
+          <Button href={origin} size="md" variant="outline">
             {EDITOR_TEXT.back}
           </Button>
         }
@@ -64,33 +102,35 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const open = OPEN.has(a.status);
   const rules = a.decisions.find((d) => d.step === "rules");
   const human = a.decisions.find((d) => d.humanDecision);
-  const sensitive = a.section.slug === "seguranca";
   const ai = a.aiVersion;
+  const decidable = open && (canDecide || canEdit);
+  const nextHref = decidable && canDecide ? await nextHrefFor(origin, a.id) : null;
 
   return (
-    <article className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <Link
-          href="/estudio/fila?aba=exceptions"
-          className="type-meta font-medium text-link underline-offset-4 hover:underline"
-        >
-          {EDITOR_TEXT.back}
-        </Link>
-        <p className="type-eyebrow text-eyebrow">
-          {T.title} · {a.section.name}
-        </p>
-        <h1 className="type-screen-title text-strong">{a.title}</h1>
-        <p className="type-meta text-meta">
-          {T.state}: {ARTICLE_STATUS_LABEL[a.status]} · {formatDateTime(a.updatedAt)}
-        </p>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={T.labels}>
-          {articleLabels(a).map((l) => (
-            <OriginLabel key={l.kind} label={l} />
-          ))}
-          <ConfidenceMeter level={a.confidence} />
-        </div>
-      </header>
-
+    <StudioScreen
+      as="article"
+      // Abaixo de `xl` as ações da decisão ficam numa barra fixa: o fim da página reserva o espaço.
+      className={decidable ? "max-xl:pb-36" : undefined}
+      section={`${T.title} · ${a.section.name}`}
+      title={a.title}
+      breadcrumbs={[
+        { href: origin, label: QUEUE_TEXT.queueTitle },
+        { href: `/estudio/fila/${a.id}`, label: a.title },
+      ]}
+      intro={
+        <>
+          <p className="type-meta text-meta">
+            {T.state}: {ARTICLE_STATUS_LABEL[a.status]} · {formatDateTime(a.updatedAt)}
+          </p>
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label={T.labels}>
+            {articleLabels(a).map((l) => (
+              <OriginLabel key={l.kind} label={l} />
+            ))}
+            <ConfidenceMeter level={a.confidence} />
+          </div>
+        </>
+      }
+    >
       <section aria-labelledby="alertas" className="flex flex-col gap-2">
         <h2 id="alertas" className="sr-only">
           {T.alerts}
@@ -105,7 +145,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {T.aiFallbackAlert}
           </InlineAlert>
         )}
-        {sensitive && (
+        {a.sensitive && (
           <InlineAlert tone="warn" role="none">
             {T.sensitiveAlert}
           </InlineAlert>
@@ -170,64 +210,40 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {a.decisions.length === 0 ? (
               <p className="type-body text-meta">{T.noDecisions}</p>
             ) : (
-              <div
-                role="region"
-                aria-label={T.justificationTable}
-                tabIndex={0}
-                className="relative overflow-x-auto rounded-lg border border-line-subtle bg-card-white"
+              <Table
+                caption={T.justificationTable}
+                minWidth="md"
+                headers={[T.stepCol, T.agent, T.promptVersion, T.rulesVersion, T.at]}
               >
-                <table className="w-full min-w-[40rem] border-collapse text-left">
-                  <thead className="border-b border-line-subtle bg-section type-meta text-meta">
-                    <tr>
-                      <th scope="col" className="px-3 py-2">
-                        {T.stepCol}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.agent}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.promptVersion}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.rulesVersion}
-                      </th>
-                      <th scope="col" className="px-3 py-2">
-                        {T.at}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {a.decisions.map((d, i) => (
-                      <tr key={i} className="border-b border-line-subtle align-top last:border-b-0">
-                        <th scope="row" className="px-3 py-2 font-normal">
-                          <span className="type-body font-semibold text-strong">
-                            {T.step[d.step] ?? d.step}
-                            {d.humanDecision
-                              ? ` · ${T.humanDecision[d.humanDecision] ?? d.humanDecision}`
-                              : ""}
-                          </span>
-                          {d.rationale && (
-                            <span className="block type-meta text-meta">{d.rationale}</span>
-                          )}
-                          {d.humanName && (
-                            <span className="block type-meta text-meta">{d.humanName}</span>
-                          )}
-                        </th>
-                        <td className="px-3 py-2 type-body">{d.agentId ?? "—"}</td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {d.promptVersion !== null ? `v${d.promptVersion}` : "—"}
-                        </td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {d.rulesVersion !== null ? `v${d.rulesVersion}` : "—"}
-                        </td>
-                        <td className="px-3 py-2 type-body tabular-nums">
-                          {formatDateTime(d.createdAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                {a.decisions.map((d, i) => (
+                  <tr key={i} className="border-b border-line-subtle align-top last:border-b-0">
+                    <th scope="row" className="px-3 py-2 font-normal">
+                      <span className="type-body font-semibold text-strong">
+                        {T.step[d.step] ?? d.step}
+                        {d.humanDecision
+                          ? ` · ${T.humanDecision[d.humanDecision] ?? d.humanDecision}`
+                          : ""}
+                      </span>
+                      {d.rationale && (
+                        <span className="block type-meta text-meta">{d.rationale}</span>
+                      )}
+                      {d.humanName && (
+                        <span className="block type-meta text-meta">{d.humanName}</span>
+                      )}
+                    </th>
+                    <td className="px-3 py-2 type-body">{d.agentId ?? "—"}</td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {d.promptVersion !== null ? `v${d.promptVersion}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {d.rulesVersion !== null ? `v${d.rulesVersion}` : "—"}
+                    </td>
+                    <td className="px-3 py-2 type-body tabular-nums">
+                      {formatDateTime(d.createdAt)}
+                    </td>
+                  </tr>
+                ))}
+              </Table>
             )}
           </section>
         </div>
@@ -253,9 +269,10 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 : null
             }
             blocker={a.checklist.blocker}
-            editHref={`/estudio/materias/${a.id}`}
+            editHref={withOrigin(`/estudio/materias/${a.id}`, origin)}
+            nextHref={nextHref}
             actions={
-              open && (canDecide || canEdit)
+              decidable
                 ? {
                     approve: canDecide ? approveAction.bind(null, a.version) : undefined,
                     reject: canDecide ? rejectItemAction : undefined,
@@ -265,10 +282,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 : undefined
             }
           />
-          <section
-            aria-labelledby="imagem"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          <Panel aria-labelledby="imagem">
             <h2 id="imagem" className="type-section text-strong">
               {T.image}
             </h2>
@@ -289,11 +303,8 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
                 ))}
               </ul>
             )}
-          </section>
-          <section
-            aria-labelledby="historico"
-            className="rounded-lg border border-line-subtle bg-card-white p-4"
-          >
+          </Panel>
+          <Panel aria-labelledby="historico">
             <h2 id="historico" className="type-section text-strong">
               {T.history}
             </h2>
@@ -315,9 +326,9 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             >
               {EDITOR_TEXT.openHistory}
             </Button>
-          </section>
+          </Panel>
         </aside>
       </div>
-    </article>
+    </StudioScreen>
   );
 }

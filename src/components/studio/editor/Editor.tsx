@@ -58,6 +58,8 @@ export function RichEditor({
       attributes: {
         role: "textbox",
         "aria-multiline": "true",
+        // Só leitura anunciado como tal (item 6); o Tiptap já tira o contenteditable.
+        ...(readOnly ? { "aria-readonly": "true" } : {}),
         "aria-labelledby": labelId,
         class: cx(
           "cn-prose min-h-64 rounded-b-lg border border-t-0 border-line-control bg-input px-4 py-3",
@@ -83,7 +85,7 @@ export function RichEditor({
       onClick={run}
       className={cx(
         "flex min-h-tap min-w-11 items-center justify-center rounded-sm px-2 text-14 text-strong",
-        "hover:bg-nevoa-2 aria-pressed:bg-nevoa-2 disabled:text-placeholder",
+        "hover:bg-hover aria-pressed:bg-hover disabled:text-placeholder",
         extra,
       )}
     >
@@ -93,7 +95,7 @@ export function RichEditor({
 
   return (
     <div className={cx("flex flex-col", className)}>
-      <span id={labelId} className="mb-2 type-label text-16 text-strong">
+      <span id={labelId} className="mb-2 type-label text-strong">
         {label}
       </span>
       <div

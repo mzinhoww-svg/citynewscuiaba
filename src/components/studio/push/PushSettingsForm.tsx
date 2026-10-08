@@ -12,20 +12,16 @@ import { Button } from "../../ui/Button";
 import { Dialog } from "../../ui/Dialog";
 import { Icon } from "../../ui/Icon";
 import { InlineAlert } from "../../ui/InlineAlert";
-import {
-  ActionMessage,
-  CONTROL_CLASS,
-  FieldShell,
-  SelectField,
-  TextInput,
-} from "../sources/fields";
+import { Select } from "../../ui/Select";
+import { TextField } from "../../ui/TextField";
+import { ActionMessage, TextInput } from "../sources/fields";
 import { PauseDialog } from "./PauseDialog";
 
 export interface PushSettingsFormProps {
   settings: PushSettingsView;
   pendingResume: PendingResume | null;
   currentUserId: string;
-  /** `push.approve`: pode aprovar a retomada pedida por outra pessoa. */
+  /** `push.approve`: pode aprovar a retomada (inclusive a que a própria pessoa pediu, A-128). */
   canApprove: boolean;
   actions: {
     save: ActionFn;
@@ -43,7 +39,7 @@ const hourOptions = (a: number, b: number) =>
 /**
  * Configurações de A09 (spec §10.5): limite diário (1–3), silêncio (18–22h / 7–10h, sempre
  * contém 22h–7h), até 20 modelos com `{titulo}` e `{linha_fina}`, contingência (pausar com
- * PAUSAR digitado; retomar cria pedido para outra pessoa) e estado das chaves VAPID (só nomes).
+ * PAUSAR digitado; retomar vale na hora para quem pode aprovar; senão vira pedido) e estado das chaves VAPID (só nomes).
  */
 export function PushSettingsForm({
   settings,
@@ -159,7 +155,7 @@ export function PushSettingsForm({
             {T.limits}
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
-            <SelectField
+            <Select
               id={`${uid}-limite`}
               name="dailyLimit"
               label={T.dailyLimit}
@@ -169,7 +165,7 @@ export function PushSettingsForm({
               hint={T.dailyLimitHint}
               error={errors.dailyLimit}
             />
-            <SelectField
+            <Select
               id={`${uid}-inicio`}
               name="quietStart"
               label={T.quietStart}
@@ -179,7 +175,7 @@ export function PushSettingsForm({
               hint={T.quietHint}
               error={errors.quietStart}
             />
-            <SelectField
+            <Select
               id={`${uid}-fim`}
               name="quietEnd"
               label={T.quietEnd}
@@ -265,15 +261,12 @@ export function PushSettingsForm({
           )}
         </section>
 
-        <FieldShell id={`${uid}-motivo`} label={T.reason}>
-          <input
-            id={`${uid}-motivo`}
-            type="text"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className={CONTROL_CLASS}
-          />
-        </FieldShell>
+        <TextField
+          id={`${uid}-motivo`}
+          label={T.reason}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
         <div className="flex flex-col gap-3">
           <div>
             <Button type="submit" size="md" icon="check" disabled={saving}>
@@ -306,7 +299,7 @@ export function PushSettingsForm({
             tone="info"
             role="none"
             action={
-              canApprove && pendingResume.requestedBy?.id !== currentUserId ? (
+              canApprove ? (
                 <Button size="sm" variant="outline-strong" onClick={approveResume} disabled={busy}>
                   {T.resume.approve}
                 </Button>

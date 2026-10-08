@@ -99,7 +99,7 @@ export function Tabs({
               layout === "scroll" ? "shrink-0 snap-start whitespace-nowrap px-4" : "flex-1",
               active
                 ? "bg-action-primary font-semibold text-on-inverse"
-                : "bg-section font-medium text-meta hover:bg-nevoa-2 hover:text-strong",
+                : "bg-section font-medium text-meta hover:bg-hover hover:text-strong",
             )}
           >
             {it}

@@ -13,7 +13,6 @@ import {
   Timeline,
   TopicCoverage,
   TopicFaq,
-  TopicStatus,
 } from "@/components";
 import { ARTICLE } from "@/content/pt-BR/portal-article";
 import { HOME } from "@/content/pt-BR/portal-home";
@@ -60,7 +59,6 @@ function Topic({ t }: { t: TopicDetail }) {
       <header className="flex max-w-read flex-col gap-4">
         <p className="type-eyebrow text-eyebrow">{TOPIC.eyebrow}</p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <TopicStatus state={t.state} />
           <p className="type-meta text-meta">
             {TOPIC.counts(t.articleCount, t.sourceCount)} · {TOPIC.updated(formatWhen(t.updatedAt))}
           </p>

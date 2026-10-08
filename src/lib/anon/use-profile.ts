@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { useConsent } from "@/lib/consent/client";
 import { getAnonStore } from "./store";
+import { err, ok, type Result } from "@/lib/result";
 import type { AnonProfile, AnonStore } from "./types";
+
+/** Falha ao gravar no perfil deste navegador (IndexedDB cheio, bloqueado ou fechado). */
+export type AnonActError = "storage";
 
 type Snapshot = { profile: AnonProfile | null; degraded: boolean };
 
@@ -44,12 +48,19 @@ export function useAnonProfile() {
     // O consentimento pode apagar histórico e id (ConsentProvider); relê depois dele.
     void refreshAnonProfile();
   }, [consent.personalization, consent.decided]);
-  const act = useCallback(async (fn: (s: AnonStore) => Promise<unknown>) => {
-    try {
-      await fn(getAnonStore());
-    } finally {
+  // Nunca rejeita (item 88): a falha do armazenamento volta como `Result` para a tela avisar.
+  const act = useCallback(
+    async <T>(fn: (s: AnonStore) => Promise<T>): Promise<Result<T, AnonActError>> => {
+      let result: Result<T, AnonActError>;
+      try {
+        result = ok(await fn(getAnonStore()));
+      } catch {
+        result = err("storage");
+      }
       await refreshAnonProfile();
-    }
-  }, []);
+      return result;
+    },
+    [],
+  );
   return { profile: snap.profile, degraded: snap.degraded, ready: snap.profile !== null, act };
 }

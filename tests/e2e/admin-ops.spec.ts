@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service, STAFF, tag } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T9 · Administração (A07, A08, A10, A11, A14): auditoria com IP mascarado e CSV para quem
@@ -52,7 +53,7 @@ test("jornalista não entra na auditoria nem na exportação", async ({ page }) 
 });
 
 test("A07 · campanha com selo PATROCINADO; Política não é opção", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "cria campanha: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "cria campanha: só no projeto serial do desktop");
   const mark = tag();
   const db = service();
   try {
@@ -80,7 +81,7 @@ test("A07 · campanha com selo PATROCINADO; Política não é opção", async ({
 });
 
 test("A08 · redirecionamento leva o endereço antigo ao destino", async ({ page }, info) => {
-  test.skip(info.project.name !== "desktop", "cria redirecionamento: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "cria redirecionamento: só no projeto serial do desktop");
   const mark = tag();
   const db = service();
   try {
@@ -105,7 +106,7 @@ test("A08 · redirecionamento leva o endereço antigo ao destino", async ({ page
 test("A14 · configuração fora da grade é recusada; dentro, salva com auditoria", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "muda configuração global: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "muda configuração global: só no projeto serial do desktop");
   const db = service();
   try {
     await loginAs(page, "helena", "/estudio/admin/configuracoes");

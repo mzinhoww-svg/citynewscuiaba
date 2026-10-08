@@ -12,8 +12,12 @@ import {
   type SubmitState,
 } from "@/lib/agenda/form-state";
 import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { DateField } from "../ui/DateField";
+import { FieldError } from "../ui/Field";
 import { Icon } from "../ui/Icon";
 import { Select } from "../ui/Select";
+import { TextArea } from "../ui/TextArea";
 import { TextField } from "../ui/TextField";
 
 export interface EventSuggestionFormProps {
@@ -23,16 +27,6 @@ export interface EventSuggestionFormProps {
 
 function Optional() {
   return <span className="type-meta text-meta">{SUGGEST.optional}</span>;
-}
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  if (!message) return null;
-  return (
-    <p id={id} className="flex items-start gap-1.5 type-meta text-danger">
-      <Icon name="circle-alert" size={16} />
-      {message}
-    </p>
-  );
 }
 
 /**
@@ -100,7 +94,7 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
         required
       />
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <TextField
+        <DateField
           id={f("startsAt")}
           name="startsAt"
           type="datetime-local"
@@ -110,7 +104,7 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
           error={err("startsAt")}
           required
         />
-        <TextField
+        <DateField
           id={f("endsAt")}
           name="endsAt"
           type="datetime-local"
@@ -143,16 +137,13 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
       </div>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <label className="flex min-h-tap cursor-pointer items-center gap-3 type-body text-strong">
-            <input
-              type="checkbox"
-              name="free"
-              value="1"
-              defaultChecked={val("free") === "1"}
-              className="size-5 shrink-0 accent-(--action-primary)"
-            />
-            {SUGGEST.fields.free}
-          </label>
+          <Checkbox
+            id={f("free")}
+            name="free"
+            value="1"
+            label={SUGGEST.fields.free}
+            defaultChecked={val("free") === "1"}
+          />
           <TextField
             id={f("price")}
             name="price"
@@ -182,25 +173,16 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
         defaultValue={val("link")}
         error={err("link")}
       />
-      <div className="flex flex-col gap-2">
-        <label htmlFor={f("description")} className="type-label text-16 text-strong">
-          {SUGGEST.fields.description} ({SUGGEST.optional})
-        </label>
-        <textarea
-          id={f("description")}
-          name="description"
-          rows={4}
-          maxLength={500}
-          defaultValue={val("description")}
-          aria-invalid={err("description") ? true : undefined}
-          aria-describedby={`${f("description")}-dica${err("description") ? ` ${f("description")}-erro` : ""}`}
-          className="border-control rounded-lg bg-input px-4 py-3 type-body text-strong"
-        />
-        <p id={`${f("description")}-dica`} className="type-meta text-meta">
-          {SUGGEST.hints.description}
-        </p>
-        <FieldError id={`${f("description")}-erro`} message={err("description")} />
-      </div>
+      <TextArea
+        id={f("description")}
+        name="description"
+        label={`${SUGGEST.fields.description} (${SUGGEST.optional})`}
+        hint={SUGGEST.hints.description}
+        rows={4}
+        maxLength={500}
+        defaultValue={val("description")}
+        error={err("description")}
+      />
       <TextField
         id={f("email")}
         name="email"
@@ -227,7 +209,7 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
           />
           {SUGGEST.fields.consent}
         </label>
-        <FieldError id={`${f("consent")}-erro`} message={err("consent")} />
+        <FieldError id={f("consent")} error={err("consent")} />
       </div>
       <div hidden>
         <label htmlFor={`${id}-${SUBMIT_HONEYPOT}`}>{SUGGEST.honeypotLabel}</label>
@@ -240,8 +222,8 @@ export function EventSuggestionForm({ action }: EventSuggestionFormProps) {
         />
       </div>
       <div className="flex flex-wrap items-center gap-4">
-        <Button type="submit" disabled={pending}>
-          {pending ? SUGGEST.sending : SUGGEST.submit}
+        <Button type="submit" loading={pending} loadingLabel={SUGGEST.sending}>
+          {SUGGEST.submit}
         </Button>
         <Link
           href="/agenda"

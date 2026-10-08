@@ -9,12 +9,13 @@ import {
   pinViaDb,
 } from "./helpers/featured";
 import { loginAs, service } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * FD-T4 · Gestão dos destaques em /estudio/admin/destaques: o admin fixa, a home mostra; remove,
  * volta ao automático; matéria sem capa é bloqueada; remover com mais de 24 h pede digitar; os
  * botões Subir e Descer reordenam; quem não tem a permissão é mandado para a tela de entrada com
- * "sem permissão" (o Estúdio não tem página 403 separada). Mutações só no projeto desktop e com o
+ * "sem permissão" (o Estúdio não tem página 403 separada). Mutações só no projeto serial do desktop e com o
  * cadeado dos destaques (as posições são globais).
  */
 
@@ -50,7 +51,10 @@ test.describe("fixar, trocar, remover e reordenar", () => {
   let extra = { id: "", slug: "", title: "" };
 
   test.beforeAll(async ({}, info) => {
-    if (info.project.name !== "desktop") return;
+    if (!mutatesGlobalState(info)) return;
+    // O `beforeAll` tem tempo próprio (30 s), fora do `test.setTimeout` do grupo; a espera pelo
+    // cadeado dos destaques chega a 240 s quando outro grupo (pauta quente, admin) o segura.
+    test.setTimeout(300_000);
     release = await acquireFeaturedLock();
     await endAllPins();
     auto = await createPublished(fx, {
@@ -84,7 +88,10 @@ test.describe("fixar, trocar, remover e reordenar", () => {
   });
 
   test.beforeEach(({}, info) => {
-    test.skip(info.project.name !== "desktop", "mexe nas posições globais: só no projeto desktop");
+    test.skip(
+      !mutatesGlobalState(info),
+      "mexe nas posições globais: só no projeto serial do desktop",
+    );
   });
 
   const leadCard = (page: Page) => page.getByRole("region", { name: "Início · manchete" });

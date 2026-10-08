@@ -49,6 +49,8 @@ export const GUIDE_AUDIT_ACTIONS = [
   "guide.template.save",
   "guide.report.decide",
   "guide.sync",
+  // Texto de abertura escrito pelo Guia (A-214, migration 0183).
+  "guide.article",
 ] as const;
 
 export type GuideAuditAction = (typeof GUIDE_AUDIT_ACTIONS)[number];
@@ -133,10 +135,14 @@ export const AUDIT_ACTIONS = [
   ...GUIDE_AUDIT_ACTIONS,
   // Publicação forçada da fila de revisão (REV-T1, 0054)
   "article.force_publish",
+  // Aprovar recomendadas em lote (UX-W3-T1, 0159)
+  "article.bulk_approve",
   // Destaques por posição (FD-T1, 0090): `featured.manage` vem de ACTIONS
   "featured.pin",
   "featured.unpin",
   "featured.update",
+  // Pauta quente (HOT-T3, 0156)
+  "featured.dismiss_hot",
   // Banners (ADS-T4, 0144)
   "ads.banner.create",
   "ads.placement.status",

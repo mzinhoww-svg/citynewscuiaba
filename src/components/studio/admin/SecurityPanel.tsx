@@ -12,8 +12,10 @@ import { ROLE_LABEL } from "@/content/pt-BR/studio";
 import type { PrivacyRequestRow, SecurityOverview } from "@/lib/db/queries/admin-ops";
 import { formatDate, formatDateTime } from "@/lib/format/date";
 import { Button } from "../../ui/Button";
+import { ConfirmDialog } from "../../ui/ConfirmDialog";
 import { Dialog } from "../../ui/Dialog";
 import { EmptyState } from "../../ui/EmptyState";
+import { Panel } from "../../ui/Panel";
 import { Select } from "../../ui/Select";
 import { TextField } from "../../ui/TextField";
 import { Toggle } from "../../ui/Toggle";
@@ -34,10 +36,14 @@ export interface SecurityPanelProps {
 }
 
 const S = T.security;
+const C = ADMIN_TEXT.confirm;
 const KINDS = Object.entries(PRIVACY_KIND_LABEL).map(([value, label]) => ({ value, label }));
 const STATUSES = Object.entries(PRIVACY_STATUS_LABEL).map(([value, label]) => ({ value, label }));
 
-/** Segurança e privacidade (A11): políticas, pedidos LGPD com prazo, revisão de acessos e rotação de chaves. */
+/**
+ * Segurança e privacidade (A11): políticas, pedidos LGPD com prazo, revisão de acessos e rotação
+ * de chaves. Aplicar políticas e marcar uma chave como rotacionada pedem confirmação (item 24).
+ */
 export function SecurityPanel({
   data,
   now,
@@ -51,9 +57,13 @@ export function SecurityPanel({
   const [sessionHours, setSessionHours] = useState(String(data.settings.sessionHours));
   const [retentionDays, setRetentionDays] = useState(String(data.settings.retentionDays));
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState<
+    { kind: "policy" } | { kind: "rotate"; key: string } | null
+  >(null);
   const [busy, start] = useTransition();
   const done = (r: AdminReply) => {
     setStatus(r);
+    setConfirming(null);
     if (r.ok) {
       setOpen(false);
       router.refresh();
@@ -71,10 +81,7 @@ export function SecurityPanel({
     <div className="flex flex-col gap-10">
       <AdminStatus status={status} />
 
-      <section
-        aria-labelledby={`${uid}-pol`}
-        className="flex flex-col gap-4 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
+      <Panel aria-labelledby={`${uid}-pol`} className="flex flex-col gap-4">
         <h2 id={`${uid}-pol`} className="type-section text-strong">
           {S.settings}
         </h2>
@@ -113,21 +120,12 @@ export function SecurityPanel({
           <Button
             size="md"
             disabled={busy || !dirty || !valid}
-            onClick={() =>
-              start(async () =>
-                done(
-                  await saveSettings({
-                    sessionHours: Number(sessionHours),
-                    retentionDays: Number(retentionDays),
-                  }),
-                ),
-              )
-            }
+            onClick={() => setConfirming({ kind: "policy" })}
           >
             {S.save}
           </Button>
         </div>
-      </section>
+      </Panel>
 
       <section aria-labelledby={`${uid}-lgpd`} className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -268,7 +266,7 @@ export function SecurityPanel({
                     size="sm"
                     variant="outline"
                     disabled={busy}
-                    onClick={() => start(async () => done(await rotateKey({ key: k.key })))}
+                    onClick={() => setConfirming({ kind: "rotate", key: k.key })}
                   >
                     {S.rotate}
                   </Button>
@@ -279,6 +277,40 @@ export function SecurityPanel({
         </AdminTable>
       </section>
 
+      {confirming?.kind === "policy" && (
+        <ConfirmDialog
+          open
+          pending={busy}
+          title={C.policyTitle}
+          body={C.policyEffect(Number(sessionHours), Number(retentionDays))}
+          confirmLabel={C.policyConfirm}
+          onClose={() => setConfirming(null)}
+          onConfirm={() =>
+            start(async () =>
+              done(
+                await saveSettings({
+                  sessionHours: Number(sessionHours),
+                  retentionDays: Number(retentionDays),
+                }),
+              ),
+            )
+          }
+        />
+      )}
+      {confirming?.kind === "rotate" && (
+        <ConfirmDialog
+          open
+          pending={busy}
+          title={C.rotateTitle(confirming.key)}
+          body={C.rotateEffect}
+          confirmLabel={C.rotateConfirm(confirming.key)}
+          onClose={() => setConfirming(null)}
+          onConfirm={() => {
+            const { key } = confirming;
+            start(async () => done(await rotateKey({ key })));
+          }}
+        />
+      )}
       {open && (
         <PrivacyDialog
           busy={busy}

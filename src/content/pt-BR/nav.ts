@@ -43,22 +43,6 @@ export const SECTIONS: readonly NavItem[] = [
   { id: "guia-cuiaba", label: "Guia Cuiabá", href: "/guia-cuiaba" },
 ];
 
-/** Páginas institucionais (docs/screens.md P23). */
-export const FOOTER_NAV: readonly NavItem[] = [
-  { id: "sobre", label: "Sobre", href: "/sobre" },
-  { id: "panorama", label: "Panorama de fontes", href: "/panorama" },
-  { id: "newsletter", label: "Newsletters", href: "/newsletter" },
-  { id: "alertas", label: "Alertas", href: "/alertas" },
-  { id: "app", label: "Baixar o app", href: "/app" },
-  { id: "principios", label: "Princípios editoriais", href: "/principios-editoriais" },
-  { id: "correcoes", label: "Correções", href: "/correcoes" },
-  { id: "resposta", label: "Direito de resposta", href: "/direito-de-resposta" },
-  { id: "privacidade", label: "Privacidade", href: "/privacidade" },
-  { id: "termos", label: "Termos", href: "/termos" },
-  { id: "anuncie", label: "Anuncie", href: "/anuncie" },
-  { id: "contato", label: "Contato", href: "/contato" },
-];
-
 export const NAV_TEXT = {
   skipToContent: "Pular para o conteúdo",
   mainNav: "Principal",
@@ -67,13 +51,6 @@ export const NAV_TEXT = {
   footerNav: "Institucional",
   homeLink: "CityNews Cuiabá, página inicial",
   live: "Agora",
-} as const;
-
-/** Dados institucionais pendentes (B-001). Troque `[PREENCHER]` quando o dono informar. */
-export const LEGAL = {
-  tagline: "O ponto da cidade. Notícia, agenda e serviço no mesmo lugar.",
-  companyName: "Razão social: [PREENCHER]",
-  cnpj: "CNPJ: [PREENCHER]",
-  dpo: "Encarregado de dados (LGPD): [PREENCHER]",
-  copyright: "© 2026 CityNews Cuiabá",
+  /** Barra de navegação pendente no topo do cabeçalho (item 87). */
+  navigating: "Carregando a página",
 } as const;

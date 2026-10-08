@@ -7,6 +7,8 @@ export interface ListRowProps {
   icon?: IconName;
   leading?: ReactNode;
   label: ReactNode;
+  /** Segunda linha, menor, embaixo do rótulo (estado ou resumo do que a linha abre). */
+  description?: ReactNode;
   value?: string;
   /** chevron | check (com `selected`) | nó próprio (ex.: Toggle) | null */
   trailing?: "chevron" | "check" | ReactNode;
@@ -37,6 +39,7 @@ export function ListRow({
   icon,
   leading,
   label,
+  description,
   value,
   trailing = "chevron",
   selected = false,
@@ -49,6 +52,7 @@ export function ListRow({
 }: ListRowProps) {
   const classes = cx(
     "flex min-h-input w-full items-center gap-3.5 px-4 text-left no-underline",
+    description != null && "py-2.5",
     danger ? "text-danger" : "text-strong",
     bordered
       ? cx("rounded-md border bg-card-white", selected ? "border-urucum" : "border-line-subtle")
@@ -60,12 +64,19 @@ export function ListRow({
     <>
       {leading}
       {icon && <Icon name={icon} />}
-      <span className="flex-1 text-16 font-medium leading-snug">{label}</span>
+      {description ? (
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-16 font-medium leading-snug">{label}</span>
+          <span className="text-14 leading-snug text-meta">{description}</span>
+        </span>
+      ) : (
+        <span className="flex-1 text-16 font-medium leading-snug">{label}</span>
+      )}
       {value && <span className="text-14 text-meta">{value}</span>}
       {trailing === "chevron" && (
-        <Icon name="chevron-right" size={20} color="var(--text-placeholder)" />
+        <Icon name="chevron-right" size={20} className="text-placeholder" />
       )}
-      {trailing === "check" && selected && <Icon name="check" size={20} color="var(--text-link)" />}
+      {trailing === "check" && selected && <Icon name="check" size={20} className="text-link" />}
       {trailing !== "chevron" && trailing !== "check" && trailing}
     </>
   );

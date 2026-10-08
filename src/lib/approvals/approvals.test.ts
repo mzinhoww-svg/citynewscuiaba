@@ -33,7 +33,6 @@ function memoryPort(approvers: string[] = [MARINA]) {
     async decide(id, status, by) {
       const r = rows.get(id);
       if (!r) return "not_pending";
-      if (r.requestedBy === by) return "self";
       if (!approvers.includes(by)) return "forbidden";
       if (r.status !== "pending") return "not_pending";
       rows.set(id, { ...r, status, approvedBy: by });
@@ -64,7 +63,7 @@ function memoryPort(approvers: string[] = [MARINA]) {
   };
 }
 
-describe("aprovações (duas pessoas)", () => {
+describe("aprovações (uma pessoa pede, aprova e aplica; A-128)", () => {
   it("pede com justificativa e devolve o id", async () => {
     const m = memoryPort();
     const a = createApprovalsWith(m.port);
@@ -108,23 +107,39 @@ describe("aprovações (duas pessoas)", () => {
     expect(r).toEqual({ ok: false, error: "invalid" });
   });
 
-  it("quem pediu não aprova; outra pessoa com papel aprova; decisão é final", async () => {
-    const m = memoryPort();
+  it("quem pediu e tem o papel aprova o próprio pedido; a linha guarda quem pediu e quem aprovou; decisão é final", async () => {
+    const m = memoryPort([DIEGO]);
     const a = createApprovalsWith(m.port);
     await a.requestApproval({
       kind: "source.critical",
       targetRef: "source:s1:image_policy=reproduction",
       justification: "Acordo",
     });
-    expect(await a.approve({ id: "ap-1" })).toEqual({ ok: false, error: "self_approval" });
-    expect(APPROVAL_ERROR_TEXT.self_approval).toBe("A aprovação precisa ser de outra pessoa");
+    expect(await a.approve({ id: "ap-1" })).toEqual({ ok: true, value: undefined });
+    expect(m.rows.get("ap-1")).toMatchObject({
+      status: "approved",
+      requestedBy: DIEGO,
+      approvedBy: DIEGO,
+    });
+    expect(await a.approve({ id: "ap-1" })).toEqual({ ok: false, error: "not_pending" });
+    expect(APPROVAL_ERROR_TEXT).not.toHaveProperty("self_approval");
+  });
+
+  it("quem pediu sem o papel de aprovar não aprova; quem tem o papel aprova", async () => {
+    const m = memoryPort([MARINA]);
+    const a = createApprovalsWith(m.port);
+    await a.requestApproval({
+      kind: "source.critical",
+      targetRef: "source:s1:image_policy=reproduction",
+      justification: "Acordo",
+    });
+    expect(await a.approve({ id: "ap-1" })).toEqual({ ok: false, error: "forbidden" });
     m.as(MARINA);
     expect(await a.approve({ id: "ap-1" })).toEqual({ ok: true, value: undefined });
     expect(m.rows.get("ap-1")).toMatchObject({ status: "approved", approvedBy: MARINA });
-    expect(await a.approve({ id: "ap-1" })).toEqual({ ok: false, error: "not_pending" });
   });
 
-  it("papel sem segunda assinatura não aprova", async () => {
+  it("papel sem permissão de aprovar não aprova", async () => {
     const m = memoryPort([MARINA]);
     const a = createApprovalsWith(m.port);
     await a.requestApproval({
@@ -186,18 +201,16 @@ describe("aprovações (duas pessoas)", () => {
       expect(CRITICAL_KINDS).toContain(k);
   });
 
-  it("aprovar e aplicar: quem pediu é barrado; outra pessoa aprova e o alvo é aplicado", async () => {
-    const m = memoryPort();
+  it("aprovar e aplicar: a mesma pessoa que pediu aprova e aplica numa ação só", async () => {
+    const m = memoryPort([DIEGO]);
     const a = createApprovalsWith(m.port);
     await a.requestApproval({ kind: "rules.activate", targetRef: "rules:7", justification: "j" });
-    expect(await a.approveAndApply({ id: "ap-1" })).toEqual({
-      ok: false,
-      error: "self_approval",
-    });
-    expect(m.rows.get("ap-1")?.status).toBe("pending");
-    m.as(MARINA);
     expect(await a.approveAndApply({ id: "ap-1" })).toEqual({ ok: true, value: undefined });
-    expect(m.rows.get("ap-1")).toMatchObject({ status: "applied", approvedBy: MARINA });
+    expect(m.rows.get("ap-1")).toMatchObject({
+      status: "applied",
+      requestedBy: DIEGO,
+      approvedBy: DIEGO,
+    });
     expect(await a.approveAndApply({ id: "ap-1" })).toEqual({
       ok: false,
       error: "already_applied",

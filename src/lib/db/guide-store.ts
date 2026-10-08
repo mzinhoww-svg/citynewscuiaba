@@ -3,7 +3,8 @@ import { dayStartCuiaba } from "@/lib/ai/registry";
 import type { DbClient } from "@/lib/db/client";
 import type { Database, Json } from "@/lib/db/types";
 import { targetKey, type SyncTarget } from "@/lib/guide/plan";
-import type { DataSource, PlaceIds, VenueRecord } from "@/lib/guide/types";
+import { GOOGLE_PHOTO_NAME } from "@/lib/guide/providers/google";
+import type { DataSource, GooglePhotoRef, PlaceIds, VenueRecord } from "@/lib/guide/types";
 import { DATA_SOURCES } from "@/lib/guide/types";
 import { slugify } from "@/lib/pipeline/slug";
 import type { StoredVenue, VenueSyncReport, VenueSyncStore } from "@/lib/pipeline/steps/venue-sync";
@@ -13,10 +14,17 @@ type VenueInsert = Database["public"]["Tables"]["venues"]["Insert"];
 
 const isSource = (s: string): s is DataSource => (DATA_SOURCES as readonly string[]).includes(s);
 
+/** Foto do Google gravada (A-212); referência fora do formato vira `null`. */
+function googlePhotoFromRow(r: VenueRow): GooglePhotoRef | null {
+  const name = r.google_photo_name;
+  if (!name || !GOOGLE_PHOTO_NAME.test(name)) return null;
+  return { name, author: r.google_photo_author, authorUri: r.google_photo_author_uri };
+}
+
 export function venueFromRow(r: VenueRow): StoredVenue {
   const ids = (r.place_ids ?? {}) as Record<string, unknown>;
   const placeIds: PlaceIds = {};
-  for (const k of ["osm", "tripadvisor", "wikidata"] as const) {
+  for (const k of ["google", "osm", "tripadvisor", "wikidata"] as const) {
     const v = ids[k];
     if (typeof v === "string" && v) placeIds[k] = v;
   }
@@ -27,6 +35,7 @@ export function venueFromRow(r: VenueRow): StoredVenue {
     status: r.status === "suspended" || r.status === "inactive" ? r.status : "active",
     dataUpdatedAt: r.data_updated_at,
     ratingUpdatedAt: r.rating_updated_at,
+    googleFetchedAt: r.google_fetched_at,
     name: r.name,
     category: r.category,
     subcategory: r.subcategory,
@@ -45,12 +54,15 @@ export function venueFromRow(r: VenueRow): StoredVenue {
       source === "tripadvisor" || source === "google" || source === "manual" ? source : null,
     tripadvisorRank: r.tripadvisor_rank,
     tripadvisorUrl: r.tripadvisor_url,
+    googleMapsUrl: r.google_maps_url,
+    googleType: r.google_primary_type,
+    googlePhoto: googlePhotoFromRow(r),
     placeIds,
     sources: r.data_sources.filter(isSource),
   };
 }
 
-function rowFields(rec: VenueRecord) {
+export function venueRowFields(rec: VenueRecord) {
   return {
     name: rec.name,
     category: rec.category,
@@ -69,14 +81,59 @@ function rowFields(rec: VenueRecord) {
     rating_source: rec.ratingSource,
     tripadvisor_rank: rec.tripadvisorRank,
     tripadvisor_url: rec.tripadvisorUrl,
+    google_maps_url: rec.googleMapsUrl,
+    google_primary_type: rec.googleType,
+    google_photo_name: rec.googlePhoto?.name ?? null,
+    google_photo_author: rec.googlePhoto?.author ?? null,
+    google_photo_author_uri: rec.googlePhoto?.authorUri ?? null,
     place_ids: rec.placeIds as Json,
     data_sources: rec.sources,
   };
 }
 
+/**
+ * Lugares de listas publicadas que ainda não têm a foto do Google (A-212): ativos, com Place ID e
+ * sem `google_photo_name`, sem repetir, os buscados no Google há mais tempo (ou nunca) primeiro,
+ * até `limit`. Lugar que o Google devolveu sem foto vai para o fim da fila ao ser renovado.
+ */
+export function pickPhotoBackfill(
+  lists: readonly { guide_list_items: readonly { venues: VenueRow | null }[] | null }[],
+  limit: number,
+): StoredVenue[] {
+  if (limit <= 0) return [];
+  const out: StoredVenue[] = [];
+  const seen = new Set<string>();
+  for (const l of lists) {
+    for (const i of l.guide_list_items ?? []) {
+      const v = i.venues;
+      if (!v || seen.has(v.id)) continue;
+      seen.add(v.id);
+      if (v.status !== "active" || v.google_photo_name) continue;
+      const stored = venueFromRow(v);
+      if (stored.placeIds.google) out.push(stored);
+    }
+  }
+  const at = (v: StoredVenue) => (v.googleFetchedAt ? Date.parse(v.googleFetchedAt) : 0);
+  return out.sort((a, b) => at(a) - at(b)).slice(0, limit);
+}
+
 /** Slug do lugar: nome e bairro (ou "cuiaba"), único com sufixo numérico. */
 export function venueSlugBase(rec: Pick<VenueRecord, "name" | "neighborhood">): string {
   return slugify(`${rec.name} ${rec.neighborhood ?? "cuiaba"}`, 100);
+}
+
+/** Soma um contador de chamadas dos relatórios de coleta de hoje (dia de Cuiabá). */
+async function callsToday(db: DbClient, now: Date, key: "taCalls" | "googleCalls") {
+  const { data, error } = await db
+    .from("guide_runs")
+    .select("report")
+    .eq("kind", "venue_sync")
+    .gte("started_at", dayStartCuiaba(now).toISOString());
+  if (error) throw new Error(`guide ${key}: ${error.message}`);
+  return (data ?? []).reduce((sum, r) => {
+    const n = (r.report as Record<string, unknown> | null)?.[key];
+    return sum + (typeof n === "number" ? n : 0);
+  }, 0);
 }
 
 /** Acesso a banco da coleta de lugares (service role). */
@@ -89,8 +146,10 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
   finishRun(id: string, report: unknown): Promise<void>;
   lastRunStartedAt(kind: "venue_sync" | "propose" | "refresh"): Promise<Date | null>;
   taCallsToday(now: Date): Promise<number>;
+  googleCallsToday(now: Date): Promise<number>;
   lastSyncedTargets(): Promise<Map<string, string>>;
   templateTargets(): Promise<SyncTarget[]>;
+  missingGooglePhotos(limit: number): Promise<StoredVenue[]>;
 } {
   return {
     async loadCategory(category) {
@@ -116,44 +175,70 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
       return (data ?? []).map(venueFromRow);
     },
 
+    async staleGoogle(before, limit) {
+      const { data, error } = await db
+        .from("venues")
+        .select("*")
+        .eq("status", "active")
+        .not("place_ids->>google", "is", null)
+        .or(`google_fetched_at.is.null,google_fetched_at.lt.${before.toISOString()}`)
+        .order("google_fetched_at", { ascending: true, nullsFirst: true })
+        .limit(limit);
+      if (error) throw new Error(`venues stale google: ${error.message}`);
+      return (data ?? []).map(venueFromRow);
+    },
+
+    async expireGoogle(before) {
+      const { data, error } = await db.rpc("guide_expire_google", {
+        p_before: before.toISOString(),
+      });
+      if (error) throw new Error(`venues expire google: ${error.message}`);
+      return typeof data === "number" ? data : 0;
+    },
+
     async save({ inserts, updates }, at) {
-      let inserted = 0;
+      // No máximo 2 chamadas, qualquer que seja o tamanho do lote: os slugs já usados e um
+      // comando que insere e atualiza (antes, uma consulta por base de slug e uma por atualização).
+      if (inserts.length === 0 && updates.length === 0) return { inserted: 0, updated: 0 };
+      const taken = new Set<string>();
       if (inserts.length > 0) {
         const bases = [...new Set(inserts.map(venueSlugBase))];
-        const taken = new Set<string>();
-        for (const base of bases) {
-          const { data, error } = await db.from("venues").select("slug").like("slug", `${base}%`);
-          if (error) throw new Error(`venues slugs: ${error.message}`);
-          for (const r of data ?? []) taken.add(r.slug);
-        }
-        const rows: VenueInsert[] = inserts.map((rec) => {
-          const base = venueSlugBase(rec);
-          let slug = base;
-          for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
-          taken.add(slug);
-          return {
-            ...rowFields(rec),
-            slug,
-            data_updated_at: at.toISOString(),
-            rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
-          };
-        });
-        const { error } = await db.from("venues").insert(rows);
-        if (error) throw new Error(`venues insert: ${error.message}`);
-        inserted = rows.length;
+        const { data, error } = await db.rpc("guide_venue_slugs", { p_bases: bases });
+        if (error) throw new Error(`venues slugs: ${error.message}`);
+        for (const slug of data ?? []) taken.add(slug);
       }
-      for (const u of updates) {
-        const { error } = await db
-          .from("venues")
-          .update({
-            ...rowFields(u.record),
+      const rows: VenueInsert[] = inserts.map((rec) => {
+        const base = venueSlugBase(rec);
+        let slug = base;
+        for (let n = 2; taken.has(slug); n += 1) slug = `${base}-${n}`;
+        taken.add(slug);
+        return {
+          ...venueRowFields(rec),
+          slug,
+          data_updated_at: at.toISOString(),
+          rating_updated_at: rec.sources.includes("tripadvisor") ? at.toISOString() : null,
+          google_fetched_at: rec.sources.includes("google") ? at.toISOString() : null,
+        };
+      });
+      // A mesma linha atualizada duas vezes no lote fica com a última versão, como no laço antigo.
+      const patches = new Map(
+        updates.map((u) => [
+          u.id,
+          {
+            id: u.id,
+            ...venueRowFields(u.record),
             data_updated_at: at.toISOString(),
             ...(u.ratingChecked ? { rating_updated_at: at.toISOString() } : {}),
-          })
-          .eq("id", u.id);
-        if (error) throw new Error(`venues update: ${error.message}`);
-      }
-      return { inserted, updated: updates.length };
+            ...(u.googleChecked ? { google_fetched_at: at.toISOString() } : {}),
+          },
+        ]),
+      );
+      const { error } = await db.rpc("guide_venues_save", {
+        p_inserts: rows as unknown as Json,
+        p_updates: [...patches.values()] as unknown as Json,
+      });
+      if (error) throw new Error(`venues save: ${error.message}`);
+      return { inserted: rows.length, updated: updates.length };
     },
 
     async startRun(kind, trigger, at) {
@@ -188,16 +273,12 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
 
     /** Chamadas ao TripAdvisor já feitas hoje (dia de Cuiabá), somadas dos relatórios. */
     async taCallsToday(now) {
-      const { data, error } = await db
-        .from("guide_runs")
-        .select("report")
-        .eq("kind", "venue_sync")
-        .gte("started_at", dayStartCuiaba(now).toISOString());
-      if (error) throw new Error(`guide ta calls: ${error.message}`);
-      return (data ?? []).reduce((sum, r) => {
-        const n = (r.report as { taCalls?: unknown } | null)?.taCalls;
-        return sum + (typeof n === "number" ? n : 0);
-      }, 0);
+      return callsToday(db, now, "taCalls");
+    },
+
+    /** Chamadas ao Google já feitas hoje (dia de Cuiabá), somadas dos relatórios. */
+    async googleCallsToday(now: Date) {
+      return callsToday(db, now, "googleCalls");
     },
 
     async lastSyncedTargets() {
@@ -218,6 +299,22 @@ export function createGuideStore(db: DbClient): VenueSyncStore & {
         }
       }
       return out;
+    },
+
+    /** Lugares de listas publicadas sem a foto do Google (A-212), para buscar pelo Place ID. */
+    async missingGooglePhotos(limit) {
+      if (limit <= 0) return [];
+      const { data, error } = await db
+        .from("guide_lists")
+        .select("guide_list_items(position, venues(*))")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(200);
+      if (error) throw new Error(`venues missing photos: ${error.message}`);
+      const lists = (data ?? []).map((l) => ({
+        guide_list_items: [...(l.guide_list_items ?? [])].sort((a, b) => a.position - b.position),
+      }));
+      return pickPhotoBackfill(lists, limit);
     },
 
     async templateTargets() {

@@ -1,7 +1,10 @@
 import { ADS_ADMIN_TEXT, SLOT_NAME } from "@/content/pt-BR/ads-admin";
 import { percent, type AdReport, type Group } from "@/lib/ads/report";
 import { Button } from "../../ui/Button";
+import { CollapsibleFilters } from "../../ui/CollapsibleFilters";
+import { DateField } from "../../ui/DateField";
 import { EmptyState } from "../../ui/EmptyState";
+import { StatGrid } from "../../ui/StatGrid";
 import { AdminTable } from "./AdminStatus";
 
 const T = ADS_ADMIN_TEXT.report;
@@ -57,56 +60,36 @@ export function AdReportPanel({
       <h2 id="ads-rep" className="type-section text-strong">
         {T.title}
       </h2>
-      <form method="get" className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
-          {T.from}
-          <input
-            type="date"
-            name="de"
-            defaultValue={period.from}
-            className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
-          />
-        </label>
-        <label className="flex flex-col gap-1.5 type-meta font-semibold text-strong">
-          {T.to}
-          <input
-            type="date"
-            name="ate"
-            defaultValue={period.to}
-            className="min-h-tap rounded-md border border-line-strong bg-card-white px-3 type-body text-strong"
-          />
-        </label>
-        <Button size="md" variant="outline" type="submit">
-          {T.apply}
-        </Button>
-        <Button size="md" variant="outline" icon="download" href={csvHref} download>
-          {T.csv}
-        </Button>
-      </form>
+      <CollapsibleFilters
+        actions={
+          <Button size="md" variant="outline" icon="download" href={csvHref} download>
+            {T.csv}
+          </Button>
+        }
+      >
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <DateField id="ads-rep-de" name="de" label={T.from} defaultValue={period.from} />
+          <DateField id="ads-rep-ate" name="ate" label={T.to} defaultValue={period.to} />
+          <Button size="md" variant="outline" type="submit">
+            {T.apply}
+          </Button>
+        </form>
+      </CollapsibleFilters>
       <p className="max-w-read type-meta text-meta">{T.note}</p>
       {t.impressions === 0 && t.clicks === 0 ? (
         <EmptyState title={T.empty} />
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            {(
-              [
-                [T.impressions, n(t.impressions)],
-                [T.views, n(t.views)],
-                [T.clicks, n(t.clicks)],
-                [T.ctr, percent(t.ctr)],
-                [T.viewRate, percent(t.viewRate)],
-              ] as const
-            ).map(([k, v]) => (
-              <div
-                key={k}
-                className="flex flex-col gap-1 rounded-lg border border-line-subtle bg-card-white p-4"
-              >
-                <dt className="type-meta text-meta">{k}</dt>
-                <dd className="type-headline-sm tabular-nums text-strong">{v}</dd>
-              </div>
-            ))}
-          </dl>
+          <StatGrid
+            columns={5}
+            items={[
+              { label: T.impressions, value: n(t.impressions) },
+              { label: T.views, value: n(t.views) },
+              { label: T.clicks, value: n(t.clicks) },
+              { label: T.ctr, value: percent(t.ctr) },
+              { label: T.viewRate, value: percent(t.viewRate) },
+            ]}
+          />
           <GroupTable
             caption={T.bySlot}
             rows={report.bySlot}

@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { loginAs, service } from "./studio";
+import { mutatesGlobalState } from "./projects";
 
 /*
  * P5-T10 · Contingência (A15): botões com confirmação digitando o nome da ação, motivo e
- * registro. Só no projeto desktop (as flags são globais) e restaura o seed no fim
+ * registro. Só no projeto serial-flags (as flags são globais) e restaura o seed no fim
  * (auto_publish=false, read_only=false, ai_enabled=true).
  */
 
@@ -12,8 +13,8 @@ async function flag(key: string) {
   return data?.enabled;
 }
 
-// Os testes deste arquivo mudam flags globais: em série, num só worker (os dois projetos
-// continuam em paralelo, mas só o desktop muta), e cada um restaura só o que mexeu.
+// Os testes deste arquivo mudam flags globais: em série, num só worker (projetos serial-flags*,
+// tests/e2e/projects.ts; só o do desktop muta), e cada um restaura só o que mexeu.
 test.describe.configure({ mode: "serial" });
 
 async function restoreAi() {
@@ -55,7 +56,7 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
   page,
   context,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "flags globais: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "flags globais: só no projeto serial do desktop");
   try {
     await loginAs(page, "helena", "/estudio/admin/contingencia");
     await page.getByRole("button", { name: "Desligar busca com IA" }).click();
@@ -73,11 +74,17 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
     await expect(page.getByText(/Desligada: \/pergunte/)).toBeVisible();
 
     const visitor = await context.browser()!.newPage();
+    // Chat (UI-T13): a mensagem do CityNews diz que o assistente está pausado e oferece a busca
+    // tradicional, nunca "Tentar de novo".
     await visitor.goto("/pergunte?q=obras+no+CPA");
     await expect(visitor.getByText("Assistente indisponível")).toBeVisible();
     await expect(visitor.getByText(/A redação pausou o assistente/)).toBeVisible();
-    // Sem o assistente, a página mostra a busca tradicional logo abaixo (com "Ver todos os resultados"
+    await expect(visitor.getByRole("link", { name: "Buscar do jeito tradicional" })).toBeVisible();
+    await expect(visitor.getByRole("button", { name: "Tentar de novo" })).toHaveCount(0);
+    // Modo simples (sem JS): a busca tradicional logo abaixo (com "Ver todos os resultados"
     // quando há resultado, ou o aviso de vazio) e nunca o botão "Tentar de novo".
+    await visitor.goto("/pergunte?q=obras+no+CPA&modo=simples");
+    await expect(visitor.getByText("Assistente indisponível")).toBeVisible();
     await expect(
       visitor.getByText(/Resultados da busca tradicional|também não encontrou/),
     ).toBeVisible();
@@ -101,7 +108,7 @@ test("desligar a busca com IA pede o nome da ação; /pergunte oferece a busca t
 test("modo leitura bloqueia o Estúdio e a contingência continua valendo", async ({
   page,
 }, info) => {
-  test.skip(info.project.name !== "desktop", "flags globais: só no projeto desktop");
+  test.skip(!mutatesGlobalState(info), "flags globais: só no projeto serial do desktop");
   try {
     await loginAs(page, "helena", "/estudio/admin/contingencia");
     await page.getByRole("button", { name: "Ativar modo leitura" }).click();

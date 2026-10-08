@@ -1,3 +1,5 @@
+import { TIME_ZONE } from "@/lib/format/date";
+
 /**
  * Funções puras do coletor incremental por sitemap (fontes `kind = 'sitemap'`): reparo do prefixo
  * truncado, título a partir do slug da URL, arquivo anual do ano corrente (America/Cuiaba) e
@@ -74,12 +76,11 @@ export function titleFromSlug(url: string, max = 300): string | null {
 }
 
 const YEARLY = /^(.*\/)(\d{4})(\.xml)(\?.*)?$/;
-const CUIABA_TZ = "America/Cuiaba";
 
 /** Ano e dia do ano (mês/dia) de `now` no fuso de Cuiabá. */
 function cuiabaDate(now: Date): { year: number; month: number; day: number } {
   const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: CUIABA_TZ,
+    timeZone: TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button, EmptyState, Icon } from "@/components";
 import {
@@ -7,8 +6,10 @@ import {
   SourceHeaderActions,
   SourceSectionNav,
   SourceStatusBadge,
+  StudioScreen,
 } from "@/components/estudio";
 import { DETAIL_TEXT as T } from "@/content/pt-BR/sources-admin-detail";
+import { STUDIO_TEXT } from "@/content/pt-BR/studio";
 import { can } from "@/lib/auth";
 import { getSession } from "@/lib/auth/require-role";
 import { collectNowAction, decideApprovalAction, sourceStatusAction } from "../actions";
@@ -58,17 +59,15 @@ export default async function SourceDetailLayout({ children, params }: Props) {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4">
-        <Link
-          href={BASE}
-          className="inline-flex items-center gap-1 type-meta text-link no-underline hover:underline"
-        >
-          <Icon name="arrow-left" size={16} />
-          {T.back}
-        </Link>
-        <div className="flex flex-col gap-2">
-          <h1 className="type-screen-title text-strong">{name}</h1>
+    <StudioScreen
+      title={name}
+      breadcrumbs={[
+        { href: "/estudio/control", label: STUDIO_TEXT.sections.control },
+        { href: BASE, label: T.back },
+        { href: detailPath(d.id), label: name },
+      ]}
+      intro={
+        <>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 type-body text-meta">
             <a
               href={d.config.baseUrl}
@@ -87,35 +86,35 @@ export default async function SourceDetailLayout({ children, params }: Props) {
             {/* Fonte ativa: o selo já diz "Ativa"; a linha só acrescenta quando há motivo/data (FS-T9). */}
             {statusLine(d) !== T.status.active && <span>{statusLine(d)}</span>}
           </p>
-        </div>
-        {d.archivedAt && (
-          <p className="flex items-start gap-2 rounded-lg border border-line-section bg-section px-4 py-3 type-body text-strong">
-            <Icon name="archive" size={18} className="mt-0.5 shrink-0 text-meta" />
-            {T.archivedNotice}
-          </p>
-        )}
-        <SourceHeaderActions
-          source={{
-            id: d.id,
-            version: d.version,
-            name: d.config.name,
-            status: d.status,
-            statusReason: d.statusReason,
-            archived: d.archivedAt !== null,
-          }}
-          statusAction={sourceStatusAction}
-          collectNowAction={collectNowAction}
-        />
-        <PendingApprovalsPanel
-          approvals={d.pendingApprovals}
-          currentValues={currentValues}
-          currentUserId={session?.userId ?? ""}
-          canApprove={session ? can(session.roles, "source.approve_critical") : false}
-          action={decideApprovalAction}
-        />
-      </header>
+          {d.archivedAt && (
+            <p className="flex items-start gap-2 rounded-lg border border-line-section bg-section px-4 py-3 type-body text-strong">
+              <Icon name="archive" size={18} className="mt-0.5 shrink-0 text-meta" />
+              {T.archivedNotice}
+            </p>
+          )}
+          <SourceHeaderActions
+            source={{
+              id: d.id,
+              version: d.version,
+              name: d.config.name,
+              status: d.status,
+              statusReason: d.statusReason,
+              archived: d.archivedAt !== null,
+            }}
+            statusAction={sourceStatusAction}
+            collectNowAction={collectNowAction}
+          />
+          <PendingApprovalsPanel
+            approvals={d.pendingApprovals}
+            currentValues={currentValues}
+            canApprove={session ? can(session.roles, "source.approve_critical") : false}
+            action={decideApprovalAction}
+          />
+        </>
+      }
+    >
       <SourceSectionNav basePath={detailPath(d.id)} />
       <div className="min-w-0">{children}</div>
-    </div>
+    </StudioScreen>
   );
 }

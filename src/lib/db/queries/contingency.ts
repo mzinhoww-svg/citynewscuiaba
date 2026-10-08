@@ -47,6 +47,7 @@ export async function contingencyOverview(db?: DbClient): Promise<ContingencyOve
     "source_link_analysis",
     "sponsored_native_enabled",
     "ads_enabled",
+    "hot_featured_enabled",
   ] as const) {
     const r = rows.find((x) => x.key === key);
     flags[key] = r
@@ -57,8 +58,7 @@ export async function contingencyOverview(db?: DbClient): Promise<ContingencyOve
   const previous =
     active === null
       ? null
-      : ((rules.data ?? []).find(
-          (r) => r.version < active && r.approved_by !== null && r.approved_by !== r.proposed_by,
-        )?.version ?? null);
+      : ((rules.data ?? []).find((r) => r.version < active && r.approved_by !== null)?.version ??
+        null);
   return { flags, rules: { active, previous }, resumeRequests };
 }
