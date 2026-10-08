@@ -7,7 +7,7 @@ Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISI
 
 ## Última entrega
 
-- **Agenda multifonte (A-220):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Em produção desde 08/10: 0195 a 0199 aplicadas (18 fontes de eventos: 3 Sympla ativas, 12 aguardando ativação, 3 bloqueadas; 33 eventos ligados à fonte). Falta ativar as fontes do Radar uma a uma pela prévia do Painel de Fontes.
+- **Agenda multifonte (A-220):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Em produção desde 08/10: 0195 a 0199 aplicadas (18 fontes de eventos: 3 Sympla ativas, 12 aguardando ativação, 3 bloqueadas; 33 eventos ligados à fonte). Ativação das 10 fontes do Radar pronta em `supabase/bootstrap/2026-10-08-agenda-ativar-fontes.sql` (B-035: o conector segura o `update`).
 - **D-06 (PR #75):** `anon` sem `publish_mode`, `agent_id` e `confidence`; faixa Urgente lê `urgent_strip`.
 - **B-022 (PR #76):** patrocínio nativo no portal, atrás de `sponsored_native_enabled` (desligada).
 - **Segurança, segunda rodada (PR #77, A-218):** oráculo de papéis, colunas internas, eventos, recibos de push, ICS e CSV, segredos fracos.
