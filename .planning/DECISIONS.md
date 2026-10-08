@@ -427,3 +427,15 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 **Texto:** o agente `guide_writer` (migration 0183, R$ 0,50/dia cedidos pelo `write`) escreve um texto corrido que cita cada lugar e um comentário curto por lugar, só com os dados do Guia (posição, nome, bairro, nota, número de avaliações, fonte da nota, faixa de preço). O pedido do dono era um texto "orgânico"; a §5.3 continua valendo: o texto nunca afirma visita, prova ou apuração presencial, nunca fala em primeira pessoa e nunca rotula IA. `checkArticle` confere antes de gravar (todos os lugares citados, nenhum número fora dos dados, nenhuma frase proibida); reprovado ou com falha do modelo, tenta de novo pedindo a correção e depois usa o texto montado com os mesmos dados (modo degradado, nunca fila humana). Roda em `/api/ingest/guide?mode=write` a cada 2 horas, uma lista por chamada; reescreve quando os lugares mudam (`article_signature`). Texto ou comentário ajustado pelo editor no Estúdio passa a ser dele e não é reescrito (`intro_auto`, `note_auto`). Auditoria `guide.article`; chamadas em `ai_calls`.
 
 **Fotos:** A-212, foto principal do Google com o crédito do autor, servida por rota própria.
+
+## A-215 · Auditoria das decisões do dono e acertos em produção (08/10/2026)
+
+**Status:** vigente. O dono perguntou o que mais tinha decidido e não foi entregue. A auditoria comparou cada decisão com o código da `main` e com o banco de produção. Feito no mesmo dia:
+
+- **Produção (B-009):** aplicadas 0155 (limpeza dos sinais da pauta quente), 0159 (`article.bulk_approve` na auditoria), 0183/0184 (texto e fotos do Guia), 0185 (rodadas do texto) e 0186 (disjuntor 300/3.000 como padrão da tabela). A 0158 (`role_set`, A-150) e a 0160 travam no conector (contêm `delete`/`drop`) e foram para o SQL do dono em `supabase/bootstrap/2026-10-08-sql-editor-dono.sql`, junto com a 0143 parte C. Sem a 0158, "Salvar papéis" no Estúdio falha em produção.
+- **Regras v4:** estão **ativas** em produção desde 05/10 (versão 4, `active = true`); STATE e A-139 diziam "proposta". Registro corrigido aqui e no CLAUDE.md §5.8.
+- **B-026:** a trava `approved_by <> requested_by` não existe mais em produção (0149); a nota de transição do CLAUDE.md foi corrigida.
+- **R42:** telefone e WhatsApp oficiais (65) 99622-7110 em Contato, Anuncie, Sugerir evento, rodapé e JSON-LD (PR #74).
+- **A-214:** a rota do cron tem 60 s; a escrita passou a ser uma tentativa por rodada, com o texto montado na 3ª rodada reprovada.
+
+**Ainda pendente do agente:** D-06 (fechar `publish_mode`, `agent_id` e `confidence` ao `anon`), reprocessar as fotos antigas em variantes (A-155), texto proposto para `/principios-editoriais` (A-152), patrocínio nativo no portal (B-022), segunda rodada da auditoria de segurança (18 achados adiados, entre eles injeção em ICS e CSV), fechar ou atualizar o PR #68 (B-031 desatualizado).
