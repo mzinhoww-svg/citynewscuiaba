@@ -445,3 +445,30 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 **A-152, "Temas sensíveis" (08/10/2026):** o texto público dizia que crime, saúde e eleições "nunca são publicados sem revisão humana", o que as regras v3/v4 (decisão do dono) não fazem. A §5.3 proíbe afirmar revisão que não aconteceu, então o texto foi corrigido sem esperar: esses temas "seguem regras mais rígidas", com a fonte sempre citada, e vão para a revisão da redação quando há divergência central, conteúdo duvidoso ou fonte única não confiável. Também saiu "a revisão humana está ligada para todas as editorias" de `/como-usamos-ia` e da `/metodologia` (ambas ocultas, R34). O dono pode ajustar a redação; o fato descrito é o das regras ativas.
 
 **A-155, imagens antigas (08/10/2026):** o script `backfill-variants.mjs` pede a chave de serviço de produção, que só existe no ambiente da Vercel (o agente não lê chaves). A rota `/api/jobs/media-variants` (CRON_SECRET, até 40 imagens por chamada, `nextOffset` na resposta) faz o mesmo trabalho dentro da produção; o agente a chama em lotes depois do deploy. Variante é cópia reduzida do mesmo ativo (§5.11).
+
+## A-216 · Analytics e audiência: contador sem cookie, tela Audiência e GA4 via GTM (08/10/2026)
+
+**Status:** vigente. Decisão do dono (itens 1 a 6 aprovados em 08/10/2026). Emenda a ADR-008 e a D16 da spec mestre. Spec `docs/superpowers/specs/2026-10-08-analytics-audiencia-design.md`, plano ANL-T1 a T10.
+
+**O que entra:**
+- contador agregado sem cookie nem identificador, por legítimo interesse;
+- os eventos `article_opened`, `article_shared` e `search_submitted`;
+- tela Audiência (`metrics.view`);
+- busca agregada com filtro de dado pessoal;
+- Search Console importado;
+- Speed Insights e Sentry;
+- partições mensais de `events`.
+
+**GA4 via GTM:**
+- flag `ga4_enabled`, desligada por padrão;
+- por decisão do dono, carrega **antes da escolha no banner**, com os quatro sinais do Consent Mode v2 concedidos, inclusive os de anúncio (revisto quando houver AdSense);
+- "Só o necessário" nega os quatro sinais e apaga `_ga*`;
+- consentimento sobe para `v2`.
+
+**Alternativas descartadas:**
+- só medição própria, sem GA4;
+- GA4 só depois do consentimento;
+- GA4 por Measurement Protocol.
+
+**Reversível:** desligar `ga4_enabled` ou remover `NEXT_PUBLIC_GTM_ID`.
+
