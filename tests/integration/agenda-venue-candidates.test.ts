@@ -45,6 +45,7 @@ const input = (venueText: string): EventInput => ({
   accessibility: null,
   sourceUrl: null,
   description: null,
+  organizer: null,
 });
 
 beforeAll(async () => {

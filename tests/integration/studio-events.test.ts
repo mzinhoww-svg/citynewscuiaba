@@ -38,6 +38,7 @@ const input = (over: Partial<EventInput> = {}): EventInput => ({
   accessibility: null,
   sourceUrl: "https://feira.example/porto",
   description: "Feira de produtores do Porto.",
+  organizer: null,
   ...over,
 });
 

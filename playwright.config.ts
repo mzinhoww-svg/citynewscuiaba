@@ -54,6 +54,8 @@ const FIXTURE_SPECS = [
   "**/control-event-sources.spec.ts",
   // Eventos no Estúdio: edição respeitada pela coleta forçada das fontes fictícias (AGM-T7).
   "**/e2e/studio-agenda.spec.ts",
+  // Agenda rica: destaque no Estúdio muda a faixa "Em destaque" de /agenda (ARD-T4).
+  "**/e2e/agenda-rica.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para

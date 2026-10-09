@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button, InlineAlert, StatusBadge } from "@/components";
+import { Button, DateField, InlineAlert, StatusBadge } from "@/components";
 import { EventForm, StudioScreen } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
 import { eventFormValues } from "@/lib/agenda/event-form";
+import { featureDateInput, featureDayLabel } from "@/lib/agenda/feature";
+import { localDateKey } from "@/lib/format/date";
 import { requireRole } from "@/lib/auth/require-role";
-import { getStudioEvent, situationOf } from "@/lib/db/queries/studio-events";
+import { getStudioEvent, listVenueOptions, situationOf } from "@/lib/db/queries/studio-events";
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
-import { restoreEventAction, saveEventAction, withdrawEventAction } from "../actions";
+import {
+  featureEventAction,
+  restoreEventAction,
+  saveEventAction,
+  withdrawEventAction,
+} from "../actions";
 
 export const metadata: Metadata = { title: `${T.form.breadcrumbs.edit} · ${T.metaTitle}` };
 export const dynamic = "force-dynamic";
@@ -26,14 +33,26 @@ export default async function EditEventPage({ params, searchParams }: Props) {
   const { id } = await params;
   await requireRole("article.publish", { section: "agenda" }, { next: `${BASE}/${id}` });
   if (!UUID.test(id)) notFound();
-  const event = await getStudioEvent(id);
+  const [event, venueOptions] = await Promise.all([getStudioEvent(id), listVenueOptions()]);
   if (!event) notFound();
   const sp = await searchParams;
   const feito = typeof sp.feito === "string" ? sp.feito : "";
   const done = T.done[feito];
   const failed = sp.erro === "1";
-  const situation = situationOf(event, new Date());
+  const featureFailed = sp.erro === "destaque";
+  const now = new Date();
+  const situation = situationOf(event, now);
   const withdrawn = situation === "retirado";
+  const featuredUntil =
+    event.featured_until && Date.parse(event.featured_until) >= now.getTime()
+      ? event.featured_until
+      : null;
+  const venueAuto = !event.locked_fields.includes("venue_id");
+  const venueName =
+    event.venue_id &&
+    (venueOptions?.find((v) => v.id === event.venue_id)?.name ??
+      event.venue_name ??
+      T.form.venue.inactive(event.venue));
 
   return (
     <StudioScreen
@@ -59,6 +78,11 @@ export default async function EditEventPage({ params, searchParams }: Props) {
       {failed && (
         <InlineAlert tone="error" role="alert">
           {T.actionFailed}
+        </InlineAlert>
+      )}
+      {featureFailed && (
+        <InlineAlert tone="error" role="alert">
+          {T.feature.invalid}
         </InlineAlert>
       )}
       <section
@@ -107,11 +131,51 @@ export default async function EditEventPage({ params, searchParams }: Props) {
           )}
         </div>
       </section>
+      <section
+        aria-labelledby="evento-destaque"
+        className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4"
+      >
+        <h2 id="evento-destaque" className="type-section text-strong">
+          {T.feature.title}
+        </h2>
+        <p className="type-body text-strong" data-testid="feature-current">
+          {featuredUntil ? T.feature.current(featureDayLabel(featuredUntil)) : T.feature.none}
+        </p>
+        <p className="type-meta text-meta">{T.feature.hint}</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <form action={featureEventAction} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="id" value={event.id} />
+            <DateField
+              id="evento-destaque-ate"
+              name="ate"
+              label={T.feature.until}
+              defaultValue={featureDateInput(featuredUntil) || localDateKey(now)}
+              required
+            />
+            <Button type="submit" size="sm" variant="secondary" icon="star">
+              {T.feature.submit}
+            </Button>
+          </form>
+          {featuredUntil && (
+            <form action={featureEventAction}>
+              <input type="hidden" name="id" value={event.id} />
+              <input type="hidden" name="tirar" value="1" />
+              <Button type="submit" size="sm" variant="outline" icon="x">
+                {T.feature.remove}
+              </Button>
+            </form>
+          )}
+        </div>
+      </section>
       <EventForm
         action={saveEventAction}
         cancelHref={BASE}
         eventId={event.id}
         initial={eventFormValues(event)}
+        venues={{
+          options: venueOptions,
+          current: venueName ? { name: venueName, auto: venueAuto } : null,
+        }}
         categories={AGENDA_CATEGORIES.map((c) => ({ value: c, label: AGENDA.categories[c] ?? c }))}
       />
     </StudioScreen>

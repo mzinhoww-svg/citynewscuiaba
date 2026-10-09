@@ -89,3 +89,73 @@ describe("EventForm", () => {
     expect(screen.getByText(T.errors.endsAt)).toBeVisible();
   });
 });
+
+describe("EventForm organização e local do Guia (ARD-T4)", () => {
+  const venues = [
+    { id: "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b", name: "Teatro Exemplo" },
+    { id: "7f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b", name: "Casa Cerrado Vivo" },
+  ];
+
+  it("organização em texto e seletor com automático, cada lugar e Nenhum", () => {
+    render(
+      <EventForm
+        action={async () => EVENT_FORM_IDLE}
+        categories={categories}
+        cancelHref="/x"
+        venues={{ options: venues }}
+      />,
+    );
+    expect(screen.getByLabelText(F.organizer)).toHaveAttribute("name", "organizer");
+    const select = screen.getByLabelText(F.venueId);
+    expect(select).toHaveAttribute("name", "venueId");
+    const options = [...select.querySelectorAll("option")].map((o) => [o.value, o.textContent]);
+    expect(options).toEqual([
+      ["", T.form.venue.auto],
+      [venues[0]!.id, "Teatro Exemplo"],
+      [venues[1]!.id, "Casa Cerrado Vivo"],
+      ["nenhum", T.form.venue.none],
+    ]);
+    expect(select).toHaveValue("");
+  });
+
+  it("mostra o vínculo atual e a escolha guardada", () => {
+    render(
+      <EventForm
+        action={async () => EVENT_FORM_IDLE}
+        categories={categories}
+        cancelHref="/x"
+        eventId="e1"
+        initial={{ venueId: venues[0]!.id }}
+        venues={{ options: venues, current: { name: "Teatro Exemplo", auto: false } }}
+      />,
+    );
+    expect(screen.getByLabelText(F.venueId)).toHaveValue(venues[0]!.id);
+    expect(screen.getByText(T.form.venue.current("Teatro Exemplo", false))).toBeInTheDocument();
+  });
+
+  it("falha ao ler os lugares: só automático e Nenhum, com o aviso", () => {
+    render(
+      <EventForm
+        action={async () => EVENT_FORM_IDLE}
+        categories={categories}
+        cancelHref="/x"
+        venues={{ options: null }}
+      />,
+    );
+    const select = screen.getByLabelText(F.venueId);
+    expect([...select.querySelectorAll("option")].map((o) => o.value)).toEqual(["", "nenhum"]);
+    expect(screen.getByText(T.form.venue.error)).toBeInTheDocument();
+  });
+
+  it("nenhum lugar ativo: aviso de vazio", () => {
+    render(
+      <EventForm
+        action={async () => EVENT_FORM_IDLE}
+        categories={categories}
+        cancelHref="/x"
+        venues={{ options: [] }}
+      />,
+    );
+    expect(screen.getByText(T.form.venue.empty)).toBeInTheDocument();
+  });
+});

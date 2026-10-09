@@ -33,6 +33,7 @@ const stored: StoredStudioEvent = {
   accessibility: null,
   source_url: "https://cerradovivo.example/siriri",
   description: "Roda de siriri.",
+  organizer: null,
   venue_id: null,
   locked_fields: ["title"],
   withdrawn_at: null,
@@ -51,6 +52,7 @@ const input = (over: Partial<EventInput> = {}): EventInput => ({
   accessibility: null,
   sourceUrl: stored.source_url,
   description: stored.description,
+  organizer: null,
   ...over,
 });
 
@@ -338,5 +340,23 @@ describe("withdrawEvent / restoreEvent", () => {
     expect(back.ok).toBe(true);
     expect(fake.current()?.withdrawn_at).toBeNull();
     expect(fake.rpcs.at(-1)?.args).toMatchObject({ p_action: "event.restore" });
+  });
+});
+
+describe("organização editada fica travada (ARD-T4)", () => {
+  it("mudar organizador ou faixa entra no diff e nas travas", () => {
+    const changed = changedColumns(
+      stored,
+      input({ organizer: "Coletivo Siriri", ageRating: "12" }),
+    );
+    expect(changed).toEqual(["age_rating", "organizer"]);
+    expect(lockedAfterEdit(stored.locked_fields, changed)).toEqual([
+      "title",
+      "age_rating",
+      "organizer",
+    ]);
+    expect(
+      changedColumns({ ...stored, organizer: "Coletivo" }, input({ organizer: " Coletivo " })),
+    ).toEqual([]);
   });
 });

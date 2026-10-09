@@ -45,3 +45,7 @@ export const EVENT_FORM_IDLE: EventFormState = {
   errors: {},
   values: {},
 };
+
+/** Campo do seletor de lugar do Guia (Estúdio): vazio = automático; `VENUE_NONE` = sem vínculo. */
+export const VENUE_FIELD = "venueId";
+export const VENUE_NONE = "nenhum";

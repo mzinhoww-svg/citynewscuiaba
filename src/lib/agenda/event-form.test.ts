@@ -58,8 +58,19 @@ describe("parseEventForm", () => {
         accessibility: "Rampa de acesso",
         sourceUrl: "https://cerradovivo.example/siriri",
         description: "Roda de siriri com grupos do Porto. Entrada pelo portão lateral.",
+        organizer: null,
       },
     });
+  });
+
+  it("organizador opcional, aparado; mais de 160 caracteres é recusado", () => {
+    const r = parse({ organizer: "  Coletivo   Siriri do Porto " });
+    expect(r.ok && r.value.organizer).toBe("Coletivo Siriri do Porto");
+    const vazio = parse({ organizer: " " });
+    expect(vazio.ok && vazio.value.organizer).toBeNull();
+    const longo = parse({ organizer: "x".repeat(161) });
+    expect(longo.ok).toBe(false);
+    if (!longo.ok) expect(longo.error.organizer).toBe(T.errors.organizer);
   });
 
   it("recusa fim antes do início", () => {
@@ -178,7 +189,20 @@ describe("eventFormValues", () => {
     accessibility: null,
     source_url: null,
     description: null,
+    organizer: null,
+    venue_id: null,
+    locked_fields: [] as string[],
   };
+
+  it("organizador e lugar do Guia: escolha travada volta escolhida; vínculo automático = automático", () => {
+    expect(eventFormValues({ ...stored, organizer: "Coletivo" }).organizer).toBe("Coletivo");
+    const id = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
+    expect(eventFormValues({ ...stored, venue_id: id }).venueId).toBe("");
+    expect(eventFormValues({ ...stored, venue_id: id, locked_fields: ["venue_id"] }).venueId).toBe(
+      id,
+    );
+    expect(eventFormValues({ ...stored, locked_fields: ["venue_id"] }).venueId).toBe("nenhum");
+  });
 
   it("preço em reais com vírgula e caixa desmarcada", () => {
     expect(eventFormValues(stored)).toMatchObject({

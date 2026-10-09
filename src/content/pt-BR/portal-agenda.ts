@@ -171,6 +171,7 @@ export const AGENDA = {
     kids: boolean;
     category?: string;
     where?: string;
+    age?: string;
     period: string;
   }) =>
     [
@@ -178,6 +179,7 @@ export const AGENDA = {
       parts.category ? `de ${parts.category.toLowerCase()}` : "",
       parts.free ? "gratuito" : "",
       parts.kids ? "para crianças" : "",
+      parts.age ?? "",
       parts.where ?? "",
       parts.period,
     ]
@@ -226,4 +228,21 @@ export const AGENDA = {
   backAgenda: "Voltar para a agenda",
   until: (hour: string) => `até ${hour}`,
   nextDay: "do dia seguinte",
+  // Agenda rica (ARD-T4)
+  imageAlt: (title: string) => `Imagem de divulgação: ${title}`,
+  organizerLabel: "Organização",
+  seeInGuide: "Ver no Guia",
+  featuredTitle: "Em destaque",
+  ageFilter: "Faixa etária",
+  allAges: "Todas as faixas",
+  ageFilters: {
+    livre: "Só classificação livre",
+    "10": "Até 10 anos",
+    "12": "Até 12 anos",
+    "14": "Até 14 anos",
+    "16": "Até 16 anos",
+    "18": "Até 18 anos",
+  },
+  /** Trecho do título sem resultado: "Nenhum evento até 12 anos …". */
+  agePhrase: (age: string) => (age === "livre" ? "de classificação livre" : `até ${age} anos`),
 } as const;

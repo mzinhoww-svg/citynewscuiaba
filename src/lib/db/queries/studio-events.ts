@@ -105,6 +105,8 @@ export interface StudioEventRow {
   source: string | null;
   situation: StudioEventSituation;
   lockedFields: string[];
+  /** Fim do destaque quando ainda vale (`featured_until` ≥ agora); `null` sem destaque. */
+  featuredUntil: string | null;
 }
 
 const originOf = (o: string): StudioEventOrigin =>
@@ -119,7 +121,10 @@ function searchTerm(q: string): string {
 }
 
 const LIST_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, origin, source_id, confirmed_at, withdrawn_at, locked_fields, source:sources!event_listings_source_ref_fkey(name)";
+  "id, slug, title, starts_at, ends_at, venue, origin, source_id, confirmed_at, withdrawn_at, locked_fields, featured_until, source:sources!event_listings_source_ref_fkey(name)";
+
+const activeFeature = (until: string | null, now: Date): string | null =>
+  until && Date.parse(until) >= now.getTime() ? until : null;
 
 /** Lista do Estúdio: todos os eventos (retirados e sem confirmação inclusive), por data desc. */
 export async function listStudioEvents(
@@ -177,6 +182,7 @@ export async function listStudioEvents(
       source: r.source?.name ?? r.source_id ?? null,
       situation: situationOf(r, now),
       lockedFields: r.locked_fields,
+      featuredUntil: activeFeature(r.featured_until, now),
     })),
   };
 }
@@ -210,18 +216,22 @@ export interface StoredStudioEvent {
   accessibility: string | null;
   source_url: string | null;
   description: string | null;
+  organizer: string | null;
   venue_id: string | null;
   locked_fields: string[];
   withdrawn_at: string | null;
 }
 
 const STORED_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, age_rating, accessibility, source_url, description, venue_id, locked_fields, withdrawn_at";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, price_unknown, category, age_rating, accessibility, source_url, description, organizer, venue_id, locked_fields, withdrawn_at";
 
 export interface StudioEventDetail extends StoredStudioEvent {
   origin: StudioEventOrigin;
   confirmed_at: string | null;
   source: string | null;
+  featured_until: string | null;
+  /** Nome do lugar do Guia ligado (`venue_id`), quando a pessoa o enxerga. */
+  venue_name: string | null;
 }
 
 /** Evento para a tela de edição (retirado inclusive); `null` se não existe ou a RLS esconde. */
@@ -230,14 +240,45 @@ export async function getStudioEvent(id: string): Promise<StudioEventDetail | nu
   const { data, error } = await ctx.db
     .from("event_listings")
     .select(
-      `${STORED_COLUMNS}, origin, confirmed_at, source_id, source:sources!event_listings_source_ref_fkey(name)`,
+      `${STORED_COLUMNS}, origin, confirmed_at, source_id, featured_until, source:sources!event_listings_source_ref_fkey(name), guide_venue:venues(name)`,
     )
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(`evento do Estúdio: ${error.message}`);
   if (!data) return null;
-  const { source, source_id, origin, ...rest } = data;
-  return { ...rest, origin: originOf(origin), source: source?.name ?? source_id ?? null };
+  const { source, source_id, origin, guide_venue, ...rest } = data;
+  return {
+    ...rest,
+    origin: originOf(origin),
+    source: source?.name ?? source_id ?? null,
+    venue_name: guide_venue?.name ?? null,
+  };
+}
+
+/** Lugar do Guia que o seletor do formulário oferece (`agenda_venue_candidates`). */
+export interface VenueOption {
+  id: string;
+  name: string;
+}
+
+/**
+ * Lugares ativos do Guia para o seletor "Local do Guia" (o mesmo conjunto do casamento
+ * automático). `null` = a leitura falhou (o formulário mostra o erro e mantém o vínculo).
+ */
+export async function listVenueOptions(): Promise<VenueOption[] | null> {
+  const ctx = await studioContext();
+  const { data, error } = await ctx.db.rpc("agenda_venue_candidates");
+  if (error) {
+    console.error("evento da agenda (seletor de lugares)", {
+      code: error.code,
+      message: error.message,
+    });
+    return null;
+  }
+  return (data ?? [])
+    .filter((v) => v.status === "active")
+    .map((v) => ({ id: v.id, name: v.name }))
+    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 }
 
 /** Coluna → valor do formulário (a ordem é a da tela). */
@@ -255,6 +296,7 @@ function columnsOf(i: EventInput) {
     accessibility: i.accessibility,
     source_url: i.sourceUrl,
     description: i.description,
+    organizer: i.organizer,
   };
 }
 type EditableColumn = keyof ReturnType<typeof columnsOf>;
@@ -481,4 +523,41 @@ export function withdrawEvent(id: string, actor: EventActor) {
 /** Devolve ao ar (limpa `withdrawn_at`). */
 export function restoreEvent(id: string, actor: EventActor) {
   return setWithdrawn(id, false, actor);
+}
+
+/**
+ * "Destacar até {data}" / "Tirar destaque" (B5): grava `featured_until` (fim do dia escolhido, ou
+ * `null`) e audita `event.feature` com o valor anterior e o novo. A RLS (`event_listings_write`,
+ * editoria `agenda`) barra quem não cuida da Agenda. Valor igual ao guardado não grava nada.
+ */
+export async function setEventFeatured(
+  id: string,
+  until: string | null,
+  actor: EventActor,
+): Promise<EventWriteResult<{ id: string; slug: string; changed: boolean }>> {
+  const { data: before, error: readError } = await actor.db
+    .from("event_listings")
+    .select("id, slug, featured_until")
+    .eq("id", id)
+    .maybeSingle();
+  if (readError) return err(dbFailure("leitura do destaque", readError));
+  if (!before) return err("not_found");
+  const same =
+    before.featured_until === until ||
+    (before.featured_until !== null &&
+      until !== null &&
+      Date.parse(before.featured_until) === Date.parse(until));
+  if (same) return ok({ id, slug: before.slug, changed: false });
+  const { data, error } = await actor.db
+    .from("event_listings")
+    .update({ featured_until: until, updated_at: actor.now.toISOString() })
+    .eq("id", id)
+    .select("id, slug")
+    .maybeSingle();
+  if (error || !data) return err(dbFailure("destaque", error));
+  await record(actor, "event.feature", id, {
+    featured_until: until,
+    from: before.featured_until,
+  });
+  return ok({ id, slug: data.slug, changed: true });
 }

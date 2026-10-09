@@ -104,6 +104,7 @@ export const STUDIO_AGENDA_TEXT = {
     newsroom: "Redação",
     noSource: "Sem fonte",
     locked: (n: number) => (n === 1 ? "1 campo editado" : `${n} campos editados`),
+    featured: (date: string) => `Em destaque até ${date}`,
   },
   origin: {
     official: "Oficial",
@@ -149,6 +150,8 @@ export const STUDIO_AGENDA_TEXT = {
     criado: "Evento salvo e publicado na agenda",
     retirado: "Evento retirado do ar",
     devolvido: "Evento de volta ao ar",
+    destacado: "Evento em destaque na Agenda",
+    "sem-destaque": "Destaque retirado",
   } as Record<string, string>,
   actionFailed:
     "Não foi possível mudar a situação do evento. Confira se seu papel inclui a Agenda e tente de novo.",
@@ -172,12 +175,29 @@ export const STUDIO_AGENDA_TEXT = {
       accessibility: "Acessibilidade (opcional)",
       link: "Link oficial (opcional)",
       description: "Descrição curta (opcional)",
+      organizer: "Organização (opcional)",
+      venueId: "Local do Guia",
     },
     hints: {
       price: "0 para gratuito. Exemplo: 40 ou 25,50",
       link: "Endereço completo com https, sem encurtador",
       description: "Até 2 frases e 300 caracteres",
       accessibility: "Exemplo: rampa de acesso e intérprete de Libras",
+      organizer: "Quem promove o evento. Exemplo: Coletivo Siriri do Porto",
+      venueId:
+        "Liga o evento à página do lugar no Guia (Ver no Guia). Escolher um lugar ou Nenhum trava o vínculo contra a coleta.",
+    },
+    venue: {
+      auto: "Automático pelo local",
+      none: "Nenhum",
+      current: (name: string, auto: boolean) =>
+        auto
+          ? `Vínculo atual: ${name} (automático)`
+          : `Vínculo atual: ${name} (escolhido pela redação)`,
+      currentNone: "Vínculo atual: nenhum lugar do Guia",
+      inactive: (name: string) => `${name} (fora do Guia ativo)`,
+      error: "Não foi possível carregar os lugares do Guia. O vínculo atual fica como está.",
+      empty: "Nenhum lugar ativo no Guia para escolher.",
     },
     ages: {
       livre: "Livre",
@@ -213,11 +233,26 @@ export const STUDIO_AGENDA_TEXT = {
       category: "Categoria",
       description: "Descrição",
       source_url: "Link oficial",
+      organizer: "Organização",
+      age_rating: "Faixa etária",
+      media_id: "Imagem",
+      venue_id: "Local do Guia",
     } as Record<string, string>,
     statusTitle: "Situação",
     withdrawHint: "O evento some da agenda pública e da página dele; a coleta não o devolve.",
     restoreHint: "O evento volta para a agenda pública.",
     viewPublic: "Ver na agenda",
+  },
+  /** Destaque na Agenda (B5): "Destacar até {data}" e "Tirar destaque", auditados. */
+  feature: {
+    title: "Destaque",
+    hint: "Evento em destaque aparece primeiro na home e na faixa Em destaque da Agenda até o fim do dia escolhido.",
+    until: "Destacar até",
+    submit: "Destacar",
+    remove: "Tirar destaque",
+    current: (date: string) => `Em destaque até ${date}`,
+    none: "Sem destaque",
+    invalid: "Escolha uma data de hoje até 90 dias para frente.",
   },
   errors: {
     title: "Informe o nome do evento, com 3 a 140 caracteres. Exemplo: Noite do Siriri",
@@ -233,5 +268,6 @@ export const STUDIO_AGENDA_TEXT = {
     accessibility: "A acessibilidade pode ter até 200 caracteres.",
     link: "Use um link https completo, sem encurtador. Exemplo: https://teatro.exemplo.com.br/evento",
     description: "Use até 2 frases e 300 caracteres.",
+    organizer: "O organizador pode ter até 160 caracteres. Exemplo: Coletivo Siriri do Porto",
   },
 } as const;

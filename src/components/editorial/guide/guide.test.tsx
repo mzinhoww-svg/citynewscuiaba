@@ -231,6 +231,9 @@ const event = (over: Partial<EventView> = {}): EventView => ({
   sourceUrl: null,
   priceUnknown: false,
   venueSlug: "teatro-exemplo",
+  organizer: null,
+  image: null,
+  featured: false,
   ...over,
 });
 

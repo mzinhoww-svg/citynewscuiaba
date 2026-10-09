@@ -3,6 +3,7 @@ import { EventForm, StudioScreen } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
 import { requireRole } from "@/lib/auth/require-role";
+import { listVenueOptions } from "@/lib/db/queries/studio-events";
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
 import { saveEventAction } from "../actions";
 
@@ -14,6 +15,7 @@ const BASE = "/estudio/agenda";
 /** Novo evento da redação (AGM-T7): `origin = 'newsroom'`, no ar na hora. */
 export default async function NewEventPage() {
   await requireRole("article.publish", { section: "agenda" }, { next: `${BASE}/novo` });
+  const venueOptions = await listVenueOptions();
   return (
     <StudioScreen
       title={T.form.newTitle}
@@ -26,6 +28,7 @@ export default async function NewEventPage() {
       <EventForm
         action={saveEventAction}
         cancelHref={BASE}
+        venues={{ options: venueOptions }}
         categories={AGENDA_CATEGORIES.map((c) => ({ value: c, label: AGENDA.categories[c] ?? c }))}
       />
     </StudioScreen>

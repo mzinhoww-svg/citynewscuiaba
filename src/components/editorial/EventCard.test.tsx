@@ -35,6 +35,9 @@ const event: EventView = {
   sourceUrl: null,
   priceUnknown: false,
   venueSlug: null,
+  organizer: null,
+  image: null,
+  featured: false,
 };
 
 beforeEach(() => {
@@ -132,5 +135,38 @@ describe("EventCard origem e confirmação", () => {
     expect(screen.queryByTestId("event-origin")).toBeNull();
     expect(screen.getByRole("article")).toHaveTextContent("Música · CityNews");
     expect(screen.getByRole("article")).not.toHaveTextContent("Organização");
+  });
+});
+
+describe("EventCard com foto de divulgação (ARD-T4)", () => {
+  const image = {
+    src: "/api/media/a0000000-0000-4000-8000-000000000001",
+    src480: "/api/media/a0000000-0000-4000-8000-000000000001?w=480",
+    src960: "/api/media/a0000000-0000-4000-8000-000000000001?w=960",
+    alt: "Imagem de divulgação: Noite de rasqueado no Sesc Arsenal",
+    kind: "reproduction" as const,
+    credit: "Fonte",
+    originUrl: "https://teatro.example/evento/rasqueado",
+  };
+
+  it("miniatura no lugar da capa, com a legenda e o link para o original", () => {
+    render(<EventCard event={{ ...event, image }} />);
+    const card = screen.getByRole("article");
+    expect(within(card).queryByTestId("event-cover")).toBeNull();
+    expect(within(card).getByTestId("event-thumb")).toBeInTheDocument();
+    expect(card).toHaveTextContent("Foto: reprodução web · Fonte");
+    const original = within(card).getByRole("link", { name: /Ver original/ });
+    expect(original).toHaveAttribute("href", image.originUrl);
+    expect(original).toHaveAttribute("target", "_blank");
+    // Sem a capa, a data continua no card.
+    expect(card).toHaveTextContent("16 out");
+  });
+
+  it("sem imagem o card não muda: capa tipográfica e nenhuma legenda", () => {
+    render(<EventCard event={event} />);
+    const card = screen.getByRole("article");
+    expect(within(card).getByTestId("event-cover")).toBeInTheDocument();
+    expect(card).not.toHaveTextContent("reprodução web");
+    expect(within(card).queryByRole("link", { name: /Ver original/ })).toBeNull();
   });
 });

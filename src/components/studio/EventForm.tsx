@@ -2,7 +2,7 @@
 
 import { useActionState, useId } from "react";
 import { AGENDA_AGE_RATINGS, STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
-import { EVENT_FORM_IDLE, type EventFormState } from "@/lib/agenda/form-state";
+import { EVENT_FORM_IDLE, VENUE_NONE, type EventFormState } from "@/lib/agenda/form-state";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
 import { DateField } from "../ui/DateField";
@@ -11,6 +11,19 @@ import { Select, type SelectOption } from "../ui/Select";
 import { SubmitButton } from "../ui/SubmitButton";
 import { TextArea } from "../ui/TextArea";
 import { TextField } from "../ui/TextField";
+
+/** Lugar do Guia oferecido no seletor (os mesmos candidatos do casamento automático). */
+export interface EventVenueOption {
+  id: string;
+  name: string;
+}
+
+export interface EventVenueChoices {
+  /** Lugares ativos do Guia; `null` = a leitura falhou (só automático e Nenhum). */
+  options: readonly EventVenueOption[] | null;
+  /** Vínculo guardado: nome do lugar e se veio do casamento automático. Ausente = sem vínculo. */
+  current?: { name: string; auto: boolean } | null;
+}
 
 export interface EventFormProps {
   /** Server Action: valida, grava e redireciona; devolve erros por campo quando não salva. */
@@ -24,6 +37,8 @@ export interface EventFormProps {
   initial?: Partial<Record<string, string>>;
   /** Estado inicial (testes e retorno do servidor). */
   initialState?: EventFormState;
+  /** Seletor "Local do Guia" (ARD-T4); ausente = sem seletor (vínculo automático). */
+  venues?: EventVenueChoices;
 }
 
 const F = T.form.fields;
@@ -44,6 +59,7 @@ export function EventForm({
   eventId,
   initial = {},
   initialState = EVENT_FORM_IDLE,
+  venues,
 }: EventFormProps) {
   const [state, formAction] = useActionState(action, initialState);
   const uid = useId();
@@ -162,6 +178,45 @@ export function EventForm({
           maxLength={200}
         />
       </div>
+      <TextField
+        id={id("organizer")}
+        name="organizer"
+        label={F.organizer}
+        hint={T.form.hints.organizer}
+        defaultValue={val("organizer")}
+        error={err("organizer")}
+        maxLength={160}
+      />
+      {venues && (
+        <div className="flex flex-col gap-2">
+          <Select
+            id={id("venueId")}
+            name="venueId"
+            label={F.venueId}
+            hint={T.form.hints.venueId}
+            options={[
+              { value: "", label: T.form.venue.auto },
+              ...(venues.options ?? []).map((v) => ({ value: v.id, label: v.name })),
+              { value: VENUE_NONE, label: T.form.venue.none },
+            ]}
+            defaultValue={val("venueId")}
+          />
+          {eventId && (
+            <p className="type-meta text-meta" data-testid="venue-current">
+              {venues.current
+                ? T.form.venue.current(venues.current.name, venues.current.auto)
+                : T.form.venue.currentNone}
+            </p>
+          )}
+          {venues.options === null ? (
+            <p className="type-meta text-danger" role="alert">
+              {T.form.venue.error}
+            </p>
+          ) : venues.options.length === 0 ? (
+            <p className="type-meta text-meta">{T.form.venue.empty}</p>
+          ) : null}
+        </div>
+      )}
       <TextField
         id={id("link")}
         name="link"

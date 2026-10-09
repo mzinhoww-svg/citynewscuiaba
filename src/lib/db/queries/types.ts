@@ -35,6 +35,15 @@ export interface ArticleImage {
   directSrcSet?: string;
 }
 
+/**
+ * Imagem do evento (ARD-T4): foto de divulgação pelo Media Registry, com as variantes da rota
+ * própria (480 no card, 960 na página; variante ausente cai no original).
+ */
+export interface EventImage extends ArticleImage {
+  src480: string;
+  src960: string;
+}
+
 /** Imagem dentro do texto: entra depois do parágrafo `position` (a partir de 1) do corpo. */
 export interface ArticleInlineImage extends ArticleImage {
   position: number;
@@ -228,6 +237,12 @@ export interface EventView {
   priceUnknown: boolean;
   /** Slug do lugar do Guia ("Ver no Guia"), só com lugar vinculado, ativo e público. */
   venueSlug: string | null;
+  /** Quem organiza ("Organização: {nome}"); `null` some da página. */
+  organizer: string | null;
+  /** Foto de divulgação permitida pelo Media Registry; `null` = card e página sem foto. */
+  image: EventImage | null;
+  /** Em destaque (`featured_until` ≥ agora): primeiro na home e na faixa do topo da Agenda. */
+  featured: boolean;
 }
 
 export interface CollectionView {
