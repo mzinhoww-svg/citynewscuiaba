@@ -425,7 +425,9 @@ export async function createEvent(
  * Edição: grava só as colunas alteradas, acrescenta-as em `locked_fields` (as que a coleta
  * escreve) e audita o diff. Sem mudança, não grava nada. Lugar do Guia: escolha explícita conta
  * como edição e trava `venue_id` (mesmo igual ao atual); sem escolha e sem trava, o vínculo é
- * recalculado pelo local quando não há vínculo ou o local mudou (pode ficar nulo).
+ * recalculado pelo local quando não há vínculo ou o local mudou (pode ficar nulo). "Automático
+ * pelo local" (`venueAuto`) num vínculo travado destrava `venue_id` e refaz o casamento; falha na
+ * leitura dos lugares não destrava nem muda o vínculo.
  */
 export async function updateEvent(
   id: string,
@@ -447,18 +449,24 @@ export async function updateEvent(
   const venueChosen =
     explicitVenue !== undefined && (explicitVenue !== before.venue_id || !venueLocked);
   const changed: string[] = venueChosen ? [...formChanged, "venue_id"] : formChanged;
+  // "Automático pelo local" num vínculo travado destrava `venue_id` e refaz o casamento.
+  const unlockVenue = venueLocked && explicitVenue === undefined && input.venueAuto === true;
   // Sem escolha e sem trava, o vínculo é derivado do local: recalcula sem vínculo ou com o local
-  // alterado (inclusive para nulo). Falha na leitura dos candidatos não mexe no vínculo.
+  // alterado (inclusive para nulo). Falha na leitura dos candidatos não mexe no vínculo (nem
+  // destrava).
   const auto =
     explicitVenue === undefined &&
-    !venueLocked &&
-    (before.venue_id === null || formChanged.includes("venue"))
+    (unlockVenue || (!venueLocked && (before.venue_id === null || formChanged.includes("venue"))))
       ? await autoVenue(actor.db, input.venue)
       : null;
+  const unlocked = unlockVenue && auto?.kind === "match";
   const autoVenueId = auto?.kind === "match" && auto.id !== before.venue_id ? auto.id : undefined;
-  if (changed.length === 0 && autoVenueId === undefined)
+  if (changed.length === 0 && autoVenueId === undefined && !unlocked)
     return ok({ id, slug: before.slug, changed: [] });
-  const locked = lockedAfterEdit(before.locked_fields, changed);
+  const locked = lockedAfterEdit(
+    unlocked ? before.locked_fields.filter((f) => f !== "venue_id") : before.locked_fields,
+    changed,
+  );
   const patch: Record<string, unknown> = {};
   for (const c of formChanged) patch[c] = next[c];
   if (venueChosen) patch.venue_id = explicitVenue;
@@ -480,6 +488,7 @@ export async function updateEvent(
     ...(autoVenueId !== undefined
       ? { venue_id_auto: { from: before.venue_id, to: autoVenueId } }
       : {}),
+    ...(unlocked ? { venue_unlocked: true } : {}),
   });
   return ok({ id, slug: data.slug, changed });
 }

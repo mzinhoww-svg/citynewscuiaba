@@ -11,6 +11,8 @@ export interface ArticleFigureProps {
   captionPrefix?: string;
   /** Capa: carrega com prioridade (LCP). A imagem do texto carrega só perto da tela. */
   priority?: boolean;
+  /** `contain`: imagem inteira, sem recorte (reprodução de terceiros nas telas da agenda). */
+  fit?: "cover" | "contain";
   className?: string;
 }
 
@@ -29,6 +31,7 @@ export function ArticleFigure({
   image,
   captionPrefix = PUBLIC_LABEL.image.reproduction,
   priority,
+  fit,
   className,
 }: ArticleFigureProps) {
   const alt = image.alt.trim() || ARTICLE.figureAlt(image.credit);
@@ -42,6 +45,7 @@ export function ArticleFigure({
         ratio="16/9"
         radius="0"
         priority={priority}
+        fit={fit}
         sizes="(min-width: 64em) 60vw, 100vw"
         className="w-full"
       />

@@ -40,8 +40,6 @@ const base: EventView = {
 
 const image = {
   src: "/api/media/a0000000-0000-4000-8000-000000000001",
-  src480: "/api/media/a0000000-0000-4000-8000-000000000001?w=480",
-  src960: "/api/media/a0000000-0000-4000-8000-000000000001?w=960",
   alt: "Imagem de divulgação: Forró da Praça",
   kind: "reproduction" as const,
   credit: "Fonte",
@@ -57,6 +55,12 @@ describe("Página do evento (ARD-T4)", () => {
       "href",
       image.originUrl,
     );
+  });
+
+  it("foto de terceiros inteira, sem recorte (object-contain)", () => {
+    render(<EventDetail e={{ ...base, image }} related={[]} />);
+    const img = within(screen.getByRole("figure")).getByRole("img");
+    expect(img.className).toMatch(/object-contain/);
   });
 
   it("sem foto não há figura nem legenda", () => {

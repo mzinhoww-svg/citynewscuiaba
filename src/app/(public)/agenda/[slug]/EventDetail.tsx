@@ -100,7 +100,14 @@ export function EventDetail({ e, related }: { e: EventView; related: EventView[]
                 <SaveEventButton contentRef={`event:${e.id}`} title={e.title} href={e.href} />
               </div>
             </header>
-            {e.image && <ArticleFigure image={e.image} priority className="w-full" />}
+            {e.image && (
+              <ArticleFigure
+                image={e.image}
+                priority
+                fit={e.image.kind === "reproduction" ? "contain" : "cover"}
+                className="w-full"
+              />
+            )}
             <dl className="flex flex-col">
               <Fact icon="calendar" label={AGENDA.when2}>
                 <time dateTime={e.startsAt} className="first-letter:uppercase">

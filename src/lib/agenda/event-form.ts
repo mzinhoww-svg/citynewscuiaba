@@ -51,6 +51,11 @@ export interface EventInput {
    * local (`matchVenue`, sem trava); uuid = escolha (trava); `null` = sem vínculo (trava).
    */
   venueId?: string | null;
+  /**
+   * O seletor veio com "Automático pelo local" (campo presente e vazio): num vínculo travado,
+   * destrava `venue_id` e volta ao casamento automático. Ausente = o formulário não tinha o campo.
+   */
+  venueAuto?: boolean;
 }
 
 export { VENUE_FIELD, VENUE_NONE };
@@ -208,6 +213,7 @@ export function parseEventForm(
 
   if (Object.keys(errors).length > 0 || !start) return err(errors);
   const venueId = venueChoice(fd);
+  const venueAuto = fd.has(VENUE_FIELD) && String(fd.get(VENUE_FIELD) ?? "").trim() === "";
   return ok({
     title,
     startsAt: start.toISOString(),
@@ -223,5 +229,6 @@ export function parseEventForm(
     description: description || null,
     organizer: organizer || null,
     ...(venueId !== undefined ? { venueId } : {}),
+    ...(venueAuto ? { venueAuto: true } : {}),
   });
 }

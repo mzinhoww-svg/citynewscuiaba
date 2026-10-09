@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Button, DateField, InlineAlert, StatusBadge } from "@/components";
+import { Button, DateField, InlineAlert, StatusBadge, SubmitButton } from "@/components";
 import { EventForm, StudioScreen } from "@/components/estudio";
 import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
 import { eventFormValues } from "@/lib/agenda/event-form";
-import { featureDateInput, featureDayLabel } from "@/lib/agenda/feature";
-import { localDateKey } from "@/lib/format/date";
+import { FEATURE_MAX_DAYS, featureDateInput, featureDayLabel } from "@/lib/agenda/feature";
+import { addDays, localDateKey } from "@/lib/format/date";
 import { requireRole } from "@/lib/auth/require-role";
 import { getStudioEvent, listVenueOptions, situationOf } from "@/lib/db/queries/studio-events";
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
@@ -41,6 +41,7 @@ export default async function EditEventPage({ params, searchParams }: Props) {
   const failed = sp.erro === "1";
   const featureFailed = sp.erro === "destaque";
   const now = new Date();
+  const today = localDateKey(now);
   const situation = situationOf(event, now);
   const withdrawn = situation === "retirado";
   const featuredUntil =
@@ -50,9 +51,7 @@ export default async function EditEventPage({ params, searchParams }: Props) {
   const venueAuto = !event.locked_fields.includes("venue_id");
   const venueName =
     event.venue_id &&
-    (venueOptions?.find((v) => v.id === event.venue_id)?.name ??
-      event.venue_name ??
-      T.form.venue.inactive(event.venue));
+    (venueOptions?.find((v) => v.id === event.venue_id)?.name ?? event.venue_name ?? event.venue);
 
   return (
     <StudioScreen
@@ -131,42 +130,51 @@ export default async function EditEventPage({ params, searchParams }: Props) {
           )}
         </div>
       </section>
-      <section
-        aria-labelledby="evento-destaque"
-        className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4"
-      >
-        <h2 id="evento-destaque" className="type-section text-strong">
-          {T.feature.title}
-        </h2>
-        <p className="type-body text-strong" data-testid="feature-current">
-          {featuredUntil ? T.feature.current(featureDayLabel(featuredUntil)) : T.feature.none}
-        </p>
-        <p className="type-meta text-meta">{T.feature.hint}</p>
-        <div className="flex flex-wrap items-end gap-3">
-          <form action={featureEventAction} className="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="id" value={event.id} />
-            <DateField
-              id="evento-destaque-ate"
-              name="ate"
-              label={T.feature.until}
-              defaultValue={featureDateInput(featuredUntil) || localDateKey(now)}
-              required
-            />
-            <Button type="submit" size="sm" variant="secondary" icon="star">
-              {T.feature.submit}
-            </Button>
-          </form>
-          {featuredUntil && (
-            <form action={featureEventAction}>
+      {!withdrawn && (
+        <section
+          aria-labelledby="evento-destaque"
+          className="flex flex-col gap-3 rounded-lg border border-line-subtle bg-card-white p-4"
+        >
+          <h2 id="evento-destaque" className="type-section text-strong">
+            {T.feature.title}
+          </h2>
+          <p className="type-body text-strong" data-testid="feature-current">
+            {featuredUntil ? T.feature.current(featureDayLabel(featuredUntil)) : T.feature.none}
+          </p>
+          <p className="type-meta text-meta">{T.feature.hint}</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <form action={featureEventAction} className="flex flex-wrap items-end gap-3">
               <input type="hidden" name="id" value={event.id} />
-              <input type="hidden" name="tirar" value="1" />
-              <Button type="submit" size="sm" variant="outline" icon="x">
-                {T.feature.remove}
-              </Button>
+              <DateField
+                id="evento-destaque-ate"
+                name="ate"
+                label={T.feature.until}
+                defaultValue={featureDateInput(featuredUntil) || today}
+                min={today}
+                max={addDays(today, FEATURE_MAX_DAYS)}
+                required
+              />
+              <SubmitButton
+                size="sm"
+                variant="secondary"
+                icon="star"
+                pendingLabel={T.feature.saving}
+              >
+                {T.feature.submit}
+              </SubmitButton>
             </form>
-          )}
-        </div>
-      </section>
+            {featuredUntil && (
+              <form action={featureEventAction}>
+                <input type="hidden" name="id" value={event.id} />
+                <input type="hidden" name="tirar" value="1" />
+                <SubmitButton size="sm" variant="outline" icon="x" pendingLabel={T.feature.saving}>
+                  {T.feature.remove}
+                </SubmitButton>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
       <EventForm
         action={saveEventAction}
         cancelHref={BASE}

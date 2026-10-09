@@ -18,6 +18,7 @@ const TAG = `ard-t4-${Date.now().toString(36)}`;
 const START = new Date(Date.now() + 6 * 86_400_000).toISOString();
 const created: string[] = [];
 const assets: string[] = [];
+const venues: string[] = [];
 let eventId = "";
 let slug = "";
 
@@ -66,6 +67,7 @@ afterAll(async () => {
     await service.from("event_listings").delete().in("id", created);
   }
   if (assets.length) await service.from("media_assets").delete().in("id", assets);
+  if (venues.length) await service.from("venues").delete().in("id", venues);
 });
 
 describe("destaque do evento (B5)", () => {
@@ -186,6 +188,54 @@ describe("organização e local do Guia no Estúdio", () => {
     });
   });
 
+  it("Automático pelo local num vínculo travado destrava e refaz o casamento", async () => {
+    const v = await service
+      .from("venues")
+      .insert({ slug: `lume-${TAG}`, name: `Teatro Lume ${TAG}`, category: "teatro" })
+      .select("id")
+      .single();
+    if (v.error) throw v.error;
+    venues.push(v.data.id);
+    const venue = `Teatro Lume ${TAG}`;
+    value(await updateEvent(eventId, input({ venue, venueId: null }), await actor("otavio")));
+    const lockedRow = await service
+      .from("event_listings")
+      .select("venue_id, locked_fields")
+      .eq("id", eventId)
+      .single();
+    expect(lockedRow.data?.venue_id).toBeNull();
+    expect(lockedRow.data?.locked_fields).toContain("venue_id");
+
+    value(await updateEvent(eventId, input({ venue, venueAuto: true }), await actor("otavio")));
+    const row = await service
+      .from("event_listings")
+      .select("venue_id, locked_fields")
+      .eq("id", eventId)
+      .single();
+    expect(row.data?.venue_id).toBe(v.data.id);
+    expect(row.data?.locked_fields).not.toContain("venue_id");
+    const audit = await service
+      .from("audit_log")
+      .select("details")
+      .eq("object_ref", `event:${eventId}`)
+      .eq("action", "event.update")
+      .order("id", { ascending: false })
+      .limit(1)
+      .single();
+    expect(audit.data?.details).toMatchObject({
+      venue_unlocked: true,
+      venue_id_auto: { from: null, to: v.data.id },
+    });
+    // Volta ao local original para os testes seguintes.
+    value(
+      await updateEvent(
+        eventId,
+        input({ organizer: `Coletivo ${TAG}`, ageRating: "12" }),
+        await actor("otavio"),
+      ),
+    );
+  });
+
   it("seletor Nenhum grava sem vínculo e trava venue_id", async () => {
     value(await updateEvent(eventId, input({ venueId: null }), await actor("otavio")));
     const row = await service
@@ -228,8 +278,7 @@ describe("imagem do evento pelo Media Registry (anon)", () => {
   it("ativo aprovado: imagem com variantes, crédito da fonte e Ver original", async () => {
     const e = value(await getEvent(slug));
     expect(e?.image).toMatchObject({
-      src480: `/api/media/${mediaId}?w=480`,
-      src960: `/api/media/${mediaId}?w=960`,
+      src: `/api/media/${mediaId}`,
       kind: "reproduction",
       credit: "Forró da Praça (fictícia)",
       originUrl: "https://forro.example/praca",

@@ -141,8 +141,6 @@ describe("EventCard origem e confirmação", () => {
 describe("EventCard com foto de divulgação (ARD-T4)", () => {
   const image = {
     src: "/api/media/a0000000-0000-4000-8000-000000000001",
-    src480: "/api/media/a0000000-0000-4000-8000-000000000001?w=480",
-    src960: "/api/media/a0000000-0000-4000-8000-000000000001?w=960",
     alt: "Imagem de divulgação: Noite de rasqueado no Sesc Arsenal",
     kind: "reproduction" as const,
     credit: "Fonte",
@@ -160,6 +158,15 @@ describe("EventCard com foto de divulgação (ARD-T4)", () => {
     expect(original).toHaveAttribute("target", "_blank");
     // Sem a capa, a data continua no card.
     expect(card).toHaveTextContent("16 out");
+  });
+
+  it("foto de terceiros inteira, sem recorte (object-contain)", () => {
+    render(<EventCard event={{ ...event, image }} />);
+    const img = within(screen.getByTestId("event-thumb")).getByRole("presentation", {
+      hidden: true,
+    });
+    expect(img.className).toMatch(/object-contain/);
+    expect(img.className).not.toMatch(/object-cover/);
   });
 
   it("sem imagem o card não muda: capa tipográfica e nenhuma legenda", () => {

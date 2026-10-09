@@ -36,13 +36,10 @@ export interface ArticleImage {
 }
 
 /**
- * Imagem do evento (ARD-T4): foto de divulgação pelo Media Registry, com as variantes da rota
- * própria (480 no card, 960 na página; variante ausente cai no original).
+ * Imagem do evento (ARD-T4): foto de divulgação pelo Media Registry. As variantes 480 (card) e
+ * 960 (página) saem do `srcset` da rota própria; variante ausente cai no original.
  */
-export interface EventImage extends ArticleImage {
-  src480: string;
-  src960: string;
-}
+export type EventImage = ArticleImage;
 
 /** Imagem dentro do texto: entra depois do parágrafo `position` (a partir de 1) do corpo. */
 export interface ArticleInlineImage extends ArticleImage {

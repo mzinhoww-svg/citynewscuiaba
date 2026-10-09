@@ -159,3 +159,22 @@ describe("EventForm organização e local do Guia (ARD-T4)", () => {
     expect(screen.getByText(T.form.venue.empty)).toBeInTheDocument();
   });
 });
+
+describe("EventForm lugar guardado fora da lista (ARD-T4)", () => {
+  it("lugar travado que não está nas opções entra como (atual) e fica escolhido", () => {
+    const id = "8f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
+    render(
+      <EventForm
+        action={async () => EVENT_FORM_IDLE}
+        categories={categories}
+        cancelHref="/x"
+        eventId="e1"
+        initial={{ venueId: id }}
+        venues={{ options: null, current: { name: "Teatro Antigo", auto: false } }}
+      />,
+    );
+    const select = screen.getByLabelText(F.venueId);
+    expect(select).toHaveValue(id);
+    expect(screen.getByRole("option", { name: "Teatro Antigo (atual)" })).toBeInTheDocument();
+  });
+});

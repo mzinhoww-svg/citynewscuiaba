@@ -120,8 +120,6 @@ describe("toEventView imagem pelo Media Registry (ARD-T4)", () => {
     const v = toEventView(row({ media_id: asset().id, media: asset() }), names, now);
     expect(v.image).toEqual({
       src: `/api/media/${asset().id}`,
-      src480: `/api/media/${asset().id}?w=480`,
-      src960: `/api/media/${asset().id}?w=960`,
       alt: "Imagem de divulgação: Show",
       kind: "reproduction",
       credit: "Teatro Exemplo",
@@ -146,6 +144,17 @@ describe("toEventView imagem pelo Media Registry (ARD-T4)", () => {
     ]) {
       expect(toEventView(row({ media }), names, now).image).toBeNull();
     }
+  });
+
+  it("legenda completa ou nada: reprodução sem página de origem ou sem nome de crédito não sai", () => {
+    expect(toEventView(row({ media: asset({ page_url: null }) }), names, now).image).toBeNull();
+    expect(
+      toEventView(
+        row({ media: asset({ page_url: "nao-e-url", source_name: null, credit: null }) }),
+        names,
+        now,
+      ).image,
+    ).toBeNull();
   });
 
   it("validade que vence hoje ainda vale (como media_rights_status_for: anterior a hoje)", () => {

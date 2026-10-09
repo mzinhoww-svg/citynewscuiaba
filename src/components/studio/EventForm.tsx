@@ -67,6 +67,15 @@ export function EventForm({
   const values = state.status === "idle" ? initial : state.values;
   const val = (k: string) => values[k] ?? "";
   const err = (k: string) => state.errors[k];
+  // Lugar guardado fora da lista (inativo ou leitura falhou): entra como "(atual)" e fica
+  // escolhido, para o envio nunca trocar o vínculo sem querer.
+  const venueValue = val("venueId");
+  const storedVenue =
+    venueValue &&
+    venueValue !== VENUE_NONE &&
+    !(venues?.options ?? []).some((v) => v.id === venueValue)
+      ? { value: venueValue, label: T.form.venue.stored(venues?.current?.name ?? venueValue) }
+      : null;
 
   return (
     <form
@@ -196,10 +205,11 @@ export function EventForm({
             hint={T.form.hints.venueId}
             options={[
               { value: "", label: T.form.venue.auto },
+              ...(storedVenue ? [storedVenue] : []),
               ...(venues.options ?? []).map((v) => ({ value: v.id, label: v.name })),
               { value: VENUE_NONE, label: T.form.venue.none },
             ]}
-            defaultValue={val("venueId")}
+            defaultValue={venueValue}
           />
           {eventId && (
             <p className="type-meta text-meta" data-testid="venue-current">

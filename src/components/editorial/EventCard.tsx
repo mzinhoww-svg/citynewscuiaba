@@ -66,7 +66,15 @@ export function EventCard({ event: e, className }: EventCardProps) {
       {image ? (
         // Miniatura decorativa: o título ao lado já nomeia o evento; a origem vai na legenda.
         <div data-testid="event-thumb" className="contents">
-          <Photo src={image.src} alt="" ratio={1} radius="md" sizes="6rem" className="size-24" />
+          <Photo
+            src={image.src}
+            alt=""
+            ratio={1}
+            radius="md"
+            sizes="6rem"
+            fit={image.kind === "reproduction" ? "contain" : "cover"}
+            className="size-24"
+          />
         </div>
       ) : (
         <EventDateBadge

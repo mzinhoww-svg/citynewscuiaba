@@ -4,6 +4,7 @@ import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
 import { creditName } from "@/lib/media/credit";
+import { isReusable, rightsStatusOf } from "@/lib/media/rights";
 import { mediaHref } from "@/lib/media/serve";
 import type { Result } from "@/lib/result";
 import { afterKey, cursorOf, decodeCursor, throughKey, type KeySpec, type Page } from "./cursor";
@@ -83,20 +84,27 @@ export type EventSourceNames = ReadonlyMap<string, { name: string; confirms: boo
 const EVENT_ORIGINS = ["official", "organizer", "reader", "newsroom"] as const;
 
 /**
- * Imagem pública do evento pelas regras do Media Registry (D-02; visão `media_registry`, que o
- * `anon` não lê): só ativo aprovado, nunca bloqueado, retirado a pedido (`removed_at`) nem com a
- * validade anterior a hoje (como `media_rights_status_for`). Variantes 480 (card) e 960 (página)
- * pela rota própria, que cai no original quando a variante não existe.
+ * Imagem pública do evento pelas regras do Media Registry (D-02). A RLS pública de
+ * `media_assets` (0205) já esconde o ativo não aprovado, retirado, vencido ou com direitos
+ * bloqueados; esta checagem repete a regra (`rightsStatusOf`/`isReusable`) como defesa. Foto de
+ * terceiros só sai com a legenda completa: sem página de origem ou sem nome para o crédito, não
+ * sai. As variantes por largura vêm do `srcset` da rota própria (`Photo`).
  */
 export function eventImage(
   m: EventMediaRef | undefined,
   title: string,
   now: Date,
 ): EventImage | null {
-  if (!m || m.status !== "approved" || m.removed_at) return null;
+  if (!m || m.status !== "approved") return null;
   if (m.rights_status === "blocked" || m.rights_status === "expired") return null;
-  if (m.license_until && m.license_until.slice(0, 10) < now.toISOString().slice(0, 10)) return null;
-  const src = mediaHref(m.id);
+  // `license_until` é data (sem hora) e o banco compara com `current_date` (UTC no Supabase):
+  // comparar com a meia-noite UTC de hoje faz a validade de hoje ainda valer, como no SQL.
+  const todayUtc = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`);
+  const rights = rightsStatusOf(
+    { kind: m.kind, status: m.status, licenseUntil: m.license_until, removedAt: m.removed_at },
+    todayUtc,
+  );
+  if (!isReusable(rights)) return null;
   const reproduction = m.kind === "reproduction";
   // O crédito gravado na reprodução já é a legenda inteira ("Foto: reprodução web · Fonte"): a
   // tela usa o nome da fonte (ou o site da página) e a legenda monta o aviso uma vez só.
@@ -111,10 +119,9 @@ export function eventImage(
         [],
       )
     : (m.credit ?? undefined);
+  if (reproduction && (!m.page_url || !credit)) return null;
   return {
-    src,
-    src480: `${src}?w=480`,
-    src960: `${src}?w=960`,
+    src: mediaHref(m.id),
     alt: AGENDA.imageAlt(title),
     kind: m.kind,
     ...(credit ? { credit } : {}),

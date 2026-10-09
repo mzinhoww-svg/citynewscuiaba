@@ -12,6 +12,8 @@ export interface PhotoImageProps {
   label: string;
   sizes: string;
   priority?: boolean;
+  /** `contain`: imagem inteira, sem recorte (foto de terceiros, D-02: sem recorte de crédito). */
+  fit?: "cover" | "contain";
 }
 
 const MARKER =
@@ -44,6 +46,7 @@ export function PhotoImage({
   label,
   sizes,
   priority,
+  fit = "cover",
 }: PhotoImageProps) {
   const [stage, setStage] = useState<"direct" | "route" | "failed">(directSrc ? "direct" : "route");
   const ref = useRef<HTMLImageElement>(null);
@@ -73,7 +76,7 @@ export function PhotoImage({
       fetchPriority={priority ? "high" : "auto"}
       decoding="async"
       onError={next}
-      className="absolute inset-0 size-full object-cover"
+      className={`absolute inset-0 size-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
     />
   );
 }

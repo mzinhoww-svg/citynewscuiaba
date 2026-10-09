@@ -30,8 +30,11 @@ describe("parseEventForm", () => {
   it("lugar do Guia: sem o campo = automático; uuid = escolha da redação; 'nenhum' = sem vínculo", () => {
     const auto = parse();
     expect(auto.ok && auto.value.venueId).toBeUndefined();
+    expect(auto.ok && auto.value.venueAuto).toBeUndefined();
     const vazio = parse({ venueId: "" });
     expect(vazio.ok && vazio.value.venueId).toBeUndefined();
+    // Campo presente e vazio = "Automático pelo local" escolhido (destrava um vínculo travado).
+    expect(vazio.ok && vazio.value.venueAuto).toBe(true);
     const id = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b";
     const escolhido = parse({ venueId: id });
     expect(escolhido.ok && escolhido.value.venueId).toBe(id);

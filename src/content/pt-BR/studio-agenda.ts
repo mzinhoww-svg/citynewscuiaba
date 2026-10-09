@@ -195,7 +195,8 @@ export const STUDIO_AGENDA_TEXT = {
           ? `Vínculo atual: ${name} (automático)`
           : `Vínculo atual: ${name} (escolhido pela redação)`,
       currentNone: "Vínculo atual: nenhum lugar do Guia",
-      inactive: (name: string) => `${name} (fora do Guia ativo)`,
+      /** Lugar guardado que não está na lista (inativo ou leitura falhou): continua escolhido. */
+      stored: (name: string) => `${name} (atual)`,
       error: "Não foi possível carregar os lugares do Guia. O vínculo atual fica como está.",
       empty: "Nenhum lugar ativo no Guia para escolher.",
     },
@@ -250,6 +251,7 @@ export const STUDIO_AGENDA_TEXT = {
     until: "Destacar até",
     submit: "Destacar",
     remove: "Tirar destaque",
+    saving: "Salvando…",
     current: (date: string) => `Em destaque até ${date}`,
     none: "Sem destaque",
     invalid: "Escolha uma data de hoje até 90 dias para frente.",
