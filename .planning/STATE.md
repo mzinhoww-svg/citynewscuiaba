@@ -1,12 +1,13 @@
 # CityNews · Estado atual
 
-**Última atualização:** 2026-10-08 · Agenda multifonte (A-220, AGM-T1 a T9); antes, fim da auditoria das decisões do dono: D-06, B-022, segurança (segunda rodada) e incidente de crédito da IA.
+**Última atualização:** 2026-10-09 · Agenda rica e distribuição (A-221, ARD-T1 a T7); antes, Agenda multifonte (A-220).
 **Atualizado por:** Claude Code
 
 Arquivo curto, reescrito a cada entrega (ADR-011). Histórico: `.planning/DECISIONS.md`, `docs/reports/`, `git log`.
 
 ## Última entrega
 
+- **Agenda rica e distribuição (A-221):** imagem de divulgação do evento pela D-02 (inteira, com "Foto: reprodução web · {fonte}" e "Ver original"), organizador, faixa etária com filtro, vínculo com o Guia ("Ver no Guia" e "Próximos eventos aqui"), destaque no Estúdio, newsletter "Agenda do fim de semana" montada toda quinta (`/newsletter/agenda/[data]`, envio `aguardando_provedor` até B-005) e pacote Instagram "Agenda da semana" em `/estudio/agenda/instagram` (aprovar, ZIP, marcar publicado). Relatório: `docs/reports/agenda-rica-distribuicao.md`. Produção em 09/10: 0200 a 0208 aplicadas (0200 sem o `update`, que não tinha linha a mudar); crons `newsletter-agenda` (qui 11h45), `newsletter-agenda-retry` (sex 10h45) e `social-agenda` (seg 8h) agendados; bucket `social-packages` privado; a 0205 não escondeu nenhuma imagem de matéria (0 de 2.839).
 - **Agenda multifonte (A-220):** fontes do Radar @citycuiabaa no coletor da Agenda (extração estruturada ou por página com trecho de evidência, confirmação entre fontes, teto e prazo), fontes de eventos no Painel de Fontes com prévia, `/estudio/agenda` com cadastro, edição e retirada, e origem/confirmação na página pública. Relatório: `docs/reports/agenda-multifonte.md`. Em produção desde 08/10: 0195 a 0199 aplicadas (18 fontes de eventos: 3 Sympla ativas, 12 aguardando ativação, 3 bloqueadas; 33 eventos ligados à fonte). Ativação das 10 fontes do Radar pronta em `supabase/bootstrap/2026-10-08-agenda-ativar-fontes.sql` (B-035: o conector segura o `update`).
 - **D-06 (PR #75):** `anon` sem `publish_mode`, `agent_id` e `confidence`; faixa Urgente lê `urgent_strip`.
 - **B-022 (PR #76):** patrocínio nativo no portal, atrás de `sponsored_native_enabled` (desligada).

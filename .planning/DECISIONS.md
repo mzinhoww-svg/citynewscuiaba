@@ -550,4 +550,6 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 - Newsletter: até 12 eventos com cota por dia, mínimo 3 para publicar; edição publicada não sai do ar em nova rodada; fim de semana encerrado nunca é enviado; erro do envio mantém a página no ar. `aguardando_provedor` é o estado final de exibição até B-005.
 - Instagram: até 6 eventos, no máximo 2 por local; cada montagem em pasta própria; aprovação só da versão vista e com direitos das fotos conferidos de novo (também no ZIP); emoji do texto coletado é removido; o job não refaz pacote descartado.
 
+**Produção (09/10/2026):** 0200 a 0208 aplicadas pelo conector do Supabase antes do merge (o código novo lê as colunas novas). A 0200 foi sem o `update` de `age_rating` (as 33 linhas já eram `consulte`), mesmo estado final. Crons `newsletter-agenda`, `newsletter-agenda-retry` e `social-agenda` agendados (pg_cron, pg_net e Vault presentes); bucket `social-packages` privado; a 0205 não escondeu nenhuma das 2.839 imagens aprovadas.
+
 **Reversível:** desligar `image_reproduction_enabled` (nenhuma imagem nova nem exibida); desagendar os crons `newsletter-agenda`, `newsletter-agenda-retry` e `social-agenda`; tirar destaques no Estúdio.
