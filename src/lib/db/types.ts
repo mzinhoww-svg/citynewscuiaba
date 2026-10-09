@@ -2871,6 +2871,9 @@ export type Database = {
           assets: NonNullable<Json>;
           caption: string;
           created_at: string;
+          error: string | null;
+          excluded: NonNullable<Json>;
+          generated_at: string | null;
           id: string;
           items: NonNullable<Json>;
           kind: string;
@@ -2884,6 +2887,9 @@ export type Database = {
           assets?: NonNullable<Json>;
           caption?: string;
           created_at?: string;
+          error?: string | null;
+          excluded?: NonNullable<Json>;
+          generated_at?: string | null;
           id?: string;
           items?: NonNullable<Json>;
           kind: string;
@@ -2897,6 +2903,9 @@ export type Database = {
           assets?: NonNullable<Json>;
           caption?: string;
           created_at?: string;
+          error?: string | null;
+          excluded?: NonNullable<Json>;
+          generated_at?: string | null;
           id?: string;
           items?: NonNullable<Json>;
           kind?: string;

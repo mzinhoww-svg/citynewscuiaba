@@ -21,6 +21,12 @@ function supabaseStoragePattern(): {
   }
 }
 
+/** Arquivos lidos do disco pelo render do pacote do Instagram (ARD-T6). */
+const SOCIAL_RENDER_FILES = [
+  "./src/lib/social/fonts/**/*",
+  "./node_modules/.pnpm/harfbuzzjs@*/node_modules/harfbuzzjs/hb.wasm",
+];
+
 const nextConfig: NextConfig = {
   // Imagens aprovadas só pela rota própria /api/media/[id] (valida aprovação e flag de reprodução
   // e redireciona para URL assinada curta do bucket privado); nada de URL pública do bucket.
@@ -42,6 +48,15 @@ const nextConfig: NextConfig = {
     ];
   },
   poweredByHeader: false,
+  // Pacote do Instagram (ARD-T6): o resvg é binário nativo e o satori carrega o `hb.wasm` do
+  // harfbuzzjs pelo `__dirname` (empacotados, os dois quebram), então ficam fora do bundle. As
+  // fontes Liberation e o `hb.wasm` são lidos do disco em tempo de execução e vão junto só para
+  // as funções que montam o pacote (o job e o "Regerar" do Estúdio).
+  serverExternalPackages: ["@resvg/resvg-js", "satori"],
+  outputFileTracingIncludes: {
+    "/api/jobs/social-agenda": SOCIAL_RENDER_FILES,
+    "/estudio/agenda/instagram": SOCIAL_RENDER_FILES,
+  },
 };
 
 export default nextConfig;

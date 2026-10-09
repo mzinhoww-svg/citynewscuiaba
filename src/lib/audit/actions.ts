@@ -68,6 +68,10 @@ export const AGENDA_AUDIT_ACTIONS = [
   "social.discard",
   // Edição semanal da newsletter da Agenda, pelo job (`system:agenda`; ARD-T5, migration 0206).
   "newsletter.edition",
+  // Pacote "Agenda da semana" do Instagram (ARD-T6, migration 0207): montagem pelo job
+  // (`system:agenda`) e "Regerar" no Estúdio.
+  "social.build",
+  "social.regenerate",
 ] as const;
 
 export type AgendaAuditAction = (typeof AGENDA_AUDIT_ACTIONS)[number];

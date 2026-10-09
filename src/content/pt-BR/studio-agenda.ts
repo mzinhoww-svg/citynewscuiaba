@@ -83,7 +83,7 @@ export const STUDIO_AGENDA_TEXT = {
   intro:
     "Todos os eventos da agenda: os coletados das fontes, os de leitores e os cadastrados pela redação. O que a redação edita a coleta não sobrescreve.",
   tabsLabel: "Abas da Agenda",
-  tabs: { events: "Eventos", submissions: "Sugestões" },
+  tabs: { events: "Eventos", submissions: "Sugestões", instagram: "Instagram" },
   add: "Novo evento",
   table: {
     caption: "Eventos da agenda",
@@ -272,4 +272,110 @@ export const STUDIO_AGENDA_TEXT = {
     description: "Use até 2 frases e 300 caracteres.",
     organizer: "O organizador pode ter até 160 caracteres. Exemplo: Coletivo Siriri do Porto",
   },
+} as const;
+
+/**
+ * Pacote "Agenda da semana" do Instagram no Estúdio (ARD-T6, spec §7): `/estudio/agenda/instagram`.
+ * A postagem é à mão: o CityNews monta, a redação aprova, baixa o ZIP e marca como publicado.
+ */
+export const STUDIO_SOCIAL_TEXT = {
+  metaTitle: "Instagram · Agenda · Estúdio · CityNews Cuiabá",
+  title: "Instagram: Agenda da semana",
+  intro:
+    "O pacote é montado toda segunda às 8h com até 6 eventos confirmados da semana. Confira os slides e a legenda, aprove, baixe o ZIP e poste à mão no @citycuiabaa.",
+  weekNav: "Semanas",
+  previousWeek: "Semana anterior",
+  nextWeek: "Próxima semana",
+  currentWeek: "Semana atual",
+  weekOf: (range: string) => `Semana de ${range}`,
+  status: {
+    draft: "Rascunho",
+    approved: "Aprovado",
+    published: "Publicado",
+    discarded: "Descartado",
+  },
+  statusHint: {
+    draft: "Confira os slides e a legenda. Aprovar libera o ZIP.",
+    approved: "Baixe o ZIP, poste à mão e marque como publicado com o link do post.",
+    published: "Pacote postado no Instagram.",
+    discarded: "Pacote descartado. Regerar monta um rascunho novo com os eventos da semana.",
+  },
+  facts: {
+    status: "Situação",
+    generatedAt: "Montado em",
+    approvedAt: "Aprovado em",
+    publishedUrl: "Post",
+    events: "Eventos",
+  },
+  notBuilt: {
+    title: "O pacote desta semana ainda não foi montado",
+    body: "Ele sai sozinho toda segunda às 8h. Você pode montar agora.",
+  },
+  empty: {
+    title: "Nenhum evento confirmado nesta semana",
+    body: "Sem eventos confirmados de segunda a domingo, o pacote fica vazio. Cadastre ou confirme eventos e monte de novo.",
+  },
+  failed: (reason: string) =>
+    `A montagem dos slides falhou (${reason}). O pacote continua em rascunho e nada foi publicado. Tente Regerar.`,
+  loadError: {
+    title: "Não foi possível carregar o pacote",
+    body: "Tente de novo em alguns instantes.",
+    retry: "Tentar de novo",
+  },
+  slidesTitle: "Slides",
+  slidesHint: "PNG 1080×1350, na ordem do carrossel.",
+  slideAlt: (n: number, total: number, what: string) => `Slide ${n} de ${total}: ${what}`,
+  slideCover: "capa",
+  slideClosing: "Qual você vai?",
+  captionTitle: "Legenda",
+  captionLabel: "Legenda pronta para colar",
+  captionCount: (n: number) => `${n} de 2.200 caracteres`,
+  copy: "Copiar legenda",
+  copied: "Legenda copiada.",
+  copyFailed: "Não deu para copiar. Selecione o texto e copie à mão.",
+  creditsTitle: "Créditos",
+  noPhoto: "Sem foto (fundo liso)",
+  photoCredit: (source: string) => `Foto: reprodução web · ${source}`,
+  viewOriginal: "Ver original",
+  eventsTitle: "Eventos do pacote",
+  removeLabel: (title: string) => `Tirar do pacote: ${title}`,
+  removeHint:
+    "Marque os eventos que devem sair e clique em Regerar; a vaga vai para o próximo evento da semana.",
+  excludedCount: (n: number) =>
+    n === 1
+      ? "1 evento tirado do pacote nesta semana."
+      : `${n} eventos tirados do pacote nesta semana.`,
+  restore: "Devolver os eventos tirados",
+  actionsTitle: "Ações",
+  regenerate: "Regerar",
+  build: "Montar agora",
+  regenerating: "Montando…",
+  approve: "Aprovar",
+  approving: "Aprovando…",
+  discard: "Descartar",
+  discarding: "Descartando…",
+  downloadZip: "Baixar ZIP",
+  zipHint: "O ZIP traz os PNGs, a legenda (caption.txt) e os créditos (creditos.txt).",
+  zipLocked: "O ZIP fica disponível depois de aprovar.",
+  publishUrl: "Link do post no Instagram",
+  publishHint: "Exemplo: https://www.instagram.com/p/ABC123/",
+  publish: "Marcar como publicado",
+  publishing: "Salvando…",
+  done: {
+    montado: "Pacote montado.",
+    aprovado: "Pacote aprovado. O ZIP está liberado.",
+    descartado: "Pacote descartado.",
+    publicado: "Pacote marcado como publicado.",
+  } as Partial<Record<string, string>>,
+  errors: {
+    forbidden: "Você não tem permissão para mexer no pacote da Agenda.",
+    read_only:
+      "O Estúdio está em modo leitura: nenhuma alteração é gravada agora. Fale com a administração.",
+    invalid_week: "Semana inválida.",
+    invalid_url: "Use o link do post no Instagram, começando com https://www.instagram.com/",
+    not_ready: "O pacote ainda não está pronto: precisa ter eventos, slides e nenhum erro.",
+    not_found: "Pacote não encontrado. Monte o pacote desta semana primeiro.",
+    invalid_state: "O pacote mudou de situação. Recarregue a página.",
+    failed: "Não deu para concluir. Tente de novo.",
+  } as Partial<Record<string, string>>,
 } as const;
