@@ -70,9 +70,18 @@ beforeAll(async () => {
   await cleanEvents();
 });
 
+const FIXTURE_EVENT_IMAGES = [
+  "https://cerradovivo.example/img/siriri-moderno.jpg",
+  "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg",
+  "https://teatro-cerrado.example/img/forro-da-praca.jpg",
+];
+
 afterAll(async () => {
   vi.unstubAllEnvs();
   await cleanEvents();
+  // Imagens de divulgação das fixtures (ARD-T2): com Storage (CI) a coleta grava o ativo, e uma
+  // cópia esquecida vira "duplicada" (phash) para os testes de imagem das matérias.
+  await db.from("media_assets").delete().in("origin_url", FIXTURE_EVENT_IMAGES);
   await db.from("agenda_extract_cache").delete().like("url", "%.example/%");
   const broken = await db.from("sources").select("id").eq("slug", BROKEN_SLUG).maybeSingle();
   if (broken.data) {
