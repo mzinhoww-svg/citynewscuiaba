@@ -7,7 +7,7 @@ import type { Result } from "@/lib/result";
 import { toAggregatedView } from "./aggregated";
 import { createUsed, hasApprovedCover, type Used } from "@/lib/featured";
 import { fetchRecentArticles, summarize } from "./articles";
-import { fetchEvents } from "./events";
+import { fetchEvents, featuredFirst } from "./events";
 import { getFeaturedMany, requestFeaturedImages } from "./featured";
 import { many, readPublic } from "./run";
 import { fetchActiveTopics } from "./topics";
@@ -34,6 +34,8 @@ const HIGHLIGHT_COUNT = 3;
 const TOPIC_POOL = 12;
 const TOPIC_COUNT = 3;
 const MOST_READ_COUNT = 5;
+/** Eventos na home (B5): até 3, destacados primeiro. */
+const HOME_EVENTS = 3;
 
 export async function fetchCollections(db: DbClient, limit: number): Promise<CollectionView[]> {
   const rows = await db
@@ -289,7 +291,11 @@ export async function getHomeData(
         featuredSet,
         fetchActiveTopics(db, TOPIC_POOL),
         fetchCollections(db, 4),
-        fetchEvents(db, { limit: 3 }, now),
+        // Destacados primeiro (B5): até 3 em destaque, depois os próximos, sem repetir.
+        Promise.all([
+          fetchEvents(db, { featuredOnly: true, limit: HOME_EVENTS }, now),
+          fetchEvents(db, { limit: HOME_EVENTS * 2 }, now),
+        ]).then(([featured, upcoming]) => featuredFirst(featured, upcoming, HOME_EVENTS)),
         fetchFeaturedSources(db, 8),
         fetchHomeAggregated(db, 4),
         fetchPublishedHomeLayout(db),

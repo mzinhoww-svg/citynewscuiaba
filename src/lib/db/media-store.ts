@@ -6,9 +6,15 @@ import type { DbClient } from "./client";
 /** Bucket privado de mídia (ADR-009). Leitura pública só por URL assinada ou CDN de aprovadas. */
 export const MEDIA_BUCKET = "media";
 
-/** MediaStore no Supabase Storage (service role). */
-export function createSupabaseMediaStore(db: DbClient): MediaStore {
-  const bucket = () => db.storage.from(MEDIA_BUCKET);
+/**
+ * MediaStore no Supabase Storage (service role). `bucketName`: outro bucket privado com a mesma
+ * interface (pacotes do Instagram, `social-packages`, ARD-T6).
+ */
+export function createSupabaseMediaStore(
+  db: DbClient,
+  bucketName: string = MEDIA_BUCKET,
+): MediaStore {
+  const bucket = () => db.storage.from(bucketName);
   return {
     kind: "supabase",
     async put(path, bytes, contentType) {

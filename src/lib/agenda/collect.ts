@@ -12,14 +12,17 @@ import {
   type RobotsGate,
   type RunCtx,
   type SourceReport,
+  type StoredCollected,
 } from "./collect-context";
 import { extractIcal } from "./extract/ical";
 import { extractJsonLd } from "./extract/jsonld";
 import { extractRss } from "./extract/rss";
 import { extractSympla } from "./extract/sympla";
 import { extractTribe } from "./extract/tribe";
+import { attachImages } from "./images";
 import { reconcile } from "./reconcile";
 import type { AgendaSource, NormalizedEvent, RawEvent } from "./types";
+import { matchVenue, type VenueCandidate } from "./venue-match";
 import type { FetchOutcome } from "@/lib/sources/status";
 
 export {
@@ -68,16 +71,18 @@ async function collectTribe(
   source: AgendaSource,
   ctx: RunCtx,
   report: SourceReport,
+  firstUrl: string,
   firstBody: string,
   robots: RobotsGate,
   events: NormalizedEvent[],
 ): Promise<boolean> {
   let body = firstBody;
+  let pageUrl = firstUrl;
   const seen = new Set<string>();
   for (let page = 1; ; page++) {
     const { events: raws, next } = extractTribe(body);
     report.found += raws.length;
-    for (const raw of raws) accept(raw, source, ctx, report, events);
+    for (const raw of raws) accept(raw, source, ctx, report, events, {}, { url: pageUrl, body });
     if (!next || page >= TRIBE_MAX_PAGES || seen.has(next)) return true;
     seen.add(next);
     let nextUrl: URL;
@@ -95,6 +100,7 @@ async function collectTribe(
     if (res.kind === "deadline") return false;
     if (res.kind !== "ok") return true;
     body = res.body;
+    pageUrl = nextUrl.href;
   }
 }
 
@@ -163,15 +169,44 @@ async function collectSource(source: AgendaSource, ctx: RunCtx): Promise<SourceR
     };
   }
   if (source.kind === "tribe") {
-    if (!(await collectTribe(source, ctx, report, res.body, robots, events)))
+    if (!(await collectTribe(source, ctx, report, url, res.body, robots, events)))
       return deferred("prazo da execução", { outcome: "ok" });
   } else {
     const raws = extractStructured(source, res.body, ctx.now);
     report.found += raws.length;
-    for (const raw of raws) accept(raw, source, ctx, report, events);
+    for (const raw of raws) accept(raw, source, ctx, report, events, {}, { url, body: res.body });
   }
   report.approved = events.length;
   return { report, events, outcome: { outcome: "ok" } };
+}
+
+/**
+ * Vínculo com o lugar do Guia (ARD-T3): `venue_id` sem trava é sempre derivado do local final
+ * (depois de travas e confirmação), então é recalculado a cada gravação — troca de lugar ou fica
+ * nulo quando nada casa. Travado pela redação, fica como está. Lugares lidos uma vez; sem leitor
+ * ou com falha na leitura, mantém o guardado (a coleta segue).
+ */
+async function linkVenues(
+  events: NormalizedEvent[],
+  stored: readonly StoredCollected[],
+  load: (() => Promise<VenueCandidate[]>) | undefined,
+): Promise<NormalizedEvent[]> {
+  if (!load || events.length === 0) return events;
+  let venues: VenueCandidate[];
+  try {
+    venues = await load();
+  } catch (e) {
+    console.warn("agenda: lugares do Guia indisponíveis, vínculos guardados mantidos", {
+      message: e instanceof Error ? e.message : String(e),
+    });
+    return events;
+  }
+  const locked = new Set(
+    stored.filter((s) => s.lockedFields.includes("venue_id")).map((s) => s.dedupeKey),
+  );
+  return events.map((e) =>
+    locked.has(e.dedupeKey) ? e : { ...e, venueId: matchVenue(e.venue, venues) },
+  );
 }
 
 /**
@@ -229,7 +264,16 @@ export async function collectAgenda(deps: CollectDeps): Promise<CollectReport> {
     r.new += rec.created.get(r.id) ?? 0;
     r.updated += rec.updated.get(r.id) ?? 0;
   }
-  const saved = deps.dryRun ? 0 : rec.toSave.length > 0 ? await deps.save(rec.toSave, now) : 0;
+  // Imagem só na execução real (o ensaio não grava nada no Media Registry), depois das travas.
+  // Lugar do Guia também só na execução real (o ensaio não lê nem grava vínculo).
+  const toSave = deps.dryRun
+    ? rec.toSave
+    : await linkVenues(
+        await attachImages(rec.toSave, stored, selected, ctx, reports),
+        stored,
+        deps.venues,
+      );
+  const saved = deps.dryRun ? 0 : toSave.length > 0 ? await deps.save(toSave, now) : 0;
   return {
     startedAt: now.toISOString(),
     sources: reports,

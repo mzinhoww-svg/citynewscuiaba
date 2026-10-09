@@ -96,6 +96,8 @@ export const GUIDE = {
     price: (n: number) => "$".repeat(n),
     priceLabel: "Faixa de preço",
     appearsIn: "Aparece nestas listas",
+    /** Seção da página do lugar com até 5 eventos da Agenda ligados a ele (ARD-T3). */
+    upcomingEvents: "Próximos eventos aqui",
     photos: "Fotos",
     photoCredit: (name: string) => `Foto: reprodução web · ${name}`,
     photoSource: "Fonte",

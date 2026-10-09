@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Cta, Faq, Hero, NewsletterForm } from "@/components";
-import { NEWSLETTER_LISTS, NEWSLETTER_PAGE as T } from "@/content/pt-BR/newsletter";
+import {
+  NEWSLETTER_EDITION,
+  NEWSLETTER_LISTS,
+  NEWSLETTER_PAGE as T,
+} from "@/content/pt-BR/newsletter";
+import { getLatestPublicEdition } from "@/lib/db/newsletter-editions";
 import { getHomeData, listEvents, listSection } from "@/lib/db/queries";
+import {
+  AGENDA_LIST,
+  eventPath,
+  rangeLabel,
+  rangeOfEdition,
+} from "@/lib/newsletter/agenda-edition";
 import { formatDayMonth, formatHour } from "@/lib/format/date";
 import { MARKETING } from "@/content/pt-BR/site";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -22,32 +33,58 @@ export const metadata: Metadata = pageMetadata({
 const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 
 type Sample = { title: string; href: string; meta?: string }[];
+/** Link para a edição inteira (só a Agenda do fim de semana tem página de edição). */
+type Edition = { href: string; label: string; aria: string };
 
-async function samples(): Promise<Record<string, Sample>> {
-  const [home, events, politics] = await Promise.all([
+async function samples(): Promise<{
+  lists: Record<string, Sample>;
+  editions: Record<string, Edition>;
+}> {
+  const [home, events, politics, agenda] = await Promise.all([
     getHomeData(new Date(), { cache: true }),
     listEvents({ limit: 3 }),
     listSection("politica"),
+    getLatestPublicEdition(AGENDA_LIST),
   ]);
   const articles = home.ok ? [home.value.lead, ...home.value.now].filter((a) => a !== null) : [];
+  // ARD-T5: a amostra da Agenda é a última edição publicada; sem edição, os próximos eventos.
+  const edition = agenda.ok && agenda.value && agenda.value.items.length > 0 ? agenda.value : null;
+  const range = edition ? rangeLabel(rangeOfEdition(edition.editionDate)) : "";
   return {
-    diaria: articles.slice(0, 3).map((a) => ({ title: a.title, href: a.href })),
-    "agenda-fds": events.ok
-      ? events.value.map((e) => ({
-          title: e.title,
-          href: e.href,
-          meta: `${formatDayMonth(e.startsAt)}, ${formatHour(e.startsAt)}`,
-        }))
-      : [],
-    "politica-semana":
-      politics.ok && politics.value
-        ? politics.value.articles.slice(0, 3).map((a) => ({ title: a.title, href: a.href }))
-        : [],
+    editions: edition
+      ? {
+          [AGENDA_LIST]: {
+            href: `/newsletter/agenda/${edition.editionDate}`,
+            label: NEWSLETTER_EDITION.readEdition,
+            aria: NEWSLETTER_EDITION.readEditionLabel(range),
+          },
+        }
+      : {},
+    lists: {
+      diaria: articles.slice(0, 3).map((a) => ({ title: a.title, href: a.href })),
+      "agenda-fds": edition
+        ? edition.items.slice(0, 3).map((i) => ({
+            title: i.title,
+            href: eventPath(i.slug),
+            meta: `${i.dayLabel}, ${i.when}`,
+          }))
+        : events.ok
+          ? events.value.map((e) => ({
+              title: e.title,
+              href: e.href,
+              meta: `${formatDayMonth(e.startsAt)}, ${formatHour(e.startsAt)}`,
+            }))
+          : [],
+      "politica-semana":
+        politics.ok && politics.value
+          ? politics.value.articles.slice(0, 3).map((a) => ({ title: a.title, href: a.href }))
+          : [],
+    },
   };
 }
 
 export default async function NewsletterRoute() {
-  const sample = await samples();
+  const { lists: sample, editions } = await samples();
   return (
     <div className={`${CONTAINER} flex flex-col gap-10 py-8 lg:py-10`}>
       <Hero
@@ -86,6 +123,17 @@ export default async function NewsletterRoute() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {editions[l.id] && (
+                  <p className="type-meta">
+                    <Link
+                      href={editions[l.id]!.href}
+                      aria-label={editions[l.id]!.aria}
+                      className="font-semibold text-strong underline underline-offset-4"
+                    >
+                      {editions[l.id]!.label}
+                    </Link>
+                  </p>
                 )}
               </div>
             </li>

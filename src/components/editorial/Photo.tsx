@@ -25,6 +25,11 @@ export interface PhotoProps {
   directSrc?: string;
   directSrcSet?: string;
   priority?: boolean;
+  /**
+   * `contain`: a imagem inteira dentro da caixa (proporção mantida, fundo neutro `bg-photo`), sem
+   * recorte. Obrigatório para reprodução de terceiros (CLAUDE.md §5.11, sem recorte de crédito).
+   */
+  fit?: "cover" | "contain";
   className?: string;
   style?: CSSProperties;
   children?: ReactNode;
@@ -59,6 +64,7 @@ export function Photo({
   directSrc,
   directSrcSet,
   priority,
+  fit = "cover",
   className,
   style,
   children,
@@ -91,6 +97,7 @@ export function Photo({
           label={label}
           sizes={sizes}
           priority={priority}
+          fit={fit}
         />
       ) : (
         <PhotoMarker alt={alt} label={label} />

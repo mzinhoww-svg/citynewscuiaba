@@ -1,8 +1,8 @@
 import { analyzeImage } from "@/lib/media/analyze";
 import { checkImage, DUPLICATE_MAX_DISTANCE } from "@/lib/media/checks";
 import { fetchImage, outsideSourceDomain, sourceDomain } from "@/lib/media/fetch-image";
+import { reproductionCredit, storeExternalCopy, type NewExternalAsset } from "@/lib/media/external";
 import type { MediaStore } from "@/lib/media/store";
-import { mediaPath } from "@/lib/media/store";
 import { takedownReproduction, type TakedownDeps } from "@/lib/media/takedown";
 import type { ImageAnalysis } from "@/lib/media/types";
 import { checkRobots, type CrawlDeps } from "@/lib/pipeline/http";
@@ -38,21 +38,8 @@ export interface VenuePhotoCandidate {
   existingAssetId: string | null;
 }
 
-export interface NewVenueAsset {
-  storagePath: string;
-  originUrl: string;
-  pageUrl: string;
-  sourceName: string;
-  license: string;
-  credit: string;
-  allowedUse: string;
-  width: number;
-  height: number;
-  phash: bigint;
-  sha256: string;
-  contentType: string;
-  provenance: Record<string, unknown>;
-}
+/** Ativo da foto oficial: a mesma forma de toda reprodução externa (`src/lib/media/external.ts`). */
+export type NewVenueAsset = NewExternalAsset;
 
 export interface VenueMediaRepo extends Pick<MediaRepo, "assetByOrigin" | "phashNeighbors"> {
   insertVenueAsset(a: NewVenueAsset): Promise<string>;
@@ -79,7 +66,7 @@ export interface VenueMediaDeps {
 /** Texto do crédito: "Foto: reprodução web · {nome do lugar}" (D-02). */
 export { guideTags };
 
-export const photoCredit = (name: string) => `Foto: reprodução web · ${name}`;
+export const photoCredit = reproductionCredit;
 
 export async function officialPhotoFor(
   v: Pick<Venue, "name" | "website">,
@@ -158,33 +145,22 @@ export async function savePhoto(
 ): Promise<Result<string, "storage">> {
   let mediaId = c.existingAssetId;
   if (!mediaId) {
-    const path = mediaPath("reproduction", c.analysis.sha256, c.analysis.format);
-    const put = await deps.store.put(path, c.bytes, c.analysis.contentType);
-    if (!put.ok) return err("storage");
-    mediaId = await deps.repo.insertVenueAsset({
-      storagePath: put.value.path,
-      originUrl: c.imageUrl,
-      pageUrl: c.pageUrl,
-      sourceName: v.name,
-      license: VENUE_PHOTO_LICENSE,
-      credit: c.credit,
-      allowedUse: `venue:${v.id}`,
-      width: c.analysis.width,
-      height: c.analysis.height,
-      phash: c.analysis.phash,
-      sha256: c.analysis.sha256,
-      contentType: c.analysis.contentType,
-      provenance: {
-        policy: "reproduction",
-        kind: "venue_official_photo",
+    const copied = await storeExternalCopy(
+      { store: deps.store, insert: (a) => deps.repo.insertVenueAsset(a), now: deps.now },
+      {
         imageUrl: c.imageUrl,
         pageUrl: c.pageUrl,
-        fetchedAt: deps.now().toISOString(),
-        bytes: c.analysis.bytes,
-        sha256: c.analysis.sha256,
-        unmodified: true,
+        sourceName: v.name,
+        bytes: c.bytes,
+        analysis: c.analysis,
+        credit: c.credit,
+        license: VENUE_PHOTO_LICENSE,
+        allowedUse: `venue:${v.id}`,
+        provenanceKind: "venue_official_photo",
       },
-    });
+    );
+    if (!copied.ok) return copied;
+    mediaId = copied.value;
   }
   await deps.repo.linkVenueMedia({
     venueId: v.id,

@@ -25,15 +25,19 @@ import {
   listAgendaEvents,
   listAgendaEventsThrough,
   listEventsInRange,
+  listFeaturedEvents,
   type EventFilters,
 } from "@/lib/db/queries/events";
 import { ok } from "@/lib/result";
 import {
+  AGENDA_AGE_FILTERS,
   AGENDA_CATEGORIES,
   AGENDA_PARAM_VALUES,
   agendaHref,
   agendaRange,
+  agesUpTo,
   calendarMonth,
+  isUnfilteredList,
   parseAgendaFilters,
   type AgendaFilters,
   type AgendaOrigin,
@@ -146,7 +150,11 @@ function Shortcuts({ f }: { f: AgendaFilters }) {
 
 function Filters({ f }: { f: AgendaFilters }) {
   const active =
-    Number(!!f.category) + Number(!!f.neighborhood) + Number(!!f.origin) + Number(f.when !== "30d");
+    Number(!!f.category) +
+    Number(!!f.neighborhood) +
+    Number(!!f.origin) +
+    Number(!!f.age) +
+    Number(f.when !== "30d");
   return (
     <FilterBar
       action="/agenda"
@@ -206,6 +214,13 @@ function Filters({ f }: { f: AgendaFilters }) {
             label: AGENDA.origins[o],
           })),
         },
+        {
+          name: "idade",
+          label: AGENDA.ageFilter,
+          value: f.age ?? "",
+          placeholder: AGENDA.allAges,
+          options: AGENDA_AGE_FILTERS.map((a) => ({ value: a, label: AGENDA.ageFilters[a] })),
+        },
       ]}
     />
   );
@@ -217,6 +232,7 @@ function emptyTitle(f: AgendaFilters): string {
     kids: f.kids,
     category: f.category ? AGENDA.categories[f.category] : undefined,
     where: neighborhoodBySlug(f.neighborhood)?.in,
+    age: f.age ? AGENDA.agePhrase(f.age) : undefined,
     period:
       f.view === "cal"
         ? AGENDA.inMonth
@@ -228,15 +244,7 @@ function emptyTitle(f: AgendaFilters): string {
 
 /** Sem filtro do visitante e com menos de 3 eventos próximos: mostra as datas fixas da cidade. */
 function recurringFor(f: AgendaFilters, events: readonly EventView[], now: Date) {
-  const unfiltered =
-    !f.category &&
-    !f.neighborhood &&
-    !f.origin &&
-    !f.free &&
-    !f.kids &&
-    !f.day &&
-    f.when === "30d" &&
-    f.view === "list";
+  const unfiltered = isUnfilteredList(f);
   const near = events.filter((e) => Date.parse(e.startsAt) <= now.getTime() + 14 * 86_400_000);
   return unfiltered && near.length < 3 ? upcomingRecurring(now, 6) : [];
 }
@@ -250,6 +258,7 @@ function eventFilters(f: AgendaFilters, range: { from: string; to: string }): Ev
     category: f.category,
     neighborhood: f.neighborhood ? neighborhoodBySlug(f.neighborhood)?.name : undefined,
     origin: f.origin,
+    ...(f.age ? { ages: agesUpTo(f.age) } : {}),
   };
 }
 
@@ -481,6 +490,33 @@ async function MiniCalendar({ f, now }: { f: AgendaFilters; now: Date }) {
   );
 }
 
+/**
+ * Faixa "Em destaque" (B5): eventos que a redação destacou até uma data, no topo da lista sem
+ * filtros. Falha ou nenhum destaque: a faixa some (a lista continua).
+ */
+async function FeaturedStrip() {
+  const r = await listFeaturedEvents();
+  if (!r.ok || r.value.length === 0) return null;
+  return (
+    <section
+      aria-labelledby="agenda-destaque"
+      data-testid="agenda-featured"
+      className="flex flex-col border-b-2 border-line-strong pb-4"
+    >
+      <h2 id="agenda-destaque" className="pb-2 type-section text-strong">
+        {AGENDA.featuredTitle}
+      </h2>
+      <ol className="grid grid-cols-1 gap-x-8 lg:grid-cols-2">
+        {r.value.map((e) => (
+          <li key={e.id}>
+            <EventCard event={e} />
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 function Loading() {
   return (
     <LoadingRegion label={AGENDA.loading} className="flex flex-col gap-4">
@@ -519,6 +555,11 @@ export default async function AgendaRoute({ searchParams }: Props) {
         </div>
         <Filters f={f} />
       </div>
+      {isUnfilteredList(f) && (
+        <Suspense fallback={null}>
+          <FeaturedStrip />
+        </Suspense>
+      )}
       <Suspense key={`${agendaHref(f)}|${cursor ?? ""}`} fallback={<Loading />}>
         <Results f={f} cursor={cursor} />
       </Suspense>

@@ -1448,10 +1448,13 @@ export type Database = {
           description: string | null;
           ends_at: string | null;
           evidence: NonNullable<Json>;
+          featured_until: string | null;
           id: string;
           is_free: boolean | null;
           locked_fields: string[];
+          media_id: string | null;
           neighborhood: string | null;
+          organizer: string | null;
           origin: string;
           price_cents: number | null;
           price_unknown: boolean;
@@ -1464,6 +1467,7 @@ export type Database = {
           tsv: unknown;
           updated_at: string;
           venue: string;
+          venue_id: string | null;
           withdrawn_at: string | null;
         };
         Insert: {
@@ -1477,10 +1481,13 @@ export type Database = {
           description?: string | null;
           ends_at?: string | null;
           evidence?: NonNullable<Json>;
+          featured_until?: string | null;
           id?: string;
           is_free?: never;
           locked_fields?: string[];
+          media_id?: string | null;
           neighborhood?: string | null;
+          organizer?: string | null;
           origin: string;
           price_cents?: number | null;
           price_unknown?: boolean;
@@ -1493,6 +1500,7 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           venue: string;
+          venue_id?: string | null;
           withdrawn_at?: string | null;
         };
         Update: {
@@ -1506,10 +1514,13 @@ export type Database = {
           description?: string | null;
           ends_at?: string | null;
           evidence?: NonNullable<Json>;
+          featured_until?: string | null;
           id?: string;
           is_free?: never;
           locked_fields?: string[];
+          media_id?: string | null;
           neighborhood?: string | null;
+          organizer?: string | null;
           origin?: string;
           price_cents?: number | null;
           price_unknown?: boolean;
@@ -1522,9 +1533,24 @@ export type Database = {
           tsv?: unknown;
           updated_at?: string;
           venue?: string;
+          venue_id?: string | null;
           withdrawn_at?: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "event_listings_media_id_fkey";
+            columns: ["media_id"];
+            isOneToOne: false;
+            referencedRelation: "media_assets";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "event_listings_venue_id_fkey";
+            columns: ["venue_id"];
+            isOneToOne: false;
+            referencedRelation: "venues";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "event_listings_confirmed_by_source_id_fkey";
             columns: ["confirmed_by_source_id"];
@@ -2224,6 +2250,48 @@ export type Database = {
           },
         ];
       };
+      newsletter_editions: {
+        Row: {
+          created_at: string;
+          edition_date: string;
+          html: string;
+          id: string;
+          items: NonNullable<Json>;
+          list: string;
+          published_at: string | null;
+          sent_at: string | null;
+          status: string;
+          subject: string;
+          text: string;
+        };
+        Insert: {
+          created_at?: string;
+          edition_date: string;
+          html: string;
+          id?: string;
+          items?: NonNullable<Json>;
+          list: string;
+          published_at?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject: string;
+          text: string;
+        };
+        Update: {
+          created_at?: string;
+          edition_date?: string;
+          html?: string;
+          id?: string;
+          items?: NonNullable<Json>;
+          list?: string;
+          published_at?: string | null;
+          sent_at?: string | null;
+          status?: string;
+          subject?: string;
+          text?: string;
+        };
+        Relationships: [];
+      };
       newsletter_subscriptions: {
         Row: {
           confirmed_at: string | null;
@@ -2795,6 +2863,57 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      social_packages: {
+        Row: {
+          approved_at: string | null;
+          approved_by: string | null;
+          assets: NonNullable<Json>;
+          caption: string;
+          created_at: string;
+          error: string | null;
+          excluded: NonNullable<Json>;
+          generated_at: string | null;
+          id: string;
+          items: NonNullable<Json>;
+          kind: string;
+          published_url: string | null;
+          status: string;
+          week_start: string;
+        };
+        Insert: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          assets?: NonNullable<Json>;
+          caption?: string;
+          created_at?: string;
+          error?: string | null;
+          excluded?: NonNullable<Json>;
+          generated_at?: string | null;
+          id?: string;
+          items?: NonNullable<Json>;
+          kind: string;
+          published_url?: string | null;
+          status?: string;
+          week_start: string;
+        };
+        Update: {
+          approved_at?: string | null;
+          approved_by?: string | null;
+          assets?: NonNullable<Json>;
+          caption?: string;
+          created_at?: string;
+          error?: string | null;
+          excluded?: NonNullable<Json>;
+          generated_at?: string | null;
+          id?: string;
+          items?: NonNullable<Json>;
+          kind?: string;
+          published_url?: string | null;
+          status?: string;
+          week_start?: string;
+        };
+        Relationships: [];
       };
       studio_notifications: {
         Row: {
@@ -5258,6 +5377,10 @@ export type Database = {
           p_section: string;
         };
         Returns: boolean;
+      };
+      agenda_venue_candidates: {
+        Args: never;
+        Returns: { id: string; name: string; status: string }[];
       };
       ai_cost_daily: {
         Args: { p_since: string };

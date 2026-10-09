@@ -33,6 +33,8 @@ const stored: StoredStudioEvent = {
   accessibility: null,
   source_url: "https://cerradovivo.example/siriri",
   description: "Roda de siriri.",
+  organizer: null,
+  venue_id: null,
   locked_fields: ["title"],
   withdrawn_at: null,
 };
@@ -50,6 +52,7 @@ const input = (over: Partial<EventInput> = {}): EventInput => ({
   accessibility: null,
   sourceUrl: stored.source_url,
   description: stored.description,
+  organizer: null,
   ...over,
 });
 
@@ -107,6 +110,8 @@ function fakeDb(row: StoredStudioEvent | null) {
   const db = {
     from: (table: string) => builder(table),
     rpc: (fn: string, args: Record<string, unknown>) => {
+      // Candidatos do Guia (vínculo automático): nenhum lugar neste cliente falso.
+      if (fn === "agenda_venue_candidates") return Promise.resolve({ data: [], error: null });
       rpcs.push({ fn, args });
       return Promise.resolve({ data: null, error: null });
     },
@@ -197,6 +202,8 @@ describe("changedColumns / lockedAfterEdit", () => {
     expect(lockedAfterEdit(["title"], ["title", "venue", "age_rating", "accessibility"])).toEqual([
       "title",
       "venue",
+      // A coleta passou a escrever a faixa etária (ARD-T2): editar trava.
+      "age_rating",
     ]);
   });
 });
@@ -298,7 +305,7 @@ describe("erros do banco", () => {
 });
 
 describe("createEvent", () => {
-  it("origem newsroom, confirmado agora e todos os campos travados; audita", async () => {
+  it("origem newsroom, confirmado agora e todos os campos travados (menos o lugar sem escolha); audita", async () => {
     const fake = fakeDb(null);
     const r = await createEvent(input({ title: "Feira do Porto" }), actor(fake.db));
     expect(r.ok).toBe(true);
@@ -308,8 +315,9 @@ describe("createEvent", () => {
       origin: "newsroom",
       confirmed_at: NOW.toISOString(),
       updated_at: NOW.toISOString(),
-      locked_fields: Object.keys(LOCKABLE_COLUMNS),
+      locked_fields: Object.keys(LOCKABLE_COLUMNS).filter((c) => c !== "venue_id"),
       age_rating: "consulte",
+      venue_id: null,
     });
     expect((ins?.payload as { slug: string }).slug).toMatch(/^feira-do-porto-1710-[0-9a-f]{6}$/);
     expect(fake.rpcs[0]?.args).toMatchObject({ p_action: "event.create" });
@@ -332,5 +340,23 @@ describe("withdrawEvent / restoreEvent", () => {
     expect(back.ok).toBe(true);
     expect(fake.current()?.withdrawn_at).toBeNull();
     expect(fake.rpcs.at(-1)?.args).toMatchObject({ p_action: "event.restore" });
+  });
+});
+
+describe("organização editada fica travada (ARD-T4)", () => {
+  it("mudar organizador ou faixa entra no diff e nas travas", () => {
+    const changed = changedColumns(
+      stored,
+      input({ organizer: "Coletivo Siriri", ageRating: "12" }),
+    );
+    expect(changed).toEqual(["age_rating", "organizer"]);
+    expect(lockedAfterEdit(stored.locked_fields, changed)).toEqual([
+      "title",
+      "age_rating",
+      "organizer",
+    ]);
+    expect(
+      changedColumns({ ...stored, organizer: "Coletivo" }, input({ organizer: " Coletivo " })),
+    ).toEqual([]);
   });
 });

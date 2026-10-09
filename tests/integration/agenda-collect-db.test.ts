@@ -70,9 +70,18 @@ beforeAll(async () => {
   await cleanEvents();
 });
 
+const FIXTURE_EVENT_IMAGES = [
+  "https://cerradovivo.example/img/siriri-moderno.jpg",
+  "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg",
+  "https://teatro-cerrado.example/img/forro-da-praca.jpg",
+];
+
 afterAll(async () => {
   vi.unstubAllEnvs();
   await cleanEvents();
+  // Imagens de divulgação das fixtures (ARD-T2): com Storage (CI) a coleta grava o ativo, e uma
+  // cópia esquecida vira "duplicada" (phash) para os testes de imagem das matérias.
+  await db.from("media_assets").delete().in("origin_url", FIXTURE_EVENT_IMAGES);
   await db.from("agenda_extract_cache").delete().like("url", "%.example/%");
   const broken = await db.from("sources").select("id").eq("slug", BROKEN_SLUG).maybeSingle();
   if (broken.data) {
@@ -290,6 +299,55 @@ describe("coleta repetida no banco", () => {
       starts_at: "2026-11-21T23:00:00+00:00",
     });
     await cleanEvents();
+  });
+});
+
+describe("vínculo com o lugar do Guia (ARD-T3)", () => {
+  const mark = Date.now().toString(36);
+  const venueIds: string[] = [];
+  async function venue(name: string, slug: string) {
+    const r = await db
+      .from("venues")
+      .insert({ slug: `${slug}-${mark}`, name, category: "teatro" })
+      .select("id")
+      .single();
+    if (r.error) throw r.error;
+    venueIds.push(r.data.id);
+    return r.data.id;
+  }
+  afterAll(async () => {
+    await cleanEvents();
+    await db.from("venues").delete().in("id", venueIds);
+  });
+
+  it("local com um único lugar ativo ganha venue_id; ambíguo fica nulo; travado não muda", async () => {
+    const teatro = await venue("Teatro Cerrado - Cuiabá", "ard-t3-teatro-cerrado");
+    await venue("Arena Pantanal Fictícia", "ard-t3-arena-a");
+    await venue("Arena Pantanal Fictícia", "ard-t3-arena-b");
+    const withVenues = { sources: [TEATRO], venues: () => store.activeVenues() };
+
+    await collectAgenda(deps(withVenues));
+    const first = await db
+      .from("event_listings")
+      .select("id, title, venue_id")
+      .eq("source_id", "teatro-cerrado");
+    const forro = first.data!.find((e) => e.title === "Forró da Praça")!;
+    const fest = first.data!.find((e) => e.title === "Festival Cerrado Eletrônico")!;
+    expect(forro.venue_id).toBe(teatro);
+    expect(fest.venue_id).toBeNull();
+
+    // Redação desfaz o vínculo e trava: a coleta seguinte não religa.
+    await db
+      .from("event_listings")
+      .update({ venue_id: null, locked_fields: ["venue_id"] })
+      .eq("id", forro.id);
+    await collectAgenda(deps(withVenues));
+    const again = await db
+      .from("event_listings")
+      .select("venue_id, locked_fields")
+      .eq("id", forro.id)
+      .single();
+    expect(again.data).toMatchObject({ venue_id: null, locked_fields: ["venue_id"] });
   });
 });
 

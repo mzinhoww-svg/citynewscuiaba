@@ -20,6 +20,8 @@ export const eventPageSchema = z.object({
   cidade: fieldSchema.nullable(),
   preco: fieldSchema.nullable(),
   organizador: fieldSchema.nullable(),
+  /** Classificação etária ("classificação 16 anos", "livre"); opcional, lida do trecho pelo código. */
+  faixa: fieldSchema.nullish(),
   relativas: z.array(z.string()).max(5),
 });
 

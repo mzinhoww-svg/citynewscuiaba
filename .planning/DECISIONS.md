@@ -530,3 +530,26 @@ A meta de 165 kB não foi atingida: o resto é o framework mais as interações 
 **Produção (08/10/2026):** 0195 a 0199 aplicadas pelo conector do Supabase. A 0195 foi em quatro partes (colunas e política com `alter policy` em vez de `drop policy`; busca; execuções, cache e agente; troca da restrição de origem), mesmo estado final. Orçamento: `write` de R$ 14,50 para R$ 13,50, `event_extractor` R$ 1, total R$ 30. `/agenda` no ar mostra "Com informações de Sympla · Confirme na fonte".
 
 **Reversível:** desativar as fontes de eventos no painel; o código antigo do Sympla é o caso de 3 fontes ativas sem `ai_page`.
+
+## A-221 · Agenda rica e distribuição: imagem, organizador, faixa, Guia, destaque, newsletter e pacote Instagram (09/10/2026)
+
+**Status:** vigente. Decisões do dono no brainstorming de 08/10/2026 (E1 a E4 da spec `docs/superpowers/specs/2026-10-08-agenda-rica-e-distribuicao-design.md`, subprojetos B e C). Plano ARD-T1 a ARD-T7.
+
+**Decisões do dono:**
+- E1: imagem do evento é a de divulgação da página oficial, pela D-02 ("Foto: reprodução web · {fonte}", crédito, link, sem recorte, Media Registry com direitos `unknown`), desligável por `image_reproduction_enabled`. Nunca imagem gerada.
+- E2: pacote "Agenda da semana" do Instagram montado no Estúdio para o dono aprovar e postar à mão; sem login no Instagram. Substitui a rotina "City Cuiabá · Radar".
+- E3: newsletter "Agenda do fim de semana" montada sozinha toda quinta; sem provedor de e-mail (B-005) a edição sai na web e o envio fica `aguardando_provedor`.
+- E4: B e C juntos.
+
+**Decisões de implementação:**
+- Migrations 0200 a 0208: colunas `media_id`, `organizer`, `venue_id`, `featured_until` e check fechado de `age_rating` em `event_listings`; `newsletter_editions`; `social_packages` com bucket privado; crons `newsletter-agenda` (quinta 11h45 e sexta 10h45, Cuiabá) e `social-agenda` (segunda 8h); `agenda_venue_candidates()`; leitura pública de `media_assets` seguindo o Media Registry por inteiro (0205: retirado, vencido ou com direitos `blocked`/`expired` não é lido pelo público, nem em matéria, nem em `/api/media/[id]`); auditoria `newsletter.edition`, `social.*`, `event.feature`; gatilho de transições do pacote (0208).
+- Imagem: só `https`, host da página ou host citado na própria página fora da URL da imagem, conferido a cada redirect; IP nunca; largura ≥ 400 px; 1 por evento; 20 tentativas com rede por execução (recusa sem rede não gasta vaga; eventos antigos em rodízio). A IA nunca escolhe imagem. Na tela, imagem inteira (sem recorte) e legenda completa, ou nenhuma imagem.
+- Faixa etária: só o número colado ao sinal de classificação; regra de ingresso ("menores de 12 anos não pagam") e "entrada livre" não viram faixa; o resto é `consulte`.
+- Guia: vínculo automático só com um único lugar ativo do Guia (prefixos teatro, espaço, casa, centro, cine; classes diferentes não casam; prefixo de um lado só exige 2+ palavras); vínculo sem trava é recalculado quando o local muda; escolha da redação trava; "Automático" destrava. Estúdio e coleta usam o mesmo conjunto de lugares.
+- Destaque: até o fim do dia escolhido em Cuiabá, de hoje a 90 dias; home mostra até 3 destacados primeiro.
+- Newsletter: até 12 eventos com cota por dia, mínimo 3 para publicar; edição publicada não sai do ar em nova rodada; fim de semana encerrado nunca é enviado; erro do envio mantém a página no ar. `aguardando_provedor` é o estado final de exibição até B-005.
+- Instagram: até 6 eventos, no máximo 2 por local; cada montagem em pasta própria; aprovação só da versão vista e com direitos das fotos conferidos de novo (também no ZIP); emoji do texto coletado é removido; o job não refaz pacote descartado.
+
+**Produção (09/10/2026):** 0200 a 0208 aplicadas pelo conector do Supabase antes do merge (o código novo lê as colunas novas). A 0200 foi sem o `update` de `age_rating` (as 33 linhas já eram `consulte`), mesmo estado final. Crons `newsletter-agenda`, `newsletter-agenda-retry` e `social-agenda` agendados (pg_cron, pg_net e Vault presentes); bucket `social-packages` privado; a 0205 não escondeu nenhuma das 2.839 imagens aprovadas.
+
+**Reversível:** desligar `image_reproduction_enabled` (nenhuma imagem nova nem exibida); desagendar os crons `newsletter-agenda`, `newsletter-agenda-retry` e `social-agenda`; tirar destaques no Estúdio.

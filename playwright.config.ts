@@ -54,6 +54,10 @@ const FIXTURE_SPECS = [
   "**/control-event-sources.spec.ts",
   // Eventos no Estúdio: edição respeitada pela coleta forçada das fontes fictícias (AGM-T7).
   "**/e2e/studio-agenda.spec.ts",
+  // Agenda rica: destaque no Estúdio muda a faixa "Em destaque" de /agenda (ARD-T4).
+  "**/e2e/agenda-rica.spec.ts",
+  // Pacote do Instagram: o job e o Estúdio dividem os PNGs em memória (SOCIAL_STORE, ARD-T6).
+  "**/e2e/social-agenda.spec.ts",
 ];
 /**
  * Os três projetos usam o mesmo banco local e o spec de fixtures altera fontes do seed. Para
@@ -142,6 +146,8 @@ export default defineConfig({
         // Agenda não vencem quando as datas absolutas das fixtures passam.
         CRAWLER_FIXTURES_DATES: "relative",
         AI_PROVIDER: "fake",
+        // Pilha local sem Storage (A-017): PNGs do pacote do Instagram em memória (ARD-T6).
+        SOCIAL_STORE: "memory",
         APP_URL: `http://localhost:${fixturesPort}`,
         ...PUSH_ENV,
       },

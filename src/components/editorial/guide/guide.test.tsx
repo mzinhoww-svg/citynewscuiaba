@@ -2,9 +2,11 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { dataLine, GUIDE } from "@/content/pt-BR/guide";
 import type { GuideListItemView, GuideListSummary, GuideVenueView } from "@/lib/db/queries/guide";
+import type { EventView } from "@/lib/db/queries/types";
 import { ListCard } from "./ListCard";
 import { VenueCard } from "./VenueCard";
 import { VenueCover } from "./VenueCover";
+import { VenueEvents } from "./VenueEvents";
 
 const venue = (over: Partial<GuideVenueView> = {}): GuideVenueView => ({
   id: "v1",
@@ -203,5 +205,63 @@ describe("vocabulário público do Guia", () => {
     expect(GUIDE.list.attribution.googleWithPhotos).toBe("Avaliações e fotos: Google.");
     expect(GUIDE.venue.googlePhotoCredit(null)).toBe("Foto: Google");
     expect(GUIDE.venue.googlePhotoCredit("Ana")).not.toMatch(FORBIDDEN);
+  });
+});
+
+const event = (over: Partial<EventView> = {}): EventView => ({
+  id: "e1",
+  slug: "peca-do-cerrado-1710-abc123",
+  href: "/agenda/peca-do-cerrado-1710-abc123",
+  title: "Peça do Cerrado",
+  startsAt: "2026-10-17T23:00:00Z",
+  endsAt: null,
+  venue: "Teatro Exemplo",
+  neighborhood: null,
+  priceCents: 0,
+  isFree: true,
+  ageRating: "livre",
+  category: "teatro",
+  accessibility: null,
+  origin: "newsroom",
+  sourceName: null,
+  confirmedByName: null,
+  confirmed: true,
+  description: null,
+  confirmedAt: "2026-10-08T10:00:00Z",
+  sourceUrl: null,
+  priceUnknown: false,
+  venueSlug: "teatro-exemplo",
+  organizer: null,
+  image: null,
+  featured: false,
+  ...over,
+});
+
+describe("VenueEvents", () => {
+  it("mostra os próximos eventos do lugar com link para a página do evento", () => {
+    render(
+      <VenueEvents
+        events={[
+          event(),
+          event({
+            id: "e2",
+            slug: "sarau-1810-def456",
+            href: "/agenda/sarau-1810-def456",
+            title: "Sarau",
+          }),
+        ]}
+      />,
+    );
+    const section = screen.getByRole("region", { name: GUIDE.venue.upcomingEvents });
+    const hrefs = within(section)
+      .getAllByRole("link")
+      .map((l) => l.getAttribute("href"))
+      .filter((h) => h?.startsWith("/agenda/"));
+    expect(hrefs).toEqual(["/agenda/peca-do-cerrado-1710-abc123", "/agenda/sarau-1810-def456"]);
+  });
+
+  it("some quando não há eventos", () => {
+    const { container } = render(<VenueEvents events={[]} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });

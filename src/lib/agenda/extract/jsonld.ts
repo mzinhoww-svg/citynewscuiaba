@@ -65,6 +65,28 @@ function priceOf(offers: unknown): number | null | undefined {
   return Math.min(...prices);
 }
 
+/** `image`: texto, `ImageObject` (`url`/`contentUrl`) ou lista deles; o primeiro que servir. */
+function imageOf(v: unknown, depth = 0): string | null {
+  if (depth > 3) return null;
+  if (typeof v === "string") return str(v);
+  if (Array.isArray(v)) {
+    for (const x of v) {
+      const u = imageOf(x, depth + 1);
+      if (u) return u;
+    }
+    return null;
+  }
+  if (isObj(v)) return str(v["url"]) ?? str(v["contentUrl"]);
+  return null;
+}
+
+/** `organizer`: texto, `Organization`/`Person` com `name`, ou lista; o primeiro nome. */
+function organizerOf(v: unknown): string | null {
+  const first = Array.isArray(v) ? v[0] : v;
+  if (typeof first === "string") return str(first);
+  return isObj(first) ? str(first["name"]) : null;
+}
+
 /** Eventos `schema.org/Event` (e subtipos) em blocos `application/ld+json` do HTML. */
 export function extractJsonLd(html: string): RawEvent[] {
   const events: Obj[] = [];
@@ -103,6 +125,9 @@ export function extractJsonLd(html: string): RawEvent[] {
       url: str(e["url"]),
       priceCents: free ? 0 : price,
       online,
+      imageUrl: imageOf(e["image"]),
+      organizer: organizerOf(e["organizer"]),
+      ageRating: str(e["typicalAgeRange"]),
     });
   }
   return out;

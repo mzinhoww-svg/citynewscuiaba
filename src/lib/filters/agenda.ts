@@ -5,6 +5,9 @@ import { firstParam, type SearchParamsInput } from "./section";
 /** Filtros da agenda (P09) na URL. Valor desconhecido é descartado. */
 export type AgendaWhen = "today" | "tomorrow" | "weekend" | "7d" | "30d";
 export type AgendaOrigin = "official" | "organizer" | "reader" | "newsroom";
+/** Faixa etária do filtro `?idade=` (ARD-T4): `consulte` não é filtro, só aparece sem ele. */
+export const AGENDA_AGE_FILTERS = ["livre", "10", "12", "14", "16", "18"] as const;
+export type AgendaAge = (typeof AGENDA_AGE_FILTERS)[number];
 
 export interface AgendaFilters {
   view: "list" | "cal";
@@ -19,6 +22,28 @@ export interface AgendaFilters {
   day?: string;
   /** Mês do calendário (AAAA-MM). */
   month?: string;
+  /** Faixa etária máxima (`?idade=`): eventos com faixa até ela; `livre` conta como 0. */
+  age?: AgendaAge;
+}
+
+/** Faixas aceitas pelo filtro: da livre até a escolhida, nunca `consulte`. */
+export function agesUpTo(age: AgendaAge): AgendaAge[] {
+  return AGENDA_AGE_FILTERS.slice(0, AGENDA_AGE_FILTERS.indexOf(age) + 1);
+}
+
+/** Lista sem nenhum filtro do visitante (30 dias): só aí entram a faixa "Em destaque" e as datas fixas. */
+export function isUnfilteredList(f: AgendaFilters): boolean {
+  return (
+    f.view === "list" &&
+    f.when === "30d" &&
+    !f.day &&
+    !f.category &&
+    !f.neighborhood &&
+    !f.origin &&
+    !f.free &&
+    !f.kids &&
+    !f.age
+  );
 }
 
 export const AGENDA_CATEGORIES = [
@@ -83,6 +108,9 @@ export function parseAgendaFilters(sp: SearchParamsInput): AgendaFilters {
   if (day) out.day = day;
   const month = validMonth(firstParam(sp, "mes"));
   if (month) out.month = month;
+  const age = firstParam(sp, "idade");
+  const validAge = AGENDA_AGE_FILTERS.find((a) => a === age);
+  if (validAge) out.age = validAge;
   return out;
 }
 
@@ -95,6 +123,7 @@ export function agendaHref(f: AgendaFilters, change: Partial<AgendaFilters> = {}
   if (n.category) q.set("categoria", n.category);
   if (n.neighborhood) q.set("bairro", n.neighborhood);
   if (n.origin) q.set("origem", ORIGIN_PARAM[n.origin]);
+  if (n.age) q.set("idade", n.age);
   if (n.when !== "30d") q.set("quando", WHEN_PARAM[n.when]);
   if (n.day) q.set("dia", n.day);
   if (n.month && n.view === "cal") q.set("mes", n.month);

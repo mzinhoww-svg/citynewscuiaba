@@ -4,6 +4,7 @@ import { toZonedIso } from "@/lib/format/date";
 import { err, ok, type Result } from "@/lib/result";
 import { fold } from "@/lib/text/fold";
 import { hasProfanity, suspiciousLink } from "./approve";
+import { VENUE_FIELD, VENUE_NONE } from "./form-state";
 import { parseLocalDateTime } from "./submission";
 
 const E = STUDIO_AGENDA_TEXT.errors;
@@ -22,6 +23,8 @@ export const EVENT_FORM_FIELDS = [
   "accessibility",
   "link",
   "description",
+  "organizer",
+  "venueId",
 ] as const;
 export type EventFormField = (typeof EVENT_FORM_FIELDS)[number];
 
@@ -41,6 +44,28 @@ export interface EventInput {
   /** Link oficial (`event_listings.source_url`). */
   sourceUrl: string | null;
   description: string | null;
+  /** Quem organiza (`event_listings.organizer`); vazio = `null`. */
+  organizer: string | null;
+  /**
+   * Lugar do Guia escolhido pela redação (`event_listings.venue_id`): ausente = automático pelo
+   * local (`matchVenue`, sem trava); uuid = escolha (trava); `null` = sem vínculo (trava).
+   */
+  venueId?: string | null;
+  /**
+   * O seletor veio com "Automático pelo local" (campo presente e vazio): num vínculo travado,
+   * destrava `venue_id` e volta ao casamento automático. Ausente = o formulário não tinha o campo.
+   */
+  venueAuto?: boolean;
+}
+
+export { VENUE_FIELD, VENUE_NONE };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Escolha de lugar do formulário: `undefined` (automático), uuid ou `null` (nenhum). */
+function venueChoice(fd: FormData): string | null | undefined {
+  const raw = String(fd.get(VENUE_FIELD) ?? "").trim();
+  if (raw === VENUE_NONE) return null;
+  return UUID.test(raw) ? raw.toLowerCase() : undefined;
 }
 
 export type EventFormErrors = Partial<Record<EventFormField, string>>;
@@ -94,10 +119,14 @@ export interface StoredEventFields {
   accessibility: string | null;
   source_url: string | null;
   description: string | null;
+  organizer: string | null;
+  venue_id: string | null;
+  locked_fields: readonly string[];
 }
 
 /**
- * Evento guardado → valores do formulário. Preço nulo (evento antigo, sem informação) já vem
+ * Evento guardado → valores do formulário. Lugar do Guia travado (escolha da redação) volta
+ * escolhido (uuid ou `nenhum`); vínculo automático volta como "automático" (vazio). Preço nulo (evento antigo, sem informação) já vem
  * marcado como "Preço não informado": editar outro campo não obriga a inventar um preço.
  */
 export function eventFormValues(e: StoredEventFields): Record<EventFormField, string> {
@@ -118,6 +147,8 @@ export function eventFormValues(e: StoredEventFields): Record<EventFormField, st
     accessibility: e.accessibility ?? "",
     link: e.source_url ?? "",
     description: e.description ?? "",
+    organizer: e.organizer ?? "",
+    venueId: e.locked_fields.includes("venue_id") ? (e.venue_id ?? VENUE_NONE) : "",
   };
 }
 
@@ -176,7 +207,13 @@ export function parseEventForm(
     errors.description = E.description;
   else if (description && hasProfanity(description)) errors.description = E.profanity;
 
+  const organizer = v("organizer").replace(/\s+/g, " ");
+  if (organizer.length > 160) errors.organizer = E.organizer;
+  else if (organizer && hasProfanity(organizer)) errors.organizer = E.profanity;
+
   if (Object.keys(errors).length > 0 || !start) return err(errors);
+  const venueId = venueChoice(fd);
+  const venueAuto = fd.has(VENUE_FIELD) && String(fd.get(VENUE_FIELD) ?? "").trim() === "";
   return ok({
     title,
     startsAt: start.toISOString(),
@@ -190,5 +227,8 @@ export function parseEventForm(
     accessibility: accessibility || null,
     sourceUrl: link || null,
     description: description || null,
+    organizer: organizer || null,
+    ...(venueId !== undefined ? { venueId } : {}),
+    ...(venueAuto ? { venueAuto: true } : {}),
   });
 }

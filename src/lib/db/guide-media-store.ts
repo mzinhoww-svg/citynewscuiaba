@@ -1,14 +1,13 @@
 import "server-only";
 import type { DbClient } from "@/lib/db/client";
-import type { Json } from "@/lib/db/types";
 import type { VenueMediaRepo, VenuesOfMedia } from "@/lib/guide/venue-media";
 import type { VenuePhotoStore } from "@/lib/pipeline/steps/venue-photos";
-import { toSigned64 } from "@/lib/pipeline/simhash";
+import { insertExternalAsset } from "./external-media-store";
 import { createMediaRepo } from "./pipeline-store";
 
 /**
  * Fotos oficiais dos lugares no banco (service role): ativo em `media_assets` pela mesma função
- * das reproduções de matéria (`media_insert_asset`, sem fonte), ligação em `venue_media` e as
+ * das reproduções de matéria (`media_insert_asset`, sem fonte, via `insertExternalAsset`), ligação em `venue_media` e as
  * consultas da retirada a pedido. Reaproveita `createMediaRepo` para origem, hash e bloqueio.
  */
 export function createVenueMediaRepo(
@@ -19,31 +18,7 @@ export function createVenueMediaRepo(
     assetByOrigin: media.assetByOrigin,
     phashNeighbors: media.phashNeighbors,
 
-    async insertVenueAsset(a) {
-      const { data, error } = await db.rpc("media_insert_asset", {
-        p: {
-          kind: "reproduction",
-          storagePath: a.storagePath,
-          originUrl: a.originUrl,
-          pageUrl: a.pageUrl,
-          sourceId: null,
-          sourceName: a.sourceName,
-          author: null,
-          license: a.license,
-          credit: a.credit,
-          allowedUse: a.allowedUse,
-          width: a.width,
-          height: a.height,
-          phash: toSigned64(a.phash).toString(),
-          sha256: a.sha256,
-          contentType: a.contentType,
-          risk: "medio",
-          provenance: a.provenance,
-        } as Json,
-      });
-      if (error || !data) throw new Error(`venue asset: ${error?.message ?? "sem retorno"}`);
-      return data;
-    },
+    insertVenueAsset: (a) => insertExternalAsset(db, a),
 
     async linkVenueMedia(l) {
       const { error } = await db.from("venue_media").upsert(

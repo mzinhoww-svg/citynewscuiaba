@@ -53,7 +53,11 @@ const EXTRA: Record<string, Record<string, string>> = {
   "ingressosmt.example": { "/eventos/cuiaba-mt": "agenda/ingressos-cuiaba.html" },
   "eventos-cerrado.example": {
     "/wp-json/tribe/events/v1/events": "sites/eventos-cerrado-tribe.json",
+    "/wp-content/uploads/2026/10/sarau.jpg": "images/reproducao-b-1500x1000.jpg",
   },
+  // Imagens de divulgação dos eventos fictícios (ARD-T2).
+  "cerradovivo.example": { "/img/siriri-moderno.jpg": "images/reproducao-1600x900.jpg" },
+  "teatro-cerrado.example": { "/img/forro-da-praca.jpg": "images/reproducao-c-1280x720.jpg" },
   "folhadocerrado.example": {
     "/feed": "feeds/folha-do-cerrado.xml",
     "/termos": "sites/termos.html",
@@ -74,7 +78,12 @@ const CONTENT_TYPE: Record<string, string> = {
   ".xml": "application/xml; charset=utf-8",
   ".ics": "text/calendar; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
 };
+
+/** Fixtures binárias: servidas como bytes, sem conversão de texto nem troca de datas. */
+const BINARY = new Set([".jpg", ".png"]);
 
 function candidates(host: string, path: string): string[] {
   const prefix = SITES[host];
@@ -127,6 +136,11 @@ export function fixtureHttp(
       const file = join(root, rel);
       if (!existsSync(file)) continue;
       const type = CONTENT_TYPE[extname(file)] ?? "application/octet-stream";
+      if (BINARY.has(extname(file)))
+        return new Response(new Uint8Array(readFileSync(file)), {
+          status: 200,
+          headers: { "content-type": type },
+        });
       const raw = readFileSync(file, "utf-8");
       const body =
         options.shiftDays && AGENDA_FIXTURE_HOSTS.has(host)

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import { createCallAgent, type CallAgent } from "@/lib/ai/call-agent";
 import { createFakeProvider } from "@/lib/ai/fake";
 import { createMemoryAiStore } from "@/lib/ai/testing/memory-store";
+import type { ExternalImageError, ExternalImageInput } from "@/lib/media/external";
+import type { CrawlDeps } from "@/lib/pipeline/http";
+import { createFakeHttp, fakeResolve } from "@/lib/pipeline/testing/fake-http";
+import { err, ok, type Result } from "@/lib/result";
 import type { FetchOutcome } from "@/lib/sources/status";
 import { crawlDeps } from "@/lib/sources/http-deps";
 import {
@@ -89,6 +93,10 @@ function storedRow(over: Partial<StoredCollected> & { dedupeKey: string }): Stor
     confirms: true,
     confirmedBySourceId: null,
     evidence: {},
+    organizer: null,
+    ageRating: "consulte",
+    mediaId: null,
+    venueId: null,
     ...over,
   };
 }
@@ -551,5 +559,341 @@ describe("collectAgenda · estado da fonte", () => {
       { uuid: TEATRO.uuid, outcome: "ok", detail: undefined },
     ]);
     expect(r.sources.map((s) => s.id)).toEqual(["quebrada", "teatro-cerrado"]);
+  });
+});
+
+/** Recusas que o registro real decide sem pedido HTTP (não gastam vaga do teto). */
+const NO_NETWORK: ReadonlySet<ExternalImageError> = new Set(["host", "flag_off"]);
+
+/**
+ * Registro de imagem falso: guarda as entradas e devolve um id por URL (ou o erro dado); avisa
+ * `onNetwork` como o real, salvo nas recusas sem rede.
+ */
+function fakeImages(
+  answer: (i: ExternalImageInput, n: number) => Result<{ mediaId: string }, ExternalImageError> = (
+    i,
+  ) => ok({ mediaId: `media:${i.url}` }),
+) {
+  const calls: ExternalImageInput[] = [];
+  return {
+    calls,
+    registerImage: async (i: ExternalImageInput, onNetwork: () => void) => {
+      calls.push(i);
+      const r = answer(i, calls.length);
+      if (r.ok || !NO_NETWORK.has(r.error)) onNetwork();
+      return r;
+    },
+  };
+}
+
+/** Fonte JSON-LD fictícia com `n` eventos, cada um com imagem própria. */
+function manyEvents(n: number) {
+  const items = Array.from({ length: n }, (_, i) => ({
+    "@type": "Event",
+    name: `Show número ${i + 1} da casa`,
+    startDate: `2026-10-${String(10 + (i % 15)).padStart(2, "0")}T20:${String(10 + i).padStart(2, "0")}:00-04:00`,
+    url: `https://muitos.example/show-${i + 1}`,
+    image: `https://muitos.example/img/show-${i + 1}.jpg`,
+    location: {
+      "@type": "Place",
+      name: `Palco ${i + 1}`,
+      address: { "@type": "PostalAddress", addressLocality: "Cuiabá" },
+    },
+  }));
+  const html = `<script type="application/ld+json">${JSON.stringify({ "@graph": items })}</script>`;
+  const { http } = createFakeHttp({ "https://muitos.example/agenda": { body: html } });
+  const crawl: CrawlDeps = {
+    repo: { hitRateLimit: async () => true },
+    http,
+    resolve: fakeResolve(),
+    userAgent: "CityNewsBot/1.0",
+  };
+  const source: AgendaSource = {
+    ...byId("cerrado-vivo"),
+    id: "muitos",
+    name: "Casa Muitos (fictícia)",
+    url: "https://muitos.example/agenda",
+  };
+  return { crawl, source };
+}
+
+/** Os eventos gravados como linhas já guardadas, sem imagem. */
+const asStored = (events: NormalizedEvent[]): StoredCollected[] =>
+  events.map((e) => ({ ...e, id: `id-${e.dedupeKey}`, lockedFields: [], withdrawnAt: null }));
+
+const TRIBE = byId("eventos-cerrado");
+const CERRADO_VIVO = byId("cerrado-vivo");
+const SIRIRI_IMG = "https://cerradovivo.example/img/siriri-moderno.jpg";
+const SARAU_IMG = "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg";
+const FORRO_IMG = "https://teatro-cerrado.example/img/forro-da-praca.jpg";
+
+describe("collectAgenda · imagem, organizador e faixa (ARD-T2)", () => {
+  it("JSON-LD, Tribe e og:image: registra a imagem e grava media_id, organizador e faixa", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [CERRADO_VIVO, TRIBE, TEATRO],
+      registerImage: img.registerImage,
+    });
+    const r = await collectAgenda(d);
+    expect(img.calls.map((c) => c.url).sort()).toEqual([FORRO_IMG, SARAU_IMG, SIRIRI_IMG].sort());
+    const siriri = saved.find((e) => e.title === "Noite do Siriri Moderno")!;
+    expect(siriri).toMatchObject({
+      mediaId: `media:${SIRIRI_IMG}`,
+      organizer: "Coletivo Siriri Cuiabano",
+      ageRating: "16",
+    });
+    const sarau = saved.find((e) => e.title === "Sarau da Casa Exemplo")!;
+    expect(sarau).toMatchObject({
+      mediaId: `media:${SARAU_IMG}`,
+      organizer: "Casa Exemplo Produções",
+      ageRating: "consulte",
+    });
+    const forro = saved.find((e) => e.dedupeKey === FORRO_KEY)!;
+    expect(forro).toMatchObject({
+      mediaId: `media:${FORRO_IMG}`,
+      organizer: "Coletivo Forró Cerrado",
+      ageRating: "14",
+    });
+    // Sem imagem na fonte: sem registro, sem media_id.
+    expect(saved.find((e) => e.title === "Peça Cuiabana: O Rasqueado")?.mediaId).toBeNull();
+    // Crédito da fonte e página do evento como origem; host conferido contra a página lida.
+    const call = img.calls.find((c) => c.url === FORRO_IMG)!;
+    expect(call).toMatchObject({
+      pageUrl: "https://teatro-cerrado.example/evento/forro-da-praca",
+      siteUrl: "https://teatro-cerrado.example/evento/forro-da-praca",
+      sourceName: "Teatro Cerrado (fictício)",
+    });
+    expect(img.calls.find((c) => c.url === SIRIRI_IMG)?.siteUrl).toBe(CERRADO_VIVO.url);
+    expect(r.sources.find((s) => s.id === "cerrado-vivo")).toMatchObject({ images: 1 });
+  });
+
+  it("falha da imagem não bloqueia o evento; o motivo vai para a estatística da fonte", async () => {
+    const img = fakeImages(() => err("size"));
+    const { d, saved } = deps({ sources: [CERRADO_VIVO], registerImage: img.registerImage });
+    const r = await collectAgenda(d);
+    expect(saved.find((e) => e.title === "Noite do Siriri Moderno")?.mediaId).toBeNull();
+    expect(r.sources[0]).toMatchObject({ images: 0, imageSkipped: { size: 1 } });
+  });
+
+  it("flag desligada: para no primeiro flag_off (nenhuma outra tentativa)", async () => {
+    const img = fakeImages(() => err("flag_off"));
+    const { d, saved } = deps({
+      sources: [CERRADO_VIVO, TRIBE, TEATRO],
+      registerImage: img.registerImage,
+    });
+    await collectAgenda(d);
+    expect(img.calls).toHaveLength(1);
+    expect(saved.every((e) => e.mediaId === null)).toBe(true);
+  });
+
+  it("ensaio não registra imagem (nada gravado no Media Registry)", async () => {
+    const img = fakeImages();
+    const { d } = deps({ sources: [CERRADO_VIVO], registerImage: img.registerImage, dryRun: true });
+    await collectAgenda(d);
+    expect(img.calls).toHaveLength(0);
+  });
+
+  it("teto de 20 imagens por execução", async () => {
+    const { crawl, source } = manyEvents(25);
+    const img = fakeImages();
+    const { d, saved } = deps({ crawl, sources: [source], registerImage: img.registerImage });
+    await collectAgenda(d);
+    expect(saved).toHaveLength(25);
+    expect(img.calls).toHaveLength(20);
+    expect(saved.filter((e) => e.mediaId !== null)).toHaveLength(20);
+  });
+
+  it("recusa sem pedido HTTP (host) não gasta vaga: 25 guardados, 20 recusados, os 5 restantes ainda tentados", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const stored = asStored(first.saved);
+    const img = fakeImages((i, n) => (n <= 20 ? err("host") : ok({ mediaId: `media:${i.url}` })));
+    const { d, saved } = deps({
+      crawl,
+      sources: [source],
+      registerImage: img.registerImage,
+      stored: async () => stored,
+    });
+    const r = await collectAgenda(d);
+    expect(img.calls).toHaveLength(25);
+    expect(saved.filter((e) => e.mediaId !== null)).toHaveLength(5);
+    expect(r.sources[0]).toMatchObject({ images: 5, imageSkipped: { host: 20 } });
+  });
+
+  it("eventos já guardados giram entre execuções: outra execução tenta outro subconjunto", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const stored = asStored(first.saved);
+    const tried = async (at: Date) => {
+      const img = fakeImages(() => err("fetch"));
+      const { d } = deps({
+        crawl,
+        sources: [source],
+        now: () => at,
+        registerImage: img.registerImage,
+        stored: async () => stored,
+      });
+      await collectAgenda(d);
+      expect(img.calls).toHaveLength(20);
+      return img.calls.map((c) => c.url);
+    };
+    const a = await tried(NOW);
+    const again = await tried(NOW);
+    const b = await tried(new Date(NOW.getTime() + 6 * 3_600_000));
+    // Mesma hora: mesma ordem (determinística); 6 h depois: outro subconjunto entra nas 20 vagas.
+    expect(again).toEqual(a);
+    expect(new Set(b)).not.toEqual(new Set(a));
+  });
+
+  it("evento novo vem antes dos já guardados", async () => {
+    const { crawl, source } = manyEvents(25);
+    const first = deps({ crawl, sources: [source] });
+    await collectAgenda(first.d);
+    const novo = first.saved.find((e) => e.title === "Show número 25 da casa")!;
+    const stored = asStored(first.saved.filter((e) => e !== novo));
+    const img = fakeImages();
+    const { d } = deps({
+      crawl,
+      sources: [source],
+      registerImage: img.registerImage,
+      stored: async () => stored,
+    });
+    await collectAgenda(d);
+    expect(img.calls[0]?.url).toBe("https://muitos.example/img/show-25.jpg");
+  });
+
+  it("organizer, age_rating e media_id travados pela redação: nada sobrescrito, imagem nem tentada", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      registerImage: img.registerImage,
+      stored: async () => [
+        storedRow({
+          dedupeKey: FORRO_KEY,
+          organizer: "Produção da Redação",
+          ageRating: "livre",
+          mediaId: null,
+          lockedFields: ["organizer", "age_rating", "media_id"],
+        }),
+      ],
+    });
+    await collectAgenda(d);
+    const forro = saved.find((e) => e.dedupeKey === FORRO_KEY)!;
+    expect(forro).toMatchObject({
+      organizer: "Produção da Redação",
+      ageRating: "livre",
+      mediaId: null,
+    });
+    expect(img.calls.map((c) => c.url)).not.toContain(FORRO_IMG);
+  });
+
+  it("evento que já tem imagem guardada não baixa outra (1 imagem por evento)", async () => {
+    const img = fakeImages();
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      registerImage: img.registerImage,
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, mediaId: "media-antiga" })],
+    });
+    await collectAgenda(d);
+    expect(saved.find((e) => e.dedupeKey === FORRO_KEY)?.mediaId).toBe("media-antiga");
+    expect(img.calls.map((c) => c.url)).not.toContain(FORRO_IMG);
+  });
+});
+
+describe("collectAgenda: vínculo com o lugar do Guia (ARD-T3)", () => {
+  const GUIA = [
+    { id: "lugar-teatro-cerrado", name: "Teatro Cerrado - Cuiabá", status: "active" },
+    { id: "lugar-arena-1", name: "Arena Pantanal Fictícia", status: "active" },
+    { id: "lugar-arena-2", name: "Arena Pantanal Fictícia", status: "active" },
+  ];
+  const FESTIVAL = "Festival Cerrado Eletrônico";
+
+  it("casa o local com um único lugar ativo; ambíguo fica sem vínculo; lugares lidos uma vez", async () => {
+    let loads = 0;
+    const { d, saved } = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        loads++;
+        return GUIA;
+      },
+    });
+    await collectAgenda(d);
+    expect(loads).toBe(1);
+    expect(saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-teatro-cerrado");
+    expect(saved.find((e) => e.title === FESTIVAL)?.venueId).toBeNull();
+  });
+
+  it("venue_id travado pela redação (mesmo vazio) não muda", async () => {
+    const travado = deps({
+      sources: [TEATRO],
+      venues: async () => GUIA,
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, lockedFields: ["venue_id"] })],
+    });
+    await collectAgenda(travado.d);
+    expect(travado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBeNull();
+  });
+
+  it("vínculo automático sem trava é recalculado: troca de lugar ou some quando nada casa", async () => {
+    const outro = deps({
+      sources: [TEATRO],
+      venues: async () => [{ id: "lugar-b", name: "Teatro Cerrado", status: "active" }],
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
+    });
+    await collectAgenda(outro.d);
+    expect(outro.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-b");
+
+    const nenhum = deps({
+      sources: [TEATRO],
+      venues: async () => [],
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
+    });
+    await collectAgenda(nenhum.d);
+    expect(nenhum.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBeNull();
+
+    const travado = deps({
+      sources: [TEATRO],
+      venues: async () => [{ id: "lugar-b", name: "Teatro Cerrado", status: "active" }],
+      stored: async () => [
+        storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a", lockedFields: ["venue_id"] }),
+      ],
+    });
+    await collectAgenda(travado.d);
+    expect(travado.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-a");
+
+    const falha = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        throw new Error("banco fora");
+      },
+      stored: async () => [storedRow({ dedupeKey: FORRO_KEY, venueId: "lugar-a" })],
+    });
+    await collectAgenda(falha.d);
+    expect(falha.saved.find((e) => e.dedupeKey === FORRO_KEY)?.venueId).toBe("lugar-a");
+  });
+
+  it("ensaio não lê os lugares; falha ao ler os lugares não derruba a coleta", async () => {
+    let loads = 0;
+    const ensaio = deps({
+      sources: [TEATRO],
+      dryRun: true,
+      venues: async () => {
+        loads++;
+        return GUIA;
+      },
+    });
+    await collectAgenda(ensaio.d);
+    expect(loads).toBe(0);
+
+    const falha = deps({
+      sources: [TEATRO],
+      venues: async () => {
+        throw new Error("banco fora");
+      },
+    });
+    const r = await collectAgenda(falha.d);
+    expect(r.saved).toBeGreaterThan(0);
+    expect(falha.saved.every((e) => e.venueId === null)).toBe(true);
   });
 });

@@ -61,6 +61,7 @@ export const EVIDENCE_FIELD_TEXT = {
   cidade: "Cidade",
   preco: "Preço",
   organizador: "Organizador",
+  faixa: "Faixa etária",
 } as const;
 
 /** Onde o modelo viu o ano da data. */
@@ -82,7 +83,7 @@ export const STUDIO_AGENDA_TEXT = {
   intro:
     "Todos os eventos da agenda: os coletados das fontes, os de leitores e os cadastrados pela redação. O que a redação edita a coleta não sobrescreve.",
   tabsLabel: "Abas da Agenda",
-  tabs: { events: "Eventos", submissions: "Sugestões" },
+  tabs: { events: "Eventos", submissions: "Sugestões", instagram: "Instagram" },
   add: "Novo evento",
   table: {
     caption: "Eventos da agenda",
@@ -103,6 +104,7 @@ export const STUDIO_AGENDA_TEXT = {
     newsroom: "Redação",
     noSource: "Sem fonte",
     locked: (n: number) => (n === 1 ? "1 campo editado" : `${n} campos editados`),
+    featured: (date: string) => `Em destaque até ${date}`,
   },
   origin: {
     official: "Oficial",
@@ -148,6 +150,8 @@ export const STUDIO_AGENDA_TEXT = {
     criado: "Evento salvo e publicado na agenda",
     retirado: "Evento retirado do ar",
     devolvido: "Evento de volta ao ar",
+    destacado: "Evento em destaque na Agenda",
+    "sem-destaque": "Destaque retirado",
   } as Record<string, string>,
   actionFailed:
     "Não foi possível mudar a situação do evento. Confira se seu papel inclui a Agenda e tente de novo.",
@@ -171,12 +175,30 @@ export const STUDIO_AGENDA_TEXT = {
       accessibility: "Acessibilidade (opcional)",
       link: "Link oficial (opcional)",
       description: "Descrição curta (opcional)",
+      organizer: "Organização (opcional)",
+      venueId: "Local do Guia",
     },
     hints: {
       price: "0 para gratuito. Exemplo: 40 ou 25,50",
       link: "Endereço completo com https, sem encurtador",
       description: "Até 2 frases e 300 caracteres",
       accessibility: "Exemplo: rampa de acesso e intérprete de Libras",
+      organizer: "Quem promove o evento. Exemplo: Coletivo Siriri do Porto",
+      venueId:
+        "Liga o evento à página do lugar no Guia (Ver no Guia). Escolher um lugar ou Nenhum trava o vínculo contra a coleta.",
+    },
+    venue: {
+      auto: "Automático pelo local",
+      none: "Nenhum",
+      current: (name: string, auto: boolean) =>
+        auto
+          ? `Vínculo atual: ${name} (automático)`
+          : `Vínculo atual: ${name} (escolhido pela redação)`,
+      currentNone: "Vínculo atual: nenhum lugar do Guia",
+      /** Lugar guardado que não está na lista (inativo ou leitura falhou): continua escolhido. */
+      stored: (name: string) => `${name} (atual)`,
+      error: "Não foi possível carregar os lugares do Guia. O vínculo atual fica como está.",
+      empty: "Nenhum lugar ativo no Guia para escolher.",
     },
     ages: {
       livre: "Livre",
@@ -212,11 +234,27 @@ export const STUDIO_AGENDA_TEXT = {
       category: "Categoria",
       description: "Descrição",
       source_url: "Link oficial",
+      organizer: "Organização",
+      age_rating: "Faixa etária",
+      media_id: "Imagem",
+      venue_id: "Local do Guia",
     } as Record<string, string>,
     statusTitle: "Situação",
     withdrawHint: "O evento some da agenda pública e da página dele; a coleta não o devolve.",
     restoreHint: "O evento volta para a agenda pública.",
     viewPublic: "Ver na agenda",
+  },
+  /** Destaque na Agenda (B5): "Destacar até {data}" e "Tirar destaque", auditados. */
+  feature: {
+    title: "Destaque",
+    hint: "Evento em destaque aparece primeiro na home e na faixa Em destaque da Agenda até o fim do dia escolhido.",
+    until: "Destacar até",
+    submit: "Destacar",
+    remove: "Tirar destaque",
+    saving: "Salvando…",
+    current: (date: string) => `Em destaque até ${date}`,
+    none: "Sem destaque",
+    invalid: "Escolha uma data de hoje até 90 dias para frente.",
   },
   errors: {
     title: "Informe o nome do evento, com 3 a 140 caracteres. Exemplo: Noite do Siriri",
@@ -232,5 +270,125 @@ export const STUDIO_AGENDA_TEXT = {
     accessibility: "A acessibilidade pode ter até 200 caracteres.",
     link: "Use um link https completo, sem encurtador. Exemplo: https://teatro.exemplo.com.br/evento",
     description: "Use até 2 frases e 300 caracteres.",
+    organizer: "O organizador pode ter até 160 caracteres. Exemplo: Coletivo Siriri do Porto",
   },
+} as const;
+
+/**
+ * Pacote "Agenda da semana" do Instagram no Estúdio (ARD-T6, spec §7): `/estudio/agenda/instagram`.
+ * A postagem é à mão: o CityNews monta, a redação aprova, baixa o ZIP e marca como publicado.
+ */
+export const STUDIO_SOCIAL_TEXT = {
+  metaTitle: "Instagram · Agenda · Estúdio · CityNews Cuiabá",
+  title: "Instagram: Agenda da semana",
+  intro:
+    "O pacote é montado toda segunda às 8h com até 6 eventos confirmados da semana. Confira os slides e a legenda, aprove, baixe o ZIP e poste à mão no @citycuiabaa.",
+  weekNav: "Semanas",
+  previousWeek: "Semana anterior",
+  nextWeek: "Próxima semana",
+  currentWeek: "Semana atual",
+  weekOf: (range: string) => `Semana de ${range}`,
+  status: {
+    draft: "Rascunho",
+    approved: "Aprovado",
+    published: "Publicado",
+    discarded: "Descartado",
+  },
+  statusHint: {
+    draft: "Confira os slides e a legenda. Aprovar libera o ZIP.",
+    approved: "Baixe o ZIP, poste à mão e marque como publicado com o link do post.",
+    published: "Pacote postado no Instagram.",
+    discarded: "Pacote descartado. Regerar monta um rascunho novo com os eventos da semana.",
+  },
+  facts: {
+    status: "Situação",
+    generatedAt: "Montado em",
+    approvedAt: "Aprovado em",
+    publishedUrl: "Post",
+    events: "Eventos",
+  },
+  notBuilt: {
+    title: "O pacote desta semana ainda não foi montado",
+    body: "Ele sai sozinho toda segunda às 8h. Você pode montar agora.",
+  },
+  empty: {
+    title: "Nenhum evento confirmado nesta semana",
+    body: "Sem eventos confirmados de segunda a domingo, o pacote fica vazio. Cadastre ou confirme eventos e monte de novo.",
+  },
+  failed: (reason: string) =>
+    `A montagem dos slides falhou (${reason}). O pacote continua em rascunho e nada foi publicado. Tente Regerar.`,
+  loadError: {
+    title: "Não foi possível carregar o pacote",
+    body: "Tente de novo em alguns instantes.",
+    retry: "Tentar de novo",
+  },
+  slidesTitle: "Slides",
+  slidesHint: "PNG 1080×1350, na ordem do carrossel.",
+  slideAlt: (n: number, total: number, what: string) => `Slide ${n} de ${total}: ${what}`,
+  slideCover: "capa",
+  slideClosing: "Qual você vai?",
+  captionTitle: "Legenda",
+  captionLabel: "Legenda pronta para colar",
+  captionCount: (n: number) => `${n} de 2.200 caracteres`,
+  copy: "Copiar legenda",
+  copied: "Legenda copiada.",
+  copyFailed: "Não deu para copiar. Selecione o texto e copie à mão.",
+  creditsTitle: "Créditos",
+  noPhoto: "Sem foto (fundo liso)",
+  photoCredit: (source: string) => `Foto: reprodução web · ${source}`,
+  viewOriginal: "Ver original",
+  eventsTitle: "Eventos do pacote",
+  removeLabel: (title: string) => `Tirar do pacote: ${title}`,
+  removeHint:
+    "Marque os eventos que devem sair e clique em Regerar; a vaga vai para o próximo evento da semana.",
+  excludedCount: (n: number) =>
+    n === 1
+      ? "1 evento tirado do pacote nesta semana."
+      : `${n} eventos tirados do pacote nesta semana.`,
+  restore: "Devolver os eventos tirados",
+  actionsTitle: "Ações",
+  regenerate: "Regerar",
+  build: "Montar agora",
+  regenerating: "Montando…",
+  approve: "Aprovar",
+  approving: "Aprovando…",
+  discard: "Descartar",
+  discarding: "Descartando…",
+  downloadZip: "Baixar ZIP",
+  zipHint: "O ZIP traz os PNGs, a legenda (caption.txt) e os créditos (creditos.txt).",
+  zipLocked: "O ZIP fica disponível depois de aprovar.",
+  publishUrl: "Link do post no Instagram",
+  publishHint: "Exemplo: https://www.instagram.com/p/ABC123/ (post, /reel/ ou /tv/)",
+  revoked: {
+    published: (titles: string) =>
+      `Uma foto deste post foi retirada ou perdeu a autorização (${titles}). Tire o post do ar no Instagram.`,
+    approved: (titles: string) =>
+      `Uma foto do pacote foi retirada ou perdeu a autorização (${titles}). Descarte e regere o pacote antes de postar.`,
+    draft: (titles: string) =>
+      `Uma foto do pacote foi retirada ou perdeu a autorização (${titles}). Regere o pacote.`,
+  },
+  clamped: (titles: string) =>
+    `Título longo demais para o slide, com linhas cortadas: ${titles}. O texto inteiro está na legenda; confira o slide antes de aprovar.`,
+  publish: "Marcar como publicado",
+  publishing: "Salvando…",
+  done: {
+    montado: "Pacote montado.",
+    aprovado: "Pacote aprovado. O ZIP está liberado.",
+    descartado: "Pacote descartado.",
+    publicado: "Pacote marcado como publicado.",
+  } as Partial<Record<string, string>>,
+  errors: {
+    forbidden: "Você não tem permissão para mexer no pacote da Agenda.",
+    read_only:
+      "O Estúdio está em modo leitura: nenhuma alteração é gravada agora. Fale com a administração.",
+    invalid_week: "Semana inválida.",
+    invalid_url:
+      "Use o link do post no Instagram. Exemplo: https://www.instagram.com/p/ABC123/ (também vale /reel/ ou /tv/)",
+    changed: "O pacote mudou; confira de novo antes de aprovar.",
+    image_rights: "Uma foto do pacote foi retirada ou perdeu a autorização; regere o pacote.",
+    not_ready: "O pacote ainda não está pronto: precisa ter eventos, slides e nenhum erro.",
+    not_found: "Pacote não encontrado. Monte o pacote desta semana primeiro.",
+    invalid_state: "O pacote mudou de situação. Recarregue a página.",
+    failed: "Não deu para concluir. Tente de novo.",
+  } as Partial<Record<string, string>>,
 } as const;

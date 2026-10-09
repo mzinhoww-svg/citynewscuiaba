@@ -230,6 +230,8 @@ function fakeEventPage(text: string) {
   const rawHour = marked("hora");
   const hm = rawHour ? /(\d{1,2})\s*(?:h|:)\s*(\d{2})?/i.exec(rawHour) : null;
   const rawPlace = marked("local");
+  const rawOrganizer = marked("organizador");
+  const rawAge = marked("faixa");
   return {
     evento: rawDate !== null,
     titulo: field(title),
@@ -241,7 +243,8 @@ function fakeEventPage(text: string) {
     local: rawPlace ? field(rawPlace) : null,
     cidade: null,
     preco: null,
-    organizador: null,
+    organizador: rawOrganizer ? field(rawOrganizer) : null,
+    faixa: rawAge ? field(rawAge) : null,
     relativas: [] as string[],
   };
 }

@@ -69,6 +69,16 @@ const CRON_ROUTES: {
     method: "POST",
     load: () => import("@/app/api/jobs/media-variants/route"),
   },
+  {
+    path: "/api/jobs/newsletter-agenda",
+    method: "POST",
+    load: () => import("@/app/api/jobs/newsletter-agenda/route"),
+  },
+  {
+    path: "/api/jobs/social-agenda",
+    method: "POST",
+    load: () => import("@/app/api/jobs/social-agenda/route"),
+  },
 ];
 
 beforeEach(() => vi.stubEnv("CRON_SECRET", SECRET));
@@ -136,6 +146,9 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/estudio/notificacoes",
     "/api/estudio/notificacoes/ler",
     "/estudio/admin/auditoria/export",
+    // Pacote do Instagram (ARD-T6): prévia do slide e ZIP, só com a editoria Agenda.
+    "/estudio/agenda/instagram/slide/[n]",
+    "/estudio/agenda/instagram/zip",
     "/estudio/admin/publicidade/relatorio/csv",
     "/estudio/admin/notificacoes/historico/exportar",
   ];

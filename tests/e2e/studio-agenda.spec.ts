@@ -30,9 +30,10 @@ async function collect(request: APIRequestContext) {
 async function cleanup() {
   const db = serviceClient();
   await db.from("event_listings").delete().like("title", `%${TAG}%`);
-  // Eventos das fontes fictícias voltam na próxima coleta; sem eles, as suítes de integração
-  // contam do zero.
-  await db.from("event_listings").delete().eq("source_id", COLLECTED_SOURCE);
+  // Eventos de todas as fontes fictícias que a coleta forçada lê (não só a Casa Cerrado Vivo):
+  // voltam na próxima coleta, e sem eles as suítes de integração e a agenda pública (agenda.spec,
+  // rodado de novo localmente) contam do zero. Os eventos do seed não têm `source_id`.
+  await db.from("event_listings").delete().not("source_id", "is", null);
   await db.from("rate_limits").delete().like("bucket", "agenda%");
 }
 

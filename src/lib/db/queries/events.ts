@@ -1,11 +1,39 @@
 import "server-only";
 import { cache } from "react";
+import { AGENDA } from "@/content/pt-BR/portal-agenda";
 import type { DbClient } from "@/lib/db/client";
 import type { Database } from "@/lib/db/types";
+import { creditName } from "@/lib/media/credit";
+import { isReusable, rightsStatusOf } from "@/lib/media/rights";
+import { mediaHref } from "@/lib/media/serve";
 import type { Result } from "@/lib/result";
 import { afterKey, cursorOf, decodeCursor, throughKey, type KeySpec, type Page } from "./cursor";
 import { many, one, readPublic } from "./run";
-import type { EventView, QueryError } from "./types";
+import type { EventImage, EventView, QueryError } from "./types";
+
+/** Lugar do Guia embutido (`venues` pela FK `venue_id`); a RLS devolve `null` se não é público. */
+type GuideVenueRef = { slug: string; status: string } | null;
+
+type MediaAssetRow = Database["public"]["Tables"]["media_assets"]["Row"];
+/**
+ * Imagem do evento embutida (`media_assets` pela FK `media_id`), com os campos do Media Registry
+ * que decidem se ela pode aparecer. A RLS pública já devolve `null` para ativo não aprovado ou
+ * reprodução com a flag `image_reproduction_enabled` desligada.
+ */
+export type EventMediaRef = Pick<
+  MediaAssetRow,
+  | "id"
+  | "kind"
+  | "status"
+  | "origin_url"
+  | "page_url"
+  | "source_id"
+  | "source_name"
+  | "credit"
+  | "license_until"
+  | "removed_at"
+  | "rights_status"
+> | null;
 
 type EventRow = Omit<
   Database["public"]["Tables"]["event_listings"]["Row"],
@@ -17,10 +45,14 @@ type EventRow = Omit<
   | "locked_fields"
   | "withdrawn_at"
   | "updated_at"
->;
+> & { guide_venue?: GuideVenueRef; media?: EventMediaRef };
 
+/**
+ * Colunas públicas do evento. `guide_venue` (→ `venueSlug`) depende da RLS de `venues` lida como
+ * `anon`: lugar fora do Guia público vem `null`. Nunca ler com service role para saída pública.
+ */
 export const EVENT_COLUMNS =
-  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id";
+  "id, slug, title, starts_at, ends_at, venue, neighborhood, price_cents, is_free, age_rating, category, accessibility, origin, confirmed_at, description, source_url, price_unknown, source_ref, confirmed_by_source_id, venue_id, guide_venue:venues(slug, status), organizer, featured_until, media_id, media:media_assets(id, kind, status, origin_url, page_url, source_id, source_name, credit, license_until, removed_at, rights_status)";
 
 export interface EventFilters {
   /** ISO; padrão = agora (só eventos que ainda não terminaram). */
@@ -32,6 +64,12 @@ export interface EventFilters {
   /** Só classificação livre (para crianças). */
   kidsOnly?: boolean;
   origin?: "official" | "organizer" | "reader" | "newsroom";
+  /** Só eventos ligados a este lugar do Guia (`venue_id`). */
+  venueId?: string;
+  /** Faixas etárias aceitas (`?idade=`, `agesUpTo`); `consulte` nunca entra num filtro. */
+  ages?: readonly string[];
+  /** Só eventos em destaque (`featured_until` ≥ agora). */
+  featuredOnly?: boolean;
   excludeId?: string;
   limit?: number;
 }
@@ -45,7 +83,83 @@ export type EventSourceNames = ReadonlyMap<string, { name: string; confirms: boo
 
 const EVENT_ORIGINS = ["official", "organizer", "reader", "newsroom"] as const;
 
-export function toEventView(r: EventRow, sources: EventSourceNames = new Map()): EventView {
+/**
+ * Imagem pública do evento pelas regras do Media Registry (D-02). A RLS pública de
+ * `media_assets` (0205) já esconde o ativo não aprovado, retirado, vencido ou com direitos
+ * bloqueados; esta checagem repete a regra (`rightsStatusOf`/`isReusable`) como defesa. Foto de
+ * terceiros só sai com a legenda completa: sem página de origem ou sem nome para o crédito, não
+ * sai. As variantes por largura vêm do `srcset` da rota própria (`Photo`).
+ */
+export function eventImage(
+  m: EventMediaRef | undefined,
+  title: string,
+  now: Date,
+): EventImage | null {
+  if (!m || m.status !== "approved") return null;
+  if (m.rights_status === "blocked" || m.rights_status === "expired") return null;
+  // `license_until` é data (sem hora) e o banco compara com `current_date` (UTC no Supabase):
+  // comparar com a meia-noite UTC de hoje faz a validade de hoje ainda valer, como no SQL.
+  const todayUtc = new Date(`${now.toISOString().slice(0, 10)}T00:00:00Z`);
+  const rights = rightsStatusOf(
+    { kind: m.kind, status: m.status, licenseUntil: m.license_until, removedAt: m.removed_at },
+    todayUtc,
+  );
+  if (!isReusable(rights)) return null;
+  const reproduction = m.kind === "reproduction";
+  // O crédito gravado na reprodução já é a legenda inteira ("Foto: reprodução web · Fonte"): a
+  // tela usa o nome da fonte (ou o site da página) e a legenda monta o aviso uma vez só.
+  const credit = reproduction
+    ? creditName(
+        {
+          sourceName: m.source_name,
+          sourceId: m.source_id,
+          originUrl: m.origin_url,
+          pageUrl: m.page_url,
+        },
+        [],
+      )
+    : (m.credit ?? undefined);
+  if (reproduction && (!m.page_url || !credit)) return null;
+  return {
+    src: mediaHref(m.id),
+    alt: AGENDA.imageAlt(title),
+    kind: m.kind,
+    ...(credit ? { credit } : {}),
+    // "Ver original" vai para a página do evento na fonte, nunca para o arquivo da imagem.
+    ...(reproduction && m.page_url ? { originUrl: m.page_url } : {}),
+  };
+}
+
+/** Em destaque: `featured_until` ainda não passou. */
+export function isFeatured(featuredUntil: string | null, now: Date): boolean {
+  return !!featuredUntil && Date.parse(featuredUntil) >= now.getTime();
+}
+
+/**
+ * Lista da home (B5): até `limit` destacados antes dos demais, sem repetir evento, no total de
+ * `limit` itens.
+ */
+export function featuredFirst(
+  featured: readonly EventView[],
+  upcoming: readonly EventView[],
+  limit: number,
+): EventView[] {
+  const out: EventView[] = [];
+  const seen = new Set<string>();
+  for (const e of [...featured.slice(0, limit), ...upcoming]) {
+    if (out.length >= limit) break;
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+    out.push(e);
+  }
+  return out;
+}
+
+export function toEventView(
+  r: EventRow,
+  sources: EventSourceNames = new Map(),
+  now: Date = new Date(),
+): EventView {
   const origin = EVENT_ORIGINS.find((o) => o === r.origin) ?? "organizer";
   const source = r.source_ref ? sources.get(r.source_ref) : undefined;
   const confirmedBy = r.confirmed_by_source_id ? sources.get(r.confirmed_by_source_id) : undefined;
@@ -75,6 +189,10 @@ export function toEventView(r: EventRow, sources: EventSourceNames = new Map()):
     confirmedAt: r.confirmed_at,
     sourceUrl: r.source_url,
     priceUnknown: r.price_unknown,
+    venueSlug: r.venue_id && r.guide_venue?.status === "active" ? r.guide_venue.slug : null,
+    organizer: r.organizer?.trim() || null,
+    image: eventImage(r.media, r.title, now),
+    featured: isFeatured(r.featured_until, now),
   };
 }
 
@@ -99,9 +217,13 @@ export async function eventSourceNames(db: DbClient, rows: EventRow[]): Promise<
 }
 
 /** Linhas da agenda prontas para a tela, com a origem e a confirmação resolvidas. */
-export async function toEventViews(db: DbClient, rows: EventRow[]): Promise<EventView[]> {
+export async function toEventViews(
+  db: DbClient,
+  rows: EventRow[],
+  now: Date = new Date(),
+): Promise<EventView[]> {
   const names = await eventSourceNames(db, rows);
-  return rows.map((r) => toEventView(r, names));
+  return rows.map((r) => toEventView(r, names, now));
 }
 
 /** Ordem estável da agenda: início, id (desempate). */
@@ -142,6 +264,9 @@ function eventsQuery(db: DbClient, f: EventFilters, now: Date, opts: EventQueryO
   if (f.freeOnly) q = q.eq("is_free", true);
   if (f.kidsOnly) q = q.eq("age_rating", "livre");
   if (f.origin) q = q.eq("origin", f.origin);
+  if (f.venueId) q = q.eq("venue_id", f.venueId);
+  if (f.ages) q = q.in("age_rating", [...f.ages]);
+  if (f.featuredOnly) q = q.gte("featured_until", now.toISOString());
   if (f.excludeId) q = q.neq("id", f.excludeId);
   if (opts.where) q = q.or(opts.where);
   if (opts.countOnly) return q;
@@ -155,7 +280,7 @@ export async function fetchEvents(
   now: Date = new Date(),
 ): Promise<EventView[]> {
   const limit = Math.max(1, Math.min(f.limit ?? 50, EVENTS_CAP));
-  return toEventViews(db, await eventsQuery(db, f, now, { limit }).then(many));
+  return toEventViews(db, await eventsQuery(db, f, now, { limit }).then(many), now);
 }
 
 export interface EventPageOptions {
@@ -193,7 +318,7 @@ export async function fetchEventPage(
   const kept = more ? raw.slice(0, size) : raw;
   const last = kept.at(-1);
   return {
-    rows: await toEventViews(db, kept),
+    rows: await toEventViews(db, kept, now),
     total: (all ? all.count : page.count) ?? kept.length,
     nextCursor: more && last ? cursorOf(EVENT_KEYS, last) : null,
   };
@@ -213,7 +338,18 @@ export async function fetchEventsThrough(
   return toEventViews(
     db,
     await eventsQuery(db, f, now, { limit, where: throughKey(EVENT_KEYS, values) }).then(many),
+    now,
   );
+}
+
+/** Faixa "Em destaque" do topo de `/agenda` e da home (B5): no máximo 6 por consulta. */
+export const FEATURED_EVENTS_LIMIT = 6;
+
+/** Eventos em destaque que ainda não terminaram, por início. */
+export async function listFeaturedEvents(
+  limit: number = FEATURED_EVENTS_LIMIT,
+): Promise<Result<EventView[], QueryError>> {
+  return readPublic((db) => fetchEvents(db, { featuredOnly: true, limit }));
 }
 
 /** Agenda: eventos confirmados (a RLS esconde os não confirmados), em ordem de início. */
@@ -256,6 +392,25 @@ export async function listEventsInRange(
     } while (cursor && out.length < max);
     return out;
   });
+}
+
+/** Próximos eventos de um lugar do Guia na página do lugar (ARD-T3). */
+export const VENUE_EVENTS_LIMIT = 5;
+/**
+ * Cache da leitura na página do lugar (ISR de 1 h): tag `agenda`, a mesma que o Estúdio e a
+ * publicação automática de evento revalidam, e no máximo 5 min de atraso para o resto.
+ */
+const VENUE_EVENTS_CACHE = { tags: ["agenda"], revalidate: 300 };
+
+/**
+ * Próximos eventos de um lugar do Guia ("Próximos eventos aqui"): o mesmo recorte da agenda
+ * pública (`eventsQuery`: ainda não terminou; RLS: confirmado e não retirado), por início.
+ */
+export async function upcomingEventsAtVenue(
+  venueId: string,
+  limit: number = VENUE_EVENTS_LIMIT,
+): Promise<Result<EventView[], QueryError>> {
+  return readPublic((db) => fetchEvents(db, { venueId, limit }), VENUE_EVENTS_CACHE);
 }
 
 /** Evento pelo slug; `null` quando não existe ou não foi confirmado. */

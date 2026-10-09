@@ -1,4 +1,4 @@
-import { agendaHref, agendaRange, parseAgendaFilters } from "./agenda";
+import { agendaHref, agendaRange, agesUpTo, isUnfilteredList, parseAgendaFilters } from "./agenda";
 
 const now = new Date("2026-09-30T15:00:00Z"); // quarta, 11h em Cuiabá
 
@@ -76,5 +76,45 @@ it("atalho Amanhã: lê a URL, monta o link e cobre só o dia seguinte no fuso d
   expect(agendaRange(f, now)).toEqual({
     from: "2026-10-01T04:00:00.000Z",
     to: "2026-10-02T04:00:00.000Z",
+  });
+});
+
+describe("faixa etária na URL (ARD-T4, ?idade=)", () => {
+  it("lê as faixas da lista fechada e monta o link de volta", () => {
+    for (const idade of ["livre", "10", "12", "14", "16", "18"] as const) {
+      const f = parseAgendaFilters(new URLSearchParams(`idade=${idade}`));
+      expect(f.age).toBe(idade);
+      expect(agendaHref(f)).toBe(`/agenda?idade=${idade}`);
+    }
+  });
+
+  it("valor inválido é ignorado (inclusive consulte, que não é filtro)", () => {
+    for (const idade of ["consulte", "15", "abc", "", "-1"]) {
+      expect(parseAgendaFilters(new URLSearchParams(`idade=${idade}`)).age).toBeUndefined();
+    }
+  });
+
+  it("faixas aceitas: até a escolhida, livre conta como 0, consulte nunca", () => {
+    expect(agesUpTo("livre")).toEqual(["livre"]);
+    expect(agesUpTo("12")).toEqual(["livre", "10", "12"]);
+    expect(agesUpTo("18")).toEqual(["livre", "10", "12", "14", "16", "18"]);
+    expect(agesUpTo("18")).not.toContain("consulte");
+  });
+
+  it("sem filtro do visitante só na lista de 30 dias sem nenhum filtro", () => {
+    expect(isUnfilteredList(parseAgendaFilters(new URLSearchParams()))).toBe(true);
+    for (const qs of [
+      "idade=12",
+      "criancas=1",
+      "gratuito=1",
+      "categoria=musica",
+      "bairro=porto",
+      "origem=oficial",
+      "quando=hoje",
+      "dia=2026-10-03",
+      "view=cal",
+    ]) {
+      expect(isUnfilteredList(parseAgendaFilters(new URLSearchParams(qs))), qs).toBe(false);
+    }
   });
 });

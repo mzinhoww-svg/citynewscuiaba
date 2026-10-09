@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
+import { featureDayLabel } from "@/lib/agenda/feature";
 import { formatDateTime } from "@/lib/format/date";
 import { Button } from "../ui/Button";
 import { StatusBadge, type StatusTone } from "../ui/StatusBadge";
@@ -19,6 +20,8 @@ export interface EventsTableRow {
   source: string | null;
   situation: EventSituation;
   lockedFields: readonly string[];
+  /** Fim do destaque ainda valendo; ausente ou `null` = sem destaque. */
+  featuredUntil?: string | null;
 }
 
 export interface EventsTableProps {
@@ -74,6 +77,14 @@ export function EventsTable({ rows, hrefFor, withdraw, restore }: EventsTablePro
                   {T.origin[e.origin] ?? e.origin}
                   {e.lockedFields.length > 0 && ` · ${T.table.locked(e.lockedFields.length)}`}
                 </span>
+                {e.featuredUntil && (
+                  <span
+                    className="type-meta font-semibold text-strong"
+                    data-testid="event-featured"
+                  >
+                    {T.table.featured(featureDayLabel(e.featuredUntil))}
+                  </span>
+                )}
               </div>
             </td>
             <td className="px-3 py-3 type-meta text-strong whitespace-nowrap">

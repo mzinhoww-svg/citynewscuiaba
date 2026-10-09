@@ -2,6 +2,7 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { MODERATION_TEXT as T } from "@/content/pt-BR/studio";
+import { normalizeAgeRating } from "@/lib/agenda/age-rating";
 import { AGENDA_CATEGORIES } from "@/lib/filters/agenda";
 import { slugify } from "@/lib/pipeline/slug";
 import { studioAction, StudioFailure, type ActionContext } from "./action";
@@ -79,7 +80,8 @@ export const approveSubmission = studioAction(
       venue: i.edits.venue,
       neighborhood: p.data.neighborhood ?? null,
       price_cents: p.data.priceCents ?? null,
-      age_rating: p.data.ageRating ?? "livre",
+      // Lista fechada (check da 0200): valor antigo fora dela vira `consulte`.
+      age_rating: normalizeAgeRating(p.data.ageRating ?? "livre"),
       category: i.edits.category,
       origin: "reader",
       confirmed_at: ctx.now().toISOString(),

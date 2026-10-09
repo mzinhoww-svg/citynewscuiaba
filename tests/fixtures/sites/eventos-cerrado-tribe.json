@@ -15,7 +15,13 @@
         "address": "Rua das Flores, 100",
         "city": "Cuiabá"
       },
-      "categories": [{ "name": "Música", "slug": "musica" }]
+      "categories": [{ "name": "Música", "slug": "musica" }],
+      "image": {
+        "url": "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg",
+        "width": 1600,
+        "height": 900
+      },
+      "organizer": [{ "id": 7, "organizer": "Casa Exemplo Produções" }]
     },
     {
       "id": 102,
@@ -28,7 +34,9 @@
       "cost": "Gratuito",
       "cost_details": { "currency_symbol": "R$", "values": [] },
       "venue": [],
-      "categories": []
+      "categories": [],
+      "image": false,
+      "organizer": []
     },
     {
       "id": 103,

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { STUDIO_AGENDA_TEXT as T } from "@/content/pt-BR/studio-agenda";
 import { EVENT_FORM_FIELDS, parseEventForm } from "@/lib/agenda/event-form";
+import { featuredUntilOf } from "@/lib/agenda/feature";
 import type { EventFormState } from "@/lib/agenda/form-state";
 import { audit } from "@/lib/audit";
 import type { AuditAction } from "@/lib/audit/actions";
@@ -11,6 +12,7 @@ import { can } from "@/lib/auth/permissions";
 import {
   createEvent,
   restoreEvent,
+  setEventFeatured,
   updateEvent,
   withdrawEvent,
   type EventActor,
@@ -116,4 +118,27 @@ export async function withdrawEventAction(form: FormData): Promise<void> {
 /** Devolver ao ar. */
 export async function restoreEventAction(form: FormData): Promise<void> {
   await toggle(form, false);
+}
+
+/**
+ * "Destacar até {data}" (`ate` = AAAA-MM-DD) ou "Tirar destaque" (sem `ate`, `tirar=1`): grava
+ * `featured_until`, audita `event.feature` e revalida a agenda, a home e a página do evento.
+ */
+export async function featureEventAction(form: FormData): Promise<void> {
+  const id = String(form.get("id") ?? "");
+  if (!UUID.test(id)) redirect(`${BASE}?erro=1`);
+  const back = (q: string) => `${BASE}/${id}?${q}`;
+  const guard = await agendaActor("event.feature", `event:${id}`);
+  if (!guard.ok) redirect(back("erro=1"));
+  const remove = form.get("tirar") === "1";
+  let until: string | null = null;
+  if (!remove) {
+    const parsed = featuredUntilOf(String(form.get("ate") ?? ""), guard.actor.now);
+    if (!parsed.ok) redirect(back("erro=destaque"));
+    until = parsed.value;
+  }
+  const r = await setEventFeatured(id, until, guard.actor);
+  if (!r.ok) redirect(back("erro=1"));
+  if (r.value.changed) await refresh(guard.ctx, id, r.value.slug);
+  redirect(back(`feito=${remove ? "sem-destaque" : "destacado"}`));
 }

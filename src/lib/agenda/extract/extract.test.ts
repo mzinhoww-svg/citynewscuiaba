@@ -43,6 +43,37 @@ describe("extractJsonLd", () => {
     expect(events[3]?.online).toBe(true);
     expect(events[6]?.start).toBe("");
   });
+  it("traz organizador (organizer.name), imagem (image) e faixa (typicalAgeRange)", () => {
+    expect(events[0]).toMatchObject({
+      organizer: "Coletivo Siriri Cuiabano",
+      imageUrl: "https://cerradovivo.example/img/siriri-moderno.jpg",
+      ageRating: "16+",
+    });
+    // Sem organizador nem imagem: campos ausentes.
+    expect(events[4]?.organizer ?? null).toBeNull();
+    expect(events[4]?.imageUrl ?? null).toBeNull();
+  });
+  it("imagem e organizador em outras formas do schema.org", () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      "@type": "Event",
+      name: "Show",
+      startDate: "2026-10-10T20:00",
+      image: [{ "@type": "ImageObject", url: "/img/a.jpg" }, "https://x.example/b.jpg"],
+      organizer: [{ "@type": "Person", name: "  Fulana  " }],
+    })}</script>`;
+    expect(extractJsonLd(html)[0]).toMatchObject({ imageUrl: "/img/a.jpg", organizer: "Fulana" });
+    const str = `<script type="application/ld+json">${JSON.stringify({
+      "@type": "Event",
+      name: "Show",
+      startDate: "2026-10-10T20:00",
+      image: "https://x.example/c.jpg",
+      organizer: "Produtora X",
+    })}</script>`;
+    expect(extractJsonLd(str)[0]).toMatchObject({
+      imageUrl: "https://x.example/c.jpg",
+      organizer: "Produtora X",
+    });
+  });
   it("ignora JSON inválido e HTML sem blocos", () => {
     expect(extractJsonLd('<script type="application/ld+json">{oops</script>')).toEqual([]);
     expect(extractJsonLd("<p>nada</p>")).toEqual([]);
@@ -120,6 +151,15 @@ describe("extractTribe", () => {
       category: "Música",
     });
     expect(events[2]?.title).toBe("Oficina de Cerâmica");
+  });
+  it("traz organizador (organizer[0].organizer) e imagem (image.url)", () => {
+    expect(events[0]).toMatchObject({
+      organizer: "Casa Exemplo Produções",
+      imageUrl: "https://eventos-cerrado.example/wp-content/uploads/2026/10/sarau.jpg",
+    });
+    // `image: false` e organizador ausente: nada.
+    expect(events[1]?.imageUrl ?? null).toBeNull();
+    expect(events[1]?.organizer ?? null).toBeNull();
   });
   it("dia inteiro vira só data e local ausente (array vazio) não quebra", () => {
     expect(events[1]).toMatchObject({ title: "Feira Livre do Cerrado", start: "2026-10-11" });

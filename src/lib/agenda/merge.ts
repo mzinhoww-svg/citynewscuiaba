@@ -12,7 +12,11 @@ export type EditableKey =
   | "priceUnknown"
   | "category"
   | "description"
-  | "sourceUrl";
+  | "sourceUrl"
+  | "organizer"
+  | "ageRating"
+  | "mediaId"
+  | "venueId";
 
 /** `lockedFields` guarda nomes de coluna do banco; aqui, coluna → campo de `NormalizedEvent`. */
 export const LOCKABLE_COLUMNS: Readonly<Record<string, EditableKey>> = {
@@ -26,6 +30,10 @@ export const LOCKABLE_COLUMNS: Readonly<Record<string, EditableKey>> = {
   category: "category",
   description: "description",
   source_url: "sourceUrl",
+  organizer: "organizer",
+  age_rating: "ageRating",
+  media_id: "mediaId",
+  venue_id: "venueId",
 };
 
 export type StoredEvent = {
@@ -38,7 +46,11 @@ export type StoredEvent = {
 /**
  * Evento a gravar numa coleta repetida: `null` se a redação o retirou (não regrava); campos em
  * `lockedFields` mantêm o valor guardado, o resto vem da coleta. `dedupeKey` é a identidade da
- * linha: vem sempre da coleta, mesmo com título, data ou local travados.
+ * linha: vem sempre da coleta, mesmo com título, data ou local travados. Imagem: uma por evento —
+ * sem trava, a já guardada fica (a coleta não troca); com `media_id` travado, vale a da redação
+ * (inclusive nenhuma) e a coleta nem tenta registrar outra (`imageUrl` nulo). Lugar do Guia
+ * (`venue_id`): aqui o guardado fica (sem os lugares carregados, nada muda); travado, vale o da
+ * redação, inclusive nenhum. Sem trava, `collectAgenda` recalcula depois (`linkVenues`).
  */
 export function mergeForSave(
   incoming: NormalizedEvent,
@@ -46,13 +58,22 @@ export function mergeForSave(
 ): NormalizedEvent | null {
   if (!stored) return incoming;
   if (stored.withdrawnAt) return null;
-  const out: NormalizedEvent = { ...incoming };
+  const out: NormalizedEvent = {
+    ...incoming,
+    mediaId: incoming.mediaId ?? stored.mediaId,
+    venueId: stored.venueId ?? incoming.venueId,
+  };
   const patch: Partial<Pick<NormalizedEvent, EditableKey>> = {};
   for (const column of stored.lockedFields) {
     const key = LOCKABLE_COLUMNS[column];
     if (key) Object.assign(patch, { [key]: stored[key] });
   }
-  return Object.assign(out, patch);
+  Object.assign(out, patch);
+  if (stored.lockedFields.includes("media_id")) {
+    out.imageUrl = null;
+    out.imageContext = null;
+  }
+  return out;
 }
 
 /** Estável: por dia local, e dentro do dia os confirmados antes; o resto mantém a ordem da lista. */

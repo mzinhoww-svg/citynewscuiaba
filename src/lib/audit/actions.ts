@@ -61,7 +61,20 @@ export const AGENDA_AUDIT_ACTIONS = [
   "event.update",
   "event.withdraw",
   "event.restore",
+  // Destaque e pacotes sociais (ARD-T1, migration 0200).
+  "event.feature",
+  "social.approve",
+  "social.publish",
+  "social.discard",
+  // Edição semanal da newsletter da Agenda, pelo job (`system:agenda`; ARD-T5, migration 0206).
+  "newsletter.edition",
+  // Pacote "Agenda da semana" do Instagram (ARD-T6, migration 0207): montagem pelo job
+  // (`system:agenda`) e "Regerar" no Estúdio.
+  "social.build",
+  "social.regenerate",
 ] as const;
+
+export type AgendaAuditAction = (typeof AGENDA_AUDIT_ACTIONS)[number];
 
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
