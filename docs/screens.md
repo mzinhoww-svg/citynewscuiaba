@@ -56,11 +56,13 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 - **Situação:** Refinar (S06). Adicionar filtro de origem do evento (oficial, organização, sugerido por leitor aprovado).
 - **Blocos:** alternância Lista/Calendário (estado na URL `?view=`) · filtros data, categoria, preço (só gratuitos), local, faixa etária · lista agrupada por dia · calendário mensal com contagem por dia · "Sugerir um evento".
 - **Estados:** sem eventos no filtro ("Nenhum evento gratuito para crianças neste fim de semana" + "Ver próximos 30 dias").
+- **A-221:** faixa "Em destaque" no topo da lista sem filtros (`featured_until` ≥ agora); filtro `?idade=livre|10|12|14|16|18` (faixa ≤ a escolhida; `consulte` só sem filtro); card com miniatura de reprodução web inteira (sem recorte), "Foto: reprodução web · {fonte}" e "Ver original". Aceite: `tests/e2e/agenda-rica.spec.ts` (axe 360/768/1280).
 
 ### P10 · Evento · `/agenda/[slug]`
 - **Situação:** Canvas (painel de detalhe em S06).
 - **Blocos:** imagem com rótulo · categoria · título · data e hora · local com mapa estático e "Como chegar" · classificação e acessibilidade · preço · descrição · organizador · "Informações confirmadas pela organização em dd/mm" · Adicionar ao calendário (arquivo .ics + Google) · Compartilhar · Salvar · Relacionados.
 - **Aceite:** JSON-LD `Event`; `.ics` válido com fuso `America/Cuiaba`.
+- **A-221:** imagem de divulgação da página oficial (D-02, Media Registry; bloqueada, retirada ou vencida nunca aparece) com legenda completa ou nenhuma imagem; fato "Organização"; faixa etária; "Ver no Guia" quando o local casa com um lugar do Guia (e a página do lugar, `/guia-cuiaba/lugar/[slug]`, mostra "Próximos eventos aqui", até 5); `SaveEventButton`.
 
 ### P11 · Sugerir evento · `/agenda/sugerir` · **Nova**
 - **Sem login.** Campos: nome do evento, data e hora de início e fim, local (texto + bairro), preço (gratuito ou valor), faixa etária, link oficial, descrição (500 caracteres), contato do responsável (e-mail), aceite de uso.
@@ -108,6 +110,12 @@ Estados padrão (valem para toda tela e não são repetidos): `loading` com skel
 ### P19 · Newsletter · `/newsletter` · **Nova**
 - **Blocos:** lista de newsletters (Cuiabá em 5 minutos · diária 7h; Agenda do fim de semana · quinta 12h; Política da semana · sexta 18h) com amostra da última edição · inscrição com e-mail e escolha das listas · centro de preferências via link assinado (`/newsletter/preferencias?token=`) · confirmação dupla.
 - **Estados:** e-mail inválido; já inscrito; link expirado; cancelado ("Você não receberá mais… Mudou de ideia?").
+- **A-221:** a amostra da Agenda do fim de semana é a última edição pública (nunca uma edição de semana futura).
+
+### P19b · Edição da Agenda do fim de semana · `/newsletter/agenda/[data]` · **Nova** (A-221)
+- **Blocos:** título com o fim de semana · eventos agrupados por dia (título, quando, onde, preço ou "Consulte a fonte", "Com informações de…", link para `/agenda/[slug]`).
+- **Estados:** data inválida, edição inexistente ou rascunho → 404; edição publicada que perdeu os eventos → "Os eventos desta edição foram cancelados ou retirados. Veja a agenda completa."
+- **Montagem:** job `newsletter-agenda` quinta 11h45 e nova tentativa sexta 10h45 (Cuiabá); até 12 eventos, mínimo 3 para publicar; sem provedor de e-mail o envio fica `aguardando_provedor` (B-005). Aceite: `tests/e2e/newsletter-agenda.spec.ts`, `tests/integration/newsletter-agenda.test.ts`.
 
 ### P20 · Perfil · `/perfil`
 - **Situação:** Refinar (S07, T08 e T12).
@@ -204,6 +212,12 @@ Shell: `/estudio`, sidebar com Redação, Control Center (com Contingência em d
 
 ### E13b · Eventos da Agenda · `/estudio/agenda`, `/estudio/agenda/novo`, `/estudio/agenda/[id]` · **Nova** (A-220)
 - Lista com busca e filtros (período, fonte, origem, situação: no ar, retirado, encerrado, sem confirmação); cadastrar (origem CityNews, publica na hora), editar (campo editado fica travado para a coleta), retirar do ar e devolver, tudo auditado. Papel da seção `agenda`. Estados: carregando, vazio por filtro, erro com nova tentativa, sucesso.
+- **A-221:** formulário com organizador, faixa etária e "Local do Guia" (Automático pelo local, um lugar ativo, ou Nenhum; escolha manual trava, "Automático" destrava); "Destacar até {data}" (hoje a hoje + 90, fim do dia em Cuiabá) e "Tirar destaque", auditados `event.feature`; marcador "Em destaque até dd/mm" na lista. Aceite: `tests/integration/agenda-feature.test.ts`, `tests/e2e/studio-agenda.spec.ts`.
+
+### E13c · Pacote Instagram · `/estudio/agenda/instagram` · **Nova** (A-221)
+- Pacote "Agenda da semana" (segunda 8h Cuiabá): até 6 eventos confirmados, no máximo 2 por local, com foto primeiro; PNGs 1080×1350 (capa, um por evento com "Foto: reprodução web · {fonte}" e "Com informações de {fonte}", final "Qual você vai?"), legenda com créditos e "Confirme horários e valores na fonte oficial antes de sair de casa.", sem emoji.
+- Ações (papel da seção `agenda`, auditadas): "Tirar do pacote" e "Regerar", "Aprovar" (só a versão vista na tela; direitos das fotos conferidos de novo), "Descartar", "Baixar ZIP" (só aprovado), "Marcar como publicado" com o link do post. Postagem é manual; o CityNews não entra no Instagram. Gatilho 0208 só aceita as transições das ações.
+- Estados: vazio (sem eventos), rascunho com erro de montagem, pronto, aprovado, publicado, foto retirada depois de publicado (aviso para tirar o post). Aceite: `tests/integration/social-agenda.test.ts`, `tests/e2e/social-agenda.spec.ts`.
 
 ### E14 · Denúncias de leitores · `/estudio/denuncias` · **Nova** (resumo em W01)
 - Fila por tipo (informação errada, link quebrado, imagem, direito de resposta), prazo 24 h, vínculo com a matéria, resposta ao leitor.
