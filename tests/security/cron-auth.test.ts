@@ -69,6 +69,11 @@ const CRON_ROUTES: {
     method: "POST",
     load: () => import("@/app/api/jobs/media-variants/route"),
   },
+  {
+    path: "/api/jobs/newsletter-agenda",
+    method: "POST",
+    load: () => import("@/app/api/jobs/newsletter-agenda/route"),
+  },
 ];
 
 beforeEach(() => vi.stubEnv("CRON_SECRET", SECRET));

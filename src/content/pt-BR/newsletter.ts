@@ -113,3 +113,48 @@ export const NEWSLETTER_MAIL = {
   manageBody: (link: string) =>
     `Este e-mail já está inscrito. Para mudar ou cancelar suas newsletters, abra: ${link}`,
 } as const;
+
+/**
+ * Edição "Agenda do fim de semana" (ARD-T5, spec 2026-10-08-agenda-rica-e-distribuicao §6):
+ * assunto, página web da edição e e-mail (HTML e texto).
+ */
+export const NEWSLETTER_EDITION = {
+  name: "Agenda do fim de semana",
+  /** "Agenda do fim de semana · 9 a 11 de outubro" */
+  subject: (range: string) => `Agenda do fim de semana · ${range}`,
+  /** "9 a 11 de outubro" ou "30 de outubro a 1 de novembro" */
+  range: (from: string, to: string) => `${from} a ${to}`,
+  metaTitle: (range: string) => `Agenda do fim de semana · ${range} · CityNews Cuiabá`,
+  metaDescription: (range: string) =>
+    `Shows, feiras, teatro e esporte em Cuiabá de ${range}, com local, horário e preço.`,
+  intro:
+    "O que acontece em Cuiabá de sexta a domingo, com local, horário e preço. Os eventos confirmados pela organização vêm primeiro em cada dia.",
+  eyebrow: "Newsletter",
+  since: (day: string) => `desde ${day}`,
+  until: (when: string) => `até ${when}`,
+  freePrice: "Gratuito",
+  unknownPrice: "Consulte a fonte",
+  whenLabel: "Quando",
+  whereLabel: "Onde",
+  priceLabel: "Preço",
+  seeEvent: "Ver o evento",
+  seeEventLabel: (title: string) => `Ver ${title} na agenda do CityNews`,
+  checkSource: "Confirme horários e valores na fonte oficial antes de sair de casa.",
+  subscribeTitle: "Receba no seu e-mail",
+  subscribeText: "A Agenda do fim de semana chega toda quinta. Só pedimos o e-mail.",
+  subscribe: "Quero receber",
+  fullAgenda: "Ver a agenda completa",
+  readEdition: "Ler a edição completa",
+  readEditionLabel: (range: string) =>
+    `Ler a edição completa da Agenda do fim de semana de ${range}`,
+  errorTitle: "Não conseguimos carregar esta edição agora",
+  errorText: "Pode ser uma instabilidade passageira. Tente de novo em alguns minutos.",
+  backNewsletter: "Voltar para as newsletters",
+  /** E-mail */
+  viewOnSite: "Ver no site",
+  preheader: (range: string) => `Os eventos de ${range} em Cuiabá.`,
+  footerWhy: "Você recebe este e-mail porque se inscreveu na Agenda do fim de semana do CityNews.",
+  unsubscribe: "Sair desta newsletter",
+  textUnsubscribe: (url: string) => `Para sair desta newsletter, abra: ${url}`,
+  textViewOnSite: (url: string) => `Ver no site: ${url}`,
+} as const;

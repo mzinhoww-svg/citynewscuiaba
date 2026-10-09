@@ -66,7 +66,11 @@ export const AGENDA_AUDIT_ACTIONS = [
   "social.approve",
   "social.publish",
   "social.discard",
+  // Edição semanal da newsletter da Agenda, pelo job (`system:agenda`; ARD-T5, migration 0206).
+  "newsletter.edition",
 ] as const;
+
+export type AgendaAuditAction = (typeof AGENDA_AUDIT_ACTIONS)[number];
 
 /**
  * Nomes que o Estúdio grava no audit_log (sufixo `.denied` opcional). O banco aceita só esta
