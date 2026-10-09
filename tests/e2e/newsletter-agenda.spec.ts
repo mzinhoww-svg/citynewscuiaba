@@ -50,7 +50,8 @@ function events(date: string): EditionEvent[] {
     { ...base, title: "Rasqueado na praça", startsAt: at(20).toISOString() },
     {
       ...base,
-      slug: `${SEED_EVENT}-x`,
+      // A página só lista eventos ainda no ar: slugs reais do seed.
+      slug: "feira-de-artesanato-da-praca-alencastro",
       title: "Feira de artesanato",
       startsAt: sat.toISOString(),
       priceUnknown: true,
@@ -59,7 +60,7 @@ function events(date: string): EditionEvent[] {
     },
     {
       ...base,
-      slug: `${SEED_EVENT}-y`,
+      slug: "teatro-a-feira-do-mercado-do-porto",
       title: "Teatro de bonecos",
       startsAt: new Date(sat.getTime() + 3 * 3_600_000).toISOString(),
       priceCents: 3000,

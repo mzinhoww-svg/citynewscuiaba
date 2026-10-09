@@ -34,8 +34,9 @@ export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
   const params = new URL(req.url).searchParams;
-  // `?now=` só fora de produção (testes): em produção o relógio é o real.
-  const asked = process.env.NODE_ENV === "production" ? null : params.get("now");
+  // `?now=` só fora de produção ou no e2e (`CN_E2E=1`, o mesmo opt-in do relógio do push).
+  const testClock = process.env.NODE_ENV !== "production" || process.env.CN_E2E === "1";
+  const asked = testClock ? params.get("now") : null;
   const now = asked ? new Date(asked) : new Date();
   if (Number.isNaN(now.getTime())) return Response.json({ error: "now inválido" }, { status: 400 });
   const week = params.get("semana");
