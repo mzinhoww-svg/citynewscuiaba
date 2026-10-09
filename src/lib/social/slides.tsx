@@ -37,7 +37,34 @@ export const TITLE_FIT: FitOptions = {
 };
 const VENUE_FIT: FitOptions = { maxWidth: TEXT_WIDTH, maxLines: 3, sizes: [44, 40, 36, 32] };
 const CREDIT_FIT: FitOptions = { maxWidth: TEXT_WIDTH, maxLines: 2, sizes: [28, 26, 24, 22] };
+const SOURCE_FIT: FitOptions = { maxWidth: TEXT_WIDTH, maxLines: 2, sizes: [30, 28, 26, 24] };
 const DAY_FIT: FitOptions = { maxWidth: TEXT_WIDTH, maxLines: 2, sizes: [44, 40, 36] };
+
+/** Área da foto: o slide inteiro menos a faixa do crédito (a faixa nunca cobre a foto). */
+export const PHOTO_AREA = { width: SLIDE_WIDTH, height: SLIDE_HEIGHT - CREDIT_BAR } as const;
+
+export interface PhotoBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Caixa da foto inteira (sem recorte) dentro de `PHOTO_AREA`, centralizada nela, mantendo a
+ * proporção do arquivo.
+ */
+export function photoBox(width: number, height: number): PhotoBox {
+  const scale = Math.min(PHOTO_AREA.width / width, PHOTO_AREA.height / height);
+  const w = Math.min(PHOTO_AREA.width, Math.round(width * scale));
+  const h = Math.min(PHOTO_AREA.height, Math.round(height * scale));
+  return {
+    left: Math.round((PHOTO_AREA.width - w) / 2),
+    top: Math.round((PHOTO_AREA.height - h) / 2),
+    width: w,
+    height: h,
+  };
+}
 
 interface Background {
   uri: string;
@@ -53,7 +80,7 @@ async function background(bytes: Uint8Array): Promise<Background | null> {
   try {
     const { data, info } = await sharp(bytes)
       .rotate()
-      .resize({ width: SLIDE_WIDTH, height: SLIDE_HEIGHT, fit: "inside" })
+      .resize({ width: PHOTO_AREA.width, height: PHOTO_AREA.height, fit: "inside" })
       .flatten({ background: INK })
       .jpeg({ quality: 82 })
       .toBuffer({ resolveWithObject: true });
@@ -226,20 +253,20 @@ function EventSlide({
       ? fitText(S.photoCredit(item.image.credit), fonts.sans.metrics, CREDIT_FIT)
       : null;
   const price = item.price ?? S.unknownPrice;
+  const box = bg ? photoBox(bg.width, bg.height) : null;
+  const source = item.source
+    ? fitText(S.withInfoFrom(item.source), fonts.sans.metrics, SOURCE_FIT)
+    : null;
   return (
     <Frame>
-      {bg ? (
+      {bg && box ? (
         // eslint-disable-next-line @next/next/no-img-element -- satori desenha <img>; não é página
         <img
           src={bg.uri}
-          width={bg.width}
-          height={bg.height}
+          width={box.width}
+          height={box.height}
           alt=""
-          style={{
-            position: "absolute",
-            left: Math.round((SLIDE_WIDTH - bg.width) / 2),
-            top: Math.round((SLIDE_HEIGHT - bg.height) / 2),
-          }}
+          style={{ position: "absolute", left: box.left, top: box.top }}
         />
       ) : (
         <div style={{ display: "flex" }} />
@@ -326,6 +353,18 @@ function EventSlide({
           >
             {price}
           </div>
+          {source ? (
+            <Lines
+              lines={source.lines}
+              size={source.size}
+              family="Sans"
+              weight={400}
+              color={WHITE}
+              leading={1.2}
+            />
+          ) : (
+            <div style={{ display: "flex" }} />
+          )}
         </div>
       </div>
       <div

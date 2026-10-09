@@ -3,7 +3,7 @@ import sharp from "sharp";
 import { describe, expect, it } from "vitest";
 import { socialFonts } from "./fonts";
 import type { PackageItem } from "./items";
-import { renderSlides, SLIDE_HEIGHT, SLIDE_WIDTH, TITLE_FIT } from "./slides";
+import { photoBox, PHOTO_AREA, renderSlides, SLIDE_HEIGHT, SLIDE_WIDTH, TITLE_FIT } from "./slides";
 import { fitText } from "./text-fit";
 
 /** Largura e altura do PNG pelo cabeçalho IHDR (bytes 16–23). */
@@ -25,6 +25,7 @@ const item = (over: Partial<PackageItem> = {}): PackageItem => ({
   venue: "Teatro do Cerrado, Centro",
   price: "Gratuito",
   origin: "Com informações de Teatro do Cerrado",
+  source: "Teatro do Cerrado",
   image: null,
   ...over,
 });
@@ -55,6 +56,26 @@ async function meanColor(png: Uint8Array, top: number) {
   }
   return { r: r / px, g: g / px, b: b / px };
 }
+
+describe("photoBox", () => {
+  it("a foto cabe inteira acima da faixa do crédito e fica centralizada nessa área", () => {
+    expect(PHOTO_AREA).toEqual({ width: 1080, height: 1254 });
+    // Paisagem 3:2: largura cheia, centralizada na vertical da área.
+    expect(photoBox(1200, 800)).toEqual({ left: 0, top: 267, width: 1080, height: 720 });
+    // Retrato alto: altura cheia da área, nunca invade a faixa (top + height ≤ 1254).
+    const tall = photoBox(800, 1600);
+    expect(tall).toEqual({ left: 227, top: 0, width: 627, height: 1254 });
+    for (const [w, h] of [
+      [1080, 1350],
+      [400, 2000],
+      [3000, 500],
+    ] as const) {
+      const b = photoBox(w, h);
+      expect(b.top + b.height).toBeLessThanOrEqual(PHOTO_AREA.height);
+      expect(b.left + b.width).toBeLessThanOrEqual(PHOTO_AREA.width);
+    }
+  });
+});
 
 describe("renderSlides", () => {
   it("capa + um slide por evento + final, todos PNG 1080×1350", async () => {
@@ -90,6 +111,20 @@ describe("renderSlides", () => {
     expect(flat.b).toBeCloseTo(17, 0);
     const withPhoto = await meanColor(r.value.pngs[2]!, 600);
     expect(withPhoto.b).toBeGreaterThan(withPhoto.r + 20);
+    // A faixa do crédito (últimos 96 px) é lisa #111111, sem a foto por baixo.
+    const bar = await meanColor(r.value.pngs[2]!, SLIDE_HEIGHT - 60);
+    expect(bar.b).toBeLessThan(40);
+  });
+
+  it("título com emoji renderiza sem lançar (o item já chega sem emoji)", async () => {
+    const r = await renderSlides({
+      rangeLabel: "x",
+      items: [item({ title: "Festa junina 🎉🔥 no Porto" })],
+      images: new Map(),
+    });
+    expect(r.ok).toBe(true);
+    const fit = fitText("Festa junina 🎉🔥 no Porto", socialFonts().serifBold.metrics, TITLE_FIT);
+    expect(fit.clamped).toBe(false);
   });
 
   it("imagem ilegível cai no fundo liso sem quebrar", async () => {

@@ -13,6 +13,7 @@ import { STUDIO_SOCIAL_TEXT as T } from "@/content/pt-BR/studio-agenda";
 import { requireRole } from "@/lib/auth/require-role";
 import { addDays, formatDateTime } from "@/lib/format/date";
 import type { StoredPackage } from "@/lib/social/build-package";
+import type { PackageItem } from "@/lib/social/items";
 import { weekLabel } from "@/lib/social/items";
 import { weekRange } from "@/lib/social/pick-week";
 import { isReadyToApprove, readSocialPackage, weekStartOf } from "@/lib/studio/social-package";
@@ -106,11 +107,14 @@ export default async function InstagramPackagePage({
   const failedText = failed ? (T.errors[failed] ?? T.errors.failed) : null;
 
   let pkg: StoredPackage | null = null;
+  let revoked: PackageItem[] = [];
   let loadFailed = false;
   try {
     const r = await readSocialPackage(week);
-    if (r.ok) pkg = r.value;
-    else loadFailed = true;
+    if (r.ok) {
+      pkg = r.value.pkg;
+      revoked = r.value.revokedImages;
+    } else loadFailed = true;
   } catch {
     loadFailed = true;
   }
@@ -184,7 +188,13 @@ export default async function InstagramPackagePage({
           {T.notBuilt.body}
         </EmptyState>
       ) : (
-        <PackageView pkg={pkg} week={week} slideSrc={slideSrc} zipHref={zipHref} />
+        <PackageView
+          pkg={pkg}
+          revoked={revoked}
+          week={week}
+          slideSrc={slideSrc}
+          zipHref={zipHref}
+        />
       )}
     </StudioScreen>
   );
@@ -192,15 +202,29 @@ export default async function InstagramPackagePage({
 
 function PackageView({
   pkg,
+  revoked,
   week,
   slideSrc,
   zipHref,
 }: {
   pkg: StoredPackage;
+  revoked: PackageItem[];
   week: string;
   slideSrc: (i: number) => string;
   zipHref: string;
 }) {
+  const clamped = pkg.items.filter((it) => it.titleClamped);
+  const revokedTitles = revoked.map((it) => it.title).join("; ");
+  const revokedText =
+    revoked.length === 0
+      ? null
+      : pkg.status === "published"
+        ? T.revoked.published(revokedTitles)
+        : pkg.status === "approved"
+          ? T.revoked.approved(revokedTitles)
+          : pkg.status === "draft"
+            ? T.revoked.draft(revokedTitles)
+            : null;
   return (
     <div className="flex flex-col gap-6">
       <Panel aria-labelledby="pacote-situacao" pad="md" className="flex flex-col gap-3">
@@ -246,6 +270,11 @@ function PackageView({
             {T.failed(pkg.error)}
           </InlineAlert>
         )}
+        {revokedText && (
+          <InlineAlert tone="error" role="alert">
+            <span data-testid="social-revoked">{revokedText}</span>
+          </InlineAlert>
+        )}
       </Panel>
 
       <section aria-labelledby="pacote-acoes" className="flex flex-col gap-4">
@@ -253,9 +282,10 @@ function PackageView({
           {T.actionsTitle}
         </h2>
         <div className="flex flex-wrap items-start gap-3">
-          {pkg.status === "draft" && isReadyToApprove(pkg) && (
-            <form action={approveSocialAction}>
+          {pkg.status === "draft" && isReadyToApprove(pkg) && revoked.length === 0 && (
+            <form action={approveSocialAction} className="flex flex-col gap-2">
               <WeekField week={week} />
+              <input type="hidden" name="geracao" value={pkg.generatedAt ?? ""} />
               <SubmitButton size="md" icon="check" pendingLabel={T.approving}>
                 {T.approve}
               </SubmitButton>
@@ -275,6 +305,13 @@ function PackageView({
             </form>
           )}
         </div>
+        {pkg.status === "draft" && clamped.length > 0 && (
+          <InlineAlert tone="warn" role="status">
+            <span data-testid="social-clamped">
+              {T.clamped(clamped.map((it) => it.title).join("; "))}
+            </span>
+          </InlineAlert>
+        )}
         <p className="type-meta text-meta">
           {pkg.status === "approved" || pkg.status === "published" ? T.zipHint : T.zipLocked}
         </p>

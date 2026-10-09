@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 /**
  * "Baixar ZIP" do pacote do Instagram (ARD-T6): só depois de aprovado, só para quem tem a
  * editoria Agenda. PNGs + `caption.txt` + `creditos.txt`. Sem sessão: 401; sem papel: 403;
- * antes da aprovação: 409; sem pacote: 404.
+ * antes da aprovação ou com foto que perdeu a autorização: 409; sem pacote: 404.
  */
 export async function GET(req: Request) {
   const session = await getSession();
@@ -16,10 +16,19 @@ export async function GET(req: Request) {
   if (!week) return new Response("Semana inválida", { status: 400 });
   const r = await socialZip(week);
   if (!r.ok) {
-    const status = r.error === "forbidden" ? 403 : r.error === "not_ready" ? 409 : 404;
-    return new Response(status === 409 ? "Aprove o pacote antes de baixar" : "Indisponível", {
-      status,
-    });
+    const status =
+      r.error === "forbidden"
+        ? 403
+        : r.error === "not_ready" || r.error === "image_rights"
+          ? 409
+          : 404;
+    const message =
+      r.error === "image_rights"
+        ? "Uma foto do pacote foi retirada ou perdeu a autorização"
+        : status === 409
+          ? "Aprove o pacote antes de baixar"
+          : "Indisponível";
+    return new Response(message, { status });
   }
   const body = new Uint8Array(r.value.bytes);
   return new Response(body, {

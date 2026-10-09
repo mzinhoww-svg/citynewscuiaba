@@ -358,7 +358,17 @@ export const STUDIO_SOCIAL_TEXT = {
   zipHint: "O ZIP traz os PNGs, a legenda (caption.txt) e os créditos (creditos.txt).",
   zipLocked: "O ZIP fica disponível depois de aprovar.",
   publishUrl: "Link do post no Instagram",
-  publishHint: "Exemplo: https://www.instagram.com/p/ABC123/",
+  publishHint: "Exemplo: https://www.instagram.com/p/ABC123/ (post, /reel/ ou /tv/)",
+  revoked: {
+    published: (titles: string) =>
+      `Uma foto deste post foi retirada ou perdeu a autorização (${titles}). Tire o post do ar no Instagram.`,
+    approved: (titles: string) =>
+      `Uma foto do pacote foi retirada ou perdeu a autorização (${titles}). Descarte e regere o pacote antes de postar.`,
+    draft: (titles: string) =>
+      `Uma foto do pacote foi retirada ou perdeu a autorização (${titles}). Regere o pacote.`,
+  },
+  clamped: (titles: string) =>
+    `Título longo demais para o slide, com linhas cortadas: ${titles}. O texto inteiro está na legenda; confira o slide antes de aprovar.`,
   publish: "Marcar como publicado",
   publishing: "Salvando…",
   done: {
@@ -372,7 +382,10 @@ export const STUDIO_SOCIAL_TEXT = {
     read_only:
       "O Estúdio está em modo leitura: nenhuma alteração é gravada agora. Fale com a administração.",
     invalid_week: "Semana inválida.",
-    invalid_url: "Use o link do post no Instagram, começando com https://www.instagram.com/",
+    invalid_url:
+      "Use o link do post no Instagram. Exemplo: https://www.instagram.com/p/ABC123/ (também vale /reel/ ou /tv/)",
+    changed: "O pacote mudou; confira de novo antes de aprovar.",
+    image_rights: "Uma foto do pacote foi retirada ou perdeu a autorização; regere o pacote.",
     not_ready: "O pacote ainda não está pronto: precisa ter eventos, slides e nenhum erro.",
     not_found: "Pacote não encontrado. Monte o pacote desta semana primeiro.",
     invalid_state: "O pacote mudou de situação. Recarregue a página.",

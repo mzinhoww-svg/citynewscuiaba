@@ -37,10 +37,15 @@ const EVENTS_MAX = 400;
 const COLUMNS =
   "id, week_start, status, items, caption, assets, error, excluded, approved_by, approved_at, published_url, generated_at";
 
+/** "Ver original" só com http(s); outro esquema vira `null` (nunca um link `javascript:`). */
+const httpUrl = z
+  .string()
+  .nullable()
+  .transform((v) => (v && /^https?:\/\//i.test(v) ? v : null));
 const imageSchema = z.object({
   assetId: z.string(),
   credit: z.string(),
-  originUrl: z.string().nullable(),
+  originUrl: httpUrl,
 });
 const itemSchema = z.object({
   eventId: z.string(),
@@ -52,6 +57,8 @@ const itemSchema = z.object({
   venue: z.string(),
   price: z.string().nullable(),
   origin: z.string().nullable(),
+  source: z.string().nullable().default(null),
+  titleClamped: z.boolean().optional(),
   image: imageSchema.nullable(),
 });
 
@@ -114,14 +121,16 @@ export async function findSocialPackage(
 }
 
 /**
- * Grava o rascunho da semana. Atualiza só se o estado atual estiver em `allowFrom` (o filtro
- * vai no próprio `update`, então uma aprovação no meio nunca é sobrescrita); corrida de
- * inserção (`23505`) vira atualização. Devolve `null` quando não tocou em nada.
+ * Grava o rascunho da semana. Atualiza só se o estado atual estiver em `allowFrom` e a geração
+ * gravada ainda for `seen` (os dois filtros vão no próprio `update`: uma aprovação ou outra
+ * montagem no meio nunca é sobrescrita). Sem pacote (`seen` nulo), insere; corrida de inserção
+ * (`23505`) vira a atualização condicional. Devolve `null` quando não tocou em nada.
  */
 export async function saveSocialDraft(
   db: DbClient,
   w: PackageWrite,
   allowFrom: readonly PackageStatus[],
+  seen: string | null,
 ): Promise<StoredPackage | null> {
   const values = {
     status: "draft",
@@ -136,12 +145,13 @@ export async function saveSocialDraft(
     published_url: null,
   };
   const update = async () => {
-    const r = await db
+    const base = db
       .from("social_packages")
       .update(values)
       .eq("kind", SOCIAL_KIND)
       .eq("week_start", w.weekStart)
-      .in("status", [...allowFrom])
+      .in("status", [...allowFrom]);
+    const r = await (seen === null ? base.is("generated_at", null) : base.eq("generated_at", seen))
       .select(COLUMNS)
       .maybeSingle();
     if (r.error) throw new Error(`social_packages: ${r.error.message}`);
@@ -174,15 +184,21 @@ export async function transitionSocialPackage(
     approved_at?: string | null;
     published_url?: string | null;
   },
+  /** Aprovar: só a geração que a pessoa viu, e sem erro de montagem. */
+  generation?: string | null,
 ): Promise<Result<StoredPackage, TransitionError>> {
-  const r = await db
+  let q = db
     .from("social_packages")
     .update(patch)
     .eq("kind", SOCIAL_KIND)
     .eq("week_start", weekStart)
-    .in("status", [...from])
-    .select(COLUMNS)
-    .maybeSingle();
+    .in("status", [...from]);
+  if (generation !== undefined)
+    q = (generation === null ? q.is("generated_at", null) : q.eq("generated_at", generation)).is(
+      "error",
+      null,
+    );
+  const r = await q.select(COLUMNS).maybeSingle();
   if (r.error) return err(r.error.code === "42501" ? "forbidden" : "invalid_state");
   if (r.data) return ok(stored(r.data));
   const now = await findSocialPackage(db, weekStart);
@@ -205,6 +221,20 @@ export function socialPackageStore(): MediaStore {
 }
 
 /**
+ * A foto ainda pode ir ao público? Mesmo caminho de `/api/media/[id]` (leitura do ativo pela
+ * RLS pública e `isServable`), sem baixar os bytes. Qualquer falha = não.
+ */
+export async function isEventImageServable(assetId: string): Promise<boolean> {
+  try {
+    const deps = mediaServeDeps();
+    const asset = await deps.asset(assetId);
+    return asset !== null && (await isServable(asset, deps));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Bytes da foto do evento pelas mesmas regras de `/api/media/[id]`: leitura do ativo com o
  * cliente público (a RLS exige `approved`, não retirado, licença válida e a flag de reprodução)
  * e `isServable` de novo; os bytes vêm do bucket privado `media`. Qualquer falha = sem foto.
@@ -224,7 +254,7 @@ export async function loadEventImage(assetId: string): Promise<Uint8Array | null
 /** Eventos públicos da semana (RLS: confirmado e não retirado), como a Agenda e a newsletter. */
 async function weekEvents(range: { start: Date; end: Date }): Promise<WeekEvent[]> {
   const r = await listEventsInRange(
-    { from: range.start.toISOString(), to: new Date(range.end.getTime() + 1000).toISOString() },
+    { from: range.start.toISOString(), to: range.end.toISOString() },
     EVENTS_MAX,
   );
   if (!r.ok) throw new Error(`eventos: ${r.error.kind}`);
@@ -249,7 +279,7 @@ export function socialBuildDeps(opts: {
     loadImage: loadEventImage,
     render: renderSlides,
     find: (weekStart) => findSocialPackage(db, weekStart),
-    save: (w, allowFrom) => saveSocialDraft(db, w, allowFrom),
+    save: (w, allowFrom, seen) => saveSocialDraft(db, w, allowFrom, seen),
     async upload(path, bytes) {
       const r = await store.put(path, bytes, "image/png");
       return r.ok ? ok(undefined) : err(r.error);

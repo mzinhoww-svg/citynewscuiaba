@@ -25,6 +25,10 @@ export interface PackageItem {
   price: string | null;
   /** "Com informações de {fonte}" (e a confirmação), ou `null` sem fonte registrada. */
   origin: string | null;
+  /** Nome da fonte das informações ("Com informações de {fonte}" no slide), ou `null`. */
+  source: string | null;
+  /** O título não coube no slide nem no corpo mínimo (linhas cortadas; a legenda tem tudo). */
+  titleClamped?: boolean;
   /** Foto de divulgação permitida pelo Media Registry (política reproduction), ou `null`. */
   image: PackageImage | null;
 }
@@ -49,7 +53,20 @@ export function packageImage(e: Pick<WeekEvent, "image">): PackageImage | null {
   if (!img || img.kind !== "reproduction" || !img.credit) return null;
   const id = MEDIA_SRC.exec(img.src)?.[1];
   if (!id) return null;
-  return { assetId: id.toLowerCase(), credit: img.credit, originUrl: img.originUrl ?? null };
+  const origin = img.originUrl && /^https?:\/\//i.test(img.originUrl) ? img.originUrl : null;
+  return { assetId: id.toLowerCase(), credit: plainText(img.credit), originUrl: origin };
+}
+
+/**
+ * Texto do slide e da legenda sem emoji (regra do portal; a fonte nem tem os glifos): tira
+ * pictogramas, o seletor de variação (U+FE0F) e o junção de largura zero (U+200D) e junta os
+ * espaços que sobram.
+ */
+export function plainText(s: string): string {
+  return s
+    .replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const monthFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC", month: "long" });
@@ -87,13 +104,14 @@ export function packageItems(events: readonly WeekEvent[], range: WeekRange): Pa
     return {
       eventId: e.id,
       slug: e.slug,
-      title: e.title,
+      title: plainText(e.title),
       day,
       dayLabel: dayLabel(day),
       time: timeOf(e, range),
-      venue: e.neighborhood ? `${e.venue}, ${e.neighborhood}` : e.venue,
+      venue: plainText(e.neighborhood ? `${e.venue}, ${e.neighborhood}` : e.venue),
       price: priceOf(e),
-      origin: originNote(e).join(" · ") || null,
+      origin: plainText(originNote(e).join(" · ")) || null,
+      source: originNote(e).length && e.sourceName ? plainText(e.sourceName) || null : null,
       image: packageImage(e),
     };
   });

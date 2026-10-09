@@ -17,7 +17,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 export interface WeekRange {
   /** Segunda 00:00 em Cuiabá. */
   start: Date;
-  /** Domingo 23:59:59 em Cuiabá. */
+  /** Fim exclusivo: a segunda seguinte, 00:00 em Cuiabá. */
   end: Date;
   /** A segunda, "AAAA-MM-DD": chave do pacote e pasta dos PNGs. */
   weekStart: string;
@@ -38,7 +38,7 @@ export function weekRange(now: Date, monday?: string): WeekRange {
   const days = Array.from({ length: 7 }, (_, i) => addDays(first, i));
   return {
     start: dayStart(first),
-    end: new Date(dayStart(addDays(first, 7)).getTime() - 1000),
+    end: dayStart(addDays(first, 7)),
     weekStart: first,
     days,
   };
@@ -67,39 +67,68 @@ export type WeekEvent = Pick<
 > & { withdrawnAt?: string | null };
 
 /**
- * Chave do local para o limite por local: o lugar do Guia quando há vínculo, senão o nome sem
- * acento, minúsculo, sem pontuação e com espaços simples.
+ * Chave do local pelo nome: sem acento, minúsculo, sem pontuação e com espaços simples. Vale
+ * para todo evento, com ou sem vínculo no Guia (assim o vínculo não abre uma terceira vaga).
  */
-export function venueKey(e: Pick<WeekEvent, "venue" | "venueSlug">): string {
-  if (e.venueSlug) return `guia:${e.venueSlug}`;
+export function venueKey(e: Pick<WeekEvent, "venue">): string {
   const text = fold(e.venue)
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
   return `texto:${text}`;
 }
 
-function overlaps(e: WeekEvent, range: WeekRange): boolean {
+/**
+ * Agrupa os locais: nomes ligados ao mesmo lugar do Guia viram um local só (o evento vinculado
+ * "Casa X" junta o nome "casa x" dos eventos sem vínculo ao lugar `casa-x`, e qualquer outro
+ * nome vinculado a ele). Devolve a chave do grupo de cada evento.
+ */
+export function venueGroups(
+  events: readonly Pick<WeekEvent, "id" | "venue" | "venueSlug">[],
+): Map<string, string> {
+  const parent = new Map<string, string>();
+  const find = (k: string): string => {
+    const p = parent.get(k) ?? k;
+    if (p === k) return k;
+    const root = find(p);
+    parent.set(k, root);
+    return root;
+  };
+  const union = (a: string, b: string) => {
+    const ra = find(a);
+    const rb = find(b);
+    if (ra !== rb) parent.set(ra, rb);
+  };
+  for (const e of events) if (e.venueSlug) union(venueKey(e), `guia:${e.venueSlug}`);
+  return new Map(events.map((e) => [e.id, find(venueKey(e))]));
+}
+
+function overlaps(e: WeekEvent, range: WeekRange, now: Date | undefined): boolean {
   const s = Date.parse(e.startsAt);
   const end = e.endsAt ? Date.parse(e.endsAt) : s;
-  return !Number.isNaN(s) && s <= range.end.getTime() && end >= range.start.getTime();
+  if (Number.isNaN(s) || s >= range.end.getTime() || end < range.start.getTime()) return false;
+  // Na semana corrente, o que já terminou não entra.
+  const current =
+    now && now.getTime() >= range.start.getTime() && now.getTime() < range.end.getTime();
+  return !current || end >= (now?.getTime() ?? 0);
 }
 
 /**
  * Eventos do carrossel: confirmados, não retirados, que tocam a semana e não foram tirados do
- * pacote (`exclude`). Prioridade: com imagem primeiro, depois confirmados pela fonte, depois o
+ * pacote (`exclude`); na semana corrente (`now` dentro dela), só os que ainda não terminaram.
+ * Prioridade: com imagem primeiro, depois confirmados pela fonte, depois o
  * início; até 6, no máximo 2 por local. A saída volta à ordem cronológica (o carrossel segue a
  * semana).
  */
 export function pickWeekEvents(
   events: readonly WeekEvent[],
   range: WeekRange,
-  opts: { exclude?: readonly string[] } = {},
+  opts: { exclude?: readonly string[]; now?: Date } = {},
 ): WeekEvent[] {
   const excluded = new Set(opts.exclude ?? []);
   const seen = new Set<string>();
   const kept = events.filter((e) => {
     if (!e.confirmedAt || e.withdrawnAt || excluded.has(e.id) || seen.has(e.id)) return false;
-    if (!overlaps(e, range)) return false;
+    if (!overlaps(e, range, opts.now)) return false;
     seen.add(e.id);
     return true;
   });
@@ -111,11 +140,12 @@ export function pickWeekEvents(
       Number(b.confirmed) - Number(a.confirmed) ||
       byStart(a, b),
   );
+  const groups = venueGroups(kept);
   const perVenue = new Map<string, number>();
   const picked: WeekEvent[] = [];
   for (const e of priority) {
     if (picked.length >= WEEK_MAX_EVENTS) break;
-    const key = venueKey(e);
+    const key = groups.get(e.id) ?? venueKey(e);
     const count = perVenue.get(key) ?? 0;
     if (count >= WEEK_MAX_PER_VENUE) continue;
     perVenue.set(key, count + 1);

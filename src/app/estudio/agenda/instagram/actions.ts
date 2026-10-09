@@ -46,9 +46,11 @@ export async function regenerateSocialAction(form: FormData): Promise<void> {
   back(week, r, "montado");
 }
 
+/** "Aprovar" leva a geração que a pessoa viu (`geracao`): pacote refeito no meio não é aprovado. */
 export async function approveSocialAction(form: FormData): Promise<void> {
   const week = weekOf(form);
-  back(week, await approveSocialPackage(week), "aprovado");
+  const seen = String(form.get("geracao") ?? "").slice(0, 64);
+  back(week, await approveSocialPackage(week, seen === "" ? null : seen), "aprovado");
 }
 
 export async function discardSocialAction(form: FormData): Promise<void> {

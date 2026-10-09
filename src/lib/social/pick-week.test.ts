@@ -41,7 +41,8 @@ describe("weekRange", () => {
     const r = weekRange(MONDAY);
     expect(r.weekStart).toBe("2026-10-12");
     expect(r.start.toISOString()).toBe("2026-10-12T04:00:00.000Z");
-    expect(r.end.toISOString()).toBe("2026-10-19T03:59:59.000Z");
+    // Fim exclusivo: a segunda seguinte, 00:00 em Cuiabá.
+    expect(r.end.toISOString()).toBe("2026-10-19T04:00:00.000Z");
     expect(r.days).toHaveLength(7);
     expect(r.days[6]).toBe("2026-10-18");
   });
@@ -82,6 +83,38 @@ describe("pickWeekEvents", () => {
     for (const e of picked) counts.set(venueKey(e), (counts.get(venueKey(e)) ?? 0) + 1);
     expect(Math.max(...counts.values())).toBe(2);
     expect(picked).toHaveLength(5);
+  });
+
+  it("vínculo no Guia não abre vaga extra: nomes ligados ao mesmo lugar contam juntos", () => {
+    const list = [
+      ev({ venue: "Casa X", venueSlug: "casa-x" }),
+      ev({ venue: "Casa X" }),
+      ev({ venue: "casa  x" }),
+      ev({ venue: "Outro nome da casa", venueSlug: "casa-x" }),
+      ev({ venue: "Outro nome da casa", venueSlug: "casa-x" }),
+    ];
+    const picked = pickWeekEvents(list, range);
+    expect(picked.map((e) => e.id)).toEqual([list[0]!.id, list[1]!.id]);
+    expect(venueKey({ venue: "Casa X" })).toBe(venueKey({ venue: "casa x" }));
+  });
+
+  it("evento que começa na segunda seguinte 00:00 fica de fora (fim exclusivo)", () => {
+    const e = ev({ startsAt: "2026-10-19T04:00:00Z" });
+    expect(pickWeekEvents([e], range)).toEqual([]);
+  });
+
+  it("semana corrente: o que já terminou não entra; o que ainda vai acontecer, sim", () => {
+    const now = new Date("2026-10-15T15:00:00Z");
+    const past = ev({ startsAt: "2026-10-13T23:00:00Z" });
+    const ended = ev({ startsAt: "2026-10-14T23:00:00Z", endsAt: "2026-10-15T02:00:00Z" });
+    const running = ev({ startsAt: "2026-10-14T23:00:00Z", endsAt: "2026-10-16T02:00:00Z" });
+    const next = ev({ startsAt: "2026-10-16T23:00:00Z" });
+    const picked = pickWeekEvents([past, ended, running, next], range, { now });
+    expect(picked.map((e) => e.id)).toEqual([running.id, next.id]);
+    // Semana passada consultada depois (`now` fora dela): nada é cortado por já ter terminado.
+    expect(pickWeekEvents([past], range, { now: new Date("2026-11-01T12:00:00Z") })).toHaveLength(
+      1,
+    );
   });
 
   it("com imagem primeiro: eventos com foto ganham a vaga mesmo começando depois", () => {

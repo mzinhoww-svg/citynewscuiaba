@@ -15,6 +15,16 @@ function block(it: PackageItem): string {
   ].join("\n");
 }
 
+/**
+ * Linha dos eventos que ficaram só nos slides: a contagem e, para nunca perder a atribuição de
+ * um evento mostrado no carrossel, as fontes das informações deles.
+ */
+function moreLine(dropped: readonly PackageItem[]): string {
+  const sources = [...new Set(dropped.flatMap((it) => (it.source ? [it.source] : [])))];
+  const more = S.captionMore(dropped.length);
+  return sources.length ? `${more} ${S.withInfoFrom(sources.join(", "))}.` : more;
+}
+
 /** Nomes das fontes das fotos usadas nos slides, sem repetir, na ordem dos slides. */
 export function photoSources(items: readonly PackageItem[]): string[] {
   return [...new Set(items.flatMap((it) => (it.image ? [it.image.credit] : [])))];
@@ -24,8 +34,8 @@ export function photoSources(items: readonly PackageItem[]): string[] {
  * Legenda pronta do carrossel (spec §7): abertura, um bloco por evento (título, dia, hora,
  * local, preço e "Com informações de …"), créditos das fotos, três hashtags fixas e o aviso
  * final. Sem emoji. O título vai sempre inteiro, mesmo quando o slide teve de cortar linhas.
- * Acima de 2.200 caracteres, os blocos do fim saem ("Mais n eventos nos slides."); os créditos
- * continuam com todas as fotos dos slides.
+ * Acima de 2.200 caracteres, os blocos do fim saem ("Mais n eventos nos slides. Com informações
+ * de …"); os créditos continuam com todas as fotos e a atribuição de todos os eventos fica.
  */
 export function buildCaption(items: readonly PackageItem[], rangeLabel: string): string {
   const sources = photoSources(items);
@@ -38,7 +48,7 @@ export function buildCaption(items: readonly PackageItem[], rangeLabel: string):
     [
       S.captionIntro(rangeLabel),
       ...items.slice(0, shown).map(block),
-      ...(shown < items.length ? [S.captionMore(items.length - shown)] : []),
+      ...(shown < items.length ? [moreLine(items.slice(shown))] : []),
       ...tail,
     ].join("\n\n");
   for (let shown = items.length; shown >= 0; shown--) {

@@ -19,6 +19,7 @@ export const SOCIAL_AGENDA = {
   unknownPrice: "Preço: consulte a fonte",
   freePrice: "Gratuito",
   photoCredit: (source: string) => `Foto: reprodução web · ${source}`,
+  withInfoFrom: (source: string) => `Com informações de ${source}`,
   /** "Desde 4 out" (evento já em cartaz antes da semana). */
   since: (date: string) => `Desde ${date}`,
   /** Slide final. */

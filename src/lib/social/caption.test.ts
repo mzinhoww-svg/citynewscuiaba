@@ -15,6 +15,7 @@ const item = (n: number, over: Partial<PackageItem> = {}): PackageItem => ({
   venue: "Teatro do Cerrado, Centro",
   price: "Gratuito",
   origin: "Com informações de Teatro do Cerrado",
+  source: "Teatro do Cerrado",
   image: null,
   ...over,
 });
@@ -65,6 +66,8 @@ describe("buildCaption", () => {
         title: `${long}${i}`,
         venue: `${long} Centro ${i}`,
         image: { assetId: `a${i}`, credit: `Fonte ${i}`, originUrl: null },
+        source: `Casa ${i}`,
+        origin: `Com informações de Casa ${i}`,
       }),
     );
     const c = buildCaption(items, "12 a 18 de outubro");
@@ -73,6 +76,9 @@ describe("buildCaption", () => {
     expect(c).not.toContain(`${long}5\n`);
     expect(c).toMatch(/Mais \d eventos? nos slides\./);
     for (let i = 0; i < 6; i++) expect(c).toContain(`Fonte ${i}`);
+    // Os eventos cortados da legenda mantêm a atribuição.
+    for (let i = 0; i < 6; i++) expect(c).toContain(`Casa ${i}`);
+    expect(c).toMatch(/nos slides\. Com informações de Casa \d(, Casa \d)*\./);
     expect(c.endsWith(CLOSING)).toBe(true);
   });
 
@@ -94,5 +100,44 @@ describe("creditsText", () => {
     expect(t).toContain("Slide 03 · Show 2 no Teatro\nSem foto (fundo liso)");
     expect(t).toContain(CLOSING);
     expect(t).not.toMatch(EMOJI);
+  });
+});
+
+describe("emoji", () => {
+  it("o item chega sem emoji e a legenda também", async () => {
+    const { packageItems } = await import("./items");
+    const { weekRange } = await import("./pick-week");
+    const range = weekRange(new Date("2026-10-12T12:00:00Z"));
+    const [it] = packageItems(
+      [
+        {
+          id: "e1",
+          slug: "e1",
+          title: "Festa 🎉 junina  ❤️ no Porto 👨‍👩‍👧",
+          startsAt: "2026-10-14T23:00:00Z",
+          endsAt: null,
+          venue: "Praça 🌳 Central",
+          neighborhood: null,
+          venueSlug: null,
+          priceCents: 0,
+          isFree: true,
+          priceUnknown: false,
+          origin: "organizer",
+          sourceName: "Casa 🎭 Exemplo",
+          confirmedByName: null,
+          confirmed: true,
+          confirmedAt: "2026-10-01T12:00:00Z",
+          image: null,
+        },
+      ],
+      range,
+    );
+    expect(it?.title).toBe("Festa junina no Porto");
+    expect(it?.venue).toBe("Praça Central");
+    expect(it?.source).toBe("Casa Exemplo");
+    const c = buildCaption([it!], "12 a 18 de outubro");
+    expect(c).not.toMatch(EMOJI);
+    expect(c).not.toMatch(/[\u{FE0F}\u{200D}]/u);
+    expect(c).toContain("Com informações de Casa Exemplo");
   });
 });
