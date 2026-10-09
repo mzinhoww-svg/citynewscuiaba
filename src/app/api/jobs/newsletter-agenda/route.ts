@@ -27,19 +27,25 @@ const EVENTS_MAX = 300;
  * eventos públicos (cliente anônimo: confirmado e não retirado, como a Agenda), grava por
  * `(agenda-fds, sexta)`, publica a página e chama o envio (sem provedor: `aguardando_provedor`).
  * Rodar de novo na mesma semana atualiza a edição; edição já enviada não muda.
- * `?now=<ISO>` monta a edição de outra semana (reprocessar ou testar).
+ * `?now=<ISO>` muda o relógio (testes); `?semana=AAAA-MM-DD` reprocessa a edição daquela
+ * semana com o relógio real (fim de semana passado: atualiza a página, nunca envia).
  */
 export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
-  const asked = new URL(req.url).searchParams.get("now");
+  const params = new URL(req.url).searchParams;
+  const asked = params.get("now");
   const now = asked ? new Date(asked) : new Date();
   if (Number.isNaN(now.getTime())) return Response.json({ error: "now inválido" }, { status: 400 });
+  const week = params.get("semana");
+  if (week !== null && !/^\d{4}-\d{2}-\d{2}$/.test(week))
+    return Response.json({ error: "semana inválida" }, { status: 400 });
 
   const db = createServiceClient();
   try {
     const report = await runAgendaEdition({
       now,
+      ...(week ? { editionDate: week } : {}),
       siteUrl: siteUrl(),
       secret: newsletterSecret(),
       sender: senderFromEnv(),

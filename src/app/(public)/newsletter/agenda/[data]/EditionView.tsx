@@ -2,10 +2,14 @@ import Link from "next/link";
 import { Button, Cta } from "@/components";
 import { NEWSLETTER_EDITION as T } from "@/content/pt-BR/newsletter";
 import type { PublicEdition } from "@/lib/db/newsletter-editions";
-import { groupEditionItems, rangeLabel, rangeOfEdition } from "@/lib/newsletter/agenda-edition";
+import {
+  eventPath,
+  groupEditionItems,
+  rangeLabel,
+  rangeOfEdition,
+} from "@/lib/newsletter/agenda-edition";
 
 const CONTAINER = "mx-auto w-full max-w-read px-gutter";
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /**
  * Página web de uma edição da "Agenda do fim de semana" (ARD-T5, spec §6): os itens gravados
@@ -22,6 +26,14 @@ export function EditionView({ edition }: { edition: PublicEdition }) {
         <p className="type-headline-md text-strong">{range}</p>
         <p className="type-body text-pretty text-body">{T.intro}</p>
       </header>
+      {days.length === 0 && (
+        <p className="type-body text-body">
+          {T.emptyEdition}{" "}
+          <Link href="/agenda" className="font-semibold text-strong underline underline-offset-4">
+            {T.emptyEditionLink}
+          </Link>
+        </p>
+      )}
       {days.map((d) => (
         <section key={d.day} aria-labelledby={`dia-${d.day}`} className="flex flex-col gap-1">
           <h2 id={`dia-${d.day}`} className="type-section text-strong">
@@ -34,10 +46,7 @@ export function EditionView({ edition }: { edition: PublicEdition }) {
                 className="flex flex-col gap-1 border-t border-line-subtle py-4 first:border-t-0"
               >
                 <h3 className="type-headline-md text-strong">
-                  <Link
-                    href={SLUG.test(i.slug) ? `/agenda/${i.slug}` : "/agenda"}
-                    className="underline-offset-4 hover:underline"
-                  >
+                  <Link href={eventPath(i.slug)} className="underline-offset-4 hover:underline">
                     {i.title}
                   </Link>
                 </h3>

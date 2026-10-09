@@ -145,4 +145,74 @@ describe("runAgendaEdition", () => {
     expect(r).toMatchObject({ status: "published", sendError: "no_secret" });
     expect(send).not.toHaveBeenCalled();
   });
+
+  it("fim de semana passado: o envio nunca é chamado (terminal), motivo na auditoria", async () => {
+    const send = vi.fn(noProviderSender.send);
+    const past = [1, 2, 3].map((i) => ev(i, { startsAt: `2026-10-03T1${i}:00:00Z` }));
+    const { d, stored } = deps({
+      editionDate: "2026-10-02",
+      sender: { name: "fake", send },
+      loadEvents: vi.fn(async () => past),
+    });
+    const r = await runAgendaEdition(d);
+    expect(r).toMatchObject({
+      editionDate: "2026-10-02",
+      status: "published",
+      sendError: "expired",
+    });
+    expect(send).not.toHaveBeenCalled();
+    expect(d.recipients).not.toHaveBeenCalled();
+    expect(stored()?.row?.publishedAt).toBe(NOW.toISOString());
+    expect(d.audit).toHaveBeenCalledWith(
+      "newsletter:agenda-fds:2026-10-02",
+      expect.objectContaining({ sendError: "expired" }),
+    );
+  });
+
+  it("fim de semana passado já aguardando provedor continua aguardando, sem envio", async () => {
+    const send = vi.fn(noProviderSender.send);
+    const { d, stored } = deps(
+      { editionDate: "2026-10-02", sender: { name: "fake", send } },
+      { id: "ed-1", status: "aguardando_provedor", publishedAt: "2026-10-01T15:45:00.000Z" },
+    );
+    expect((await runAgendaEdition(d)).status).toBe("aguardando_provedor");
+    expect(stored()?.status).toBe("aguardando_provedor");
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("rodada de sexta (retry) numa edição aguardando_provedor tenta enviar de novo", async () => {
+    const send = vi.fn(noProviderSender.send);
+    const { d, stored } = deps(
+      { now: new Date("2026-10-09T14:45:00Z"), sender: { name: "none", send } },
+      { id: "ed-1", status: "aguardando_provedor", publishedAt: "2026-10-08T15:45:00.000Z" },
+    );
+    const r = await runAgendaEdition(d);
+    expect(r).toMatchObject({ status: "aguardando_provedor", editionDate: "2026-10-09" });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(stored()?.row?.publishedAt).toBe("2026-10-08T15:45:00.000Z");
+  });
+
+  it("publicada uma vez fica no ar: com menos de 3 (ou nenhum) evento não volta a rascunho", async () => {
+    for (const events of [[ev(1)], []]) {
+      const send = vi.fn(noProviderSender.send);
+      const { d, stored } = deps(
+        { loadEvents: vi.fn(async () => events), sender: { name: "none", send } },
+        { id: "ed-1", status: "aguardando_provedor", publishedAt: "2026-10-08T15:45:00.000Z" },
+      );
+      const r = await runAgendaEdition({ ...d, now: new Date("2026-10-09T14:45:00Z") });
+      expect(r).toMatchObject({ status: "aguardando_provedor", items: events.length });
+      expect(stored()?.row?.items).toHaveLength(events.length);
+      expect(stored()?.row?.publishedAt).toBe("2026-10-08T15:45:00.000Z");
+      expect(send).not.toHaveBeenCalled();
+    }
+  });
+
+  it("publicada com falha de envio e agora com 2 eventos: fica published, sem envio", async () => {
+    const { d, stored } = deps(
+      { loadEvents: vi.fn(async () => [ev(1), ev(2)]) },
+      { id: "ed-1", status: "published", publishedAt: "2026-10-08T15:45:00.000Z" },
+    );
+    expect((await runAgendaEdition(d)).status).toBe("published");
+    expect(stored()?.status).toBe("published");
+  });
 });

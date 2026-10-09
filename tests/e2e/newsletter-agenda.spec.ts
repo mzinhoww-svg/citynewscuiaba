@@ -103,7 +103,7 @@ test.beforeAll(async ({ playwright }, info) => {
   await upsert(friday, "aguardando_provedor");
   await upsert(draft, "draft");
   // O job de verdade numa semana vazia: rascunho (nada publicado) e cache `newsletter` limpo,
-  // para a amostra de /newsletter ler a edição gravada acima.
+  // para a amostra de /newsletter ler o banco atual (e não mostrar as edições de 2040).
   const api = await playwright.request.newContext({ baseURL: info.project.use.baseURL });
   const now = encodeURIComponent(`${addDays(empty, -1)}T11:45:00-04:00`);
   const run = await api.post(`/api/jobs/newsletter-agenda?now=${now}`, {
@@ -177,11 +177,11 @@ test("rascunho, data sem edição e data inválida: 404", async ({ page }) => {
   }
 });
 
-test("/newsletter: amostra da Agenda vem da última edição publicada, com link", async ({
+test("/newsletter: edição com data adiante nunca vira a amostra da última edição", async ({
   page,
 }) => {
   await page.goto("/newsletter");
-  const link = page.getByRole("link", { name: /Ler a edição completa da Agenda do fim de semana/ });
-  await expect(link).toBeVisible();
-  await expect(link).toHaveAttribute("href", /^\/newsletter\/agenda\/\d{4}-\d{2}-\d{2}$/);
+  await expect(page.getByText("Amostra da última edição").first()).toBeVisible();
+  for (const date of [friday, draft, empty])
+    await expect(page.locator(`a[href="/newsletter/agenda/${date}"]`)).toHaveCount(0);
 });

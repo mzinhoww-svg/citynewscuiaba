@@ -60,4 +60,17 @@ describe("EditionView", () => {
     const { container } = render(<EditionView edition={edition} />);
     expect(container.textContent).not.toMatch(/\bIA\b|gerad[oa]|automátic|normaliz/i);
   });
+
+  it("edição publicada sem itens: aviso e link para a agenda completa", () => {
+    render(<EditionView edition={{ ...edition, items: [] }} />);
+    expect(
+      screen.getByText(/Os eventos desta edição foram cancelados ou retirados\./),
+    ).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Veja a agenda completa." }).getAttribute("href")).toBe(
+      "/agenda",
+    );
+    expect(screen.queryAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual([
+      "Receba no seu e-mail",
+    ]);
+  });
 });

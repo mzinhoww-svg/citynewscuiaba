@@ -1,6 +1,6 @@
 import { NEWSLETTER_EDITION as T } from "@/content/pt-BR/newsletter";
 import { SITE } from "@/content/pt-BR/site";
-import { groupEditionItems, type EditionItem } from "./agenda-edition";
+import { eventPath, groupEditionItems, type EditionItem } from "./agenda-edition";
 
 /**
  * HTML e texto do e-mail da "Agenda do fim de semana" (ARD-T5, spec §6). E-mail não lê CSS
@@ -46,7 +46,6 @@ const C = {
   accent: "#F58220",
 } as const;
 const FONT = "Arial, Helvetica, sans-serif";
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Página da edição no site. */
 export function editionUrl(siteUrl: string, editionDate: string): string {
@@ -55,8 +54,7 @@ export function editionUrl(siteUrl: string, editionDate: string): string {
 
 /** Link do evento: só a página da agenda do próprio site (nunca outro esquema ou domínio). */
 function eventUrl(base: string, item: EditionItem): string {
-  const own = `${base}/agenda/${item.slug}`;
-  return SLUG.test(item.slug) ? own : `${base}/agenda`;
+  return `${base}${eventPath(item.slug)}`;
 }
 
 function itemHtml(base: string, item: EditionItem): string {

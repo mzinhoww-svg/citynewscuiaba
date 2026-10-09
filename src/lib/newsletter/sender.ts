@@ -6,7 +6,15 @@ import { signNewsletterToken } from "./token";
 /**
  * Envio da edição (ARD-T5, spec §6): porta `EmailSender`. Ainda não há provedor de e-mail
  * (B-005): a implementação padrão não envia e devolve `aguardando_provedor`, sem falhar; a
- * edição continua publicada na web. Um provedor real entra aqui, em `senderFromEnv`.
+ * edição continua publicada na web; `aguardando_provedor` é o estado final de exibição até
+ * existir provedor. Um provedor real entra aqui, em `senderFromEnv`.
+ *
+ * Antes de ligar um provedor (B-005 em .planning/BLOCKERS.md):
+ * - trava de "claim" antes do envio (`published → enviando` condicional no banco), para duas
+ *   rodadas (quinta e a nova tentativa de sexta) nunca enviarem duas vezes;
+ * - link de descadastro que não expira e cabeçalho `List-Unsubscribe` (hoje o link vale 60 dias);
+ * - alinhar a mensagem de link expirado das preferências (hoje diz 7 dias);
+ * - cada destinatário recebe o e-mail com `personalize` (o marcador vira o link dele).
  */
 
 export interface Recipient {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { AgendaAuditAction } from "@/lib/audit/actions";
 import type { DbClient, PublicCache } from "@/lib/db/client";
 import type { Json } from "@/lib/db/types";
-import type { EditionItem } from "@/lib/newsletter/agenda-edition";
+import { weekendRange, type EditionItem } from "@/lib/newsletter/agenda-edition";
 import type { EditionStatus, EditionWrite, StoredEdition } from "@/lib/newsletter/run-edition";
 import type { Result } from "@/lib/result";
 import { many, one, readPublic } from "./queries/run";
@@ -201,15 +201,21 @@ export async function getPublicEdition(
   }, NEWSLETTER_CACHE);
 }
 
-/** Última edição pública da lista (a mais recente pela data). */
+/**
+ * Última edição pública da lista até o fim de semana de `now` (uma edição com data adiante,
+ * gravada para reprocessar ou testar, nunca vira a "última").
+ */
 export async function getLatestPublicEdition(
   list: string,
+  now: Date = new Date(),
 ): Promise<Result<PublicEdition | null, QueryError>> {
+  const upTo = weekendRange(now).editionDate;
   return readPublic(async (db) => {
     const rows = await db
       .from("newsletter_editions")
       .select(PUBLIC_COLUMNS)
       .eq("list", list)
+      .lte("edition_date", upTo)
       .order("edition_date", { ascending: false })
       .limit(1)
       .then(many);

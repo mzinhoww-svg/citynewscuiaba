@@ -121,7 +121,9 @@ describe("POST /api/jobs/newsletter-agenda", () => {
     const ins = await db.from("event_listings").insert(event(5));
     expect(ins.error).toBeNull();
     const first = await (await run()).json();
-    expect(first).toMatchObject({ status: "aguardando_provedor", items: 3, recipients: 1 });
+    expect(first).toMatchObject({ status: "aguardando_provedor", items: 3 });
+    // A inscrição do teste conta (outras suítes podem ter deixado inscrições confirmadas).
+    expect(first.recipients).toBeGreaterThanOrEqual(1);
     const rows = (await editionRows()).data ?? [];
     expect(rows).toHaveLength(1);
     const id = rows[0]?.id;
@@ -150,8 +152,54 @@ describe("POST /api/jobs/newsletter-agenda", () => {
     expect(after[0]?.id).toBe(id);
     expect(after[0]?.published_at).toBe(publishedAt);
 
+    // Edição com data adiante nunca vira a "última" (só até o fim de semana de agora).
     const latest = await getLatestPublicEdition("agenda-fds");
-    expect(latest.ok && latest.value?.editionDate).toBeTruthy();
+    expect(latest.ok).toBe(true);
+    expect(latest.ok && latest.value?.editionDate).not.toBe(FRIDAY);
+    const then = await getLatestPublicEdition("agenda-fds", new Date(THURSDAY_NOON));
+    expect(then.ok && then.value?.editionDate).toBe(FRIDAY);
+  });
+
+  it("publicada uma vez fica no ar: eventos retirados não a devolvem a rascunho", async () => {
+    const before = (await editionRows()).data?.[0];
+    const off = await db
+      .from("event_listings")
+      .update({ withdrawn_at: new Date().toISOString() })
+      .in("slug", [`${TAG}-1`, `${TAG}-2`]);
+    expect(off.error).toBeNull();
+    const r = await (await run()).json();
+    expect(r).toMatchObject({ status: "aguardando_provedor", items: 1, reason: "few_events" });
+    const after = (await editionRows()).data?.[0];
+    expect(after?.status).toBe("aguardando_provedor");
+    expect(after?.published_at).toBe(before?.published_at);
+    const pub = await getPublicEdition("agenda-fds", FRIDAY);
+    expect(pub.ok && pub.value?.items.map((i) => i.title)).toEqual([`Forró 5 ${TAG}`]);
+  });
+
+  it("?semana= de um fim de semana passado: atualiza a página e nunca envia", async () => {
+    const res = await POST(
+      new Request(`http://localhost/api/jobs/newsletter-agenda?semana=2026-01-02`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${SECRET}` },
+      }),
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.editionDate).toBe("2026-01-02");
+    expect(body.recipients).toBeUndefined();
+    expect(["draft", "published"]).toContain(body.status);
+    await db
+      .from("newsletter_editions")
+      .delete()
+      .eq("list", "agenda-fds")
+      .eq("edition_date", "2026-01-02");
+    const bad = await POST(
+      new Request(`http://localhost/api/jobs/newsletter-agenda?semana=sexta`, {
+        method: "POST",
+        headers: { authorization: `Bearer ${SECRET}` },
+      }),
+    );
+    expect(bad.status).toBe(400);
   });
 
   it("edição já enviada não é reescrita nem reenviada", async () => {

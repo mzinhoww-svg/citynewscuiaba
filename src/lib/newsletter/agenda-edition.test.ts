@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAgendaEdition,
   EDITION_MAX_ITEMS,
+  eventPath,
   groupEditionItems,
   weekendRange,
   type EditionEvent,
@@ -150,6 +151,33 @@ describe("buildAgendaEdition", () => {
     expect(e.subject).toBe("Agenda do fim de semana · 9 a 11 de outubro");
     expect(e.rangeLabel).toBe("9 a 11 de outubro");
     expect(e.editionDate).toBe("2026-10-09");
+  });
+
+  it("sexta lotada não tira o domingo da edição (cota por dia)", () => {
+    const friday = Array.from({ length: 15 }, (_, i) =>
+      ev({ startsAt: new Date(Date.parse("2026-10-09T14:00:00Z") + i * 60_000).toISOString() }),
+    );
+    const sunday = Array.from({ length: 3 }, (_, i) =>
+      ev({
+        title: `Domingo ${i}`,
+        startsAt: new Date(Date.parse("2026-10-11T14:00:00Z") + i * 60_000).toISOString(),
+      }),
+    );
+    const e = buildAgendaEdition([...friday, ...sunday], RANGE, { siteUrl: SITE });
+    expect(e.items).toHaveLength(EDITION_MAX_ITEMS);
+    expect(e.items.filter((i) => i.day === "2026-10-11").map((i) => i.title)).toEqual([
+      "Domingo 0",
+      "Domingo 1",
+      "Domingo 2",
+    ]);
+    expect(e.items.filter((i) => i.day === "2026-10-09")).toHaveLength(9);
+    // A ordem por dia continua.
+    expect(e.items.at(-1)?.day).toBe("2026-10-11");
+  });
+
+  it("eventPath: só slug válido vira link do evento", () => {
+    expect(eventPath("show-1")).toBe("/agenda/show-1");
+    expect(eventPath("../x")).toBe("/agenda");
   });
 
   it("período que cruza o mês", () => {

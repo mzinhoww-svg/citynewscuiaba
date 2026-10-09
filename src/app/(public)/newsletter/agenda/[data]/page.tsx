@@ -11,7 +11,7 @@ import { EditionView } from "./EditionView";
 /**
  * Edição da newsletter "Agenda do fim de semana" na web (ARD-T5, spec §6). Dados em cache por
  * 5 min (tag `newsletter`, revalidada pelo job). Data inválida, edição inexistente ou em
- * rascunho: 404 (a RLS só devolve edição publicada). Sem `loading.tsx`: com ele a resposta
+ * rascunho: 404; edição publicada cujos eventos saíram todos continua no ar, com aviso (a RLS só devolve edição publicada). Sem `loading.tsx`: com ele a resposta
  * começa em streaming e o 404 vira 200 (como no grupo `(inicio)`).
  */
 export const revalidate = 300;
@@ -59,6 +59,6 @@ export default async function AgendaEditionRoute({ params }: Props) {
       </div>
     );
   }
-  if (!r.value || r.value.items.length === 0) notFound();
+  if (!r.value) notFound();
   return <EditionView edition={r.value} />;
 }

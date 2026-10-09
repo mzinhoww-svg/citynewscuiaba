@@ -18,6 +18,37 @@ import {
  * repete o filtro por defesa; monta os itens ordenados por dia, confirmados primeiro e horário.
  */
 
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/** Caminho da página do evento na Agenda; slug fora do formato leva à Agenda inteira. */
+export function eventPath(slug: string): string {
+  return SLUG.test(slug) ? `/agenda/${slug}` : "/agenda";
+}
+
+/**
+ * Corte em `max` itens sem que um dia cheio tire os outros da edição: cada dia com eventos
+ * fica com até `ceil(max / dias)` primeiro; as vagas que sobram vão, na ordem, para o resto.
+ * A entrada já vem ordenada (dia, confirmados, horário) e a saída mantém essa ordem.
+ */
+export function fairCut<T extends { day: string }>(sorted: readonly T[], max: number): T[] {
+  const days = new Set(sorted.map((x) => x.day)).size;
+  if (sorted.length <= max || days === 0) return sorted.slice(0, max);
+  const quota = Math.ceil(max / days);
+  const perDay = new Map<string, number>();
+  const picked = new Set<number>();
+  sorted.forEach((x, i) => {
+    const n = perDay.get(x.day) ?? 0;
+    if (n < quota && picked.size < max) {
+      perDay.set(x.day, n + 1);
+      picked.add(i);
+    }
+  });
+  sorted.forEach((_, i) => {
+    if (picked.size < max) picked.add(i);
+  });
+  return sorted.filter((_, i) => picked.has(i));
+}
+
 /** Lista da newsletter que esta edição alimenta. */
 export const AGENDA_LIST = "agenda-fds";
 /** Menos que isso, a edição fica em rascunho e não sai. */
@@ -147,7 +178,8 @@ function overlaps(e: EditionEvent, range: WeekendRange): boolean {
 /**
  * Monta a edição: só eventos confirmados, não retirados e que tocam o fim de semana; cada um
  * entra no dia em que começa (ou na sexta, se já estava em cartaz); ordem por dia, confirmados
- * pela organização ou fonte oficial primeiro e horário; até 12. Com menos de 3, `draft`.
+ * pela organização ou fonte oficial primeiro e horário; até 12, com cota justa por dia
+ * (`fairCut`). Com menos de 3, `draft`.
  */
 export function buildAgendaEdition(
   events: readonly EditionEvent[],
@@ -171,14 +203,13 @@ export function buildAgendaEdition(
         Number(b.e.confirmed) - Number(a.e.confirmed) ||
         Date.parse(a.e.startsAt) - Date.parse(b.e.startsAt) ||
         a.e.title.localeCompare(b.e.title, "pt-BR"),
-    )
-    .slice(0, EDITION_MAX_ITEMS);
-  const items: EditionItem[] = sorted.map(({ e, day }) => ({
+    );
+  const items: EditionItem[] = fairCut(sorted, EDITION_MAX_ITEMS).map(({ e, day }) => ({
     day,
     dayLabel: dayLabel(day),
     slug: e.slug,
     title: e.title,
-    url: `${base}/agenda/${e.slug}`,
+    url: `${base}${eventPath(e.slug)}`,
     when: when(e, range),
     where: e.neighborhood ? `${e.venue}, ${e.neighborhood}` : e.venue,
     price: price(e),

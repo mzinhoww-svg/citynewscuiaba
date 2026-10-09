@@ -8,7 +8,12 @@ import {
 } from "@/content/pt-BR/newsletter";
 import { getLatestPublicEdition } from "@/lib/db/newsletter-editions";
 import { getHomeData, listEvents, listSection } from "@/lib/db/queries";
-import { AGENDA_LIST, rangeLabel, rangeOfEdition } from "@/lib/newsletter/agenda-edition";
+import {
+  AGENDA_LIST,
+  eventPath,
+  rangeLabel,
+  rangeOfEdition,
+} from "@/lib/newsletter/agenda-edition";
 import { formatDayMonth, formatHour } from "@/lib/format/date";
 import { MARKETING } from "@/content/pt-BR/site";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -30,8 +35,6 @@ const CONTAINER = "mx-auto w-full max-w-page px-gutter";
 type Sample = { title: string; href: string; meta?: string }[];
 /** Link para a edição inteira (só a Agenda do fim de semana tem página de edição). */
 type Edition = { href: string; label: string; aria: string };
-
-const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 async function samples(): Promise<{
   lists: Record<string, Sample>;
@@ -62,7 +65,7 @@ async function samples(): Promise<{
       "agenda-fds": edition
         ? edition.items.slice(0, 3).map((i) => ({
             title: i.title,
-            href: SLUG.test(i.slug) ? `/agenda/${i.slug}` : "/agenda",
+            href: eventPath(i.slug),
             meta: `${i.dayLabel}, ${i.when}`,
           }))
         : events.ok
