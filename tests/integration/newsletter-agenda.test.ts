@@ -122,8 +122,8 @@ describe("POST /api/jobs/newsletter-agenda", () => {
     expect(ins.error).toBeNull();
     const first = await (await run()).json();
     expect(first).toMatchObject({ status: "aguardando_provedor", items: 3 });
-    // A inscrição do teste conta (outras suítes podem ter deixado inscrições confirmadas).
-    expect(first.recipients).toBeGreaterThanOrEqual(1);
+    // Sem provedor (B-005) os inscritos nem são lidos.
+    expect(first.recipients).toBeUndefined();
     const rows = (await editionRows()).data ?? [];
     expect(rows).toHaveLength(1);
     const id = rows[0]?.id;
@@ -158,6 +158,18 @@ describe("POST /api/jobs/newsletter-agenda", () => {
     expect(latest.ok && latest.value?.editionDate).not.toBe(FRIDAY);
     const then = await getLatestPublicEdition("agenda-fds", new Date(THURSDAY_NOON));
     expect(then.ok && then.value?.editionDate).toBe(FRIDAY);
+  });
+
+  it("evento retirado depois da montagem some da página sem nova rodada", async () => {
+    const off = await db
+      .from("event_listings")
+      .update({ withdrawn_at: new Date().toISOString() })
+      .eq("slug", `${TAG}-1`);
+    expect(off.error).toBeNull();
+    const pub = await getPublicEdition("agenda-fds", FRIDAY);
+    const slugs = pub.ok ? (pub.value?.items.map((i) => i.slug) ?? []) : [];
+    expect(slugs).not.toContain(`${TAG}-1`);
+    expect(slugs.length).toBeGreaterThan(0);
   });
 
   it("publicada uma vez fica no ar: eventos retirados não a devolvem a rascunho", async () => {

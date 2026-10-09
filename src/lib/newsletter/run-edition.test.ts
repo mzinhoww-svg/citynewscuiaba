@@ -81,8 +81,8 @@ describe("runAgendaEdition", () => {
       status: "aguardando_provedor",
       editionDate: "2026-10-09",
       items: 3,
-      recipients: 2,
     });
+    expect(d.recipients).not.toHaveBeenCalled();
     expect(stored()?.status).toBe("aguardando_provedor");
     expect(stored()?.row?.publishedAt).toBe(NOW.toISOString());
     expect(stored()?.row?.html).toContain("{{unsubscribe_url}}");
@@ -183,13 +183,23 @@ describe("runAgendaEdition", () => {
   it("rodada de sexta (retry) numa edição aguardando_provedor tenta enviar de novo", async () => {
     const send = vi.fn(noProviderSender.send);
     const { d, stored } = deps(
-      { now: new Date("2026-10-09T14:45:00Z"), sender: { name: "none", send } },
+      { now: new Date("2026-10-09T14:45:00Z"), sender: { name: "fake", send } },
       { id: "ed-1", status: "aguardando_provedor", publishedAt: "2026-10-08T15:45:00.000Z" },
     );
     const r = await runAgendaEdition(d);
     expect(r).toMatchObject({ status: "aguardando_provedor", editionDate: "2026-10-09" });
     expect(send).toHaveBeenCalledTimes(1);
     expect(stored()?.row?.publishedAt).toBe("2026-10-08T15:45:00.000Z");
+  });
+
+  it("sem provedor não lê inscritos nem chama o envio: fica aguardando_provedor", async () => {
+    const send = vi.fn(noProviderSender.send);
+    const { d } = deps({ now: new Date("2026-10-08T15:45:00Z"), sender: { name: "none", send } });
+    const recipients = vi.fn(async () => ["leitora@exemplo.example"]);
+    const r = await runAgendaEdition({ ...d, recipients });
+    expect(r.status).toBe("aguardando_provedor");
+    expect(recipients).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
   });
 
   it("publicada uma vez fica no ar: com menos de 3 (ou nenhum) evento não volta a rascunho", async () => {

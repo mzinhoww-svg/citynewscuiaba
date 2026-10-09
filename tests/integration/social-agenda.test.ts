@@ -462,4 +462,10 @@ describe("trava no banco (0208): a editoria não pula etapas pelo PostgREST", ()
     );
     expect(ok.ok).toBe(true);
   });
+
+  it("apagar o pacote pelo PostgREST é recusado (só Descartar)", async () => {
+    const del = await where((await direct()).from("social_packages").delete());
+    expect(del.error?.code).toBe("42501");
+    expect(await row(GUARD_WEEK)).toHaveLength(1);
+  });
 });

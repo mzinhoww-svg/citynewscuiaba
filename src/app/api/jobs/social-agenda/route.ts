@@ -18,7 +18,8 @@ export async function POST(req: Request): Promise<Response> {
   if (!isCronAuthorized(req.headers.get("authorization"), process.env.CRON_SECRET))
     return unauthorized();
   const params = new URL(req.url).searchParams;
-  const asked = params.get("now");
+  // `?now=` só fora de produção (testes): em produção o relógio é o real.
+  const asked = process.env.NODE_ENV === "production" ? null : params.get("now");
   const now = asked ? new Date(asked) : new Date();
   if (Number.isNaN(now.getTime())) return Response.json({ error: "now inválido" }, { status: 400 });
   const week = params.get("semana");

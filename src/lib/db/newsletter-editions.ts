@@ -19,7 +19,7 @@ import type { QueryError } from "./queries/types";
 export const AGENDA_SYSTEM_ACTOR = "system:agenda";
 
 /** Cache das leituras públicas: o job revalida a tag `newsletter`; no máximo 5 min de atraso. */
-export const NEWSLETTER_CACHE: PublicCache = { tags: ["newsletter"], revalidate: 300 };
+export const NEWSLETTER_CACHE: PublicCache = { tags: ["newsletter", "agenda"], revalidate: 300 };
 
 const STATUSES = ["draft", "published", "aguardando_provedor", "sent", "failed"] as const;
 const statusOf = (s: string): EditionStatus => STATUSES.find((x) => x === s) ?? "draft";
@@ -197,7 +197,15 @@ export async function getPublicEdition(
       .eq("edition_date", editionDate)
       .maybeSingle()
       .then(one);
-    return row ? toPublic(row) : null;
+    if (!row) return null;
+    const edition = toPublic(row);
+    // Evento retirado (ou que deixou de estar confirmado) depois da montagem some da página: a RLS
+    // de `event_listings` só devolve ao público o que está no ar.
+    const slugs = edition.items.map((i) => i.slug);
+    if (slugs.length === 0) return edition;
+    const live = await db.from("event_listings").select("slug").in("slug", slugs).then(many);
+    const visible = new Set(live.map((e) => e.slug));
+    return { ...edition, items: edition.items.filter((i) => visible.has(i.slug)) };
   }, NEWSLETTER_CACHE);
 }
 

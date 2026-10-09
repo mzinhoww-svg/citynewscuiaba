@@ -84,3 +84,25 @@ revoke execute on function public.social_packages_guard() from public, anon, aut
 create or replace trigger social_packages_guard
   before insert or update on social_packages
   for each row execute function public.social_packages_guard();
+
+-- Revisão final: apagar pacote (inclusive aprovado ou publicado) só pelo sistema; a política
+-- `social_packages_agenda` é `for all` e liberaria o DELETE pelo PostgREST.
+create or replace function public.social_packages_no_delete()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if public.caller_is_system() then
+    return old;
+  end if;
+  raise exception 'social_packages: pacote não é apagado; use Descartar' using errcode = '42501';
+end
+$$;
+
+revoke execute on function public.social_packages_no_delete() from public, anon, authenticated;
+
+create or replace trigger social_packages_no_delete
+  before delete on social_packages
+  for each row execute function public.social_packages_no_delete();

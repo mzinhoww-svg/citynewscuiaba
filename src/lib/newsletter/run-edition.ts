@@ -140,6 +140,11 @@ async function send(
   rendered: ReturnType<typeof renderEditionEmail>,
   nowIso: string,
 ): Promise<Pick<EditionRunReport, "status" | "recipients" | "sendError">> {
+  // Sem provedor (B-005) nada sai: não lê e-mails de inscritos nem monta links à toa.
+  if (deps.sender.name === "none") {
+    await deps.setStatus(id, "aguardando_provedor", nowIso);
+    return { status: "aguardando_provedor" };
+  }
   const list = buildRecipients(await deps.recipients(AGENDA_LIST), deps.siteUrl, deps.secret);
   if (!list.ok) return { status: "published", sendError: list.error };
   const sent = await deps.sender.send(rendered, list.value);

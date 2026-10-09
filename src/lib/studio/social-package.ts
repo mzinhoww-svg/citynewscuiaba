@@ -75,10 +75,6 @@ export function instagramPostUrl(raw: string): string | null {
   }
 }
 
-export function isInstagramPostUrl(raw: string): boolean {
-  return instagramPostUrl(raw) !== null;
-}
-
 /**
  * Eventos cuja foto não pode mais sair (retirada, bloqueada, vencida, flag de reprodução
  * desligada): a mesma checagem de `/api/media/[id]`, ativo por ativo.

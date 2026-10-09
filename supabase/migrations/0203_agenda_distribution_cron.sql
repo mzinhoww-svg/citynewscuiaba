@@ -1,5 +1,5 @@
 -- ARD-T1 (spec §3): dois jobs pg_cron no molde de `agenda-collect` (0053). Sem pg_cron, pg_net ou
--- Vault (app_url e cron_secret) nada é agendado e o watchdog do GitHub cobre.
+-- Vault (app_url e cron_secret) nada é agendado (o watchdog do GitHub não chama estas rotas).
 --   newsletter-agenda        quinta 15h45 UTC (11h45 Cuiabá)  POST /api/jobs/newsletter-agenda
 --   newsletter-agenda-retry  sexta 14h45 UTC (10h45 Cuiabá)   mesma rota (ARD-T5): nova tentativa
 --                            de envio da edição do fim de semana; idempotente, pula a já enviada.

@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 const { readPublic } = vi.hoisted(() => ({
-  readPublic: vi.fn(async (..._args: unknown[]) => ({ ok: true as const, value: [] })),
+  readPublic: vi.fn(async (...args: unknown[]) => {
+    void args;
+    return { ok: true as const, value: [] };
+  }),
 }));
 vi.mock("./run", () => ({ readPublic, many: vi.fn(), one: vi.fn() }));
 
