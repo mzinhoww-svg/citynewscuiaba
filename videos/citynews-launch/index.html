@@ -249,13 +249,13 @@
         <div id="s4-url"><span id="s4-url-dot"></span><span>citynewscuiaba.vercel.app</span></div>
         <span id="s4-foot">O ponto da cidade.</span>
       </div>
-      <!-- Narração (VoiceStudio · VoxCPM2) -->
-      <audio id="vo1" src="assets/vo/final/vo1-marca.wav" data-start="1.2" data-duration="1.26" data-track-index="5" data-volume="1"></audio>
-      <audio id="vo2" src="assets/vo/final/vo2-titulo.wav" data-start="3.15" data-duration="4.48" data-track-index="5" data-volume="1"></audio>
-      <audio id="vo3" src="assets/vo/final/vo3-pergunte.wav" data-start="8.25" data-duration="4.92" data-track-index="5" data-volume="1"></audio>
-      <audio id="vo4" src="assets/vo/final/vo4-guia.wav" data-start="13.3" data-duration="4.3" data-track-index="5" data-volume="1"></audio>
-      <audio id="vo5" src="assets/vo/final/vo5-newsletter.wav" data-start="18.35" data-duration="3.17" data-track-index="5" data-volume="1"></audio>
-      <audio id="vo6" src="assets/vo/final/vo6-cta.wav" data-start="23.35" data-duration="3.82" data-track-index="5" data-volume="1"></audio>
+      <!-- Narração (VoiceStudio · OmniVoice) -->
+      <audio id="vo1" src="assets/vo-omni/final/vo1-marca.wav" data-start="1.2" data-duration="1.67" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo2" src="assets/vo-omni/final/vo2-titulo.wav" data-start="3.5" data-duration="2.75" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo3" src="assets/vo-omni/final/vo3-pergunte.wav" data-start="8.4" data-duration="4.24" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo4" src="assets/vo-omni/final/vo4-guia.wav" data-start="13.4" data-duration="3.12" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo5" src="assets/vo-omni/final/vo5-newsletter.wav" data-start="18.45" data-duration="2.84" data-track-index="5" data-volume="1"></audio>
+      <audio id="vo6" src="assets/vo-omni/final/vo6-cta.wav" data-start="23.4" data-duration="2.3" data-track-index="5" data-volume="1"></audio>
     </div>
 
     <script>
@@ -273,15 +273,15 @@
       tl.to("#s1-logo-wrap", { opacity: 0, y: -40, duration: 0.25, ease: "power2.in" }, 2.75);
 
       // ---------- 2 · Título cinético (3–8s) ----------
-      // Tempos de cada palavra = transcrição da narração (vo2 começa em 3,15s)
+      // Tempos de cada palavra = transcrição da narração (vo2 começa em 3,5s)
       const words = [
-        ["#w1", 3.15, 0.47],
-        ["#w2", 3.62, 0.18],
-        ["#w3", 3.8, 0.5],
-        ["#w4", 4.3, 1.08],
-        ["#w5", 5.38, 0.72],
-        ["#w6", 6.1, 0.72],
-        ["#w7", 6.82, 0.68],
+        ["#w1", 3.5, 0.46],
+        ["#w2", 3.96, 0.14],
+        ["#w3", 4.1, 0.52],
+        ["#w4", 4.62, 0.16],
+        ["#w5", 4.78, 0.38],
+        ["#w6", 5.16, 0.28],
+        ["#w7", 5.44, 2.06],
       ];
       tl.fromTo("#s2-kicker", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }, 3.05);
       tl.fromTo("#s2-bar-fill", { scaleX: 0 }, { scaleX: 1, duration: 4.5, ease: "none" }, 3.0);
