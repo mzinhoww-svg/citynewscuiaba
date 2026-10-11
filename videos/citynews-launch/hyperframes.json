@@ -9,5 +9,17 @@
   "media": {
     "autoProxy": true
   },
-  "authoringSkill": "product-launch-video"
+  "authoringSkill": "product-launch-video",
+  "registryItems": [
+    {
+      "name": "caption-pill-karaoke",
+      "type": "hyperframes:component",
+      "target": "compositions/components/caption-pill-karaoke.html"
+    },
+    {
+      "name": "shimmer-sweep",
+      "type": "hyperframes:component",
+      "target": "compositions/components/shimmer-sweep.html"
+    }
+  ]
 }

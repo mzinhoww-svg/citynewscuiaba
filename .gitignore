@@ -59,3 +59,5 @@ videos/*/capture/
 videos/*/snapshots/
 videos/*/renders/
 videos/*/.hyperframes/
+videos/*/assets/**/raw-*.wav
+videos/*/assets/**/ref.wav
