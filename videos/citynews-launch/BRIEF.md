@@ -9,7 +9,7 @@ canvas: 1080x1920
 language: pt-BR
 length: 30s
 angle: sell
-narration: none
+narration: "VoiceStudio · VoxCPM2 (voz desenhada, pt-BR, Apache-2.0)"
 music: none
 ---
 
