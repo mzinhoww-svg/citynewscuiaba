@@ -63,6 +63,9 @@ const eslintConfig = defineConfig([
     "design-system/**",
     // Skills de terceiros (superpowers) instaladas em .claude/skills.
     ".claude/**",
+    // Skills do HyperFrames (npx skills add) e projetos de vídeo.
+    ".agents/**",
+    "videos/**",
     "scripts/**",
     ".local/**",
     "public/sw.js",
