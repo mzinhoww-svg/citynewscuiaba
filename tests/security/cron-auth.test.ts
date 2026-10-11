@@ -166,6 +166,8 @@ describe("classificação de todas as rotas de src/app", () => {
     "/api/editoria/[slug]/novas",
     "/api/events",
     "/api/fontes/onboarding",
+    // Saúde para o vigia externo: uma leitura mínima com o cliente anônimo, 60 s em cache de borda.
+    "/api/health",
     "/api/guia/informar",
     // Foto do Google do lugar (A-212): só GET, lugar público, limite diário global, 404 em falha.
     "/api/guia/foto/[slug]",
