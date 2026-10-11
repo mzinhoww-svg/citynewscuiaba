@@ -9,7 +9,7 @@ canvas: 1080x1920
 language: pt-BR
 length: 30s
 angle: sell
-narration: "VoiceStudio · OmniVoice (voz desenhada, pt-BR; uso não comercial, CC-BY-NC, confirmado pelo dono)"
+narration: "VoiceStudio · OmniVoice (voz desenhada, pt-BR; uso não comercial). Duas versões: masculina (assets/vo-omni) e feminina (assets/vo-fem). Trilha: MusicGen local. Ilustração: Kling (Nano Banana Pro)."
 music: none
 ---
 
