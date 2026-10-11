@@ -49,6 +49,5 @@ src = src.replace('{{LOGO_HORIZONTAL}}', logo('assets/logo/citynews-horizontal-n
 src = src.replace('{{MAP}}', mapa())
 src = src.replace('{{VO_AUDIO}}', vo_audio())
 src = src.replace('{{VO_JSON}}', json.dumps(VO, ensure_ascii=False))
-src = src.replace('{{QR}}', qr())
 open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write(src)
 print('index.html', len(src), 'bytes', 'voz:', voice)
