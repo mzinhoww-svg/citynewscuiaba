@@ -1,0 +1,86 @@
+name: Uptime
+
+# Vigia externo do site (independente do Vercel e do Supabase). A cada 15 min confere:
+# 1. /api/health: o banco responde (cota de saída excedida, projeto pausado ou banco fora do ar
+#    derrubam a home e passam despercebidos pelos testes);
+# 2. a home com User-Agent de iPhone: HTTP 200 e sem a tela "Algo deu errado";
+# 3. a publicação anda: a matéria mais recente tem menos de MAX_STALE_MIN minutos (padrão 12 h).
+# Falha: o job fica vermelho (o GitHub avisa por e-mail quem criou o agendamento) e abre UM issue
+# "Alerta: site fora do ar ou degradado"; ao voltar ao normal o issue recebe um comentário e fecha.
+# Variáveis opcionais do repositório: SITE_URL, MAX_STALE_MIN.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Conferir saúde, home e frescor da publicação
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://citynewscuiaba.vercel.app' }}
+          MAX_STALE_MIN: ${{ vars.MAX_STALE_MIN || '720' }}
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          base="${SITE_URL%/}"
+          ua="Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+          problems=""
+          add() { echo "::error::$1"; problems="${problems}- $1"$'\n'; }
+
+          # 1. Saúde (3 tentativas, para não alarmar com um soluço de rede).
+          healthy=0
+          for i in 1 2 3; do
+            code=$(curl -sS -o health.json -w '%{http_code}' --max-time 20 "$base/api/health?probe=$GITHUB_RUN_ID-$i" || echo 000)
+            if [ "$code" = "200" ] && [ "$(jq -r '.db' health.json 2>/dev/null)" = "true" ]; then healthy=1; break; fi
+            echo "tentativa $i: /api/health respondeu $code"
+            sleep 20
+          done
+          if [ "$healthy" != "1" ]; then
+            add "/api/health não confirmou o banco (último HTTP $code). Causas comuns: cota de saída do Supabase excedida, projeto pausado ou banco fora do ar."
+          fi
+
+          # 2. Home como no iPhone.
+          hcode=$(curl -sS -A "$ua" -o home.html -w '%{http_code}' --max-time 30 "$base/?probe=$GITHUB_RUN_ID" || echo 000)
+          if [ "$hcode" != "200" ]; then
+            add "A home respondeu HTTP $hcode (esperado 200)."
+          elif grep -q "Algo deu errado" home.html; then
+            add "A home devolveu a tela \"Algo deu errado\"."
+          elif ! grep -q "CityNews" home.html; then
+            add "A home respondeu 200, mas sem o conteúdo esperado."
+          fi
+
+          # 3. Publicação parada.
+          if [ "$healthy" = "1" ]; then
+            age=$(jq -r '.newestArticleAgeMin // empty' health.json)
+            if [ -n "$age" ] && [ "$age" -gt "$MAX_STALE_MIN" ]; then
+              add "Publicação parada: a matéria mais recente tem $((age / 60)) h (limite $((MAX_STALE_MIN / 60)) h)."
+            fi
+          fi
+
+          # Issue único: abre na primeira falha, fecha quando volta ao normal.
+          title="Alerta: site fora do ar ou degradado"
+          open=$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty' 2>/dev/null || true)
+          if [ -n "$problems" ]; then
+            if [ -z "$open" ]; then
+              gh issue create --title "$title" \
+                --body "$(printf 'O vigia detectou:\n\n%s\nVerificação: %s\n\nO issue fecha sozinho quando o site voltar ao normal.' "$problems" "$RUN_URL")" || true
+            fi
+            exit 1
+          fi
+          echo "Site saudável (matéria mais recente há ${age:-?} min)."
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --body "O site voltou ao normal. Verificação: $RUN_URL" || true
+            gh issue close "$open" --reason completed || true
+          fi
