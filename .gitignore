@@ -37,3 +37,27 @@ supabase/.branches/
 
 # venv do gerador do relatório de segurança
 docs/security-audit/.venv/
+
+# HyperFrames (skills instaladas por `npx skills add`, capturas e snapshots locais)
+.agents/
+skills-lock.json
+.claude/skills/embedded-captions
+.claude/skills/faceless-explainer
+.claude/skills/figma
+.claude/skills/general-video
+.claude/skills/hyperframes
+.claude/skills/hyperframes-*
+.claude/skills/media-use
+.claude/skills/motion-graphics
+.claude/skills/music-to-video
+.claude/skills/pr-to-video
+.claude/skills/product-launch-video
+.claude/skills/remotion-to-hyperframes
+.claude/skills/slideshow
+.claude/skills/talking-head-recut
+videos/*/capture/
+videos/*/snapshots/
+videos/*/renders/
+videos/*/.hyperframes/
+videos/*/assets/**/raw-*.wav
+videos/*/assets/**/ref.wav
