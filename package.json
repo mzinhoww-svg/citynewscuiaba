@@ -25,7 +25,8 @@
     "sw:build": "node scripts/build-sw.mjs",
     "icons:build": "node scripts/build-icons.mjs",
     "icons:sprite": "node scripts/build-icon-sprite.mjs",
-    "push:keys": "web-push generate-vapid-keys --json"
+    "push:keys": "web-push generate-vapid-keys --json",
+    "lint:ui": "lintapple http://localhost:3000"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.57",
@@ -68,6 +69,7 @@
     "eslint-config-prettier": "^10.1.8",
     "impeccable": "^4.1.0",
     "jsdom": "^30.1.1",
+    "lintapple": "github:gholtzap/lintapple#d374ea881e918e484920dee9337fe64ca9e8f762",
     "prettier": "^3.9.9",
     "tailwindcss": "^4",
     "typescript": "^5",
