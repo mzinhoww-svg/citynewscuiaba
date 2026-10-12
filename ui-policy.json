@@ -1,0 +1,32 @@
+{
+  "fonts": ["schibsted", "sourceSerif"],
+  "fontSizes": [12, 13, 14, 16, 18, 20, 24, 28, 32, 40, 56],
+  "typeRules": [
+    { "selector": "h1", "sizes": [24, 28, 32, 40, 56] },
+    { "selector": "h2", "sizes": [16, 18, 20, 24, 28, 32] },
+    { "selector": "h3", "sizes": [14, 16, 18, 20] },
+    { "selector": "button, [role=button]", "sizes": [14, 16] }
+  ],
+  "minControlSize": 15,
+  "controlSizeRules": [],
+  "minControlGap": 8,
+  "minControlInset": 8,
+  "controlContainers": ["[data-ui-container]"],
+  "minLayoutGap": 8,
+  "bannedCopy": [
+    "unlock your potential",
+    "seamlessly",
+    "game-changing",
+    "resumo por IA",
+    "gerado por IA",
+    "publicado automaticamente",
+    "normalizado pelo CityNews",
+    "inteligência artificial"
+  ],
+  "viewports": [
+    { "width": 390, "height": 844 },
+    { "width": 1440, "height": 900 }
+  ],
+  "colorSchemes": ["light", "dark"],
+  "exceptions": []
+}
