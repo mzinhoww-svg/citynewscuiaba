@@ -127,8 +127,8 @@ importers:
         specifier: ^30.1.1
         version: 30.1.1
       lintapple:
-        specifier: github:gholtzap/lintapple#d374ea881e918e484920dee9337fe64ca9e8f762
-        version: git+https://git@github.com:gholtzap/lintapple.git#d374ea881e918e484920dee9337fe64ca9e8f762
+        specifier: 0.1.20
+        version: 0.1.20
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -3098,9 +3098,8 @@ packages:
   linkifyjs@4.3.3:
     resolution: {integrity: sha512-P8aEP5U/D1/IlTY2OeYsErdwh9bGuLE30NcXtKEjgdHcahveQoQwM2yZNsioQHsWFz0P7KKudisbrzCgR0sDHg==}
 
-  lintapple@git+https://git@github.com:gholtzap/lintapple.git#d374ea881e918e484920dee9337fe64ca9e8f762:
-    resolution: {commit: d374ea881e918e484920dee9337fe64ca9e8f762, repo: git@github.com:gholtzap/lintapple.git, type: git}
-    version: 0.1.21
+  lintapple@0.1.20:
+    resolution: {integrity: sha512-n5wXJQci3ygYTvTI5eyX4otVVkOzEpkZnH5b+PBtciivnROaH4ZhDmb4nBeJ8Nhbm+SXggRLrccIShmqOSHV8w==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -7411,7 +7410,7 @@ snapshots:
 
   linkifyjs@4.3.3: {}
 
-  lintapple@git+https://git@github.com:gholtzap/lintapple.git#d374ea881e918e484920dee9337fe64ca9e8f762:
+  lintapple@0.1.20:
     dependencies:
       axe-core: 4.14.0
       playwright: 1.56.1
